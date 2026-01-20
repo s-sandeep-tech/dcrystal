@@ -13,8 +13,6 @@ services:
 
   server:
     build: ./server
-    ports:
-      - "5000:5000"
     env_file: .env
     depends_on:
       redis:
@@ -22,8 +20,6 @@ services:
 
   socket-server:
     build: ./socket-server
-    ports:
-      - "3000:3000"
     env_file: .env
     depends_on:
       redis:
