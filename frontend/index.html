@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Real-time Dashboard</h1>
+            <div id="connection-status" class="status-badge">Connecting...</div>
+        </header>
+
+        <main class="dashboard-grid">
+            <!-- View 1: Analytics -->
+            <section class="card" id="view-analytics">
+                <h2>Analytics</h2>
+                <div class="metric">
+                    <span class="label">Total Visits</span>
+                    <span class="value" id="visits-value">0</span>
+                </div>
+                <div class="metric">
+                    <span class="label">Active Users</span>
+                    <span class="value" id="users-value">0</span>
+                </div>
+            </section>
+
+            <!-- View 2: Sales -->
+            <section class="card" id="view-sales">
+                <h2>Sales</h2>
+                <div class="metric">
+                    <span class="label">Revenue</span>
+                    <span class="value" id="revenue-value">$0</span>
+                </div>
+                <div class="metric">
+                    <span class="label">Transactions</span>
+                    <span class="value" id="transactions-value">0</span>
+                </div>
+            </section>
+
+            <!-- Update Controls (For Demo) -->
+            <section class="card controls">
+                <h2>Simulate Update</h2>
+                <div class="input-group">
+                    <label>View ID</label>
+                    <select id="update-view">
+                        <option value="analytics">Analytics</option>
+                        <option value="sales">Sales</option>
+                    </select>
+                </div>
+                <button onclick="simulateUpdate()">Send Random Update</button>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const socket = io({
+            path: '/realtimedata/'
+        });
+        const statusBadge = document.getElementById('connection-status');
+
+        socket.on('connect', () => {
+            statusBadge.textContent = 'Connected';
+            statusBadge.classList.add('online');
+            console.log('Connected to socket server');
+        });
+
+        socket.on('disconnect', () => {
+            statusBadge.textContent = 'Disconnected';
+            statusBadge.classList.remove('online');
+        });
+
+        // Listen for specific dashboard updates
+        socket.on('update:analytics', (data) => {
+            console.log('Analytics update:', data);
+            if (data.visits !== undefined) document.getElementById('visits-value').textContent = data.visits;
+            if (data.users !== undefined) document.getElementById('users-value').textContent = data.users;
+            highlightCard('view-analytics');
+        });
+
+        socket.on('update:sales', (data) => {
+            console.log('Sales update:', data);
+            if (data.revenue !== undefined) document.getElementById('revenue-value').textContent = '$' + data.revenue;
+            if (data.transactions !== undefined) document.getElementById('transactions-value').textContent = data.transactions;
+            highlightCard('view-sales');
+        });
+
+        function highlightCard(id) {
+            const card = document.getElementById(id);
+            card.classList.add('pulse');
+            setTimeout(() => card.classList.remove('pulse'), 500);
+        }
+
+        async function simulateUpdate() {
+            const viewId = document.getElementById('update-view').value;
+            let payload = {};
+
+            if (viewId === 'analytics') {
+                payload = { visits: Math.floor(Math.random() * 1000), users: Math.floor(Math.random() * 100) };
+            } else {
+                payload = { revenue: Math.floor(Math.random() * 5000), transactions: Math.floor(Math.random() * 50) };
+            }
+
+            try {
+                await fetch('/api/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ view_id: viewId, payload: payload })
+                });
+            } catch (err) {
+                console.error('Failed to simulate update:', err);
+            }
+        }
+    </script>
+</body>
+
+</html>
