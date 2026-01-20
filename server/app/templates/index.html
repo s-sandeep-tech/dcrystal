@@ -4,60 +4,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-time Dashboard</title>
+    <title>DCrystal | Professional Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 
 <body>
     <div class="container">
         <header>
-            <h1>Real-time Dashboard</h1>
+            <div class="logo-section">
+                <h1>DCrystal <span style="font-weight: 300; opacity: 0.5;">v2.0</span></h1>
+            </div>
             <div class="header-info">
-                <span id="last-updated" class="text-muted" style="margin-right: 15px; font-size: 0.8rem;">Last Updated:
-                    Never</span>
-                <div id="connection-status" class="status-badge">Connecting...</div>
+                <span id="last-updated">Last Sync: Never</span>
+                <div id="connection-status" class="status-badge">Connecting</div>
             </div>
         </header>
 
         <main class="dashboard-grid">
-            <!-- View 1: Analytics -->
+            <!-- Analytics Overview -->
             <section class="card" id="view-analytics">
-                <h2>Analytics</h2>
-                <div class="metric">
-                    <span class="label">Total Visits</span>
-                    <span class="value" id="visits-value">0</span>
+                <div class="card-header">
+                    <h2>Traffic Analysis</h2>
+                    <div class="live-indicator">
+                        <span class="dot"></span> Live
+                    </div>
                 </div>
-                <div class="metric">
-                    <span class="label">Active Users</span>
-                    <span class="value" id="users-value">0</span>
+                <div class="main-metric">
+                    <span class="value" id="visits-value">1,284</span>
+                    <span class="sub-label">Total Visits today</span>
+                </div>
+                <div class="sub-metrics">
+                    <div class="sub-metric">
+                        <span class="sub-label">Active Users</span>
+                        <span class="sub-value" id="users-value">42</span>
+                    </div>
+                    <div class="sub-metric">
+                        <span class="sub-label">Bounce Rate</span>
+                        <span class="sub-value">24.5%</span>
+                    </div>
                 </div>
             </section>
 
-            <!-- View 2: Sales -->
+            <!-- Revenue Overview -->
             <section class="card" id="view-sales">
-                <h2>Sales</h2>
-                <div class="metric">
-                    <span class="label">Revenue</span>
-                    <span class="value" id="revenue-value">$0</span>
+                <div class="card-header">
+                    <h2>Market Revenue</h2>
+                    <div class="card-icon" style="color: var(--success);"><i class="ph-bold ph-currency-dollar"></i>
+                    </div>
                 </div>
-                <div class="metric">
-                    <span class="label">Transactions</span>
-                    <span class="value" id="transactions-value">0</span>
+                <div class="main-metric">
+                    <span class="value" id="revenue-value">$8,420</span>
+                    <span class="sub-label">Revenue generated (USD)</span>
+                </div>
+                <div class="sub-metrics">
+                    <div class="sub-metric">
+                        <span class="sub-label">Transactions</span>
+                        <span class="sub-value" id="transactions-value">156</span>
+                    </div>
+                    <div class="sub-metric">
+                        <span class="sub-label">Avg. Order</span>
+                        <span class="sub-value">$54.00</span>
+                    </div>
                 </div>
             </section>
 
-            <!-- Update Controls (For Demo) -->
-            <section class="card controls">
-                <h2>Simulate Update</h2>
-                <div class="input-group">
-                    <label>View ID</label>
-                    <select id="update-view">
-                        <option value="analytics">Analytics</option>
-                        <option value="sales">Sales</option>
-                    </select>
+            <!-- System Performance -->
+            <section class="card" id="view-system">
+                <div class="card-header">
+                    <h2>System Health</h2>
+                    <div class="card-icon" style="color: var(--accent);"><i class="ph-bold ph-cpu"></i></div>
                 </div>
-                <button onclick="simulateUpdate()">Send Random Update</button>
+                <div class="main-metric">
+                    <span class="value" id="load-value">12%</span>
+                    <span class="sub-label">Server CPU Load</span>
+                </div>
+                <div class="sub-metrics">
+                    <div class="sub-metric">
+                        <span class="sub-label">Memory</span>
+                        <span class="sub-value" id="memory-value">2.4 GB</span>
+                    </div>
+                    <div class="sub-metric">
+                        <span class="sub-label">Uptime</span>
+                        <span class="sub-value">99.99%</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Network Status -->
+            <section class="card" id="view-network">
+                <div class="card-header">
+                    <h2>Network Stats</h2>
+                    <div class="card-icon" style="color: var(--secondary);"><i class="ph-bold ph-broadcast"></i></div>
+                </div>
+                <div class="main-metric">
+                    <span class="value" id="latency-value">24ms</span>
+                    <span class="sub-label">Average Latency</span>
+                </div>
+                <div class="sub-metrics">
+                    <div class="sub-metric">
+                        <span class="sub-label">Error Rate</span>
+                        <span class="sub-value" id="error-rate">0.02%</span>
+                    </div>
+                    <div class="sub-metric">
+                        <span class="sub-label">Bandwidth</span>
+                        <span class="sub-value">4.2 Gbps</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- User Activity Graph Placeholder -->
+            <section class="card card-wide">
+                <div class="card-header">
+                    <h2>Real-time Engagement</h2>
+                    <span class="sub-label">Activity levels across all segments</span>
+                </div>
+                <div style="height: 120px; display: flex; align-items: flex-end; gap: 8px; margin-top: 1rem;">
+                    <!-- Simple CSS bars as dummy graph -->
+                    <div style="flex: 1; background: var(--primary); height: 40%; border-radius: 4px; opacity: 0.6;">
+                    </div>
+                    <div style="flex: 1; background: var(--primary); height: 70%; border-radius: 4px; opacity: 0.8;">
+                    </div>
+                    <div style="flex: 1; background: var(--primary); height: 55%; border-radius: 4px; opacity: 0.7;">
+                    </div>
+                    <div style="flex: 1; background: var(--primary); height: 90%; border-radius: 4px; opacity: 1;">
+                    </div>
+                    <div style="flex: 1; background: var(--primary); height: 45%; border-radius: 4px; opacity: 0.65;">
+                    </div>
+                    <div style="flex: 1; background: var(--primary); height: 65%; border-radius: 4px; opacity: 0.85;">
+                    </div>
+                    <div style="flex: 1; background: var(--primary); height: 30%; border-radius: 4px; opacity: 0.5;">
+                    </div>
+                    <div style="flex: 1; background: var(--primary); height: 80%; border-radius: 4px; opacity: 0.9;">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Control Panel -->
+            <section class="card controls-card">
+                <div class="control-group">
+                    <div class="card-icon"><i class="ph-bold ph-gear-six"></i></div>
+                    <div>
+                        <h2 style="margin-bottom: 0.25rem;">Control Center</h2>
+                        <span class="sub-label">Simulate incoming real-time events</span>
+                    </div>
+                </div>
+
+                <div class="simulate-box">
+                    <select id="update-view">
+                        <option value="analytics">Traffic Analysis</option>
+                        <option value="sales">Market Revenue</option>
+                        <option value="system">System Health</option>
+                        <option value="network">Network Stats</option>
+                    </select>
+                    <button onclick="simulateUpdate()">Trigger Update</button>
+                </div>
             </section>
         </main>
     </div>
@@ -67,11 +170,12 @@
             path: '/realtimedata/'
         });
         const statusBadge = document.getElementById('connection-status');
+        const syncLabel = document.getElementById('last-updated');
 
         socket.on('connect', () => {
             statusBadge.textContent = 'Connected';
             statusBadge.classList.add('online');
-            document.getElementById('last-updated').textContent = 'Last Sync: ' + new Date().toLocaleTimeString();
+            syncLabel.textContent = 'Last Sync: ' + new Date().toLocaleTimeString();
             console.log('Connected to socket server');
         });
 
@@ -80,25 +184,41 @@
             statusBadge.classList.remove('online');
         });
 
-        // Listen for specific dashboard updates
+        // Universal listener for overview data
+        socket.on('dashboard_global', (data) => {
+            syncLabel.textContent = 'Last Sync: ' + new Date().toLocaleTimeString();
+        });
+
+        // View specific listeners
         socket.on('update:analytics', (data) => {
-            console.log('Analytics update:', data);
-            if (data.visits !== undefined) document.getElementById('visits-value').textContent = data.visits;
+            if (data.visits !== undefined) document.getElementById('visits-value').textContent = data.visits.toLocaleString();
             if (data.users !== undefined) document.getElementById('users-value').textContent = data.users;
-            highlightCard('view-analytics');
+            triggerPulse('view-analytics');
         });
 
         socket.on('update:sales', (data) => {
-            console.log('Sales update:', data);
-            if (data.revenue !== undefined) document.getElementById('revenue-value').textContent = '$' + data.revenue;
+            if (data.revenue !== undefined) document.getElementById('revenue-value').textContent = '$' + data.revenue.toLocaleString();
             if (data.transactions !== undefined) document.getElementById('transactions-value').textContent = data.transactions;
-            highlightCard('view-sales');
+            triggerPulse('view-sales');
         });
 
-        function highlightCard(id) {
+        socket.on('update:system', (data) => {
+            if (data.load !== undefined) document.getElementById('load-value').textContent = data.load + '%';
+            if (data.memory !== undefined) document.getElementById('memory-value').textContent = data.memory + ' GB';
+            triggerPulse('view-system');
+        });
+
+        socket.on('update:network', (data) => {
+            if (data.latency !== undefined) document.getElementById('latency-value').textContent = data.latency + 'ms';
+            if (data.error_rate !== undefined) document.getElementById('error-rate').textContent = data.error_rate + '%';
+            triggerPulse('view-network');
+        });
+
+        function triggerPulse(id) {
             const card = document.getElementById(id);
+            card.classList.remove('pulse');
+            void card.offsetWidth; // trigger reflow
             card.classList.add('pulse');
-            setTimeout(() => card.classList.remove('pulse'), 500);
         }
 
         async function simulateUpdate() {
@@ -106,9 +226,25 @@
             let payload = {};
 
             if (viewId === 'analytics') {
-                payload = { visits: Math.floor(Math.random() * 1000), users: Math.floor(Math.random() * 100) };
-            } else {
-                payload = { revenue: Math.floor(Math.random() * 5000), transactions: Math.floor(Math.random() * 50) };
+                payload = {
+                    visits: Math.floor(Math.random() * 5000) + 1000,
+                    users: Math.floor(Math.random() * 200) + 10
+                };
+            } else if (viewId === 'sales') {
+                payload = {
+                    revenue: Math.floor(Math.random() * 10000) + 5000,
+                    transactions: Math.floor(Math.random() * 300) + 50
+                };
+            } else if (viewId === 'system') {
+                payload = {
+                    load: Math.floor(Math.random() * 100),
+                    memory: (Math.random() * 8 + 1).toFixed(1)
+                };
+            } else if (viewId === 'network') {
+                payload = {
+                    latency: Math.floor(Math.random() * 100) + 5,
+                    error_rate: (Math.random() * 0.5).toFixed(2)
+                };
             }
 
             try {
