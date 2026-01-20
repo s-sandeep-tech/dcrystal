@@ -19,7 +19,7 @@
             </div>
             <div class="header-info">
                 <span id="last-updated">Last Sync: Never</span>
-                <div id="connection-status" class="status-badge">Connecting</div>
+                <div id="connection-status" class="status-badge" title="Connection Status"></div>
             </div>
         </header>
 
@@ -173,14 +173,12 @@
         const syncLabel = document.getElementById('last-updated');
 
         socket.on('connect', () => {
-            statusBadge.textContent = 'Connected';
             statusBadge.classList.add('online');
             syncLabel.textContent = 'Last Sync: ' + new Date().toLocaleTimeString();
             console.log('Connected to socket server');
         });
 
         socket.on('disconnect', () => {
-            statusBadge.textContent = 'Disconnected';
             statusBadge.classList.remove('online');
         });
 

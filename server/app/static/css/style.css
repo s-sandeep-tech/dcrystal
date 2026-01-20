@@ -83,32 +83,25 @@ header {
 }
 
 .status-badge {
-    padding: 0.5rem 1.25rem;
-    border-radius: 9999px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: rgba(239, 68, 68, 0.15);
-    color: var(--danger);
-    border: 1px solid rgba(239, 68, 68, 0.2);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--danger);
+    border: 2px solid rgba(239, 68, 68, 0.3);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: help;
 }
 
 .status-badge.online {
-    background: rgba(16, 185, 129, 0.15);
-    color: var(--success);
-    border: 1px solid rgba(16, 185, 129, 0.2);
+    background: var(--success);
+    border-color: rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
 }
 
+/* Hide the ::before since we are using the main div now */
 .status-badge::before {
-    content: '';
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: currentColor;
-    box-shadow: 0 0 10px currentColor;
+    display: none;
 }
 
 /* Dashboard Grid */
