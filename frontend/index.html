@@ -13,7 +13,11 @@
     <div class="container">
         <header>
             <h1>Real-time Dashboard</h1>
-            <div id="connection-status" class="status-badge">Connecting...</div>
+            <div class="header-info">
+                <span id="last-updated" class="text-muted" style="margin-right: 15px; font-size: 0.8rem;">Last Updated:
+                    Never</span>
+                <div id="connection-status" class="status-badge">Connecting...</div>
+            </div>
         </header>
 
         <main class="dashboard-grid">
@@ -67,6 +71,7 @@
         socket.on('connect', () => {
             statusBadge.textContent = 'Connected';
             statusBadge.classList.add('online');
+            document.getElementById('last-updated').textContent = 'Last Sync: ' + new Date().toLocaleTimeString();
             console.log('Connected to socket server');
         });
 
