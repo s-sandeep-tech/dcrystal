@@ -15,8 +15,7 @@ services:
     build: ./server
     ports:
       - "5000:5000"
-    environment:
-      - REDIS_HOST=redis
+    env_file: .env
     depends_on:
       redis:
         condition: service_healthy
@@ -25,8 +24,7 @@ services:
     build: ./socket-server
     ports:
       - "3000:3000"
-    environment:
-      - REDIS_URL=redis://redis:6379
+    env_file: .env
     depends_on:
       redis:
         condition: service_healthy
