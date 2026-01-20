@@ -7,4 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["python", "app.py"]
+# Set PYTHONPATH to include current directory for package resolution
+ENV PYTHONPATH=/app
+
+CMD ["python", "run.py"]

@@ -1,22 +1,17 @@
-import os
-import redis
 import json
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask import Blueprint, request, jsonify
+from app.extensions import redis_client as r
 
-app = Flask(__name__)
-CORS(app)
+api_bp = Blueprint('api', __name__)
 
-# Redis Configuration
-REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
-REDIS_PORT = os.getenv('REDIS_PORT', 6379)
-r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
-
-@app.route('/health')
+@api_bp.route('/health')
 def health():
-    return jsonify({"status": "healthy", "redis": r.ping()})
+    try:
+        return jsonify({"status": "healthy", "redis": r.ping()})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route('/update', methods=['POST'])
+@api_bp.route('/update', methods=['POST'])
 def update_dashboard():
     data = request.json
     view_id = data.get('view_id', 'default')
@@ -34,12 +29,9 @@ def update_dashboard():
     
     return jsonify({"message": f"Updated {view_id}", "data": event_data})
 
-@app.route('/data/<view_id>')
+@api_bp.route('/data/<view_id>')
 def get_dashboard_data(view_id):
     cached_data = r.get(f"dashboard:{view_id}")
     if cached_data:
         return jsonify(json.loads(cached_data))
     return jsonify({}), 404
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)

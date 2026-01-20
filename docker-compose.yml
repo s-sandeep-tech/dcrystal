@@ -31,13 +31,6 @@ services:
       redis:
         condition: service_healthy
 
-  frontend:
-    build: ./frontend
-    # No direct port exposure, handled by nginx
-    depends_on:
-      - backend
-      - socket-server
-
   nginx:
     image: nginx:alpine
     volumes:
@@ -45,6 +38,5 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - frontend
       - backend
       - socket-server
