@@ -1,0 +1,38 @@
+{% if notifications %}
+{% for notif in notifications %}
+<div
+    class="p-3 border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors {% if not notif.is_read %}bg-blue-50/30{% endif %}">
+    <div class="flex gap-3">
+        <div class="shrink-0 mt-0.5">
+            <span
+                class="material-symbols-outlined {% if notif.notification_type == 'success' %}text-emerald-500{% elif notif.notification_type == 'warning' %}text-amber-500{% elif notif.notification_type == 'error' %}text-red-500{% elif notif.notification_type == 'alert' %}text-purple-500{% else %}text-blue-500{% endif %} text-base">{{
+                notif.icon }}</span>
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between gap-2">
+                <p class="text-[11px] font-bold text-gray-700 dark:text-gray-200 leading-tight">{{ notif.title }}</p>
+                {% if not notif.is_read %}
+                <span class="size-2 bg-primary rounded-full shrink-0 mt-1"></span>
+                {% endif %}
+            </div>
+            <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-1 leading-snug">{{ notif.message }}</p>
+            <div class="flex items-center justify-between mt-1.5">
+                <p
+                    class="text-[9px] font-bold {% if notif.notification_type == 'success' %}text-emerald-600{% elif notif.notification_type == 'warning' %}text-amber-600{% elif notif.notification_type == 'error' %}text-red-600{% elif notif.notification_type == 'alert' %}text-purple-600{% else %}text-blue-600{% endif %}">
+                    {{ notif.get_time_ago() }}</p>
+                {% if notif.related_order_id %}
+                <span
+                    class="text-[8px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-gray-600 dark:text-gray-400 font-mono">{{
+                    notif.related_order_id }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="py-12 text-center">
+    <span class="material-symbols-outlined text-gray-200 dark:text-gray-700 text-4xl">notifications_off</span>
+    <p class="text-[11px] text-gray-400 mt-2">No new notifications</p>
+</div>
+{% endif %}

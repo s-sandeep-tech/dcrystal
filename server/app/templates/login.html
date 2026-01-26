@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Login - DCrystal Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                    },
+                    fontFamily: { "display": ["Inter"] },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #137fec 0%, #6366f1 100%);
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .dark .glass {
+            background: rgba(16, 25, 34, 0.85);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <div class="glass rounded-2xl shadow-2xl p-8 transition-all duration-300">
+            <div class="flex flex-col items-center mb-8">
+                <div class="size-12 bg-primary rounded-xl flex items-center justify-center text-white mb-4 shadow-lg">
+                    <span class="material-symbols-outlined text-2xl">shield_with_heart</span>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Welcome Back</h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 text-center">Enter your credentials to access
+                    the DCrystal Master Registry</p>
+            </div>
+
+            <form id="loginForm" class="space-y-5">
+                <div class="space-y-1.5">
+                    <label class="text-[11px] font-bold text-gray-400 uppercase tracking-widest pl-1">Username</label>
+                    <div class="relative">
+                        <span
+                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">person</span>
+                        <input id="username" type="text" required
+                            class="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white"
+                            placeholder="admin">
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[11px] font-bold text-gray-400 uppercase tracking-widest pl-1">Password</label>
+                    <div class="relative">
+                        <span
+                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">lock</span>
+                        <input id="password" type="password" required
+                            class="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white"
+                            placeholder="••••••••">
+                    </div>
+                </div>
+
+                <div id="errorMsg"
+                    class="hidden p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-lg text-[11px] text-red-600 font-bold flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">error</span>
+                    <span id="errorText">Invalid username or password</span>
+                </div>
+
+                <button type="submit" id="submitBtn"
+                    class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-lg text-sm shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 group">
+                    <span>SIGN IN</span>
+                    <span
+                        class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                </button>
+            </form>
+
+            <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 text-center">
+                <p class="text-xs text-gray-400">Need help? <a href="#"
+                        class="text-primary font-bold hover:underline">Contact Support</a></p>
+            </div>
+        </div>
+
+        <p class="text-center mt-6 text-white/60 text-xs font-medium uppercase tracking-[0.2em]">&copy; 2026 DCrystal
+            Intelligence</p>
+    </div>
+
+    <script>
+        // Check if already logged in
+        if (localStorage.getItem('access_token')) {
+            window.location.href = '/';
+        }
+
+        const loginForm = document.getElementById('loginForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const errorMsg = document.getElementById('errorMsg');
+        const errorText = document.getElementById('errorText');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="size-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>';
+            errorMsg.classList.add('hidden');
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = '/';
+                } else {
+                    errorText.textContent = data.msg || 'Authentication failed';
+                    errorMsg.classList.remove('hidden');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<span>SIGN IN</span><span class="material-symbols-outlined text-lg">arrow_forward</span>';
+                }
+            } catch (error) {
+                errorText.textContent = 'Server connection failed';
+                errorMsg.classList.remove('hidden');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span>SIGN IN</span><span class="material-symbols-outlined text-lg">arrow_forward</span>';
+            }
+        });
+    </script>
+</body>
+
+</html>

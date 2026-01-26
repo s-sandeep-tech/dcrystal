@@ -1,5 +1,6 @@
 import json
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from app.extensions import redis_client as r
 
 api_bp = Blueprint('api', __name__)
@@ -12,6 +13,7 @@ def health():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @api_bp.route('/update', methods=['POST'])
+@jwt_required()
 def update_dashboard():
     data = request.json
     view_id = data.get('view_id', 'default')
@@ -30,6 +32,7 @@ def update_dashboard():
     return jsonify({"message": f"Updated {view_id}", "data": event_data})
 
 @api_bp.route('/data/<view_id>')
+@jwt_required()
 def get_dashboard_data(view_id):
     cached_data = r.get(f"dashboard:{view_id}")
     if cached_data:

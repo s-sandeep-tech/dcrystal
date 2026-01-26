@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const redis = require('redis');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const server = http.createServer(app);
@@ -11,6 +12,28 @@ const io = new Server(server, {
     origin: "*",
     methods: ["GET", "POST"]
   }
+});
+
+const JWT_SECRET = process.env.JWT_SECRET_KEY || 'super-secret-key-change-me';
+
+// Authentication middleware
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token || socket.handshake.headers['authorization'];
+
+  if (!token) {
+    return next(new Error('Authentication error: Token missing'));
+  }
+
+  // Handle "Bearer <token>" format if necessary
+  const jwtToken = token.startsWith('Bearer ') ? token.slice(7) : token;
+
+  jwt.verify(jwtToken, JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return next(new Error('Authentication error: Invalid token'));
+    }
+    socket.user = decoded;
+    next();
+  });
 });
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';

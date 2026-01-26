@@ -1,6 +1,20 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=meetaccess
+      - POSTGRES_=meetpass
+      - POSTGRES_DB=dcrystaldb
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U meetaccess -d dcrystaldb" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:alpine
     healthcheck:
@@ -12,13 +26,22 @@ services:
   server:
     build: ./server
     env_file: .env
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://meetaccess:meetpass@db:5432/dcrystaldb
+      - REDIS_HOST=redis
     depends_on:
+      db:
+        condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - ./server:/app
 
   socket-server:
     build: ./socket-server
     env_file: .env
+    environment:
+      - REDIS_HOST=redis
     depends_on:
       redis:
         condition: service_healthy

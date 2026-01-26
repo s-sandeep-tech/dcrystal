@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Aligned Jewellery Process Drill-Down Dashboard{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/inventory.css') }}">
+{% endblock %}
+
+{% block content %}
+<main id="inventory-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    <!-- Header with MANAGER/OPS/AUDIT buttons -->
+    <div
+        class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <h2 class="text-sm font-bold tracking-tight">Jewellery Process Drill-Down <span
+                    class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded uppercase tracking-widest text-gray-500">v2.5
+                    Enterprise</span></h2>
+            <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 ml-4">
+                <button id="btn-make" onclick="setView('make')"
+                    class="view-btn px-3 py-1 text-[10px] font-bold rounded bg-white dark:bg-gray-700 shadow-sm text-primary flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px]">diamond</span>MAKE</button>
+                <button id="btn-collection" onclick="setView('collection')"
+                    class="view-btn px-3 py-1 text-[10px] font-bold text-gray-500 hover:text-gray-700 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px]">category</span>COLLECTION</button>
+                <button id="btn-party" onclick="setView('party')"
+                    class="view-btn px-3 py-1 text-[10px] font-bold text-gray-500 hover:text-gray-700 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px]">groups</span>PARTY</button>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- Font Size Controls -->
+            <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
+                <button onclick="adjustZoom(-0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom Out">-</button>
+                <button id="zoom-level" onclick="adjustZoom(0, true)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700"
+                    title="Reset Zoom">100%</button>
+                <button onclick="adjustZoom(0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom In">+</button>
+            </div>
+            <div
+                class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
+                <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
+                <input
+                    class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0"
+                    placeholder="Filter hierarchy..." type="text" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div
+        class="grid grid-cols-8 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Items</p>
+            <p class="text-sm font-bold text-primary">8,416</p>
+        </div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center text-emerald-600">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Completed</p>
+            <p class="text-sm font-bold">7,854</p>
+        </div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center text-amber-600">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Pending</p>
+            <p class="text-sm font-bold">562</p>
+        </div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center text-red-600">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Issues</p>
+            <p class="text-sm font-bold">12</p>
+        </div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Work Centers</p>
+            <p class="text-sm font-bold">24</p>
+        </div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Avg TAT</p>
+            <p class="text-sm font-bold">4.2d</p>
+        </div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Purity Comp.</p>
+            <p class="text-sm font-bold">99.8%</p>
+        </div>
+        <div class="p-2 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Health Index</p>
+            <div class="flex items-center justify-center gap-1.5 mt-1">
+                <span class="text-sm font-bold text-emerald-600">88%</span>
+            </div>
+            <div class="w-full bg-gray-100 dark:bg-gray-800 h-1.5 rounded-full mt-1 overflow-hidden">
+                <div class="bg-emerald-500 h-full w-[88%]"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stage Definitions Legend & Pagination -->
+    <div
+        class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0 overflow-x-auto no-scrollbar">
+
+        <!-- Left: Legend -->
+        <div class="flex items-center gap-4">
+            <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Stage
+                Legend:</span>
+            <div class="flex items-center gap-4 text-[10px]">
+                <div class="flex items-center gap-1.5 whitespace-nowrap"><span
+                        class="flex items-center justify-center w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400 text-[9px]">A</span>
+                    <span class="text-gray-500">Ordered</span>
+                </div>
+                <div class="flex items-center gap-1.5 whitespace-nowrap"><span
+                        class="flex items-center justify-center w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400 text-[9px]">B</span>
+                    <span class="text-gray-500">Accepted</span>
+                </div>
+                <!-- ... C, D, E, F ... skipped for brevity, keeping all existing stages ... -->
+                <div class="flex items-center gap-1.5 whitespace-nowrap"><span
+                        class="flex items-center justify-center w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400 text-[9px]">C</span>
+                    <span class="text-gray-500">Barcoded</span>
+                </div>
+                <div class="flex items-center gap-1.5 whitespace-nowrap"><span
+                        class="flex items-center justify-center w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400 text-[9px]">D</span>
+                    <span class="text-gray-500">HM</span>
+                </div>
+                <div class="flex items-center gap-1.5 whitespace-nowrap"><span
+                        class="flex items-center justify-center w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400 text-[9px]">E</span>
+                    <span class="text-gray-500">Quality Checked</span>
+                </div>
+                <div class="flex items-center gap-1.5 whitespace-nowrap"><span
+                        class="flex items-center justify-center w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400 text-[9px]">F</span>
+                    <span class="text-gray-500">Invoiced</span>
+                </div>
+                <div class="flex items-center gap-1.5 whitespace-nowrap"><span
+                        class="flex items-center justify-center w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400 text-[9px]">G</span>
+                    <span class="text-gray-500">Delivered</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Pagination -->
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <div class="flex items-center gap-2">
+                <span class="text-gray-400">Rows per page:</span>
+                <select
+                    class="bg-transparent border-none text-[10px] font-bold text-gray-700 dark:text-gray-300 focus:ring-0 p-0 cursor-pointer">
+                    <option>50</option>
+                    <option>100</option>
+                    <option>200</option>
+                </select>
+            </div>
+            <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
+            <span class="font-medium text-gray-700 dark:text-gray-300">1-50 of 8,416</span>
+            <div class="flex items-center gap-1">
+                <button
+                    class="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-gray-700 disabled:opacity-50">
+                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                </button>
+                <button
+                    class="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-gray-700">
+                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Container -->
+    <div id="table-area" class="flex-1 overflow-auto relative">
+        <div id="view-make" class="dashboard-view" data-loaded="true">
+            {% include 'partials/_view_make.html' %}
+        </div>
+        <div id="view-collection" class="dashboard-view hidden" data-loaded="false">
+            <div class="flex flex-col items-center justify-center h-64">
+                <div class="inline-block size-8 border-4 border-primary border-t-transparent rounded-full animate-spin">
+                </div>
+                <p class="text-[11px] text-gray-400 mt-4 font-bold tracking-widest uppercase">Loading Collection View...
+                </p>
+            </div>
+        </div>
+        <div id="view-party" class="dashboard-view hidden" data-loaded="false">
+            <div class="flex flex-col items-center justify-center h-64">
+                <div class="inline-block size-8 border-4 border-primary border-t-transparent rounded-full animate-spin">
+                </div>
+                <p class="text-[11px] text-gray-400 mt-4 font-bold tracking-widest uppercase">Loading Party View...</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/inventory.js') }}"></script>
+{% endblock %}
+{% endblock %}

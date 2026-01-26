@@ -1,261 +1,308 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DCrystal | Professional Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-</head>
-
-<body>
-    <div class="container">
-        <header>
-            <div class="logo-section">
-                <h1>DCrystal <span style="font-weight: 300; opacity: 0.5;">v2.0</span></h1>
+{% block content %}
+<main class="flex-1 overflow-y-auto no-scrollbar bg-[#f8fafc] dark:bg-background-dark p-4">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+        <!-- Summary Stats -->
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 rounded">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-[10px] font-bold text-gray-400 uppercase">Active Orders</span>
+                <span class="text-[10px] text-emerald-600 font-bold">+12%</span>
             </div>
-            <div class="header-info">
-                <span id="last-updated">Last Sync: Never</span>
-                <div id="connection-status" class="status-badge" title="Connection Status"></div>
+            <div class="flex items-end justify-between">
+                <h3 class="text-xl font-bold">{{ stats.active_orders if stats else '0' }}</h3>
+                <svg class="w-16 h-8" viewBox="0 0 100 40">
+                    <polyline fill="none" points="0,35 15,30 30,35 45,20 60,25 75,10 100,5" stroke="#137fec"
+                        stroke-width="2"></polyline>
+                </svg>
             </div>
-        </header>
-
-        <main class="dashboard-grid">
-            <!-- Analytics Overview -->
-            <section class="card" id="view-analytics">
-                <div class="card-header">
-                    <h2>Traffic Analysis</h2>
-                    <div class="live-indicator">
-                        <span class="dot"></span> Live
-                    </div>
-                </div>
-                <div class="main-metric">
-                    <span class="value" id="visits-value">1,284</span>
-                    <span class="sub-label">Total Visits today</span>
-                </div>
-                <div class="sub-metrics">
-                    <div class="sub-metric">
-                        <span class="sub-label">Active Users</span>
-                        <span class="sub-value" id="users-value">42</span>
-                    </div>
-                    <div class="sub-metric">
-                        <span class="sub-label">Bounce Rate</span>
-                        <span class="sub-value">24.5%</span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Revenue Overview -->
-            <section class="card" id="view-sales">
-                <div class="card-header">
-                    <h2>Market Revenue</h2>
-                    <div class="card-icon" style="color: var(--success);"><i class="ph-bold ph-currency-dollar"></i>
-                    </div>
-                </div>
-                <div class="main-metric">
-                    <span class="value" id="revenue-value">$8,420</span>
-                    <span class="sub-label">Revenue generated (USD)</span>
-                </div>
-                <div class="sub-metrics">
-                    <div class="sub-metric">
-                        <span class="sub-label">Transactions</span>
-                        <span class="sub-value" id="transactions-value">156</span>
-                    </div>
-                    <div class="sub-metric">
-                        <span class="sub-label">Avg. Order</span>
-                        <span class="sub-value">$54.00</span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- System Performance -->
-            <section class="card" id="view-system">
-                <div class="card-header">
-                    <h2>System Health</h2>
-                    <div class="card-icon" style="color: var(--accent);"><i class="ph-bold ph-cpu"></i></div>
-                </div>
-                <div class="main-metric">
-                    <span class="value" id="load-value">12%</span>
-                    <span class="sub-label">Server CPU Load</span>
-                </div>
-                <div class="sub-metrics">
-                    <div class="sub-metric">
-                        <span class="sub-label">Memory</span>
-                        <span class="sub-value" id="memory-value">2.4 GB</span>
-                    </div>
-                    <div class="sub-metric">
-                        <span class="sub-label">Uptime</span>
-                        <span class="sub-value">99.99%</span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Network Status -->
-            <section class="card" id="view-network">
-                <div class="card-header">
-                    <h2>Network Stats</h2>
-                    <div class="card-icon" style="color: var(--secondary);"><i class="ph-bold ph-broadcast"></i></div>
-                </div>
-                <div class="main-metric">
-                    <span class="value" id="latency-value">24ms</span>
-                    <span class="sub-label">Average Latency</span>
-                </div>
-                <div class="sub-metrics">
-                    <div class="sub-metric">
-                        <span class="sub-label">Error Rate</span>
-                        <span class="sub-value" id="error-rate">0.02%</span>
-                    </div>
-                    <div class="sub-metric">
-                        <span class="sub-label">Bandwidth</span>
-                        <span class="sub-value">4.2 Gbps</span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- User Activity Graph Placeholder -->
-            <section class="card card-wide">
-                <div class="card-header">
-                    <h2>Real-time Engagement</h2>
-                    <span class="sub-label">Activity levels across all segments</span>
-                </div>
-                <div style="height: 120px; display: flex; align-items: flex-end; gap: 8px; margin-top: 1rem;">
-                    <!-- Simple CSS bars as dummy graph -->
-                    <div style="flex: 1; background: var(--primary); height: 40%; border-radius: 4px; opacity: 0.6;">
-                    </div>
-                    <div style="flex: 1; background: var(--primary); height: 70%; border-radius: 4px; opacity: 0.8;">
-                    </div>
-                    <div style="flex: 1; background: var(--primary); height: 55%; border-radius: 4px; opacity: 0.7;">
-                    </div>
-                    <div style="flex: 1; background: var(--primary); height: 90%; border-radius: 4px; opacity: 1;">
-                    </div>
-                    <div style="flex: 1; background: var(--primary); height: 45%; border-radius: 4px; opacity: 0.65;">
-                    </div>
-                    <div style="flex: 1; background: var(--primary); height: 65%; border-radius: 4px; opacity: 0.85;">
-                    </div>
-                    <div style="flex: 1; background: var(--primary); height: 30%; border-radius: 4px; opacity: 0.5;">
-                    </div>
-                    <div style="flex: 1; background: var(--primary); height: 80%; border-radius: 4px; opacity: 0.9;">
-                    </div>
-                </div>
-            </section>
-
-            <!-- Control Panel -->
-            <section class="card controls-card">
-                <div class="control-group">
-                    <div class="card-icon"><i class="ph-bold ph-gear-six"></i></div>
-                    <div>
-                        <h2 style="margin-bottom: 0.25rem;">Control Center</h2>
-                        <span class="sub-label">Simulate incoming real-time events</span>
-                    </div>
-                </div>
-
-                <div class="simulate-box">
-                    <select id="update-view">
-                        <option value="analytics">Traffic Analysis</option>
-                        <option value="sales">Market Revenue</option>
-                        <option value="system">System Health</option>
-                        <option value="network">Network Stats</option>
-                    </select>
-                    <button onclick="simulateUpdate()">Trigger Update</button>
-                </div>
-            </section>
-        </main>
+        </div>
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 rounded">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-[10px] font-bold text-gray-400 uppercase">Critical Delay</span>
+                <span class="text-[10px] text-red-500 font-bold">+5%</span>
+            </div>
+            <div class="flex items-end justify-between">
+                <h3 class="text-xl font-bold">{{ stats.critical_delay if stats else '0' }}</h3>
+                <svg class="w-16 h-8" viewBox="0 0 100 40">
+                    <polyline fill="none" points="0,10 20,20 40,15 60,30 80,25 100,35" stroke="#ef4444"
+                        stroke-width="2"></polyline>
+                </svg>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 rounded">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-[10px] font-bold text-gray-400 uppercase">SLA Compliance</span>
+                <span class="text-[10px] text-emerald-600 font-bold">94.2%</span>
+            </div>
+            <div class="flex items-end justify-between">
+                <h3 class="text-xl font-bold">{{ stats.sla_compliance if stats else '0' }}%</h3>
+                <svg class="w-16 h-8" viewBox="0 0 100 40">
+                    <polyline fill="none" points="0,30 25,25 50,28 75,15 100,10" stroke="#10b981" stroke-width="2">
+                    </polyline>
+                </svg>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 rounded">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-[10px] font-bold text-gray-400 uppercase">Avg Response Time</span>
+                <span class="text-[10px] text-gray-500 font-bold">Target 2h</span>
+            </div>
+            <div class="flex items-end justify-between">
+                <h3 class="text-xl font-bold">{{ stats.avg_response_time if stats else '0h' }}</h3>
+                <svg class="w-16 h-8" viewBox="0 0 100 40">
+                    <polyline fill="none" points="0,20 20,22 40,18 60,20 80,15 100,18" stroke="#6366f1"
+                        stroke-width="2"></polyline>
+                </svg>
+            </div>
+        </div>
     </div>
 
-    <script>
-        const socket = io({
-            path: '/realtimedata/'
-        });
-        const statusBadge = document.getElementById('connection-status');
-        const syncLabel = document.getElementById('last-updated');
+    <!-- Quick Status Badges -->
+    <div class="grid grid-cols-4 md:grid-cols-8 gap-3 mb-4">
+        <div
+            class="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 p-2 rounded text-center">
+            <p class="text-[9px] text-blue-600 font-bold uppercase">New Today</p>
+            <p class="text-sm font-bold">48</p>
+        </div>
+        <div
+            class="bg-orange-50/50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/30 p-2 rounded text-center">
+            <p class="text-[9px] text-orange-600 font-bold uppercase">Due Today</p>
+            <p class="text-sm font-bold">32</p>
+        </div>
+        <div
+            class="bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 p-2 rounded text-center">
+            <p class="text-[9px] text-red-600 font-bold uppercase">Overdue 24h</p>
+            <p class="text-sm font-bold">12</p>
+        </div>
+        <div
+            class="bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 p-2 rounded text-center">
+            <p class="text-[9px] text-red-600 font-bold uppercase">Overdue 48h+</p>
+            <p class="text-sm font-bold">07</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-800 p-2 rounded text-center border border-gray-200 dark:border-gray-700">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Pending Make</p>
+            <p class="text-sm font-bold">120</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-800 p-2 rounded text-center border border-gray-200 dark:border-gray-700">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">In Logistics</p>
+            <p class="text-sm font-bold">844</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-800 p-2 rounded text-center border border-gray-200 dark:border-gray-700">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">In Customs</p>
+            <p class="text-sm font-bold">215</p>
+        </div>
+        <div
+            class="bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 p-2 rounded text-center">
+            <p class="text-[9px] text-emerald-600 font-bold uppercase">Cleared</p>
+            <p class="text-sm font-bold">1,564</p>
+        </div>
+    </div>
 
-        socket.on('connect', () => {
-            statusBadge.classList.add('online');
-            syncLabel.textContent = 'Last Sync: ' + new Date().toLocaleTimeString();
-            console.log('Connected to socket server');
-        });
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <!-- Zone Distribution -->
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded">
+            <h4 class="text-xs font-bold mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-xs">public</span> ZONE DISTRIBUTION
+            </h4>
+            <div class="flex items-center gap-4">
+                <div class="relative size-24 flex-shrink-0">
+                    <svg class="size-full" viewBox="0 0 36 36">
+                        <path class="stroke-primary"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            fill="none" stroke-dasharray="40, 100" stroke-width="5"></path>
+                        <path class="stroke-orange-400"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            fill="none" stroke-dasharray="30, 100" stroke-dashoffset="-40" stroke-width="5"></path>
+                        <path class="stroke-emerald-400"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            fill="none" stroke-dasharray="30, 100" stroke-dashoffset="-70" stroke-width="5"></path>
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-xs font-bold">100%</span>
+                    </div>
+                </div>
+                <div class="flex-1 space-y-2">
+                    <div class="flex items-center justify-between text-[10px]">
+                        <span class="flex items-center gap-1"><span class="size-2 bg-primary rounded-full"></span>
+                            NA</span>
+                        <span class="font-bold">40%</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[10px]">
+                        <span class="flex items-center gap-1"><span class="size-2 bg-orange-400 rounded-full"></span>
+                            EMEA</span>
+                        <span class="font-bold">30%</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[10px]">
+                        <span class="flex items-center gap-1"><span class="size-2 bg-emerald-400 rounded-full"></span>
+                            APAC</span>
+                        <span class="font-bold">30%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        socket.on('disconnect', () => {
-            statusBadge.classList.remove('online');
-        });
+        <!-- Heatmap -->
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded lg:col-span-1">
+            <h4 class="text-xs font-bold mb-4 flex items-center justify-between">
+                <span>DELAY AGING HEATMAP</span>
+                <span class="text-[10px] text-gray-400 font-normal">Last 7 Days</span>
+            </h4>
+            <div class="grid grid-cols-7 gap-1">
+                <div class="bg-gray-100 dark:bg-gray-800 heatmap-cell rounded-sm"></div>
+                <div class="bg-red-200 dark:bg-red-900/30 heatmap-cell rounded-sm"></div>
+                <!-- More cells can be dynamic later -->
+                <div class="bg-red-400 dark:bg-red-800/50 heatmap-cell rounded-sm"></div>
+                <div class="bg-red-100 dark:bg-red-900/20 heatmap-cell rounded-sm"></div>
+                <div class="bg-gray-100 dark:bg-gray-800 heatmap-cell rounded-sm"></div>
+                <div class="bg-red-300 dark:bg-red-800/40 heatmap-cell rounded-sm"></div>
+                <div class="bg-red-500 dark:bg-red-700/60 heatmap-cell rounded-sm"></div>
+                <div class="bg-red-100 dark:bg-red-900/20 heatmap-cell rounded-sm"></div>
+                <div class="bg-red-200 dark:bg-red-900/30 heatmap-cell rounded-sm"></div>
+                <div class="bg-gray-100 dark:bg-gray-800 heatmap-cell rounded-sm"></div>
+                <div class="bg-red-300 dark:bg-red-800/40 heatmap-cell rounded-sm"></div>
+                <div class="bg-red-100 dark:bg-red-900/20 heatmap-cell rounded-sm"></div>
+                <div class="bg-red-200 dark:bg-red-900/30 heatmap-cell rounded-sm"></div>
+                <div class="bg-red-100 dark:bg-red-900/20 heatmap-cell rounded-sm"></div>
+            </div>
+            <div class="flex justify-between mt-2 text-[9px] text-gray-400 uppercase font-bold">
+                <span>Mon</span>
+                <span>Sun</span>
+            </div>
+        </div>
 
-        // Universal listener for overview data
-        socket.on('dashboard_global', (data) => {
-            syncLabel.textContent = 'Last Sync: ' + new Date().toLocaleTimeString();
-        });
+        <!-- Workload Distribution -->
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded">
+            <h4 class="text-xs font-bold mb-4">WORKLOAD DISTRIBUTION</h4>
+            <div class="space-y-3">
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[10px]">
+                        <span class="text-gray-500">Tier 1 Support</span>
+                        <span class="font-bold">42/50</span>
+                    </div>
+                    <div class="w-full bg-gray-100 dark:bg-gray-800 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-emerald-500 h-full" style="width: 84%"></div>
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[10px]">
+                        <span class="text-gray-500">Classification Experts</span>
+                        <span class="font-bold">28/30</span>
+                    </div>
+                    <div class="w-full bg-gray-100 dark:bg-gray-800 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-orange-500 h-full" style="width: 93%"></div>
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[10px]">
+                        <span class="text-gray-500">Global Leads</span>
+                        <span class="font-bold">5/10</span>
+                    </div>
+                    <div class="w-full bg-gray-100 dark:bg-gray-800 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-primary h-full" style="width: 50%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // View specific listeners
-        socket.on('update:analytics', (data) => {
-            if (data.visits !== undefined) document.getElementById('visits-value').textContent = data.visits.toLocaleString();
-            if (data.users !== undefined) document.getElementById('users-value').textContent = data.users;
-            triggerPulse('view-analytics');
-        });
-
-        socket.on('update:sales', (data) => {
-            if (data.revenue !== undefined) document.getElementById('revenue-value').textContent = '$' + data.revenue.toLocaleString();
-            if (data.transactions !== undefined) document.getElementById('transactions-value').textContent = data.transactions;
-            triggerPulse('view-sales');
-        });
-
-        socket.on('update:system', (data) => {
-            if (data.load !== undefined) document.getElementById('load-value').textContent = data.load + '%';
-            if (data.memory !== undefined) document.getElementById('memory-value').textContent = data.memory + ' GB';
-            triggerPulse('view-system');
-        });
-
-        socket.on('update:network', (data) => {
-            if (data.latency !== undefined) document.getElementById('latency-value').textContent = data.latency + 'ms';
-            if (data.error_rate !== undefined) document.getElementById('error-rate').textContent = data.error_rate + '%';
-            triggerPulse('view-network');
-        });
-
-        function triggerPulse(id) {
-            const card = document.getElementById(id);
-            card.classList.remove('pulse');
-            void card.offsetWidth; // trigger reflow
-            card.classList.add('pulse');
-        }
-
-        async function simulateUpdate() {
-            const viewId = document.getElementById('update-view').value;
-            let payload = {};
-
-            if (viewId === 'analytics') {
-                payload = {
-                    visits: Math.floor(Math.random() * 5000) + 1000,
-                    users: Math.floor(Math.random() * 200) + 10
-                };
-            } else if (viewId === 'sales') {
-                payload = {
-                    revenue: Math.floor(Math.random() * 10000) + 5000,
-                    transactions: Math.floor(Math.random() * 300) + 50
-                };
-            } else if (viewId === 'system') {
-                payload = {
-                    load: Math.floor(Math.random() * 100),
-                    memory: (Math.random() * 8 + 1).toFixed(1)
-                };
-            } else if (viewId === 'network') {
-                payload = {
-                    latency: Math.floor(Math.random() * 100) + 5,
-                    error_rate: (Math.random() * 0.5).toFixed(2)
-                };
-            }
-
-            try {
-                await fetch('/api/update', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ view_id: viewId, payload: payload })
-                });
-            } catch (err) {
-                console.error('Failed to simulate update:', err);
-            }
-        }
-    </script>
-</body>
-
-</html>
+    <!-- Governance Master Registry -->
+    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded">
+        <div
+            class="p-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/30">
+            <div class="flex items-center gap-4">
+                <h2 class="text-sm font-bold">Governance Master Registry</h2>
+                <div class="flex items-center gap-2">
+                    <span
+                        class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-[10px] font-bold text-gray-500 rounded">{{
+                        orders|length }} Total</span>
+                    <span
+                        class="px-1.5 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-[10px] font-bold text-amber-600 rounded">12
+                        Bulk Actions Available</span>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button
+                    class="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded text-[11px] font-bold flex items-center gap-1.5 hover:bg-gray-50">
+                    <span class="material-symbols-outlined text-xs">filter_list</span> Columns
+                </button>
+                <button
+                    class="px-2 py-1 bg-primary text-white rounded text-[11px] font-bold flex items-center gap-1.5 shadow-sm">
+                    <span class="material-symbols-outlined text-xs">file_download</span> Export CSV
+                </button>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[1000px]">
+                <thead class="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
+                    <tr>
+                        <th class="p-3 w-8"><input
+                                class="rounded border-gray-300 text-primary focus:ring-primary size-3.5"
+                                type="checkbox" /></th>
+                        <th class="p-3 text-[10px] font-bold text-gray-400 uppercase">Order ID</th>
+                        <th class="p-3 text-[10px] font-bold text-gray-400 uppercase">Priority</th>
+                        <th class="p-3 text-[10px] font-bold text-gray-400 uppercase">Collection/Type</th>
+                        <th class="p-3 text-[10px] font-bold text-gray-400 uppercase">Origin &amp; Destination</th>
+                        <th class="p-3 text-[10px] font-bold text-gray-400 uppercase">Risk Level</th>
+                        <th class="p-3 text-[10px] font-bold text-gray-400 uppercase">Status</th>
+                        <th class="p-3 text-[10px] font-bold text-gray-400 uppercase">SLA Timer</th>
+                        <th class="p-3 text-[10px] font-bold text-gray-400 uppercase text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                    {% for order in orders %}
+                    <tr class="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors cursor-pointer group">
+                        <td class="p-3"><input class="rounded border-gray-300 text-primary size-3.5" type="checkbox" />
+                        </td>
+                        <td class="p-3 text-xs font-bold text-primary">{{ order.order_id }}</td>
+                        <td class="p-3">
+                            <span
+                                class="px-1.5 py-0.5 {% if 'Urgent' in order.priority %}bg-red-50 text-red-600{% else %}bg-gray-100 text-gray-500{% endif %} text-[10px] font-bold rounded">
+                                {{ order.priority }}
+                            </span>
+                        </td>
+                        <td class="p-3">
+                            <div class="text-xs font-semibold">{{ order.collection_type }}</div>
+                            <div class="text-[10px] text-gray-400">{{ order.sub_type }}</div>
+                        </td>
+                        <td class="p-3">
+                            <div class="text-[10px] flex items-center gap-1">{{ order.origin }} <span
+                                    class="material-symbols-outlined text-[10px]">arrow_forward</span> {{
+                                order.destination }}</div>
+                        </td>
+                        <td class="p-3">
+                            <div class="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="{% if order.risk_level > 70 %}bg-red-500{% elif order.risk_level > 30 %}bg-orange-500{% else %}bg-emerald-500{% endif %} h-full"
+                                    style="width: {{ order.risk_level }}%"></div>
+                            </div>
+                        </td>
+                        <td class="p-3">
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold 
+                                {% if order.status == 'Cleared' %}bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400
+                                {% elif order.status == 'In Customs' %}bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400
+                                {% elif order.status == 'Logistics' %}bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400
+                                {% elif order.status == 'Manual Review' %}bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400
+                                {% else %}bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400{% endif %}">
+                                {{ order.status }}
+                            </span>
+                        </td>
+                        <td
+                            class="p-3 text-[10px] font-bold {% if order.status == 'Cleared' %}text-emerald-600{% else %}text-orange-500{% endif %} flex items-center gap-1">
+                            <span class="material-symbols-outlined text-xs">{% if order.status == 'Cleared'
+                                %}check_circle{% else %}timer{% endif %}</span>
+                            {{ order.sla_timer }}
+                        </td>
+                        <td class="p-3 text-right opacity-0 group-hover:opacity-100">
+                            <button class="p-1 text-gray-400 hover:text-primary"><span
+                                    class="material-symbols-outlined text-sm">edit_note</span></button>
+                            <button class="p-1 text-gray-400 hover:text-primary"><span
+                                    class="material-symbols-outlined text-sm">visibility</span></button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+{% endblock %}

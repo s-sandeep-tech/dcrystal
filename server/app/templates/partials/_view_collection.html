@@ -1,0 +1,119 @@
+<table class="enterprise-grid w-full text-[11px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
+            <th class="col-expander text-center px-0"></th>
+            <th class="col-division text-left">Division</th>
+            <th class="col-group text-left">Group</th>
+            <th class="col-purity text-center">Purity</th>
+            <th class="col-classification text-left">Classification</th>
+            <th class="col-make text-right">Make</th>
+            <th class="col-collection text-left">Collection</th>
+            <th class="stage-cell">A (Ord)</th>
+            <th class="stage-cell">B (Acc)</th>
+            <th class="stage-cell">C (Bar)</th>
+            <th class="stage-cell">D (HM)</th>
+            <th class="stage-cell">E (QC)</th>
+            <th class="stage-cell">F (Inv)</th>
+            <th class="stage-cell">G (Del)</th>
+            <th class="col-total bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white">Total</th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        {% for r in rows %}
+        <tr class="parent-row hover:bg-blue-50/30 group" onclick="toggleRow('row{{ loop.index }}_coll')">
+            <td class="text-center px-0"><span id="icon-row{{ loop.index }}_coll"
+                    class="material-symbols-outlined text-[14px] text-gray-400 group-hover:text-primary">chevron_right</span>
+            </td>
+            <td class="font-medium">{{ r.division }}</td>
+            <td>{{ r.group_name }}</td>
+            <td class="text-center">{{ r.purity }}</td>
+            <td>{{ r.classification }}</td>
+            <td class="text-right">{{ r.make_location }}</td>
+            <td class="italic text-blue-600">{{ r.collection }}</td>
+            <td class="stage-cell">{{ r.a_completed_count + r.a_pending_count }}</td>
+            <td class="stage-cell">{{ r.b_completed_count + r.b_pending_count }}</td>
+            <td class="stage-cell">{{ r.c_completed_count + r.c_pending_count }}</td>
+            <td class="stage-cell">{{ r.d_completed_count + r.d_pending_count }}</td>
+            <td class="stage-cell text-red-600 bg-red-50/50 font-bold">{{ r.e_completed_count + r.e_pending_count }}
+            </td>
+            <td class="stage-cell text-amber-600">{{ r.f_completed_count + r.f_pending_count }}</td>
+            <td class="stage-cell text-gray-400">{{ r.g_completed_count + r.g_pending_count }}</td>
+            <td class="col-total font-bold bg-gray-50/50">{{ r.total_count }}</td>
+        </tr>
+        <!-- Completed -->
+        <tr class="child-row{{ loop.index }}_coll bg-white dark:bg-gray-900 text-[10px]">
+            <td class="col-expander p-0 border-r border-gray-100 dark:border-gray-800 sub-row-line"></td>
+            <td colspan="6"
+                class="px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 font-bold text-emerald-600 text-right">
+                Process Level Pending</td>
+            <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right">{{
+                r.a_completed_count }}</td>
+            <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right">{{
+                r.b_completed_count }}</td>
+            <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right">{{
+                r.c_completed_count }}</td>
+            <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right">{{
+                r.d_completed_count }}</td>
+            <td
+                class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-red-600 font-bold bg-red-50/40 dark:bg-red-900/20">
+                {{ r.e_completed_count }}</td>
+            <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-amber-600">
+                {{ r.f_completed_count }}</td>
+            <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-300">
+                {{ r.g_completed_count }}</td>
+            <td class="col-total px-2 py-1.5 font-bold bg-gray-50 dark:bg-gray-800 text-right">
+                {{ r.a_completed_count + r.b_completed_count + r.c_completed_count + r.d_completed_count +
+                r.e_completed_count + r.f_completed_count + r.g_completed_count }}</td>
+        </tr>
+        <!-- Pending -->
+        <tr class="child-row{{ loop.index }}_coll bg-gray-50/50 dark:bg-gray-800/20 text-[10px]">
+            <td class="col-expander p-0 border-r border-gray-100 dark:border-gray-800 sub-row-line"></td>
+            <td colspan="6"
+                class="px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 font-bold text-amber-600 text-right">
+                Order Level Pending</td>
+            <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-400">
+                {{ r.a_pending_count }}</td>
+            <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-400">
+                {{ r.b_pending_count }}</td>
+            <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-400">
+                {{ r.c_pending_count }}</td>
+            <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-400">
+                {{ r.d_pending_count }}</td>
+            <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-400">
+                {{ r.e_pending_count }}</td>
+            <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-400">
+                {{ r.f_pending_count }}</td>
+            <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-400">
+                {{ r.g_pending_count }}</td>
+            <td class="col-total px-2 py-1.5 font-bold bg-gray-100/50 dark:bg-gray-800/40 text-right">
+                {{ r.a_pending_count + r.b_pending_count + r.c_pending_count + r.d_pending_count + r.e_pending_count +
+                r.f_pending_count + r.g_pending_count }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot class="sticky-footer">
+        <tr class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white uppercase text-[9px]">
+            <td class="p-2 text-right" colspan="7">Grand Total Process Load</td>
+            <td class="stage-cell">{{ footer_totals.a or '0' }}</td>
+            <td class="stage-cell">{{ footer_totals.b or '0' }}</td>
+            <td class="stage-cell">{{ footer_totals.c or '0' }}</td>
+            <td class="stage-cell">{{ footer_totals.d or '0' }}</td>
+            <td class="stage-cell">{{ footer_totals.e or '0' }}</td>
+            <td class="stage-cell">{{ footer_totals.f or '0' }}</td>
+            <td class="stage-cell">{{ footer_totals.g or '0' }}</td>
+            <td class="col-total bg-gray-200 dark:bg-gray-700">{{ footer_totals.total or '0' }}</td>
+        </tr>
+    </tfoot>
+</table>
+
+<script id="stats-metadata" type="application/json">
+    {{ stats | tojson }}
+</script>
+<div class="pagination-meta hidden" data-page="{{ pagination.page if pagination else 1 }}"
+    data-per-page="{{ pagination.per_page if pagination else 50 }}"
+    data-total="{{ pagination.total if pagination else 0 }}"
+    data-prev-num="{{ pagination.prev_num if pagination and pagination.has_prev else '' }}"
+    data-next-num="{{ pagination.next_num if pagination and pagination.has_next else '' }}"
+    data-has-prev="{{ 'true' if pagination and pagination.has_prev else 'false' }}"
+    data-has-next="{{ 'true' if pagination and pagination.has_next else 'false' }}">
+</div>
