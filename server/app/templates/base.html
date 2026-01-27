@@ -81,6 +81,12 @@
                 <a class="p-2 rounded {% if request.path == '/locationwiseorderstatus' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
                     href="{{ url_for('dashboard.location_wise_order_status') }}"
                     title="Location Wise Order Status"><span class="material-symbols-outlined">map</span></a>
+                <a class="p-2 rounded {% if request.path == '/branchweight' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
+                    href="{{ url_for('dashboard.branch_weight_allocation') }}"
+                    title="Location Wise Stock Snapshot"><span class="material-symbols-outlined">scale</span></a>
+                <a class="p-2 rounded {% if request.path == '/branchweightv2' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
+                    href="{{ url_for('dashboard.branch_weight_allocation_v2') }}"
+                    title="Branch Weight Allocation & Refillv2"><span class="material-symbols-outlined">dvr</span></a>
                 <a class="p-2 rounded {% if request.path == '/shortstatus' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
                     href="{{ url_for('dashboard.short_status') }}" title="Short Status"><span
                         class="material-symbols-outlined">analytics</span></a>

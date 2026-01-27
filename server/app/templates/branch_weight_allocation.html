@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Location Wise Stock Snapshot{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
+{% endblock %}
+
+{% block content %}
+<main id="branchweight-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    <!-- Header -->
+    <div
+        class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <h2 class="text-sm font-bold tracking-tight">Location Wise Stock Snapshot <span
+                    class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded uppercase tracking-widest text-gray-500">v2.0</span>
+            </h2>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- Zoom Controls -->
+            <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
+                <button onclick="adjustZoom(-0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom Out">-</button>
+                <button id="zoom-level" onclick="adjustZoom(0, true)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700"
+                    title="Reset Zoom">100%</button>
+                <button onclick="adjustZoom(0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom In">+</button>
+            </div>
+            <div
+                class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
+                <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
+                <input id="hierarchy-search"
+                    class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0"
+                    placeholder="Search Location..." type="text" oninput="onSearchInput(this.value)" />
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Stats Grid -->
+    <div
+        class="grid grid-cols-4 lg:grid-cols-8 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Max Allocation Weight</p>
+            <p id="stat-max-allocate" class="text-sm font-bold text-emerald-600">{{ stats.max_allocate if stats else
+                '0.000' }}</p>
+        </div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Max Refill Weight</p>
+            <p id="stat-max-refill" class="text-sm font-bold text-indigo-600">{{ stats.max_refill if stats else '0.000'
+                }}</p>
+        </div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Short Wt</p>
+            <p id="stat-short-weight" class="text-sm font-bold text-red-600">{{ stats.short_weight if stats else '0.000'
+                }}</p>
+            <p id="stat-short-pieces" class="text-[9px] text-gray-400">{{ stats.short_pieces if stats else '0' }} pcs
+            </p>
+        </div>
+        <!-- Placeholder for more stats -->
+        <div class="p-2 lg:col-span-2 text-center flex flex-col justify-center">
+            <div class="flex items-center justify-center gap-1.5">
+                <span class="text-[9px] font-bold text-gray-400 uppercase">Drill-down Level:</span>
+                <span id="current-level-badge"
+                    class="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-bold rounded uppercase">{{
+                    current_level }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination Strip -->
+    <div
+        class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <span class="material-symbols-outlined text-[14px]">info</span>
+            <span>Showing {{ current_level }} summaries. Use sidebar filters to explore deeper.</span>
+        </div>
+
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <div class="flex items-center gap-2">
+                <span class="text-gray-400">Rows:</span>
+                <select id="per-page-select" onchange="changePerPage(this.value)"
+                    class="bg-transparent border-none text-[10px] font-bold focus:ring-0 p-0 cursor-pointer">
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
+            <span id="pagination-info" class="font-medium">0-0 of 0</span>
+            <div class="flex items-center gap-1">
+                <button id="btn-prev" class="p-0.5 hover:bg-gray-100 rounded disabled:opacity-50">
+                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                </button>
+                <button id="btn-next" class="p-0.5 hover:bg-gray-100 rounded disabled:opacity-50">
+                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Container -->
+    <div id="table-area" class="flex-1 overflow-auto relative">
+        <div id="view-branch" class="dashboard-view">
+            {% include 'partials/_view_branch_weight.html' %}
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block sidebar %}
+<!-- Sidebar Filters (Simplified for this view) -->
+<aside
+    class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xs font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> ADDITIONAL FILTERS
+            </h2>
+            <button onclick="resetGlobalFilters()"
+                class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+        </div>
+        <div class="space-y-4">
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Zone</label>
+                <select id="filter-zone" onchange="onZoneChange(this.value)"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Zones</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">State</label>
+                <select id="filter-state" onchange="onStateChange(this.value)"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All States</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Location</label>
+                <select id="filter-location" onchange="onLocationChange(this.value)"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Locations</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Business Head</label>
+                <select id="filter-business-head"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Business Heads</option>
+                </select>
+            </div>
+        </div>
+        <button onclick="applyGlobalFilters()"
+            class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm mt-6 flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
+        </button>
+    </div>
+</aside>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/branch_weight_allocation.js') }}"></script>
+{% endblock %}

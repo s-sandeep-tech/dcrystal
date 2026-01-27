@@ -1,0 +1,103 @@
+/* Branch Weight V2 Styles */
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.dark .glass-card {
+    background: rgba(17, 25, 40, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-card {
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.table-container {
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    background: white;
+}
+
+.dark .table-container {
+    background: #111827;
+}
+
+/* Custom Scrollbar for table */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 20px;
+}
+
+/* Gradient Text */
+.text-gradient-primary {
+    background: linear-gradient(to right, #2563eb, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-success {
+    background: linear-gradient(to right, #059669, #10b981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-warning {
+    background: linear-gradient(to right, #d97706, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-danger {
+    background: linear-gradient(to right, #dc2626, #ef4444);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Data Bars - Light, Bottom-Aligned Progress Bars */
+.data-bar-alloc {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #D1FAE5, #6EE7B7);
+    border-radius: 2px 2px 0 0;
+    transition: all 0.3s ease;
+}
+
+.dark .data-bar-alloc {
+    background: linear-gradient(90deg, rgba(110, 231, 183, 0.3), rgba(110, 231, 183, 0.6));
+}
+
+.data-bar-refill {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #E0E7FF, #A5B4FC);
+    border-radius: 2px 2px 0 0;
+    transition: all 0.3s ease;
+}
+
+.dark .data-bar-refill {
+    background: linear-gradient(90deg, rgba(165, 180, 252, 0.3), rgba(165, 180, 252, 0.6));
+}

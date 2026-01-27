@@ -1,0 +1,104 @@
+{% if not is_child_rows %}
+<div class="table-container border border-gray-200 dark:border-gray-800 m-4">
+    <table class="w-full text-[11px] border-collapse sticky-header">
+        <thead>
+            <tr
+                class="bg-gray-50/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-500 uppercase font-bold text-[10px] tracking-wider border-b border-gray-200 dark:border-gray-700">
+                <th class="col-expander text-center px-0 w-10 py-3"></th>
+                <th class="text-left px-4 py-3">Level Detail</th>
+                <th class="text-left w-34 py-3">Zone</th>
+                <th class="text-left py-3">State</th>
+                <th class="text-left py-3">Location</th>
+                <th class="text-right py-3 text-emerald-600">Max Weight Allocate to other branches</th>
+                <th class="text-right py-3 text-indigo-600 px-6">Max Refill Quantity from other branches</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
+            {% endif %}
+
+            {% for r in rows %}
+            <tr class="parent-row hover:bg-blue-50/30 dark:hover:bg-blue-900/10 group transition-all duration-200"
+                data-level="{{ r.level }}">
+                <td class="text-center px-0">
+                    {% if r.level != 'location' %}
+                    <button
+                        onclick="toggleRow(this, '{{ r.level }}', '{{ r.level == 'zone' and r.zone or r.state }}', '{{ r.level == 'state' and r.zone or '' }}')"
+                        class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
+                        <span class="material-symbols-outlined text-[16px]">add_circle</span>
+                    </button>
+                    {% else %}
+                    <span class="material-symbols-outlined text-[10px] text-gray-200">fiber_manual_record</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 font-bold">
+                    <div class="flex items-center gap-2"
+                        style="padding-left: {{ '0px' if r.level == 'zone' else ('20px' if r.level == 'state' else '40px') }}">
+                        {% if r.level == 'location' %}
+                        <span class="material-symbols-outlined text-[14px] text-gray-300">store</span>
+                        {% elif r.level == 'state' %}
+                        <span class="material-symbols-outlined text-[14px] text-gray-300">map</span>
+                        {% else %}
+                        <span class="material-symbols-outlined text-[14px] text-gray-300">public</span>
+                        {% endif %}
+
+                        {% if r.level == 'zone' %}
+                        {{ r.zone }}
+                        {% elif r.level == 'state' %}
+                        {{ r.state }}
+                        {% else %}
+                        {{ r.location }}
+                        {% endif %}
+                    </div>
+                </td>
+                <td class="text-gray-400 max-w-16 truncate" title="{{ r.zone }}">{{ r.zone }}</td>
+                <td class="text-gray-400">{{ r.state or '-' }}</td>
+                <td class="text-gray-400">{{ r.location or '-' }}</td>
+                <td class="text-right font-medium py-4 text-gray-700 dark:text-gray-300 relative">
+                    <div class="data-bar-alloc transition-all duration-500"
+                        style="width: {{ (r.max_allocate / max_val_allocate * 100)|round(1) }}%;"></div>
+                    <span class="relative z-10 tabular-nums">{{ "%.3f"|format(r.max_allocate) }}</span>
+                </td>
+                <td class="text-right font-medium text-indigo-600 py-4 px-6 relative">
+                    <div class="data-bar-refill transition-all duration-500"
+                        style="width: {{ (r.max_refill / max_val_refill * 100)|round(1) }}%;"></div>
+                    <span class="relative z-10 tabular-nums">{{ "{:,}".format(r.max_refill|int) }}</span>
+                </td>
+            </tr>
+            {% endfor %}
+
+            {% if not rows and not is_child_rows %}
+            <tr>
+                <td colspan="7" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.
+                </td>
+            </tr>
+            {% endif %}
+
+            {% if not is_child_rows %}
+        </tbody>
+        </tbody>
+        <tfoot
+            class="sticky-footer bg-gray-50 dark:bg-gray-800/50 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 font-bold">
+            <tr class="text-gray-900 dark:text-white uppercase text-[10px]">
+                <td class="p-3 text-right" colspan="5">Grand Total</td>
+                <td class="text-right p-3">{{ footer_totals.max_allocate or '0.000' }}</td>
+                <td class="text-right p-3 px-6">{{ footer_totals.max_refill or '0.000' }}</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+<script id="stats-metadata" type="application/json">
+    {{ stats | tojson }}
+</script>
+<script id="chart-data" type="application/json">
+    {{ rows | tojson }}
+</script>
+<div class="pagination-meta hidden" data-page="{{ pagination.page if pagination else 1 }}"
+    data-per-page="{{ pagination.per_page if pagination else 50 }}"
+    data-total="{{ pagination.total if pagination else 0 }}"
+    data-prev-num="{{ pagination.prev_num if pagination and pagination.has_prev else '' }}"
+    data-next-num="{{ pagination.next_num if pagination and pagination.has_next else '' }}"
+    data-has-prev="{{ 'true' if pagination and pagination.has_prev else 'false' }}"
+    data-has-next="{{ 'true' if pagination and pagination.has_next else 'false' }}" data-level="{{ current_level }}">
+</div>
+{% endif %}

@@ -70,10 +70,12 @@ async function setView(view) {
     const activeView = document.getElementById('view-' + view);
     if (activeView) {
         activeView.classList.remove('hidden');
-        // Always reload data when switching views to ensure pagination consistency if params changed
-        // Or checks if data-loaded is false. 
-        // If we switch views, we might want to reset to page 1 OR keep page.
-        // Let's keep current URL params.
+        // Reset to page 1 when switching views
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('page', 1);
+        const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+        window.history.pushState({ path: newUrl }, '', newUrl);
+
         await loadViewData(view);
     }
 }

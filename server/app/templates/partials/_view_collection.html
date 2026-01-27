@@ -6,7 +6,7 @@
             <th class="col-group text-left">Group</th>
             <th class="col-purity text-center">Purity</th>
             <th class="col-classification text-left">Classification</th>
-            <th class="col-make text-right">Make</th>
+            <th class="col-make text-left">Make</th>
             <th class="col-collection text-left">Collection</th>
             <th class="stage-cell">A (Ord)</th>
             <th class="stage-cell">B (Acc)</th>
@@ -28,16 +28,16 @@
             <td>{{ r.group_name }}</td>
             <td class="text-center">{{ r.purity }}</td>
             <td>{{ r.classification }}</td>
-            <td class="text-right">{{ r.make_location }}</td>
+            <td class="text-left">{{ r.make_location }}</td>
             <td class="italic text-blue-600">{{ r.collection }}</td>
-            <td class="stage-cell">{{ r.a_completed_count + r.a_pending_count }}</td>
-            <td class="stage-cell">{{ r.b_completed_count + r.b_pending_count }}</td>
-            <td class="stage-cell">{{ r.c_completed_count + r.c_pending_count }}</td>
-            <td class="stage-cell">{{ r.d_completed_count + r.d_pending_count }}</td>
-            <td class="stage-cell text-red-600 bg-red-50/50 font-bold">{{ r.e_completed_count + r.e_pending_count }}
+            <td class="stage-cell">{{ r.a_completed_count }}</td>
+            <td class="stage-cell">{{ r.b_completed_count }}</td>
+            <td class="stage-cell">{{ r.c_completed_count }}</td>
+            <td class="stage-cell">{{ r.d_completed_count }}</td>
+            <td class="stage-cell text-red-600 bg-red-50/50 font-bold">{{ r.e_completed_count }}
             </td>
-            <td class="stage-cell text-amber-600">{{ r.f_completed_count + r.f_pending_count }}</td>
-            <td class="stage-cell text-gray-400">{{ r.g_completed_count + r.g_pending_count }}</td>
+            <td class="stage-cell text-amber-600">{{ r.f_completed_count }}</td>
+            <td class="stage-cell text-gray-400">{{ r.g_completed_count }}</td>
             <td class="col-total font-bold bg-gray-50/50">{{ r.total_count }}</td>
         </tr>
         <!-- Completed -->
@@ -47,23 +47,23 @@
                 class="px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 font-bold text-emerald-600 text-right">
                 Process Level Pending</td>
             <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right">{{
-                r.a_completed_count }}</td>
+                r.a_pending_count }}</td>
             <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right">{{
-                r.b_completed_count }}</td>
+                r.b_pending_count }}</td>
             <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right">{{
-                r.c_completed_count }}</td>
+                r.c_pending_count }}</td>
             <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right">{{
-                r.d_completed_count }}</td>
+                r.d_pending_count }}</td>
             <td
                 class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-red-600 font-bold bg-red-50/40 dark:bg-red-900/20">
-                {{ r.e_completed_count }}</td>
+                {{ r.e_pending_count }}</td>
             <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-amber-600">
-                {{ r.f_completed_count }}</td>
+                {{ r.f_pending_count }}</td>
             <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-300">
-                {{ r.g_completed_count }}</td>
+                {{ r.g_pending_count }}</td>
             <td class="col-total px-2 py-1.5 font-bold bg-gray-50 dark:bg-gray-800 text-right">
-                {{ r.a_completed_count + r.b_completed_count + r.c_completed_count + r.d_completed_count +
-                r.e_completed_count + r.f_completed_count + r.g_completed_count }}</td>
+                {{ r.a_pending_count + r.b_pending_count + r.c_pending_count + r.d_pending_count +
+                r.e_pending_count + r.f_pending_count + r.g_pending_count }}</td>
         </tr>
         <!-- Pending -->
         <tr class="child-row{{ loop.index }}_coll bg-gray-50/50 dark:bg-gray-800/20 text-[10px]">
@@ -74,17 +74,17 @@
             <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-400">
                 {{ r.a_pending_count }}</td>
             <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-400">
-                {{ r.b_pending_count }}</td>
+                {{ r.a_completed_count - r.b_pending_count }}</td>
             <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-400">
-                {{ r.c_pending_count }}</td>
+                {{ r.a_completed_count - r.c_pending_count }}</td>
             <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-400">
-                {{ r.d_pending_count }}</td>
+                {{ r.a_completed_count - r.d_pending_count }}</td>
             <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-400">
-                {{ r.e_pending_count }}</td>
+                {{ r.a_completed_count - r.e_pending_count }}</td>
             <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-400">
-                {{ r.f_pending_count }}</td>
+                {{ r.a_completed_count - r.f_pending_count }}</td>
             <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-400">
-                {{ r.g_pending_count }}</td>
+                {{ r.a_completed_count - r.g_pending_count }}</td>
             <td class="col-total px-2 py-1.5 font-bold bg-gray-100/50 dark:bg-gray-800/40 text-right">
                 {{ r.a_pending_count + r.b_pending_count + r.c_pending_count + r.d_pending_count + r.e_pending_count +
                 r.f_pending_count + r.g_pending_count }}</td>

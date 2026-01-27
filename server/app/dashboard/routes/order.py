@@ -120,8 +120,44 @@ def order_status():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
     
-    main_q = OrderStatusReportSnapshot.query.filter_by(snapshot_date=latest_date_query)
+    # Identifiers to group by for Make view
+    group_cols_make = [
+        OrderStatusReportSnapshot.division,
+        OrderStatusReportSnapshot.group_name,
+        OrderStatusReportSnapshot.purity,
+        OrderStatusReportSnapshot.classification,
+        OrderStatusReportSnapshot.make_location
+    ]
+    
+    # Aggregates
+    agg_cols = [
+        func.sum(OrderStatusReportSnapshot.a_completed_count).label('a_completed_count'),
+        func.sum(OrderStatusReportSnapshot.a_pending_count).label('a_pending_count'),
+        func.sum(OrderStatusReportSnapshot.b_completed_count).label('b_completed_count'),
+        func.sum(OrderStatusReportSnapshot.b_pending_count).label('b_pending_count'),
+        func.sum(OrderStatusReportSnapshot.c_completed_count).label('c_completed_count'),
+        func.sum(OrderStatusReportSnapshot.c_pending_count).label('c_pending_count'),
+        func.sum(OrderStatusReportSnapshot.d_completed_count).label('d_completed_count'),
+        func.sum(OrderStatusReportSnapshot.d_pending_count).label('d_pending_count'),
+        func.sum(OrderStatusReportSnapshot.e_completed_count).label('e_completed_count'),
+        func.sum(OrderStatusReportSnapshot.e_pending_count).label('e_pending_count'),
+        func.sum(OrderStatusReportSnapshot.f_completed_count).label('f_completed_count'),
+        func.sum(OrderStatusReportSnapshot.f_pending_count).label('f_pending_count'),
+        func.sum(OrderStatusReportSnapshot.g_completed_count).label('g_completed_count'),
+        func.sum(OrderStatusReportSnapshot.g_pending_count).label('g_pending_count'),
+        func.sum(OrderStatusReportSnapshot.total_count).label('total_count'),
+        func.sum(OrderStatusReportSnapshot.dispatched_count).label('dispatched_count'),
+        func.sum(OrderStatusReportSnapshot.in_process_count).label('in_process_count'),
+        func.sum(OrderStatusReportSnapshot.delayed_count).label('delayed_count'),
+        func.sum(OrderStatusReportSnapshot.active_slots).label('active_slots'),
+        func.avg(OrderStatusReportSnapshot.sla_index_pct).label('sla_index_pct'),
+        func.avg(OrderStatusReportSnapshot.avg_quality_score).label('avg_quality_score'),
+        func.avg(OrderStatusReportSnapshot.fulfillment_pct).label('fulfillment_pct')
+    ]
+
+    main_q = db.session.query(*(group_cols_make + agg_cols)).filter(OrderStatusReportSnapshot.snapshot_date == latest_date_query)
     main_q = apply_filters(main_q)
+    main_q = main_q.group_by(*group_cols_make).order_by(OrderStatusReportSnapshot.division, OrderStatusReportSnapshot.group_name, OrderStatusReportSnapshot.make_location)
     
     pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
     
@@ -250,8 +286,56 @@ def get_dashboard_partial(view_type):
         }
 
         # Paginate
-        main_q = OrderStatusReportSnapshot.query.filter_by(snapshot_date=latest_date_query)
-        main_q = apply_filters(main_q)
+        if view_type in ['make', 'collection']:
+            if view_type == 'make':
+                group_cols = [
+                    OrderStatusReportSnapshot.division,
+                    OrderStatusReportSnapshot.group_name,
+                    OrderStatusReportSnapshot.purity,
+                    OrderStatusReportSnapshot.classification,
+                    OrderStatusReportSnapshot.make_location
+                ]
+            else: # collection
+                group_cols = [
+                    OrderStatusReportSnapshot.division,
+                    OrderStatusReportSnapshot.group_name,
+                    OrderStatusReportSnapshot.purity,
+                    OrderStatusReportSnapshot.classification,
+                    OrderStatusReportSnapshot.make_location,
+                    OrderStatusReportSnapshot.collection
+                ]
+                
+            agg_cols = [
+                func.sum(OrderStatusReportSnapshot.a_completed_count).label('a_completed_count'),
+                func.sum(OrderStatusReportSnapshot.a_pending_count).label('a_pending_count'),
+                func.sum(OrderStatusReportSnapshot.b_completed_count).label('b_completed_count'),
+                func.sum(OrderStatusReportSnapshot.b_pending_count).label('b_pending_count'),
+                func.sum(OrderStatusReportSnapshot.c_completed_count).label('c_completed_count'),
+                func.sum(OrderStatusReportSnapshot.c_pending_count).label('c_pending_count'),
+                func.sum(OrderStatusReportSnapshot.d_completed_count).label('d_completed_count'),
+                func.sum(OrderStatusReportSnapshot.d_pending_count).label('d_pending_count'),
+                func.sum(OrderStatusReportSnapshot.e_completed_count).label('e_completed_count'),
+                func.sum(OrderStatusReportSnapshot.e_pending_count).label('e_pending_count'),
+                func.sum(OrderStatusReportSnapshot.f_completed_count).label('f_completed_count'),
+                func.sum(OrderStatusReportSnapshot.f_pending_count).label('f_pending_count'),
+                func.sum(OrderStatusReportSnapshot.g_completed_count).label('g_completed_count'),
+                func.sum(OrderStatusReportSnapshot.g_pending_count).label('g_pending_count'),
+                func.sum(OrderStatusReportSnapshot.total_count).label('total_count'),
+                func.sum(OrderStatusReportSnapshot.dispatched_count).label('dispatched_count'),
+                func.sum(OrderStatusReportSnapshot.in_process_count).label('in_process_count'),
+                func.sum(OrderStatusReportSnapshot.delayed_count).label('delayed_count'),
+                func.sum(OrderStatusReportSnapshot.active_slots).label('active_slots'),
+                func.avg(OrderStatusReportSnapshot.sla_index_pct).label('sla_index_pct'),
+                func.avg(OrderStatusReportSnapshot.avg_quality_score).label('avg_quality_score'),
+                func.avg(OrderStatusReportSnapshot.fulfillment_pct).label('fulfillment_pct')
+            ]
+            main_q = db.session.query(*(group_cols + agg_cols)).filter(OrderStatusReportSnapshot.snapshot_date == latest_date_query)
+            main_q = apply_filters(main_q)
+            main_q = main_q.group_by(*group_cols).order_by(OrderStatusReportSnapshot.division, OrderStatusReportSnapshot.group_name, OrderStatusReportSnapshot.make_location)
+        else: # party
+            main_q = OrderStatusReportSnapshot.query.filter_by(snapshot_date=latest_date_query)
+            main_q = apply_filters(main_q)
+            
         pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
 
         return render_template(f'partials/_view_{view_type}.html', 
