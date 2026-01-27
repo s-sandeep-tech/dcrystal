@@ -360,3 +360,54 @@ document.addEventListener('DOMContentLoaded', () => {
     loadViewData();
     loadFilterOptions();
 });
+
+function showAllocatedBarcodes(location) {
+    const modal = document.getElementById('barcodeModal');
+    const content = document.getElementById('barcodeModalContent');
+
+    if (!modal || !content) return;
+
+    // Show modal
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    // Show loading state
+    content.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-full py-24 text-gray-400">
+            <div class="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p class="text-[10px] font-medium uppercase tracking-widest">Fetching details for ${location}...</p>
+        </div>
+    `;
+
+    // Fetch data
+    fetch(`/api/branchweight/allocated-barcodes?location=${encodeURIComponent(location)}`, {
+        headers: {
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+    })
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to fetch details');
+            return response.text();
+        })
+        .then(html => {
+            content.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error fetching barcodes:', error);
+            content.innerHTML = `
+            <div class="p-12 text-center text-red-500">
+                <span class="material-symbols-outlined text-4xl mb-2">error</span>
+                <p class="text-xs font-bold">Failed to load barcode details.</p>
+                <p class="text-[10px] mt-1 text-gray-400">${error.message}</p>
+            </div>
+        `;
+        });
+}
+
+function closeBarcodeModal() {
+    const modal = document.getElementById('barcodeModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+}

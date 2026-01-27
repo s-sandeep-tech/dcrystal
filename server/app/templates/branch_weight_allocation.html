@@ -108,6 +108,30 @@
             {% include 'partials/_view_branch_weight.html' %}
         </div>
     </div>
+
+    <!-- Barcode Details Modal -->
+    <div id="barcodeModal" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onclick="closeBarcodeModal()"></div>
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[85vh] overflow-hidden">
+            <div
+                class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-xl">barcode_scanner</span>
+                    <h2 class="text-sm font-bold text-gray-800 dark:text-white uppercase tracking-tight">Allocated
+                        Barcodes Detail</h2>
+                </div>
+                <button onclick="closeBarcodeModal()"
+                    class="size-8 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                    <span class="material-symbols-outlined text-xl">close</span>
+                </button>
+            </div>
+
+            <div id="barcodeModalContent" class="flex-1 overflow-y-auto no-scrollbar min-h-[400px]">
+                <!-- AJAX Content Loads Here -->
+            </div>
+        </div>
+    </div>
 </main>
 {% endblock %}
 

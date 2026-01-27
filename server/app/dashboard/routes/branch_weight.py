@@ -1,7 +1,7 @@
 from flask import render_template, request, jsonify
 from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
-from app.models import Notification, LocationWiseStockSnapshot
+from app.models import Notification, LocationWiseStockSnapshot, AllocatedBarcodesSnapshot
 from app.extensions import db
 from sqlalchemy import func
 from datetime import datetime
@@ -335,3 +335,17 @@ def get_branch_partial():
     except Exception as e:
         logger.error(f"Error in get_branch_partial: {str(e)}")
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
+@dashboard_bp.route('/api/branchweight/allocated-barcodes')
+@jwt_required()
+def get_allocated_barcodes():
+    try:
+        location = request.args.get('location')
+        if not location:
+            return '<div class="p-4 text-center text-red-500">Location required</div>', 400
+            
+        barcodes = AllocatedBarcodesSnapshot.query.filter_by(location=location).all()
+        
+        return render_template('partials/_view_allocated_barcodes.html', barcodes=barcodes, location=location)
+    except Exception as e:
+        logger.error(f"Error in get_allocated_barcodes: {str(e)}")
+        return f'<div class="p-4 text-center text-red-500">Error: {str(e)}</div>', 200

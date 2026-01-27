@@ -1,0 +1,38 @@
+<div class="p-4">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300">Allocated Barcodes for <span
+                class="text-primary">{{ location }}</span></h3>
+        <span class="text-[10px] bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-gray-500">{{ barcodes|length }}
+            Items</span>
+    </div>
+
+    <div class="overflow-x-auto border border-gray-100 dark:border-gray-800 rounded-lg">
+        <table class="w-full text-[11px] border-collapse">
+            <thead>
+                <tr
+                    class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider border-b border-gray-100 dark:border-gray-700">
+                    <th class="text-left px-4 py-2">Barcode</th>
+                    <th class="text-left px-4 py-2">Collection</th>
+                    <th class="text-left px-4 py-2">Section</th>
+                    <th class="text-right px-4 py-2">Gross Weight</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
+                {% for b in barcodes %}
+                <tr class="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors">
+                    <td class="px-4 py-2 font-mono text-gray-600 dark:text-gray-400">{{ b.barcode }}</td>
+                    <td class="px-4 py-2 text-gray-600 dark:text-gray-400">{{ b.collection }}</td>
+                    <td class="px-4 py-2 text-gray-600 dark:text-gray-400">{{ b.section }}</td>
+                    <td class="px-4 py-2 text-right font-medium text-gray-700 dark:text-gray-300">{{
+                        "%.3f"|format(b.gross_weight|float) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="px-4 py-8 text-center text-gray-400 italic">No allocated barcodes found for
+                        this location.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
