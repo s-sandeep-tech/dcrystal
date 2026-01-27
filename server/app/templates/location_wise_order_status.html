@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}Aligned Jewellery Process Drill-Down Dashboard{% endblock %}
+{% block title %}Location Wise Order Status{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/inventory.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
 {% endblock %}
 
 {% block content %}
-<main id="provision-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
-    <!-- Header with MANAGER/OPS/AUDIT buttons -->
+<main id="locationstatus-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    <!-- Header -->
     <div
         class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
         <div class="flex items-center gap-4">
-            <h2 class="text-sm font-bold tracking-tight">Provision Status Tracking <span
+            <h2 class="text-sm font-bold tracking-tight">Location Wise Order Status <span
                     class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded uppercase tracking-widest text-gray-500">v2.5
                     Enterprise</span></h2>
         </div>
@@ -41,69 +41,116 @@
 
     <!-- Stats Grid -->
     <div
-        class="grid grid-cols-8 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
+        class="grid grid-cols-6 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Items</p>
-            <p id="stat-total-items" class="text-sm font-bold text-primary">{{ stats.total_items or '0' }}</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Orders</p>
+            <p id="stat-total-orders" class="text-sm font-bold text-primary">0</p>
         </div>
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center text-emerald-600">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Weight</p>
-            <p id="stat-total-weight" class="text-sm font-bold">{{ stats.total_weight or '0' }}</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Dispatched</p>
+            <p id="stat-dispatched" class="text-sm font-bold">0</p>
         </div>
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center text-amber-600">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Unique Types</p>
-            <p id="stat-unique-products" class="text-sm font-bold">{{ stats.unique_products or '0' }}</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase">In Process</p>
+            <p id="stat-in-process" class="text-sm font-bold">0</p>
         </div>
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center text-red-600">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Avg Weight</p>
-            <p id="stat-avg-weight" class="text-sm font-bold">{{ stats.avg_weight or '0' }}</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Delayed</p>
+            <p id="stat-delayed" class="text-sm font-bold">0</p>
         </div>
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Work Centers</p>
-            <p id="stat-work-centers" class="text-sm font-bold">24</p>
-        </div>
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Avg TAT</p>
-            <p id="stat-avg-tat" class="text-sm font-bold">4.2d</p>
-        </div>
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Purity Comp.</p>
-            <p id="stat-purity-comp" class="text-sm font-bold">99.8%</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase">SLA Index</p>
+            <p id="stat-sla-index" class="text-sm font-bold">0%</p>
         </div>
         <div class="p-2 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Health Index</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Fulfillment</p>
             <div class="flex items-center justify-center gap-1.5 mt-1">
-                <span id="stat-health-index" class="text-sm font-bold text-emerald-600">88%</span>
+                <span id="stat-fulfillment-text" class="text-sm font-bold text-primary">0%</span>
             </div>
             <div class="w-full bg-gray-100 dark:bg-gray-800 h-1.5 rounded-full mt-1 overflow-hidden">
-                <div id="stat-health-bar" class="bg-emerald-500 h-full w-[88%]"></div>
+                <div id="stat-fulfillment-bar" class="bg-primary h-full" style="width: 0%"></div>
             </div>
         </div>
     </div>
 
-    <!-- AJAX Layout -->
-    <div class="flex-1 flex flex-col min-h-0 relative">
-        <!-- Spinner -->
-        <div id="loading-overlay"
-            class="hidden absolute inset-0 items-center justify-center z-50 bg-white/50 dark:bg-gray-900/50">
-            <div class="flex flex-col items-center">
-                <div class="inline-block size-8 border-4 border-primary border-t-transparent rounded-full animate-spin">
+    <!-- Stage Legend & Pagination -->
+    <div
+        class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0 overflow-x-auto no-scrollbar">
+        <!-- Legend (Simplified stages for space) -->
+        <div class="flex items-center gap-4 text-[10px]">
+            <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Stages:</span>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1"><span
+                        class="w-3 h-3 rounded bg-gray-100 text-[8px] flex items-center justify-center font-bold">A</span>
+                    <span class="text-gray-500">Ord</span>
                 </div>
-                <p class="text-[11px] text-gray-400 mt-4 font-bold tracking-widest uppercase">Loading Report...</p>
+                <div class="flex items-center gap-1"><span
+                        class="w-3 h-3 rounded bg-gray-100 text-[8px] flex items-center justify-center font-bold">B</span>
+                    <span class="text-gray-500">Acc</span>
+                </div>
+                <div class="flex items-center gap-1"><span
+                        class="w-3 h-3 rounded bg-gray-100 text-[8px] flex items-center justify-center font-bold">C</span>
+                    <span class="text-gray-500">Bar</span>
+                </div>
+                <div class="flex items-center gap-1"><span
+                        class="w-3 h-3 rounded bg-gray-100 text-[8px] flex items-center justify-center font-bold">D</span>
+                    <span class="text-gray-500">HM</span>
+                </div>
+                <div class="flex items-center gap-1"><span
+                        class="w-3 h-3 rounded bg-gray-100 text-[8px] flex items-center justify-center font-bold">E</span>
+                    <span class="text-gray-500">QC</span>
+                </div>
+                <div class="flex items-center gap-1"><span
+                        class="w-3 h-3 rounded bg-gray-100 text-[8px] flex items-center justify-center font-bold">F</span>
+                    <span class="text-gray-500">Inv</span>
+                </div>
+                <div class="flex items-center gap-1"><span
+                        class="w-3 h-3 rounded bg-gray-100 text-[8px] flex items-center justify-center font-bold">G</span>
+                    <span class="text-gray-500">Del</span>
+                </div>
             </div>
         </div>
 
-        <!-- Table Container -->
-        <div id="table-area" class="flex-1 overflow-auto relative">
-            {% include 'partials/_view_provision_status.html' %}
+        <!-- Pagination -->
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <div class="flex items-center gap-2">
+                <span class="text-gray-400">Rows:</span>
+                <select id="per-page-select" onchange="changePerPage(this.value)"
+                    class="bg-transparent border-none text-[10px] font-bold text-gray-700 dark:text-gray-300 focus:ring-0 p-0 cursor-pointer">
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                </select>
+            </div>
+            <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
+            <span id="pagination-info" class="font-medium text-gray-700 dark:text-gray-300">0-0 of 0</span>
+            <div class="flex items-center gap-1">
+                <button id="btn-prev" onclick="changePage()"
+                    class="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                </button>
+                <button id="btn-next" onclick="changePage()"
+                    class="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Container -->
+    <div id="table-area" class="flex-1 overflow-auto relative">
+        <div id="view-location-wise" class="dashboard-view">
+            <!-- Content will be loaded via AJAX -->
+            <div class="flex flex-col items-center justify-center h-64">
+                <div class="inline-block size-8 border-4 border-primary border-t-transparent rounded-full animate-spin">
+                </div>
+                <p class="text-[11px] text-gray-400 mt-4 font-bold tracking-widest uppercase">Loading Dashboard...</p>
+            </div>
         </div>
     </div>
 </main>
+{% endblock %}
 
-{% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/provision_status.js') }}"></script>
-{% endblock %}
-{% endblock %}
 {% block sidebar %}
 <!-- Sidebar Filters -->
 <aside
@@ -111,13 +158,20 @@
     <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-xs font-bold flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> GLOBAL
-                FILTERS
+                <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> GLOBAL FILTERS
             </h2>
             <button onclick="resetGlobalFilters()"
                 class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
         </div>
         <div class="space-y-4">
+            <!-- Selects populated dynamically -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Location</label>
+                <select id="filter-location"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Locations</option>
+                </select>
+            </div>
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Division</label>
                 <select id="filter-division"
@@ -160,25 +214,26 @@
                     <option value="">All Collections</option>
                 </select>
             </div>
-            <div class="space-y-1.5">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Party</label>
-                <select id="filter-party"
+
+            <div class="space-y-1.5 border-t border-gray-100 dark:border-gray-800 pt-3 mt-3">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make Owner</label>
+                <select id="filter-make-owner"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Parties</option>
+                    <option value="">All Make Owners</option>
                 </select>
             </div>
             <div class="space-y-1.5">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Section</label>
-                <select id="filter-section"
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection Owner</label>
+                <select id="filter-collection-owner"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Sections</option>
+                    <option value="">All Collection Owners</option>
                 </select>
             </div>
             <div class="space-y-1.5">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Product Type</label>
-                <select id="filter-product-type"
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification Owner</label>
+                <select id="filter-classification-owner"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Types</option>
+                    <option value="">All Class-Owners</option>
                 </select>
             </div>
             <div class="space-y-1.5">
@@ -193,39 +248,10 @@
             class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm mt-6 flex items-center justify-center gap-2">
             <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
         </button>
-
-    </div>
-    <div
-        class="h-1/3 border-t border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 p-4 overflow-y-auto no-scrollbar">
-        <div class="flex border-b border-gray-200 dark:border-gray-700 mb-3 gap-4">
-            <button class="pb-2 text-[10px] font-bold border-b-2 border-primary text-primary">AUDIT
-                LOGS</button>
-            <button
-                class="pb-2 text-[10px] font-bold text-gray-400 border-b-2 border-transparent hover:text-gray-600">PREVIEW</button>
-        </div>
-        <div class="space-y-3">
-            <div class="flex gap-3">
-                <div class="mt-1 size-1.5 bg-emerald-500 rounded-full shrink-0"></div>
-                <div>
-                    <p class="text-[10px] font-bold">#ORD-82911 cleared by System</p>
-                    <p class="text-[9px] text-gray-400">2 minutes ago</p>
-                </div>
-            </div>
-            <div class="flex gap-3">
-                <div class="mt-1 size-1.5 bg-amber-500 rounded-full shrink-0"></div>
-                <div>
-                    <p class="text-[10px] font-bold">#ORD-82910 flagged for manual review</p>
-                    <p class="text-[9px] text-gray-400">14 minutes ago</p>
-                </div>
-            </div>
-            <div class="flex gap-3">
-                <div class="mt-1 size-1.5 bg-blue-500 rounded-full shrink-0"></div>
-                <div>
-                    <p class="text-[10px] font-bold">Config update: SLA changed to 24h</p>
-                    <p class="text-[9px] text-gray-400">1 hour ago</p>
-                </div>
-            </div>
-        </div>
     </div>
 </aside>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/location_wise_order.js') }}"></script>
 {% endblock %}

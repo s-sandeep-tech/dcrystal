@@ -7,7 +7,11 @@ def create_app():
     app = Flask(__name__)
     CORS(app)
     # Import models to register them with SQLAlchemy
-    from app.models import User, Notification, Order, DashboardStats
+    from app.models import (
+        User, Notification, Order, DashboardStats,
+        OrderStatusReportSnapshot, ShortStatusReportSnapshot, OrderProvisionSummaryReport,
+        LocationWiseOrderSnapshot
+    )
 
     # Database Configuration
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
@@ -35,7 +39,7 @@ def create_app():
 
     # Register Blueprints
     from app.api.routes import api_bp
-    from app.dashboard.routes import dashboard_bp
+    from app.dashboard import dashboard_bp
     from app.api.auth import auth_bp
 
     app.register_blueprint(api_bp, url_prefix='/api')

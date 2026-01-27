@@ -78,6 +78,9 @@
                 <a class="p-2 rounded {% if request.path == '/orderstatus' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
                     href="{{ url_for('dashboard.order_status') }}" title="Order Status"><span
                         class="material-symbols-outlined">precision_manufacturing</span></a>
+                <a class="p-2 rounded {% if request.path == '/locationwiseorderstatus' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
+                    href="{{ url_for('dashboard.location_wise_order_status') }}"
+                    title="Location Wise Order Status"><span class="material-symbols-outlined">map</span></a>
                 <a class="p-2 rounded {% if request.path == '/shortstatus' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
                     href="{{ url_for('dashboard.short_status') }}" title="Short Status"><span
                         class="material-symbols-outlined">analytics</span></a>

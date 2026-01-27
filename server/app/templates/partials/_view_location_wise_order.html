@@ -3,12 +3,12 @@
         <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
             <th class="col-expander text-center px-0"></th>
             <th class="col-division text-left">Division</th>
+            <th class="text-left" style="width: 120px;">Location</th>
             <th class="col-group text-left">Group</th>
             <th class="col-purity text-center">Purity</th>
             <th class="col-classification text-left">Classification</th>
             <th class="col-make text-left">Make</th>
             <th class="col-collection text-left">Collection</th>
-            <th class="col-party text-left">Party</th>
             <th class="stage-cell">A (Ord)</th>
             <th class="stage-cell">B (Acc)</th>
             <th class="stage-cell">C (Bar)</th>
@@ -21,20 +21,20 @@
     </thead>
     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
         {% for r in rows %}
-        <tr class="parent-row hover:bg-blue-50/30 group" onclick="toggleRow('row{{ loop.index }}_party')">
-            <td class="text-center px-0"><span id="icon-row{{ loop.index }}_party"
+        <tr class="parent-row hover:bg-blue-50/30 group" onclick="toggleRow('row{{ loop.index }}_loc')">
+            <td class="text-center px-0"><span id="icon-row{{ loop.index }}_loc"
                     class="material-symbols-outlined text-[14px] text-gray-400 group-hover:text-primary">chevron_right</span>
             </td>
-            <td class="font-medium">{{ r.division }}</td>
-            <td>{{ r.group_name }}</td>
-            <td class="text-center">{{ r.purity }}</td>
-            <td>{{ r.classification }}</td>
-            <td class="text-left">{{ r.make_location }}</td>
-            <td class="italic text-blue-600">{{ r.collection }}</td>
-            <td>{{ r.party_name }}</td>
+            <td class="font-medium col-division">{{ r.division }}</td>
+            <td class="font-medium" style="width: 120px;">{{ r.location }}</td>
+            <td class="col-group">{{ r.group_name }}</td>
+            <td class="text-center col-purity">{{ r.purity }}</td>
+            <td class="col-classification">{{ r.classification }}</td>
+            <td class="col-make">{{ r.make_location }}</td>
+            <td class="col-collection italic text-blue-600">{{ r.collection }}</td>
             <td class="stage-cell">{{ r.a_completed_count }}</td>
-            <td class="stage-cell">{{ r.b_completed_count}}</td>
-            <td class="stage-cell">{{ r.c_completed_count}}</td>
+            <td class="stage-cell">{{ r.b_completed_count }}</td>
+            <td class="stage-cell">{{ r.c_completed_count }}</td>
             <td class="stage-cell">{{ r.d_completed_count }}</td>
             <td class="stage-cell text-red-600 bg-red-50/50 font-bold">{{ r.e_completed_count }}
             </td>
@@ -42,9 +42,8 @@
             <td class="stage-cell text-gray-400">{{ r.g_completed_count }}</td>
             <td class="col-total font-bold bg-gray-50/50">{{ r.total_count }}</td>
         </tr>
-
-        <!-- Completed -->
-        <tr class="child-row{{ loop.index }}_party bg-white dark:bg-gray-900 text-[10px]">
+        <!-- Process Level (Completed) -->
+        <tr class="child-row{{ loop.index }}_loc bg-white dark:bg-gray-900 text-[10px]">
             <td class="col-expander p-0 border-r border-gray-100 dark:border-gray-800 sub-row-line"></td>
             <td colspan="7"
                 class="px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 font-bold text-emerald-600 text-right">
@@ -68,8 +67,8 @@
                 {{ r.a_pending_count + r.b_pending_count + r.c_pending_count + r.d_pending_count +
                 r.e_pending_count + r.f_pending_count + r.g_pending_count }}</td>
         </tr>
-        <!-- Pending -->
-        <tr class="child-row{{ loop.index }}_party bg-gray-50/50 dark:bg-gray-800/20 text-[10px]">
+        <!-- Order Level (Pending) -->
+        <tr class="child-row{{ loop.index }}_loc bg-gray-50/50 dark:bg-gray-800/20 text-[10px]">
             <td class="col-expander p-0 border-r border-gray-100 dark:border-gray-800 sub-row-line"></td>
             <td colspan="7"
                 class="px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 font-bold text-amber-600 text-right">
@@ -92,7 +91,6 @@
                 {{ r.a_pending_count + r.b_pending_count + r.c_pending_count + r.d_pending_count + r.e_pending_count +
                 r.f_pending_count + r.g_pending_count }}</td>
         </tr>
-        <!-- Total -->
         {% endfor %}
     </tbody>
     <tfoot class="sticky-footer">

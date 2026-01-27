@@ -373,4 +373,105 @@ document.addEventListener('DOMContentLoaded', () => {
             activeBtn.classList.add('border-primary', 'bg-primary/5', 'text-primary');
         }
     }
+
+    initFilterListeners();
 });
+
+let globalOptionsLoaded = false;
+function initFilterListeners() {
+    const filters = [
+        'filter-division', 'filter-group', 'filter-purity', 'filter-classification',
+        'filter-make', 'filter-collection', 'filter-party', 'filter-make-owner',
+        'filter-collection-owner', 'filter-classification-owner', 'filter-business-head'
+    ];
+
+    filters.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('focus', () => {
+                if (!globalOptionsLoaded) {
+                    loadFilterOptions();
+                }
+            }, { once: true });
+        }
+    });
+}
+
+async function loadFilterOptions() {
+    if (globalOptionsLoaded) return;
+
+    const filters = {
+        'divisions': 'filter-division',
+        'groups': 'filter-group',
+        'purities': 'filter-purity',
+        'classifications': 'filter-classification',
+        'makes': 'filter-make',
+        'collections': 'filter-collection',
+        'parties': 'filter-party',
+        'make_owners': 'filter-make-owner',
+        'collection_owners': 'filter-collection-owner',
+        'classification_owners': 'filter-classification-owner',
+        'business_heads': 'filter-business-head'
+    };
+
+    // Show loading status in all selects
+    Object.values(filters).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            const currentVal = el.value;
+            el.dataset.pendingValue = currentVal;
+            el.innerHTML = `<option value="">Loading...</option>`;
+            el.disabled = true;
+        }
+    });
+
+    try {
+        const response = await fetch('/api/orderstatus/options', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+        });
+        if (!response.ok) throw new Error('Failed to fetch options');
+        const options = await response.json();
+
+        const mapping = {
+            'divisions': 'All Divisions',
+            'groups': 'All Groups',
+            'purities': 'All Purities',
+            'classifications': 'All Classifications',
+            'makes': 'All Makes',
+            'collections': 'All Collections',
+            'parties': 'All Parties',
+            'make_owners': 'All Make Owners',
+            'collection_owners': 'All Collection Owners',
+            'classification_owners': 'All Class-Owners',
+            'business_heads': 'All Business Heads'
+        };
+
+        // Populate selects
+        for (const [key, id] of Object.entries(filters)) {
+            const el = document.getElementById(id);
+            if (el && options[key]) {
+                const pendingValue = el.dataset.pendingValue;
+                let html = `<option value="">${mapping[key]}</option>`;
+                options[key].forEach(opt => {
+                    html += `<option value="${opt}" ${opt === pendingValue ? 'selected' : ''}>${opt}</option>`;
+                });
+                el.innerHTML = html;
+                el.disabled = false;
+                delete el.dataset.pendingValue;
+            }
+        }
+        globalOptionsLoaded = true;
+    } catch (error) {
+        console.error('Error loading filter options:', error);
+        // Reset to initial state on error
+        Object.values(filters).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.disabled = false;
+                // You might want to restore the "All ..." option here
+            }
+        });
+    }
+}

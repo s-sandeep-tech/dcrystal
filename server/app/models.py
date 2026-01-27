@@ -173,6 +173,50 @@ class OrderStatusReportSnapshot(db.Model):
     # For this task, we will create the table using the SQL provided by the user manually 
     # or via a script, so the model definition here is just for querying.
 
+class LocationWiseOrderSnapshot(db.Model):
+    __tablename__ = 'location_wise_order_snapshot'
+
+    snapshot_id = db.Column(db.BigInteger, primary_key=True)
+    snapshot_date = db.Column(db.Date, nullable=False)
+    location = db.Column(db.String(150))
+    division = db.Column(db.String(100))
+    group_name = db.Column(db.String(100))
+    purity = db.Column(db.String(50))
+    classification = db.Column(db.String(150))
+    make_location = db.Column(db.String(120))
+    collection = db.Column(db.String(150))
+    
+    # Owners
+    make_owner = db.Column(db.String(100))
+    collection_owner = db.Column(db.String(100))
+    classification_owner = db.Column(db.String(100))
+    business_head = db.Column(db.String(100))
+
+    # Stage Counts
+    a_completed_count = db.Column(db.Integer, default=0, nullable=False)
+    a_pending_count = db.Column(db.Integer, default=0, nullable=False)
+    b_completed_count = db.Column(db.Integer, default=0, nullable=False)
+    b_pending_count = db.Column(db.Integer, default=0, nullable=False)
+    c_completed_count = db.Column(db.Integer, default=0, nullable=False)
+    c_pending_count = db.Column(db.Integer, default=0, nullable=False)
+    d_completed_count = db.Column(db.Integer, default=0, nullable=False)
+    d_pending_count = db.Column(db.Integer, default=0, nullable=False)
+    e_completed_count = db.Column(db.Integer, default=0, nullable=False)
+    e_pending_count = db.Column(db.Integer, default=0, nullable=False)
+    f_completed_count = db.Column(db.Integer, default=0, nullable=False)
+    f_pending_count = db.Column(db.Integer, default=0, nullable=False)
+    g_completed_count = db.Column(db.Integer, default=0, nullable=False)
+    g_pending_count = db.Column(db.Integer, default=0, nullable=False)
+
+    total_count = db.Column(db.Integer, default=0, nullable=False)
+    dispatched_count = db.Column(db.Integer, default=0, nullable=False)
+    in_process_count = db.Column(db.Integer, default=0, nullable=False)
+    delayed_count = db.Column(db.Integer, default=0, nullable=False)
+    sla_index_pct = db.Column(db.Numeric(5, 2))
+    fulfillment_pct = db.Column(db.Numeric(5, 2))
+
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
 class ShortStatusReportSnapshot(db.Model):
     __tablename__ = 'short_status_report_snapshot'
 
@@ -227,4 +271,49 @@ class ShortStatusReportSnapshot(db.Model):
             'e': self.e_completed_count + self.e_pending_count,
             'f': self.f_completed_count + self.f_pending_count,
             'g': self.g_completed_count + self.g_pending_count
+        }
+
+class OrderProvisionSummaryReport(db.Model):
+    __tablename__ = 'order_provision_summary_report_snapshot'
+
+    # Since there's no explicit PK, we'll use po_number or just a dummy for SQLAlchemy
+    # But for a read-only report, we can use one of the columns as primary_key=True 
+    # if we are sure it's unique enough for the session, or use a composite.
+    # Given the table structure, po_number might be unique per order but not per row if split.
+    # I'll use a dummy ID or tell SQLAlchemy to use po_number as the PK for now.
+    po_number = db.Column(db.String(100), primary_key=True)
+    location = db.Column(db.Text)
+    party = db.Column(db.Text)
+    party_type = db.Column(db.Text)
+    division = db.Column(db.Text)
+    group_name = db.Column(db.Text)
+    classification = db.Column(db.Text)
+    section = db.Column(db.Text)
+    make = db.Column(db.Text)
+    purity = db.Column(db.Text)
+    master_collection = db.Column(db.Text)
+    collection = db.Column(db.Text)
+    pieces = db.Column(db.Text) # Stored as text in DB
+    gr_wt = db.Column(db.Text)  # Stored as text in DB
+    total = db.Column(db.Text)
+    business_head = db.Column(db.Text)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'location': self.location,
+            'party': self.party,
+            'party_type': self.party_type,
+            'po_number': self.po_number,
+            'division': self.division,
+            'group_name': self.group_name,
+            'classification': self.classification,
+            'section': self.section,
+            'make_location': self.make,
+            'purity': self.purity,
+            'product_type': self.master_collection,
+            'collection': self.collection,
+            'total_count': self.pieces,
+            'weight': self.gr_wt,
+            'total': self.total
         }

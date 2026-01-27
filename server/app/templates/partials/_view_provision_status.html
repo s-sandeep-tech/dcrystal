@@ -1,84 +1,157 @@
-<table class="enterprise-grid w-full text-[11px] border-collapse bg-white dark:bg-gray-900 sticky-header">
-    <thead>
-        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
-            <th class="col-expander text-center px-0"></th>
-            <th class="col-division text-left">Division</th>
-            <th class="col-group text-left">Group</th>
-            <th class="col-purity text-center">Purity</th>
-            <th class="col-classification text-left">Classification</th>
-            <th class="col-make text-left">Make</th>
-            <th class="col-collection text-left">Collection</th>
-            <th class="col-section text-left">Section</th>
-            <th class="col-type text-left">Type</th>
-            <th class="col-weight text-right">Weight</th>
-            <th class="col-total bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white">Total</th>
-        </tr>
-    </thead>
-    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-        {% for r in rows %}
-        <tr class="parent-row hover:bg-blue-50/30 group" onclick="toggleRow('row{{ loop.index }}')">
-            <td class="text-center px-0"><span id="icon-row{{ loop.index }}"
-                    class="material-symbols-outlined text-[14px] text-gray-400 group-hover:text-primary">chevron_right</span>
-            </td>
-            <td class="font-medium">{{ r.division }}</td>
-            <td>{{ r.group_name }}</td>
-            <td class="text-center">{{ r.purity }}</td>
-            <td>{{ r.classification }}</td>
-            <td>{{ r.make_location }}</td>
-            <td>{{ r.collection or '-' }}</td>
-            <td>{{ r.section or '-' }}</td>
-            <td>{{ r.product_type or '-' }}</td>
-            <td class="text-right">{{ r.weight or 0 }}</td>
-            <td class="col-total font-bold bg-gray-50/50">{{ r.total_count }}</td>
-        </tr>
-        <!-- Completed Row -->
-        <tr class="child-row{{ loop.index }} bg-white dark:bg-gray-900 text-[10px]">
-            <td class="col-expander p-0 border-r border-gray-100 dark:border-gray-800 sub-row-line"></td>
-            <td colspan="9"
-                class="px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 font-bold text-emerald-600 text-right">
-                Total</td>
-            <td class="col-total px-2 py-1.5 font-bold bg-gray-50 dark:bg-gray-800 text-right">
-                {{ r.a_completed_count + r.b_completed_count + r.c_completed_count + r.d_completed_count +
-                r.e_completed_count + r.f_completed_count + r.g_completed_count }}</td>
-        </tr>
-        <!-- Pending Row -->
-        <tr class="child-row{{ loop.index }} bg-gray-50/50 dark:bg-gray-800/20 text-[10px]">
-            <td class="col-expander p-0 border-r border-gray-100 dark:border-gray-800 sub-row-line"></td>
-            <td colspan="9"
-                class="px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 font-bold text-amber-600 text-right">
-                To Be Reallocated To Other Shop</td>
-            <td class="col-total px-2 py-1.5 font-bold bg-gray-100/50 dark:bg-gray-800/40 text-right">
-                {{ r.a_pending_count + r.b_pending_count + r.c_pending_count + r.d_pending_count + r.e_pending_count +
-                r.f_pending_count + r.g_pending_count }}</td>
-        </tr>
-        <!-- TO BE SOLD Row -->
-        <tr class="child-row{{ loop.index }} bg-gray-50/50 dark:bg-gray-800/20 text-[10px]">
-            <td class="col-expander p-0 border-r border-gray-100 dark:border-gray-800 sub-row-line"></td>
-            <td colspan="9"
-                class="px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 font-bold text-amber-600 text-right">
-                To Be Sold</td>
-            <td class="col-total px-2 py-1.5 font-bold bg-gray-100/50 dark:bg-gray-800/40 text-right">
-                {{ r.a_pending_count + r.b_pending_count + r.c_pending_count + r.d_pending_count + r.e_pending_count +
-                r.f_pending_count + r.g_pending_count }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-    <tfoot class="sticky-footer">
-        <tr class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white uppercase text-[9px]">
-            <td class="p-2 text-right" colspan="10">Grand Total Process Load</td>
-            <td class="col-total bg-gray-200 dark:bg-gray-700">{{ footer_totals.total or '0' }}</td>
-        </tr>
-    </tfoot>
-</table>
+<!-- Stage Definitions Legend & Pagination Toolbar -->
+<div
+    class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0 overflow-x-auto no-scrollbar">
 
-<script id="stats-metadata" type="application/json">
+    <!-- Left: Legend -->
+    <div class="flex items-center gap-4">
+        <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Stage
+            Legend:</span>
+        <div class="flex items-center gap-4 text-[10px]">
+            <div class="flex items-center gap-1.5 whitespace-nowrap"><span
+                    class="flex items-center justify-center w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400 text-[9px]">A</span>
+                <span class="text-gray-500">Ordered</span>
+            </div>
+            <div class="flex items-center gap-1.5 whitespace-nowrap"><span
+                    class="flex items-center justify-center w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400 text-[9px]">B</span>
+                <span class="text-gray-500">Accepted</span>
+            </div>
+            <div class="flex items-center gap-1.5 whitespace-nowrap"><span
+                    class="flex items-center justify-center w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400 text-[9px]">C</span>
+                <span class="text-gray-500">Barcoded</span>
+            </div>
+            <div class="flex items-center gap-1.5 whitespace-nowrap"><span
+                    class="flex items-center justify-center w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400 text-[9px]">D</span>
+                <span class="text-gray-500">HM</span>
+            </div>
+            <div class="flex items-center gap-1.5 whitespace-nowrap"><span
+                    class="flex items-center justify-center w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400 text-[9px]">E</span>
+                <span class="text-gray-500">Quality Checked</span>
+            </div>
+            <div class="flex items-center gap-1.5 whitespace-nowrap"><span
+                    class="flex items-center justify-center w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400 text-[9px]">F</span>
+                <span class="text-gray-500">Invoiced</span>
+            </div>
+            <div class="flex items-center gap-1.5 whitespace-nowrap"><span
+                    class="flex items-center justify-center w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 font-bold text-gray-600 dark:text-gray-400 text-[9px]">G</span>
+                <span class="text-gray-500">Delivered</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Pagination -->
+    <div class="flex items-center gap-4 text-[10px] text-gray-500">
+        <div class="flex items-center gap-2">
+            <span class="text-gray-400">Rows per page:</span>
+            <select id="per-page-select" onchange="applyFilters()"
+                class="bg-transparent border-none text-[10px] font-bold text-gray-700 dark:text-gray-300 focus:ring-0 p-0 cursor-pointer">
+                <option value="50" {% if pagination and pagination.per_page==50 %}selected{% endif %}>50</option>
+                <option value="100" {% if pagination and pagination.per_page==100 %}selected{% endif %}>100</option>
+                <option value="200" {% if pagination and pagination.per_page==200 %}selected{% endif %}>200</option>
+            </select>
+        </div>
+        <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
+        <span class="font-medium text-gray-700 dark:text-gray-300">
+            {% if pagination %}
+            {{ (pagination.page - 1) * pagination.per_page + 1 }}-{{ [pagination.page * pagination.per_page,
+            pagination.total]|min }} of {{ pagination.total }}
+            {% else %}
+            0-0 of 0
+            {% endif %}
+        </span>
+        <div class="flex items-center gap-1">
+            <button onclick="changePage({{ pagination.prev_num }})" {% if not pagination or not pagination.has_prev
+                %}disabled{% endif %}
+                class="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-gray-700 disabled:opacity-50">
+                <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+            </button>
+            <button onclick="changePage({{ pagination.next_num }})" {% if not pagination or not pagination.has_next
+                %}disabled{% endif %}
+                class="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-gray-700">
+                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="flex-1 overflow-auto">
+    <table class="enterprise-grid w-full text-[11px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+        <thead>
+            <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
+                <th class="col-expander text-center px-0"></th>
+                <th class="col-division text-left">Division</th>
+                <th class="col-group text-left">Group</th>
+                <th class="col-purity text-center">Purity</th>
+                <th class="col-classification text-left">Classification</th>
+                <th class="col-make text-left">Make</th>
+                <th class="col-collection text-left">Collection</th>
+                <th class="col-section text-left">Section</th>
+                <th class="col-type text-left">Type</th>
+                <th class="col-weight text-right">Weight</th>
+                <th class="col-total bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white">Total</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            {% for r in rows %}
+            <tr class="parent-row hover:bg-blue-50/30 group" onclick="toggleRow('row{{ loop.index }}')">
+                <td class="text-center px-0"><span id="icon-row{{ loop.index }}"
+                        class="material-symbols-outlined text-[14px] text-gray-400 group-hover:text-primary">chevron_right</span>
+                </td>
+                <td class="font-medium">{{ r.division or '-' }}</td>
+                <td>{{ r.group_name or '-' }}</td>
+                <td class="text-center">{{ r.purity or '-' }}</td>
+                <td>{{ r.classification or '-' }}</td>
+                <td>{{ r.make or '-' }}</td>
+                <td>{{ r.collection or '-' }}</td>
+                <td>{{ r.section or '-' }}</td>
+                <td>{{ r.master_collection or '-' }}</td>
+                <td class="text-right">{{ r.gr_wt or 0 }}</td>
+                <td class="col-total font-bold bg-gray-50/50">{{ r.pieces or 0 }}</td>
+            </tr>
+            <!-- Total Pieces Row -->
+            <tr class="child-row{{ loop.index }} hidden bg-gray-50/50 dark:bg-gray-800/20 text-[10px]">
+                <td class="col-expander p-0 border-r border-gray-100 dark:border-gray-800 sub-row-line"></td>
+                <td colspan="9"
+                    class="px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 font-bold text-amber-600 text-right">
+                    Total</td>
+                <td class="col-total px-2 py-1.5 font-bold bg-gray-100/50 dark:bg-gray-800/40 text-right">
+                    0</td>
+            </tr>
+            <!-- Pending Row -->
+            <tr class="child-row{{ loop.index }} hidden bg-gray-50/50 dark:bg-gray-800/20 text-[10px]">
+                <td class="col-expander p-0 border-r border-gray-100 dark:border-gray-800 sub-row-line"></td>
+                <td colspan="9"
+                    class="px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 font-bold text-amber-600 text-right">
+                    To Be Reallocated To Other Shop</td>
+                <td class="col-total px-2 py-1.5 font-bold bg-gray-100/50 dark:bg-gray-800/40 text-right">
+                    0</td>
+            </tr>
+            <!-- TO BE SOLD Row -->
+            <tr class="child-row{{ loop.index }} hidden bg-gray-50/50 dark:bg-gray-800/20 text-[10px]">
+                <td class="col-expander p-0 border-r border-gray-100 dark:border-gray-800 sub-row-line"></td>
+                <td colspan="9"
+                    class="px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 font-bold text-amber-600 text-right">
+                    To Be Sold</td>
+                <td class="col-total px-2 py-1.5 font-bold bg-gray-100/50 dark:bg-gray-800/40 text-right">
+                    0</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot class="sticky-footer">
+            <tr class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white uppercase text-[9px]">
+                <td class="p-2 text-right" colspan="10">Grand Total Process Load</td>
+                <td class="col-total bg-gray-200 dark:bg-gray-700">{{ footer_totals.total or '0' }}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <script id="stats-metadata" type="application/json">
     {{ stats | tojson }}
 </script>
-<div class="pagination-meta hidden" data-page="{{ pagination.page if pagination else 1 }}"
-    data-per-page="{{ pagination.per_page if pagination else 50 }}"
-    data-total="{{ pagination.total if pagination else 0 }}"
-    data-prev-num="{{ pagination.prev_num if pagination and pagination.has_prev else '' }}"
-    data-next-num="{{ pagination.next_num if pagination and pagination.has_next else '' }}"
-    data-has-prev="{{ 'true' if pagination and pagination.has_prev else 'false' }}"
-    data-has-next="{{ 'true' if pagination and pagination.has_next else 'false' }}">
-</div>
+    <div class="pagination-meta hidden" data-page="{{ pagination.page if pagination else 1 }}"
+        data-per-page="{{ pagination.per_page if pagination else 50 }}"
+        data-total="{{ pagination.total if pagination else 0 }}"
+        data-prev-num="{{ pagination.prev_num if pagination and pagination.has_prev else '' }}"
+        data-next-num="{{ pagination.next_num if pagination and pagination.has_next else '' }}"
+        data-has-prev="{{ 'true' if pagination and pagination.has_prev else 'false' }}"
+        data-has-next="{{ 'true' if pagination and pagination.has_next else 'false' }}">
+    </div>
