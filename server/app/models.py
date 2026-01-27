@@ -391,7 +391,7 @@ class AllocatedBarcodesSnapshot(db.Model):
     __tablename__ = 'allocated_barcodes_snapshot'
 
     batch_id = db.Column(db.BigInteger, primary_key=True)
-    barcode = db.Column(db.BigInteger)
+    barcode = db.Column(db.BigInteger, primary_key=True)
     collection = db.Column(db.Text)
     section = db.Column(db.Text)
     barcode_weight = db.Column(db.Numeric(14, 3))
