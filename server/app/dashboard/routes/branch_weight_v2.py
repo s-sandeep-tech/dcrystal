@@ -82,14 +82,14 @@ def branch_weight_allocation_v2():
         aggs = agg_q.first()
 
         stats = {
-            'provision_pieces': f"{int(aggs.provision_pieces or 0):,}",
-            'provision_weight': f"{safe_float(aggs.provision_weight):,.3f}",
-            'stock_pieces': f"{int(aggs.stock_pieces or 0):,}",
-            'stock_weight': f"{safe_float(aggs.stock_weight):,.3f}",
-            'short_pieces': f"{int(aggs.short_pieces or 0):,}",
-            'short_weight': f"{safe_float(aggs.short_weight):,.3f}",
-            'max_allocate': f"{safe_float(aggs.max_allocate):,.3f}",
-            'max_refill': f"{int(aggs.max_refill or 0):,}"
+            'provision_pieces': int(aggs.provision_pieces or 0),
+            'provision_weight': safe_float(aggs.provision_weight),
+            'stock_pieces': int(aggs.stock_pieces or 0),
+            'stock_weight': safe_float(aggs.stock_weight),
+            'short_pieces': int(aggs.short_pieces or 0),
+            'short_weight': safe_float(aggs.short_weight),
+            'max_allocate': safe_float(aggs.max_allocate),
+            'max_refill': safe_float(aggs.max_refill)
         }
 
         footer_totals = stats
@@ -283,14 +283,14 @@ def get_branch_partial_v2():
             aggs = agg_q.first()
 
             stats = {
-                'provision_pieces': f"{int(aggs.provision_pieces or 0):,}",
-                'provision_weight': f"{safe_float(aggs.provision_weight):,.3f}",
-                'stock_pieces': f"{int(aggs.stock_pieces or 0):,}",
-                'stock_weight': f"{safe_float(aggs.stock_weight):,.3f}",
-                'short_pieces': f"{int(aggs.short_pieces or 0):,}",
-                'short_weight': f"{safe_float(aggs.short_weight):,.3f}",
-                'max_allocate': f"{safe_float(aggs.max_allocate):,.3f}",
-                'max_refill': f"{int(aggs.max_refill or 0):,}"
+                'provision_pieces': int(aggs.provision_pieces or 0),
+                'provision_weight': safe_float(aggs.provision_weight),
+                'stock_pieces': int(aggs.stock_pieces or 0),
+                'stock_weight': safe_float(aggs.stock_weight),
+                'short_pieces': int(aggs.short_pieces or 0),
+                'short_weight': safe_float(aggs.short_weight),
+                'max_allocate': safe_float(aggs.max_allocate),
+                'max_refill': safe_float(aggs.max_refill)
             }
             footer_totals = stats
 
