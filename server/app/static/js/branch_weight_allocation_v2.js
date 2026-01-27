@@ -101,7 +101,7 @@ function updateDashboardStats(stats) {
         const el = document.getElementById(id);
         if (el) {
             if (id.includes('pieces')) el.textContent = value + ' pcs';
-            else el.textContent = value || '0.000';
+            else el.textContent = value !== undefined ? parseFloat(value).toFixed(3) : '0.000';
         }
     }
 }
@@ -391,7 +391,7 @@ function initChart() {
                     borderRadius: 4
                 },
                 {
-                    label: 'Max Refill Qty',
+                    label: 'Max Refill Weight',
                     data: [],
                     backgroundColor: 'rgba(79, 70, 229, 0.8)', // indigo-600
                     borderColor: 'rgba(79, 70, 229, 1)',

@@ -51,7 +51,7 @@
             <td class="text-gray-400">{{ r.state or '-' }}</td>
             <td class="text-gray-400">{{ r.location or '-' }}</td>
             <td class="text-right font-medium">{{ "%.3f"|format(r.max_allocate) }}</td>
-            <td class="text-right font-medium text-indigo-600">{{ "{:,}".format(r.max_refill|int) }}</td>
+            <td class="text-right font-medium text-indigo-600">{{ "%.3f"|format(r.max_refill|float) }}</td>
         </tr>
         {% endfor %}
 
@@ -67,7 +67,9 @@
         <tr class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white uppercase text-[9px]">
             <td class="p-2 text-right" colspan="5">Grand Total</td>
             <td class="text-right font-bold px-2">{{ footer_totals.max_allocate or '0.000' }}</td>
-            <td class="text-right font-bold px-2">{{ footer_totals.max_refill or '0.000' }}</td>
+            <td class="text-right font-bold px-2">{{ "%.3f"|format(footer_totals.max_refill|float) if
+                footer_totals.max_refill
+                else '0.000' }}</td>
         </tr>
     </tfoot>
 </table>

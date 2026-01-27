@@ -10,7 +10,7 @@
                 <th class="text-left py-3">State</th>
                 <th class="text-left py-3">Location</th>
                 <th class="text-right py-3 text-emerald-600">Max Weight Allocate to other branches</th>
-                <th class="text-right py-3 text-indigo-600 px-6">Max Refill Quantity from other branches</th>
+                <th class="text-right py-3 text-indigo-600 px-6">Max Refill Weight from other branches</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
@@ -61,7 +61,7 @@
                 <td class="text-right font-medium text-indigo-600 py-4 px-6 relative">
                     <div class="data-bar-refill transition-all duration-500"
                         style="width: {{ (r.max_refill / max_val_refill * 100)|round(1) }}%;"></div>
-                    <span class="relative z-10 tabular-nums">{{ "{:,}".format(r.max_refill|int) }}</span>
+                    <span class="relative z-10 tabular-nums">{{ "%.3f"|format(r.max_refill|float) }}</span>
                 </td>
             </tr>
             {% endfor %}
@@ -81,7 +81,9 @@
             <tr class="text-gray-900 dark:text-white uppercase text-[10px]">
                 <td class="p-3 text-right" colspan="5">Grand Total</td>
                 <td class="text-right p-3">{{ footer_totals.max_allocate or '0.000' }}</td>
-                <td class="text-right p-3 px-6">{{ footer_totals.max_refill or '0.000' }}</td>
+                <td class="text-right p-3 px-6">{{ "%.3f"|format(footer_totals.max_refill|float) if
+                    footer_totals.max_refill
+                    else '0.000' }}</td>
             </tr>
         </tfoot>
     </table>

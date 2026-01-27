@@ -50,8 +50,9 @@
         </div>
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase">Max Refill Weight</p>
-            <p id="stat-max-refill" class="text-sm font-bold text-indigo-600">{{ stats.max_refill if stats else '0.000'
-                }}</p>
+            <p id="stat-max-refill" class="text-sm font-bold text-indigo-600">{{ "%.3f"|format(stats.max_refill|float)
+                if
+                stats and stats.max_refill else '0.000' }}</p>
         </div>
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase">Short Wt</p>

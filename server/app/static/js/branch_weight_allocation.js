@@ -89,7 +89,7 @@ function updateDashboardStats(stats) {
         const el = document.getElementById(id);
         if (el) {
             if (id.includes('pieces')) el.textContent = value + ' pcs';
-            else el.textContent = value || '0.000';
+            else el.textContent = value !== undefined ? parseFloat(value).toFixed(3) : '0.000';
         }
     }
 }

@@ -68,11 +68,11 @@
                 <span class="material-symbols-outlined text-4xl">inventory_2</span>
             </div>
             <div>
-                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Max Refill Qty</p>
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Max Refill Weight</p>
                 <div class="flex items-baseline gap-1 mt-1">
-                    <p id="stat-max-refill" class="text-2xl font-bold text-indigo-600">{{ stats.max_refill if stats else
-                        '0' }}</p>
-                    <span class="text-[10px] text-gray-400">pcs</span>
+                    <p id="stat-max-refill" class="text-2xl font-bold text-indigo-600">{{
+                        "%.3f"|format(stats.max_refill|float) if stats and stats.max_refill else '0.000' }}</p>
+                    <span class="text-[10px] text-gray-400">g</span>
                 </div>
             </div>
             <div class="h-1 w-full bg-indigo-100 dark:bg-indigo-900/30 rounded-full mt-3 overflow-hidden">
