@@ -3,7 +3,9 @@
     <div class="p-4 flex items-center justify-between shrink-0 border-b border-gray-50 dark:border-gray-800">
         <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300">Allocated Barcodes for <span
                 class="text-primary">{{ location }}</span></h3>
-        <span class="text-[10px] bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-gray-500">{{ barcodes|length }}
+        <span
+            class="text-[11px] bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded text-gray-500 font-bold tracking-wide">{{
+            barcodes|length }}
             Items</span>
     </div>
 
@@ -11,35 +13,136 @@
     <div class="flex-1 overflow-y-auto no-scrollbar">
         <div class="p-4 pt-2">
             <div class="border border-gray-100 dark:border-gray-800 rounded-lg overflow-hidden">
-                <table class="w-full text-[11px] border-collapse">
+                <table class="w-full text-[13px] border-collapse" id="barcode-tree-grid">
                     <thead class="sticky top-0 z-20 bg-gray-50 dark:bg-gray-800">
                         <tr
-                            class="text-gray-500 uppercase font-bold text-[9px] tracking-wider border-b border-gray-100 dark:border-gray-700">
-                            <th class="text-left px-4 py-3 bg-gray-50 dark:bg-gray-800 sticky top-0">Barcode</th>
-                            <th class="text-left px-4 py-3 bg-gray-50 dark:bg-gray-800 sticky top-0">Collection</th>
-                            <th class="text-left px-4 py-3 bg-gray-50 dark:bg-gray-800 sticky top-0">Section</th>
-                            <th class="text-right px-4 py-3 bg-gray-50 dark:bg-gray-800 sticky top-0">Gross Weight</th>
+                            class="text-gray-500 uppercase font-bold text-[10px] tracking-wider border-b border-gray-100 dark:border-gray-700">
+                            <th class="w-10 px-2 py-3 bg-gray-50 dark:bg-gray-800"></th>
+                            <th class="text-left px-4 py-3 bg-gray-50 dark:bg-gray-800">Level Detail</th>
+                            <th class="text-left px-4 py-3 bg-gray-50 dark:bg-gray-800">Barcode</th>
+                            <th class="text-left px-4 py-3 bg-gray-50 dark:bg-gray-800">Collection</th>
+                            <th class="text-left px-4 py-3 bg-gray-50 dark:bg-gray-800">Section</th>
+                            <th class="text-right px-4 py-3 bg-gray-50 dark:bg-gray-800">Gross Weight</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
                         {% set total_weight = namespace(value=0) %}
-                        {% for b in barcodes %}
-                        {% set total_weight.value = total_weight.value + (b.barcode_weight|float) %}
-                        <tr class="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors">
-                            <td class="px-4 py-2 font-mono text-gray-600 dark:text-gray-400">{{ b.barcode }}</td>
-                            <td class="px-4 py-2 text-gray-600 dark:text-gray-400">{{ b.collection }}</td>
-                            <td class="px-4 py-2 text-gray-600 dark:text-gray-400">{{ b.section }}</td>
-                            <td class="px-4 py-2 text-right font-medium text-gray-700 dark:text-gray-300">{{
-                                "%.3f"|format(b.barcode_weight|float) }}</td>
+                        {% for zone, zone_group in barcodes|groupby('target_zone') %}
+                        {% set zone_id = "mz-" ~ loop.index %}
+                        {% set zone_weight = namespace(value=0) %}
+                        {% for b in zone_group %}{% set zone_weight.value = zone_weight.value + (b.barcode_weight|float)
+                        %}{% endfor %}
+
+                        <!-- Zone Row -->
+                        <tr class="bg-gray-50/50 dark:bg-gray-800/20 font-bold group cursor-pointer hover:bg-blue-50/20 transition-colors"
+                            onclick="toggleModalRow('{{ zone_id }}')">
+                            <td class="text-center">
+                                <span
+                                    class="material-symbols-outlined text-[18px] text-gray-400 rotate-0 transition-transform"
+                                    id="icon-{{ zone_id }}">expand_more</span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="material-symbols-outlined text-[16px] text-primary/70">public</span>
+                                    <span class="text-[14px]">{{ zone or 'Unknown Zone' }}</span>
+                                    <span
+                                        class="ml-2 text-[10px] font-bold text-gray-400 bg-white dark:bg-gray-800 px-2 py-0.5 rounded shadow-sm border border-gray-100 dark:border-gray-700">{{
+                                        zone_group|length }} Barcodes</span>
+                                </div>
+                            </td>
+                            <td colspan="3"></td>
+                            <td class="px-4 py-3 text-right text-primary font-bold text-[14px]">{{
+                                "%.3f"|format(zone_weight.value) }}</td>
                         </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="4" class="px-4 py-8 text-center text-gray-400 italic">No allocated barcodes
-                                found
-                                for
-                                this location.</td>
+
+                        {% for state, state_group in zone_group|groupby('target_state') %}
+                        {% set state_id = zone_id ~ "-ms-" ~ loop.index %}
+                        {% set state_weight = namespace(value=0) %}
+                        {% for b in state_group %}{% set state_weight.value = state_weight.value +
+                        (b.barcode_weight|float) %}{% endfor %}
+
+                        <!-- State Row -->
+                        <tr class="bg-white dark:bg-gray-900 border-l-2 border-primary/20 child-of-{{ zone_id }} hidden cursor-pointer hover:bg-blue-50/10 transition-all font-semibold"
+                            onclick="toggleModalRow('{{ state_id }}')">
+                            <td class="text-center pl-2">
+                                <span
+                                    class="material-symbols-outlined text-[16px] text-gray-400 rotate-0 transition-transform"
+                                    id="icon-{{ state_id }}">expand_more</span>
+                            </td>
+                            <td class="px-4 py-2.5">
+                                <div
+                                    class="flex items-center gap-2 ml-5 border-l border-gray-100 dark:border-gray-800 pl-3">
+                                    <span class="material-symbols-outlined text-[15px] text-indigo-400/70">map</span>
+                                    <span class="text-[13px]">{{ state or 'Unknown State' }}</span>
+                                    <span
+                                        class="ml-2 text-[10px] font-normal text-gray-400 bg-gray-50 dark:bg-gray-800 px-1.5 py-0.5 rounded">{{
+                                        state_group|length }} items</span>
+                                </div>
+                            </td>
+                            <td colspan="3"></td>
+                            <td class="px-4 py-2.5 text-right font-bold text-indigo-600/80 text-[13px]">{{
+                                "%.3f"|format(state_weight.value) }}</td>
+                        </tr>
+
+                        {% for loc, loc_group in state_group|groupby('target_location') %}
+                        {% set loc_id = state_id ~ "-ml-" ~ loop.index %}
+                        {% set loc_weight = namespace(value=0) %}
+                        {% for b in loc_group %}{% set loc_weight.value = loc_weight.value + (b.barcode_weight|float)
+                        %}{% endfor %}
+
+                        <!-- Location Row -->
+                        <tr class="bg-white dark:bg-gray-900 border-l-2 border-indigo-400/20 child-of-{{ zone_id }} child-of-{{ state_id }} hidden cursor-pointer hover:bg-blue-50/5 transition-all"
+                            onclick="toggleModalRow('{{ loc_id }}')">
+                            <td class="text-center pl-4">
+                                <span
+                                    class="material-symbols-outlined text-[14px] text-gray-400 rotate-0 transition-transform"
+                                    id="icon-{{ loc_id }}">expand_more</span>
+                            </td>
+                            <td class="px-4 py-2">
+                                <div
+                                    class="flex items-center gap-2 ml-10 border-l border-gray-100 dark:border-gray-800 pl-4">
+                                    <span class="material-symbols-outlined text-[15px] text-emerald-400/70">store</span>
+                                    <span class="text-[13px] text-gray-700 dark:text-gray-300">{{ loc or 'Unknown
+                                        Location' }}</span>
+                                    <span class="ml-2 text-[9px] font-normal text-gray-400">{{ loc_group|length }}
+                                        pcs</span>
+                                </div>
+                            </td>
+                            <td colspan="3"></td>
+                            <td class="px-4 py-2 text-right font-semibold text-emerald-600/80 text-[12px]">{{
+                                "%.3f"|format(loc_weight.value) }}</td>
+                        </tr>
+
+                        {% for b in loc_group %}
+                        {% set total_weight.value = total_weight.value + (b.barcode_weight|float) %}
+                        <!-- Barcode Detail Row -->
+                        <tr
+                            class="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors child-of-{{ zone_id }} child-of-{{ state_id }} child-of-{{ loc_id }} hidden">
+                            <td class="px-2"></td>
+                            <td class="px-4 py-1.5">
+                                <div
+                                    class="ml-16 border-l border-gray-50 dark:border-gray-800 pl-5 h-5 flex items-center">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700"></span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-1.5 font-mono text-gray-600 dark:text-gray-400 text-[13px]">{{ b.barcode
+                                }}</td>
+                            <td class="px-4 py-1.5 text-gray-600 dark:text-gray-400 text-[12px]">{{ b.collection }}</td>
+                            <td class="px-4 py-1.5 text-gray-600 dark:text-gray-400 text-[12px]">{{ b.section }}</td>
+                            <td class="px-4 py-1.5 text-right font-medium text-gray-700 dark:text-gray-300 text-[13px]">
+                                {{ "%.3f"|format(b.barcode_weight|float) }}</td>
                         </tr>
                         {% endfor %}
+                        {% endfor %}
+                        {% endfor %}
+                        {% endfor %}
+
+                        {% if not barcodes %}
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-400 italic">No allocated barcodes
+                                found for this location.</td>
+                        </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>

@@ -411,3 +411,69 @@ function closeBarcodeModal() {
         document.body.style.overflow = '';
     }
 }
+
+// Modal Tree-Grid Toggle
+function toggleModalRow(rowId) {
+    const table = document.getElementById('barcode-tree-grid');
+    if (!table) return;
+
+    const icon = document.getElementById(`icon-${rowId}`);
+    if (!icon) return;
+
+    // expand_more (chevron down) means it IS collapsed and we WANT to expand.
+    // expand_less (chevron up) means it IS expanded and we WANT to collapse.
+    const isExpanding = icon.textContent === 'expand_more';
+
+    // Toggle icon and rotation
+    if (isExpanding) {
+        icon.textContent = 'expand_less';
+        icon.style.transform = 'rotate(-180deg)';
+    } else {
+        icon.textContent = 'expand_more';
+        icon.style.transform = 'rotate(0deg)';
+    }
+
+    // Toggle children visibility
+    const children = table.querySelectorAll(`.child-of-${rowId}`);
+
+    children.forEach(child => {
+        if (isExpanding) {
+            // ONLY show immediate children. 
+            // How to determine immediate? 
+            // If we are zone (mz-), show states (ms-) that are child-of-mz-.
+            // But don't show locations (ml-) if the state is not expanded.
+
+            // Actually, a simpler approach:
+            // When expanding, we only show rows that are DIRECT descendants.
+            // But since we use nested classes, we can check if the row has OTHER parent classes that are still collapsed.
+
+            // Check if all OTHER parents of this child are expanded.
+            const classes = Array.from(child.classList);
+            const parentClasses = classes.filter(c => c.startsWith('child-of-') && c !== `child-of-${rowId}`);
+
+            let allParentsExpanded = true;
+            for (const pc of parentClasses) {
+                const parentId = pc.replace('child-of-', '');
+                const parentIcon = document.getElementById(`icon-${parentId}`);
+                if (parentIcon && parentIcon.textContent === 'expand_more') {
+                    allParentsExpanded = false;
+                    break;
+                }
+            }
+
+            if (allParentsExpanded) {
+                child.classList.remove('hidden');
+            }
+        } else {
+            // HIDING: Hide everything that is a descendant
+            child.classList.add('hidden');
+
+            // Reset icons of sub-parents that might be expanded
+            const subParentIcon = child.querySelector('.material-symbols-outlined[id^="icon-"]');
+            if (subParentIcon) {
+                subParentIcon.textContent = 'expand_more';
+                subParentIcon.style.transform = 'rotate(0deg)';
+            }
+        }
+    });
+}
