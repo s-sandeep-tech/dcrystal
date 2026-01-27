@@ -343,7 +343,7 @@ def get_allocated_barcodes():
         if not location:
             return '<div class="p-4 text-center text-red-500">Location required</div>', 400
             
-        barcodes = AllocatedBarcodesSnapshot.query.filter_by(location=location).all()
+        barcodes = AllocatedBarcodesSnapshot.query.filter_by(source_location=location).all()
         
         return render_template('partials/_view_allocated_barcodes.html', barcodes=barcodes, location=location)
     except Exception as e:

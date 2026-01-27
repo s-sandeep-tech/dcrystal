@@ -390,21 +390,22 @@ class LocationWiseStockSnapshot(db.Model):
 class AllocatedBarcodesSnapshot(db.Model):
     __tablename__ = 'allocated_barcodes_snapshot'
 
-    id = db.Column(db.BigInteger, primary_key=True)
-    barcode = db.Column(db.String(100))
-    collection = db.Column(db.String(150))
-    section = db.Column(db.String(100))
-    gross_weight = db.Column(db.Numeric(14, 3))
-    location = db.Column(db.String(150))
-    snapshot_date = db.Column(db.Date)
+    batch_id = db.Column(db.BigInteger, primary_key=True)
+    barcode = db.Column(db.BigInteger)
+    collection = db.Column(db.Text)
+    section = db.Column(db.Text)
+    barcode_weight = db.Column(db.Numeric(14, 3))
+    source_location = db.Column(db.Text)
+    target_location = db.Column(db.Text)
 
     def to_dict(self):
         return {
-            'barcode': self.barcode,
+            'barcode': str(self.barcode),
             'collection': self.collection,
             'section': self.section,
-            'gross_weight': float(self.gross_weight or 0),
-            'location': self.location,
-            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
+            'barcode_weight': float(self.barcode_weight or 0),
+            'source_location': self.source_location,
+            'target_location': self.target_location
         }
+
 
