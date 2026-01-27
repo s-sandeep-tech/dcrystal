@@ -5,7 +5,7 @@ services:
     image: postgres:15-alpine
     environment:
       - POSTGRES_USER=meetaccess
-      - POSTGRES_=meetpass
+      - POSTGRES_PASSWORD=meetpass
       - POSTGRES_DB=dcrystaldb
     ports:
       - "5433:5432"
