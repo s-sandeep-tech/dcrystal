@@ -18,7 +18,9 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
+                {% set total_weight = namespace(value=0) %}
                 {% for b in barcodes %}
+                {% set total_weight.value = total_weight.value + (b.barcode_weight|float) %}
                 <tr class="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors">
                     <td class="px-4 py-2 font-mono text-gray-600 dark:text-gray-400">{{ b.barcode }}</td>
                     <td class="px-4 py-2 text-gray-600 dark:text-gray-400">{{ b.collection }}</td>
@@ -33,6 +35,15 @@
                 </tr>
                 {% endfor %}
             </tbody>
+            {% if barcodes %}
+            <tfoot class="bg-gray-50/50 dark:bg-gray-800/30 border-t border-gray-100 dark:border-gray-700">
+                <tr class="font-bold">
+                    <td colspan="3" class="px-4 py-2 text-right text-gray-500 uppercase text-[9px] tracking-wider">Total
+                        Weight</td>
+                    <td class="px-4 py-2 text-right text-primary">{{ "%.3f"|format(total_weight.value) }}</td>
+                </tr>
+            </tfoot>
+            {% endif %}
         </table>
     </div>
 </div>
