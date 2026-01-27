@@ -335,6 +335,25 @@ def get_branch_partial():
     except Exception as e:
         logger.error(f"Error in get_branch_partial: {str(e)}")
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
+
+#Max Refill Weight(in) popup content.
+@dashboard_bp.route('/api/branchweight/refill-barcodes')
+@jwt_required()
+def get_refill_barcodes():
+    try:
+        location = request.args.get('location')
+        if not location:
+            return '<div class="p-4 text-center text-red-500">Location required</div>', 400
+            
+        # For refill, we filter by target_location
+        barcodes = AllocatedBarcodesSnapshot.query.filter_by(target_location=location).all()
+        
+        return render_template('partials/_view_refill_barcodes.html', barcodes=barcodes, location=location)
+    except Exception as e:
+        logger.error(f"Error in get_refill_barcodes: {str(e)}")
+        return f'<div class="p-4 text-center text-red-500">Error: {str(e)}</div>', 200
+
+#Max Allocation Weight(out) popup content.
 @dashboard_bp.route('/api/branchweight/allocated-barcodes')
 @jwt_required()
 def get_allocated_barcodes():

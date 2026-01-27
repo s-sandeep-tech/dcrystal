@@ -404,6 +404,49 @@ function showAllocatedBarcodes(location) {
         });
 }
 
+function showRefillBarcodes(location) {
+    const modal = document.getElementById('barcodeModal');
+    const content = document.getElementById('barcodeModalContent');
+
+    if (!modal || !content) return;
+
+    // Show modal
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    // Show loading state
+    content.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-full py-24 text-gray-400">
+            <div class="size-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p class="text-[10px] font-medium uppercase tracking-widest">Fetching refill details for ${location}...</p>
+        </div>
+    `;
+
+    // Fetch data
+    fetch(`/api/branchweight/refill-barcodes?location=${encodeURIComponent(location)}`, {
+        headers: {
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+    })
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to fetch refill details');
+            return response.text();
+        })
+        .then(html => {
+            content.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error fetching refill barcodes:', error);
+            content.innerHTML = `
+            <div class="p-12 text-center text-red-500">
+                <span class="material-symbols-outlined text-4xl mb-2">error</span>
+                <p class="text-xs font-bold">Failed to load refill details.</p>
+                <p class="text-[10px] mt-1 text-gray-400">${error.message}</p>
+            </div>
+        `;
+        });
+}
+
 function closeBarcodeModal() {
     const modal = document.getElementById('barcodeModal');
     if (modal) {

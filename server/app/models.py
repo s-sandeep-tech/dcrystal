@@ -396,9 +396,13 @@ class AllocatedBarcodesSnapshot(db.Model):
     section = db.Column(db.Text)
     barcode_weight = db.Column(db.Numeric(14, 3))
     source_location = db.Column(db.Text)
+    source_zone = db.Column(db.Text)
+    source_state = db.Column(db.Text)
+    source_business_head = db.Column(db.Text)
     target_zone = db.Column(db.Text)
     target_state = db.Column(db.Text)
     target_location = db.Column(db.Text)
+    target_business_head = db.Column(db.Text)
 
     def to_dict(self):
         return {
