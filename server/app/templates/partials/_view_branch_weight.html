@@ -58,9 +58,15 @@
                 {{ "%.3f"|format(r.max_allocate) }}
                 {% endif %}
             </td>
-            <td class="px-3 py-1.5 text-right font-bold text-indigo-600 cursor-pointer hover:underline"
-                onclick="showRefillBarcodes('{{ r.location }}')">
-                {{ "%.3f"|format(r.max_refill|float) }}
+            <td class="text-right font-medium">
+                {% if r.level == 'location' %}
+                <a href="javascript:void(0)" onclick="showRefillBarcodes('{{ r.location }}')"
+                    class="text-indigo-600 hover:underline transition-colors px-3 py-1.5 block font-bold">{{
+                    "%.3f"|format(r.max_refill|float) }}</a>
+                {% else %}
+                <span class="text-indigo-600/70 px-3 py-1.5 block font-bold">{{ "%.3f"|format(r.max_refill|float)
+                    }}</span>
+                {% endif %}
             </td>
         </tr>
         {% endfor %}
