@@ -24,13 +24,19 @@ def branch_weight_allocation():
         # Fetch latest snapshot date (handle Nulls by using COALESCE or just checking if any data exists)
         has_any_data = db.session.query(LocationWiseStockSnapshot).first()
         if not has_any_data:
+            empty_stats = {
+                'provision_pieces': 0, 'provision_weight': 0.0,
+                'stock_pieces': 0, 'stock_weight': 0.0,
+                'short_pieces': 0, 'short_weight': 0.0,
+                'max_allocate': 0.0, 'max_refill': 0.0
+            }
             return render_template('branch_weight_allocation.html', 
                                  unread_count=unread_count, 
                                  sync_time=sync_time, 
-                                 stats={}, 
+                                 stats=empty_stats, 
                                  rows=[], 
                                  pagination=None, 
-                                 footer_totals={},
+                                 footer_totals=empty_stats,
                                  current_level='zone')
 
         latest_date_query = db.session.query(func.max(LocationWiseStockSnapshot.snapshot_date)).scalar()
@@ -81,16 +87,24 @@ def branch_weight_allocation():
         agg_q = apply_filters(agg_q)
         aggs = agg_q.first()
 
-        stats = {
-            'provision_pieces': int(aggs.provision_pieces or 0),
-            'provision_weight': safe_float(aggs.provision_weight),
-            'stock_pieces': int(aggs.stock_pieces or 0),
-            'stock_weight': safe_float(aggs.stock_weight),
-            'short_pieces': int(aggs.short_pieces or 0),
-            'short_weight': safe_float(aggs.short_weight),
-            'max_allocate': safe_float(aggs.max_allocate),
-            'max_refill': safe_float(aggs.max_refill)
-        }
+        if not aggs or aggs.provision_pieces is None:
+             stats = {
+                'provision_pieces': 0, 'provision_weight': 0.0,
+                'stock_pieces': 0, 'stock_weight': 0.0,
+                'short_pieces': 0, 'short_weight': 0.0,
+                'max_allocate': 0.0, 'max_refill': 0.0
+            }
+        else:
+            stats = {
+                'provision_pieces': int(aggs.provision_pieces or 0),
+                'provision_weight': safe_float(aggs.provision_weight),
+                'stock_pieces': int(aggs.stock_pieces or 0),
+                'stock_weight': safe_float(aggs.stock_weight),
+                'short_pieces': int(aggs.short_pieces or 0),
+                'short_weight': safe_float(aggs.short_weight),
+                'max_allocate': safe_float(aggs.max_allocate),
+                'max_refill': safe_float(aggs.max_refill)
+            }
 
         footer_totals = stats
         
@@ -184,11 +198,17 @@ def get_branch_partial():
         # If no data at all, return an empty template with 200
         has_any_data = db.session.query(LocationWiseStockSnapshot).first()
         if not has_any_data:
+            empty_stats = {
+                'provision_pieces': 0, 'provision_weight': 0.0,
+                'stock_pieces': 0, 'stock_weight': 0.0,
+                'short_pieces': 0, 'short_weight': 0.0,
+                'max_allocate': 0.0, 'max_refill': 0.0
+            }
             return render_template('partials/_view_branch_weight.html', 
                                  rows=[], 
                                  pagination=None, 
-                                 footer_totals={},
-                                 stats={},
+                                 footer_totals=empty_stats,
+                                 stats=empty_stats,
                                  current_level='zone')
 
         # Filters and Parent Info for Drill-down
@@ -276,16 +296,24 @@ def get_branch_partial():
             agg_q = apply_filters(agg_q)
             aggs = agg_q.first()
 
-            stats = {
-                'provision_pieces': int(aggs.provision_pieces or 0),
-                'provision_weight': safe_float(aggs.provision_weight),
-                'stock_pieces': int(aggs.stock_pieces or 0),
-                'stock_weight': safe_float(aggs.stock_weight),
-                'short_pieces': int(aggs.short_pieces or 0),
-                'short_weight': safe_float(aggs.short_weight),
-                'max_allocate': safe_float(aggs.max_allocate),
-                'max_refill': safe_float(aggs.max_refill)
-            }
+            if not aggs or aggs.provision_pieces is None:
+                stats = {
+                    'provision_pieces': 0, 'provision_weight': 0.0,
+                    'stock_pieces': 0, 'stock_weight': 0.0,
+                    'short_pieces': 0, 'short_weight': 0.0,
+                    'max_allocate': 0.0, 'max_refill': 0.0
+                }
+            else:
+                stats = {
+                    'provision_pieces': int(aggs.provision_pieces or 0),
+                    'provision_weight': safe_float(aggs.provision_weight),
+                    'stock_pieces': int(aggs.stock_pieces or 0),
+                    'stock_weight': safe_float(aggs.stock_weight),
+                    'short_pieces': int(aggs.short_pieces or 0),
+                    'short_weight': safe_float(aggs.short_weight),
+                    'max_allocate': safe_float(aggs.max_allocate),
+                    'max_refill': safe_float(aggs.max_refill)
+                }
             footer_totals = stats
 
         # Main Query for Rows
