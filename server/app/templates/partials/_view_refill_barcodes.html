@@ -9,7 +9,8 @@
             </div>
             <div>
                 <h3 class="text-sm font-bold text-gray-800 dark:text-white uppercase tracking-tight">Refill Barcodes for
-                    <span class="text-indigo-600">{{ location }}</span></h3>
+                    <span class="text-indigo-600">{{ location }}</span>
+                </h3>
                 <p class="text-[10px] text-gray-500 font-medium uppercase tracking-widest mt-0.5">Incoming stock from
                     multiple sources</p>
             </div>
@@ -164,7 +165,7 @@
         <span class="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Total Incoming Weight</span>
         <div class="flex items-baseline gap-1">
             <span class="text-lg font-bold text-indigo-600 tabular-nums">
-                {{ "%.3f"|format(barcodes|sum(attribute='barcode_weight')) }}
+                {{ "%.3f"|format(totalRefillAmount) }}
             </span>
             <span class="text-[10px] font-bold text-indigo-400">g</span>
         </div>

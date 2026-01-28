@@ -52,15 +52,16 @@
             <td class="text-gray-400">{{ r.location or '-' }}</td>
             <td class="text-right font-medium">
                 {% if r.level == 'location' %}
-                <a href="javascript:void(0)" onclick="showAllocatedBarcodes('{{ r.location }}')"
-                    class="text-primary hover:underline transition-colors">{{ "%.3f"|format(r.max_allocate) }}</a>
+                <a href="javascript:void(0)" onclick="showAllocatedBarcodes('{{ r.location }}', '{{r.max_allocate }}')"
+                    class="text-primary hover:underline transition-colors">{{
+                    "%.3f"|format(r.max_allocate) }}</a>
                 {% else %}
                 {{ "%.3f"|format(r.max_allocate) }}
                 {% endif %}
             </td>
             <td class="text-right font-medium">
                 {% if r.level == 'location' %}
-                <a href="javascript:void(0)" onclick="showRefillBarcodes('{{ r.location }}')"
+                <a href="javascript:void(0)" onclick="showRefillBarcodes('{{ r.location }}','{{ r.max_refill }}')"
                     class="text-indigo-600 hover:underline transition-colors px-3 py-1.5 block font-bold">{{
                     "%.3f"|format(r.max_refill|float) }}</a>
                 {% else %}

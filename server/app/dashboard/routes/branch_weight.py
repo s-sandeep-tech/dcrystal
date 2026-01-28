@@ -6,6 +6,7 @@ from app.extensions import db
 from sqlalchemy import func
 from datetime import datetime
 import logging
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -370,13 +371,14 @@ def get_branch_partial():
 def get_refill_barcodes():
     try:
         location = request.args.get('location')
+        totalRefillAmount = Decimal(request.args.get('totalRefillAmount', 0))
         if not location:
             return '<div class="p-4 text-center text-red-500">Location required</div>', 400
             
         # For refill, we filter by target_location
         barcodes = AllocatedBarcodesSnapshot.query.filter_by(target_location=location).all()
         
-        return render_template('partials/_view_refill_barcodes.html', barcodes=barcodes, location=location)
+        return render_template('partials/_view_refill_barcodes.html', barcodes=barcodes, location=location, totalRefillAmount=totalRefillAmount)
     except Exception as e:
         logger.error(f"Error in get_refill_barcodes: {str(e)}")
         return f'<div class="p-4 text-center text-red-500">Error: {str(e)}</div>', 200
@@ -387,12 +389,13 @@ def get_refill_barcodes():
 def get_allocated_barcodes():
     try:
         location = request.args.get('location')
+        totalAmount = Decimal(request.args.get('totalAmount', '0'))
         if not location:
             return '<div class="p-4 text-center text-red-500">Location required</div>', 400
             
         barcodes = AllocatedBarcodesSnapshot.query.filter_by(source_location=location).all()
         
-        return render_template('partials/_view_allocated_barcodes.html', barcodes=barcodes, location=location)
+        return render_template('partials/_view_allocated_barcodes.html', barcodes=barcodes, location=location, totalAmount=totalAmount)
     except Exception as e:
         logger.error(f"Error in get_allocated_barcodes: {str(e)}")
         return f'<div class="p-4 text-center text-red-500">Error: {str(e)}</div>', 200

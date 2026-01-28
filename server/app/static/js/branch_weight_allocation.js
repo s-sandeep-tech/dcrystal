@@ -361,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadFilterOptions();
 });
 
-function showAllocatedBarcodes(location) {
+function showAllocatedBarcodes(location, totalAmount) {
     const modal = document.getElementById('barcodeModal');
     const content = document.getElementById('barcodeModalContent');
 
@@ -380,7 +380,7 @@ function showAllocatedBarcodes(location) {
     `;
 
     // Fetch data
-    fetch(`/api/branchweight/allocated-barcodes?location=${encodeURIComponent(location)}`, {
+    fetch(`/api/branchweight/allocated-barcodes?location=${encodeURIComponent(location)}&totalAmount=${encodeURIComponent(totalAmount)}`, {
         headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
@@ -404,7 +404,7 @@ function showAllocatedBarcodes(location) {
         });
 }
 
-function showRefillBarcodes(location) {
+function showRefillBarcodes(location, totalRefillAmount) {
     const modal = document.getElementById('barcodeModal');
     const content = document.getElementById('barcodeModalContent');
 
@@ -423,7 +423,7 @@ function showRefillBarcodes(location) {
     `;
 
     // Fetch data
-    fetch(`/api/branchweight/refill-barcodes?location=${encodeURIComponent(location)}`, {
+    fetch(`/api/branchweight/refill-barcodes?location=${encodeURIComponent(location)}&totalRefillAmount=${encodeURIComponent(totalRefillAmount)}`, {
         headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
