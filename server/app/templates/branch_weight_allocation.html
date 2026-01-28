@@ -42,25 +42,19 @@
 
     <!-- Stats Grid -->
     <div
-        class="grid grid-cols-3 lg:grid-cols-6 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
+        class="grid grid-cols-2 lg:grid-cols-5 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Max Alloc Weight (out)</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Excess Weight Alloc to Other Shops (OUT)</p>
             <p id="stat-max-allocate" class="text-sm font-bold text-emerald-600">{{
                 "%.3f"|format(stats.max_allocate|float) if stats and stats.max_allocate else '0.000' }}</p>
         </div>
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Max Refill Weight (in)</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Short Stock Reffilled From Other Shops (IN)</p>
             <p id="stat-max-refill" class="text-sm font-bold text-indigo-600">{{ "%.3f"|format(stats.max_refill|float)
                 if
                 stats and stats.max_refill else '0.000' }}</p>
         </div>
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Short Wt</p>
-            <p id="stat-short-weight" class="text-sm font-bold text-red-600">{{ "%.3f"|format(stats.short_weight|float)
-                if stats and stats.short_weight else '0.000' }}</p>
-            <p id="stat-short-pieces" class="text-[9px] text-gray-400">{{ stats.short_pieces if stats else '0' }} pcs
-            </p>
-        </div>
+
         <!-- Placeholder for more stats -->
         <div class="p-2 lg:col-span-2 text-center flex flex-col justify-center">
             <div class="flex items-center justify-center gap-1.5">
