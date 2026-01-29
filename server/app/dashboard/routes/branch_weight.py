@@ -7,8 +7,38 @@ from sqlalchemy import func
 from datetime import datetime
 import logging
 from decimal import Decimal
+import json
+from app.extensions import redis_client
 
 logger = logging.getLogger(__name__)
+
+# Helper class to mimic Flask-SQLAlchemy Pagination for templates
+class CachedPagination:
+    def __init__(self, items, page, per_page, total):
+        self.items = items
+        self.page = page
+        self.per_page = per_page
+        self.total = total
+        self.has_prev = page > 1
+        self.has_next = (page * per_page) < total
+        self.prev_num = page - 1
+        self.next_num = page + 1
+        self.pages = (total + per_page - 1) // per_page if per_page else 0
+
+def generate_cache_key(prefix, snapshot_date=None, **kwargs):
+    """
+    Generates a unique cache key based on the prefix, snapshot date, and filter arguments.
+    The snapshot_date ensures data invalidation when new data is uploaded.
+    """
+    # Sort keys to ensure consistent order
+    sorted_kwargs = dict(sorted(kwargs.items()))
+    # Create a string representation of the arguments
+    args_str = ":".join(f"{k}={v}" for k, v in sorted_kwargs.items() if v)
+    
+    # Format date string for the key
+    date_str = snapshot_date.strftime("%Y%m%d%H%M%S") if snapshot_date else "latest"
+    
+    return f"{prefix}:{date_str}:{args_str}"
 
 def safe_float(val):
     try:
@@ -48,6 +78,37 @@ def branch_weight_allocation():
         state = request.args.get('state', '')
         location = request.args.get('location', '')
         business_head = request.args.get('business_head', '')
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+
+        # Cache Key for Main Route
+        cache_key = generate_cache_key('bw_main', latest_date_query, 
+                                     search=search, zone=zone, state=state, location=location, 
+                                     business_head=business_head, page=page, per_page=per_page)
+        
+        # Try to fetch from Redis
+        cached_data = redis_client.get(cache_key)
+        if cached_data:
+            logger.info(f"Cache HIT for {cache_key}")
+            data = json.loads(cached_data)
+            stats = data['stats']
+            rows = data['rows']
+            total = data['total']
+            current_level = data['current_level']
+            footer_totals = data['footer_totals']
+            
+            pagination = CachedPagination(rows, page, per_page, total)
+            
+            return render_template('branch_weight_allocation.html', 
+                                 unread_count=unread_count, 
+                                 sync_time=sync_time, 
+                                 stats=stats, 
+                                 rows=rows, 
+                                 pagination=pagination, 
+                                 footer_totals=footer_totals,
+                                 current_level=current_level)
+
+        logger.info(f"Cache MISS for {cache_key}")
 
         def apply_filters(query):
             if search:
@@ -63,8 +124,6 @@ def branch_weight_allocation():
             if business_head:
                 query = query.filter(LocationWiseStockSnapshot.business_head == business_head)
             
-            # If latest_date_query is None, it means all rows are NULL date. 
-            # If not None, we filter by it.
             if latest_date_query:
                 query = query.filter(LocationWiseStockSnapshot.snapshot_date == latest_date_query)
             else:
@@ -124,8 +183,6 @@ def branch_weight_allocation():
         main_q = apply_filters(main_q)
         main_q = main_q.group_by(*group_cols).order_by(*group_cols)
         
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 50, type=int)
         pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
         
         processed_rows = []
@@ -147,6 +204,16 @@ def branch_weight_allocation():
             if row_dict['state'] is None: row_dict['state'] = 'Unknown'
             if row_dict['location'] is None: row_dict['location'] = 'Unknown'
             processed_rows.append(row_dict)
+
+        # Write to Cache (Expire in 1 hour)
+        cache_payload = {
+            'stats': stats,
+            'rows': processed_rows,
+            'total': pagination.total,
+            'current_level': level,
+            'footer_totals': footer_totals
+        }
+        redis_client.setex(cache_key, 3600, json.dumps(cache_payload))
 
         return render_template('branch_weight_allocation.html', 
                              unread_count=unread_count, 
@@ -224,6 +291,43 @@ def get_branch_partial():
         parent_value = request.args.get('parent_value')
         grandparent_value = request.args.get('grandparent_value') # For state level, we might need zone
 
+        # Pagination Params
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+        
+        # Cache Key for Partial Route
+        cache_key = generate_cache_key('bw_partial', latest_date_query, 
+                                     search=search, zone=zone, state=state, location=location, 
+                                     business_head=business_head, parent_level=parent_level, 
+                                     parent_value=parent_value, grandparent_value=grandparent_value,
+                                     page=page, per_page=per_page)
+        
+        is_child_rows = bool(parent_level)
+        
+        # Try Cache
+        cached_data = redis_client.get(cache_key)
+        if cached_data:
+             logger.info(f"Cache HIT for {cache_key}")
+             data = json.loads(cached_data)
+             
+             # If paginated, rows are just rows. Pagination object reconstruction if needed.
+             if not is_child_rows:
+                 pagination = CachedPagination(data['rows'], page, per_page, data['total'])
+             else:
+                 pagination = None
+             
+             return render_template('partials/_view_branch_weight.html', 
+                              rows=data['rows'], 
+                              pagination=pagination, 
+                              footer_totals=data['footer_totals'],
+                              stats=data['stats'],
+                              current_level=data['current_level'],
+                              is_child_rows=is_child_rows,
+                              parent_level=parent_level,
+                              parent_value=parent_value)
+
+        logger.info(f"Cache MISS for {cache_key}")
+
         def apply_filters(query):
             if search:
                 query = query.filter(LocationWiseStockSnapshot.location.ilike(f"%{search}%") | 
@@ -245,9 +349,6 @@ def get_branch_partial():
                 
             return query
 
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 50, type=int)
-        
         # Determine Grouping and Filtering based on Parent
         if parent_level == 'zone':
             # Expanding a Zone -> Show States
@@ -347,10 +448,15 @@ def get_branch_partial():
             if row_dict['location'] is None: row_dict['location'] = 'Unknown'
             processed_rows.append(row_dict)
 
-        # If parent_level is set, we are returning child rows to be appended, not the full table.
-        # We can use a special flag or a different template. 
-        # Using the same template but passing is_child_rows=True to skip header/footer/table wrapper.
-        is_child_rows = bool(parent_level)
+        # Cache Write
+        cache_payload = {
+            'rows': processed_rows,
+            'total': pagination.total,
+            'footer_totals': footer_totals,
+            'stats': stats,
+            'current_level': level
+        }
+        redis_client.setex(cache_key, 3600, json.dumps(cache_payload))
 
         return render_template('partials/_view_branch_weight.html', 
                              rows=processed_rows, 
