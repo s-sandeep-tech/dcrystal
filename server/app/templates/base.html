@@ -4,6 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
     <script>
         if (!localStorage.getItem('access_token') && window.location.pathname !== '/login') {
             window.location.href = '/login';
@@ -39,17 +40,33 @@
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
         }
 
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-
         .no-scrollbar {
             -ms-overflow-style: none;
             scrollbar-width: none;
+        }
+
+        .animate-zoom-in {
+            animation: zoomIn 0.2s ease-out;
+        }
+
+        @keyframes zoomIn {
+            from {
+                transform: translate(-50%, -50%) scale(0.95);
+                opacity: 0;
+            }
+
+            to {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .cursor-pointer {
+            cursor: pointer;
+        }
+
+        -ms-overflow-style: none;
+        scrollbar-width: none;
         }
 
         .heatmap-cell {
@@ -87,12 +104,21 @@
                 <a class="p-2 rounded {% if request.path == '/branchweightv2' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
                     href="{{ url_for('dashboard.branch_weight_allocation_v2') }}"
                     title="Branch Weight Allocation & Refillv2"><span class="material-symbols-outlined">dvr</span></a>
-                <a class="p-2 rounded {% if request.path == '/shortstatus' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
-                    href="{{ url_for('dashboard.short_status') }}" title="Short Status"><span
-                        class="material-symbols-outlined">analytics</span></a>
-                <a class="p-2 rounded {% if request.path == '/provisionstatus' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
+                <a class="p-2 rounded {% if request.path == '/branchstockprovision' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
+                    href="{{ url_for('dashboard.branch_stock_provision') }}" title="Branch Stock Summary"><span
+                        class="material-symbols-outlined">summarize</span></a>
+                <a class="p-2 rounded {% if request.path == '/orderstatus' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
+                    href="{{ url_for('dashboard.order_status') }}" title="Order Tracking">
+                    <span class="material-symbols-outlined">analytics</span>
+                </a>
+                <a class="p-2 rounded {% if request.path == '/ownerwiseordersummary' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
+                    href="{{ url_for('dashboard.owner_wise_order_summary') }}" title="Owner Wise Summary">
+                    <span class="material-symbols-outlined">person_pin</span>
+                </a> <a
+                    class="p-2 rounded {% if request.path == '/provisionstatus' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
                     href="{{ url_for('dashboard.provision_status') }}" title="Provision Status"><span
                         class="material-symbols-outlined">assignment</span></a>
+
                 <a class="p-2 rounded text-gray-400 hover:text-primary transition-colors" href="#"
                     title="Quality Control"><span class="material-symbols-outlined">fact_check</span></a>
                 <a class="p-2 rounded text-gray-400 hover:text-primary transition-colors" href="#"

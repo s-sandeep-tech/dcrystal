@@ -1,0 +1,53 @@
+/* Custom Styles for Branch Stock Provision Dashboard */
+
+.enterprise-grid {
+    border-spacing: 0;
+    table-layout: auto;
+    /* Changed from fixed for better column handling in stock view */
+}
+
+.enterprise-grid th,
+.enterprise-grid td {
+    border-right: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 8px 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dark .enterprise-grid th,
+.dark .enterprise-grid td {
+    border-right: 1px solid #1f2937;
+    border-bottom: 1px solid #1f2937;
+}
+
+.sticky-header th {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: #f9fafb;
+}
+
+.dark .sticky-header th {
+    background: #111827;
+}
+
+/* Branch specific column adjustments if needed */
+.col-barcode {
+    min-width: 120px;
+}
+
+/* Zoom support */
+#table-area {
+    transition: zoom 0.2s ease-in-out;
+}
+
+/* Stat Grid Improvements */
+.stats-card {
+    transition: transform 0.2s;
+}
+
+.stats-card:hover {
+    transform: translateY(-1px);
+}

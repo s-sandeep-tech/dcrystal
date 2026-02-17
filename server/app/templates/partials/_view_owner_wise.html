@@ -1,0 +1,181 @@
+{% if not is_child_rows %}
+<table class="enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider">
+            <th class="col-expander text-center px-0 w-8"></th>
+            <th class="text-left px-2">Owner Detail</th>
+            <th class="text-right px-2 bg-gray-100/30">Ordered</th>
+            <th class="text-right px-2 bg-emerald-50/20">Accepted</th>
+            <th class="text-right px-2 bg-red-50/20">Rejected</th>
+            <th class="text-right px-2 bg-indigo-50/20">Barcoded</th>
+            <th class="text-right px-2 bg-cyan-50/20">Hallmark</th>
+            <th class="text-right px-2 bg-amber-50/20">QC Pass</th>
+            <th class="text-right px-2 bg-blue-50/20">Invoiced</th>
+            <th class="text-right px-2 bg-emerald-50/20">Delivered</th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        {% endif %}
+
+        {% for r in rows %}
+        <tr class="parent-row hover:bg-blue-50/30 group animate-fade-in {{ 'cursor-pointer' if r.level == 'collection_owner' else '' }}"
+            data-level="{{ r.level }}" {% if r.level=='collection_owner' %}
+            onclick="openLeafModal('{{ r.classification_owner|e }}', '{{ r.make_owner|e }}', '{{ r.collection_owner|e }}')"
+            {% endif %}>
+            <td class="text-center px-0">
+                {% if r.level != 'collection_owner' %}
+                <button
+                    onclick="toggleRow(this, '{{ r.level }}', '{{ (r.level == 'classification_owner' and r.classification_owner or r.make_owner)|e }}', '{{ (r.level == 'make_owner' and r.classification_owner or '')|e }}')"
+                    class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
+                    <span class="material-symbols-outlined text-[14px]">add_circle</span>
+                </button>
+                {% else %}
+                <span class="material-symbols-outlined text-[8px] text-gray-200">fiber_manual_record</span>
+                {% endif %}
+            </td>
+            <td class="px-2 font-bold">
+                <div class="flex items-center gap-1"
+                    style="padding-left: {{ '0px' if r.level == 'classification_owner' else ('12px' if r.level == 'make_owner' else '24px') }}">
+                    <span class="material-symbols-outlined text-[12px] text-gray-300">
+                        {% if r.level == 'classification_owner' %}shield_person{% elif r.level == 'make_owner'
+                        %}precision_manufacturing{% else %}category{% endif %}
+                    </span>
+                    {% if r.level == 'classification_owner' %}
+                    {{ r.classification_owner }}
+                    {% elif r.level == 'make_owner' %}
+                    {{ r.make_owner }}
+                    {% else %}
+                    {{ r.collection_owner }}
+                    {% endif %}
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="font-bold text-gray-700">{{ "%.3f"|format(r.ord_wt) }}</span>
+                    <span class="text-[9px] text-gray-500">{{ r.ord_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="font-bold text-emerald-600">{{ "%.3f"|format(r.acc_wt) }}</span>
+                    <span class="text-[9px] text-emerald-600/70">{{ r.acc_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="font-bold text-red-600">{{ "%.3f"|format(r.rej_wt) }}</span>
+                    <span class="text-[9px] text-red-600/70">{{ r.rej_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="font-bold text-indigo-600">{{ "%.3f"|format(r.bar_wt) }}</span>
+                    <span class="text-[9px] text-indigo-600/70">{{ r.bar_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="font-bold text-cyan-600">{{ "%.3f"|format(r.hm_wt) }}</span>
+                    <span class="text-[9px] text-cyan-600/70">{{ r.hm_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="font-bold text-amber-600">{{ "%.3f"|format(r.qc_wt) }}</span>
+                    <span class="text-[9px] text-amber-600/70">{{ r.qc_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="font-bold text-blue-600">{{ "%.3f"|format(r.inv_wt) }}</span>
+                    <span class="text-[9px] text-blue-600/70">{{ r.inv_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="font-bold text-emerald-600">{{ "%.3f"|format(r.del_wt) }}</span>
+                    <span class="text-[9px] text-emerald-600/70">{{ r.del_pcs }} Pcs</span>
+                </div>
+            </td>
+        </tr>
+
+        {% endfor %}
+
+        {% if not rows and not is_child_rows %}
+        <tr>
+            <td colspan="10" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
+        </tr>
+        {% endif %}
+
+        {% if not is_child_rows %}
+    </tbody>
+    <tfoot
+        class="bg-gray-50 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700 font-bold sticky bottom-0 z-10">
+        <tr>
+            <td colspan="2" class="px-2 py-3 text-left uppercase tracking-wider text-gray-500 text-[10px]">Grand Total
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="text-gray-900 text-xs">{{ stats.ordered_wt }}</span>
+                    <span class="text-[9px] text-gray-500">{{ stats.ordered_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="text-emerald-600 text-xs">{{ stats.accepted_wt }}</span>
+                    <span class="text-[9px] text-emerald-600/70">{{ stats.accepted_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="text-red-600 text-xs">{{ stats.rejected_wt }}</span>
+                    <span class="text-[9px] text-red-600/70">{{ stats.rejected_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="text-indigo-600 text-xs">{{ stats.barcoded_wt }}</span>
+                    <span class="text-[9px] text-indigo-600/70">{{ stats.barcoded_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="text-cyan-600 text-xs">{{ stats.hallmarked_wt }}</span>
+                    <span class="text-[9px] text-cyan-600/70">{{ stats.hallmarked_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="text-amber-600 text-xs">{{ stats.qc_passed_wt }}</span>
+                    <span class="text-[9px] text-amber-600/70">{{ stats.qc_passed_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="text-blue-600 text-xs">{{ stats.invoiced_wt }}</span>
+                    <span class="text-[9px] text-blue-600/70">{{ stats.invoiced_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="text-emerald-600 text-xs">{{ stats.delivered_wt }}</span>
+                    <span class="text-[9px] text-emerald-600/70">{{ stats.delivered_pcs }} Pcs</span>
+                </div>
+            </td>
+        </tr>
+    </tfoot>
+</table>
+
+<script id="stats-metadata" type="application/json">
+    {{ stats | tojson }}
+</script>
+
+<div class="pagination-meta hidden" data-page="{{ pagination.page if pagination else 1 }}"
+    data-per-page="{{ pagination.per_page if pagination else 50 }}"
+    data-total="{{ pagination.total if pagination else 0 }}"
+    data-prev-num="{{ pagination.prev_num if pagination and pagination.has_prev else '' }}"
+    data-next-num="{{ pagination.next_num if pagination and pagination.has_next else '' }}"
+    data-has-prev="{{ 'true' if pagination and pagination.has_prev else 'false' }}"
+    data-has-next="{{ 'true' if pagination and pagination.has_next else 'false' }}" data-level="{{ current_level }}">
+</div>
+{% endif %}

@@ -1,0 +1,282 @@
+<!-- Summary Controls Header & Pagination Toolbar -->
+<div
+    class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0 overflow-x-auto no-scrollbar">
+
+    <!-- Left: Legend & Search Status -->
+    <div class="flex items-center gap-4">
+        <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Summary
+            Controls:</span>
+        <div class="flex items-center gap-4 text-[10px]">
+            <div class="flex items-center gap-1.5 whitespace-nowrap">
+                <span class="w-2 h-2 rounded-full bg-primary"></span>
+                <span class="text-gray-500">Provision</span>
+            </div>
+            <div class="flex items-center gap-1.5 whitespace-nowrap">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span class="text-gray-500">Stock</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Pagination -->
+    <div class="flex items-center gap-4 text-[10px] text-gray-500">
+        <div class="flex items-center gap-2">
+            <span class="text-gray-400">Rows per page:</span>
+            <select id="per-page-select" onchange="applyFilters()"
+                class="bg-transparent border-none text-[10px] font-bold text-gray-700 dark:text-gray-300 focus:ring-0 p-0 cursor-pointer">
+                <option value="50" {% if pagination and pagination.per_page==50 %}selected{% endif %}>50</option>
+                <option value="100" {% if pagination and pagination.per_page==100 %}selected{% endif %}>100</option>
+                <option value="200" {% if pagination and pagination.per_page==200 %}selected{% endif %}>200</option>
+            </select>
+        </div>
+        <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
+        <span class="font-medium text-gray-700 dark:text-gray-300">
+            {% if pagination %}
+            {{ (pagination.page - 1) * pagination.per_page + 1 }}-{{ [pagination.page * pagination.per_page,
+            pagination.total]|min }} of {{ pagination.total }}
+            {% else %}
+            0-0 of 0
+            {% endif %}
+        </span>
+        <div class="flex items-center gap-1">
+            <button onclick="changePage({{ pagination.prev_num }})" {% if not pagination or not pagination.has_prev
+                %}disabled{% endif %}
+                class="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-gray-700 disabled:opacity-50">
+                <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+            </button>
+            <button onclick="changePage({{ pagination.next_num }})" {% if not pagination or not pagination.has_next
+                %}disabled{% endif %}
+                class="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-gray-700">
+                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Table Area with independent scrolling for sticky headers -->
+<div class="flex-1 overflow-auto relative bg-white dark:bg-gray-900">
+    <table class="enterprise-grid w-full text-[10px] border-separate sticky-header" style="border-spacing: 0;">
+        <thead>
+            <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider">
+                <!-- Location Info -->
+                <th class="px-3 py-1.5 text-left sticky left-0 top-0 z-[110] bg-gray-50 dark:bg-gray-800 border-r border-b border-gray-100 dark:border-gray-800"
+                    style="min-width: 140px;">Location</th>
+                <th class="px-3 py-1.5 text-left sticky top-0 z-[100] bg-gray-50 dark:bg-gray-800 border-r border-b border-gray-100 dark:border-gray-800"
+                    style="left: 140px; min-width: 90px;">Zone</th>
+                <th class="px-3 py-1.5 text-left sticky top-0 z-[100] bg-gray-50 dark:bg-gray-800 border-r border-b border-gray-100 dark:border-gray-800"
+                    style="left: 230px; min-width: 90px;">State</th>
+                <th class="px-3 py-1.5 text-left sticky top-0 z-[100] bg-gray-50 dark:bg-gray-800 border-r border-b border-gray-100 dark:border-gray-800"
+                    style="left: 320px; min-width: 120px;">Business Head</th>
+
+                <!-- Provision -->
+                <th
+                    class="px-3 py-1.5 text-right border-l border-b border-gray-200 dark:border-gray-700 bg-blue-50/10 sticky top-0 z-[90]">
+                    Provision Pieces</th>
+                <th
+                    class="px-3 py-1.5 text-right bg-blue-50/10 sticky top-0 z-[90] border-b border-gray-100 dark:border-gray-800">
+                    Provision Weight</th>
+
+                <!-- Stock -->
+                <th
+                    class="px-3 py-1.5 text-right border-l border-b border-gray-200 dark:border-gray-700 bg-emerald-50/10 sticky top-0 z-[90]">
+                    Stock Pieces</th>
+                <th
+                    class="px-3 py-1.5 text-right bg-emerald-50/10 sticky top-0 z-[90] border-b border-gray-100 dark:border-gray-800">
+                    Stock Weight</th>
+
+                <!-- Short -->
+                <th
+                    class="px-3 py-1.5 text-right border-l border-b border-gray-200 dark:border-gray-700 bg-red-50/10 sticky top-0 z-[90]">
+                    Short Pieces</th>
+                <th
+                    class="px-3 py-1.5 text-right bg-red-50/10 sticky top-0 z-[90] border-b border-gray-100 dark:border-gray-800">
+                    Short Weight</th>
+
+                <!-- Excess -->
+                <th
+                    class="px-3 py-1.5 text-right border-l border-b border-gray-200 dark:border-gray-700 bg-amber-50/10 sticky top-0 z-[90]">
+                    Ex./Not Prov. Pieces</th>
+                <th
+                    class="px-3 py-1.5 text-right bg-amber-50/10 sticky top-0 z-[90] border-b border-gray-100 dark:border-gray-800">
+                    Ex./Not Prov. Weight</th>
+
+                <!-- Max Allocation -->
+                <th
+                    class="px-3 py-1.5 text-right border-l border-b border-gray-200 dark:border-gray-700 sticky top-0 z-[90] bg-gray-50">
+                    Max Alloc Pieces</th>
+                <th
+                    class="px-3 py-1.5 text-right sticky top-0 z-[90] border-b border-gray-100 dark:border-gray-800 bg-gray-50">
+                    Max Alloc Weight</th>
+
+                <!-- Max Refill -->
+                <th
+                    class="px-3 py-1.5 text-right border-l border-b border-gray-200 dark:border-gray-700 sticky top-0 z-[90] bg-gray-50">
+                    Max Refill Pieces</th>
+                <th
+                    class="px-3 py-1.5 text-right sticky top-0 z-[90] border-b border-gray-100 dark:border-gray-800 bg-gray-50">
+                    Max Refill Qty</th>
+
+                <!-- Final Excess -->
+                <th
+                    class="px-3 py-1.5 text-right border-l border-b border-gray-200 dark:border-gray-700 bg-gray-100/50 sticky top-0 z-[90]">
+                    Final Ex. Pieces</th>
+                <th
+                    class="px-3 py-1.5 text-right bg-gray-100/50 sticky top-0 z-[90] border-b border-gray-100 dark:border-gray-800">
+                    Final Ex. Qty</th>
+
+                <!-- Final Short -->
+                <th
+                    class="px-3 py-1.5 text-right border-l border-b border-gray-200 dark:border-gray-700 bg-gray-100/50 sticky top-0 z-[90]">
+                    Final Short Pcs</th>
+                <th
+                    class="px-3 py-1.5 text-right bg-gray-100/50 sticky top-0 z-[90] border-b border-gray-100 dark:border-gray-800">
+                    Final Short Qty</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            {% for r in rows %}
+            {% set prov_pcs = r.provision_pieces|float %}
+            {% set stock_pcs = r.stock_pieces|float %}
+            {% set fulfill_pct = (stock_pcs / prov_pcs * 100) if prov_pcs > 0 else 0 %}
+
+            <tr class="hover:bg-blue-50/30 transition-colors group text-[10px]">
+                <!-- Enhanced Location Column with Health Badge -->
+                <td class="px-3 py-1.5 sticky left-0 z-[40] bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 text-left"
+                    style="min-width: 140px;">
+                    <div class="flex items-center gap-2">
+                        {% if fulfill_pct >= 90 %}
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.4)]"
+                            title="High Fulfillment"></span>
+                        {% elif fulfill_pct >= 50 %}
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_4px_rgba(245,158,11,0.4)]"
+                            title="Mid Fulfillment"></span>
+                        {% else %}
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.4)]"
+                            title="Critical Shortage"></span>
+                        {% endif %}
+                        <span class="font-bold text-gray-900 dark:text-gray-100">{{ r.location }}</span>
+                    </div>
+                </td>
+                <td class="px-3 py-1.5 text-left text-gray-500 uppercase font-medium sticky z-[35] bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800"
+                    style="left: 140px; min-width: 90px;">{{ r.zone }}</td>
+                <td class="px-3 py-1.5 text-left text-gray-500 uppercase font-medium sticky z-[35] bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800"
+                    style="left: 230px; min-width: 90px;">{{ r.state }}</td>
+                <td class="px-3 py-1.5 text-left text-[9px] font-bold text-gray-400 uppercase sticky z-[35] bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800"
+                    style="left: 320px; min-width: 120px;">{{ r.business_head }}
+                </td>
+
+                <!-- Provision -->
+                <td class="px-3 py-1.5 text-right font-mono font-bold text-primary tabular-nums">{{
+                    r.provision_pieces|int }}</td>
+                <td class="px-3 py-1.5 text-right font-mono tabular-nums">
+                    <span>{{ "%.3f"|format(r.provision_weight|float) }}</span>
+                </td>
+
+                <!-- Stock with Progress Bar -->
+                <td class="px-3 py-1.5 text-right font-mono tabular-nums">
+                    <div class="flex flex-col items-end">
+                        <span class="font-bold text-emerald-600">{{ r.stock_pieces|int }}</span>
+                        {% if prov_pcs > 0 %}
+                        <div class="w-12 h-1 bg-gray-50 dark:bg-gray-800 rounded-full mt-1 overflow-hidden">
+                            <div class="bg-emerald-500 h-full" style="width: {{ [fulfill_pct, 100]|min }}%"></div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </td>
+                <td class="px-3 py-1.5 text-right font-mono text-emerald-600/80 tabular-nums">
+                    <span>{{ "%.3f"|format(r.stock_weight|float) }}</span>
+                </td>
+
+                <!-- Short with Icon -->
+                <td class="px-3 py-1.5 text-right font-mono tabular-nums">
+                    {% set short_pcs = r.short_pieces|int %}
+                    <div class="flex flex-col items-end">
+                        <div class="flex items-center gap-1">
+                            {% if short_pcs > 0 %}
+                            <span class="material-symbols-outlined text-red-500 text-[12px]">trending_down</span>
+                            {% endif %}
+                            <span class="font-bold text-red-600">{{ short_pcs }}</span>
+                        </div>
+                        {% if prov_pcs > 0 and short_pcs > 0 %}
+                        {% set short_pct = (short_pcs / prov_pcs * 100)|round(1) %}
+                        <div class="w-12 h-1 bg-red-50 dark:bg-red-900/20 rounded-full mt-1 overflow-hidden">
+                            <div class="bg-red-500 h-full" style="width: {{ [short_pct, 100]|min }}%"></div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </td>
+                <td class="px-3 py-1.5 text-right font-mono text-red-600/80 tabular-nums">{{
+                    "%.3f"|format(r.short_weight|float) }}</td>
+
+                <!-- Excess with Warning Icon -->
+                <td class="px-3 py-1.5 text-right font-mono tabular-nums">
+                    <div class="flex items-center justify-end gap-1">
+                        {% if r.excess_not_in_provision_pieces|int > 0 %}
+                        <span class="material-symbols-outlined text-amber-500 text-[12px]">warning</span>
+                        {% endif %}
+                        <span class="font-bold text-amber-600">{{ r.excess_not_in_provision_pieces|int }}</span>
+                    </div>
+                </td>
+                <td class="px-3 py-1.5 text-right font-mono text-amber-600/80 tabular-nums">{{
+                    "%.3f"|format(r.excess_not_in_provision_weight|float) }}</td>
+
+                <!-- Max Allocation (Donor) -->
+                <td class="px-3 py-1.5 text-right font-mono tabular-nums">
+                    <div class="flex items-center justify-end gap-1">
+                        {% if r.max_pieces_allocate_other_branches|int > 0 %}
+                        <span class="material-symbols-outlined text-blue-400 text-[12px]">move_up</span>
+                        {% endif %}
+                        <span>{{ r.max_pieces_allocate_other_branches|int }}</span>
+                    </div>
+                </td>
+                <td class="px-3 py-1.5 text-right font-mono tabular-nums">{{
+                    "%.3f"|format(r.max_weight_allocate_other_branches|float) }}</td>
+
+                <!-- Max Refill (Recipient) -->
+                <td class="px-3 py-1.5 text-right font-mono tabular-nums">
+                    <div class="flex items-center justify-end gap-1">
+                        {% if r.max_refill_pieces_other_branches|int > 0 %}
+                        <span class="material-symbols-outlined text-indigo-400 text-[12px]">move_down</span>
+                        {% endif %}
+                        <span>{{ r.max_refill_pieces_other_branches|int }}</span>
+                    </div>
+                </td>
+                <td class="px-3 py-1.5 text-right font-mono tabular-nums">{{
+                    "%.3f"|format(r.max_refill_qty_other_branches|float) }}</td>
+
+                <!-- Final Excess -->
+                <td class="px-3 py-1.5 text-right font-mono font-bold text-gray-700 tabular-nums">{{
+                    r.final_excess_not_in_provision_pieces|int }}</td>
+                <td class="px-3 py-1.5 text-right font-mono tabular-nums">{{
+                    "%.3f"|format(r.final_excess_not_in_provision_qty|float) }}</td>
+
+                <!-- Final Short -->
+                <td class="px-3 py-1.5 text-right font-mono font-bold text-gray-700 tabular-nums">{{
+                    r.final_short_pieces|int }}</td>
+                <td class="px-3 py-1.5 text-right font-mono tabular-nums">{{ "%.3f"|format(r.final_short_qty|float) }}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="20"
+                    class="px-4 py-16 text-center text-gray-400 uppercase tracking-widest font-bold text-[10px]">
+                    No location-wise stock summary data found
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Metadata for JS -->
+<script id="stats-metadata" type="application/json">
+    {{ stats | tojson }}
+</script>
+<div class="pagination-meta hidden" data-page="{{ pagination.page if pagination else 1 }}"
+    data-per-page="{{ pagination.per_page if pagination else 50 }}"
+    data-total="{{ pagination.total if pagination else 0 }}"
+    data-prev-num="{{ pagination.prev_num if pagination and pagination.has_prev else '' }}"
+    data-next-num="{{ pagination.next_num if pagination and pagination.has_next else '' }}"
+    data-has-prev="{{ 'true' if pagination and pagination.has_prev else 'false' }}"
+    data-has-next="{{ 'true' if pagination and pagination.has_next else 'false' }}">
+</div>

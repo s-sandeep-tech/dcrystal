@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+{% block title %}Branch Stock Summary (Legacy v3.5){% endblock %}
+
+{% block extra_head %}
+<!-- Reusing inventory.css which provides the provision status aesthetics -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/inventory.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/branch_stock_provision.css') }}">
+{% endblock %}
+
+{% block content %}
+<main id="provision-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    <!-- Header with Version Tag -->
+    <div
+        class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <h2 class="text-sm font-bold tracking-tight">Branch Stock Summary <span
+                    class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded uppercase tracking-widest text-gray-500">v3.5
+                    Enterprise Summary</span></h2>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- Zoom Controls -->
+            <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
+                <button onclick="adjustZoom(-0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom Out">-</button>
+                <button id="zoom-level" onclick="adjustZoom(0, true)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700"
+                    title="Reset Zoom">100%</button>
+                <button onclick="adjustZoom(0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom In">+</button>
+            </div>
+            <!-- Global Search -->
+            <div
+                class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
+                <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
+                <input id="hierarchy-search"
+                    class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0"
+                    placeholder="Search locations..." type="text" oninput="onSearchInput(this.value)" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Compact Stats Grid -->
+    <div
+        class="grid grid-cols-4 gap-1.5 p-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
+        <!-- Card 1: Total Provision -->
+        <div class="bg-gray-50/50 dark:bg-gray-800/50 rounded p-1 border border-blue-100/50 dark:border-blue-900/20">
+            <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[8px] font-bold text-gray-500 uppercase tracking-tight">Provision</span>
+                <span class="material-symbols-outlined text-blue-500 text-xs">inventory_2</span>
+            </div>
+            <div class="flex items-baseline justify-between">
+                <p id="stat-provision-pieces" class="text-sm font-bold text-blue-600 leading-tight">0</p>
+                <span class="text-[7px] text-gray-400 font-medium">PIECES</span>
+            </div>
+            <div class="mt-1 h-0.5 w-full bg-blue-100 rounded-full overflow-hidden">
+                <div class="bg-blue-500 h-full" style="width: 100%"></div>
+            </div>
+        </div>
+
+        <!-- Card 2: Total Stock -->
+        <div
+            class="bg-gray-50/50 dark:bg-gray-800/50 rounded p-1 border border-emerald-100/50 dark:border-emerald-900/20">
+            <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[8px] font-bold text-gray-500 uppercase tracking-tight">Stock</span>
+                <span class="material-symbols-outlined text-emerald-500 text-xs">warehouse</span>
+            </div>
+            <div class="flex items-baseline justify-between">
+                <p id="stat-stock-pieces" class="text-sm font-bold text-emerald-600 leading-tight">0</p>
+                <span class="text-[7px] text-gray-400 font-medium">PIECES</span>
+            </div>
+            <div class="mt-1 h-0.5 w-full bg-emerald-100 rounded-full overflow-hidden">
+                <div id="stat-stock-fill-bar" class="bg-emerald-500 h-full" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Card 3: Shortage -->
+        <div class="bg-gray-50/50 dark:bg-gray-800/50 rounded p-1 border border-red-100/50 dark:border-red-900/20">
+            <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[8px] font-bold text-gray-500 uppercase tracking-tight">Shortage</span>
+                <span id="stat-short-percentage" class="text-[8px] font-extrabold text-red-500">0%</span>
+            </div>
+            <div class="flex items-baseline justify-between">
+                <p id="stat-short-pieces" class="text-sm font-bold text-red-600 leading-tight">0</p>
+                <span class="text-[7px] text-gray-400 font-medium">DEFICIT</span>
+            </div>
+            <div class="mt-1 h-0.5 w-full bg-red-50 rounded-full overflow-hidden">
+                <div id="stat-short-bar" class="h-0.5 bg-red-500 transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Card 4: Excess -->
+        <div class="bg-gray-50/50 dark:bg-gray-800/50 rounded p-1 border border-amber-100/50 dark:border-amber-900/20">
+            <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[8px] font-bold text-gray-500 uppercase tracking-tight">Excess</span>
+                <span class="material-symbols-outlined text-amber-500 text-xs">warning</span>
+            </div>
+            <div class="flex items-baseline justify-between">
+                <p id="stat-excess-pieces" class="text-sm font-bold text-amber-600 leading-tight">0</p>
+                <span class="text-[7px] text-gray-400 font-medium">UNPLANNED</span>
+            </div>
+            <div class="mt-1 h-0.5 w-full bg-amber-100 rounded-full overflow-hidden">
+                <div class="bg-amber-500 h-full" style="width: 30%"></div>
+            </div>
+        </div>
+
+        <!-- Card 5: Fulfillment -->
+        <div
+            class="bg-gray-50/50 dark:bg-gray-800/50 rounded p-1 border border-indigo-100/50 dark:border-indigo-900/20">
+            <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[8px] font-bold text-gray-500 uppercase tracking-tight">Fulfillment</span>
+                <span id="stat-fulfillment-icon"
+                    class="material-symbols-outlined text-indigo-500 text-xs">check_circle</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <p id="stat-fulfillment-rate" class="text-sm font-bold text-indigo-600 leading-tight">0%</p>
+                <div class="w-6 h-6 relative">
+                    <svg class="transform -rotate-90" viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" r="16" fill="none" class="stroke-gray-200 dark:stroke-gray-700"
+                            stroke-width="4"></circle>
+                        <circle id="stat-fulfillment-ring" cx="18" cy="18" r="16" fill="none" class="stroke-indigo-500"
+                            stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round"></circle>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 6: Locations -->
+        <div
+            class="bg-gray-50/50 dark:bg-gray-800/50 rounded p-1 border border-purple-100/50 dark:border-purple-900/20">
+            <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[8px] font-bold text-gray-500 uppercase tracking-tight">Locations</span>
+                <span id="stat-coverage-score" class="text-[8px] font-extrabold text-purple-500">0%</span>
+            </div>
+            <div class="flex items-baseline justify-between">
+                <p id="stat-total-locations" class="text-sm font-bold text-purple-600 leading-tight">0</p>
+                <span class="text-[7px] text-gray-400 font-medium">COVERED</span>
+            </div>
+            <div class="mt-1 h-0.5 w-full bg-purple-100 rounded-full overflow-hidden">
+                <div id="stat-coverage-bar" class="bg-purple-500 h-full" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Card 7: Prov Weight -->
+        <div class="bg-gray-50/50 dark:bg-gray-800/50 rounded p-1 border border-blue-100/50 dark:border-blue-900/20">
+            <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[8px] font-bold text-gray-500 uppercase tracking-tight">Prov Weight</span>
+                <span class="material-symbols-outlined text-blue-400 text-xs">scale</span>
+            </div>
+            <div class="flex items-baseline justify-between">
+                <p id="stat-provision-weight" class="text-sm font-bold text-blue-600 leading-tight">0.000</p>
+                <span id="stat-avg-provision-weight" class="text-[7px] text-gray-400 font-bold tracking-tight">0.000g
+                    avg</span>
+            </div>
+            <div class="mt-1 h-0.5 w-full bg-blue-100 rounded-full overflow-hidden">
+                <div class="bg-blue-400 h-full" style="width: 90%"></div>
+            </div>
+        </div>
+
+        <!-- Card 8: Stock Weight -->
+        <div
+            class="bg-gray-50/50 dark:bg-gray-800/50 rounded p-1 border border-emerald-100/50 dark:border-emerald-900/20">
+            <div class="flex items-center justify-between mb-0.5">
+                <span class="text-[8px] font-bold text-gray-500 uppercase tracking-tight">Stock Weight</span>
+                <span class="material-symbols-outlined text-emerald-400 text-xs">fitness_center</span>
+            </div>
+            <div class="flex items-baseline justify-between">
+                <p id="stat-stock-weight" class="text-sm font-bold text-emerald-600 leading-tight">0.000</p>
+                <span id="stat-avg-stock-weight" class="text-[7px] text-gray-400 font-bold tracking-tight">0.000g
+                    avg</span>
+            </div>
+            <div class="mt-1 h-0.5 w-full bg-emerald-100 rounded-full overflow-hidden">
+                <div id="stat-stock-weight-bar" class="bg-emerald-400 h-full" style="width: 85%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AJAX Layout -->
+    <div class="flex-1 flex flex-col min-h-0 relative">
+        <!-- Spinner Overlay -->
+        <div id="loading-overlay"
+            class="hidden absolute inset-0 items-center justify-center z-50 bg-white/50 dark:bg-gray-900/50">
+            <div class="flex flex-col items-center">
+                <div class="inline-block size-8 border-4 border-primary border-t-transparent rounded-full animate-spin">
+                </div>
+                <p class="text-[11px] text-gray-400 mt-4 font-bold tracking-widest uppercase">Calculating Metrics...</p>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div id="table-area" class="flex-1 overflow-hidden flex flex-col relative bg-white dark:bg-gray-900">
+            <!-- Data Injected through Partial Directly Here -->
+        </div>
+    </div>
+</main>
+
+<script src="{{ url_for('static', filename='js/branch_stock_provision.js') }}"></script>
+{% endblock %}
+
+{% block sidebar %}
+<!-- Sidebar Filters for Summary View -->
+<aside
+    class="w-64 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xs font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> ENTITY
+                FILTERS
+            </h2>
+            <button onclick="resetGlobalFilters()"
+                class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+        </div>
+
+        <div class="space-y-4">
+            <div class="space-y-1.5 p-3 bg-gray-50/50 rounded-lg border border-gray-100">
+                <span class="text-[9px] font-extrabold text-blue-600 uppercase tracking-widest">Global Hierarchy</span>
+                <div class="space-y-3 mt-2">
+                    <select id="filter-zone"
+                        class="w-full bg-white border-gray-200 rounded text-xs p-2 focus:ring-1 focus:ring-primary/30"
+                        onchange="onFilterChange()">
+                        <option value="">All Zones</option>
+                    </select>
+                    <select id="filter-state"
+                        class="w-full bg-white border-gray-200 rounded text-xs p-2 focus:ring-1 focus:ring-primary/30"
+                        onchange="onFilterChange()">
+                        <option value="">All States</option>
+                    </select>
+                    <select id="filter-location"
+                        class="w-full bg-white border-gray-200 rounded text-xs p-2 focus:ring-1 focus:ring-primary/30"
+                        onchange="onFilterChange()">
+                        <option value="">All Locations</option>
+                    </select>
+                    <select id="filter-business-head"
+                        class="w-full bg-white border-gray-200 rounded text-xs p-2 focus:ring-1 focus:ring-primary/30"
+                        onchange="onFilterChange()">
+                        <option value="">All Business Heads</option>
+                    </select>
+                </div>
+            </div>
+
+            <button onclick="applyGlobalFilters()"
+                class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm mt-4 flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer Activity & Legend -->
+    <div
+        class="h-1/2 border-t border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 flex flex-col p-4 overflow-y-auto no-scrollbar">
+        <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 whitespace-nowrap">Visual
+            Analytics Legend</h4>
+
+        <div class="space-y-4">
+            <!-- Fulfillment Health -->
+            <div class="space-y-2">
+                <span class="text-[8px] font-extrabold text-gray-400 uppercase tracking-tight">Fulfillment Health</span>
+                <div class="grid grid-cols-1 gap-1.5 ml-1">
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span class="text-[9px] text-gray-600 dark:text-gray-400 font-medium">Healthy (>90%)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        <span class="text-[9px] text-gray-600 dark:text-gray-400 font-medium">Standard (50-90%)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        <span class="text-[9px] text-gray-600 dark:text-gray-400 font-medium">Critical (<50%)< /span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supply Logic -->
+            <div class="space-y-2">
+                <span class="text-[8px] font-extrabold text-gray-400 uppercase tracking-tight">Supply Logic</span>
+                <div class="grid grid-cols-1 gap-1.5 ml-1">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-blue-400 text-[14px]">move_up</span>
+                        <span class="text-[9px] text-gray-600 dark:text-gray-400 font-medium">Donor (Stock
+                            available)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-indigo-400 text-[14px]">move_down</span>
+                        <span class="text-[9px] text-gray-600 dark:text-gray-400 font-medium">Recipient (Needs
+                            stock)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Indicators -->
+            <div class="space-y-2">
+                <span class="text-[8px] font-extrabold text-gray-400 uppercase tracking-tight">Data
+                    Visualisation</span>
+                <div class="grid grid-cols-1 gap-1.5 ml-1">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-1 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="w-1/2 h-full bg-blue-400"></div>
+                        </div>
+                        <span class="text-[9px] text-gray-600 dark:text-gray-400 font-medium">Relative Data Magnitude
+                            Bar</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Snapshot Info -->
+            <div class="pt-2 border-t border-gray-100 dark:border-gray-800">
+                <div class="flex gap-2">
+                    <div class="mt-1 size-1.5 bg-blue-500 rounded-full shrink-0"></div>
+                    <div>
+                        <p class="text-[9px] font-bold text-gray-700 dark:text-gray-300">Live Snapshot Active</p>
+                        <p class="text-[8px] text-gray-400">Updated from real-time stock</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</aside>
+{% endblock %}

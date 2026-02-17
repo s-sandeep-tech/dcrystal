@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="crystalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="overlayGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1e3a8a;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.4" />
+    </linearGradient>
+  </defs>
+  <!-- Main Diamond/Crystal Shape -->
+  <path d="M50 5 L90 35 L50 95 L10 35 Z" fill="url(#crystalGrad)" />
+  <!-- Facet Overlay -->
+  <path d="M50 5 L90 35 L50 55 L10 35 Z" fill="url(#overlayGrad)" />
+  <path d="M50 55 L90 35 L50 95 L10 35 Z" fill="rgba(255,255,255,0.1)" />
+  <!-- Highlights -->
+  <path d="M50 5 L70 20 L50 35 L30 20 Z" fill="rgba(255,255,255,0.3)" />
+</svg>

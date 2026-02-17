@@ -1,0 +1,260 @@
+<div
+    class="modal-header flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-40">
+    <div>
+        <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">analytics</span>
+            Detailed Analysis: {{ owner_name }}
+        </h3>
+        <p class="text-[10px] text-gray-500 mt-0.5 font-medium tracking-tight">Comprehensive hierarchical breakdown with
+            standardized metrics.</p>
+    </div>
+    <button onclick="closeLeafModal()"
+        class="group flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-all duration-200">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+    </button>
+</div>
+
+<div
+    class="modal-body overflow-auto max-h-[75vh] p-0 scrollbar-thin hover:scrollbar-thumb-gray-300 dark:hover:scrollbar-thumb-gray-700">
+    <table class="modal-grid w-full text-left border-collapse table-auto border-spacing-0 bg-white dark:bg-gray-900">
+        <thead class="sticky top-0 z-30">
+            <!-- Grouped Header Row -->
+            <tr
+                class="bg-gray-50 dark:bg-gray-800 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 shadow-sm">
+                <th rowspan="2"
+                    class="px-4 py-3 border-r min-w-[220px] bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white">
+                    Level Detail</th>
+                <th colspan="2" class="px-2 py-1.5 text-center border-r bg-gray-100/30 dark:bg-gray-700/30">Ordered</th>
+                <th colspan="2"
+                    class="px-2 py-1.5 text-center border-r bg-emerald-50/30 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400">
+                    Accepted</th>
+                <th colspan="2"
+                    class="px-2 py-1.5 text-center border-r bg-red-50/30 dark:bg-red-900/10 text-red-700 dark:text-red-400">
+                    Rejected</th>
+                <th colspan="4"
+                    class="px-2 py-1.5 text-center border-r bg-indigo-50/30 dark:bg-indigo-900/10 text-indigo-700 dark:text-indigo-400">
+                    Barcoding</th>
+                <th colspan="5"
+                    class="px-2 py-1.5 text-center border-r bg-cyan-50/30 dark:bg-cyan-900/10 text-cyan-700 dark:text-cyan-400">
+                    Hallmark (HM)</th>
+                <th colspan="7"
+                    class="px-2 py-1.5 text-center border-r bg-amber-50/30 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400">
+                    Quality Control (QC)</th>
+                <th colspan="2"
+                    class="px-2 py-1.5 text-center border-r bg-blue-50/30 dark:bg-blue-900/10 text-blue-700 dark:text-blue-400">
+                    Invoiced</th>
+                <th colspan="4"
+                    class="px-2 py-1.5 text-center bg-teal-50/30 dark:bg-teal-900/10 text-teal-700 dark:text-teal-400">
+                    Delivery</th>
+            </tr>
+            <!-- Specific Column Row -->
+            <tr
+                class="bg-gray-50/95 dark:bg-gray-800/95 text-[9px] font-bold text-gray-500 dark:text-gray-400 uppercase border-b border-gray-200 dark:border-gray-700 shadow-sm">
+                <!-- Ordered -->
+                <th class="px-2 py-2 text-right border-r">Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Wt</th>
+                <!-- Accepted -->
+                <th class="px-2 py-2 text-right border-r">Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Wt</th>
+                <!-- Rejected -->
+                <th class="px-2 py-2 text-right border-r">Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Wt</th>
+                <!-- Barcoding -->
+                <th class="px-2 py-2 text-right border-r">Bar. Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Bar. Wt</th>
+                <th class="px-2 py-2 text-right border-r">N-Bar. Pcs</th>
+                <th class="px-2 py-2 text-right border-r">N-Bar. Wt</th>
+                <!-- Hallmark -->
+                <th class="px-2 py-2 text-right border-r">Proc</th>
+                <th class="px-2 py-2 text-right border-r">Pass Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Pass Wt</th>
+                <th class="px-2 py-2 text-right border-r">Fail Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Fail Wt</th>
+                <!-- QC -->
+                <th class="px-2 py-2 text-right border-r">Proc</th>
+                <th class="px-2 py-2 text-right border-r">Pass Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Pass Wt</th>
+                <th class="px-2 py-2 text-right border-r">Pend</th>
+                <th class="px-2 py-2 text-right border-r">Pend Wt</th>
+                <th class="px-2 py-2 text-right border-r">Rej Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Rej Wt</th>
+                <!-- Invoiced -->
+                <th class="px-2 py-2 text-right border-r">Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Wt</th>
+                <!-- Delivery -->
+                <th class="px-2 py-2 text-right border-r">Del Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Del Wt</th>
+                <th class="px-2 py-2 text-right border-r">Pend Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Pend Wt</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
+            {% macro render_node(node, level_depth, parent_id, index) %}
+            {% set current_id = (parent_id ~ '-' ~ index) if parent_id else index|string %}
+            <tr class="hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors group modal-row {{ 'hidden' if level_depth > 0 else '' }} text-[11px]"
+                data-id="{{ current_id }}" data-parent-id="{{ parent_id or '' }}">
+                <td
+                    class="px-4 py-2.5 border-r font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 transition-colors">
+                    <div class="flex items-center gap-2" style="padding-left: {{ level_depth * 24 }}px">
+                        {% if node.children %}
+                        <button onclick="toggleModalRow(this)"
+                            class="flex items-center justify-center w-5 h-5 text-primary hover:bg-primary/20 rounded-full transition-all hover:scale-110 active:scale-95 shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                            <span class="material-symbols-outlined text-[14px] toggle-icon font-bold">add_circle</span>
+                        </button>
+                        {% else %}
+                        <span class="w-5"></span>
+                        {% endif %}
+                        <span
+                            class="truncate max-w-[200px] py-1 font-bold tracking-tight text-gray-800 dark:text-gray-200"
+                            title="{{ node.label }}">{{ node.label }}</span>
+                    </div>
+                </td>
+                <!-- Metrics Columns -->
+                <td class="px-2 py-2 text-right border-r text-gray-500 font-medium">{{ node.metrics.ord_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r font-black text-gray-900 dark:text-gray-100">{{
+                    "%.3f"|format(node.metrics.ord_wt) }}</td>
+                <!-- Accepted -->
+                <td class="px-2 py-2 text-right border-r text-emerald-600 bg-emerald-50/10">{{ node.metrics.acc_pcs|int
+                    }}</td>
+                <td class="px-2 py-2 text-right border-r text-emerald-600 font-bold bg-emerald-50/10">{{
+                    "%.3f"|format(node.metrics.acc_wt) }}</td>
+                <!-- Rejected -->
+                <td class="px-2 py-2 text-right border-r text-red-600 bg-red-50/10">{{ node.metrics.rej_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-red-600 font-bold bg-red-50/10">{{
+                    "%.3f"|format(node.metrics.rej_wt) }}</td>
+                <!-- Barcoding -->
+                <td class="px-2 py-2 text-right border-r text-indigo-600 bg-indigo-50/10">{{ node.metrics.bar_pcs|int }}
+                </td>
+                <td class="px-2 py-2 text-right border-r text-indigo-600 font-bold bg-indigo-50/10">{{
+                    "%.3f"|format(node.metrics.bar_wt) }}</td>
+                <td class="px-2 py-2 text-right border-r text-gray-400 italic bg-gray-50/5">{{
+                    node.metrics.not_bar_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-red-400 font-medium bg-gray-50/5">{{
+                    "%.3f"|format(node.metrics.not_bar_wt) }}</td>
+                <!-- Hallmark -->
+                <td class="px-2 py-2 text-right border-r text-cyan-600 bg-cyan-50/10">{{ node.metrics.hm_proc_pcs|int }}
+                </td>
+                <td class="px-2 py-2 text-right border-r text-cyan-600 bg-cyan-50/10">{{ node.metrics.hm_pass_pcs|int }}
+                </td>
+                <td class="px-2 py-2 text-right border-r text-cyan-600 font-bold bg-cyan-50/10">{{
+                    "%.3f"|format(node.metrics.hm_pass_wt) }}</td>
+                <td class="px-2 py-2 text-right border-r text-red-500 bg-cyan-50/10">{{ node.metrics.hm_fail_pcs|int }}
+                </td>
+                <td class="px-2 py-2 text-right border-r text-red-500 font-bold bg-cyan-50/10">{{
+                    "%.3f"|format(node.metrics.hm_fail_wt) }}</td>
+                <!-- QC -->
+                <td class="px-2 py-2 text-right border-r text-amber-600 bg-amber-50/10">{{ node.metrics.qc_proc_pcs|int
+                    }}</td>
+                <td class="px-2 py-2 text-right border-r text-amber-600 bg-amber-50/10">{{ node.metrics.qc_pass_pcs|int
+                    }}</td>
+                <td class="px-2 py-2 text-right border-r text-amber-600 font-bold bg-amber-50/10">{{
+                    "%.3f"|format(node.metrics.qc_pass_wt) }}</td>
+                <td class="px-2 py-2 text-right border-r text-blue-500 bg-amber-50/10">{{ node.metrics.qc_pend_pcs|int
+                    }}</td>
+                <td class="px-2 py-2 text-right border-r text-blue-500 font-bold bg-amber-50/10">{{
+                    "%.3f"|format(node.metrics.qc_pend_wt) }}</td>
+                <td class="px-2 py-2 text-right border-r text-red-600 bg-amber-50/10">{{ node.metrics.qc_rej_pcs|int }}
+                </td>
+                <td class="px-2 py-2 text-right border-r text-red-600 font-bold bg-amber-50/10">{{
+                    "%.3f"|format(node.metrics.qc_rej_wt) }}</td>
+                <!-- Invoiced -->
+                <td class="px-2 py-2 text-right border-r text-blue-600 bg-blue-50/10">{{ node.metrics.inv_pcs|int }}
+                </td>
+                <td class="px-2 py-2 text-right border-r text-blue-600 font-bold bg-blue-50/10">{{
+                    "%.3f"|format(node.metrics.inv_wt) }}</td>
+                <!-- Delivery -->
+                <td class="px-2 py-2 text-right border-r text-emerald-600 font-bold bg-teal-50/10">{{
+                    node.metrics.del_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-emerald-600 font-bold bg-teal-50/10">{{
+                    "%.3f"|format(node.metrics.del_wt) }}</td>
+                <td class="px-2 py-2 text-right border-r text-gray-500 italic bg-teal-50/10">{{
+                    node.metrics.pend_del_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-gray-600 italic font-black bg-teal-50/10">{{
+                    "%.3f"|format(node.metrics.pend_del_wt) }}</td>
+            </tr>
+            {% if node.children %}
+            {% for child in node.children %}
+            {{ render_node(child, level_depth + 1, current_id, loop.index) }}
+            {% endfor %}
+            {% endif %}
+            {% endmacro %}
+
+            {% for node in data %}
+            {{ render_node(node, 0, "", loop.index) }}
+            {% endfor %}
+        </tbody>
+        <tfoot
+            class="font-bold text-black dark:text-white uppercase tracking-tighter bg-gray-100 dark:bg-gray-800 border-t-2 border-gray-400 dark:border-gray-600">
+            <tr class="h-10">
+                <td class="px-4 py-2 border-r bg-gray-200 dark:bg-gray-700 min-w-[220px]">
+                    <span class="text-[12px] font-black tracking-widest text-gray-900 dark:text-white">GRAND
+                        TOTAL</span>
+                </td>
+                <!-- Metrics Columns -->
+                <td class="px-2 py-2 text-right border-r text-[13px] font-bold text-gray-900 dark:text-gray-100">{{
+                    grand_total.ord_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-[13px] text-primary dark:text-primary-light font-black">{{
+                    "%.3f"|format(grand_total.ord_wt) }}</td>
+                <!-- Accepted -->
+                <td class="px-2 py-2 text-right border-r text-emerald-700 dark:text-emerald-400 text-[13px]">{{
+                    grand_total.acc_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-emerald-700 dark:text-emerald-400 text-[13px] font-black">
+                    {{ "%.3f"|format(grand_total.acc_wt) }}</td>
+                <!-- Rejected -->
+                <td class="px-2 py-2 text-right border-r text-red-700 dark:text-red-400 text-[13px]">{{
+                    grand_total.rej_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-red-700 dark:text-red-400 text-[13px] font-black">{{
+                    "%.3f"|format(grand_total.rej_wt) }}</td>
+                <!-- Barcoding -->
+                <td class="px-2 py-2 text-right border-r text-indigo-700 dark:text-indigo-400 text-[13px]">{{
+                    grand_total.bar_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-indigo-700 dark:text-indigo-400 text-[13px] font-black">{{
+                    "%.3f"|format(grand_total.bar_wt) }}</td>
+                <td class="px-2 py-2 text-right border-r text-gray-600 italic text-[11px]">{{
+                    grand_total.not_bar_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-red-600 text-[13px] font-bold">{{
+                    "%.3f"|format(grand_total.not_bar_wt) }}</td>
+                <!-- Hallmark -->
+                <td class="px-2 py-2 text-right border-r text-cyan-700 dark:text-cyan-400 text-[13px]">{{
+                    grand_total.hm_proc_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-cyan-700 dark:text-cyan-400 text-[13px]">{{
+                    grand_total.hm_pass_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-cyan-700 dark:text-cyan-400 text-[13px] font-black">{{
+                    "%.3f"|format(grand_total.hm_pass_wt) }}</td>
+                <td class="px-2 py-2 text-right border-r text-red-600 text-[13px]">{{ grand_total.hm_fail_pcs|int }}
+                </td>
+                <td class="px-2 py-2 text-right border-r text-red-600 text-[13px] font-black">{{
+                    "%.3f"|format(grand_total.hm_fail_wt) }}</td>
+                <!-- QC -->
+                <td class="px-2 py-2 text-right border-r text-amber-700 dark:text-amber-400 text-[13px]">{{
+                    grand_total.qc_proc_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-amber-700 dark:text-amber-400 text-[13px]">{{
+                    grand_total.qc_pass_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-amber-700 dark:text-amber-400 text-[13px] font-black">{{
+                    "%.3f"|format(grand_total.qc_pass_wt) }}</td>
+                <td class="px-2 py-2 text-right border-r text-blue-700 dark:text-blue-400 text-[13px]">{{
+                    grand_total.qc_pend_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-blue-700 dark:text-blue-400 text-[13px] font-black">{{
+                    "%.3f"|format(grand_total.qc_pend_wt) }}</td>
+                <td class="px-2 py-2 text-right border-r text-red-700 dark:text-red-400 text-[13px]">{{
+                    grand_total.qc_rej_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-red-700 dark:text-red-400 text-[13px] font-black">{{
+                    "%.3f"|format(grand_total.qc_rej_wt) }}</td>
+                <!-- Invoiced -->
+                <td class="px-2 py-2 text-right border-r text-blue-700 dark:text-blue-400 text-[13px]">{{
+                    grand_total.inv_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-blue-700 dark:text-blue-400 text-[13px] font-black">{{
+                    "%.3f"|format(grand_total.inv_wt) }}</td>
+                <!-- Delivery -->
+                <td class="px-2 py-2 text-right border-r text-emerald-700 dark:text-emerald-400 text-[13px] font-black">
+                    {{ grand_total.del_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-emerald-700 dark:text-emerald-400 text-[13px] font-black">
+                    {{ "%.3f"|format(grand_total.del_wt) }}</td>
+                <td class="px-2 py-2 text-right border-r text-gray-500 italic text-[11px] font-bold">{{
+                    grand_total.pend_del_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-gray-600 italic text-[13px] font-black">{{
+                    "%.3f"|format(grand_total.pend_del_wt) }}</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
