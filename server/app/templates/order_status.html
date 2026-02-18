@@ -53,45 +53,96 @@
     <!-- Stats Grid -->
     <div
         class="grid grid-cols-8 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Orders</p>
-            <p id="stat-total-orders" class="text-sm font-bold text-primary">{{ stats.total_orders if stats else '0' }}
-            </p>
-        </div>
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center text-emerald-600">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Dispatched</p>
-            <p id="stat-dispatched" class="text-sm font-bold">{{ stats.dispatched if stats else '0' }}</p>
-        </div>
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center text-amber-600">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">In Process</p>
-            <p id="stat-in-process" class="text-sm font-bold">{{ stats.in_process if stats else '0' }}</p>
-        </div>
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center text-red-600">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Delayed</p>
-            <p id="stat-delayed" class="text-sm font-bold">{{ stats.delayed if stats else '0' }}</p>
-        </div>
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Active Slots</p>
-            <p id="stat-active-slots" class="text-sm font-bold">{{ stats.active_slots if stats else '0' }}</p>
-        </div>
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">SLA Index</p>
-            <p id="stat-sla-index" class="text-sm font-bold">{{ stats.sla_index if stats else '0%' }}</p>
-        </div>
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Quality Score</p>
-            <p id="stat-quality-score" class="text-sm font-bold">{{ stats.quality_score if stats else '0/5' }}</p>
-        </div>
-        <div class="p-2 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Fulfillment</p>
-            <div class="flex items-center justify-center gap-1.5 mt-1">
-                <span id="stat-fulfillment-text" class="text-sm font-bold text-primary">{{ stats.fulfillment if stats
-                    else '0%' }}</span>
+        <!-- Total Orders -->
+        <div
+            class="p-2 border-r border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center gap-1 group">
+            <div
+                class="p-1.5 rounded-full bg-primary/5 text-primary mb-0.5 group-hover:bg-primary/10 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">shopping_cart</span>
             </div>
-            <div class="w-full bg-gray-100 dark:bg-gray-800 h-1.5 rounded-full mt-1 overflow-hidden">
-                <div id="stat-fulfillment-bar" class="bg-primary h-full"
-                    style="width: {{ stats.fulfillment if stats else '0%' }}"></div>
+            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">Total Orders</p>
+            <p id="stat-total-orders" class="text-sm font-black text-gray-800 dark:text-gray-100 tracking-tight">{{
+                stats.total_orders if stats else '0' }}</p>
+        </div>
+
+        <!-- Accepted -->
+        <div
+            class="p-2 border-r border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center gap-1 group">
+            <div
+                class="p-1.5 rounded-full bg-emerald-50 text-emerald-600 mb-0.5 group-hover:bg-emerald-100 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">check_circle</span>
             </div>
+            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">Accepted</p>
+            <p id="stat-accepted" class="text-sm font-black text-emerald-700 dark:text-emerald-400 tracking-tight">{{
+                stats.accepted if stats else '0' }}</p>
+        </div>
+
+        <!-- Rejected -->
+        <div
+            class="p-2 border-r border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center gap-1 group">
+            <div class="p-1.5 rounded-full bg-red-50 text-red-600 mb-0.5 group-hover:bg-red-100 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">cancel</span>
+            </div>
+            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">Rejected</p>
+            <p id="stat-rejected" class="text-sm font-black text-red-700 dark:text-red-400 tracking-tight">{{
+                stats.rejected if stats else '0' }}</p>
+        </div>
+
+        <!-- Barcoded -->
+        <div
+            class="p-2 border-r border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center gap-1 group">
+            <div
+                class="p-1.5 rounded-full bg-indigo-50 text-indigo-600 mb-0.5 group-hover:bg-indigo-100 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">qr_code_2</span>
+            </div>
+            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">Barcoded</p>
+            <p id="stat-barcoded" class="text-sm font-black text-indigo-700 dark:text-indigo-400 tracking-tight">{{
+                stats.barcoded if stats else '0' }}</p>
+        </div>
+
+        <!-- Hallmarked -->
+        <div
+            class="p-2 border-r border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center gap-1 group">
+            <div class="p-1.5 rounded-full bg-cyan-50 text-cyan-600 mb-0.5 group-hover:bg-cyan-100 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">verified</span>
+            </div>
+            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">Hallmarked</p>
+            <p id="stat-hallmarked" class="text-sm font-black text-cyan-700 dark:text-cyan-400 tracking-tight">{{
+                stats.hallmarked if stats else '0' }}</p>
+        </div>
+
+        <!-- QC Passed -->
+        <div
+            class="p-2 border-r border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center gap-1 group">
+            <div
+                class="p-1.5 rounded-full bg-amber-50 text-amber-600 mb-0.5 group-hover:bg-amber-100 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">fact_check</span>
+            </div>
+            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">QC Passed</p>
+            <p id="stat-qc-passed" class="text-sm font-black text-amber-700 dark:text-amber-400 tracking-tight">{{
+                stats.qc_passed if stats else '0' }}</p>
+        </div>
+
+        <!-- Invoiced -->
+        <div
+            class="p-2 border-r border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center gap-1 group">
+            <div class="p-1.5 rounded-full bg-blue-50 text-blue-600 mb-0.5 group-hover:bg-blue-100 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">receipt_long</span>
+            </div>
+            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">Invoiced</p>
+            <p id="stat-invoiced" class="text-sm font-black text-blue-700 dark:text-blue-400 tracking-tight">{{
+                stats.invoiced if stats else '0' }}</p>
+        </div>
+
+        <!-- Delivered -->
+        <div class="p-2 flex flex-col items-center justify-center gap-1 group">
+            <div
+                class="p-1.5 rounded-full bg-emerald-100 text-emerald-700 mb-0.5 group-hover:bg-emerald-200 transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-[18px]">local_shipping</span>
+            </div>
+            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">Delivered</p>
+            <p id="stat-delivered" class="text-sm font-black text-emerald-800 dark:text-emerald-400 tracking-tight">{{
+                stats.delivered if stats else '0' }}</p>
         </div>
     </div>
 

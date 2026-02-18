@@ -136,23 +136,18 @@ function updateDashboardStats(stats) {
 
     const mappings = {
         'stat-total-orders': stats.total_orders,
-        'stat-dispatched': stats.dispatched,
-        'stat-in-process': stats.in_process,
-        'stat-delayed': stats.delayed,
-        'stat-active-slots': stats.active_slots,
-        'stat-sla-index': stats.sla_index,
-        'stat-quality-score': stats.quality_score,
-        'stat-fulfillment-text': stats.fulfillment
+        'stat-accepted': stats.accepted,
+        'stat-rejected': stats.rejected,
+        'stat-barcoded': stats.barcoded,
+        'stat-hallmarked': stats.hallmarked,
+        'stat-qc-passed': stats.qc_passed,
+        'stat-invoiced': stats.invoiced,
+        'stat-delivered': stats.delivered
     };
 
     for (const [id, value] of Object.entries(mappings)) {
         const el = document.getElementById(id);
         if (el) el.textContent = value || '0';
-    }
-
-    const bar = document.getElementById('stat-fulfillment-bar');
-    if (bar) {
-        bar.style.width = stats.fulfillment || '0%';
     }
 }
 

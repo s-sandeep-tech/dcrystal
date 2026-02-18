@@ -63,80 +63,74 @@ def order_status():
             
         return query
 
-    # Global Stats
-    # Mapping:
-    # total_orders -> ordered_pcs
-    # dispatched -> delivered_pcs ?? dispatched often means delivered or close to it. 
-    #              Original model had dispatched_count. 
-    #              Let's use delivered_pcs for dispatched for now, or maybe invoiced_pcs? 
-    #              Let's use delivered_pcs.
-    # in_process -> ordered_pcs - delivered_pcs ? (Simple approximation)
-    # delayed -> ?? (Not available in new model, set to 0)
-    # active_slots -> ?? (Not available, set to 0)
-    # sla_index -> ?? (Not available, set to 0)
-    # quality_score -> ?? (Not available, set to 0)
-    # fulfillment -> delivered_pcs / ordered_pcs %
-    
+    # Global Stats Aggregates (Pieces and Weight for all stages)
     agg_q = db.session.query(
-        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('total_orders'),
-        func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('dispatched'),
-        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs - OwnerWiseOrderSummarySnapshot.delivered_pcs).label('in_process'),
-        # func.sum(OwnerWiseOrderSummarySnapshot.delayed_count).label('delayed'), # Not available
-        # func.sum(OwnerWiseOrderSummarySnapshot.active_slots).label('active_slots'), # Not available
-        # func.avg(OwnerWiseOrderSummarySnapshot.sla_index_pct).label('sla_index'), # Not available
-        # func.avg(OwnerWiseOrderSummarySnapshot.avg_quality_score).label('quality_score'), # Not available
-        # func.avg(OwnerWiseOrderSummarySnapshot.fulfillment_pct).label('fulfillment') # Not available
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('ordered_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_wt).label('ordered_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.accepted_pcs).label('accepted_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.accepted_wt).label('accepted_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.rejected_pcs).label('rejected_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.rejected_wt).label('rejected_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.barcoded_pcs).label('barcoded_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.barcoded_wt).label('barcoded_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.hm_passed_pcs).label('hallmarked_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.hm_passed_wt).label('hallmarked_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.qc_passed_pcs).label('qc_passed_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.qc_passed_wt).label('qc_passed_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.invoiced_pcs).label('invoiced_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.invoiced_wt).label('invoiced_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('delivered_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.delivered_wt).label('delivered_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs).label('pending_to_be_delv_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_wt).label('pending_to_be_delv_wt')
     )
     
     agg_q = apply_filters(agg_q)
     aggs = agg_q.first()
 
-    total_orders = aggs.total_orders or 0
-    dispatched = aggs.dispatched or 0
-    in_process = aggs.in_process or 0
-    fulfillment = 0
-    if total_orders > 0:
-        fulfillment = (dispatched / total_orders) * 100
-
+    # Unified stats dictionary
     stats = {
-        'total_orders': f"{total_orders:,.0f}",
-        'dispatched': f"{dispatched:,.0f}",
-        'in_process': f"{in_process:,.0f}",
-        'delayed': "0",
-        'active_slots': "0",
-        'sla_index': "0%",
-        'quality_score': "0/5",
-        'fulfillment': f"{int(fulfillment)}%"
+        # Display keys for top cards (formatted strings)
+        'total_orders': f"{aggs.ordered_pcs or 0:,.0f}",
+        'accepted': f"{aggs.accepted_pcs or 0:,.0f}",
+        'rejected': f"{aggs.rejected_pcs or 0:,.0f}",
+        'barcoded': f"{aggs.barcoded_pcs or 0:,.0f}",
+        'hallmarked': f"{aggs.hallmarked_pcs or 0:,.0f}",
+        'qc_passed': f"{aggs.qc_passed_pcs or 0:,.0f}",
+        'invoiced': f"{aggs.invoiced_pcs or 0:,.0f}",
+        'delivered': f"{aggs.delivered_pcs or 0:,.0f}",
+        
+        # Raw value keys for footer totals (formatted strings)
+        'ordered_pcs': f"{aggs.ordered_pcs or 0:,.0f}",
+        'ordered_wt': f"{aggs.ordered_wt or 0:,.3f}",
+        'accepted_pcs': f"{aggs.accepted_pcs or 0:,.0f}",
+        'accepted_wt': f"{aggs.accepted_wt or 0:,.3f}",
+        'rejected_pcs': f"{aggs.rejected_pcs or 0:,.0f}",
+        'rejected_wt': f"{aggs.rejected_wt or 0:,.3f}",
+        'barcoded_pcs': f"{aggs.barcoded_pcs or 0:,.0f}",
+        'barcoded_wt': f"{aggs.barcoded_wt or 0:,.3f}",
+        'hallmarked_pcs': f"{aggs.hallmarked_pcs or 0:,.0f}",
+        'hallmarked_wt': f"{aggs.hallmarked_wt or 0:,.3f}",
+        'qc_passed_pcs': f"{aggs.qc_passed_pcs or 0:,.0f}",
+        'qc_passed_wt': f"{aggs.qc_passed_wt or 0:,.3f}",
+        'invoiced_pcs': f"{aggs.invoiced_pcs or 0:,.0f}",
+        'invoiced_wt': f"{aggs.invoiced_wt or 0:,.3f}",
+        'delivered_pcs': f"{aggs.delivered_pcs or 0:,.0f}",
+        'delivered_wt': f"{aggs.delivered_wt or 0:,.3f}",
+        'pending_to_be_delv_pcs': f"{aggs.pending_to_be_delv_pcs or 0:,.0f}",
+        'pending_to_be_delv_wt': f"{aggs.pending_to_be_delv_wt or 0:,.3f}"
     }
 
-    # Footer Totals
-    # A = Ordered
-    # B = Accepted
-    # C = Barcoded
-    # D = HM Passed
-    # E = QC Passed
-    # F = Invoiced
-    # G = Delivered
-    # Total = Ordered
-    
-    footer_q = db.session.query(
-        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('a'),
-        func.sum(OwnerWiseOrderSummarySnapshot.accepted_pcs).label('b'),
-        func.sum(OwnerWiseOrderSummarySnapshot.barcoded_pcs).label('c'),
-        func.sum(OwnerWiseOrderSummarySnapshot.hm_passed_pcs).label('d'),
-        func.sum(OwnerWiseOrderSummarySnapshot.qc_passed_pcs).label('e'),
-        func.sum(OwnerWiseOrderSummarySnapshot.invoiced_pcs).label('f'),
-        func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('g'),
-        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('total')
-    )
-    
-    footer_q = apply_filters(footer_q)
-    footer_aggs = footer_q.first()
-
+    # Footer Totals (Backward compatibility for _view_make.html)
     footer_totals = {
-        'a': f"{footer_aggs.a or 0:,.0f}", 'b': f"{footer_aggs.b or 0:,.0f}", 'c': f"{footer_aggs.c or 0:,.0f}",
-        'd': f"{footer_aggs.d or 0:,.0f}", 'e': f"{footer_aggs.e or 0:,.0f}", 'f': f"{footer_aggs.f or 0:,.0f}",
-        'g': f"{footer_aggs.g or 0:,.0f}", 'total': f"{footer_aggs.total or 0:,.0f}"
+        'a': stats['ordered_pcs'],
+        'b': stats['accepted_pcs'],
+        'c': stats['barcoded_pcs'],
+        'd': stats['hallmarked_pcs'],
+        'e': stats['qc_passed_pcs'],
+        'f': stats['invoiced_pcs'],
+        'g': stats['delivered_pcs'],
+        'total': stats['ordered_pcs']
     }
     
     # Pagination
@@ -313,51 +307,69 @@ def get_dashboard_partial(view_type):
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
     
-    # Global Stats
+    # Global Stats Aggregates
     agg_q = db.session.query(
-        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('total_orders'),
-        func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('dispatched'),
-        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs - OwnerWiseOrderSummarySnapshot.delivered_pcs).label('in_process'),
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('ordered_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_wt).label('ordered_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.accepted_pcs).label('accepted_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.accepted_wt).label('accepted_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.rejected_pcs).label('rejected_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.rejected_wt).label('rejected_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.barcoded_pcs).label('barcoded_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.barcoded_wt).label('barcoded_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.hm_passed_pcs).label('hallmarked_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.hm_passed_wt).label('hallmarked_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.qc_passed_pcs).label('qc_passed_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.qc_passed_wt).label('qc_passed_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.invoiced_pcs).label('invoiced_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.invoiced_wt).label('invoiced_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('delivered_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.delivered_wt).label('delivered_wt'),
+        func.sum(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs).label('pending_to_be_delv_pcs'),
+        func.sum(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_wt).label('pending_to_be_delv_wt')
     )
     agg_q = apply_filters(agg_q)
     aggs = agg_q.first()
 
-    total_orders = aggs.total_orders or 0
-    dispatched = aggs.dispatched or 0
-    in_process = aggs.in_process or 0
-    fulfillment = 0
-    if total_orders > 0:
-        fulfillment = (dispatched / total_orders) * 100
-
     stats = {
-        'total_orders': f"{total_orders:,.0f}",
-        'dispatched': f"{dispatched:,.0f}",
-        'in_process': f"{in_process:,.0f}",
-        'delayed': "0",
-        'active_slots': "0",
-        'sla_index': "0%",
-        'quality_score': "0/5",
-        'fulfillment': f"{int(fulfillment)}%"
+        'total_orders': f"{aggs.ordered_pcs or 0:,.0f}",
+        'accepted': f"{aggs.accepted_pcs or 0:,.0f}",
+        'rejected': f"{aggs.rejected_pcs or 0:,.0f}",
+        'barcoded': f"{aggs.barcoded_pcs or 0:,.0f}",
+        'hallmarked': f"{aggs.hallmarked_pcs or 0:,.0f}",
+        'qc_passed': f"{aggs.qc_passed_pcs or 0:,.0f}",
+        'invoiced': f"{aggs.invoiced_pcs or 0:,.0f}",
+        'delivered': f"{aggs.delivered_pcs or 0:,.0f}",
+        
+        'ordered_pcs': f"{aggs.ordered_pcs or 0:,.0f}",
+        'ordered_wt': f"{aggs.ordered_wt or 0:,.3f}",
+        'accepted_pcs': f"{aggs.accepted_pcs or 0:,.0f}",
+        'accepted_wt': f"{aggs.accepted_wt or 0:,.3f}",
+        'rejected_pcs': f"{aggs.rejected_pcs or 0:,.0f}",
+        'rejected_wt': f"{aggs.rejected_wt or 0:,.3f}",
+        'barcoded_pcs': f"{aggs.barcoded_pcs or 0:,.0f}",
+        'barcoded_wt': f"{aggs.barcoded_wt or 0:,.3f}",
+        'hallmarked_pcs': f"{aggs.hallmarked_pcs or 0:,.0f}",
+        'hallmarked_wt': f"{aggs.hallmarked_wt or 0:,.3f}",
+        'qc_passed_pcs': f"{aggs.qc_passed_pcs or 0:,.0f}",
+        'qc_passed_wt': f"{aggs.qc_passed_wt or 0:,.3f}",
+        'invoiced_pcs': f"{aggs.invoiced_pcs or 0:,.0f}",
+        'invoiced_wt': f"{aggs.invoiced_wt or 0:,.3f}",
+        'delivered_pcs': f"{aggs.delivered_pcs or 0:,.0f}",
+        'delivered_wt': f"{aggs.delivered_wt or 0:,.3f}",
+        'pending_to_be_delv_pcs': f"{aggs.pending_to_be_delv_pcs or 0:,.0f}",
+        'pending_to_be_delv_wt': f"{aggs.pending_to_be_delv_wt or 0:,.3f}"
     }
 
-    # Footer Totals
-    f_agg_q = db.session.query(
-        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('a'),
-        func.sum(OwnerWiseOrderSummarySnapshot.accepted_pcs).label('b'),
-        func.sum(OwnerWiseOrderSummarySnapshot.barcoded_pcs).label('c'),
-        func.sum(OwnerWiseOrderSummarySnapshot.hm_passed_pcs).label('d'),
-        func.sum(OwnerWiseOrderSummarySnapshot.qc_passed_pcs).label('e'),
-        func.sum(OwnerWiseOrderSummarySnapshot.invoiced_pcs).label('f'),
-        func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('g'),
-        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('total')
-    )
-    f_agg_q = apply_filters(f_agg_q)
-    f_agg = f_agg_q.first()
-
     footer_totals = {
-        'a': f"{f_agg.a or 0:,.0f}", 'b': f"{f_agg.b or 0:,.0f}", 'c': f"{f_agg.c or 0:,.0f}",
-        'd': f"{f_agg.d or 0:,.0f}", 'e': f"{f_agg.e or 0:,.0f}", 'f': f"{f_agg.f or 0:,.0f}",
-        'g': f"{f_agg.g or 0:,.0f}", 'total': f"{f_agg.total or 0:,.0f}"
+        'a': stats['ordered_pcs'],
+        'b': stats['accepted_pcs'],
+        'c': stats['barcoded_pcs'],
+        'd': stats['hallmarked_pcs'],
+        'e': stats['qc_passed_pcs'],
+        'f': stats['invoiced_pcs'],
+        'g': stats['delivered_pcs'],
+        'total': stats['ordered_pcs']
     }
 
     # Paginate
