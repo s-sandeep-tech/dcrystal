@@ -1,7 +1,7 @@
 from flask import render_template, request, jsonify
 from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
-from app.models import Notification, OrderStatusReportSnapshot
+from app.models import Notification, OwnerWiseOrderSummarySnapshot
 from app.extensions import db
 from sqlalchemy import func
 from datetime import datetime
@@ -11,18 +11,6 @@ def order_status():
     unread_count = Notification.query.filter_by(is_read=False).count()
     sync_time = datetime.now().strftime("%H:%M")
 
-    # Fetch latest snapshot date
-    latest_date_query = db.session.query(func.max(OrderStatusReportSnapshot.snapshot_date)).scalar()
-    
-    if not latest_date_query:
-        return render_template('order_status.html', 
-                             unread_count=unread_count, 
-                             sync_time=sync_time, 
-                             stats={}, 
-                             rows=[], 
-                             pagination=None, 
-                             footer_totals={})
-
     # Filters
     search = request.args.get('search', '').strip()
     division = request.args.get('division', '')
@@ -37,83 +25,118 @@ def order_status():
     make_owner = request.args.get('make_owner', '')
     collection_owner = request.args.get('collection_owner', '')
     classification_owner = request.args.get('classification_owner', '')
-    business_head = request.args.get('business_head', '')
+    # business_head not in OwnerWiseOrderSummarySnapshot
+    # business_head = request.args.get('business_head', '')
 
     def apply_filters(query):
+        # OwnerWiseOrderSummarySnapshot does not have hierarchy_key, searching individual fields
         if search:
-            query = query.filter(OrderStatusReportSnapshot.hierarchy_key.ilike(f"%{search}%"))
+            query = query.filter(
+                (OwnerWiseOrderSummarySnapshot.division.ilike(f"%{search}%")) |
+                (OwnerWiseOrderSummarySnapshot.group_name.ilike(f"%{search}%")) |
+                (OwnerWiseOrderSummarySnapshot.make.ilike(f"%{search}%")) |
+                (OwnerWiseOrderSummarySnapshot.collection.ilike(f"%{search}%")) |
+                (OwnerWiseOrderSummarySnapshot.supplier.ilike(f"%{search}%"))
+            )
         if division:
-            query = query.filter(OrderStatusReportSnapshot.division == division)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.division == division)
         if group:
-            query = query.filter(OrderStatusReportSnapshot.group_name == group)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.group_name == group)
         if purity:
-            query = query.filter(OrderStatusReportSnapshot.purity == purity)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.purity == purity)
         if classification:
-            query = query.filter(OrderStatusReportSnapshot.classification == classification)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.classification == classification)
         if make:
-            query = query.filter(OrderStatusReportSnapshot.make_location == make)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.make == make)
         if collection:
-            query = query.filter(OrderStatusReportSnapshot.collection == collection)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.collection == collection)
         if party:
-            query = query.filter(OrderStatusReportSnapshot.party_name == party)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.supplier == party)
             
         # Apply New Owner Filters
         if make_owner:
-            query = query.filter(OrderStatusReportSnapshot.make_owner == make_owner)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == make_owner)
         if collection_owner:
-            query = query.filter(OrderStatusReportSnapshot.collection_owner == collection_owner)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.collection_owner == collection_owner)
         if classification_owner:
-            query = query.filter(OrderStatusReportSnapshot.classification_owner == classification_owner)
-        if business_head:
-            query = query.filter(OrderStatusReportSnapshot.business_head == business_head)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.classification_owner == classification_owner)
             
         return query
 
     # Global Stats
+    # Mapping:
+    # total_orders -> ordered_pcs
+    # dispatched -> delivered_pcs ?? dispatched often means delivered or close to it. 
+    #              Original model had dispatched_count. 
+    #              Let's use delivered_pcs for dispatched for now, or maybe invoiced_pcs? 
+    #              Let's use delivered_pcs.
+    # in_process -> ordered_pcs - delivered_pcs ? (Simple approximation)
+    # delayed -> ?? (Not available in new model, set to 0)
+    # active_slots -> ?? (Not available, set to 0)
+    # sla_index -> ?? (Not available, set to 0)
+    # quality_score -> ?? (Not available, set to 0)
+    # fulfillment -> delivered_pcs / ordered_pcs %
+    
     agg_q = db.session.query(
-        func.sum(OrderStatusReportSnapshot.total_count).label('total_orders'),
-        func.sum(OrderStatusReportSnapshot.dispatched_count).label('dispatched'),
-        func.sum(OrderStatusReportSnapshot.in_process_count).label('in_process'),
-        func.sum(OrderStatusReportSnapshot.delayed_count).label('delayed'),
-        func.sum(OrderStatusReportSnapshot.active_slots).label('active_slots'),
-        func.avg(OrderStatusReportSnapshot.sla_index_pct).label('sla_index'),
-        func.avg(OrderStatusReportSnapshot.avg_quality_score).label('quality_score'),
-        func.avg(OrderStatusReportSnapshot.fulfillment_pct).label('fulfillment')
-    ).filter(OrderStatusReportSnapshot.snapshot_date == latest_date_query)
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('total_orders'),
+        func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('dispatched'),
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs - OwnerWiseOrderSummarySnapshot.delivered_pcs).label('in_process'),
+        # func.sum(OwnerWiseOrderSummarySnapshot.delayed_count).label('delayed'), # Not available
+        # func.sum(OwnerWiseOrderSummarySnapshot.active_slots).label('active_slots'), # Not available
+        # func.avg(OwnerWiseOrderSummarySnapshot.sla_index_pct).label('sla_index'), # Not available
+        # func.avg(OwnerWiseOrderSummarySnapshot.avg_quality_score).label('quality_score'), # Not available
+        # func.avg(OwnerWiseOrderSummarySnapshot.fulfillment_pct).label('fulfillment') # Not available
+    )
     
     agg_q = apply_filters(agg_q)
     aggs = agg_q.first()
 
+    total_orders = aggs.total_orders or 0
+    dispatched = aggs.dispatched or 0
+    in_process = aggs.in_process or 0
+    fulfillment = 0
+    if total_orders > 0:
+        fulfillment = (dispatched / total_orders) * 100
+
     stats = {
-        'total_orders': f"{aggs.total_orders or 0:,}",
-        'dispatched': f"{aggs.dispatched or 0:,}",
-        'in_process': f"{aggs.in_process or 0:,}",
-        'delayed': f"{aggs.delayed or 0:,}",
-        'active_slots': f"{aggs.active_slots or 0:,}",
-        'sla_index': f"{round(aggs.sla_index or 0, 1)}%",
-        'quality_score': f"{round(aggs.quality_score or 0, 1)}/5",
-        'fulfillment': f"{int(aggs.fulfillment or 0)}%"
+        'total_orders': f"{total_orders:,.0f}",
+        'dispatched': f"{dispatched:,.0f}",
+        'in_process': f"{in_process:,.0f}",
+        'delayed': "0",
+        'active_slots': "0",
+        'sla_index': "0%",
+        'quality_score': "0/5",
+        'fulfillment': f"{int(fulfillment)}%"
     }
 
     # Footer Totals
+    # A = Ordered
+    # B = Accepted
+    # C = Barcoded
+    # D = HM Passed
+    # E = QC Passed
+    # F = Invoiced
+    # G = Delivered
+    # Total = Ordered
+    
     footer_q = db.session.query(
-        func.sum(OrderStatusReportSnapshot.a_completed_count + OrderStatusReportSnapshot.a_pending_count).label('a'),
-        func.sum(OrderStatusReportSnapshot.b_completed_count + OrderStatusReportSnapshot.b_pending_count).label('b'),
-        func.sum(OrderStatusReportSnapshot.c_completed_count + OrderStatusReportSnapshot.c_pending_count).label('c'),
-        func.sum(OrderStatusReportSnapshot.d_completed_count + OrderStatusReportSnapshot.d_pending_count).label('d'),
-        func.sum(OrderStatusReportSnapshot.e_completed_count + OrderStatusReportSnapshot.e_pending_count).label('e'),
-        func.sum(OrderStatusReportSnapshot.f_completed_count + OrderStatusReportSnapshot.f_pending_count).label('f'),
-        func.sum(OrderStatusReportSnapshot.g_completed_count + OrderStatusReportSnapshot.g_pending_count).label('g'),
-        func.sum(OrderStatusReportSnapshot.total_count).label('total')
-    ).filter(OrderStatusReportSnapshot.snapshot_date == latest_date_query)
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('a'),
+        func.sum(OwnerWiseOrderSummarySnapshot.accepted_pcs).label('b'),
+        func.sum(OwnerWiseOrderSummarySnapshot.barcoded_pcs).label('c'),
+        func.sum(OwnerWiseOrderSummarySnapshot.hm_passed_pcs).label('d'),
+        func.sum(OwnerWiseOrderSummarySnapshot.qc_passed_pcs).label('e'),
+        func.sum(OwnerWiseOrderSummarySnapshot.invoiced_pcs).label('f'),
+        func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('g'),
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('total')
+    )
     
     footer_q = apply_filters(footer_q)
     footer_aggs = footer_q.first()
 
     footer_totals = {
-        'a': f"{footer_aggs.a or 0:,}", 'b': f"{footer_aggs.b or 0:,}", 'c': f"{footer_aggs.c or 0:,}",
-        'd': f"{footer_aggs.d or 0:,}", 'e': f"{footer_aggs.e or 0:,}", 'f': f"{footer_aggs.f or 0:,}",
-        'g': f"{footer_aggs.g or 0:,}", 'total': f"{footer_aggs.total or 0:,}"
+        'a': f"{footer_aggs.a or 0:,.0f}", 'b': f"{footer_aggs.b or 0:,.0f}", 'c': f"{footer_aggs.c or 0:,.0f}",
+        'd': f"{footer_aggs.d or 0:,.0f}", 'e': f"{footer_aggs.e or 0:,.0f}", 'f': f"{footer_aggs.f or 0:,.0f}",
+        'g': f"{footer_aggs.g or 0:,.0f}", 'total': f"{footer_aggs.total or 0:,.0f}"
     }
     
     # Pagination
@@ -122,62 +145,112 @@ def order_status():
     
     # Identifiers to group by for Make view
     group_cols_make = [
-        OrderStatusReportSnapshot.division,
-        OrderStatusReportSnapshot.group_name,
-        OrderStatusReportSnapshot.purity,
-        OrderStatusReportSnapshot.classification,
-        OrderStatusReportSnapshot.make_location
+        OwnerWiseOrderSummarySnapshot.division,
+        OwnerWiseOrderSummarySnapshot.group_name,
+        OwnerWiseOrderSummarySnapshot.purity,
+        OwnerWiseOrderSummarySnapshot.classification,
+        OwnerWiseOrderSummarySnapshot.make
     ]
     
     # Aggregates
+    # Mapping pending counts:
+    # A Pending (Ordered - Accepted) ?? Or just 0? UI sums completed + pending for 'a'.
+    # Actually ui view 'stage-cell' for 'A (Ord)' shows `r.a_completed_count`.
+    # And 'Order Level Pending' row shows `r.a_pending_count`.
+    # Let's map pending to 0 if we don't have them, or derive them.
+    # Derived:
+    # a_pending = ordered - accepted (assuming linear flow)
+    # b_pending = accepted - barcoded
+    # c_pending = barcoded - hm
+    # d_pending = hm - qc
+    # e_pending = qc - invoiced
+    # f_pending = invoiced - delivered
+    # BUT this assumes strict linear flow and no rejections.
+    # The new table has some rejection columns but limited pending columns.
+    # Let's try to pass 0s for pending to handle it safely first.
+    # UPDATE: qc_pending_pcs and pending_to_be_delv_pcs EXIST.
+    
     agg_cols = [
-        func.sum(OrderStatusReportSnapshot.a_completed_count).label('a_completed_count'),
-        func.sum(OrderStatusReportSnapshot.a_pending_count).label('a_pending_count'),
-        func.sum(OrderStatusReportSnapshot.b_completed_count).label('b_completed_count'),
-        func.sum(OrderStatusReportSnapshot.b_pending_count).label('b_pending_count'),
-        func.sum(OrderStatusReportSnapshot.c_completed_count).label('c_completed_count'),
-        func.sum(OrderStatusReportSnapshot.c_pending_count).label('c_pending_count'),
-        func.sum(OrderStatusReportSnapshot.d_completed_count).label('d_completed_count'),
-        func.sum(OrderStatusReportSnapshot.d_pending_count).label('d_pending_count'),
-        func.sum(OrderStatusReportSnapshot.e_completed_count).label('e_completed_count'),
-        func.sum(OrderStatusReportSnapshot.e_pending_count).label('e_pending_count'),
-        func.sum(OrderStatusReportSnapshot.f_completed_count).label('f_completed_count'),
-        func.sum(OrderStatusReportSnapshot.f_pending_count).label('f_pending_count'),
-        func.sum(OrderStatusReportSnapshot.g_completed_count).label('g_completed_count'),
-        func.sum(OrderStatusReportSnapshot.g_pending_count).label('g_pending_count'),
-        func.sum(OrderStatusReportSnapshot.total_count).label('total_count'),
-        func.sum(OrderStatusReportSnapshot.dispatched_count).label('dispatched_count'),
-        func.sum(OrderStatusReportSnapshot.in_process_count).label('in_process_count'),
-        func.sum(OrderStatusReportSnapshot.delayed_count).label('delayed_count'),
-        func.sum(OrderStatusReportSnapshot.active_slots).label('active_slots'),
-        func.avg(OrderStatusReportSnapshot.sla_index_pct).label('sla_index_pct'),
-        func.avg(OrderStatusReportSnapshot.avg_quality_score).label('avg_quality_score'),
-        func.avg(OrderStatusReportSnapshot.fulfillment_pct).label('fulfillment_pct')
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('a_completed_count'),
+        func.sum(0).label('a_pending_count'), # No direct pending field
+        func.sum(OwnerWiseOrderSummarySnapshot.accepted_pcs).label('b_completed_count'),
+        func.sum(0).label('b_pending_count'),
+        func.sum(OwnerWiseOrderSummarySnapshot.barcoded_pcs).label('c_completed_count'),
+        func.sum(OwnerWiseOrderSummarySnapshot.not_barcoded_pcs).label('c_pending_count'), # not_barcoded as pending??
+        func.sum(OwnerWiseOrderSummarySnapshot.hm_passed_pcs).label('d_completed_count'),
+        func.sum(0).label('d_pending_count'),
+        func.sum(OwnerWiseOrderSummarySnapshot.qc_passed_pcs).label('e_completed_count'),
+        func.sum(OwnerWiseOrderSummarySnapshot.qc_pending_pcs).label('e_pending_count'), # Use qc_pending_pcs
+        func.sum(OwnerWiseOrderSummarySnapshot.invoiced_pcs).label('f_completed_count'),
+        func.sum(0).label('f_pending_count'),
+        func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('g_completed_count'),
+        func.sum(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs).label('g_pending_count'), # Use pending_to_be_delv_pcs
+        
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('total_count'),
+        
+        # Stats cols for rows (if needed by template? template seems to assume they exist? No, template uses `r.total_count` etc)
+        # Template uses `r.a_completed_count` etc.
+        # It does NOT use `dispatched_count` per row in the table, only in stats at top.
     ]
 
-    main_q = db.session.query(*(group_cols_make + agg_cols)).filter(OrderStatusReportSnapshot.snapshot_date == latest_date_query)
+    main_q = db.session.query(*(group_cols_make + agg_cols))
     main_q = apply_filters(main_q)
-    main_q = main_q.group_by(*group_cols_make).order_by(OrderStatusReportSnapshot.division, OrderStatusReportSnapshot.group_name, OrderStatusReportSnapshot.make_location)
+    main_q = main_q.group_by(*group_cols_make).order_by(OwnerWiseOrderSummarySnapshot.division, OwnerWiseOrderSummarySnapshot.group_name, OwnerWiseOrderSummarySnapshot.make)
     
     pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
     
+    # Need to verify if 'rows' in template expects an object with attributes. 
+    # `pagination.items` will be KeyedTuples.
+    # Template does `r.division`, `r.a_completed_count`. KeyedTuple supports dot access.
+    # One catch: `make_location` vs `make`.
+    # Old model: `make_location`
+    # New model: `make`
+    # Template uses `r.make_location`.
+    # I MUST alias `make` as `make_location`.
+    
+    # Let's adjust the group_cols_make to label `make` as `make_location`
+    group_cols_make_aliased = [
+        OwnerWiseOrderSummarySnapshot.division,
+        OwnerWiseOrderSummarySnapshot.group_name,
+        OwnerWiseOrderSummarySnapshot.purity,
+        OwnerWiseOrderSummarySnapshot.classification,
+        OwnerWiseOrderSummarySnapshot.make.label('make_location')
+    ]
+    
+    # Re-build main_q with aliased group cols
+    main_q = db.session.query(*(group_cols_make_aliased + agg_cols))
+    main_q = apply_filters(main_q)
+    main_q = main_q.group_by(
+        OwnerWiseOrderSummarySnapshot.division,
+        OwnerWiseOrderSummarySnapshot.group_name,
+        OwnerWiseOrderSummarySnapshot.purity,
+        OwnerWiseOrderSummarySnapshot.classification,
+        OwnerWiseOrderSummarySnapshot.make
+    ).order_by(
+        OwnerWiseOrderSummarySnapshot.division, 
+        OwnerWiseOrderSummarySnapshot.group_name, 
+        OwnerWiseOrderSummarySnapshot.make
+    )
+    
+    pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
+
     return render_template('order_status.html', unread_count=unread_count, sync_time=sync_time, stats=stats, rows=pagination.items, pagination=pagination, footer_totals=footer_totals)
 
 @dashboard_bp.route('/api/orderstatus/options')
 @jwt_required()
 def order_status_options():
     options = {
-        'divisions': [r[0] for r in db.session.query(OrderStatusReportSnapshot.division.distinct()).order_by(OrderStatusReportSnapshot.division).all() if r[0]],
-        'groups': [r[0] for r in db.session.query(OrderStatusReportSnapshot.group_name.distinct()).order_by(OrderStatusReportSnapshot.group_name).all() if r[0]],
-        'purities': [r[0] for r in db.session.query(OrderStatusReportSnapshot.purity.distinct()).order_by(OrderStatusReportSnapshot.purity).all() if r[0]],
-        'classifications': [r[0] for r in db.session.query(OrderStatusReportSnapshot.classification.distinct()).order_by(OrderStatusReportSnapshot.classification).all() if r[0]],
-        'makes': [r[0] for r in db.session.query(OrderStatusReportSnapshot.make_location.distinct()).order_by(OrderStatusReportSnapshot.make_location).all() if r[0]],
-        'collections': [r[0] for r in db.session.query(OrderStatusReportSnapshot.collection.distinct()).order_by(OrderStatusReportSnapshot.collection).all() if r[0]],
-        'parties': [r[0] for r in db.session.query(OrderStatusReportSnapshot.party_name.distinct()).order_by(OrderStatusReportSnapshot.party_name).all() if r[0]],
-        'make_owners': [r[0] for r in db.session.query(OrderStatusReportSnapshot.make_owner.distinct()).order_by(OrderStatusReportSnapshot.make_owner).all() if r[0]],
-        'collection_owners': [r[0] for r in db.session.query(OrderStatusReportSnapshot.collection_owner.distinct()).order_by(OrderStatusReportSnapshot.collection_owner).all() if r[0]],
-        'classification_owners': [r[0] for r in db.session.query(OrderStatusReportSnapshot.classification_owner.distinct()).order_by(OrderStatusReportSnapshot.classification_owner).all() if r[0]],
-        'business_heads': [r[0] for r in db.session.query(OrderStatusReportSnapshot.business_head.distinct()).order_by(OrderStatusReportSnapshot.business_head).all() if r[0]]
+        'divisions': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.division.distinct()).order_by(OwnerWiseOrderSummarySnapshot.division).all() if r[0]],
+        'groups': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.group_name.distinct()).order_by(OwnerWiseOrderSummarySnapshot.group_name).all() if r[0]],
+        'purities': [str(r[0]) for r in db.session.query(OwnerWiseOrderSummarySnapshot.purity.distinct()).order_by(OwnerWiseOrderSummarySnapshot.purity).all() if r[0]],
+        'classifications': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.classification.distinct()).order_by(OwnerWiseOrderSummarySnapshot.classification).all() if r[0]],
+        'makes': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.make.distinct()).order_by(OwnerWiseOrderSummarySnapshot.make).all() if r[0]],
+        'collections': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.collection.distinct()).order_by(OwnerWiseOrderSummarySnapshot.collection).all() if r[0]],
+        'parties': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.supplier.distinct()).order_by(OwnerWiseOrderSummarySnapshot.supplier).all() if r[0]],
+        'make_owners': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.make_owner.distinct()).order_by(OwnerWiseOrderSummarySnapshot.make_owner).all() if r[0]],
+        'collection_owners': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.collection_owner.distinct()).order_by(OwnerWiseOrderSummarySnapshot.collection_owner).all() if r[0]],
+        'classification_owners': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.classification_owner.distinct()).order_by(OwnerWiseOrderSummarySnapshot.classification_owner).all() if r[0]],
+        'business_heads': [] # Not available in OwnerWiseOrderSummarySnapshot
     }
     return jsonify(options)
 
@@ -187,8 +260,6 @@ def get_dashboard_partial(view_type):
     if view_type not in ['make', 'collection', 'party']:
         return "Invalid view type", 400
         
-    latest_date_query = db.session.query(func.max(OrderStatusReportSnapshot.snapshot_date)).scalar()
-    
     # Filters
     search = request.args.get('search', '').strip()
     division = request.args.get('division', '')
@@ -207,141 +278,193 @@ def get_dashboard_partial(view_type):
 
     def apply_filters(query):
         if search:
-            query = query.filter(OrderStatusReportSnapshot.hierarchy_key.ilike(f"%{search}%"))
+            query = query.filter(
+                (OwnerWiseOrderSummarySnapshot.division.ilike(f"%{search}%")) |
+                (OwnerWiseOrderSummarySnapshot.group_name.ilike(f"%{search}%")) |
+                (OwnerWiseOrderSummarySnapshot.make.ilike(f"%{search}%")) |
+                (OwnerWiseOrderSummarySnapshot.collection.ilike(f"%{search}%")) |
+                (OwnerWiseOrderSummarySnapshot.supplier.ilike(f"%{search}%"))
+            )
         if division:
-            query = query.filter(OrderStatusReportSnapshot.division == division)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.division == division)
         if group:
-            query = query.filter(OrderStatusReportSnapshot.group_name == group)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.group_name == group)
         if purity:
-            query = query.filter(OrderStatusReportSnapshot.purity == purity)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.purity == purity)
         if classification:
-            query = query.filter(OrderStatusReportSnapshot.classification == classification)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.classification == classification)
         if make:
-            query = query.filter(OrderStatusReportSnapshot.make_location == make)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.make == make)
         if collection:
-            query = query.filter(OrderStatusReportSnapshot.collection == collection)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.collection == collection)
         if party:
-            query = query.filter(OrderStatusReportSnapshot.party_name == party)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.supplier == party)
             
         # Apply New Owner Filters
         if make_owner:
-            query = query.filter(OrderStatusReportSnapshot.make_owner == make_owner)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == make_owner)
         if collection_owner:
-            query = query.filter(OrderStatusReportSnapshot.collection_owner == collection_owner)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.collection_owner == collection_owner)
         if classification_owner:
-            query = query.filter(OrderStatusReportSnapshot.classification_owner == classification_owner)
-        if business_head:
-            query = query.filter(OrderStatusReportSnapshot.business_head == business_head)
+            query = query.filter(OwnerWiseOrderSummarySnapshot.classification_owner == classification_owner)
             
         return query
 
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
     
-    # Re-using stat queries could be refactored but copying for now
-    if latest_date_query:
-        # Global Stats (Updated for filters)
-        agg_q = db.session.query(
-            func.sum(OrderStatusReportSnapshot.total_count).label('total_orders'),
-            func.sum(OrderStatusReportSnapshot.dispatched_count).label('dispatched'),
-            func.sum(OrderStatusReportSnapshot.in_process_count).label('in_process'),
-            func.sum(OrderStatusReportSnapshot.delayed_count).label('delayed'),
-            func.sum(OrderStatusReportSnapshot.active_slots).label('active_slots'),
-            func.avg(OrderStatusReportSnapshot.sla_index_pct).label('sla_index'),
-            func.avg(OrderStatusReportSnapshot.avg_quality_score).label('quality_score'),
-            func.avg(OrderStatusReportSnapshot.fulfillment_pct).label('fulfillment')
-        ).filter(OrderStatusReportSnapshot.snapshot_date == latest_date_query)
-        agg_q = apply_filters(agg_q)
-        aggs = agg_q.first()
+    # Global Stats
+    agg_q = db.session.query(
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('total_orders'),
+        func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('dispatched'),
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs - OwnerWiseOrderSummarySnapshot.delivered_pcs).label('in_process'),
+    )
+    agg_q = apply_filters(agg_q)
+    aggs = agg_q.first()
 
-        stats = {
-            'total_orders': f"{aggs.total_orders or 0:,}",
-            'dispatched': f"{aggs.dispatched or 0:,}",
-            'in_process': f"{aggs.in_process or 0:,}",
-            'delayed': f"{aggs.delayed or 0:,}",
-            'active_slots': f"{aggs.active_slots or 0:,}",
-            'sla_index': f"{round(aggs.sla_index or 0, 1)}%",
-            'quality_score': f"{round(aggs.quality_score or 0, 1)}/5",
-            'fulfillment': f"{int(aggs.fulfillment or 0)}%"
-        }
+    total_orders = aggs.total_orders or 0
+    dispatched = aggs.dispatched or 0
+    in_process = aggs.in_process or 0
+    fulfillment = 0
+    if total_orders > 0:
+        fulfillment = (dispatched / total_orders) * 100
 
-        # Footer Totals
-        f_agg_q = db.session.query(
-            func.sum(OrderStatusReportSnapshot.a_completed_count + OrderStatusReportSnapshot.a_pending_count).label('a'),
-            func.sum(OrderStatusReportSnapshot.b_completed_count + OrderStatusReportSnapshot.b_pending_count).label('b'),
-            func.sum(OrderStatusReportSnapshot.c_completed_count + OrderStatusReportSnapshot.c_pending_count).label('c'),
-            func.sum(OrderStatusReportSnapshot.d_completed_count + OrderStatusReportSnapshot.d_pending_count).label('d'),
-            func.sum(OrderStatusReportSnapshot.e_completed_count + OrderStatusReportSnapshot.e_pending_count).label('e'),
-            func.sum(OrderStatusReportSnapshot.f_completed_count + OrderStatusReportSnapshot.f_pending_count).label('f'),
-            func.sum(OrderStatusReportSnapshot.g_completed_count + OrderStatusReportSnapshot.g_pending_count).label('g'),
-            func.sum(OrderStatusReportSnapshot.total_count).label('total')
-        ).filter(OrderStatusReportSnapshot.snapshot_date == latest_date_query)
-        f_agg_q = apply_filters(f_agg_q)
-        f_agg = f_agg_q.first()
+    stats = {
+        'total_orders': f"{total_orders:,.0f}",
+        'dispatched': f"{dispatched:,.0f}",
+        'in_process': f"{in_process:,.0f}",
+        'delayed': "0",
+        'active_slots': "0",
+        'sla_index': "0%",
+        'quality_score': "0/5",
+        'fulfillment': f"{int(fulfillment)}%"
+    }
 
-        footer_totals = {
-            'a': f"{f_agg.a or 0:,}", 'b': f"{f_agg.b or 0:,}", 'c': f"{f_agg.c or 0:,}",
-            'd': f"{f_agg.d or 0:,}", 'e': f"{f_agg.e or 0:,}", 'f': f"{f_agg.f or 0:,}",
-            'g': f"{f_agg.g or 0:,}", 'total': f"{f_agg.total or 0:,}"
-        }
+    # Footer Totals
+    f_agg_q = db.session.query(
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('a'),
+        func.sum(OwnerWiseOrderSummarySnapshot.accepted_pcs).label('b'),
+        func.sum(OwnerWiseOrderSummarySnapshot.barcoded_pcs).label('c'),
+        func.sum(OwnerWiseOrderSummarySnapshot.hm_passed_pcs).label('d'),
+        func.sum(OwnerWiseOrderSummarySnapshot.qc_passed_pcs).label('e'),
+        func.sum(OwnerWiseOrderSummarySnapshot.invoiced_pcs).label('f'),
+        func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('g'),
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('total')
+    )
+    f_agg_q = apply_filters(f_agg_q)
+    f_agg = f_agg_q.first()
 
-        # Paginate
-        if view_type in ['make', 'collection']:
-            if view_type == 'make':
-                group_cols = [
-                    OrderStatusReportSnapshot.division,
-                    OrderStatusReportSnapshot.group_name,
-                    OrderStatusReportSnapshot.purity,
-                    OrderStatusReportSnapshot.classification,
-                    OrderStatusReportSnapshot.make_location
-                ]
-            else: # collection
-                group_cols = [
-                    OrderStatusReportSnapshot.division,
-                    OrderStatusReportSnapshot.group_name,
-                    OrderStatusReportSnapshot.purity,
-                    OrderStatusReportSnapshot.classification,
-                    OrderStatusReportSnapshot.make_location,
-                    OrderStatusReportSnapshot.collection
-                ]
-                
-            agg_cols = [
-                func.sum(OrderStatusReportSnapshot.a_completed_count).label('a_completed_count'),
-                func.sum(OrderStatusReportSnapshot.a_pending_count).label('a_pending_count'),
-                func.sum(OrderStatusReportSnapshot.b_completed_count).label('b_completed_count'),
-                func.sum(OrderStatusReportSnapshot.b_pending_count).label('b_pending_count'),
-                func.sum(OrderStatusReportSnapshot.c_completed_count).label('c_completed_count'),
-                func.sum(OrderStatusReportSnapshot.c_pending_count).label('c_pending_count'),
-                func.sum(OrderStatusReportSnapshot.d_completed_count).label('d_completed_count'),
-                func.sum(OrderStatusReportSnapshot.d_pending_count).label('d_pending_count'),
-                func.sum(OrderStatusReportSnapshot.e_completed_count).label('e_completed_count'),
-                func.sum(OrderStatusReportSnapshot.e_pending_count).label('e_pending_count'),
-                func.sum(OrderStatusReportSnapshot.f_completed_count).label('f_completed_count'),
-                func.sum(OrderStatusReportSnapshot.f_pending_count).label('f_pending_count'),
-                func.sum(OrderStatusReportSnapshot.g_completed_count).label('g_completed_count'),
-                func.sum(OrderStatusReportSnapshot.g_pending_count).label('g_pending_count'),
-                func.sum(OrderStatusReportSnapshot.total_count).label('total_count'),
-                func.sum(OrderStatusReportSnapshot.dispatched_count).label('dispatched_count'),
-                func.sum(OrderStatusReportSnapshot.in_process_count).label('in_process_count'),
-                func.sum(OrderStatusReportSnapshot.delayed_count).label('delayed_count'),
-                func.sum(OrderStatusReportSnapshot.active_slots).label('active_slots'),
-                func.avg(OrderStatusReportSnapshot.sla_index_pct).label('sla_index_pct'),
-                func.avg(OrderStatusReportSnapshot.avg_quality_score).label('avg_quality_score'),
-                func.avg(OrderStatusReportSnapshot.fulfillment_pct).label('fulfillment_pct')
-            ]
-            main_q = db.session.query(*(group_cols + agg_cols)).filter(OrderStatusReportSnapshot.snapshot_date == latest_date_query)
-            main_q = apply_filters(main_q)
-            main_q = main_q.group_by(*group_cols).order_by(OrderStatusReportSnapshot.division, OrderStatusReportSnapshot.group_name, OrderStatusReportSnapshot.make_location)
-        else: # party
-            main_q = OrderStatusReportSnapshot.query.filter_by(snapshot_date=latest_date_query)
-            main_q = apply_filters(main_q)
-            
-        pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
+    footer_totals = {
+        'a': f"{f_agg.a or 0:,.0f}", 'b': f"{f_agg.b or 0:,.0f}", 'c': f"{f_agg.c or 0:,.0f}",
+        'd': f"{f_agg.d or 0:,.0f}", 'e': f"{f_agg.e or 0:,.0f}", 'f': f"{f_agg.f or 0:,.0f}",
+        'g': f"{f_agg.g or 0:,.0f}", 'total': f"{f_agg.total or 0:,.0f}"
+    }
 
-        return render_template(f'partials/_view_{view_type}.html', 
-                             rows=pagination.items if pagination else [], 
-                             pagination=pagination, 
-                             footer_totals=footer_totals,
-                             stats=stats)
-    else:
-        return "No data", 404
+    # Paginate
+    agg_cols = [
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('a_completed_count'),
+        func.sum(0).label('a_pending_count'), 
+        func.sum(OwnerWiseOrderSummarySnapshot.accepted_pcs).label('b_completed_count'),
+        func.sum(0).label('b_pending_count'),
+        func.sum(OwnerWiseOrderSummarySnapshot.barcoded_pcs).label('c_completed_count'),
+        func.sum(OwnerWiseOrderSummarySnapshot.not_barcoded_pcs).label('c_pending_count'),
+        func.sum(OwnerWiseOrderSummarySnapshot.hm_passed_pcs).label('d_completed_count'),
+        func.sum(0).label('d_pending_count'),
+        func.sum(OwnerWiseOrderSummarySnapshot.qc_passed_pcs).label('e_completed_count'),
+        func.sum(OwnerWiseOrderSummarySnapshot.qc_pending_pcs).label('e_pending_count'),
+        func.sum(OwnerWiseOrderSummarySnapshot.invoiced_pcs).label('f_completed_count'),
+        func.sum(0).label('f_pending_count'),
+        func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('g_completed_count'),
+        func.sum(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs).label('g_pending_count'),
+        func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs).label('total_count'),
+    ]
+
+    if view_type == 'make':
+        group_cols = [
+            OwnerWiseOrderSummarySnapshot.division,
+            OwnerWiseOrderSummarySnapshot.group_name,
+            OwnerWiseOrderSummarySnapshot.purity,
+            OwnerWiseOrderSummarySnapshot.classification,
+            OwnerWiseOrderSummarySnapshot.make.label('make_location')
+        ]
+        order_cols = [
+            OwnerWiseOrderSummarySnapshot.division, 
+            OwnerWiseOrderSummarySnapshot.group_name, 
+            OwnerWiseOrderSummarySnapshot.make
+        ]
+    elif view_type == 'collection':
+        group_cols = [
+            OwnerWiseOrderSummarySnapshot.division,
+            OwnerWiseOrderSummarySnapshot.group_name,
+            OwnerWiseOrderSummarySnapshot.purity,
+            OwnerWiseOrderSummarySnapshot.classification,
+            OwnerWiseOrderSummarySnapshot.make.label('make_location'),
+            OwnerWiseOrderSummarySnapshot.collection
+        ]
+        order_cols = [
+            OwnerWiseOrderSummarySnapshot.division, 
+            OwnerWiseOrderSummarySnapshot.group_name, 
+            OwnerWiseOrderSummarySnapshot.make,
+            OwnerWiseOrderSummarySnapshot.collection
+        ]
+    else: # party
+        group_cols = [
+            OwnerWiseOrderSummarySnapshot.division,
+            OwnerWiseOrderSummarySnapshot.group_name,
+            OwnerWiseOrderSummarySnapshot.purity,
+            OwnerWiseOrderSummarySnapshot.classification,
+            OwnerWiseOrderSummarySnapshot.make.label('make_location'),
+            OwnerWiseOrderSummarySnapshot.collection,
+            OwnerWiseOrderSummarySnapshot.supplier.label('party_name')
+        ]
+        order_cols = [
+            OwnerWiseOrderSummarySnapshot.supplier
+        ]
+        
+    main_q = db.session.query(*(group_cols + agg_cols))
+    main_q = apply_filters(main_q)
+    # Important: group_by MUST strictly match the selected columns (excluding aggs) or at least be consistent.
+    # SQLAlchemy requires group_by to match clauses.
+    # When using .label(), we can group by the entity column (e.g. OwnerWiseOrderSummarySnapshot.make).
+    
+    # We need to list unaliased columns for group_by to handle the label correctly or use the label object.
+    # group_cols contains labeled columns for make and supplier.
+    # Let's clean up group_by list.
+    
+    group_by_cols = []
+    if view_type == 'make':
+        group_by_cols = [
+            OwnerWiseOrderSummarySnapshot.division,
+            OwnerWiseOrderSummarySnapshot.group_name,
+            OwnerWiseOrderSummarySnapshot.purity,
+            OwnerWiseOrderSummarySnapshot.classification,
+            OwnerWiseOrderSummarySnapshot.make
+        ]
+    elif view_type == 'collection':
+        group_by_cols = [
+            OwnerWiseOrderSummarySnapshot.division,
+            OwnerWiseOrderSummarySnapshot.group_name,
+            OwnerWiseOrderSummarySnapshot.purity,
+            OwnerWiseOrderSummarySnapshot.classification,
+            OwnerWiseOrderSummarySnapshot.make,
+            OwnerWiseOrderSummarySnapshot.collection
+        ]
+    else: # party
+        group_by_cols = [
+            OwnerWiseOrderSummarySnapshot.division,
+            OwnerWiseOrderSummarySnapshot.group_name,
+            OwnerWiseOrderSummarySnapshot.purity,
+            OwnerWiseOrderSummarySnapshot.classification,
+            OwnerWiseOrderSummarySnapshot.make,
+            OwnerWiseOrderSummarySnapshot.collection,
+            OwnerWiseOrderSummarySnapshot.supplier
+        ]
+    
+    main_q = main_q.group_by(*group_by_cols).order_by(*order_cols)
+    pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
+
+    return render_template(f'partials/_view_{view_type}.html', 
+                         rows=pagination.items if pagination else [], 
+                         pagination=pagination, 
+                         footer_totals=footer_totals,
+                         stats=stats)
