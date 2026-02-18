@@ -53,7 +53,7 @@
 
     <!-- Stats Grid -->
     <div
-        class="grid grid-cols-8 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+        class="grid grid-cols-9 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase">Ordered Wt</p>
             <div class="flex flex-col">
@@ -144,7 +144,7 @@
                     style="width: {{ stats.invoiced_perc if stats else 0 }}%"></div>
             </div>
         </div>
-        <div class="p-2 text-center text-emerald-600">
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center text-emerald-600">
             <p class="text-[9px] text-gray-500 font-bold uppercase">Delivered Wt</p>
             <div class="flex flex-col">
                 <p id="stat-delivered-wt" class="text-sm font-bold">{{ stats.delivered_wt if stats else '0.00' }}</p>
@@ -154,6 +154,20 @@
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-delivered-bar" class="h-full bg-emerald-600 transition-all duration-500"
                     style="width: {{ stats.delivered_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+        <div class="p-2 text-center text-orange-600">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Pending To Be Del.d Wt</p>
+            <div class="flex flex-col">
+                <p id="stat-pending-to-be-delv-wt" class="text-sm font-bold">{{ stats.pending_to_be_delv_wt if stats
+                    else '0.00' }}</p>
+                <p id="stat-pending-to-be-delv-pcs" class="text-[9px] text-orange-600/70 font-medium">{{
+                    stats.pending_to_be_delv_pcs if
+                    stats else '0' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-pending-to-be-delv-bar" class="h-full bg-orange-600 transition-all duration-500"
+                    style="width: {{ stats.pending_to_be_delv_perc if stats else 0 }}%"></div>
             </div>
         </div>
     </div>

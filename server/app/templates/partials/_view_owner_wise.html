@@ -8,10 +8,11 @@
             <th class="text-right px-2 bg-emerald-50/20">Accepted</th>
             <th class="text-right px-2 bg-red-50/20">Rejected</th>
             <th class="text-right px-2 bg-indigo-50/20">Barcoded</th>
-            <th class="text-right px-2 bg-cyan-50/20">Hallmark</th>
-            <th class="text-right px-2 bg-amber-50/20">QC Pass</th>
+            <th class="text-right px-2 bg-cyan-50/20">Hallmarked</th>
+            <th class="text-right px-2 bg-amber-50/20">QC Passed</th>
             <th class="text-right px-2 bg-blue-50/20">Invoiced</th>
             <th class="text-right px-2 bg-emerald-50/20">Delivered</th>
+            <th class="text-right px-2 bg-orange-50/20">Pending To Be Del.d</th>
         </tr>
     </thead>
     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -97,13 +98,19 @@
                     <span class="text-[9px] text-emerald-600/70">{{ r.del_pcs }} Pcs</span>
                 </div>
             </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="font-bold text-orange-600">{{ "%.3f"|format(r.pend_del_wt) }}</span>
+                    <span class="text-[9px] text-orange-600/70">{{ r.pend_del_pcs }} Pcs</span>
+                </div>
+            </td>
         </tr>
 
         {% endfor %}
 
         {% if not rows and not is_child_rows %}
         <tr>
-            <td colspan="10" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
+            <td colspan="11" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
         </tr>
         {% endif %}
 
@@ -160,6 +167,12 @@
                 <div class="flex flex-col">
                     <span class="text-emerald-600 text-xs">{{ stats.delivered_wt }}</span>
                     <span class="text-[9px] text-emerald-600/70">{{ stats.delivered_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="text-orange-600 text-xs">{{ stats.pending_to_be_delv_wt }}</span>
+                    <span class="text-[9px] text-orange-600/70">{{ stats.pending_to_be_delv_pcs }} Pcs</span>
                 </div>
             </td>
         </tr>

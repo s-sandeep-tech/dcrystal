@@ -79,7 +79,9 @@ def owner_wise_order_summary():
             func.sum(OwnerWiseOrderSummarySnapshot.invoiced_pcs).label('total_invoiced_pcs'),
             func.sum(OwnerWiseOrderSummarySnapshot.invoiced_wt).label('total_invoiced_wt'),
             func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('total_delivered_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.delivered_wt).label('total_delivered_wt')
+            func.sum(OwnerWiseOrderSummarySnapshot.delivered_wt).label('total_delivered_wt'),
+            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs).label('total_pending_to_be_delv_pcs'),
+            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_wt).label('total_pending_to_be_delv_wt')
         ]
         
         agg_q = db.session.query(*agg_cols)
@@ -99,7 +101,8 @@ def owner_wise_order_summary():
             'hallmarked_wt': f"{float(aggs.total_hm_passed_wt or 0):,.3f}", 'hallmarked_pcs': f"{int(aggs.total_hm_passed_pcs or 0):,}", 'hallmarked_perc': get_perc(aggs.total_hm_passed_wt),
             'qc_passed_wt': f"{float(aggs.total_qc_passed_wt or 0):,.3f}", 'qc_passed_pcs': f"{int(aggs.total_qc_passed_pcs or 0):,}", 'qc_passed_perc': get_perc(aggs.total_qc_passed_wt),
             'invoiced_wt': f"{float(aggs.total_invoiced_wt or 0):,.3f}", 'invoiced_pcs': f"{int(aggs.total_invoiced_pcs or 0):,}", 'invoiced_perc': get_perc(aggs.total_invoiced_wt),
-            'delivered_wt': f"{float(aggs.total_delivered_wt or 0):,.3f}", 'delivered_pcs': f"{int(aggs.total_delivered_pcs or 0):,}", 'delivered_perc': get_perc(aggs.total_delivered_wt)
+            'delivered_wt': f"{float(aggs.total_delivered_wt or 0):,.3f}", 'delivered_pcs': f"{int(aggs.total_delivered_pcs or 0):,}", 'delivered_perc': get_perc(aggs.total_delivered_wt),
+            'pending_to_be_delv_wt': f"{float(aggs.total_pending_to_be_delv_wt or 0):,.3f}", 'pending_to_be_delv_pcs': f"{int(aggs.total_pending_to_be_delv_pcs or 0):,}", 'pending_to_be_delv_perc': get_perc(aggs.total_pending_to_be_delv_wt)
         }
 
         # Drill-down level
@@ -130,7 +133,9 @@ def owner_wise_order_summary():
             func.sum(OwnerWiseOrderSummarySnapshot.invoiced_pcs).label('inv_pcs'),
             func.sum(OwnerWiseOrderSummarySnapshot.invoiced_wt).label('inv_wt'),
             func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('del_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.delivered_wt).label('del_wt')
+            func.sum(OwnerWiseOrderSummarySnapshot.delivered_wt).label('del_wt'),
+            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs).label('pend_del_pcs'),
+            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_wt).label('pend_del_wt')
         ]
 
         main_q = db.session.query(*(group_cols + row_agg_cols))
@@ -153,6 +158,7 @@ def owner_wise_order_summary():
                 'qc_pcs': int(r.qc_pcs or 0), 'qc_wt': float(r.qc_wt or 0),
                 'inv_pcs': int(r.inv_pcs or 0), 'inv_wt': float(r.inv_wt or 0),
                 'del_pcs': int(r.del_pcs or 0), 'del_wt': float(r.del_wt or 0),
+                'pend_del_pcs': int(r.pend_del_pcs or 0), 'pend_del_wt': float(r.pend_del_wt or 0),
                 'level': level
             }
             processed_rows.append(row_dict)
@@ -245,7 +251,9 @@ def get_owner_wise_partial():
             func.sum(OwnerWiseOrderSummarySnapshot.invoiced_pcs).label('inv_pcs'),
             func.sum(OwnerWiseOrderSummarySnapshot.invoiced_wt).label('inv_wt'),
             func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('del_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.delivered_wt).label('del_wt')
+            func.sum(OwnerWiseOrderSummarySnapshot.delivered_wt).label('del_wt'),
+            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs).label('pend_del_pcs'),
+            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_wt).label('pend_del_wt')
         ]
 
         main_q = base_query.with_entities(*(group_cols + row_agg_cols))
@@ -268,6 +276,7 @@ def get_owner_wise_partial():
                 'qc_pcs': int(r.qc_pcs or 0), 'qc_wt': float(r.qc_wt or 0),
                 'inv_pcs': int(r.inv_pcs or 0), 'inv_wt': float(r.inv_wt or 0),
                 'del_pcs': int(r.del_pcs or 0), 'del_wt': float(r.del_wt or 0),
+                'pend_del_pcs': int(r.pend_del_pcs or 0), 'pend_del_wt': float(r.pend_del_wt or 0),
                 'level': level
             }
             processed_rows.append(row_dict)
@@ -289,7 +298,9 @@ def get_owner_wise_partial():
             func.sum(OwnerWiseOrderSummarySnapshot.invoiced_pcs).label('total_invoiced_pcs'),
             func.sum(OwnerWiseOrderSummarySnapshot.invoiced_wt).label('total_invoiced_wt'),
             func.sum(OwnerWiseOrderSummarySnapshot.delivered_pcs).label('total_delivered_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.delivered_wt).label('total_delivered_wt')
+            func.sum(OwnerWiseOrderSummarySnapshot.delivered_wt).label('total_delivered_wt'),
+            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs).label('total_pending_to_be_delv_pcs'),
+            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_wt).label('total_pending_to_be_delv_wt')
         ]
         
         agg_q = db.session.query(*agg_cols)
@@ -309,7 +320,8 @@ def get_owner_wise_partial():
             'hallmarked_wt': f"{float(aggs.total_hm_passed_wt or 0):,.3f}", 'hallmarked_pcs': f"{int(aggs.total_hm_passed_pcs or 0):,}", 'hallmarked_perc': get_perc(aggs.total_hm_passed_wt),
             'qc_passed_wt': f"{float(aggs.total_qc_passed_wt or 0):,.3f}", 'qc_passed_pcs': f"{int(aggs.total_qc_passed_pcs or 0):,}", 'qc_passed_perc': get_perc(aggs.total_qc_passed_wt),
             'invoiced_wt': f"{float(aggs.total_invoiced_wt or 0):,.3f}", 'invoiced_pcs': f"{int(aggs.total_invoiced_pcs or 0):,}", 'invoiced_perc': get_perc(aggs.total_invoiced_wt),
-            'delivered_wt': f"{float(aggs.total_delivered_wt or 0):,.3f}", 'delivered_pcs': f"{int(aggs.total_delivered_pcs or 0):,}", 'delivered_perc': get_perc(aggs.total_delivered_wt)
+            'delivered_wt': f"{float(aggs.total_delivered_wt or 0):,.3f}", 'delivered_pcs': f"{int(aggs.total_delivered_pcs or 0):,}", 'delivered_perc': get_perc(aggs.total_delivered_wt),
+            'pending_to_be_delv_wt': f"{float(aggs.total_pending_to_be_delv_wt or 0):,.3f}", 'pending_to_be_delv_pcs': f"{int(aggs.total_pending_to_be_delv_pcs or 0):,}", 'pending_to_be_delv_perc': get_perc(aggs.total_pending_to_be_delv_wt)
         }
 
         return render_template('partials/_view_owner_wise.html', 
