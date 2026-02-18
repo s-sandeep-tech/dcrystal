@@ -33,7 +33,7 @@
                     Rejected</th>
                 <th colspan="4"
                     class="px-2 py-1.5 text-center border-r bg-indigo-50/30 dark:bg-indigo-900/10 text-indigo-700 dark:text-indigo-400">
-                    Barcoding</th>
+                    Barcode</th>
                 <th colspan="5"
                     class="px-2 py-1.5 text-center border-r bg-cyan-50/30 dark:bg-cyan-900/10 text-cyan-700 dark:text-cyan-400">
                     Hallmark (HM)</th>
@@ -60,39 +60,39 @@
                 <th class="px-2 py-2 text-right border-r">Pcs</th>
                 <th class="px-2 py-2 text-right border-r">Wt</th>
                 <!-- Barcoding -->
-                <th class="px-2 py-2 text-right border-r">Bar. Pcs</th>
-                <th class="px-2 py-2 text-right border-r">Bar. Wt</th>
-                <th class="px-2 py-2 text-right border-r">N-Bar. Pcs</th>
-                <th class="px-2 py-2 text-right border-r">N-Bar. Wt</th>
+                <th class="px-2 py-2 text-right border-r">Barcode Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Barcode Wt</th>
+                <th class="px-2 py-2 text-right border-r">Not Barcode Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Not Barcode Wt</th>
                 <!-- Hallmark -->
-                <th class="px-2 py-2 text-right border-r">Proc</th>
-                <th class="px-2 py-2 text-right border-r">Pass Pcs</th>
-                <th class="px-2 py-2 text-right border-r">Pass Wt</th>
-                <th class="px-2 py-2 text-right border-r">Fail Pcs</th>
-                <th class="px-2 py-2 text-right border-r">Fail Wt</th>
+                <th class="px-2 py-2 text-right border-r">Processed pcs</th>
+                <th class="px-2 py-2 text-right border-r">Passed Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Passed Wt</th>
+                <th class="px-2 py-2 text-right border-r">Failed Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Failed Wt</th>
                 <!-- QC -->
-                <th class="px-2 py-2 text-right border-r">Proc</th>
-                <th class="px-2 py-2 text-right border-r">Pass Pcs</th>
-                <th class="px-2 py-2 text-right border-r">Pass Wt</th>
-                <th class="px-2 py-2 text-right border-r">Pend</th>
-                <th class="px-2 py-2 text-right border-r">Pend Wt</th>
-                <th class="px-2 py-2 text-right border-r">Rej Pcs</th>
-                <th class="px-2 py-2 text-right border-r">Rej Wt</th>
+                <th class="px-2 py-2 text-right border-r">Processed pcs</th>
+                <th class="px-2 py-2 text-right border-r">Passed Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Passed Wt</th>
+                <th class="px-2 py-2 text-right border-r">Pending pcs</th>
+                <th class="px-2 py-2 text-right border-r">Pending Wt</th>
+                <th class="px-2 py-2 text-right border-r">Rejected Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Rejected Wt</th>
                 <!-- Invoiced -->
                 <th class="px-2 py-2 text-right border-r">Pcs</th>
                 <th class="px-2 py-2 text-right border-r">Wt</th>
                 <!-- Delivery -->
-                <th class="px-2 py-2 text-right border-r">Del Pcs</th>
-                <th class="px-2 py-2 text-right border-r">Del Wt</th>
-                <th class="px-2 py-2 text-right border-r">Pend Pcs</th>
-                <th class="px-2 py-2 text-right border-r">Pend Wt</th>
+                <th class="px-2 py-2 text-right border-r">Delivered Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Delivered Wt</th>
+                <th class="px-2 py-2 text-right border-r">Pending Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Pending Wt</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
             {% macro render_node(node, level_depth, parent_id, index) %}
             {% set current_id = (parent_id ~ '-' ~ index) if parent_id else index|string %}
             <tr class="hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors group modal-row {{ 'hidden' if level_depth > 0 else '' }} text-[11px]"
-                data-id="{{ current_id }}" data-parent-id="{{ parent_id or '' }}">
+                data-id="{{ current_id }}" data-parent-id="{{ parent_id or '' }}" data-depth="{{ level_depth }}">
                 <td
                     class="px-4 py-2.5 border-r font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 transition-colors">
                     <div class="flex items-center gap-2" style="padding-left: {{ level_depth * 24 }}px">
