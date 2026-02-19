@@ -4,21 +4,34 @@ from app.extensions import db
 from app.models.snapshots import OwnerWiseOrderSummarySnapshot
 from flask import current_app
 import os
+import socket
+import time
 
 def get_external_db_connection():
     """Establishes a connection to the external Azure PostgreSQL database."""
+    host = "kj-az1-prod1-crystal-psql-db2.postgres.database.azure.com"
     try:
+        # Diagnostic: Try to resolve host via socket first
+        try:
+            ip = socket.gethostbyname(host)
+            current_app.logger.info(f"DNS Resolve Success: {host} -> {ip}")
+        except Exception as dns_e:
+            current_app.logger.error(f"DNS Resolve Failure for {host}: {str(dns_e)}")
+            # Even if socket.gethostbyname fails, psycopg2 might have its own resolution path
+            # but this gives us a clear indicator in logs.
+            
         conn = psycopg2.connect(
-            host="kj-az1-prod1-crystal-psql-db2.postgres.database.azure.com",
+            host=host,
             database="crystal",
             user="repo_user_ext",
             password="KjPGReportUserAz@26",
             port=5432,
-            sslmode="require"
+            sslmode="require",
+            connect_timeout=10
         )
         return conn
     except Exception as e:
-        current_app.logger.error(f"Failed to connect to external DB: {str(e)}")
+        current_app.logger.error(f"Failed to connect to external DB ({host}): {str(e)}")
         raise e
 
 def sync_owner_wise_data():
