@@ -14,7 +14,6 @@
             <th class="stage-cell">E (QC)</th>
             <th class="stage-cell">F (Inv)</th>
             <th class="stage-cell">G (Del)</th>
-            <th class="col-total bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white">Total</th>
         </tr>
     </thead>
     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -36,7 +35,6 @@
             </td>
             <td class="stage-cell text-amber-600">{{ r.f_completed_count }}</td>
             <td class="stage-cell text-gray-400">{{ r.g_completed_count }}</td>
-            <td class="col-total font-bold bg-gray-50/50">{{ r.total_count }}</td>
         </tr>
         <!-- Completed Row -->
         <tr class="child-row{{ loop.index }} bg-white dark:bg-gray-900 text-[10px]">
@@ -59,9 +57,6 @@
                 {{ r.e_completed_count - r.f_completed_count }}</td>
             <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-300">
                 {{ r.f_completed_count - r.g_completed_count }}</td>
-            <td class="col-total px-2 py-1.5 font-bold bg-gray-50 dark:bg-gray-800 text-right">
-                {{ r.a_pending_count + r.b_pending_count + r.c_pending_count + r.d_pending_count +
-                r.e_pending_count + r.f_pending_count + r.g_pending_count }}</td>
         </tr>
         <!-- Pending Row -->
         <tr class="child-row{{ loop.index }} bg-gray-50/50 dark:bg-gray-800/20 text-[10px]">
@@ -83,9 +78,6 @@
                 {{ r.a_completed_count - r.f_completed_count }}</td>
             <td class="stage-cell px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-right text-gray-400">
                 {{ r.a_completed_count - r.g_completed_count }}</td>
-            <td class="col-total px-2 py-1.5 font-bold bg-gray-100/50 dark:bg-gray-800/40 text-right">
-                {{ r.a_pending_count + r.b_pending_count + r.c_pending_count + r.d_pending_count + r.e_pending_count +
-                r.f_pending_count + r.g_pending_count }}</td>
         </tr>
         {% endfor %}
     </tbody>
@@ -99,7 +91,6 @@
             <td class="stage-cell">{{ footer_totals.e or '0' }}</td>
             <td class="stage-cell">{{ footer_totals.f or '0' }}</td>
             <td class="stage-cell">{{ footer_totals.g or '0' }}</td>
-            <td class="col-total bg-gray-200 dark:bg-gray-700">{{ footer_totals.total or '0' }}</td>
         </tr>
     </tfoot>
 </table>
