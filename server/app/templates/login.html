@@ -58,13 +58,13 @@
 
             <form id="loginForm" class="space-y-5">
                 <div class="space-y-1.5">
-                    <label class="text-[11px] font-bold text-gray-400 uppercase tracking-widest pl-1">Username</label>
+                    <label class="text-[11px] font-bold text-gray-400 uppercase tracking-widest pl-1">User ID</label>
                     <div class="relative">
                         <span
                             class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">person</span>
-                        <input id="username" type="text" required
+                        <input id="user_id" type="text" required
                             class="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all dark:text-white"
-                            placeholder="admin">
+                            placeholder="U101">
                     </div>
                 </div>
 
@@ -82,7 +82,7 @@
                 <div id="errorMsg"
                     class="hidden p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-lg text-[11px] text-red-600 font-bold flex items-center gap-2">
                     <span class="material-symbols-outlined text-sm">error</span>
-                    <span id="errorText">Invalid username or password</span>
+                    <span id="errorText">Invalid user id or password</span>
                 </div>
 
                 <button type="submit" id="submitBtn"
@@ -121,14 +121,14 @@
             submitBtn.innerHTML = '<div class="size-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>';
             errorMsg.classList.add('hidden');
 
-            const username = document.getElementById('username').value;
+            const user_id = document.getElementById('user_id').value;
             const password = document.getElementById('password').value;
 
             try {
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ user_id, password })
                 });
 
                 const data = await response.json();

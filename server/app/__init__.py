@@ -20,6 +20,7 @@ def create_app():
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'super-secret-key-change-me')
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-123')
 
     db.init_app(app)
     socketio.init_app(app)
@@ -30,12 +31,18 @@ def create_app():
         
         # Create a default user if none exists
         from app.models import User
-        if User.query.filter_by(username='admin').first() is None:
-            admin = User(username='admin', email='admin@example.com')
+        admin = User.query.filter_by(username='admin').first()
+        if admin is None:
+            admin = User(user_id='U001', username='admin', email='admin@example.com', is_admin=True)
             admin.set_password('admin123')
             db.session.add(admin)
             db.session.commit()
-            print("Default user 'admin' with password 'admin123' created.")
+            print("Default user 'admin' with password 'admin123' and is_admin=True created.")
+        else:
+            if not admin.is_admin:
+                admin.is_admin = True
+                db.session.commit()
+                print("Existing 'admin' user updated to is_admin=True.")
 
     # Register Blueprints
     from app.api.routes import api_bp

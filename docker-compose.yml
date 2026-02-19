@@ -14,6 +14,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    volumes:
+      - ./uploads:/shared_uploads
 
   redis:
     image: redis:alpine
@@ -36,6 +38,7 @@ services:
         condition: service_healthy
     volumes:
       - ./server:/app
+      - ./uploads:/app/uploads
 
   socket-server:
     build: ./socket-server

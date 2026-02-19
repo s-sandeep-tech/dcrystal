@@ -1,8 +1,26 @@
-from flask import render_template
+from flask import render_template, session, redirect, url_for, request, current_app
 from app.dashboard import dashboard_bp
-from app.models import Order, DashboardStats, Notification
+from app.models import Order, DashboardStats, Notification, User
 from app.extensions import db
 from datetime import datetime, timedelta
+
+@dashboard_bp.route('/myaccount')
+def my_account():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('dashboard.login'))
+        
+    user = User.query.filter_by(user_id=user_id).first()
+    if not user:
+        return redirect(url_for('dashboard.login'))
+        
+    unread_count = Notification.query.filter_by(is_read=False).count()
+    sync_time = datetime.now().strftime("%H:%M")
+    
+    return render_template('my_account.html', 
+                         user=user,
+                         unread_count=unread_count,
+                         sync_time=sync_time)
 
 @dashboard_bp.route('/')
 def index():
@@ -217,6 +235,28 @@ def index():
                          orders=orders, 
                          unread_count=unread_count,
                          sync_time=sync_time)
+
+@dashboard_bp.route('/upload-file', methods=['POST'])
+def upload_file():
+    if not session.get('is_admin'):
+        return {"error": "Unauthorized"}, 403
+        
+    if 'file' not in request.files:
+        return {"error": "No file part"}, 400
+        
+    file = request.files['file']
+    if file.filename == '':
+        return {"error": "No selected file"}, 400
+        
+    if file:
+        import os
+        upload_folder = os.path.join(current_app.root_path, 'uploads')
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+            
+        file_path = os.path.join(upload_folder, file.filename)
+        file.save(file_path)
+        return {"message": f"File {file.filename} uploaded successfully to {file_path}"}, 200
 
 @dashboard_bp.route('/login')
 def login():

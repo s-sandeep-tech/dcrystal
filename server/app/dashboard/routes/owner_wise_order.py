@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
 from app.models import Notification, OwnerWiseOrderSummarySnapshot
@@ -52,6 +52,11 @@ def owner_wise_order_summary():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == make_owner)
             if classification:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.classification == classification)
+            
+            # User-based filtering: Restrict to make_owner = username if not admin
+            if not session.get('is_admin', False) and session.get('username'):
+                query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == session.get('username'))
+                
             return query
 
         # Fetch filter options
@@ -225,6 +230,11 @@ def get_owner_wise_partial():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == make_owner)
             if classification:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.classification == classification)
+            
+            # User-based filtering: Restrict to make_owner = username if not admin
+            if not session.get('is_admin', False) and session.get('username'):
+                query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == session.get('username'))
+                
             return query
 
         if parent_level == 'classification_owner':

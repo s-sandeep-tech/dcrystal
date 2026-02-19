@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app.models import User
 from app.extensions import db
@@ -9,33 +9,39 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.json
-    username = data.get('username')
+    user_id = data.get('user_id')
     password = data.get('password')
 
-    if not username or not password:
-        return jsonify({"msg": "Missing username or password"}), 400
+    if not user_id or not password:
+        return jsonify({"msg": "Missing user id or password"}), 400
 
-    user = User.query.filter_by(username=username).first()
+    user = User.query.filter_by(user_id=user_id).first()
     if user and user.check_password(password):
+        # Store in session for server-side auth checks (e.g. data filtering)
+        session['user_id'] = user.user_id
+        session['username'] = user.username
+        session['is_admin'] = user.is_admin
+        
         access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(days=1))
         return jsonify(access_token=access_token, user=user.to_dict()), 200
 
-    return jsonify({"msg": "Bad username or password"}), 401
+    return jsonify({"msg": "Bad user id or password"}), 401
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
     data = request.json
+    user_id = data.get('user_id')
     username = data.get('username')
     password = data.get('password')
     email = data.get('email')
 
-    if not username or not password or not email:
+    if not user_id or not username or not password or not email:
         return jsonify({"msg": "Missing required fields"}), 400
 
-    if User.query.filter_by(username=username).first():
-        return jsonify({"msg": "Username already exists"}), 400
+    if User.query.filter_by(user_id=user_id).first():
+        return jsonify({"msg": "User ID already exists"}), 400
 
-    new_user = User(username=username, email=email)
+    new_user = User(user_id=user_id, username=username, email=email)
     new_user.set_password(password)
     
     db.session.add(new_user)
@@ -51,3 +57,27 @@ def get_me():
     if not user:
         return jsonify({"msg": "User not found"}), 404
     return jsonify(user.to_dict()), 200
+@auth_bp.route('/update-password', methods=['POST'])
+def update_password():
+    if 'user_id' not in session:
+        return jsonify({"msg": "Unauthorized"}), 401
+    
+    data = request.json
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+    confirm_password = data.get('confirm_password')
+    
+    if not all([current_password, new_password, confirm_password]):
+        return jsonify({"msg": "Missing required fields"}), 400
+        
+    if new_password != confirm_password:
+        return jsonify({"msg": "New passwords do not match"}), 400
+        
+    user = User.query.filter_by(user_id=session['user_id']).first()
+    if not user or not user.check_password(current_password):
+        return jsonify({"msg": "Incorrect current password"}), 401
+        
+    user.set_password(new_password)
+    db.session.commit()
+    
+    return jsonify({"msg": "Password updated successfully"}), 200

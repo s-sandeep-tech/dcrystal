@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
 from app.models import Notification, OwnerWiseOrderSummarySnapshot
@@ -52,7 +52,19 @@ def order_status():
             query = query.filter(OwnerWiseOrderSummarySnapshot.collection == collection)
         if party:
             query = query.filter(OwnerWiseOrderSummarySnapshot.supplier == party)
-            
+
+        # User-based filtering: Restrict to any owner = username if not admin
+        is_admin = session.get('is_admin', False)
+        username = session.get('username')
+        from flask import current_app
+        if not is_admin and username:
+            u = username.strip().lower()
+            current_app.logger.info(f'Applying restricted owner filter for {u}')
+            query = query.filter(
+                (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
+                (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
+                (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
+            )
         # Apply New Owner Filters
         if make_owner:
             query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == make_owner)
@@ -233,21 +245,33 @@ def order_status():
 @dashboard_bp.route('/api/orderstatus/options')
 @jwt_required()
 def order_status_options():
+    is_admin = session.get('is_admin', False)
+    username = session.get('username')
+    
+    def apply_options_filter(q):
+        if not is_admin and username:
+            u = username.strip().lower()
+            return q.filter(
+                (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
+                (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
+                (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
+            )
+        return q
+
     options = {
-        'divisions': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.division.distinct()).order_by(OwnerWiseOrderSummarySnapshot.division).all() if r[0]],
-        'groups': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.group_name.distinct()).order_by(OwnerWiseOrderSummarySnapshot.group_name).all() if r[0]],
-        'purities': [str(r[0]) for r in db.session.query(OwnerWiseOrderSummarySnapshot.purity.distinct()).order_by(OwnerWiseOrderSummarySnapshot.purity).all() if r[0]],
-        'classifications': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.classification.distinct()).order_by(OwnerWiseOrderSummarySnapshot.classification).all() if r[0]],
-        'makes': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.make.distinct()).order_by(OwnerWiseOrderSummarySnapshot.make).all() if r[0]],
-        'collections': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.collection.distinct()).order_by(OwnerWiseOrderSummarySnapshot.collection).all() if r[0]],
-        'parties': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.supplier.distinct()).order_by(OwnerWiseOrderSummarySnapshot.supplier).all() if r[0]],
-        'make_owners': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.make_owner.distinct()).order_by(OwnerWiseOrderSummarySnapshot.make_owner).all() if r[0]],
-        'collection_owners': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.collection_owner.distinct()).order_by(OwnerWiseOrderSummarySnapshot.collection_owner).all() if r[0]],
-        'classification_owners': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.classification_owner.distinct()).order_by(OwnerWiseOrderSummarySnapshot.classification_owner).all() if r[0]],
-        'business_heads': [] # Not available in OwnerWiseOrderSummarySnapshot
+        'divisions': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.division.distinct())).order_by(OwnerWiseOrderSummarySnapshot.division).all() if r[0]],
+        'groups': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.group_name.distinct())).order_by(OwnerWiseOrderSummarySnapshot.group_name).all() if r[0]],
+        'purities': [str(r[0]) for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.purity.distinct())).order_by(OwnerWiseOrderSummarySnapshot.purity).all() if r[0]],
+        'classifications': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.classification.distinct())).order_by(OwnerWiseOrderSummarySnapshot.classification).all() if r[0]],
+        'makes': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.make.distinct())).order_by(OwnerWiseOrderSummarySnapshot.make).all() if r[0]],
+        'collections': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.collection.distinct())).order_by(OwnerWiseOrderSummarySnapshot.collection).all() if r[0]],
+        'parties': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.supplier.distinct())).order_by(OwnerWiseOrderSummarySnapshot.supplier).all() if r[0]],
+        'make_owners': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.make_owner.distinct())).order_by(OwnerWiseOrderSummarySnapshot.make_owner).all() if r[0]],
+        'collection_owners': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.collection_owner.distinct())).order_by(OwnerWiseOrderSummarySnapshot.collection_owner).all() if r[0]],
+        'classification_owners': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.classification_owner.distinct())).order_by(OwnerWiseOrderSummarySnapshot.classification_owner).all() if r[0]],
+        'business_heads': []
     }
     return jsonify(options)
-
 @dashboard_bp.route('/partial/<view_type>')
 @jwt_required()
 def get_dashboard_partial(view_type):
@@ -293,7 +317,19 @@ def get_dashboard_partial(view_type):
             query = query.filter(OwnerWiseOrderSummarySnapshot.collection == collection)
         if party:
             query = query.filter(OwnerWiseOrderSummarySnapshot.supplier == party)
-            
+
+        # User-based filtering: Restrict to any owner = username if not admin
+        is_admin = session.get('is_admin', False)
+        username = session.get('username')
+        from flask import current_app
+        if not is_admin and username:
+            u = username.strip().lower()
+            current_app.logger.info(f'Applying restricted owner filter for {u}')
+            query = query.filter(
+                (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
+                (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
+                (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
+            )
         # Apply New Owner Filters
         if make_owner:
             query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == make_owner)

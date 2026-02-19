@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}My Account - DCrystal Intelligence{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-64px)] bg-gray-50 dark:bg-background-dark p-6">
+    <div class="max-w-[1400px] mx-auto">
+        <!-- Breadcrumb -->
+        <div class="flex items-center gap-2 mb-6 text-[11px] font-medium text-gray-400 px-2">
+            <a href="{{ url_for('dashboard.index') }}" class="hover:text-primary transition-colors">Dashboard</a>
+            <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+            <span class="text-gray-900 dark:text-white uppercase tracking-wider">My Account</span>
+        </div>
+
+        <!-- Account Header -->
+        <div
+            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 mb-6 shadow-sm mx-2">
+            <div class="flex items-center gap-6">
+                <div class="size-20 bg-primary/10 rounded-full flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary text-4xl">account_circle</span>
+                </div>
+                <div class="text-left">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-1">{{ user.username }}</h2>
+                    <p class="text-[12px] text-gray-500 font-medium font-sans">System {{ 'Administrator' if
+                        user.is_admin else 'User' }} • {{ user.user_id }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-2">
+            <!-- Profile Information -->
+            <div
+                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                <div
+                    class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 text-left">
+                    <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Profile Information</h3>
+                </div>
+                <div class="p-6 space-y-6 text-left flex-1">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1.5">User ID</label>
+                        <div
+                            class="text-[13px] font-medium text-gray-900 dark:text-white px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-md">
+                            {{ user.user_id }}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1.5">Username</label>
+                        <div
+                            class="text-[13px] font-medium text-gray-900 dark:text-white px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-md">
+                            {{ user.username }}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1.5">Email Address</label>
+                        <div
+                            class="text-[13px] font-medium text-gray-900 dark:text-white px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-md">
+                            {{ user.email }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Security -->
+            <div
+                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                <div
+                    class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 text-left">
+                    <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Security & Status</h3>
+                </div>
+                <div class="p-6 space-y-6 text-left flex-1">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1.5">Account Role</label>
+                        <div class="flex items-center gap-2">
+                            {% if user.is_admin %}
+                            <span
+                                class="px-2.5 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 text-[10px] font-bold uppercase rounded border border-purple-100 dark:border-purple-800/30 flex items-center gap-1.5 font-sans">
+                                <span class="material-symbols-outlined text-xs">verified_user</span>
+                                Administrator
+                            </span>
+                            {% else %}
+                            <span
+                                class="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase rounded border border-blue-100 dark:border-blue-800/30 flex items-center gap-1.5 font-sans">
+                                <span class="material-symbols-outlined text-xs">person</span>
+                                Standard User
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1.5 font-sans">Account
+                            Created</label>
+                        <div class="text-[12px] text-gray-600 dark:text-gray-400 font-medium italic font-sans">
+                            {{ user.created_at.strftime('%B %d, %Y') if user.created_at else 'January 23, 2026' }}
+                        </div>
+                    </div>
+                    <div class="pt-4 mt-auto">
+                        <button id="update-password-btn"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-[11px] font-bold uppercase tracking-wider rounded-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
+                            <span class="material-symbols-outlined text-sm">lock_reset</span>
+                            Update Password
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {% if user.is_admin %}
+            <!-- Admin Tools: File Upload -->
+            <div
+                class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden flex flex-col lg:col-span-1 md:col-span-2 lg:md:col-span-1">
+                <div
+                    class="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[16px] text-gray-400">database</span>
+                        <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400 text-left">System
+                            Administration</h3>
+                    </div>
+                    <span
+                        class="px-2 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 text-[9px] font-bold uppercase rounded border border-yellow-100 dark:border-yellow-800/30 font-medium font-sans">Admin
+                        Only</span>
+                </div>
+                <div class="p-6 flex flex-col flex-1 text-left">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="size-11 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl">upload_file</span>
+                        </div>
+                        <div>
+                            <h4 class="text-[14px] font-bold text-gray-900 dark:text-white">Database Dump Manager</h4>
+                            <p class="text-[11px] text-gray-500 font-medium font-sans">Upload SQL files to the shared
+                                server volume.</p>
+                        </div>
+                    </div>
+
+                    <div id="drop-zone" class="relative group flex-1 flex flex-col">
+                        <input type="file" id="file-input" class="hidden" accept=".sql,.dump">
+                        <div class="border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl p-6 flex flex-col items-center justify-center transition-all hover:border-primary/50 hover:bg-primary/5 cursor-pointer bg-gray-50/30 dark:bg-gray-800/20 group flex-1 min-h-[140px]"
+                            onclick="document.getElementById('file-input').click()">
+                            <div
+                                class="size-12 bg-white dark:bg-gray-800 rounded-full shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                <span
+                                    class="material-symbols-outlined text-2xl text-primary transition-colors">cloud_upload</span>
+                            </div>
+                            <p
+                                class="text-[12px] font-semibold text-gray-700 dark:text-gray-300 text-center px-4 font-sans leading-tight">
+                                <span class="text-primary underline decoration-2 underline-offset-4">Click to
+                                    upload</span> or drag and drop
+                            </p>
+                            <p class="text-[9px] text-gray-400 mt-2 uppercase tracking-widest font-bold font-sans">SQL,
+                                DUMP FILES (MAX 50MB)</p>
+                        </div>
+
+                        <div id="upload-status"
+                            class="hidden mt-4 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3 overflow-hidden">
+                                    <span class="material-symbols-outlined text-primary text-[20px]">description</span>
+                                    <span id="file-name"
+                                        class="text-[12px] font-bold text-gray-700 dark:text-gray-300 truncate font-sans"></span>
+                                </div>
+                                <span id="upload-percent"
+                                    class="text-[12px] font-black text-primary tabular-nums font-sans">0%</span>
+                            </div>
+                            <div class="w-full h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                                <div id="progress-bar"
+                                    class="h-full bg-primary transition-all duration-300 shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]"
+                                    style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Update Password Modal -->
+<div id="password-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+    aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 transition-opacity bg-gray-500/75 backdrop-blur-sm" aria-hidden="true"
+            onclick="closePasswordModal()"></div>
+
+        <!-- Modal panel -->
+        <div
+            class="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white dark:bg-gray-900 rounded-2xl shadow-2xl sm:my-8 sm:align-middle sm:max-w-md sm:w-full border border-gray-200 dark:border-gray-800">
+            <div class="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="size-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <span class="material-symbols-outlined text-primary text-[20px]">lock</span>
+                    </div>
+                    <h3 class="text-[14px] font-bold text-gray-900 dark:text-white" id="modal-title">Update Password
+                    </h3>
+                </div>
+                <button onclick="closePasswordModal()"
+                    class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+
+            <form id="password-form" class="p-6 space-y-5">
+                <div>
+                    <label for="current_password"
+                        class="block text-[10px] font-bold uppercase text-gray-400 mb-1.5 px-0.5">Current
+                        Password</label>
+                    <input type="password" id="current_password" name="current_password" required
+                        class="w-full text-[13px] font-medium text-gray-900 dark:text-white px-3 py-2.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                        placeholder="••••••••">
+                </div>
+                <div>
+                    <label for="new_password"
+                        class="block text-[10px] font-bold uppercase text-gray-400 mb-1.5 px-0.5">New Password</label>
+                    <input type="password" id="new_password" name="new_password" required
+                        class="w-full text-[13px] font-medium text-gray-900 dark:text-white px-3 py-2.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                        placeholder="••••••••">
+                </div>
+                <div>
+                    <label for="confirm_password"
+                        class="block text-[10px] font-bold uppercase text-gray-400 mb-1.5 px-0.5">Confirm New
+                        Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required
+                        class="w-full text-[13px] font-medium text-gray-900 dark:text-white px-3 py-2.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                        placeholder="••••••••">
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" id="submit-password-btn"
+                        class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white text-[11px] font-bold uppercase tracking-wider rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span class="material-symbols-outlined text-sm">check_circle</span>
+                        <span>Save Changes</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/my_account.js') }}"></script>
+{% endblock %}
