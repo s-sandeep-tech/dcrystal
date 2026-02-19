@@ -250,13 +250,23 @@ def upload_file():
         
     if file:
         import os
-        upload_folder = os.path.join(current_app.root_path, 'uploads')
+        # Correct path to match the Docker volume mapping at /app/uploads
+        upload_folder = '/app/uploads'
         if not os.path.exists(upload_folder):
-            os.makedirs(upload_folder)
+            try:
+                os.makedirs(upload_folder)
+            except Exception as e:
+                current_app.logger.error(f"Failed to create upload folder {upload_folder}: {str(e)}")
+                return {"error": f"Failed to create upload directory: {str(e)}"}, 500
             
         file_path = os.path.join(upload_folder, file.filename)
-        file.save(file_path)
-        return {"message": f"File {file.filename} uploaded successfully to {file_path}"}, 200
+        try:
+            file.save(file_path)
+            current_app.logger.info(f"File {file.filename} uploaded successfully to {file_path}")
+            return {"message": f"File {file.filename} uploaded successfully"}, 200
+        except Exception as e:
+            current_app.logger.error(f"Failed to save file {file.filename} to {file_path}: {str(e)}")
+            return {"error": f"Failed to save file: {str(e)}"}, 500
 
 @dashboard_bp.route('/login')
 def login():
