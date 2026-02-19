@@ -273,6 +273,17 @@
                 </select>
             </div>
             <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification</label>
+                <select id="filter-classification"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Classifications</option>
+                    {% for cl in filter_options.classifications %}
+                    <option value="{{ cl }}" {% if request.args.get('classification')==cl %}selected{% endif %}>{{ cl }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-1">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Supplier</label>
                 <select id="filter-supplier"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">

@@ -104,17 +104,10 @@
                 <a class="p-2 rounded {% if request.path == '/branchstockprovision' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
                     href="{{ url_for('dashboard.branch_stock_provision') }}" title="Branch Stock Summary"><span
                         class="material-symbols-outlined">summarize</span></a>
-                <a class="p-2 rounded {% if request.path == '/orderstatus' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
-                    href="{{ url_for('dashboard.order_status') }}" title="Order Tracking">
-                    <span class="material-symbols-outlined">analytics</span>
-                </a>
                 <a class="p-2 rounded {% if request.path == '/ownerwiseordersummary' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
                     href="{{ url_for('dashboard.owner_wise_order_summary') }}" title="Owner Wise Summary">
                     <span class="material-symbols-outlined">person_pin</span>
-                </a> <a
-                    class="p-2 rounded {% if request.path == '/provisionstatus' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
-                    href="{{ url_for('dashboard.provision_status') }}" title="Provision Status"><span
-                        class="material-symbols-outlined">assignment</span></a>
+                </a>
 
                 <a class="p-2 rounded text-gray-400 hover:text-primary transition-colors" href="#"
                     title="Quality Control"><span class="material-symbols-outlined">fact_check</span></a>

@@ -24,6 +24,7 @@ def owner_wise_order_summary():
         classification_owner = request.args.get('classification_owner', '')
         collection_owner = request.args.get('collection_owner', '')
         make_owner = request.args.get('make_owner', '')
+        classification = request.args.get('classification', '')
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
 
@@ -49,6 +50,8 @@ def owner_wise_order_summary():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.collection_owner == collection_owner)
             if make_owner:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == make_owner)
+            if classification:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.classification == classification)
             return query
 
         # Fetch filter options
@@ -59,7 +62,8 @@ def owner_wise_order_summary():
             'suppliers': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.supplier).distinct().order_by(OwnerWiseOrderSummarySnapshot.supplier).all() if r[0]],
             'classification_owners': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.classification_owner).distinct().order_by(OwnerWiseOrderSummarySnapshot.classification_owner).all() if r[0]],
             'collection_owners': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.collection_owner).distinct().order_by(OwnerWiseOrderSummarySnapshot.collection_owner).all() if r[0]],
-            'make_owners': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.make_owner).distinct().order_by(OwnerWiseOrderSummarySnapshot.make_owner).all() if r[0]]
+            'make_owners': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.make_owner).distinct().order_by(OwnerWiseOrderSummarySnapshot.make_owner).all() if r[0]],
+            'classifications': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.classification).distinct().order_by(OwnerWiseOrderSummarySnapshot.classification).all() if r[0]]
         }
 
         # Global Stats (Using Weights primarily)
@@ -187,6 +191,7 @@ def get_owner_wise_partial():
         classification_owner = request.args.get('classification_owner', '')
         collection_owner = request.args.get('collection_owner', '')
         make_owner = request.args.get('make_owner', '')
+        classification = request.args.get('classification', '')
         
         parent_level = request.args.get('parent_level')
         parent_value = request.args.get('parent_value')
@@ -218,6 +223,8 @@ def get_owner_wise_partial():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.collection_owner == collection_owner)
             if make_owner:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == make_owner)
+            if classification:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.classification == classification)
             return query
 
         if parent_level == 'classification_owner':
