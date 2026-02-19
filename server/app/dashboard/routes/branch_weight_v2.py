@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
 from app.models import Notification, LocationWiseStockSnapshot
 from app.extensions import db
-from sqlalchemy import func
+from sqlalchemy import func, cast, Numeric
 from datetime import datetime
 import logging
 
@@ -21,8 +21,8 @@ def branch_weight_allocation_v2():
         unread_count = Notification.query.filter_by(is_read=False).count()
         sync_time = datetime.now().strftime("%H:%M")
 
-        # Fetch latest snapshot date (handle Nulls by using COALESCE or just checking if any data exists)
-        has_any_data = db.session.query(LocationWiseStockSnapshot).first()
+        # Fetch latest snapshot date (select only one column to avoid type errors on other columns)
+        has_any_data = db.session.query(LocationWiseStockSnapshot.location).first()
         if not has_any_data:
             empty_stats = {
                 'provision_pieces': 0, 'provision_weight': 0.0,
@@ -73,14 +73,14 @@ def branch_weight_allocation_v2():
 
         # Global Stats
         agg_cols = [
-            func.sum(LocationWiseStockSnapshot.provision_pieces).label('provision_pieces'),
-            func.sum(LocationWiseStockSnapshot.provision_weight).label('provision_weight'),
-            func.sum(LocationWiseStockSnapshot.stock_pieces).label('stock_pieces'),
-            func.sum(LocationWiseStockSnapshot.stock_weight).label('stock_weight'),
-            func.sum(LocationWiseStockSnapshot.short_pieces).label('short_pieces'),
-            func.sum(LocationWiseStockSnapshot.short_weight).label('short_weight'),
-            func.sum(LocationWiseStockSnapshot.max_weight_allocate_other_branches).label('max_allocate'),
-            func.sum(LocationWiseStockSnapshot.max_refill_qty_other_branches).label('max_refill')
+            func.sum(cast(LocationWiseStockSnapshot.provision_pieces, Numeric)).label('provision_pieces'),
+            func.sum(cast(LocationWiseStockSnapshot.provision_weight, Numeric)).label('provision_weight'),
+            func.sum(cast(LocationWiseStockSnapshot.stock_pieces, Numeric)).label('stock_pieces'),
+            func.sum(cast(LocationWiseStockSnapshot.stock_weight, Numeric)).label('stock_weight'),
+            func.sum(cast(LocationWiseStockSnapshot.short_pieces, Numeric)).label('short_pieces'),
+            func.sum(cast(LocationWiseStockSnapshot.short_weight, Numeric)).label('short_weight'),
+            func.sum(cast(LocationWiseStockSnapshot.max_weight_allocate_other_branches, Numeric)).label('max_allocate'),
+            func.sum(cast(LocationWiseStockSnapshot.max_refill_qty_other_branches, Numeric)).label('max_refill')
         ]
         
         agg_q = db.session.query(*agg_cols)
@@ -203,7 +203,7 @@ def get_branch_partial_v2():
         latest_date_query = db.session.query(func.max(LocationWiseStockSnapshot.snapshot_date)).scalar()
         
         # If no data at all, return an empty template with 200
-        has_any_data = db.session.query(LocationWiseStockSnapshot).first()
+        has_any_data = db.session.query(LocationWiseStockSnapshot.location).first()
         if not has_any_data:
             empty_stats = {
                 'provision_pieces': 0, 'provision_weight': 0.0,
@@ -285,14 +285,14 @@ def get_branch_partial_v2():
 
         # Global Stats (Updated for filters - only relevant for full view, not child rows)
         agg_cols = [
-            func.sum(LocationWiseStockSnapshot.provision_pieces).label('provision_pieces'),
-            func.sum(LocationWiseStockSnapshot.provision_weight).label('provision_weight'),
-            func.sum(LocationWiseStockSnapshot.stock_pieces).label('stock_pieces'),
-            func.sum(LocationWiseStockSnapshot.stock_weight).label('stock_weight'),
-            func.sum(LocationWiseStockSnapshot.short_pieces).label('short_pieces'),
-            func.sum(LocationWiseStockSnapshot.short_weight).label('short_weight'),
-            func.sum(LocationWiseStockSnapshot.max_weight_allocate_other_branches).label('max_allocate'),
-            func.sum(LocationWiseStockSnapshot.max_refill_qty_other_branches).label('max_refill')
+            func.sum(cast(LocationWiseStockSnapshot.provision_pieces, Numeric)).label('provision_pieces'),
+            func.sum(cast(LocationWiseStockSnapshot.provision_weight, Numeric)).label('provision_weight'),
+            func.sum(cast(LocationWiseStockSnapshot.stock_pieces, Numeric)).label('stock_pieces'),
+            func.sum(cast(LocationWiseStockSnapshot.stock_weight, Numeric)).label('stock_weight'),
+            func.sum(cast(LocationWiseStockSnapshot.short_pieces, Numeric)).label('short_pieces'),
+            func.sum(cast(LocationWiseStockSnapshot.short_weight, Numeric)).label('short_weight'),
+            func.sum(cast(LocationWiseStockSnapshot.max_weight_allocate_other_branches, Numeric)).label('max_allocate'),
+            func.sum(cast(LocationWiseStockSnapshot.max_refill_qty_other_branches, Numeric)).label('max_refill')
         ]
         
         # Calculate stats only if it's the main view (not child rows)
