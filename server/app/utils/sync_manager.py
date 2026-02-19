@@ -10,18 +10,25 @@ import time
 def get_external_db_connection():
     """Establishes a connection to the external Azure PostgreSQL database."""
     host = "kj-az1-prod1-crystal-psql-db2.postgres.database.azure.com"
+    ip_fallback = "10.150.76.133" # IP from user's successful manual test
+    
     try:
+        # Diagnostic: Log env vars (filtered for security)
+        env_info = {k: v for k, v in os.environ.items() if "PROXY" in k.upper() or "HOST" in k.upper() or "ADDR" in k.upper()}
+        current_app.logger.info(f"Environment Info (Partial): {env_info}")
+
         # Diagnostic: Try to resolve host via socket first
+        target_host = host
         try:
             ip = socket.gethostbyname(host)
             current_app.logger.info(f"DNS Resolve Success: {host} -> {ip}")
         except Exception as dns_e:
             current_app.logger.error(f"DNS Resolve Failure for {host}: {str(dns_e)}")
-            # Even if socket.gethostbyname fails, psycopg2 might have its own resolution path
-            # but this gives us a clear indicator in logs.
+            current_app.logger.info(f"Falling back to IP: {ip_fallback} for host {host}")
+            target_host = ip_fallback
             
         conn = psycopg2.connect(
-            host=host,
+            host=target_host,
             database="crystal",
             user="repo_user_ext",
             password="KjPGReportUserAz@26",
