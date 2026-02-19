@@ -250,15 +250,14 @@ def upload_file():
         
     if file:
         import os
-        # Correct path to match the Docker volume mapping at /app/uploads
-        upload_folder = '/app/uploads'
-        if not os.path.exists(upload_folder):
-            try:
-                os.makedirs(upload_folder)
-            except Exception as e:
-                current_app.logger.error(f"Failed to create upload folder {upload_folder}: {str(e)}")
-                return {"error": f"Failed to create upload directory: {str(e)}"}, 500
-            
+        # Use UPLOAD_FOLDER env var for Docker-friendly configuration; default to /app/uploads
+        upload_folder = os.environ.get('UPLOAD_FOLDER', '/app/uploads')
+        try:
+            os.makedirs(upload_folder, exist_ok=True)
+        except Exception as e:
+            current_app.logger.error(f"Failed to create upload folder {upload_folder}: {str(e)}")
+            return {"error": f"Failed to create upload directory: {str(e)}"}, 500
+
         file_path = os.path.join(upload_folder, file.filename)
         try:
             file.save(file_path)
