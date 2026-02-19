@@ -22,6 +22,41 @@ def my_account():
                          unread_count=unread_count,
                          sync_time=sync_time)
 
+@dashboard_bp.route('/settings')
+def settings():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('dashboard.login'))
+        
+    from app.extensions import redis_client
+    redis_status = False
+    try:
+        redis_status = redis_client.ping()
+    except Exception:
+        redis_status = False
+        
+    unread_count = Notification.query.filter_by(is_read=False).count()
+    sync_time = datetime.now().strftime("%H:%M")
+    
+    return render_template('settings.html',
+                         redis_status=redis_status,
+                         is_admin=session.get('is_admin', False),
+                         unread_count=unread_count,
+                         sync_time=sync_time)
+
+@dashboard_bp.route('/settings/sync-data', methods=['POST'])
+def sync_data():
+    if not session.get('user_id') or not session.get('is_admin'):
+        return {"status": "error", "message": "Unauthorized: Admin access required"}, 401
+        
+    from app.utils.sync_manager import sync_owner_wise_data
+    result = sync_owner_wise_data()
+    
+    if result.get('status') == 'success':
+        return result, 200
+    else:
+        return result, 500
+
 @dashboard_bp.route('/')
 def index():
     # Fetch stats (take the first record or create dummy)

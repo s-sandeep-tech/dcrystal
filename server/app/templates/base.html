@@ -115,8 +115,9 @@
                     title="Dispatch"><span class="material-symbols-outlined">local_shipping</span></a>
             </div>
             <div class="mt-auto flex flex-col gap-4 items-center">
-                <a class="p-2 rounded text-gray-400 hover:text-red-500 transition-colors cursor-pointer" id="logoutBtn"
-                    title="Logout"><span class="material-symbols-outlined">logout</span></a>
+                <a class="p-2 rounded {% if request.path == '/settings' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
+                    href="{{ url_for('dashboard.settings') }}" title="Settings"><span
+                        class="material-symbols-outlined">settings</span></a>
                 <div id="userAvatar"
                     class="h-8 w-8 rounded bg-primary text-white flex items-center justify-center font-bold text-xs shadow-sm">
                     ??</div>
