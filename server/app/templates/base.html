@@ -74,8 +74,8 @@
 </head>
 
 <body
-    class="bg-background-light dark:bg-background-dark min-h-screen font-display transition-colors duration-200 overflow-hidden text-[#111418]">
-    <div class="flex h-screen w-full">
+    class="bg-background-light dark:bg-background-dark min-h-screen font-display transition-colors duration-200 text-[#111418]">
+    <div class="flex h-screen w-full overflow-hidden">
         <!-- Sidebar Navigation -->
         <nav
             class="w-14 flex flex-col items-center py-4 bg-white dark:bg-background-dark border-r border-gray-200 dark:border-gray-800 shrink-0 z-50">
@@ -287,6 +287,11 @@
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-[9999] flex flex-col pointer-events-none"></div>
+    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+
     {% block extra_scripts %}{% endblock %}
 </body>
 

@@ -54,6 +54,16 @@ async function start() {
     io.emit('dashboard_global', data); // For overview pages
   });
 
+  await subscriber.subscribe('global_notifications', (message) => {
+    console.log('Received global notification:', message);
+    try {
+      const data = JSON.parse(message);
+      io.emit('global_notification', data);
+    } catch (e) {
+      console.error('Error parsing global notification:', e);
+    }
+  });
+
   io.on('connection', (socket) => {
     console.log('a user connected:', socket.id);
 

@@ -53,6 +53,19 @@ def sync_data():
     result = sync_owner_wise_data()
     
     if result.get('status') == 'success':
+        try:
+            from app.extensions import redis_client
+            import json
+            count = result.get('count', 0)
+            payload = {
+                "title": "Data Sync Complete",
+                "message": f"Successfully synced {count} records. New data is available.",
+                "type": "success"
+            }
+            redis_client.publish('global_notifications', json.dumps(payload))
+        except Exception as e:
+            current_app.logger.error(f"Failed to publish global sync notification: {e}")
+            
         return result, 200
     else:
         return result, 500

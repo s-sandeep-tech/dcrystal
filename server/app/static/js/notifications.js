@@ -149,6 +149,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    socket.on('global_notification', function (data) {
+        console.log('Global notification received:', data);
+        if (window.showToast) {
+            window.showToast(data.title || 'Notification', data.message || '', data.type || 'info');
+        }
+    });
+
     function updateConnectionStatus(isConnected) {
         const statusDiv = document.getElementById('connectionStatus');
         const statusDot = document.getElementById('connectionDot');
