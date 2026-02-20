@@ -59,7 +59,7 @@ def sync_data():
             count = result.get('count', 0)
             payload = {
                 "title": "Data Sync Complete",
-                "message": f"Successfully synced {count} records. New data is available.",
+                "message": f"Successfully synced {count} records. New data is available!",
                 "type": "success"
             }
             redis_client.publish('global_notifications', json.dumps(payload))
