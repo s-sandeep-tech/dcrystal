@@ -55,7 +55,10 @@ def owner_wise_order_summary():
             
             # User-based filtering: Restrict to make_owner = username if not admin
             if not session.get('is_admin', False) and session.get('username'):
-                query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == session.get('username'))
+                query = query.filter(
+                            func.lower(OwnerWiseOrderSummarySnapshot.make_owner) ==
+                            func.lower(session.get('username'))
+                        )
                 
             return query
 
@@ -233,7 +236,7 @@ def get_owner_wise_partial():
             
             # User-based filtering: Restrict to make_owner = username if not admin
             if not session.get('is_admin', False) and session.get('username'):
-                query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == session.get('username'))
+                query = query.filter( func.lower(OwnerWiseOrderSummarySnapshot.make_owner) == func.lower(session.get('username')))
                 
             return query
 
