@@ -38,11 +38,13 @@
                             <span class="material-symbols-outlined text-sm">notifications</span>
                             Notifications
                         </a>
+                        {% if session.get('is_admin') %}
                         <a href="#" id="nav-users"
                             class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
                             <span class="material-symbols-outlined text-sm">group</span>
                             Active Users
                         </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -160,6 +162,7 @@
                     </div>
                 </div> <!-- End Tab Pane Status -->
 
+                {% if session.get('is_admin') %}
                 <!-- Tab Pane: Active Users -->
                 <div id="tab-users" class="tab-pane hidden space-y-6">
                     <div
@@ -198,6 +201,7 @@
                         </div>
                     </div>
                 </div> <!-- End Tab Pane Users -->
+                {% endif %}
 
             </div>
         </div>
