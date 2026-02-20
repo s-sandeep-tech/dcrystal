@@ -25,10 +25,13 @@ def owner_wise_order_summary():
         collection_owner = request.args.get('collection_owner', '')
         make_owner = request.args.get('make_owner', '')
         classification = request.args.get('classification', '')
+        all_rejected = request.args.get('all_rejected', 'false') == 'true'
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
 
         def apply_filters(query):
+            if all_rejected:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.ordered_pcs == OwnerWiseOrderSummarySnapshot.rejected_pcs)
             if search:
                 query = query.filter(
                     (OwnerWiseOrderSummarySnapshot.classification_owner.ilike(f"%{search}%")) |
@@ -200,6 +203,7 @@ def get_owner_wise_partial():
         collection_owner = request.args.get('collection_owner', '')
         make_owner = request.args.get('make_owner', '')
         classification = request.args.get('classification', '')
+        all_rejected = request.args.get('all_rejected', 'false') == 'true'
         
         parent_level = request.args.get('parent_level')
         parent_value = request.args.get('parent_value')
@@ -211,6 +215,8 @@ def get_owner_wise_partial():
         is_child_rows = bool(parent_level)
 
         def apply_filters(query):
+            if all_rejected:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.ordered_pcs == OwnerWiseOrderSummarySnapshot.rejected_pcs)
             if search:
                 query = query.filter(
                     (OwnerWiseOrderSummarySnapshot.classification_owner.ilike(f"%{search}%")) |
@@ -363,8 +369,12 @@ def get_leaf_detail():
         classification_owner = request.args.get('classification_owner', '')
         make_owner = request.args.get('make_owner', '')
         collection_owner = request.args.get('collection_owner', '')
+        all_rejected = request.args.get('all_rejected', 'false') == 'true'
         
         query = db.session.query(OwnerWiseOrderSummarySnapshot)
+        
+        if all_rejected:
+            query = query.filter(OwnerWiseOrderSummarySnapshot.ordered_pcs == OwnerWiseOrderSummarySnapshot.rejected_pcs)
         
         if classification_owner:
             query = query.filter(OwnerWiseOrderSummarySnapshot.classification_owner == classification_owner)

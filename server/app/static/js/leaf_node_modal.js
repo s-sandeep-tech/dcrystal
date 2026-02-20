@@ -18,10 +18,14 @@ async function openLeafModal(classOwner, makeOwner, collOwner) {
     `;
 
     try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const allRejected = urlParams.get('all_rejected') || 'false';
+
         const params = new URLSearchParams({
             classification_owner: classOwner,
             make_owner: makeOwner,
-            collection_owner: collOwner
+            collection_owner: collOwner,
+            all_rejected: allRejected
         });
 
         const response = await fetch(`/partial/leaf_detail?${params.toString()}`, {

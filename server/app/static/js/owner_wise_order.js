@@ -57,6 +57,8 @@ async function loadViewData() {
             }
         }
 
+        updateAllRejectedBtnState();
+
     } catch (error) {
         console.error('Error loading view:', error);
         activeView.innerHTML = `<div class="p-8 text-center text-red-500">Error loading data.</div>`;
@@ -176,6 +178,36 @@ async function toggleRow(btn, level, value, grandparentValue = null) {
     }
 }
 
+function toggleAllRejected() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isAllRejected = urlParams.get('all_rejected') === 'true';
+
+    if (isAllRejected) {
+        urlParams.delete('all_rejected');
+    } else {
+        urlParams.set('all_rejected', 'true');
+    }
+
+    urlParams.set('page', 1);
+    updateUrlAndLoad(urlParams);
+}
+
+function updateAllRejectedBtnState() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isAllRejected = urlParams.get('all_rejected') === 'true';
+    const btn = document.getElementById('btn-all-rejected');
+
+    if (btn) {
+        if (isAllRejected) {
+            btn.classList.remove('bg-white', 'dark:bg-gray-800', 'text-gray-500', 'border-gray-200', 'dark:border-gray-700');
+            btn.classList.add('bg-red-50', 'dark:bg-red-900/20', 'text-red-600', 'border-red-200', 'dark:border-red-800');
+        } else {
+            btn.classList.add('bg-white', 'dark:bg-gray-800', 'text-gray-500', 'border-gray-200', 'dark:border-gray-700');
+            btn.classList.remove('bg-red-50', 'dark:bg-red-900/20', 'text-red-600', 'border-red-200', 'dark:border-red-800');
+        }
+    }
+}
+
 function applyGlobalFilters() {
     const urlParams = new URLSearchParams(window.location.search);
 
@@ -214,6 +246,7 @@ function resetGlobalFilters() {
         const param = id.replace('filter-', '').replace('class-', 'classification_').replace('coll-', 'collection_').replace('hierarchy-', '');
         urlParams.delete(param);
     });
+    urlParams.delete('all_rejected');
 
     urlParams.set('page', 1);
     updateUrlAndLoad(urlParams);
@@ -314,4 +347,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadViewData();
     loadFilterOptions();
+    updateAllRejectedBtnState();
 });
