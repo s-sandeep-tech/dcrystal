@@ -3,8 +3,8 @@
 {% block title %}Settings - DCrystal Intelligence{% endblock %}
 
 {% block content %}
-<div class="min-h-[calc(100vh-64px)] bg-gray-50 dark:bg-background-dark p-6">
-    <div class="max-w-[1400px] mx-auto">
+<div class="flex-1 w-full min-h-[calc(100vh-64px)] bg-gray-50 dark:bg-background-dark p-2 lg:p-4">
+    <div class="w-full max-w-none">
         <!-- Breadcrumb -->
         <div class="flex items-center gap-2 mb-6 text-[11px] font-medium text-gray-400 px-2">
             <a href="{{ url_for('dashboard.index') }}" class="hover:text-primary transition-colors">Dashboard</a>
@@ -12,9 +12,9 @@
             <span class="text-gray-900 dark:text-white uppercase tracking-wider">Settings</span>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 px-2">
-            <!-- Left Column: Navigation/Tabs (Placeholders for now) -->
-            <div class="lg:col-span-1 space-y-6">
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Left Column: Navigation/Tabs -->
+            <div class="w-full lg:w-[280px] flex-shrink-0 space-y-6">
                 <div
                     class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden">
                     <div
@@ -23,197 +23,337 @@
                         </h3>
                     </div>
                     <div class="p-2 space-y-1">
-                        <a href="#"
-                            class="flex items-center gap-3 px-4 py-2.5 bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
+                        <a href="#" id="nav-status"
+                            class="nav-tab flex items-center gap-3 px-4 py-2.5 bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
                             <span class="material-symbols-outlined text-sm">monitor_heart</span>
                             Application Status
                         </a>
-                        <a href="#"
-                            class="flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
+                        <a href="#" id="nav-general"
+                            class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
                             <span class="material-symbols-outlined text-sm">settings</span>
                             General Settings
                         </a>
-                        <a href="#"
-                            class="flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
+                        <a href="#" id="nav-notifications"
+                            class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
                             <span class="material-symbols-outlined text-sm">notifications</span>
                             Notifications
+                        </a>
+                        <a href="#" id="nav-users"
+                            class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
+                            <span class="material-symbols-outlined text-sm">group</span>
+                            Active Users
                         </a>
                     </div>
                 </div>
             </div>
 
             <!-- Right Column: Content -->
-            <div class="lg:col-span-2 space-y-6">
-                <!-- System Status Section -->
-                <div
-                    class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden flex flex-col">
+            <div class="flex-1 min-w-0 space-y-6 relative">
+
+                <!-- Tab Pane: Application Status -->
+                <div id="tab-status" class="tab-pane space-y-6">
+                    <!-- System Status Section -->
                     <div
-                        class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 text-left">
-                        <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">System Status</h3>
-                    </div>
-                    <div class="p-6 space-y-6">
-                        <!-- Redis Status -->
+                        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden flex flex-col">
                         <div
-                            class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
-                            <div class="flex items-center gap-4">
-                                <div class="size-10 bg-red-500/10 rounded-lg flex items-center justify-center">
-                                    <span class="material-symbols-outlined text-red-500 text-xl">database</span>
+                            class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 text-left">
+                            <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">System Status
+                            </h3>
+                        </div>
+                        <div class="p-6 space-y-6">
+                            <!-- Redis Status -->
+                            <div
+                                class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
+                                <div class="flex items-center gap-4">
+                                    <div class="size-10 bg-red-500/10 rounded-lg flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-red-500 text-xl">database</span>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Redis Server
+                                        </h4>
+                                        <p class="text-[11px] text-gray-500 font-medium">Real-time data
+                                            synchronization
+                                            cache</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Redis Server</h4>
-                                    <p class="text-[11px] text-gray-500 font-medium">Real-time data synchronization
-                                        cache</p>
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        class="size-2 rounded-full {{ 'bg-green-500 animate-pulse' if redis_status else 'bg-red-500' }}"></span>
+                                    <span
+                                        class="text-[11px] font-bold uppercase {{ 'text-green-500' if redis_status else 'text-red-500' }}">
+                                        {{ 'Connected' if redis_status else 'Disconnected' }}
+                                    </span>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <span
-                                    class="size-2 rounded-full {{ 'bg-green-500 animate-pulse' if redis_status else 'bg-red-500' }}"></span>
-                                <span
-                                    class="text-[11px] font-bold uppercase {{ 'text-green-500' if redis_status else 'text-red-500' }}">
-                                    {{ 'Connected' if redis_status else 'Disconnected' }}
-                                </span>
+
+                            <!-- Socket.IO Status -->
+                            <div
+                                class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
+                                <div class="flex items-center gap-4">
+                                    <div class="size-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-primary text-xl">hub</span>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Socket.IO
+                                            Service
+                                        </h4>
+                                        <p class="text-[11px] text-gray-500 font-medium">Bidirectional event-based
+                                            communication</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span id="socket-status-dot" class="size-2 rounded-full bg-gray-400"></span>
+                                    <span id="socket-status-text"
+                                        class="text-[11px] font-bold uppercase text-gray-400">Checking...</span>
+                                </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Socket.IO Status -->
+                    {% if is_admin %}
+                    <!-- Data Management Section -->
+                    <div
+                        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden flex flex-col">
                         <div
-                            class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
-                            <div class="flex items-center gap-4">
-                                <div class="size-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                                    <span class="material-symbols-outlined text-primary text-xl">hub</span>
+                            class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 text-left">
+                            <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Data Management
+                            </h3>
+                        </div>
+                        <div class="p-6">
+                            <div
+                                class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
+                                <div class="flex items-center gap-4">
+                                    <div class="size-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-purple-500 text-xl">sync_alt</span>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Owner Wise
+                                            Order
+                                            Summary Sync</h4>
+                                        <p class="text-[11px] text-gray-500 font-medium">Full refresh from external
+                                            Azure
+                                            database</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Socket.IO Service
-                                    </h4>
-                                    <p class="text-[11px] text-gray-500 font-medium">Bidirectional event-based
-                                        communication</p>
-                                </div>
+                                <button id="sync-btn"
+                                    class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
+                                    <span class="material-symbols-outlined text-[14px]">sync</span>
+                                    Sync Now
+                                </button>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <span id="socket-status-dot" class="size-2 rounded-full bg-gray-400"></span>
-                                <span id="socket-status-text"
-                                    class="text-[11px] font-bold uppercase text-gray-400">Checking...</span>
+                            <div id="sync-status"
+                                class="hidden mt-4 p-3 rounded-lg text-[11px] font-medium transition-all">
                             </div>
                         </div>
                     </div>
-                </div>
+                    {% endif %}
 
-                {% if is_admin %}
-                <!-- Data Management Section -->
-                <div
-                    class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                    <!-- Info Card -->
                     <div
-                        class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 text-left">
-                        <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Data Management</h3>
+                        class="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 rounded-xl p-4 flex gap-4">
+                        <span class="material-symbols-outlined text-blue-500 text-xl">info</span>
+                        <p class="text-[12px] text-blue-700 dark:text-blue-300 font-medium">
+                            System status is updated in real-time. If components show as disconnected, please check
+                            the
+                            server logs or contact the administrator.
+                        </p>
                     </div>
-                    <div class="p-6">
+                </div> <!-- End Tab Pane Status -->
+
+                <!-- Tab Pane: Active Users -->
+                <div id="tab-users" class="tab-pane hidden space-y-6">
+                    <div
+                        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex flex-col h-full">
                         <div
-                            class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
-                            <div class="flex items-center gap-4">
-                                <div class="size-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
-                                    <span class="material-symbols-outlined text-purple-500 text-xl">sync_alt</span>
-                                </div>
-                                <div>
-                                    <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Owner Wise Order
-                                        Summary Sync</h4>
-                                    <p class="text-[11px] text-gray-500 font-medium">Full refresh from external Azure
-                                        database</p>
-                                </div>
-                            </div>
-                            <button id="sync-btn"
-                                class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
-                                <span class="material-symbols-outlined text-[14px]">sync</span>
-                                Sync Now
+                            class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 flex items-center justify-between">
+                            <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Connected
+                                WebSocket
+                                Clients</h3>
+                            <button id="refresh-users-btn"
+                                class="text-gray-400 hover:text-primary transition-colors focus:outline-none">
+                                <span class="material-symbols-outlined text-sm">refresh</span>
                             </button>
                         </div>
-                        <div id="sync-status" class="hidden mt-4 p-3 rounded-lg text-[11px] font-medium transition-all">
+                        <div class="p-0 overflow-x-auto">
+                            <table class="w-full text-left text-[11px] text-gray-500 dark:text-gray-400">
+                                <thead
+                                    class="text-[10px] text-gray-400 uppercase bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-3 font-semibold w-[15%]">User / ID</th>
+                                        <th scope="col" class="px-4 py-3 font-semibold w-[20%]">IP Address</th>
+                                        <th scope="col" class="px-4 py-3 font-semibold w-[20%]">Connected At</th>
+                                        <th scope="col" class="px-4 py-3 font-semibold w-[45%] text-right">Socket ID
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="active-users-tbody" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                    <tr>
+                                        <td colspan="4" class="px-4 py-8 text-center text-gray-400">
+                                            <span class="material-symbols-outlined block text-2xl mb-2">sync</span>
+                                            Loading active users...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                </div>
-                {% endif %}
+                </div> <!-- End Tab Pane Users -->
 
-                <!-- Info Card -->
-                <div
-                    class="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 rounded-xl p-4 flex gap-4">
-                    <span class="material-symbols-outlined text-blue-500 text-xl">info</span>
-                    <p class="text-[12px] text-blue-700 dark:text-blue-300 font-medium">
-                        System status is updated in real-time. If components show as disconnected, please check the
-                        server logs or contact the administrator.
-                    </p>
-                </div>
             </div>
         </div>
     </div>
-</div>
+    {% endblock %}
 
-<script>
-    // Socket.IO Status Check (using existing socket instance from notifications.js or creating one if needed)
-    document.addEventListener('DOMContentLoaded', () => {
-        const socketDot = document.getElementById('socket-status-dot');
-        const socketText = document.getElementById('socket-status-text');
+    {% block extra_scripts %}
+    <script>
+        // Socket.IO Status Check (using existing socket instance from notifications.js)
+        document.addEventListener('DOMContentLoaded', () => {
+            const socketDot = document.getElementById('socket-status-dot');
+            const socketText = document.getElementById('socket-status-text');
 
-        // Check if socket is already defined (from base.html or notifications.js)
-        if (typeof socket !== 'undefined') {
-            updateSocketStatus(socket.connected);
-            socket.on('connect', () => updateSocketStatus(true));
-            socket.on('disconnect', () => updateSocketStatus(false));
-        } else {
-            // If not global, we can try to find it or initialize a temporary one for status check
-            console.warn('Socket instance not found globally');
-            socketText.textContent = 'Service Init...';
-        }
-
-        function updateSocketStatus(connected) {
-            if (connected) {
-                socketDot.className = 'size-2 rounded-full bg-green-500 animate-pulse';
-                socketText.className = 'text-[11px] font-bold uppercase text-green-500';
-                socketText.textContent = 'Online';
-            } else {
-                socketDot.className = 'size-2 rounded-full bg-red-500';
-                socketText.className = 'text-[11px] font-bold uppercase text-red-500';
-                socketText.textContent = 'Offline';
-            }
-        }
-
-        // Data Sync Logic
-        const syncBtn = document.getElementById('sync-btn');
-        const syncStatus = document.getElementById('sync-status');
-
-        if (syncBtn) {
-            syncBtn.addEventListener('click', async () => {
-                const originalContent = syncBtn.innerHTML;
-                syncBtn.disabled = true;
-                syncBtn.innerHTML = '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> Syncing...';
-
-                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
-                syncStatus.textContent = 'Contacting Azure PostgreSQL server...';
-                syncStatus.classList.remove('hidden');
-
-                try {
-                    const response = await fetch('{{ url_for("dashboard.sync_data") }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/30';
-                        syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">check_circle</span> Sync Successful! ${data.count} records replaced.</div>`;
-                    } else {
-                        throw new Error(data.message || 'Sync failed');
-                    }
-                } catch (error) {
-                    syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/30';
-                    syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> Error: ${error.message}</div>`;
-                } finally {
-                    syncBtn.disabled = false;
-                    syncBtn.innerHTML = originalContent;
+            function updateSocketStatus(connected) {
+                if (connected) {
+                    socketDot.className = 'size-2 rounded-full bg-green-500 animate-pulse';
+                    socketText.className = 'text-[11px] font-bold uppercase text-green-500';
+                    socketText.textContent = 'Online';
+                } else {
+                    socketDot.className = 'size-2 rounded-full bg-red-500';
+                    socketText.className = 'text-[11px] font-bold uppercase text-red-500';
+                    socketText.textContent = 'Offline';
                 }
-            });
-        }
-    });
-</script>
-{% endblock %}
+            }
+
+            // Wait a small bit for notifications.js to definitely initialize window.socket
+            function initSocketStatus() {
+                if (window.socket) {
+                    updateSocketStatus(window.socket.connected);
+                    window.socket.on('connect', () => updateSocketStatus(true));
+                    window.socket.on('disconnect', () => updateSocketStatus(false));
+                } else {
+                    console.warn('Socket instance not found globally, retrying...');
+                    setTimeout(initSocketStatus, 500);
+                }
+            }
+
+            initSocketStatus();
+
+            // Data Sync Logic
+            const syncBtn = document.getElementById('sync-btn');
+            const syncStatus = document.getElementById('sync-status');
+
+            if (syncBtn) {
+                syncBtn.addEventListener('click', async () => {
+                    const originalContent = syncBtn.innerHTML;
+                    syncBtn.disabled = true;
+                    syncBtn.innerHTML = '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> Syncing...';
+
+                    syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+                    syncStatus.textContent = 'Contacting Azure PostgreSQL server...';
+                    syncStatus.classList.remove('hidden');
+
+                    try {
+                        const response = await fetch('{{ url_for("dashboard.sync_data") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/30';
+                            syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">check_circle</span> Sync Successful! ${data.count} records replaced.</div>`;
+                        } else {
+                            throw new Error(data.message || 'Sync failed');
+                        }
+                    } catch (error) {
+                        syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/30';
+                        syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> Error: ${error.message}</div>`;
+                    } finally {
+                        syncBtn.disabled = false;
+                        syncBtn.innerHTML = originalContent;
+                    }
+                });
+            }
+
+            // Tab Switching Logic
+            const tabs = {
+                'status': { nav: document.getElementById('nav-status'), pane: document.getElementById('tab-status') },
+                'users': { nav: document.getElementById('nav-users'), pane: document.getElementById('tab-users') },
+            };
+
+            function switchTab(tabId) {
+                Object.values(tabs).forEach(tab => {
+                    if (tab.nav) {
+                        tab.nav.className = 'nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all';
+                    }
+                    if (tab.pane) {
+                        tab.pane.classList.add('hidden');
+                    }
+                });
+
+                if (tabs[tabId]) {
+                    if (tabs[tabId].nav) {
+                        tabs[tabId].nav.className = 'nav-tab flex items-center gap-3 px-4 py-2.5 bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all';
+                    }
+                    if (tabs[tabId].pane) {
+                        tabs[tabId].pane.classList.remove('hidden');
+                    }
+                }
+
+                if (tabId === 'users') {
+                    fetchActiveUsers();
+                }
+            }
+
+            if (tabs['status'].nav) tabs['status'].nav.addEventListener('click', (e) => { e.preventDefault(); switchTab('status'); });
+            if (tabs['users'].nav) tabs['users'].nav.addEventListener('click', (e) => { e.preventDefault(); switchTab('users'); });
+
+            // Active Users Fetch Logic
+            const refreshUsersBtn = document.getElementById('refresh-users-btn');
+            const activeUsersTbody = document.getElementById('active-users-tbody');
+
+            if (refreshUsersBtn) {
+                refreshUsersBtn.addEventListener('click', fetchActiveUsers);
+            }
+
+            function fetchActiveUsers() {
+                if (typeof window.socket === 'undefined' || !window.socket.connected) {
+                    activeUsersTbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-red-500">Socket connection offline</td></tr>`;
+                    return;
+                }
+
+                activeUsersTbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-gray-400"><span class="material-symbols-outlined animate-spin inline-block text-lg align-middle mr-2">sync</span> Refreshing...</td></tr>`;
+
+                console.log('Emitting get_active_users...');
+                window.socket.emit('get_active_users', (users) => {
+                    console.log('Received active users:', users);
+                    if (!users || users.length === 0) {
+                        activeUsersTbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-gray-400">No active users found.</td></tr>`;
+                        return;
+                    }
+
+                    activeUsersTbody.innerHTML = users.map(user => {
+                        const date = new Date(user.connectedAt);
+                        const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                        return `
+                        <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors">
+                            <td class="px-4 py-3 font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                <div class="size-6 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded flex items-center justify-center font-bold text-[10px]">
+                                    ${String(user.userId).charAt(0).toUpperCase()}
+                                </div>
+                                ${user.userId}
+                            </td>
+                            <td class="px-4 py-3 font-mono text-gray-500">${user.ip || 'Unknown'}</td>
+                            <td class="px-4 py-3 text-gray-500">${timeString}</td>
+                            <td class="px-4 py-3 text-right font-mono text-[9px] text-gray-400">${user.socketId}</td>
+                        </tr>
+                    `;
+                    }).join('');
+                });
+            }
+        });
+    </script>
+    {% endblock %}

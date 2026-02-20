@@ -1,11 +1,11 @@
-document.addEventListener('DOMContentLoaded', function () {
-    // Connect to the socket server
-    const token = localStorage.getItem('access_token');
-    const socket = io({
-        auth: { token: token },
-        path: "/realtimedata/" // Ensure path matches socket server config if needed, but current base.html suggests default or specific
-    });
+const token = localStorage.getItem('access_token');
+const socket = io({
+    auth: { token: token },
+    path: "/realtimedata/" // Ensure path matches socket server config
+});
+window.socket = socket; // Expose globally
 
+document.addEventListener('DOMContentLoaded', function () {
     socket.on('connect_error', (err) => {
         if (err.message.includes('Authentication error')) {
             console.error('Socket authentication failed:', err.message);

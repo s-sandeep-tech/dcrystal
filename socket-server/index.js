@@ -46,6 +46,9 @@ async function start() {
   await subscriber.connect();
   console.log('Connected to Redis');
 
+  // Track active users
+  const connectedUsers = new Map();
+
   await subscriber.subscribe('dashboard_updates', (message) => {
     console.log('Received update:', message);
     const data = JSON.parse(message);
@@ -65,15 +68,43 @@ async function start() {
   });
 
   io.on('connection', (socket) => {
-    console.log('a user connected:', socket.id);
+    // Determine the IP address (handling proxies if applicable)
+    const ipAddress = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+
+    // Default to 'Unknown User' if socket.user is not fully populated
+    // Assuming socket.user has logic from jwt.verify
+    const userId = socket.user ? (socket.user.sub || socket.user.user_id || socket.user.username || 'System') : 'Guest';
+
+    console.log(`User connected: ${userId} (${socket.id}) from ${ipAddress}`);
+
+    // Store user data
+    connectedUsers.set(socket.id, {
+      socketId: socket.id,
+      userId: userId,
+      ip: ipAddress,
+      connectedAt: new Date().toISOString()
+    });
 
     socket.on('subscribe_view', (viewId) => {
       socket.join(`view:${viewId}`);
       console.log(`Socket ${socket.id} joined view:${viewId}`);
     });
 
+    // Provide endpoint to fetch all active connections
+    socket.on('get_active_users', (callback) => {
+      console.log(`Socket ${socket.id} requested active users list. Count: ${connectedUsers.size}`);
+      if (typeof callback === 'function') {
+        const usersArray = Array.from(connectedUsers.values());
+        console.log('Sending users array:', JSON.stringify(usersArray));
+        callback(usersArray);
+      } else {
+        console.error('get_active_users called without a callback function');
+      }
+    });
+
     socket.on('disconnect', () => {
-      console.log('user disconnected');
+      console.log(`User disconnected: ${userId} (${socket.id})`);
+      connectedUsers.delete(socket.id);
     });
   });
 

@@ -48,6 +48,9 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    volumes:
+      - ./socket-server:/app
+      - /app/node_modules
 
   nginx:
     image: nginx:alpine
