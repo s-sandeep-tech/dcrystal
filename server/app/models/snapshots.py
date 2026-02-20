@@ -235,3 +235,40 @@ class OwnerWiseOrderSummarySnapshot(db.Model):
     delivered_wt = db.Column('Delivered Wt', db.Numeric(18, 3))
     pending_to_be_delv_pcs = db.Column('Pending To Be Delv. Pcs', db.Numeric(18, 3))
     pending_to_be_delv_wt = db.Column('Pending To Be Delv. Wt', db.Numeric(18, 3))
+
+class TicketLogSnapshot(db.Model):
+    __tablename__ = 'ticket_log_snapshot'
+
+    ticket_no = db.Column('ticket_no', db.String(50), primary_key=True)
+    issue_reported_office = db.Column('issue_reported_office', db.String(150))
+    issue_reported_user = db.Column('issue_reported_user', db.String(150))
+    ticket_date = db.Column('ticket_date', db.DateTime)
+    transaction_type = db.Column('transaction_type', db.String(100))
+    party_name = db.Column('party_name', db.String(200))
+    trans_dt = db.Column('trans_dt', db.DateTime)
+    transaction_no = db.Column('transaction_no', db.String(100))
+    issue_description = db.Column('issue_description', db.Text)
+    issue_reported_date = db.Column('issue_reported_date', db.DateTime)
+    assigned_to_crystal_poc = db.Column('assigned_to_crystal_poc', db.String(150))
+    crystal_status = db.Column('crystal_status', db.String(50))
+    crystal_completed_date = db.Column('crystal_completed_date', db.DateTime)
+    crystal_remarks = db.Column('crystal_remarks', db.Text)
+
+    def to_dict(self):
+        return {
+            'ticket_no': self.ticket_no,
+            'issue_reported_office': self.issue_reported_office,
+            'issue_reported_user': self.issue_reported_user,
+            'ticket_date': self.ticket_date.strftime('%Y-%m-%d %H:%M:%S') if self.ticket_date else None,
+            'transaction_type': self.transaction_type,
+            'party_name': self.party_name,
+            'trans_dt': self.trans_dt.strftime('%Y-%m-%d %H:%M:%S') if self.trans_dt else None,
+            'transaction_no': self.transaction_no,
+            'issue_description': self.issue_description,
+            'issue_reported_date': self.issue_reported_date.strftime('%Y-%m-%d %H:%M:%S') if self.issue_reported_date else None,
+            'assigned_to_crystal_poc': self.assigned_to_crystal_poc,
+            'crystal_status': self.crystal_status,
+            'crystal_completed_date': self.crystal_completed_date.strftime('%Y-%m-%d %H:%M:%S') if self.crystal_completed_date else None,
+            'crystal_remarks': self.crystal_remarks
+        }
+

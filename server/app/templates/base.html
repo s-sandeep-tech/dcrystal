@@ -108,6 +108,10 @@
                     href="{{ url_for('dashboard.owner_wise_order_summary') }}" title="Owner Wise Summary">
                     <span class="material-symbols-outlined">person_pin</span>
                 </a>
+                <a class="p-2 rounded {% if request.path == '/crystal_issues' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
+                    href="{{ url_for('dashboard.crystal_issues') }}" title="Crystal General Issues">
+                    <span class="material-symbols-outlined">report_problem</span>
+                </a>
 
                 <a class="p-2 rounded text-gray-400 hover:text-primary transition-colors" href="#"
                     title="Quality Control"><span class="material-symbols-outlined">fact_check</span></a>

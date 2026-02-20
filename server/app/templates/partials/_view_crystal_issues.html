@@ -1,0 +1,167 @@
+{% if not is_child_rows %}
+<div class="pagination-meta hidden" data-page="{{ pagination.page if pagination else 1 }}"
+    data-per-page="{{ pagination.per_page if pagination else 50 }}"
+    data-total="{{ pagination.total if pagination else 0 }}"
+    data-has-prev="{{ 'true' if pagination.has_prev else 'false' }}"
+    data-has-next="{{ 'true' if pagination.has_next else 'false' }}"
+    data-prev-num="{{ pagination.prev_num if pagination and pagination.has_prev else '' }}"
+    data-next-num="{{ pagination.next_num if pagination and pagination.has_next else '' }}"
+    data-level="{{ current_level }}">
+</div>
+
+<script id="stats-metadata" type="application/json">
+    {{ stats|tojson if stats else '{}' }}
+</script>
+
+<div class="w-full overflow-x-auto min-h-full">
+    <table class="w-full text-left border-collapse table-fixed min-w-[1800px]">
+        <thead class="sticky top-0 z-20 bg-white dark:bg-gray-900 shadow-sm">
+            <tr class="border-b border-gray-200 dark:border-gray-800">
+                <th class="p-3 w-10 bg-white dark:bg-gray-900"></th>
+                <th
+                    class="p-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest w-32 bg-white dark:bg-gray-900">
+                    RO</th>
+                <th
+                    class="p-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest w-40 bg-white dark:bg-gray-900">
+                    Reported User</th>
+                <th class="p-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest w-32">Ticket Date</th>
+                <th class="p-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest w-32">Ticket No</th>
+                <th class="p-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest w-28">Trans Type</th>
+                <th class="p-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest w-36">Party</th>
+                <th class="p-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest w-24">Trans&nbsp;Date</th>
+                <th class="p-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest w-32">Trans No</th>
+                <th class="p-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest w-64">Description</th>
+                <th class="p-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest w-32">Reported Date</th>
+                <th class="p-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest w-40">Assigned To</th>
+                <th class="p-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest w-32 text-center">Status
+                </th>
+                <th class="p-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest w-32">Completion Date</th>
+                <th class="p-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest w-64">Remarks</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800 text-[12px]">
+            {% endif %}
+
+            {% for row in rows %}
+            {% if current_level == 'office' %}
+            <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors group animate-fade-in"
+                data-level="office" data-value="{{ row.issue_reported_office }}">
+                <td class="p-3 text-center">
+                    <button onclick="toggleRow(this, 'office', '{{ row.issue_reported_office }}')"
+                        class="flex items-center justify-center text-gray-400 hover:text-primary transition-colors focus:outline-none">
+                        <span class="material-symbols-outlined text-[20px]">add_circle</span>
+                    </button>
+                </td>
+                <td class="p-3 font-bold text-gray-700 dark:text-gray-300 truncate"
+                    title="{{ row.issue_reported_office }}">{{ row.issue_reported_office }}</td>
+                <td class="p-3 font-medium text-gray-400 italic truncate" colspan="10"
+                    title="Summary for Office (Total: {{ row.total }}, Pending: {{ row.pending }}, Completed: {{ row.completed }})">
+                    Summary for Office (Total: {{ row.total }}, Pending: {{ row.pending }}, Completed: {{ row.completed
+                    }})</td>
+                <td class="p-3 text-center" colspan="3">
+                    <div class="flex items-center justify-center gap-2">
+                        <span
+                            class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold uppercase">{{
+                            row.pending }} Pending</span>
+                        <span
+                            class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase">{{
+                            row.completed }} Completed</span>
+                    </div>
+                </td>
+            </tr>
+            {% elif current_level == 'user' %}
+            <tr class="hover:bg-blue-50/20 dark:hover:bg-blue-900/10 transition-colors group animate-fade-in"
+                data-level="user" data-value="{{ row.issue_reported_user }}"
+                data-office="{{ row.issue_reported_office }}">
+                <td class="p-3 text-center">
+                    <button
+                        onclick="toggleRow(this, 'user', '{{ row.issue_reported_user }}', '{{ row.issue_reported_office }}')"
+                        class="flex items-center justify-center text-gray-400 hover:text-primary transition-colors focus:outline-none ml-2">
+                        <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                    </button>
+                </td>
+                <td class="p-3 text-gray-400 truncate" title="{{ row.issue_reported_office }}">{{
+                    row.issue_reported_office }}</td>
+                <td class="p-3 font-bold text-gray-700 dark:text-gray-300 truncate"
+                    title="{{ row.issue_reported_user }}">{{ row.issue_reported_user }}</td>
+                <td class="p-3 font-medium text-gray-400 italic truncate" colspan="9"
+                    title="User Summary (Total: {{ row.total }}, Pending: {{ row.pending }}, Completed: {{ row.completed }})">
+                    User Summary (Total: {{ row.total }}, Pending: {{ row.pending }}, Completed: {{ row.completed }})
+                </td>
+                <td class="p-3 text-center" colspan="3">
+                    <div class="flex items-center justify-center gap-2">
+                        <span
+                            class="px-2 py-0.5 rounded-full bg-amber-100/50 text-amber-600 text-[10px] font-bold uppercase">{{
+                            row.pending }}</span>
+                        <span
+                            class="px-2 py-0.5 rounded-full bg-emerald-100/50 text-emerald-600 text-[10px] font-bold uppercase">{{
+                            row.completed }}</span>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors group animate-fade-in"
+                data-level="ticket">
+                <td class="p-3 text-center">
+                    <span class="material-symbols-outlined text-[12px] text-gray-300 ml-4">fiber_manual_record</span>
+                </td>
+                <td class="p-3 text-gray-500 truncate" title="{{ row.issue_reported_office }}">{{
+                    row.issue_reported_office }}</td>
+                <td class="p-3 text-gray-500 truncate" title="{{ row.issue_reported_user }}">{{ row.issue_reported_user
+                    }}</td>
+                <td class="p-3 font-medium text-gray-500">{{ row.ticket_date.strftime('%d-%b-%Y') if row.ticket_date
+                    else 'N/A' }}</td>
+                <td class="p-3 font-bold text-primary">{{ row.ticket_no }}</td>
+                <td class="p-3 font-medium text-gray-600 dark:text-gray-400 truncate"
+                    title="{{ row.transaction_type }}">{{ row.transaction_type }}</td>
+                <td class="p-3 font-medium text-gray-600 dark:text-gray-400 truncate" title="{{ row.party_name }}">{{
+                    row.party_name }}</td>
+                <td class="p-3 font-medium text-gray-500">{{ row.trans_dt.strftime('%d-%b-%Y') if row.trans_dt else
+                    'N/A' }}</td>
+                <td class="p-3 font-medium text-gray-600 dark:text-gray-400 truncate" title="{{ row.transaction_no }}">
+                    {{ row.transaction_no }}</td>
+                <td class="p-3 font-medium text-gray-600 dark:text-gray-400 truncate"
+                    title="{{ row.issue_description }}">{{ row.issue_description }}</td>
+                <td class="p-3 font-medium text-gray-500">{{ row.issue_reported_date.strftime('%d-%b-%Y') if
+                    row.issue_reported_date else 'N/A' }}</td>
+                <td class="p-3 font-medium text-gray-600 dark:text-gray-400 truncate"
+                    title="{{ row.assigned_to_crystal_poc }}">{{ row.assigned_to_crystal_poc }}</td>
+                <td class="p-3 text-center">
+                    {% if row.crystal_status == 'Completed' %}
+                    <span
+                        class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">Completed</span>
+                    {% else %}
+                    <span
+                        class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider">Pending</span>
+                    {% endif %}
+                </td>
+                <td class="p-3 font-medium text-emerald-600 dark:text-emerald-400">
+                    {% if row.crystal_completed_date %}
+                    {% if row.crystal_completed_date.strftime %}
+                    {{ row.crystal_completed_date.strftime('%d-%b-%Y') }}
+                    {% else %}
+                    {{ row.crystal_completed_date }}
+                    {% endif %}
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td class="p-3 font-medium text-gray-500 italic truncate" title="{{ row.crystal_remarks or '' }}">
+                    {{ row.crystal_remarks or '-' }}
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+
+            {% if not rows and not is_child_rows %}
+            <tr>
+                <td colspan="15" class="p-12 text-center text-gray-400 italic font-medium">No results found for the
+                    current filters.</td>
+            </tr>
+            {% endif %}
+
+            {% if not is_child_rows %}
+        </tbody>
+    </table>
+</div>
+{% endif %}

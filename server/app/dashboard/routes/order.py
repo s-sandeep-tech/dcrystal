@@ -1,11 +1,12 @@
 from flask import render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
-from app.models import Notification, OwnerWiseOrderSummarySnapshot
+from app.models import Notification, OwnerWiseOrderSummarySnapshot, TicketLogSnapshot
 from app.extensions import db
 from sqlalchemy import func
 from datetime import datetime
 import time
+
 
 @dashboard_bp.route('/orderstatus')
 def order_status():
@@ -296,3 +297,5 @@ def get_dashboard_partial(view_type):
                          pagination=pagination, 
                          footer_totals=footer_totals,
                          stats=stats)
+
+

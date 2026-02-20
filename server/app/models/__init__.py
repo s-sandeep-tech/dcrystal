@@ -6,7 +6,8 @@ from .snapshots import (
     LocationWiseOrderSnapshot,
     ShortStatusReportSnapshot,
     OrderProvisionSummaryReport,
-    OwnerWiseOrderSummarySnapshot
+    OwnerWiseOrderSummarySnapshot,
+    TicketLogSnapshot
 )
 
 __all__ = [
@@ -20,5 +21,6 @@ __all__ = [
     'LocationWiseOrderSnapshot',
     'ShortStatusReportSnapshot',
     'OrderProvisionSummaryReport',
-    'OwnerWiseOrderSummarySnapshot'
+    'OwnerWiseOrderSummarySnapshot',
+    'TicketLogSnapshot'
 ]
