@@ -191,7 +191,7 @@
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
             <div class="flex items-center gap-2">
                 <span class="text-gray-400">Rows per page:</span>
-                <select id="per-page-select" onchange="changePerPage(this.value)"
+                <select id="per-page-select"
                     class="bg-transparent border-none text-[10px] font-bold text-gray-700 dark:text-gray-300 focus:ring-0 p-0 cursor-pointer">
                     <option value="50" {% if pagination and pagination.per_page==50 %}selected{% endif %}>50</option>
                     <option value="100" {% if pagination and pagination.per_page==100 %}selected{% endif %}>100
@@ -201,43 +201,33 @@
                 </select>
             </div>
             <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
-            {% if pagination %}
             <span id="pagination-info" class="font-medium text-gray-700 dark:text-gray-300">
+                {% if pagination and pagination.page and pagination.total %}
                 {{ (pagination.page - 1) * pagination.per_page + 1 }}-{{ [pagination.page * pagination.per_page,
                 pagination.total]|min }} of {{ pagination.total }}
+                {% else %}0-0 of 0{% endif %}
             </span>
             <div class="flex items-center gap-1">
-                <button id="btn-prev" onclick="changePage({{ pagination.prev_num }})" {% if not pagination.has_prev
-                    %}disabled{% endif %}
-                    class="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
-                </button>
-                <button id="btn-next" onclick="changePage({{ pagination.next_num }})" {% if not pagination.has_next
-                    %}disabled{% endif %}
-                    class="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
-                </button>
-            </div>
-            {% else %}
-            <span class="font-medium text-gray-700 dark:text-gray-300">0-0 of 0</span>
-            <div class="flex items-center gap-1">
-                <button disabled
+                <button id="btn-prev" disabled
                     class="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-gray-700 disabled:opacity-50">
                     <span class="material-symbols-outlined text-[16px]">chevron_left</span>
                 </button>
-                <button disabled
+                <button id="btn-next" disabled
                     class="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-gray-700 disabled:opacity-50">
                     <span class="material-symbols-outlined text-[16px]">chevron_right</span>
                 </button>
             </div>
-            {% endif %}
         </div>
     </div>
 
     <!-- Table Container -->
     <div id="table-area" class="flex-1 overflow-auto relative">
-        <div id="view-make" class="dashboard-view" data-loaded="true">
-            {% include 'partials/_view_make.html' %}
+        <div id="view-make" class="dashboard-view" data-loaded="false">
+            <div class="flex flex-col items-center justify-center h-64">
+                <div class="inline-block size-8 border-4 border-primary border-t-transparent rounded-full animate-spin">
+                </div>
+                <p class="text-[11px] text-gray-400 mt-4 font-bold tracking-widest uppercase">Loading Make View...</p>
+            </div>
         </div>
         <div id="view-collection" class="dashboard-view hidden" data-loaded="false">
             <div class="flex flex-col items-center justify-center h-64">

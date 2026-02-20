@@ -84,7 +84,16 @@ async function loadViewData(view) {
     const activeView = document.getElementById('view-' + view);
     if (!activeView) return;
 
-    const urlParams = new URLSearchParams(window.location.search);
+    // Show spinner while loading
+    const viewLabel = view.charAt(0).toUpperCase() + view.slice(1);
+    activeView.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-64">
+            <div class="inline-block size-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-[11px] text-gray-400 mt-4 font-bold tracking-widest uppercase">Loading ${viewLabel} View...</p>
+        </div>
+    `;
+
+    const urlParams = new URL(window.location.href).searchParams;
     const searchParams = urlParams.toString();
 
     try {
@@ -276,9 +285,11 @@ function updatePaginationControls(meta) {
         btnPrev.disabled = !hasPrev;
         if (hasPrev) {
             btnPrev.classList.remove('opacity-50', 'cursor-not-allowed');
+            btnPrev.classList.add('cursor-pointer');
             btnPrev.onclick = () => changePage(prevNum);
         } else {
             btnPrev.classList.add('opacity-50', 'cursor-not-allowed');
+            btnPrev.classList.remove('cursor-pointer');
             btnPrev.onclick = null;
         }
     }
@@ -287,9 +298,11 @@ function updatePaginationControls(meta) {
         btnNext.disabled = !hasNext;
         if (hasNext) {
             btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+            btnNext.classList.add('cursor-pointer');
             btnNext.onclick = () => changePage(nextNum);
         } else {
             btnNext.classList.add('opacity-50', 'cursor-not-allowed');
+            btnNext.classList.remove('cursor-pointer');
             btnNext.onclick = null;
         }
     }
@@ -362,6 +375,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) el.value = searchVal;
     }
 
+    // Per-page select listener
+    const perPageSelect = document.getElementById('per-page-select');
+    if (perPageSelect) {
+        perPageSelect.addEventListener('change', (e) => changePerPage(e.target.value));
+    }
+
     const dateRange = urlParams.get('date_range');
     if (dateRange) {
         const activeBtn = document.getElementById('preset-' + dateRange);
@@ -373,6 +392,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initFilterListeners();
 });
+
+// Handle history navigation (back/forward)
+window.onpopstate = function (event) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const view = localStorage.getItem('orderstatus-view') || 'make';
+    loadViewData(view);
+};
 
 let globalOptionsLoaded = false;
 function initFilterListeners() {
