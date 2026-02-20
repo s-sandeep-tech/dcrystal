@@ -182,16 +182,17 @@
                                 <thead
                                     class="text-[10px] text-gray-400 uppercase bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
                                     <tr>
-                                        <th scope="col" class="px-4 py-3 font-semibold w-[15%]">User / ID</th>
+                                        <th scope="col" class="px-4 py-3 font-semibold w-[5%] text-center">#</th>
+                                        <th scope="col" class="px-4 py-3 font-semibold w-[20%]">User / ID</th>
                                         <th scope="col" class="px-4 py-3 font-semibold w-[20%]">IP Address</th>
                                         <th scope="col" class="px-4 py-3 font-semibold w-[20%]">Connected At</th>
-                                        <th scope="col" class="px-4 py-3 font-semibold w-[45%] text-right">Socket ID
+                                        <th scope="col" class="px-4 py-3 font-semibold w-[35%] text-right">Socket ID
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody id="active-users-tbody" class="divide-y divide-gray-100 dark:divide-gray-800">
                                     <tr>
-                                        <td colspan="4" class="px-4 py-8 text-center text-gray-400">
+                                        <td colspan="5" class="px-4 py-8 text-center text-gray-400">
                                             <span class="material-symbols-outlined block text-2xl mb-2">sync</span>
                                             Loading active users...
                                         </td>
@@ -324,26 +325,27 @@
 
             function fetchActiveUsers() {
                 if (typeof window.socket === 'undefined' || !window.socket.connected) {
-                    activeUsersTbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-red-500">Socket connection offline</td></tr>`;
+                    activeUsersTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-red-500">Socket connection offline</td></tr>`;
                     return;
                 }
 
-                activeUsersTbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-gray-400"><span class="material-symbols-outlined animate-spin inline-block text-lg align-middle mr-2">sync</span> Refreshing...</td></tr>`;
+                activeUsersTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400"><span class="material-symbols-outlined animate-spin inline-block text-lg align-middle mr-2">sync</span> Refreshing...</td></tr>`;
 
                 console.log('Emitting get_active_users...');
                 window.socket.emit('get_active_users', (users) => {
                     console.log('Received active users:', users);
                     if (!users || users.length === 0) {
-                        activeUsersTbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-gray-400">No active users found.</td></tr>`;
+                        activeUsersTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No active users found.</td></tr>`;
                         return;
                     }
 
-                    activeUsersTbody.innerHTML = users.map(user => {
+                    activeUsersTbody.innerHTML = users.map((user, index) => {
                         const date = new Date(user.connectedAt);
                         const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
                         return `
                         <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors">
+                            <td class="px-4 py-3 text-center text-gray-400 font-medium">${index + 1}</td>
                             <td class="px-4 py-3 font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
                                 <div class="size-6 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded flex items-center justify-center font-bold text-[10px]">
                                     ${String(user.userId).charAt(0).toUpperCase()}
@@ -351,8 +353,8 @@
                                 ${user.userId}
                             </td>
                             <td class="px-4 py-3 font-mono text-gray-500">${user.ip || 'Unknown'}</td>
-                            <td class="px-4 py-3 text-gray-500">${timeString}</td>
-                            <td class="px-4 py-3 text-right font-mono text-[9px] text-gray-400">${user.socketId}</td>
+                            <td class="px-4 py-3 text-gray-500 whitespace-nowrap">${timeString}</td>
+                            <td class="px-4 py-3 text-right font-mono text-[9px] text-gray-400 break-all">${user.socketId}</td>
                         </tr>
                     `;
                     }).join('');
