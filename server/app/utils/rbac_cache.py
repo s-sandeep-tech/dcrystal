@@ -41,13 +41,18 @@ def get_user_permissions(user_id):
         logger.error(f"Redis error getting user permissions: {e}")
 
     # DB Fallback
-    user = User.query.get(user_id)
+    try:
+        u_id_int = int(user_id)
+        user = db.session.get(User, u_id_int)
+    except (ValueError, TypeError):
+        return set()
+
     if not user:
         return set()
         
-    roles = db.session.query(Role).join(UserRole).filter(UserRole.user_id == user_id).all()
+    roles = db.session.query(Role).join(UserRole).filter(UserRole.user_id == user.id).all()
     perms = set()
-    is_admin = False
+    is_admin = user.is_admin or user.username == 'admin' # Double fallback for admin
     
     for r in roles:
         if r.name == 'ADMIN':
@@ -83,7 +88,11 @@ def build_menu_tree(user_id):
     perms = get_user_permissions(user_id)
     is_admin = 'ADMIN' in perms
     
-    role_ids = [r.role_id for r in UserRole.query.filter_by(user_id=user_id).all()]
+    try:
+        u_id_int = int(user_id)
+        role_ids = [r.role_id for r in UserRole.query.filter_by(user_id=u_id_int).all()]
+    except (ValueError, TypeError):
+        role_ids = []
     
     if is_admin:
         allowed_menus = Menu.query.order_by(Menu.sort_order).all()
