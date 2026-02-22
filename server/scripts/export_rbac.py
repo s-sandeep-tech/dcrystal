@@ -6,6 +6,7 @@ import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app
+from app.extensions import db
 from app.models.rbac import Role, Permission, Menu, RoleMenu, RolePermission
 
 def export_rbac():
@@ -39,21 +40,22 @@ def export_rbac():
         role_perms = RolePermission.query.all()
         role_perm_data = []
         for rp in role_perms:
-            role = Role.query.get(rp.role_id)
-            perm = Permission.query.get(rp.permission_id)
+            role = db.session.get(Role, rp.role_id)
+            perm = db.session.get(Permission, rp.permission_id)
             role_perm_data.append({"role_name": role.name, "perm_name": perm.name})
 
         # 5. Export Role-Menu Mappings
         role_menus = RoleMenu.query.all()
         role_menu_data = []
         for rm in role_menus:
-            role = Role.query.get(rm.role_id)
-            menu = Menu.query.get(rm.menu_id)
+            role = db.session.get(Role, rm.role_id)
+            menu = db.session.get(Menu, rm.menu_id)
             role_menu_data.append({"role_name": role.name, "menu_title": menu.title})
 
         # Generate the seed script content
         seed_script = f"""import os
 import sys
+import json
 
 # Add the project root to the python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -69,7 +71,7 @@ def seed_production_rbac():
         print("Starting production RBAC seed process...")
 
         # 1. Create Permissions
-        perm_data = {json.dumps(perm_data, indent=12)}
+        perm_data = json.loads('''{json.dumps(perm_data)}''')
         print("Syncing permissions...")
         for p_item in perm_data:
             perm = Permission.query.filter_by(name=p_item['name']).first()
@@ -79,7 +81,7 @@ def seed_production_rbac():
         db.session.commit()
 
         # 2. Create Roles
-        role_data = {json.dumps(role_data, indent=12)}
+        role_data = json.loads('''{json.dumps(role_data)}''')
         print("Syncing roles...")
         for r_item in role_data:
             role = Role.query.filter_by(name=r_item['name']).first()
@@ -89,7 +91,7 @@ def seed_production_rbac():
         db.session.commit()
 
         # 3. Create Menus
-        menu_data = {json.dumps(menu_data, indent=12)}
+        menu_data = json.loads('''{json.dumps(menu_data)}''')
         print("Syncing menus (hierarchical)...")
         # Step 1: Create menus without parent links
         id_map = {{}}
@@ -110,12 +112,12 @@ def seed_production_rbac():
         # Step 2: Update parent links
         for m_item in menu_data:
             if m_item['parent_id']:
-                current_menu = Menu.query.get(id_map[m_item['id']])
+                current_menu = db.session.get(Menu, id_map[m_item['id']])
                 current_menu.parent_id = id_map.get(m_item['parent_id'])
         db.session.commit()
 
         # 4. Map Role-Permissions
-        role_perm_data = {json.dumps(role_perm_data, indent=12)}
+        role_perm_data = json.loads('''{json.dumps(role_perm_data)}''')
         print("Syncing role-permission mappings...")
         for rpm in role_perm_data:
             role = Role.query.filter_by(name=rpm['role_name']).first()
@@ -126,7 +128,7 @@ def seed_production_rbac():
         db.session.commit()
 
         # 5. Map Role-Menus
-        role_menu_data = {json.dumps(role_menu_data, indent=12)}
+        role_menu_data = json.loads('''{json.dumps(role_menu_data)}''')
         print("Syncing role-menu mappings...")
         for rmm in role_menu_data:
             role = Role.query.filter_by(name=rmm['role_name']).first()
