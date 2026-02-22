@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 
 # Add the project root to the python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -32,7 +31,7 @@ def seed_default_user_role_for_roleless_users():
         # 3) For each user, check whether they have any role mapping
         for user in users:
             has_any_role = (
-                db.session.query(UserRole.id)
+                db.session.query(UserRole.user_id)
                 .filter(UserRole.user_id == user.id)
                 .first()
                 is not None
