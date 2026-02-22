@@ -1,0 +1,59 @@
+<!-- Mappings Tab Content -->
+<div class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 shrink-0">
+    <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">User vs Role Mapping</h3>
+    <p class="text-[10px] text-gray-500 mt-0.5">Assign access roles to users traversing the system.</p>
+</div>
+
+<div class="p-4 flex flex-col gap-6 flex-1 overflow-hidden">
+    <!-- Top Half: Search / Select User -->
+    <div
+        class="bg-gray-50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800 rounded-lg p-4 flex flex-col gap-4 shrink-0">
+        <h4
+            class="text-[11px] font-bold uppercase tracking-wider text-gray-400 border-b border-gray-200 dark:border-gray-700 pb-2">
+            1. Select Target User</h4>
+        <div class="flex gap-4 items-center">
+            <input type="text" id="userInput"
+                class="w-1/3 px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded focus:ring-1 focus:ring-primary focus:border-primary text-sm shadow-sm"
+                placeholder="Search by Username ...">
+            <button onclick="searchUser()"
+                class="bg-white hover:bg-gray-50 border border-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded text-[11px] font-bold uppercase tracking-wider transition-colors shadow-sm">
+                Search
+            </button>
+        </div>
+
+        <!-- User Result Box -->
+        <div id="selectedUserBox"
+            class="hidden p-3 bg-blue-50/50 dark:bg-primary/10 border border-blue-100 dark:border-primary/20 rounded-lg flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="size-8 bg-primary/20 text-primary rounded flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[20px]">person</span>
+                </div>
+                <div>
+                    <div class="font-bold text-[13px] text-gray-900 dark:text-white leading-tight"
+                        id="selectedUsername">Username</div>
+                    <div class="text-[10px] text-gray-500 font-medium" id="selectedUserEmail">email@example.com</div>
+                </div>
+            </div>
+            <div class="text-[10px] font-bold font-mono text-primary px-2 py-1 bg-white/80 dark:bg-gray-900/80 rounded border border-blue-100 dark:border-primary/20"
+                id="selectedUserId">ID: -</div>
+        </div>
+    </div>
+
+    <!-- Bottom Half: Assign Roles -->
+    <div id="rolesSection"
+        class="bg-gray-50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800 rounded-lg p-4 flex flex-col flex-1 opacity-50 pointer-events-none transition-all min-h-0">
+        <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-2 mb-4 shrink-0">
+            <h4 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">2. Assign Roles</h4>
+            <button onclick="saveUserRoles()"
+                class="bg-primary hover:bg-blue-600 text-white px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors shadow-sm shadow-primary/20">
+                Update Roles
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            <div class="grid grid-cols-1 gap-2" id="rolesGrid">
+                <!-- Checkboxes populated via JS -->
+            </div>
+        </div>
+    </div>
+</div>

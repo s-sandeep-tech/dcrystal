@@ -12,6 +12,8 @@ class User(db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Relationships
+    roles = db.relationship('Role', secondary='user_role', backref=db.backref('users', lazy='dynamic'))
 
     def set_password(self, password):
         self.password_hash = bcrypt.hash(password)
@@ -26,5 +28,6 @@ class User(db.Model):
             'username': self.username,
             'is_admin': self.is_admin,
             'email': self.email,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat(),
+            'roles': [r.name for r in self.roles]
         }

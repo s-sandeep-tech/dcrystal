@@ -9,6 +9,7 @@ from .snapshots import (
     OwnerWiseOrderSummarySnapshot,
     TicketLogSnapshot
 )
+from .rbac import Role, Permission, Menu, RoleMenu, RolePermission, UserRole, AuditLog, UserPasswordHistory
 
 __all__ = [
     'User',
@@ -22,5 +23,13 @@ __all__ = [
     'ShortStatusReportSnapshot',
     'OrderProvisionSummaryReport',
     'OwnerWiseOrderSummarySnapshot',
-    'TicketLogSnapshot'
+    'TicketLogSnapshot',
+    'Role',
+    'Permission',
+    'Menu',
+    'RoleMenu',
+    'RolePermission',
+    'UserRole',
+    'AuditLog',
+    'UserPasswordHistory'
 ]

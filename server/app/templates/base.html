@@ -72,57 +72,27 @@
 <body
     class="bg-background-light dark:bg-background-dark min-h-screen font-display transition-colors duration-200 text-[#111418]">
     <div class="flex h-screen w-full overflow-hidden">
-        <!-- Sidebar Navigation -->
+        <!-- Sidebar Navigation (Dynamically Populated via RBAC) -->
         <nav
             class="w-14 flex flex-col items-center py-4 bg-white dark:bg-background-dark border-r border-gray-200 dark:border-gray-800 shrink-0 z-50">
             <div class="size-8 bg-primary rounded flex items-center justify-center text-white mb-6">
                 <span class="material-symbols-outlined text-lg">diamond</span>
             </div>
-            <div class="flex flex-col gap-4 items-center flex-1">
-                <a class="p-2 rounded {% if request.path == '/' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
-                    href="{{ url_for('dashboard.index') }}" title="Dashboard"><span
-                        class="material-symbols-outlined">grid_view</span></a>
-                <a class="p-2 rounded {% if request.path == '/inventory' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
-                    href="{{ url_for('dashboard.inventory') }}" title="Process Drill-Down"><span
-                        class="material-symbols-outlined">inventory_2</span></a>
-                <a class="p-2 rounded {% if request.path == '/orderstatus' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
-                    href="{{ url_for('dashboard.order_status') }}" title="Order Status"><span
-                        class="material-symbols-outlined">precision_manufacturing</span></a>
-                <a class="p-2 rounded {% if request.path == '/locationwiseorderstatus' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
-                    href="{{ url_for('dashboard.location_wise_order_status') }}"
-                    title="Location Wise Order Status"><span class="material-symbols-outlined">map</span></a>
-                <a class="p-2 rounded {% if request.path == '/branchweight' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
-                    href="{{ url_for('dashboard.branch_weight_allocation') }}"
-                    title="Location Wise Stock Snapshot"><span class="material-symbols-outlined">scale</span></a>
-                <a class="p-2 rounded {% if request.path == '/branchweightv2' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
-                    href="{{ url_for('dashboard.branch_weight_allocation_v2') }}"
-                    title="Branch Weight Allocation & Refillv2"><span class="material-symbols-outlined">dvr</span></a>
-                <!-- <a class="p-2 rounded {% if request.path == '/branchstockprovision' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
-                    href="{{ url_for('dashboard.branch_stock_provision') }}" title="Branch Stock Summary"><span
-                        class="material-symbols-outlined">summarize</span></a> -->
-                <a class="p-2 rounded {% if request.path == '/ownerwiseordersummary' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
-                    href="{{ url_for('dashboard.owner_wise_order_summary') }}" title="Owner Wise Summary">
-                    <span class="material-symbols-outlined">person_pin</span>
-                </a>
-                <a class="p-2 rounded {% if request.path == '/crystal_issues' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
-                    href="{{ url_for('dashboard.crystal_issues') }}" title="Crystal General Issues">
-                    <span class="material-symbols-outlined">report_problem</span>
-                </a>
 
-                <a class="p-2 rounded text-gray-400 hover:text-primary transition-colors" href="#"
-                    title="Quality Control"><span class="material-symbols-outlined">fact_check</span></a>
-                <a class="p-2 rounded text-gray-400 hover:text-primary transition-colors" href="#"
-                    title="Dispatch"><span class="material-symbols-outlined">local_shipping</span></a>
+            <div id="dynamicSidebarMenu" class="flex flex-col gap-4 items-center flex-1">
+                <!-- Fallback loading indicator or base dashboard icon during fetch -->
+                <div class="size-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
+
             <div class="mt-auto flex flex-col gap-4 items-center">
-                <a class="p-2 rounded {% if request.path == '/settings' %}bg-primary/10 text-primary{% else %}text-gray-400 hover:text-primary{% endif %} transition-colors"
-                    href="{{ url_for('dashboard.settings') }}" title="Settings"><span
-                        class="material-symbols-outlined">settings</span></a>
+                <a class="p-2 rounded text-gray-400 hover:text-primary transition-colors" href="/settings"
+                    title="Settings"><span class="material-symbols-outlined">settings</span></a>
                 <div id="userAvatar"
-                    class="h-8 w-8 rounded bg-primary text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                    ??</div>
+                    class="h-8 w-8 rounded bg-primary text-white flex items-center justify-center font-bold text-xs shadow-sm"
+                    title="admin">AD</div>
             </div>
         </nav>
+
 
 
         <div class="flex flex-col flex-1 overflow-hidden">
@@ -236,6 +206,7 @@
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/rbac_sidebar.js') }}"></script>
 
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-[9999] flex flex-col pointer-events-none"></div>

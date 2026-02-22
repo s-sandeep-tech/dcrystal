@@ -21,6 +21,9 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'super-secret-key-change-me')
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-123')
+    app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
+    app.config['JWT_ACCESS_COOKIE_NAME'] = 'access_token'
+    app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 
     db.init_app(app)
     socketio.init_app(app)
@@ -82,9 +85,11 @@ def create_app():
     from app.api.routes import api_bp
     from app.dashboard import dashboard_bp
     from app.api.auth import auth_bp
+    from app.api.admin_rbac import admin_rbac_bp
 
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(admin_rbac_bp, url_prefix='/api/admin')
 
     return app

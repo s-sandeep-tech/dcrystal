@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, session
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from app.models import User
+from app.models import User, UserPasswordHistory
 from app.extensions import db
 from datetime import timedelta
 
@@ -65,6 +65,16 @@ def get_me():
     if not user:
         return jsonify({"msg": "User not found"}), 404
     return jsonify(user.to_dict()), 200
+
+from app.utils.rbac_cache import build_menu_tree, get_user_permissions
+
+@auth_bp.route('/me/menus', methods=['GET'])
+@jwt_required()
+def get_my_menus():
+    user_id = get_jwt_identity()
+    menus = build_menu_tree(user_id)
+    perms = list(get_user_permissions(user_id))
+    return jsonify({"menus": menus, "permissions": perms}), 200
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
     session.clear()
@@ -93,6 +103,14 @@ def update_password():
         return jsonify({"msg": "Incorrect current password"}), 401
         
     user.set_password(new_password)
+    
+    # Log history
+    history = UserPasswordHistory(
+        target_user_id=user.id,
+        changed_by_id=user.id # Self-update
+    )
+    db.session.add(history)
+    
     db.session.commit()
     
     return jsonify({"msg": "Password updated successfully"}), 200

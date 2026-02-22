@@ -1,0 +1,1154 @@
+// settings.js - JavaScript logic for the settings page
+
+document.addEventListener('DOMContentLoaded', () => {
+    const socketDot = document.getElementById('socket-status-dot');
+    const socketText = document.getElementById('socket-status-text');
+
+    function updateSocketStatus(connected) {
+        if (socketDot && socketText) {
+            if (connected) {
+                socketDot.className = 'size-2 rounded-full bg-green-500 animate-pulse';
+                socketText.className = 'text-[11px] font-bold uppercase text-green-500';
+                socketText.textContent = 'Online';
+            } else {
+                socketDot.className = 'size-2 rounded-full bg-red-500';
+                socketText.className = 'text-[11px] font-bold uppercase text-red-500';
+                socketText.textContent = 'Offline';
+            }
+        }
+    }
+
+    // Wait a small bit for notifications.js to definitely initialize window.socket
+    function initSocketStatus() {
+        if (window.socket) {
+            updateSocketStatus(window.socket.connected);
+            window.socket.on('connect', () => updateSocketStatus(true));
+            window.socket.on('disconnect', () => updateSocketStatus(false));
+        } else {
+            console.warn('Socket instance not found globally, retrying...');
+            setTimeout(initSocketStatus, 500);
+        }
+    }
+
+    initSocketStatus();
+
+    // Data Sync Logic
+    const syncBtn = document.getElementById('sync-btn');
+    const syncStatus = document.getElementById('sync-status');
+
+    if (syncBtn) {
+        syncBtn.addEventListener('click', async () => {
+            const originalContent = syncBtn.innerHTML;
+            syncBtn.disabled = true;
+            syncBtn.innerHTML = '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> Syncing...';
+
+            syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+            syncStatus.textContent = 'Contacting Azure PostgreSQL server...';
+            syncStatus.classList.remove('hidden');
+
+            try {
+                const syncUrl = window.SETTINGS_CONFIG ? window.SETTINGS_CONFIG.syncDataUrl : '/dashboard/sync';
+                const response = await fetch(syncUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/30';
+                    syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">check_circle</span> Sync Successful! ${data.count} records replaced.</div>`;
+                } else {
+                    throw new Error(data.message || 'Sync failed');
+                }
+            } catch (error) {
+                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/30';
+                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> Error: ${error.message}</div>`;
+            } finally {
+                syncBtn.disabled = false;
+                syncBtn.innerHTML = originalContent;
+            }
+        });
+    }
+
+    // Generic RBAC Data State
+    let gRoles = [];
+    let gMenus = [];
+    let currentUserTarget = null;
+    // Auth Token
+    window.jwtToken = localStorage.getItem('access_token');
+    if (!window.jwtToken) {
+        console.warn('JWT Token not found in localStorage. Some features may not work.');
+    }
+    const toastContainer = document.getElementById('toast-container');
+
+    // === USERS MANAGEMENT LOGIC ===
+    let userCurrentPage = 1;
+    let gManagedUsers = [];
+
+    async function fetchUsers(page = 1) {
+        console.log(`Fetching users page ${page}...`);
+        const searchInput = document.getElementById('userSearchInput');
+        const search = searchInput ? searchInput.value : '';
+        try {
+            const res = await fetch(`/api/admin/users?page=${page}&search=${encodeURIComponent(search)}`, {
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                console.log('Users fetched successfully:', data.users.length);
+                gManagedUsers = data.users;
+                renderUsersTable(data.users);
+                renderUserPagination(data);
+                userCurrentPage = data.current_page;
+            } else {
+                console.error('Failed to fetch users:', res.status, res.statusText);
+                const tbody = document.getElementById('usersTableBody');
+                if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500 font-medium whitespace-nowrap">Error loading users (${res.status})</td></tr>`;
+            }
+        } catch (e) {
+            console.error('fetchUsers error:', e);
+            const tbody = document.getElementById('usersTableBody');
+            if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500 font-medium whitespace-nowrap">Network error loading users</td></tr>`;
+        }
+    }
+    window.fetchUsers = fetchUsers;
+
+    window.openUserModal = function (user = null) {
+        const modal = document.getElementById('userModal');
+        const content = document.getElementById('userModalContent');
+        const title = document.getElementById('userModalTitle');
+        const form = document.getElementById('userForm');
+        const passLabel = document.getElementById('manageUserPassLabel');
+        const passHint = document.getElementById('manageUserPassHint');
+
+        if (!modal || !content || !title || !form) return;
+
+        form.reset();
+        if (user) {
+            title.innerText = 'Edit User';
+            document.getElementById('manageUserId').value = user.id;
+            document.getElementById('manageUserBizId').value = user.user_id;
+            document.getElementById('manageUsername').value = user.username;
+            document.getElementById('manageUserEmail').value = user.email;
+            document.getElementById('manageUserPassword').value = '';
+            if (passLabel) passLabel.innerText = 'New Password';
+            if (passHint) passHint.classList.remove('hidden');
+        } else {
+            title.innerText = 'Create New User';
+            document.getElementById('manageUserId').value = '';
+            if (passLabel) passLabel.innerText = 'Password *';
+            if (passHint) passHint.classList.add('hidden');
+        }
+
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+        }, 10);
+    };
+
+    window.closeUserModal = function () {
+        const modal = document.getElementById('userModal');
+        const content = document.getElementById('userModalContent');
+        if (!modal || !content) return;
+        modal.classList.add('opacity-0');
+        content.classList.add('scale-95');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    };
+
+    function renderUsersTable(users) {
+        const tbody = document.getElementById('usersTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-gray-400 font-medium whitespace-nowrap">No users matched your search.</td></tr>';
+            return;
+        }
+
+        users.forEach(u => {
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors border-b border-gray-100 dark:border-gray-800";
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-mono font-bold text-primary uppercase tracking-wider">#${u.user_id}</td>
+                <td class="px-4 py-3 font-bold text-gray-900 dark:text-white">${u.username}</td>
+                <td class="px-4 py-3">${u.email}</td>
+                <td class="px-4 py-3 flex flex-wrap gap-1 justify-center">
+                    ${(u.roles || []).map(r => `
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider ${r === 'ADMIN' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 border border-blue-100 dark:border-blue-800/30'}">
+                            ${r}
+                        </span>
+                    `).join('')}
+                    ${(!u.roles || u.roles.length === 0) ? `
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500 border border-gray-200 dark:border-gray-700">
+                            NO ROLES
+                        </span>
+                    ` : ''}
+                </td>
+                <td class="px-4 py-3 text-gray-400 whitespace-nowrap">${new Date(u.created_at).toLocaleDateString()}</td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                    ${u.is_admin ? '<span class="text-gray-300 p-1 opacity-20" title="Admin password cannot be reset through user management"><span class="material-symbols-outlined text-[16px]">lock</span></span>' : `<button onclick="openChangePasswordModal(${u.id})" class="text-gray-400 hover:text-amber-500 transition-colors p-1" title="Change Password"><span class="material-symbols-outlined text-[16px]">key</span></button>`}
+                    <button onclick="editUser(${u.id})" class="text-gray-400 hover:text-primary transition-colors p-1 ml-1" title="Edit User"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+                    <button onclick="deleteUser(${u.id})" class="text-gray-400 hover:text-red-500 transition-colors p-1 ml-1" title="Delete User"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderUserPagination(data) {
+        const info = document.getElementById('userPaginationInfo');
+        if (!info) return;
+        const start = data.total > 0 ? (data.current_page - 1) * 8 + 1 : 0;
+        const end = Math.min(data.current_page * 8, data.total);
+        info.innerText = `Showing ${start} to ${end} of ${data.total} users`;
+
+        const buttons = document.getElementById('userPaginationButtons');
+        if (!buttons) return;
+        buttons.innerHTML = '';
+
+        // Prev
+        const prev = document.createElement('button');
+        prev.className = `p-1.5 rounded border transition-all ${data.current_page > 1 ? 'border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800' : 'opacity-30 cursor-not-allowed border-gray-100 dark:border-gray-800'}`;
+        prev.innerHTML = '<span class="material-symbols-outlined text-sm block">chevron_left</span>';
+        if (data.current_page > 1) prev.onclick = () => fetchUsers(data.current_page - 1);
+        buttons.appendChild(prev);
+
+        // Page numbers (simplified)
+        for (let i = 1; i <= data.pages; i++) {
+            if (data.pages > 5 && i > 2 && i < data.pages - 1 && Math.abs(i - data.current_page) > 1) {
+                if (i === 3 || i === data.pages - 1) {
+                    const dot = document.createElement('span');
+                    dot.innerText = '...';
+                    dot.className = "px-2 text-gray-400";
+                    buttons.appendChild(dot);
+                }
+                continue;
+            }
+            const btn = document.createElement('button');
+            btn.className = `min-w-[28px] h-7 rounded text-[10px] font-bold border transition-all ${i === data.current_page ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20' : 'border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800'}`;
+            btn.innerText = i;
+            btn.onclick = () => fetchUsers(i);
+            buttons.appendChild(btn);
+        }
+
+        // Next
+        const next = document.createElement('button');
+        next.className = `p-1.5 rounded border transition-all ${data.current_page < data.pages ? 'border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800' : 'opacity-30 cursor-not-allowed border-gray-100 dark:border-gray-800'}`;
+        next.innerHTML = '<span class="material-symbols-outlined text-sm block">chevron_right</span>';
+        if (data.current_page < data.pages) next.onclick = () => fetchUsers(data.current_page + 1);
+        buttons.appendChild(next);
+    }
+
+    async function saveUser() {
+        const id = document.getElementById('manageUserId').value;
+        const bizId = document.getElementById('manageUserBizId').value.toUpperCase();
+        const username = document.getElementById('manageUsername').value;
+        const email = document.getElementById('manageUserEmail').value;
+        const password = document.getElementById('manageUserPassword').value;
+
+        if (!id && !password) return showToast('Password is required for new users', 'error');
+
+        const payload = { user_id: bizId, username, email };
+        if (password) payload.password = password;
+
+        const url = id ? `/api/admin/users/${id}` : '/api/admin/users';
+        const method = id ? 'PUT' : 'POST';
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.jwtToken}` },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                showToast(`User ${id ? 'updated' : 'created'} successfully`, 'success');
+                window.closeUserModal();
+                fetchUsers(userCurrentPage);
+            } else {
+                const err = await res.json();
+                showToast(err.msg || 'Error saving user', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Network error', 'error');
+        }
+    }
+    window.saveUser = saveUser;
+
+    function editUser(id) {
+        const user = gManagedUsers.find(u => u.id === id);
+        if (user) window.openUserModal(user);
+    }
+    window.editUser = editUser;
+
+    async function deleteUser(id) {
+        if (!confirm('Are you sure you want to delete this user?')) return;
+        try {
+            const res = await fetch(`/api/admin/users/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            if (res.ok) {
+                showToast('User deleted', 'success');
+                fetchUsers(userCurrentPage);
+            } else {
+                showToast('Error deleting user', 'error');
+            }
+        } catch (e) { console.error(e); }
+    }
+    window.deleteUser = deleteUser;
+
+    window.openChangePasswordModal = function (id) {
+        const user = gManagedUsers.find(u => u.id === id);
+        if (!user) return;
+
+        document.getElementById('changePassUserId').value = user.id;
+        document.getElementById('changePassTargetUser').innerText = `Updating password for ${user.username} (#${user.user_id})`;
+        document.getElementById('newPasswordInput').value = '';
+
+        const modal = document.getElementById('changePasswordModal');
+        const content = document.getElementById('changePasswordModalContent');
+        if (modal && content) {
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+        }
+    };
+
+    window.closeChangePasswordModal = function () {
+        const modal = document.getElementById('changePasswordModal');
+        const content = document.getElementById('changePasswordModalContent');
+        if (modal && content) {
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+    };
+
+    window.updateUserPassword = async function () {
+        const id = document.getElementById('changePassUserId').value;
+        const password = document.getElementById('newPasswordInput').value;
+
+        if (!password) return showToast('Password is required', 'error');
+
+        try {
+            const res = await fetch(`/api/admin/users/${id}/password`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.jwtToken}` },
+                body: JSON.stringify({ password })
+            });
+
+            if (res.ok) {
+                showToast('Password updated successfully', 'success');
+                window.closeChangePasswordModal();
+            } else {
+                const err = await res.json();
+                showToast(err.msg || 'Error updating password', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Network error', 'error');
+        }
+    };
+
+    // Generic Toast Function (if not defined globally in base.html)
+    function showToast(message, type = 'info') {
+        if (typeof window.showToast === 'function') {
+            window.showToast(message, type);
+            return;
+        }
+        const toast = document.createElement('div');
+        toast.className = `p-3 rounded-lg shadow-lg mb-2 text-xs font-bold text-white ${type === 'error' ? 'bg-red-500' : 'bg-green-500'} flex items-center justify-between w-64 translate-x-full transition-transform duration-300`;
+        toast.innerHTML = `<span>${message}</span><button onclick="this.parentElement.remove()" class="text-white hover:text-gray-200"><span class="material-symbols-outlined text-[14px]">close</span></button>`;
+        if (toastContainer) {
+            toastContainer.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-x-full'), 10);
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        } else {
+            alert(message);
+        }
+    }
+
+    // === ROLES LOGIC ===
+    async function fetchRoles() {
+        try {
+            const res = await fetch('/api/admin/roles', { headers: { 'Authorization': `Bearer ${window.jwtToken}` } });
+            if (res.ok) {
+                gRoles = await res.json();
+                renderRoles();
+                renderRoleCheckboxes(); // Used for mappings tab
+            } else {
+                showToast('Failed to fetch roles', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    window.fetchRoles = fetchRoles;
+
+    function renderRoles() {
+        const tbody = document.getElementById('rolesTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (gRoles.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4">No roles found.</td></tr>';
+            return;
+        }
+
+        gRoles.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors";
+            tr.innerHTML = `
+                <td class="p-3 text-[11px] text-gray-500 font-mono">#${r.id}</td>
+                <td class="p-3 text-[11px] font-bold"><span class="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-800 uppercase tracking-widest">${r.name}</span></td>
+                <td class="p-3 text-[11px] text-gray-600 dark:text-gray-400">${r.description || '-'}</td>
+                <td class="p-3 text-right">
+                    <button onclick="openRoleMenuModal(${r.id})" class="text-gray-400 hover:text-primary transition-colors p-1" title="Assign Menus"><span class="material-symbols-outlined text-[16px]">account_tree</span></button>
+                    <button onclick="editRole(${r.id})" class="text-gray-400 hover:text-primary transition-colors p-1 ml-1" title="Edit Role"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+                    ${r.name !== 'ADMIN' ? `<button onclick="deleteRole(${r.id})" class="text-gray-400 hover:text-red-500 transition-colors p-1 ml-1" title="Delete"><span class="material-symbols-outlined text-[16px]">delete</span></button>` : ''}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.openRoleModal = function (role = null) {
+        const modal = document.getElementById('roleModal');
+        const content = document.getElementById('roleModalContent');
+        if (role) {
+            document.getElementById('roleModalTitle').innerText = 'Edit Role';
+            document.getElementById('roleId').value = role.id;
+            document.getElementById('roleName').value = role.name;
+            document.getElementById('roleDesc').value = role.description || '';
+        } else {
+            document.getElementById('roleModalTitle').innerText = 'Create New Role';
+            const roleForm = document.getElementById('roleForm');
+            if (roleForm) roleForm.reset();
+            document.getElementById('roleId').value = '';
+        }
+        if (modal && content) {
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+        }
+    };
+
+    window.closeRoleModal = function () {
+        const modal = document.getElementById('roleModal');
+        const content = document.getElementById('roleModalContent');
+        if (modal && content) {
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+    };
+
+    window.editRole = function (id) {
+        const role = gRoles.find(r => r.id === id);
+        if (role) window.openRoleModal(role);
+    };
+
+    window.saveRole = async function () {
+        const id = document.getElementById('roleId').value;
+        const name = document.getElementById('roleName').value.toUpperCase();
+        const desc = document.getElementById('roleDesc').value;
+
+        const payload = { name: name, description: desc };
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/api/admin/roles/${id}` : '/api/admin/roles';
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.jwtToken}` },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                showToast(`Role ${id ? 'updated' : 'created'} successfully`, 'success');
+                window.closeRoleModal();
+                fetchRoles();
+            } else {
+                const err = await res.json();
+                showToast(err.msg || 'Error saving role', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Network error', 'error');
+        }
+    };
+
+    window.deleteRole = async function (id) {
+        if (!confirm('Are you sure you want to delete this role? This might break user access.')) return;
+        try {
+            const res = await fetch(`/api/admin/roles/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            if (res.ok) {
+                showToast('Role deleted', 'success');
+                fetchRoles();
+            } else {
+                showToast('Error deleting role', 'error');
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    // --- ROLE-MENU MAPPING LOGIC ---
+    let currentMappingRoleId = null;
+
+    window.openRoleMenuModal = async function (roleId) {
+        const role = gRoles.find(r => r.id === roleId);
+        if (!role) return;
+
+        currentMappingRoleId = roleId;
+        document.getElementById('mappingRoleName').innerText = `ROLE: ${role.name}`;
+
+        // Fetch menus if not loaded
+        if (typeof gMenus === 'undefined' || gMenus.length === 0) {
+            await fetchMenus();
+        }
+
+        // Populate grid with all menus
+        renderMenuMappingGrid();
+
+        // Show modal
+        const modal = document.getElementById('roleMenuModal');
+        const content = document.getElementById('roleMenuModalContent');
+        if (modal && content) {
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+        }
+
+        try {
+            const res = await fetch(`/api/admin/roles/${roleId}/menus`, { headers: { 'Authorization': `Bearer ${window.jwtToken}` } });
+            if (res.ok) {
+                const assignedMenuIds = await res.json();
+                document.querySelectorAll('.role-menu-checkbox').forEach(cb => {
+                    cb.checked = assignedMenuIds.includes(parseInt(cb.value));
+                });
+            } else {
+                console.error('Failed to fetch assigned menus for role:', res.status, res.statusText);
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    function renderMenuMappingGrid() {
+        const grid = document.getElementById('menuMappingGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        gMenus.forEach(m => {
+            const div = document.createElement('div');
+            div.className = "flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded border border-gray-100 dark:border-gray-800 text-[10px]";
+            div.innerHTML = `
+                <input type="checkbox" value="${m.id}" class="role-menu-checkbox size-3 rounded border-gray-300 dark:border-gray-700 text-primary focus:ring-primary">
+                <div class="flex flex-col">
+                    <span class="font-bold text-gray-700 dark:text-gray-200">${m.title}</span>
+                    <span class="text-[9px] text-gray-400">${m.url || 'No URL'}</span>
+                </div>
+            `;
+            grid.appendChild(div);
+        });
+    }
+
+    window.closeRoleMenuModal = function () {
+        const modal = document.getElementById('roleMenuModal');
+        const content = document.getElementById('roleMenuModalContent');
+        if (modal && content) {
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+    };
+
+    const saveRoleMenusBtn = document.getElementById('saveRoleMenusBtn');
+    if (saveRoleMenusBtn) {
+        saveRoleMenusBtn.addEventListener('click', async () => {
+            if (!currentMappingRoleId) return;
+
+            const selectedMenuIds = Array.from(document.querySelectorAll('.role-menu-checkbox:checked')).map(cb => parseInt(cb.value));
+
+            try {
+                const res = await fetch(`/api/admin/roles/${currentMappingRoleId}/menus`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.jwtToken}` },
+                    body: JSON.stringify({ menu_ids: selectedMenuIds })
+                });
+
+                if (res.ok) {
+                    showToast('Role menus updated', 'success');
+                    window.closeRoleMenuModal();
+                } else {
+                    showToast('Error updating mappings', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        });
+    }
+
+    // === MENUS LOGIC ===
+    async function fetchMenus() {
+        try {
+            const res = await fetch('/api/admin/menus', { headers: { 'Authorization': `Bearer ${window.jwtToken}` } });
+            if (res.ok) {
+                gMenus = await res.json();
+                renderMenus();
+                populateParentSelect();
+            } else {
+                showToast('Failed to fetch menus', 'error');
+            }
+        } catch (e) { console.error(e); }
+    }
+    window.fetchMenus = fetchMenus;
+
+    function renderMenus() {
+        const tbody = document.getElementById('menusTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (gMenus.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center p-4">No menus found.</td></tr>';
+            return;
+        }
+
+        gMenus.sort((a, b) => a.sort_order - b.sort_order);
+
+        gMenus.forEach(m => {
+            const parentLabel = m.parent_id ? ` <span class="text-[9px] text-gray-400 font-normal ml-2">└ Child of #${m.parent_id}</span>` : '';
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors";
+            tr.innerHTML = `
+                <td class="p-3 text-[11px] text-gray-500 font-mono">#${m.id}</td>
+                <td class="p-3 text-[11px] font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+                    <span class="material-symbols-outlined text-primary text-[16px]">${m.icon || 'folder'}</span>
+                    ${m.title} ${parentLabel}
+                </td>
+                <td class="p-3 text-[11px] font-mono text-gray-500">${m.url || '-'}</td>
+                <td class="p-3 text-[10px]"><span class="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700">${m.permission_required || 'None'}</span></td>
+                <td class="p-3 text-[11px] text-gray-500">${m.sort_order}</td>
+                <td class="p-3 text-right">
+                    <button onclick="window.editMenu(${m.id})" class="text-gray-400 hover:text-primary transition-colors p-1" title="Edit"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+                    ${m.url !== '/' ? `<button onclick="window.deleteMenu(${m.id})" class="text-gray-400 hover:text-red-500 transition-colors p-1 ml-1" title="Delete"><span class="material-symbols-outlined text-[16px]">delete</span></button>` : ''}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function populateParentSelect() {
+        const sel = document.getElementById('menuParent');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">None (Top Level)</option>';
+        gMenus.filter(m => !m.parent_id).forEach(m => {
+            sel.innerHTML += `<option value="${m.id}">${m.title}</option>`;
+        });
+    }
+
+    window.openMenuModal = function (menu = null) {
+        const modal = document.getElementById('menuModal');
+        const content = document.getElementById('menuModalContent');
+        if (menu) {
+            document.getElementById('menuModalTitle').innerText = 'Edit Menu';
+            document.getElementById('menuId').value = menu.id;
+            document.getElementById('menuTitle').value = menu.title;
+            document.getElementById('menuUrl').value = menu.url || '';
+            document.getElementById('menuIcon').value = menu.icon || '';
+            document.getElementById('menuOrder').value = menu.sort_order;
+            document.getElementById('menuParent').value = menu.parent_id || '';
+            document.getElementById('menuPerm').value = menu.permission_required || '';
+        } else {
+            document.getElementById('menuModalTitle').innerText = 'Create New Menu';
+            const menuForm = document.getElementById('menuForm');
+            if (menuForm) menuForm.reset();
+            document.getElementById('menuId').value = '';
+        }
+        if (modal && content) {
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+        }
+    };
+
+    window.closeMenuModal = function () {
+        const modal = document.getElementById('menuModal');
+        const content = document.getElementById('menuModalContent');
+        if (modal && content) {
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+    };
+
+    window.editMenu = function (id) {
+        const menu = gMenus.find(m => m.id === id);
+        if (menu) window.openMenuModal(menu);
+    };
+
+    window.saveMenu = async function () {
+        const id = document.getElementById('menuId').value;
+        const payload = {
+            title: document.getElementById('menuTitle').value,
+            url: document.getElementById('menuUrl').value,
+            icon: document.getElementById('menuIcon').value,
+            sort_order: parseInt(document.getElementById('menuOrder').value) || 0,
+            parent_id: document.getElementById('menuParent').value ? parseInt(document.getElementById('menuParent').value) : null,
+            permission_required: document.getElementById('menuPerm').value || null
+        };
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/api/admin/menus/${id}` : '/api/admin/menus';
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.jwtToken}` },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                showToast(`Menu ${id ? 'updated' : 'created'} successfully. Sidebar layout refreshed inside system. Refresh browser to see full effect on left rail if it was cached.`, 'success');
+                window.closeMenuModal();
+                fetchMenus();
+            } else {
+                const err = await res.json();
+                showToast(err.msg || 'Error saving menu', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Network error', 'error');
+        }
+    };
+
+    window.deleteMenu = async function (id) {
+        if (!confirm('Delete this menu item? Children will also be cascade deleted.')) return;
+        try {
+            const res = await fetch(`/api/admin/menus/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            if (res.ok) {
+                showToast('Menu deleted', 'success');
+                fetchMenus();
+            } else {
+                showToast('Error deleting menu', 'error');
+            }
+        } catch (e) { console.error(e); }
+    };
+
+
+    // === MAPPINGS LOGIC ===
+    function renderRoleCheckboxes() {
+        const grid = document.getElementById('rolesGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        gRoles.forEach(r => {
+            grid.innerHTML += `
+                <label class="flex items-start p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded cursor-pointer hover:border-primary transition-colors shadow-sm">
+                    <div class="flex items-center h-5">
+                        <input type="checkbox" value="${r.id}" class="role-checkbox form-checkbox h-4 w-4 text-primary bg-gray-50 border-gray-300 rounded focus:ring-primary focus:ring-2">
+                    </div>
+                    <div class="ml-3 text-sm flex-1">
+                        <label class="font-bold text-[11px] uppercase tracking-wider text-gray-900 dark:text-white cursor-pointer">${r.name}</label>
+                        <p class="text-gray-500 text-[10px] mt-0.5 leading-tight">${r.description || 'No description'}</p>
+                    </div>
+                </label>
+            `;
+        });
+    }
+
+    window.searchUser = async function () {
+        const input = document.getElementById('userInput').value;
+        if (!input || input.length < 2) return showToast('Enter at least 2 characters', 'warning');
+
+        try {
+            const res = await fetch(`/api/admin/users/search?q=${encodeURIComponent(input)}`, {
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            const users = await res.json();
+
+            if (users.length === 0) {
+                showToast('No users found', 'info');
+                return;
+            }
+
+            // For simplicity, we auto-select the first one if it's an exact match or only one result
+            const user = users[0];
+            selectUser(user);
+        } catch (e) {
+            console.error(e);
+            showToast('Search failed', 'error');
+        }
+    };
+
+    async function selectUser(user) {
+        const selectedUsername = document.getElementById('selectedUsername');
+        const selectedUserEmail = document.getElementById('selectedUserEmail');
+        const selectedUserId = document.getElementById('selectedUserId');
+        const selectedUserBox = document.getElementById('selectedUserBox');
+        const rolesSection = document.getElementById('rolesSection');
+
+        if (selectedUsername) selectedUsername.innerText = user.username;
+        if (selectedUserEmail) selectedUserEmail.innerText = user.email;
+        if (selectedUserId) selectedUserId.innerText = `ID: ${user.id} (${user.user_id})`;
+
+        if (selectedUserBox) selectedUserBox.classList.remove('hidden');
+        if (rolesSection) rolesSection.classList.remove('opacity-50', 'pointer-events-none');
+
+        currentUserTarget = user.id;
+
+        // Fetch and pre-fill roles
+        try {
+            const res = await fetch(`/api/admin/users/${user.id}/roles`, {
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            const roleIds = await res.json();
+
+            document.querySelectorAll('.role-checkbox').forEach(cb => {
+                cb.checked = roleIds.includes(parseInt(cb.value));
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    window.saveUserRoles = async function () {
+        if (!currentUserTarget) return;
+
+        const selectedRoleIds = Array.from(document.querySelectorAll('.role-checkbox:checked')).map(cb => parseInt(cb.value));
+
+        try {
+            const res = await fetch(`/api/admin/users/${currentUserTarget}/roles`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.jwtToken}` },
+                body: JSON.stringify({ role_ids: selectedRoleIds })
+            });
+
+            if (res.ok) {
+                showToast('User roles updated successfully', 'success');
+            } else {
+                const data = await res.json();
+                showToast(data.msg || 'Error updating roles', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Network error', 'error');
+        }
+    };
+
+
+    // Tab Switching Logic Extended
+    const allTabs = {
+        'status': { nav: document.getElementById('nav-status'), pane: document.getElementById('tab-status') },
+        'general': { nav: document.getElementById('nav-general'), pane: null },
+        'notifications': { nav: document.getElementById('nav-notifications'), pane: null },
+        'sessions': { nav: document.getElementById('nav-sessions'), pane: document.getElementById('tab-sessions') },
+        'roles': { nav: document.getElementById('nav-roles'), pane: document.getElementById('tab-roles') },
+        'menus': { nav: document.getElementById('nav-menus'), pane: document.getElementById('tab-menus') },
+        'mappings': { nav: document.getElementById('nav-mappings'), pane: document.getElementById('tab-mappings') },
+        'permissions': { nav: document.getElementById('nav-permissions'), pane: document.getElementById('tab-permissions') },
+        'manage-users': { nav: document.getElementById('nav-manage-users'), pane: document.getElementById('tab-manage-users') }
+    };
+
+    function switchTab(tabId) {
+        Object.values(allTabs).forEach(tab => {
+            if (tab.nav) {
+                tab.nav.className = 'nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all';
+            }
+            if (tab.pane) {
+                tab.pane.classList.add('hidden');
+            }
+        });
+
+        if (allTabs[tabId]) {
+            if (allTabs[tabId].nav) {
+                allTabs[tabId].nav.className = 'nav-tab flex items-center gap-3 px-4 py-2.5 bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all';
+            }
+            if (allTabs[tabId].pane) {
+                allTabs[tabId].pane.classList.remove('hidden');
+            }
+        }
+
+        // Execute tab specific triggers
+        switch (tabId) {
+            case 'sessions':
+                fetchActiveUsers();
+                break;
+            case 'roles':
+                fetchRoles();
+                break;
+            case 'menus':
+                fetchMenus();
+                break;
+            case 'mappings':
+                if (gRoles.length === 0) fetchRoles();
+                break;
+            case 'permissions':
+                fetchPermissions();
+                break;
+            case 'manage-users':
+                fetchUsers();
+                break;
+        }
+
+        // Update URL parameter without reloading
+        if (history.pushState) {
+            const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?tab=' + tabId;
+            window.history.pushState({ path: newurl }, '', newurl);
+        }
+    }
+
+    window.debounce = function (func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    };
+
+    // Bind click handlers dynamically
+    Object.keys(allTabs).forEach(tabId => {
+        const tab = allTabs[tabId];
+        if (tab.nav) {
+            tab.nav.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchTab(tabId);
+            });
+        }
+    });
+
+    // Handle URL params on load
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab');
+    if (activeTab && allTabs[activeTab]) {
+        switchTab(activeTab);
+    } else {
+        switchTab('status');
+    }
+
+    // Permission Management Logic
+    let currentPermissionPage = 1;
+    async function fetchPermissions(page = 1) {
+        currentPermissionPage = page;
+        const permissionSearchInput = document.getElementById('permissionSearchInput');
+        const search = permissionSearchInput ? permissionSearchInput.value : '';
+        try {
+            const response = await fetch(`/api/admin/permissions?page=${page}&per_page=8&search=${encodeURIComponent(search)}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                renderPermissionsTable(data.permissions);
+                renderPermissionPagination(data);
+            }
+        } catch (error) {
+            console.error('Error fetching permissions:', error);
+        }
+    }
+    window.fetchPermissions = fetchPermissions;
+
+    function renderPermissionsTable(perms) {
+        const tbody = document.getElementById('permissionsTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (perms.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-gray-400 font-medium whitespace-nowrap">No permissions found.</td></tr>';
+            return;
+        }
+
+        perms.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors border-b border-gray-100 dark:border-gray-800";
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-mono text-gray-400">#${p.id}</td>
+                <td class="px-4 py-3"><span class="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-[10px] font-bold border border-blue-100 dark:border-blue-800/30">${p.name}</span></td>
+                <td class="px-4 py-3 text-gray-500">${p.description || 'No description'}</td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                    <button onclick="window.openPermissionModal(${JSON.stringify(p).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-primary transition-colors p-1" title="Edit Permission"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+                    <button onclick="window.deletePermission(${p.id})" class="text-gray-400 hover:text-red-500 transition-colors p-1 ml-1" title="Delete Permission"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderPermissionPagination(data) {
+        const info = document.getElementById('permissionPaginationInfo');
+        if (!info) return;
+        const start = data.total > 0 ? (data.current_page - 1) * 8 + 1 : 0;
+        const end = Math.min(data.current_page * 8, data.total);
+        info.innerText = `Showing ${start} to ${end} of ${data.total} permissions`;
+
+        const buttons = document.getElementById('permissionPaginationButtons');
+        if (!buttons) return;
+        buttons.innerHTML = '';
+
+        // Previous
+        const prevBtn = document.createElement('button');
+        prevBtn.className = `px-2 py-1 rounded border text-[10px] font-bold transition-colors ${data.current_page > 1 ? 'border-gray-200 hover:bg-gray-100 text-gray-600' : 'border-gray-100 text-gray-300 cursor-not-allowed'}`;
+        prevBtn.innerHTML = '<span class="material-symbols-outlined text-xs">chevron_left</span>';
+        if (data.current_page > 1) prevBtn.onclick = () => fetchPermissions(data.current_page - 1);
+        buttons.appendChild(prevBtn);
+
+        // Page numbers (limited)
+        for (let i = 1; i <= data.pages; i++) {
+            if (i === 1 || i === data.pages || (i >= data.current_page - 1 && i <= data.current_page + 1)) {
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1 rounded border text-[10px] font-bold transition-colors ${i === data.current_page ? 'bg-primary border-primary text-white' : 'border-gray-200 hover:bg-gray-100 text-gray-600'}`;
+                btn.innerText = i;
+                btn.onclick = () => fetchPermissions(i);
+                buttons.appendChild(btn);
+            } else if (i === data.current_page - 2 || i === data.current_page + 2) {
+                const dots = document.createElement('span');
+                dots.className = "px-1 text-gray-400";
+                dots.innerText = "...";
+                buttons.appendChild(dots);
+            }
+        }
+
+        // Next
+        const nextBtn = document.createElement('button');
+        nextBtn.className = `px-2 py-1 rounded border text-[10px] font-bold transition-colors ${data.current_page < data.pages ? 'border-gray-200 hover:bg-gray-100 text-gray-600' : 'border-gray-100 text-gray-300 cursor-not-allowed'}`;
+        nextBtn.innerHTML = '<span class="material-symbols-outlined text-xs">chevron_right</span>';
+        if (data.current_page < data.pages) nextBtn.onclick = () => fetchPermissions(data.current_page + 1);
+        buttons.appendChild(nextBtn);
+    }
+
+    window.filterPermissions = window.debounce(() => fetchPermissions(1), 500);
+
+    window.openPermissionModal = function (perm = null) {
+        const modal = document.getElementById('permissionModal');
+        const title = document.getElementById('permissionModalTitle');
+        const content = document.getElementById('permissionModalContent');
+
+        const permissionForm = document.getElementById('permissionForm');
+        if (permissionForm) permissionForm.reset();
+
+        if (perm) {
+            title.innerText = 'Edit Permission';
+            document.getElementById('managePermissionId').value = perm.id;
+            document.getElementById('managePermissionName').value = perm.name;
+            document.getElementById('managePermissionDescription').value = perm.description;
+        } else {
+            title.innerText = 'Create New Permission';
+            document.getElementById('managePermissionId').value = '';
+        }
+
+        if (modal && content) {
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+            }, 10);
+        }
+    };
+
+    window.closePermissionModal = function () {
+        const modal = document.getElementById('permissionModal');
+        const content = document.getElementById('permissionModalContent');
+        if (modal && content) {
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+    };
+
+    window.savePermission = async function () {
+        const id = document.getElementById('managePermissionId').value;
+        const name = document.getElementById('managePermissionName').value;
+        const description = document.getElementById('managePermissionDescription').value;
+
+        const url = id ? `/api/admin/permissions/${id}` : '/api/admin/permissions';
+        const method = id ? 'PUT' : 'POST';
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                },
+                body: JSON.stringify({ name, description })
+            });
+
+            if (response.ok) {
+                showToast(id ? 'Permission updated' : 'Permission created', 'success');
+                window.closePermissionModal();
+                fetchPermissions(currentPermissionPage);
+            } else {
+                const data = await response.json();
+                showToast(data.msg || 'Save failed', 'error');
+            }
+        } catch (error) {
+            showToast('Network error', 'error');
+        }
+    };
+
+    window.deletePermission = async function (id) {
+        if (!confirm('Are you sure you want to delete this permission? This may affect roles using it.')) return;
+        try {
+            const response = await fetch(`/api/admin/permissions/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+            });
+            if (response.ok) {
+                showToast('Permission deleted', 'success');
+                fetchPermissions(currentPermissionPage);
+            }
+        } catch (error) {
+            showToast('Network error', 'error');
+        }
+    };
+
+    // Active Users Fetch Logic
+    const refreshUsersBtn = document.getElementById('refresh-users-btn');
+    const activeUsersTbody = document.getElementById('active-users-tbody');
+
+    if (refreshUsersBtn) {
+        refreshUsersBtn.addEventListener('click', fetchActiveUsers);
+    }
+
+    function fetchActiveUsers() {
+        if (typeof window.socket === 'undefined' || !window.socket.connected) {
+            if (activeUsersTbody) activeUsersTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-red-500">Socket connection offline</td></tr>`;
+            return;
+        }
+
+        if (activeUsersTbody) activeUsersTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400"><span class="material-symbols-outlined animate-spin inline-block text-lg align-middle mr-2">sync</span> Refreshing...</td></tr>`;
+
+        window.socket.emit('get_active_users', {}, (response) => {
+            if (!activeUsersTbody) return;
+            activeUsersTbody.innerHTML = '';
+
+            if (!response || !response.users || response.users.length === 0) {
+                activeUsersTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No active users found.</td></tr>`;
+                return;
+            }
+
+            response.users.forEach((user, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20";
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-medium text-center">${index + 1}</td>
+                    <td class="px-4 py-3 font-semibold text-gray-900 dark:text-white">
+                        <div class="flex items-center gap-2">
+                            <div class="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
+                                ${user.username ? user.username.substring(0, 2).toUpperCase() : '??'}
+                            </div>
+                            ${user.username || 'Unknown'} <span class="text-[9px] text-gray-400 font-normal">(${user.user_id || 'N/A'})</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 font-mono text-[10px]">${user.ip_address || 'Unknown IP'}</td>
+                    <td class="px-4 py-3 text-[10px]">${user.connected_at || 'Just now'}</td>
+                    <td class="px-4 py-3 font-mono text-[9px] text-gray-400 text-right"><span class="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded break-all">${user.sid}</span></td>
+                `;
+                activeUsersTbody.appendChild(tr);
+            });
+        });
+    }
+});

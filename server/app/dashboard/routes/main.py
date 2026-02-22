@@ -3,6 +3,7 @@ from app.dashboard import dashboard_bp
 from app.models import Order, DashboardStats, Notification, User
 from app.extensions import db
 from datetime import datetime, timedelta
+from app.utils.decorators import require_perm
 
 @dashboard_bp.route('/myaccount')
 def my_account():
@@ -71,7 +72,9 @@ def sync_data():
         return result, 500
 
 @dashboard_bp.route('/')
+@require_perm('dashboard.view')
 def index():
+
     # Fetch stats (take the first record or create dummy)
     stats = DashboardStats.query.first()
     if not stats:
@@ -321,6 +324,9 @@ def login():
 
 @dashboard_bp.route('/inventory')
 def inventory():
+    if not session.get('user_id'):
+        return redirect(url_for('dashboard.login'))
+
     from app.models import Notification
     unread_count = Notification.query.filter_by(is_read=False).count()
     sync_time = datetime.now().strftime("%H:%M")

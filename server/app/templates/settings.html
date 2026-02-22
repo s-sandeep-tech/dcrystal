@@ -39,10 +39,40 @@
                             Notifications
                         </a>
                         {% if session.get('is_admin') %}
-                        <a href="#" id="nav-users"
+                        <a href="#" id="nav-sessions"
+                            class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
+                            <span class="material-symbols-outlined text-sm">hub</span>
+                            Active Sessions
+                        </a>
+                        <!-- RBAC Management Links -->
+                        <div class="pt-2 pb-1">
+                            <h4 class="px-4 text-[9px] font-bold uppercase tracking-widest text-gray-400">Security &
+                                Access</h4>
+                        </div>
+                        <a href="#" id="nav-roles"
+                            class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
+                            <span class="material-symbols-outlined text-sm">shield</span>
+                            Manage Roles
+                        </a>
+                        <a href="#" id="nav-menus"
+                            class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
+                            <span class="material-symbols-outlined text-sm">list</span>
+                            Manage Menus
+                        </a>
+                        <a href="#" id="nav-mappings"
+                            class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
+                            <span class="material-symbols-outlined text-sm">manage_accounts</span>
+                            User Mappings
+                        </a>
+                        <a href="#" id="nav-permissions"
+                            class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
+                            <span class="material-symbols-outlined text-sm">vpn_key</span>
+                            Manage Permissions
+                        </a>
+                        <a href="#" id="nav-manage-users"
                             class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
                             <span class="material-symbols-outlined text-sm">group</span>
-                            Active Users
+                            Users Management
                         </a>
                         {% endif %}
                     </div>
@@ -163,8 +193,8 @@
                 </div> <!-- End Tab Pane Status -->
 
                 {% if session.get('is_admin') %}
-                <!-- Tab Pane: Active Users -->
-                <div id="tab-users" class="tab-pane hidden space-y-6">
+                <!-- Tab Pane: Active Sessions (WebSocket) -->
+                <div id="tab-sessions" class="tab-pane hidden space-y-6">
                     <div
                         class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex flex-col h-full">
                         <div
@@ -213,164 +243,189 @@
                         </div>
                     </div>
                 </div> <!-- End Tab Pane Users -->
+
+                <!-- Tab Pane: Manage Roles -->
+                <div id="tab-roles" class="tab-pane hidden space-y-6 h-full flex flex-col">
+                    <div
+                        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex flex-col h-full">
+                        {% include 'partials/admin/_roles.html' %}
+                    </div>
+                </div> <!-- End Tab Pane Roles -->
+
+                <!-- Tab Pane: Manage Menus -->
+                <div id="tab-menus" class="tab-pane hidden space-y-6 h-full flex flex-col">
+                    <div
+                        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex flex-col h-full">
+                        {% include 'partials/admin/_menus.html' %}
+                    </div>
+                </div> <!-- End Tab Pane Menus -->
+
+                <!-- Tab Pane: User Mappings -->
+                <div id="tab-mappings" class="tab-pane hidden space-y-6 h-full flex flex-col">
+                    <div
+                        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex flex-col h-full flex-1">
+                        {% include 'partials/admin/_mappings.html' %}
+                    </div>
+                </div> <!-- End Tab Pane Mappings -->
+
+                <!-- Tab Pane: Permissions -->
+                <div id="tab-permissions" class="tab-pane hidden space-y-6 h-full flex flex-col">
+                    <div
+                        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex flex-col h-full">
+                        {% include "partials/admin/_permissions.html" %}
+                    </div>
+                </div> <!-- End Tab Pane Permissions -->
+
+                <!-- Tab Pane: Users Management -->
+                <div id="tab-manage-users" class="tab-pane hidden space-y-6 h-full flex flex-col">
+                    <div
+                        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex flex-col h-full flex-1">
+                        {% include 'partials/admin/_users.html' %}
+                    </div>
+                </div> <!-- End Tab Pane Manage Users -->
                 {% endif %}
 
             </div>
+        </div>
+    </div>
+
+    <!-- Role Modal -->
+    <div id="roleModal"
+        class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden opacity-0 transition-opacity">
+        <div class="bg-white dark:bg-gray-900 rounded-lg w-full max-w-md p-6 shadow-xl transform scale-95 transition-transform"
+            id="roleModalContent">
+            <h3 id="roleModalTitle" class="text-lg font-bold mb-4">Create New Role</h3>
+            <form id="roleForm" onsubmit="event.preventDefault(); saveRole();">
+                <input type="hidden" id="roleId">
+                <div class="mb-4">
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Role Name *</label>
+                    <input type="text" id="roleName" required
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded focus:ring-1 focus:ring-primary focus:border-primary text-sm uppercase">
+                    <p class="text-[10px] text-gray-500 mt-1">E.g., ADMIN, MANAGER</p>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <input type="text" id="roleDesc"
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded focus:ring-1 focus:ring-primary focus:border-primary text-sm">
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeRoleModal()"
+                        class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">Cancel</button>
+                    <button type="submit"
+                        class="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-blue-600 shadow-sm">Save
+                        Role</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Menu Modal -->
+    <div id="menuModal"
+        class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden opacity-0 transition-opacity">
+        <div class="bg-white dark:bg-gray-900 rounded-lg w-full max-w-lg p-6 shadow-xl transform scale-95 transition-transform"
+            id="menuModalContent">
+            <h3 id="menuModalTitle" class="text-lg font-bold mb-4">Create New Menu</h3>
+            <form id="menuForm" onsubmit="event.preventDefault(); saveMenu();">
+                <input type="hidden" id="menuId">
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Title *</label>
+                        <input type="text" id="menuTitle" required
+                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded focus:ring-1 focus:ring-primary focus:border-primary text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">URL /
+                            Route</label>
+                        <input type="text" id="menuUrl"
+                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded focus:ring-1 focus:ring-primary focus:border-primary text-sm"
+                            placeholder="/dashboard or #">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Icon (Material
+                            Symbol)</label>
+                        <input type="text" id="menuIcon"
+                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded focus:ring-1 focus:ring-primary focus:border-primary text-sm"
+                            placeholder="grid_view">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Sort
+                            Order</label>
+                        <input type="number" id="menuOrder" value="0"
+                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded focus:ring-1 focus:ring-primary focus:border-primary text-sm">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Parent
+                            Menu</label>
+                        <select id="menuParent"
+                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded focus:ring-1 focus:ring-primary focus:border-primary text-sm">
+                            <option value="">None (Top Level)</option>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Required
+                            Permission</label>
+                        <input type="text" id="menuPerm"
+                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded focus:ring-1 focus:ring-primary focus:border-primary text-sm"
+                            placeholder="e.g. report.view (optional)">
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeMenuModal()"
+                        class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">Cancel</button>
+                    <button type="submit"
+                        class="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-blue-600 shadow-sm">Save
+                        Menu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Permission Modal -->
+    <div id="permissionModal"
+        class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden opacity-0 transition-opacity">
+        <div class="bg-white dark:bg-gray-900 rounded-lg w-full max-w-md p-6 shadow-xl transform scale-95 transition-transform"
+            id="permissionModalContent">
+            <h3 id="permissionModalTitle" class="text-lg font-bold mb-4">Create New Permission</h3>
+            <form id="permissionForm" onsubmit="event.preventDefault(); savePermission();">
+                <input type="hidden" id="managePermissionId">
+                <div class="mb-4">
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Permission Name
+                        *</label>
+                    <input type="text" id="managePermissionName" required
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded focus:ring-1 focus:ring-primary focus:border-primary text-sm">
+                    <p class="text-[10px] text-gray-500 mt-1">E.g., user.create, report.view</p>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <input type="text" id="managePermissionDescription"
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded focus:ring-1 focus:ring-primary focus:border-primary text-sm">
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closePermissionModal()"
+                        class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">Cancel</button>
+                    <button type="submit"
+                        class="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-blue-600 shadow-sm">Save
+                        Permission</button>
+                </div>
+            </form>
         </div>
     </div>
     {% endblock %}
 
     {% block extra_scripts %}
     <script>
-        // Socket.IO Status Check (using existing socket instance from notifications.js)
-        document.addEventListener('DOMContentLoaded', () => {
-            const socketDot = document.getElementById('socket-status-dot');
-            const socketText = document.getElementById('socket-status-text');
-
-            function updateSocketStatus(connected) {
-                if (connected) {
-                    socketDot.className = 'size-2 rounded-full bg-green-500 animate-pulse';
-                    socketText.className = 'text-[11px] font-bold uppercase text-green-500';
-                    socketText.textContent = 'Online';
-                } else {
-                    socketDot.className = 'size-2 rounded-full bg-red-500';
-                    socketText.className = 'text-[11px] font-bold uppercase text-red-500';
-                    socketText.textContent = 'Offline';
-                }
-            }
-
-            // Wait a small bit for notifications.js to definitely initialize window.socket
-            function initSocketStatus() {
-                if (window.socket) {
-                    updateSocketStatus(window.socket.connected);
-                    window.socket.on('connect', () => updateSocketStatus(true));
-                    window.socket.on('disconnect', () => updateSocketStatus(false));
-                } else {
-                    console.warn('Socket instance not found globally, retrying...');
-                    setTimeout(initSocketStatus, 500);
-                }
-            }
-
-            initSocketStatus();
-
-            // Data Sync Logic
-            const syncBtn = document.getElementById('sync-btn');
-            const syncStatus = document.getElementById('sync-status');
-
-            if (syncBtn) {
-                syncBtn.addEventListener('click', async () => {
-                    const originalContent = syncBtn.innerHTML;
-                    syncBtn.disabled = true;
-                    syncBtn.innerHTML = '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> Syncing...';
-
-                    syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
-                    syncStatus.textContent = 'Contacting Azure PostgreSQL server...';
-                    syncStatus.classList.remove('hidden');
-
-                    try {
-                        const response = await fetch('{{ url_for("dashboard.sync_data") }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        });
-
-                        const data = await response.json();
-
-                        if (response.ok) {
-                            syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/30';
-                            syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">check_circle</span> Sync Successful! ${data.count} records replaced.</div>`;
-                        } else {
-                            throw new Error(data.message || 'Sync failed');
-                        }
-                    } catch (error) {
-                        syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/30';
-                        syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> Error: ${error.message}</div>`;
-                    } finally {
-                        syncBtn.disabled = false;
-                        syncBtn.innerHTML = originalContent;
-                    }
-                });
-            }
-
-            // Tab Switching Logic
-            const tabs = {
-                'status': { nav: document.getElementById('nav-status'), pane: document.getElementById('tab-status') },
-                'users': { nav: document.getElementById('nav-users'), pane: document.getElementById('tab-users') },
-            };
-
-            function switchTab(tabId) {
-                Object.values(tabs).forEach(tab => {
-                    if (tab.nav) {
-                        tab.nav.className = 'nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all';
-                    }
-                    if (tab.pane) {
-                        tab.pane.classList.add('hidden');
-                    }
-                });
-
-                if (tabs[tabId]) {
-                    if (tabs[tabId].nav) {
-                        tabs[tabId].nav.className = 'nav-tab flex items-center gap-3 px-4 py-2.5 bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all';
-                    }
-                    if (tabs[tabId].pane) {
-                        tabs[tabId].pane.classList.remove('hidden');
-                    }
-                }
-
-                if (tabId === 'users') {
-                    fetchActiveUsers();
-                }
-            }
-
-            if (tabs['status'].nav) tabs['status'].nav.addEventListener('click', (e) => { e.preventDefault(); switchTab('status'); });
-            if (tabs['users'].nav) tabs['users'].nav.addEventListener('click', (e) => { e.preventDefault(); switchTab('users'); });
-
-            // Active Users Fetch Logic
-            const refreshUsersBtn = document.getElementById('refresh-users-btn');
-            const activeUsersTbody = document.getElementById('active-users-tbody');
-
-            if (refreshUsersBtn) {
-                refreshUsersBtn.addEventListener('click', fetchActiveUsers);
-            }
-
-            function fetchActiveUsers() {
-                if (typeof window.socket === 'undefined' || !window.socket.connected) {
-                    activeUsersTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-red-500">Socket connection offline</td></tr>`;
-                    return;
-                }
-
-                activeUsersTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400"><span class="material-symbols-outlined animate-spin inline-block text-lg align-middle mr-2">sync</span> Refreshing...</td></tr>`;
-
-                console.log('Emitting get_active_users...');
-                window.socket.emit('get_active_users', (users) => {
-                    console.log('Received active users:', users);
-                    if (!users || users.length === 0) {
-                        activeUsersTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No active users found.</td></tr>`;
-                        return;
-                    }
-
-                    activeUsersTbody.innerHTML = users.map((user, index) => {
-                        const date = new Date(user.connectedAt);
-                        const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-                        return `
-                        <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors">
-                            <td class="px-4 py-3 text-center text-gray-400 font-medium">${index + 1}</td>
-                            <td class="px-4 py-3 font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                                <div class="size-6 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded flex items-center justify-center font-bold text-[10px]">
-                                    ${String(user.userId).charAt(0).toUpperCase()}
-                                </div>
-                                ${user.userId}
-                            </td>
-                            <td class="px-4 py-3 font-mono text-gray-500">${user.ip || 'Unknown'}</td>
-                            <td class="px-4 py-3 text-gray-500 whitespace-nowrap">${timeString}</td>
-                            <td class="px-4 py-3 text-right font-mono text-[9px] text-gray-400 break-all">${user.socketId}</td>
-                        </tr>
-                    `;
-                    }).join('');
-                });
-            }
-        });
+        window.SETTINGS_CONFIG = {
+            syncDataUrl: "{{ url_for('dashboard.sync_data') }}"
+        };
     </script>
+    <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
     {% endblock %}
