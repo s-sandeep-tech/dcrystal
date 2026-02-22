@@ -1,34 +1,54 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const sidebarContainer = document.getElementById('dynamicSidebarMenu');
 
-    // Check if we already have menus cached in sessionStorage to prevent flicker
-    const cachedMenus = sessionStorage.getItem('rbac_menus');
-    if (cachedMenus) {
-        renderSidebar(JSON.parse(cachedMenus));
+    // Check if we already have menus cached in localStorage to prevent flicker
+    const cachedMenusStr = localStorage.getItem('rbac_menus');
+    if (cachedMenusStr) {
+        try {
+            renderSidebar(JSON.parse(cachedMenusStr));
+        } catch (e) {
+            console.error('Failed to parse cached menus', e);
+        }
     }
 
     try {
         const token = localStorage.getItem('access_token');
+        if (!token) return;
+
         const response = await fetch('/api/auth/me/menus', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
+
         if (response.ok) {
             const data = await response.json();
-            // Store globally for other scripts (like button hiding)
-            window.rbacPermissions = data.permissions;
-            sessionStorage.setItem('rbac_menus', JSON.stringify(data.menus));
-            sessionStorage.setItem('rbac_perms', JSON.stringify(data.permissions));
+            const newMenusStr = JSON.stringify(data.menus);
+            const newPermsStr = JSON.stringify(data.permissions);
 
-            // Re-render to ensure freshness
-            renderSidebar(data.menus);
+            // Store globally for other scripts
+            window.rbacPermissions = data.permissions;
+
+            // Smart Update: Only re-render and update cache if something changed
+            if (newMenusStr !== cachedMenusStr) {
+                console.log('RBAC: Menu changes detected, updating sidebar...');
+                localStorage.setItem('rbac_menus', newMenusStr);
+                localStorage.setItem('rbac_perms', newPermsStr);
+                renderSidebar(data.menus);
+            } else {
+                // Permissions might have changed even if menu structure didn't (rare but possible)
+                localStorage.setItem('rbac_perms', newPermsStr);
+            }
 
             // Dispatch event so other components know RBAC is loaded
             document.dispatchEvent(new CustomEvent('rbacLoaded'));
+        } else if (response.status === 401) {
+            // Handled by global fetch interceptor in base.js
         } else {
             console.error('Failed to fetch menus:', response.status);
-            sidebarContainer.innerHTML = `<div class="text-[10px] text-red-500 text-center px-2">Menu Load Failed</div>`;
+            if (!cachedMenusStr) {
+                sidebarContainer.innerHTML = `<div class="text-[10px] text-red-500 text-center px-2">Menu Load Failed</div>`;
+            }
         }
     } catch (error) {
         console.error('Error fetching RBAC menus:', error);
@@ -87,7 +107,7 @@ function renderSidebar(menus) {
 
 // Global utility func to check permissions in JS
 window.hasPermission = function (permName) {
-    const cached = sessionStorage.getItem('rbac_perms');
+    const cached = localStorage.getItem('rbac_perms');
     if (!cached) return false;
     const perms = JSON.parse(cached);
     return perms.includes('ADMIN') || perms.includes(permName);

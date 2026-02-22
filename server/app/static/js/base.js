@@ -9,6 +9,8 @@ async function handleLogout() {
     } catch (e) { console.error('Logout sync failed', e); }
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
+    localStorage.removeItem('rbac_menus');
+    localStorage.removeItem('rbac_perms');
     window.location.href = '/login';
 }
 
