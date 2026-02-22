@@ -5,11 +5,7 @@
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
-    <script>
-        if (!localStorage.getItem('access_token') && window.location.pathname !== '/login') {
-            window.location.href = '/login';
-        }
-    </script>
+    <script src="{{ url_for('static', filename='js/base.js') }}"></script>
     <title>{% block title %}Enterprise Classification Owner Dashboard{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
@@ -128,23 +124,6 @@
             </div>
         </nav>
 
-        <script>
-            const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', () => {
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('user');
-                    window.location.href = '/login';
-                });
-            }
-
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const avatarEl = document.getElementById('userAvatar');
-            if (avatarEl && user.username) {
-                avatarEl.textContent = user.username.substring(0, 2).toUpperCase();
-                avatarEl.setAttribute('title', user.username);
-            }
-        </script>
 
         <div class="flex flex-col flex-1 overflow-hidden">
             <!-- Header -->
@@ -247,40 +226,6 @@
                 </div>
             </header>
 
-            <script>
-                // User Menu Toggle
-                const userMenuBtn = document.getElementById('userMenuBtn');
-                const userDropdown = document.getElementById('userDropdown');
-
-                if (userMenuBtn && userDropdown) {
-                    userMenuBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        userDropdown.classList.toggle('hidden');
-                        // Close notification dropdown if open
-                        const notifDropdown = document.getElementById('notifDropdown');
-                        if (notifDropdown) notifDropdown.classList.add('hidden');
-                    });
-
-                    // Logout in header menu
-                    const logoutBtnHeader = document.getElementById('logoutBtnHeader');
-                    if (logoutBtnHeader) {
-                        logoutBtnHeader.addEventListener('click', () => {
-                            localStorage.removeItem('access_token');
-                            localStorage.removeItem('user');
-                            window.location.href = '/login';
-                        });
-                    }
-                }
-
-                // Global click to close dropdowns
-                document.addEventListener('click', (e) => {
-                    const userMenuContainer = document.getElementById('userMenuContainer');
-                    if (userMenuContainer && !userMenuContainer.contains(e.target)) {
-                        const userDropdown = document.getElementById('userDropdown');
-                        if (userDropdown) userDropdown.classList.add('hidden');
-                    }
-                });
-            </script>
 
             <div class="flex flex-1 overflow-hidden">
                 <!-- Main Content Area -->

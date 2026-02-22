@@ -44,6 +44,40 @@ def create_app():
                 db.session.commit()
                 print("Existing 'admin' user updated to is_admin=True.")
 
+    # Session Recovery Middleware
+    from flask import session, request, g
+    from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+    from app.models import User
+
+    @app.before_request
+    def restore_session_from_jwt():
+        # Only attempt recovery if session is lost
+        if 'user_id' not in session:
+            try:
+                token = request.cookies.get('access_token')
+                if token:
+                    from flask_jwt_extended import decode_token
+                    decoded = decode_token(token)
+                    user_primary_id = decoded['sub']
+                    
+                    user = User.query.get(user_primary_id)
+                    if user:
+                        session['user_id'] = user.user_id
+                        session['username'] = user.username
+                        session['is_admin'] = user.is_admin
+                        app.logger.info(f"Restored session for {user.username} from JWT cookie")
+            except Exception as e:
+                # If token is invalid or expired, flag it for removal to prevent redundant attempts
+                g.clear_token_cookie = True
+                app.logger.warning(f"Invalid JWT detected during session restoration: {str(e)}")
+
+    @app.after_request
+    def clear_invalid_token_cookie(response):
+        if hasattr(g, 'clear_token_cookie') and g.clear_token_cookie:
+            response.delete_cookie('access_token')
+            app.logger.info("Cleared invalid access_token cookie")
+        return response
+
     # Register Blueprints
     from app.api.routes import api_bp
     from app.dashboard import dashboard_bp

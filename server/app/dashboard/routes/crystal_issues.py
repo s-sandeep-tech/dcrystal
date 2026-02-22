@@ -70,7 +70,7 @@ class CrystalIssuesReport:
             # Calculate Global Stats (ignore parent_level for global stats)
             stats_query = db.session.query(
                 func.count().label('total'),
-                func.count(func.nullif(TicketLogSnapshot.crystal_status != 'Completed', False)).label('pending'),
+                func.count(func.nullif(TicketLogSnapshot.crystal_status == 'Completed', True)).label('pending'),
                 func.count(func.nullif(TicketLogSnapshot.crystal_status == 'Completed', False)).label('completed')
             ).select_from(TicketLogSnapshot)
             stats_query = apply_filters(stats_query)
@@ -88,8 +88,8 @@ class CrystalIssuesReport:
                 query = db.session.query(
                     TicketLogSnapshot.issue_reported_office,
                     TicketLogSnapshot.issue_reported_user,
-                    func.count(TicketLogSnapshot.ticket_no).label('total'),
-                    func.count(func.nullif(TicketLogSnapshot.crystal_status != 'Completed', False)).label('pending'),
+                    func.count().label('total'),
+                    func.count(func.nullif(TicketLogSnapshot.crystal_status == 'Completed', True)).label('pending'),
                     func.count(func.nullif(TicketLogSnapshot.crystal_status == 'Completed', False)).label('completed')
                 ).filter(TicketLogSnapshot.issue_reported_office == parent_value)
                 query = apply_filters(query).group_by(*group_cols).order_by(TicketLogSnapshot.issue_reported_user)
@@ -109,8 +109,8 @@ class CrystalIssuesReport:
                 group_cols = [TicketLogSnapshot.issue_reported_office]
                 query = db.session.query(
                     TicketLogSnapshot.issue_reported_office,
-                    func.count(TicketLogSnapshot.ticket_no).label('total'),
-                    func.count(func.nullif(TicketLogSnapshot.crystal_status != 'Completed', False)).label('pending'),
+                    func.count().label('total'),
+                    func.count(func.nullif(TicketLogSnapshot.crystal_status == 'Completed', True)).label('pending'),
                     func.count(func.nullif(TicketLogSnapshot.crystal_status == 'Completed', False)).label('completed')
                 )
                 query = apply_filters(query).group_by(*group_cols).order_by(TicketLogSnapshot.issue_reported_office)

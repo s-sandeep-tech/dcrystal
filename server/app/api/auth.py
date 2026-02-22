@@ -23,7 +23,15 @@ def login():
         session['is_admin'] = user.is_admin
         
         access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(days=1))
-        return jsonify(access_token=access_token, user=user.to_dict()), 200
+        
+        response = jsonify(access_token=access_token, user=user.to_dict())
+        # Set cookie for session recovery (standard GET requests)
+        response.set_cookie('access_token', access_token, 
+                            httponly=True, 
+                            max_age=24*3600, 
+                            samesite='Lax')
+        
+        return response, 200
 
     return jsonify({"msg": "Bad user id or password"}), 401
 
@@ -57,6 +65,13 @@ def get_me():
     if not user:
         return jsonify({"msg": "User not found"}), 404
     return jsonify(user.to_dict()), 200
+@auth_bp.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    response = jsonify({"msg": "Logged out successfully"})
+    response.delete_cookie('access_token')
+    return response, 200
+
 @auth_bp.route('/update-password', methods=['POST'])
 def update_password():
     if 'user_id' not in session:
