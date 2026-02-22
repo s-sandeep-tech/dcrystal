@@ -83,6 +83,21 @@ def seed_production_rbac():
                     db.session.add(RoleMenu(role_id=role.id, menu_id=menu.id))
         db.session.commit()
 
+        # 6. Safety Sync: Map admin user to ADMIN role
+        print("Ensuring admin user has ADMIN role...")
+        try:
+            from app.models.auth import User
+            from app.models.rbac import UserRole
+            admin_user = User.query.filter_by(username='admin').first()
+            admin_role = Role.query.filter_by(name='ADMIN').first()
+            if admin_user and admin_role:
+                if not UserRole.query.filter_by(user_id=admin_user.id, role_id=admin_role.id).first():
+                    db.session.add(UserRole(user_id=admin_user.id, role_id=admin_role.id))
+                    db.session.commit()
+                    print("Mapped 'admin' user to 'ADMIN' role.")
+        except Exception as e:
+            print(f"Note: Could not auto-map admin user (this is normal if customized): {e}")
+
         increment_rbac_version()
         print("Production RBAC seed completed successfully!")
 
