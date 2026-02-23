@@ -79,10 +79,11 @@ async function start() {
 
     // Store user data
     connectedUsers.set(socket.id, {
-      socketId: socket.id,
-      userId: userId,
-      ip: ipAddress,
-      connectedAt: new Date().toISOString()
+      sid: socket.id,
+      user_id: socket.user ? (socket.user.user_id || socket.user.sub || 'N/A') : 'Guest',
+      username: socket.user ? (socket.user.username || socket.user.name || 'Unknown') : 'Guest',
+      ip_address: ipAddress,
+      connected_at: new Date().toISOString()
     });
 
     socket.on('subscribe_view', (viewId) => {
@@ -91,12 +92,16 @@ async function start() {
     });
 
     // Provide endpoint to fetch all active connections
-    socket.on('get_active_users', (callback) => {
+    socket.on('get_active_users', (...args) => {
+      // Find the callback function (last argument)
+      const callback = args[args.length - 1];
       console.log(`Socket ${socket.id} requested active users list. Count: ${connectedUsers.size}`);
+
       if (typeof callback === 'function') {
         const usersArray = Array.from(connectedUsers.values());
         console.log('Sending users array:', JSON.stringify(usersArray));
-        callback(usersArray);
+        // Return object with users key as expected by frontend
+        callback({ users: usersArray });
       } else {
         console.error('get_active_users called without a callback function');
       }

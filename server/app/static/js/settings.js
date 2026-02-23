@@ -922,14 +922,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle URL params on load
-    const urlParams = new URLSearchParams(window.location.search);
-    const activeTab = urlParams.get('tab');
-    if (activeTab && allTabs[activeTab]) {
-        switchTab(activeTab);
-    } else {
-        switchTab('status');
-    }
 
     // Permission Management Logic
     let currentPermissionPage = 1;
@@ -1150,5 +1142,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 activeUsersTbody.appendChild(tr);
             });
         });
+    }
+
+    // Handle URL params on load - Moved to end to ensure all constants are initialized
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab');
+    if (activeTab && allTabs[activeTab]) {
+        switchTab(activeTab);
+    } else {
+        switchTab('status');
     }
 });
