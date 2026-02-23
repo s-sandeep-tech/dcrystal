@@ -71,6 +71,32 @@ def sync_data():
     else:
         return result, 500
 
+@dashboard_bp.route('/settings/sync-process-delay', methods=['POST'])
+def sync_process_delay():
+    if not session.get('user_id') or not session.get('is_admin'):
+        return {"status": "error", "message": "Unauthorized: Admin access required"}, 401
+        
+    from app.utils.sync_manager import sync_process_level_delay_data
+    result = sync_process_level_delay_data()
+    
+    if result.get('status') == 'success':
+        try:
+            from app.extensions import redis_client
+            import json
+            count = result.get('count', 0)
+            payload = {
+                "title": "Process Delay Sync Complete",
+                "message": f"Successfully synced {count} records for Process Level Delay.",
+                "type": "success"
+            }
+            redis_client.publish('global_notifications', json.dumps(payload))
+        except Exception as e:
+            current_app.logger.error(f"Failed to publish global sync notification: {e}")
+            
+        return result, 200
+    else:
+        return result, 500
+
 @dashboard_bp.route('/')
 @require_perm('dashboard.view')
 def index():

@@ -273,3 +273,29 @@ class TicketLogSnapshot(db.Model):
             'crystal_remarks': self.crystal_remarks
         }
 
+
+class PartyProcessAgeingSnapshot(db.Model):
+    __tablename__ = 'party_process_ageing_snapshot'
+
+    id = db.Column(db.Integer, primary_key=True)
+    party_name = db.Column(db.Text, nullable=False)
+    completed_process_level = db.Column(db.Text, nullable=False)
+    completed_quantity = db.Column(db.Integer, nullable=False)
+    next_process_level = db.Column(db.Text, nullable=False)
+    time_window_1_2_days = db.Column(db.Integer, nullable=False, default=0)
+    time_window_2_4_days = db.Column(db.Integer, nullable=False, default=0)
+    time_window_more_than_4_days = db.Column(db.Integer, nullable=False, default=0)
+    report_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'party_name': self.party_name,
+            'completed_process_level': self.completed_process_level,
+            'completed_quantity': self.completed_quantity,
+            'next_process_level': self.next_process_level,
+            'time_window_1_2_days': self.time_window_1_2_days,
+            'time_window_2_4_days': self.time_window_2_4_days,
+            'time_window_more_than_4_days': self.time_window_more_than_4_days,
+            'report_date': self.report_date.isoformat() if self.report_date else None
+        }

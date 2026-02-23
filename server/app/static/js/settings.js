@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Data Sync Logic
     const syncBtn = document.getElementById('sync-btn');
+    const syncProcessBtn = document.getElementById('sync-process-delay-btn');
     const syncStatus = document.getElementById('sync-status');
 
     if (syncBtn) {
@@ -69,6 +70,43 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 syncBtn.disabled = false;
                 syncBtn.innerHTML = originalContent;
+            }
+        });
+    }
+
+    if (syncProcessBtn) {
+        syncProcessBtn.addEventListener('click', async () => {
+            const originalContent = syncProcessBtn.innerHTML;
+            syncProcessBtn.disabled = true;
+            syncProcessBtn.innerHTML = '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> Syncing...';
+
+            syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+            syncStatus.textContent = 'Contacting Azure PostgreSQL server for Process Level Delay...';
+            syncStatus.classList.remove('hidden');
+
+            try {
+                const syncUrl = window.SETTINGS_CONFIG ? window.SETTINGS_CONFIG.syncProcessDelayUrl : '/settings/sync-process-delay';
+                const response = await fetch(syncUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/30';
+                    syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">check_circle</span> Sync Successful! ${data.count} records replaced for Process Level Delay.</div>`;
+                } else {
+                    throw new Error(data.message || 'Sync failed');
+                }
+            } catch (error) {
+                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/30';
+                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> Error: ${error.message}</div>`;
+            } finally {
+                syncProcessBtn.disabled = false;
+                syncProcessBtn.innerHTML = originalContent;
             }
         });
     }

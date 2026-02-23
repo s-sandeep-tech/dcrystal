@@ -1,0 +1,58 @@
+<table class="enterprise-grid w-full text-[11px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
+            <th class="text-left px-4 py-2">Party Name</th>
+            <th class="text-left px-4 py-2">Completed Process</th>
+            <th class="text-right px-4 py-2">Qty</th>
+            <th class="text-left px-4 py-2">Next Process</th>
+            <th class="text-right px-4 py-2">1-2 Days</th>
+            <th class="text-right px-4 py-2">2-4 Days</th>
+            <th class="text-right px-4 py-2">>4 Days</th>
+        </tr>
+    </thead>
+    <tbody id="delay-table-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+        {% for r in rows %}
+        <tr class="hover:bg-blue-50/30 group transition-colors">
+            <td class="px-4 font-bold">{{ r.party_name }}</td>
+            <td class="px-4 text-gray-500">{{ r.completed_process_level }}</td>
+            <td class="px-4 text-right font-medium">{{ r.completed_quantity }}</td>
+            <td class="px-4 text-gray-500">{{ r.next_process_level }}</td>
+            <td class="px-4 text-right font-medium">{{ r.time_window_1_2_days }}</td>
+            <td class="px-4 text-right font-medium">{{ r.time_window_2_4_days }}</td>
+            <td class="px-4 text-right font-medium">{{ r.time_window_more_than_4_days }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="7" class="p-8 text-center text-gray-400 italic">No data found</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot class="sticky-footer">
+        <tr class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white uppercase text-[9px]">
+            <td class="p-2 text-right" colspan="2">Grand Total</td>
+            <td class="text-right font-bold px-2">{{ "{:,}".format(footer_totals.completed_quantity) }}</td>
+            <td></td>
+            <td class="text-right font-bold px-2">{{ "{:,}".format(footer_totals.time_window_1_2_days) }}</td>
+            <td class="text-right font-bold px-2">{{ "{:,}".format(footer_totals.time_window_2_4_days) }}</td>
+            <td class="text-right font-bold px-2">{{ "{:,}".format(footer_totals.time_window_more_than_4_days) }}</td>
+        </tr>
+    </tfoot>
+</table>
+
+<!-- Pagination Metadata -->
+<div class="pagination-meta hidden" data-page="{{ pagination.page }}" data-per-page="{{ pagination.per_page }}"
+    data-total="{{ pagination.total }}" data-has-next="{{ 'true' if pagination.has_next else 'false' }}"
+    data-has-prev="{{ 'true' if pagination.has_prev else 'false' }}"
+    data-next-num="{{ pagination.next_num if pagination.has_next else '' }}"
+    data-prev-num="{{ pagination.prev_num if pagination.has_prev else '' }}">
+</div>
+
+<!-- Stats Metadata -->
+<script id="stats-metadata" type="application/json">
+{
+    "total_qty": {{ footer_totals.completed_quantity }},
+    "total_1_2": {{ footer_totals.time_window_1_2_days }},
+    "total_2_4": {{ footer_totals.time_window_2_4_days }},
+    "total_more_4": {{ footer_totals.time_window_more_than_4_days }}
+}
+</script>

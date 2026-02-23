@@ -1,7 +1,7 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from app.extensions import db
-from app.models.snapshots import OwnerWiseOrderSummarySnapshot
+from app.models.snapshots import OwnerWiseOrderSummarySnapshot, PartyProcessAgeingSnapshot
 from flask import current_app
 import os
 import socket
@@ -129,6 +129,129 @@ def sync_owner_wise_data():
             
     except Exception as e:
         current_app.logger.error(f"Sync failed: {str(e)}")
+        return {"status": "error", "message": str(e)}
+    finally:
+        if conn:
+            conn.close()
+
+def sync_process_level_delay_data():
+    """
+    Syncs data from external Azure PostgreSQL using the provided query
+    to party_process_ageing_snapshot table.
+    """
+    conn = None
+    try:
+        current_app.logger.info("Starting external data sync for PartyProcessAgeingSnapshot...")
+        conn = get_external_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        query = """
+        WITH base AS (
+          SELECT
+            od.order_id,
+            od.supplier AS party_name,
+
+            -- Determine latest completed stage (using available dates)
+            CASE
+              WHEN od.order_status ILIKE '%deliver%' THEN 'Delivered'
+              WHEN od.order_status ILIKE '%invoice%' THEN 'Invoiced'
+              WHEN q.qc_completed_at IS NOT NULL THEN 'QC Completed'
+              WHEN h.hm_out_date IS NOT NULL THEN 'Hallmark Completed'
+              WHEN od.barcoded_at IS NOT NULL THEN 'Barcoded'
+              ELSE 'Order Created'
+            END AS completed_process_level,
+
+            CASE
+              WHEN od.order_status ILIKE '%deliver%' THEN 'Completed'
+              WHEN od.order_status ILIKE '%invoice%' THEN 'Delivery'
+              WHEN q.qc_completed_at IS NOT NULL THEN 'Invoice'
+              WHEN h.hm_out_date IS NOT NULL THEN 'QC'
+              WHEN od.barcoded_at IS NOT NULL THEN 'Hallmark'
+              ELSE 'Barcoding'
+            END AS next_process_level,
+
+            -- Last completed timestamp for ageing
+            COALESCE(
+              q.qc_completed_at,
+              h.hm_out_date,
+              od.barcoded_at,
+              od.accepted_on,
+              od.order_date
+            )::date AS last_completed_date
+
+          FROM ext_view.vw_order_details od
+          LEFT JOIN ext_view.vw_order_qc_details q
+            ON q.order_id = od.order_id
+          LEFT JOIN ext_view.vw_order_hallmark_details h
+            ON h.order_id = od.order_id
+        )
+
+        SELECT
+          party_name,
+          completed_process_level,
+          COUNT(DISTINCT order_id) AS completed_quantity,
+          next_process_level,
+
+          COUNT(DISTINCT order_id) FILTER (
+            WHERE (CURRENT_DATE - last_completed_date) BETWEEN 1 AND 2
+          ) AS "Time Window 1-2days",
+
+          COUNT(DISTINCT order_id) FILTER (
+            WHERE (CURRENT_DATE - last_completed_date) BETWEEN 3 AND 4
+          ) AS "Time Window 2-4days",
+
+          COUNT(DISTINCT order_id) FILTER (
+            WHERE (CURRENT_DATE - last_completed_date) > 4
+          ) AS "Time Window-morethan 4 days"
+
+        FROM base
+        GROUP BY
+          party_name,
+          completed_process_level,
+          next_process_level
+        ORDER BY
+          party_name,
+          completed_process_level;
+        """
+        
+        cur.execute(query)
+        external_data = cur.fetchall()
+        
+        if not external_data:
+            current_app.logger.warning("No data found for Process Level Delay.")
+            return {"status": "success", "count": 0, "message": "No data found to sync."}
+
+        try:
+            # Clear local table
+            db.session.query(PartyProcessAgeingSnapshot).delete()
+            
+            new_records = []
+            for row in external_data:
+                record = PartyProcessAgeingSnapshot(
+                    party_name=row.get('party_name'),
+                    completed_process_level=row.get('completed_process_level'),
+                    completed_quantity=row.get('completed_quantity'),
+                    next_process_level=row.get('next_process_level'),
+                    time_window_1_2_days=row.get('Time Window 1-2days'),
+                    time_window_2_4_days=row.get('Time Window 2-4days'),
+                    time_window_more_than_4_days=row.get('Time Window-morethan 4 days'),
+                    report_date=db.func.current_date()
+                )
+                new_records.append(record)
+            
+            db.session.add_all(new_records)
+            db.session.commit()
+            
+            current_app.logger.info(f"Process Level Delay Sync complete. {len(new_records)} records synced.")
+            return {"status": "success", "count": len(new_records)}
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Local database error during process delay sync: {str(e)}")
+            raise e
+            
+    except Exception as e:
+        current_app.logger.error(f"Process Level Delay Sync failed: {str(e)}")
         return {"status": "error", "message": str(e)}
     finally:
         if conn:
