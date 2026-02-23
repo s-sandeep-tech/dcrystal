@@ -68,6 +68,7 @@ def create_app():
                         session['user_id'] = user.user_id
                         session['username'] = user.username
                         session['is_admin'] = user.is_admin
+                        session['roles'] = [r.name for r in user.roles]
                         app.logger.info(f"Restored session for {user.username} from JWT cookie")
             except Exception as e:
                 # If token is invalid or expired, flag it for removal to prevent redundant attempts

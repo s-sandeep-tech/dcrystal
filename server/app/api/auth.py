@@ -21,6 +21,7 @@ def login():
         session['user_id'] = user.user_id
         session['username'] = user.username
         session['is_admin'] = user.is_admin
+        session['roles'] = [r.name for r in user.roles]
         
         access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(days=1))
         

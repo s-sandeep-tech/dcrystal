@@ -9,6 +9,7 @@ from app.extensions import db
 from app.models.rbac import Role, Permission, Menu, RoleMenu, RolePermission, UserRole
 from app.models.auth import User
 from app.utils.rbac_cache import increment_rbac_version
+from sqlalchemy import text
 
 def seed_default_user_role_for_roleless_users():
     app = create_app()
@@ -43,10 +44,15 @@ def seed_default_user_role_for_roleless_users():
                 assigned_count += 1
 
         # 5) Commit once
-        db.session.commit()
-
         if assigned_count > 0:
             increment_rbac_version()
+            # Reset sequences to prevent IntegrityError in production
+            print("Syncing sequences...")
+            for table in ['users']:
+                max_id = db.session.execute(text(f"SELECT MAX(id) FROM {table}")).scalar()
+                if max_id:
+                    db.session.execute(text(f"SELECT setval('{table}_id_seq', {max_id}, true)"))
+            db.session.commit()
 
         print(f"Completed. Assigned USER role to {assigned_count} roleless users.")
 
