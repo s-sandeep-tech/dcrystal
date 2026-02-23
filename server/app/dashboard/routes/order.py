@@ -102,6 +102,8 @@ def get_dashboard_partial(view_type):
             query = query.filter(OwnerWiseOrderSummarySnapshot.supplier == party)
 
         # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
+        is_admin = session.get('is_admin', False)
+        username = session.get('username')
         roles = [r.upper() for r in session.get('roles', [])]
         is_manager_2 = 'MANAGER_2' in roles
         from flask import current_app
