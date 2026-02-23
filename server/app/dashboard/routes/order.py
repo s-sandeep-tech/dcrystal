@@ -30,7 +30,9 @@ def order_status_options():
     username = session.get('username')
     
     def apply_options_filter(q):
-        if not is_admin and username:
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_manager_2 = 'MANAGER_2' in roles
+        if not is_admin and not is_manager_2 and username:
             u = username.strip().lower()
             return q.filter(
                 (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
@@ -99,11 +101,11 @@ def get_dashboard_partial(view_type):
         if party:
             query = query.filter(OwnerWiseOrderSummarySnapshot.supplier == party)
 
-        # User-based filtering: Restrict to any owner = username if not admin
-        is_admin = session.get('is_admin', False)
-        username = session.get('username')
+        # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_manager_2 = 'MANAGER_2' in roles
         from flask import current_app
-        if not is_admin and username:
+        if not is_admin and not is_manager_2 and username:
             u = username.strip().lower()
             current_app.logger.info(f'Applying restricted owner filter for {u}')
             query = query.filter(

@@ -56,26 +56,40 @@ def owner_wise_order_summary():
             if classification:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.classification == classification)
             
-            # User-based filtering: Restrict to make_owner = username if not admin or manager_2
-            is_manager_2 = 'manager_2' in session.get('roles', [])
+            # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
+            roles = [r.upper() for r in session.get('roles', [])]
+            is_manager_2 = 'MANAGER_2' in roles
             if not session.get('is_admin', False) and not is_manager_2 and session.get('username'):
+                u = session.get('username').strip().lower()
                 query = query.filter(
-                            func.lower(OwnerWiseOrderSummarySnapshot.make_owner) ==
-                            func.lower(session.get('username'))
-                        )
+                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
+                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
+                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
+                )
                 
             return query
 
-        # Fetch filter options
+        # Fetch filter options - Restricted for non-admins/non-managers
+        def apply_options_filter(q):
+            roles = [r.upper() for r in session.get('roles', [])]
+            if not session.get('is_admin', False) and 'MANAGER_2' not in roles and session.get('username'):
+                u = session.get('username').strip().lower()
+                return q.filter(
+                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
+                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
+                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
+                )
+            return q
+
         filter_options = {
-            'divisions': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.division).distinct().order_by(OwnerWiseOrderSummarySnapshot.division).all() if r[0]],
-            'groups': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.group_name).distinct().order_by(OwnerWiseOrderSummarySnapshot.group_name).all() if r[0]],
-            'purities': [str(r[0]) for r in db.session.query(OwnerWiseOrderSummarySnapshot.purity).distinct().order_by(OwnerWiseOrderSummarySnapshot.purity).all() if r[0]],
-            'suppliers': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.supplier).distinct().order_by(OwnerWiseOrderSummarySnapshot.supplier).all() if r[0]],
-            'classification_owners': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.classification_owner).distinct().order_by(OwnerWiseOrderSummarySnapshot.classification_owner).all() if r[0]],
-            'collection_owners': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.collection_owner).distinct().order_by(OwnerWiseOrderSummarySnapshot.collection_owner).all() if r[0]],
-            'make_owners': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.make_owner).distinct().order_by(OwnerWiseOrderSummarySnapshot.make_owner).all() if r[0]],
-            'classifications': [r[0] for r in db.session.query(OwnerWiseOrderSummarySnapshot.classification).distinct().order_by(OwnerWiseOrderSummarySnapshot.classification).all() if r[0]]
+            'divisions': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.division)).distinct().order_by(OwnerWiseOrderSummarySnapshot.division).all() if r[0]],
+            'groups': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.group_name)).distinct().order_by(OwnerWiseOrderSummarySnapshot.group_name).all() if r[0]],
+            'purities': [str(r[0]) for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.purity)).distinct().order_by(OwnerWiseOrderSummarySnapshot.purity).all() if r[0]],
+            'suppliers': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.supplier)).distinct().order_by(OwnerWiseOrderSummarySnapshot.supplier).all() if r[0]],
+            'classification_owners': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.classification_owner)).distinct().order_by(OwnerWiseOrderSummarySnapshot.classification_owner).all() if r[0]],
+            'collection_owners': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.collection_owner)).distinct().order_by(OwnerWiseOrderSummarySnapshot.collection_owner).all() if r[0]],
+            'make_owners': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.make_owner)).distinct().order_by(OwnerWiseOrderSummarySnapshot.make_owner).all() if r[0]],
+            'classifications': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.classification)).distinct().order_by(OwnerWiseOrderSummarySnapshot.classification).all() if r[0]]
         }
 
         # Global Stats (Using Weights primarily)
@@ -241,10 +255,16 @@ def get_owner_wise_partial():
             if classification:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.classification == classification)
             
-            # User-based filtering: Restrict to make_owner = username if not admin or manager_2
-            is_manager_2 = 'manager_2' in session.get('roles', [])
+            # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
+            roles = [r.upper() for r in session.get('roles', [])]
+            is_manager_2 = 'MANAGER_2' in roles
             if not session.get('is_admin', False) and not is_manager_2 and session.get('username'):
-                query = query.filter( func.lower(OwnerWiseOrderSummarySnapshot.make_owner) == func.lower(session.get('username')))
+                u = session.get('username').strip().lower()
+                query = query.filter(
+                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
+                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
+                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
+                )
                 
             return query
 
