@@ -199,6 +199,7 @@ class OwnerWiseOrderSummarySnapshot(db.Model):
     classification = db.Column('Classification', db.Text, primary_key=True)
     make = db.Column('Make', db.Text, primary_key=True)
     collection = db.Column('Collection', db.Text, primary_key=True)
+    order_type = db.Column('order_type', db.Text, primary_key=True)
     
     classification_owner = db.Column('Classification Owner', db.Text)
     collection_owner = db.Column('Collection Owner', db.Text)

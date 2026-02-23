@@ -216,6 +216,7 @@ function applyGlobalFilters() {
         'group': 'filter-group',
         'purity': 'filter-purity',
         'classification': 'filter-classification',
+        'order_type': 'filter-order-type',
         'supplier': 'filter-supplier',
         'classification_owner': 'filter-class-owner',
         'collection_owner': 'filter-coll-owner',
@@ -236,7 +237,7 @@ function applyGlobalFilters() {
 function resetGlobalFilters() {
     const urlParams = new URLSearchParams(window.location.search);
     const ids = [
-        'filter-division', 'filter-group', 'filter-purity', 'filter-classification', 'filter-supplier',
+        'filter-division', 'filter-group', 'filter-purity', 'filter-classification', 'filter-order-type', 'filter-supplier',
         'filter-class-owner', 'filter-coll-owner', 'filter-make-owner', 'hierarchy-search'
     ];
 
