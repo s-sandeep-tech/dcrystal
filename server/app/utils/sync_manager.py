@@ -150,61 +150,120 @@ def sync_process_level_delay_data():
           SELECT
             od.order_id,
             od.supplier AS party_name,
+            od.order_status,
 
-            -- Determine latest completed stage (using available dates)
-            CASE
-              WHEN od.order_status ILIKE '%deliver%' THEN 'Delivered'
-              WHEN od.order_status ILIKE '%invoice%' THEN 'Invoiced'
-              WHEN q.qc_completed_at IS NOT NULL THEN 'QC Completed'
-              WHEN h.hm_out_date IS NOT NULL THEN 'Hallmark Completed'
-              WHEN od.barcoded_at IS NOT NULL THEN 'Barcoded'
-              ELSE 'Order Created'
-            END AS completed_process_level,
+            od.order_date::date       AS order_date,
+            od.accepted_on::date      AS accepted_date,
+            od.barcoded_at::date      AS barcoded_date,
 
-            CASE
-              WHEN od.order_status ILIKE '%deliver%' THEN 'Completed'
-              WHEN od.order_status ILIKE '%invoice%' THEN 'Delivery'
-              WHEN q.qc_completed_at IS NOT NULL THEN 'Invoice'
-              WHEN h.hm_out_date IS NOT NULL THEN 'QC'
-              WHEN od.barcoded_at IS NOT NULL THEN 'Hallmark'
-              ELSE 'Barcoding'
-            END AS next_process_level,
+            h.hm_out_date::date       AS hallmark_date,
+            h.hm_status               AS hallmark_status,
 
-            -- Last completed timestamp for ageing
-            COALESCE(
-              q.qc_completed_at,
-              h.hm_out_date,
-              od.barcoded_at,
-              od.accepted_on,
-              od.order_date
-            )::date AS last_completed_date
+            q.qc_completed_at::date   AS qc_date
 
           FROM ext_view.vw_order_details od
           LEFT JOIN ext_view.vw_order_qc_details q
             ON q.order_id = od.order_id
           LEFT JOIN ext_view.vw_order_hallmark_details h
             ON h.order_id = od.order_id
+          WHERE od.supplier = 'AABHUSHAN JEWELLERS PVT LTD'
+        ),
+
+        status_rows AS (
+          -- Order Accepted
+          SELECT
+            order_id,
+            party_name,
+            'Order Accepted' AS completed_process_level,
+            'Barcoding'      AS next_process_level,
+            accepted_date    AS last_completed_date
+          FROM base
+          WHERE accepted_date IS NOT NULL
+
+          UNION ALL
+
+          -- Barcoded
+          SELECT
+            order_id,
+            party_name,
+            'Barcoded',
+            'Hallmark',
+            barcoded_date
+          FROM base
+          WHERE barcoded_date IS NOT NULL
+
+          UNION ALL
+
+          -- Hallmark Completed (ONLY PASSED)
+          SELECT
+            order_id,
+            party_name,
+            'Hallmark Completed',
+            'QC',
+            hallmark_date
+          FROM base
+          WHERE hallmark_date IS NOT NULL
+            AND hallmark_status = 'Passed'   
+
+          UNION ALL
+
+          -- QC Completed
+          SELECT
+            order_id,
+            party_name,
+            'QC Completed',
+            'Invoice',
+            qc_date
+          FROM base
+          WHERE qc_date IS NOT NULL
+
+          UNION ALL
+
+          -- Invoiced
+          SELECT
+            order_id,
+            party_name,
+            'Invoiced',
+            'Delivery',
+            COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date)
+          FROM base
+          WHERE order_status ILIKE '%invoice%'
+
+          UNION ALL
+
+          -- Delivered
+          SELECT
+            order_id,
+            party_name,
+            'Delivered',
+            'Completed',
+            COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date)
+          FROM base
+          WHERE order_status ILIKE '%deliver%'
         )
 
         SELECT
           party_name,
           completed_process_level,
-          COUNT(DISTINCT order_id) AS completed_quantity,
+          COUNT(*) AS completed_quantity,
           next_process_level,
 
-          COUNT(DISTINCT order_id) FILTER (
-            WHERE (CURRENT_DATE - last_completed_date) BETWEEN 1 AND 2
+          COUNT(*) FILTER (
+            WHERE last_completed_date IS NOT NULL
+              AND (CURRENT_DATE - last_completed_date) BETWEEN 1 AND 2
           ) AS "Time Window 1-2days",
 
-          COUNT(DISTINCT order_id) FILTER (
-            WHERE (CURRENT_DATE - last_completed_date) BETWEEN 3 AND 4
+          COUNT(*) FILTER (
+            WHERE last_completed_date IS NOT NULL
+              AND (CURRENT_DATE - last_completed_date) BETWEEN 3 AND 4
           ) AS "Time Window 2-4days",
 
-          COUNT(DISTINCT order_id) FILTER (
-            WHERE (CURRENT_DATE - last_completed_date) > 4
+          COUNT(*) FILTER (
+            WHERE last_completed_date IS NOT NULL
+              AND (CURRENT_DATE - last_completed_date) > 4
           ) AS "Time Window-morethan 4 days"
 
-        FROM base
+        FROM status_rows
         GROUP BY
           party_name,
           completed_process_level,
