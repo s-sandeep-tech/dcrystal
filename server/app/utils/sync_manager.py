@@ -269,15 +269,7 @@ def sync_process_level_delay_data():
           next_process_level
         ORDER BY
           party_name,
-          CASE completed_process_level
-          WHEN 'Order Accepted'     THEN 1
-          WHEN 'Barcoded'           THEN 2
-          WHEN 'Hallmark Completed' THEN 3
-          WHEN 'QC Completed'       THEN 4
-          WHEN 'Invoiced'           THEN 5
-          WHEN 'Delivered'          THEN 6
-          ELSE 99
-        END;
+          completed_process_level;
         """
         
         cur.execute(query)
