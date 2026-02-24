@@ -146,130 +146,135 @@ def sync_process_level_delay_data():
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         query = """
-        WITH base AS (
-          SELECT
-            od.order_id,
-            od.supplier AS party_name,
-            od.order_status,
+       WITH base AS (
+  SELECT
+    od.order_id,
+    od.supplier AS party_name,
+    od.order_status,
 
-            od.order_date::date       AS order_date,
-            od.accepted_on::date      AS accepted_date,
-            od.barcoded_at::date      AS barcoded_date,
+    od.order_date::date       AS order_date,
+    od.accepted_on::date      AS accepted_date,
+    od.barcoded_at::date      AS barcoded_date,
 
-            h.hm_out_date::date       AS hallmark_date,
-            h.hm_status               AS hallmark_status,
+    h.hm_out_date::date       AS hallmark_date,
+    h.hm_status               AS hallmark_status,
 
-            q.qc_completed_at::date   AS qc_date
+    q.qc_completed_at::date   AS qc_date
 
-          FROM ext_view.vw_order_details od
-          LEFT JOIN ext_view.vw_order_qc_details q
-            ON q.order_id = od.order_id
-          LEFT JOIN ext_view.vw_order_hallmark_details h
-            ON h.order_id = od.order_id
-        ),
+  FROM ext_view.vw_order_details od
+  LEFT JOIN ext_view.vw_order_qc_details q
+    ON q.order_id = od.order_id
+  LEFT JOIN ext_view.vw_order_hallmark_details h
+    ON h.order_id = od.order_id
+),
 
-        status_rows AS (
-          -- Order Accepted
-          SELECT
-            order_id,
-            party_name,
-            'Order Accepted' AS completed_process_level,
-            'Barcoding'      AS next_process_level,
-            accepted_date    AS last_completed_date
-          FROM base
-          WHERE accepted_date IS NOT NULL
+status_rows AS (
+  -- Order Accepted → Barcoding pending
+  SELECT
+    order_id,
+    party_name,
+    'Order Accepted' AS completed_process_level,
+    'Barcoding'      AS next_process_level,
+    accepted_date    AS last_completed_date,
+    (barcoded_date IS NOT NULL) AS is_next_done
+  FROM base
+  WHERE accepted_date IS NOT NULL
 
-          UNION ALL
+  UNION ALL
 
-          -- Barcoded
-          SELECT
-            order_id,
-            party_name,
-            'Barcoded',
-            'Hallmark',
-            barcoded_date
-          FROM base
-          WHERE barcoded_date IS NOT NULL
+  -- Barcoded → Hallmark pending
+  SELECT
+    order_id,
+    party_name,
+    'Barcoded',
+    'Hallmark',
+    barcoded_date,
+    (hallmark_date IS NOT NULL AND hallmark_status = 'Passed') AS is_next_done
+  FROM base
+  WHERE barcoded_date IS NOT NULL
 
-          UNION ALL
+  UNION ALL
 
-          -- Hallmark Completed (ONLY PASSED)
-          SELECT
-            order_id,
-            party_name,
-            'Hallmark Completed',
-            'QC',
-            hallmark_date
-          FROM base
-          WHERE hallmark_date IS NOT NULL
-            AND hallmark_status = 'Passed'   
+  -- Hallmark Completed (only Passed) → QC pending
+  SELECT
+    order_id,
+    party_name,
+    'Hallmark Completed',
+    'QC',
+    hallmark_date,
+    (qc_date IS NOT NULL) AS is_next_done
+  FROM base
+  WHERE hallmark_date IS NOT NULL
+    AND hallmark_status = 'Passed'
 
-          UNION ALL
+  UNION ALL
 
-          -- QC Completed
-          SELECT
-            order_id,
-            party_name,
-            'QC Completed',
-            'Invoice',
-            qc_date
-          FROM base
-          WHERE qc_date IS NOT NULL
+  -- QC Completed → Invoice pending
+  SELECT
+    order_id,
+    party_name,
+    'QC Completed',
+    'Invoice',
+    qc_date,
+    (order_status ILIKE '%invoice%') AS is_next_done
+  FROM base
+  WHERE qc_date IS NOT NULL
 
-          UNION ALL
+  UNION ALL
 
-          -- Invoiced
-          SELECT
-            order_id,
-            party_name,
-            'Invoiced',
-            'Delivery',
-            COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date)
-          FROM base
-          WHERE order_status ILIKE '%invoice%'
+  -- Invoiced → Delivery pending
+  SELECT
+    order_id,
+    party_name,
+    'Invoiced',
+    'Delivery',
+    COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date),
+    (order_status ILIKE '%deliver%') AS is_next_done
+  FROM base
+  WHERE order_status ILIKE '%invoice%'
+)
 
-          UNION ALL
+SELECT
+  party_name,
+  completed_process_level,
+  COUNT(*) FILTER (WHERE is_next_done = false) AS completed_quantity,
+  next_process_level,
 
-          -- Delivered
-          SELECT
-            order_id,
-            party_name,
-            'Delivered',
-            'Completed',
-            COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date)
-          FROM base
-          WHERE order_status ILIKE '%deliver%'
-        )
+  COUNT(*) FILTER (
+    WHERE is_next_done = false
+      AND last_completed_date IS NOT NULL
+      AND (CURRENT_DATE - last_completed_date) BETWEEN 1 AND 2
+  ) AS "Time Window 1-2days",
 
-        SELECT
-          party_name,
-          completed_process_level,
-          COUNT(*) AS completed_quantity,
-          next_process_level,
+  COUNT(*) FILTER (
+    WHERE is_next_done = false
+      AND last_completed_date IS NOT NULL
+      AND (CURRENT_DATE - last_completed_date) BETWEEN 3 AND 4
+  ) AS "Time Window 2-4days",
 
-          COUNT(*) FILTER (
-            WHERE last_completed_date IS NOT NULL
-              AND (CURRENT_DATE - last_completed_date) BETWEEN 1 AND 2
-          ) AS "Time Window 1-2days",
+  COUNT(*) FILTER (
+    WHERE is_next_done = false
+      AND last_completed_date IS NOT NULL
+      AND (CURRENT_DATE - last_completed_date) > 4
+  ) AS "Time Window-morethan 4 days"
 
-          COUNT(*) FILTER (
-            WHERE last_completed_date IS NOT NULL
-              AND (CURRENT_DATE - last_completed_date) BETWEEN 3 AND 4
-          ) AS "Time Window 2-4days",
+FROM status_rows
+GROUP BY
+  party_name,
+  completed_process_level,
+  next_process_level
 
-          COUNT(*) FILTER (
-            WHERE last_completed_date IS NOT NULL
-              AND (CURRENT_DATE - last_completed_date) > 4
-          ) AS "Time Window-morethan 4 days"
-
-        FROM status_rows
-        GROUP BY
-          party_name,
-          completed_process_level,
-          next_process_level
-        ORDER BY
-          party_name,
-          completed_process_level;
+ORDER BY
+  party_name,
+  CASE completed_process_level
+    WHEN 'Order Accepted'     THEN 1
+    WHEN 'Barcoded'           THEN 2
+    WHEN 'Hallmark Completed' THEN 3
+    WHEN 'QC Completed'       THEN 4
+    WHEN 'Invoiced'           THEN 5
+    WHEN 'Delivered'          THEN 6
+    ELSE 99
+  END;
         """
         
         cur.execute(query)
