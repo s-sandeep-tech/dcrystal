@@ -166,7 +166,6 @@ def sync_process_level_delay_data():
             ON q.order_id = od.order_id
           LEFT JOIN ext_view.vw_order_hallmark_details h
             ON h.order_id = od.order_id
-          WHERE od.supplier = 'AABHUSHAN JEWELLERS PVT LTD'
         ),
 
         status_rows AS (
