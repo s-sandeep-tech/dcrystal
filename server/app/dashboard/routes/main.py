@@ -92,10 +92,32 @@ def sync_process_delay():
             redis_client.publish('global_notifications', json.dumps(payload))
         except Exception as e:
             current_app.logger.error(f"Failed to publish global sync notification: {e}")
-            
-        return result, 200
+        return result, 200   
     else:
         return result, 500
+
+@dashboard_bp.route('/settings/clear-cache', methods=['POST'])
+def clear_cache():
+    if not session.get('user_id') or not session.get('is_admin'):
+        return {"status": "error", "message": "Unauthorized: Admin access required"}, 401
+        
+    try:
+        from app.extensions import redis_client
+        redis_client.flushdb()
+        
+        # Publish notification for UI feedback across sessions
+        import json
+        payload = {
+            "title": "Cache Cleared",
+            "message": "Application cache has been successfully cleared.",
+            "type": "success"
+        }
+        redis_client.publish('global_notifications', json.dumps(payload))
+        
+        return {"status": "success", "message": "Cache cleared successfully"}, 200
+    except Exception as e:
+        current_app.logger.error(f"Failed to clear cache: {e}")
+        return {"status": "error", "message": str(e)}, 500
 
 @dashboard_bp.route('/')
 @require_perm('dashboard.view')

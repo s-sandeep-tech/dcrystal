@@ -194,6 +194,26 @@
                                 </button>
                             </div>
 
+                            <div
+                                class="mt-4 flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
+                                <div class="flex items-center gap-4">
+                                    <div class="size-10 bg-red-500/10 rounded-lg flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-red-500 text-xl">delete_sweep</span>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Clear
+                                            Application Cache</h4>
+                                        <p class="text-[11px] text-gray-500 font-medium">Flush all Redis cache data
+                                            (reports, temporary storage)</p>
+                                    </div>
+                                </div>
+                                <button id="clear-cache-btn"
+                                    class="flex items-center gap-2 px-4 py-2 bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-red-600 transition-all shadow-md shadow-red-500/20">
+                                    <span class="material-symbols-outlined text-[14px]">cleaning_services</span>
+                                    Clear All Cache
+                                </button>
+                            </div>
+
                             <div id="sync-status"
                                 class="hidden mt-4 p-3 rounded-lg text-[11px] font-medium transition-all">
                             </div>
@@ -446,7 +466,8 @@
     <script>
         window.SETTINGS_CONFIG = {
             syncDataUrl: "{{ url_for('dashboard.sync_data') }}",
-            syncProcessDelayUrl: "{{ url_for('dashboard.sync_process_delay') }}"
+            syncProcessDelayUrl: "{{ url_for('dashboard.sync_process_delay') }}",
+            clearCacheUrl: "{{ url_for('dashboard.clear_cache') }}"
         };
     </script>
     <script src="{{ url_for('static', filename='js/settings.js') }}"></script>

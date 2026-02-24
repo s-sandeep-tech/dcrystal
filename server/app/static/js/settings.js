@@ -111,6 +111,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Clear Cache Logic
+    const clearCacheBtn = document.getElementById('clear-cache-btn');
+    if (clearCacheBtn) {
+        clearCacheBtn.addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to clear all application cache? This will affect all users.')) return;
+
+            const originalContent = clearCacheBtn.innerHTML;
+            clearCacheBtn.disabled = true;
+            clearCacheBtn.innerHTML = '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> Clearing...';
+
+            syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+            syncStatus.textContent = 'Clearing Redis database...';
+            syncStatus.classList.remove('hidden');
+
+            try {
+                const clearUrl = window.SETTINGS_CONFIG ? window.SETTINGS_CONFIG.clearCacheUrl : '/settings/clear-cache';
+                const response = await fetch(clearUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/30';
+                    syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">check_circle</span> ${data.message}</div>`;
+                    if (typeof window.showToast === 'function') {
+                        window.showToast('Cache cleared successfully', 'success');
+                    }
+                } else {
+                    throw new Error(data.message || 'Clear cache failed');
+                }
+            } catch (error) {
+                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/30';
+                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> Error: ${error.message}</div>`;
+                if (typeof window.showToast === 'function') {
+                    window.showToast('Failed to clear cache: ' + error.message, 'error');
+                }
+            } finally {
+                clearCacheBtn.disabled = false;
+                clearCacheBtn.innerHTML = originalContent;
+            }
+        });
+    }
+
     // Generic RBAC Data State
     let gRoles = [];
     let gMenus = [];
