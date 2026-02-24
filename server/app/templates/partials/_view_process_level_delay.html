@@ -11,12 +11,34 @@
         </tr>
     </thead>
     <tbody id="delay-table-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+        {% macro get_process_icon(process_name) %}
+        {% set p = process_name|lower if process_name else '' %}
+        {% if 'qa' in p or 'qc' in p or 'quality' in p %}
+        <span class="material-symbols-outlined text-[14px] text-amber-500 mr-1 align-text-bottom">fact_check</span>
+        {% elif 'polish' in p %}
+        <span class="material-symbols-outlined text-[14px] text-cyan-500 mr-1 align-text-bottom">auto_awesome</span>
+        {% elif 'setting' in p or 'diamond' in p %}
+        <span class="material-symbols-outlined text-[14px] text-indigo-500 mr-1 align-text-bottom">diamond</span>
+        {% elif 'wax' in p or 'cast' in p or 'mould' in p %}
+        <span class="material-symbols-outlined text-[14px] text-rose-500 mr-1 align-text-bottom">water_drop</span>
+        {% elif 'file' in p or 'assembly' in p or 'make' in p %}
+        <span class="material-symbols-outlined text-[14px] text-emerald-500 mr-1 align-text-bottom">build</span>
+        {% elif 'pack' in p or 'dispatch' in p or 'invoice' in p %}
+        <span class="material-symbols-outlined text-[14px] text-blue-500 mr-1 align-text-bottom">inventory_2</span>
+        {% else %}
+        <span class="material-symbols-outlined text-[14px] text-gray-400 mr-1 align-text-bottom">settings</span>
+        {% endif %}
+        {% endmacro %}
+
         {% for r in rows %}
         <tr class="hover:bg-blue-50/30 group transition-colors">
             <td class="px-4 font-bold">{{ r.party_name }}</td>
-            <td class="px-4 text-gray-500">{{ r.completed_process_level }}</td>
+            <td class="px-4 text-gray-600 dark:text-gray-300 flex items-center h-full min-h-[40px]">{{
+                get_process_icon(r.completed_process_level) }}<span class="truncate">{{ r.completed_process_level
+                    }}</span></td>
             <td class="px-4 text-right font-medium">{{ r.completed_quantity }}</td>
-            <td class="px-4 text-gray-500">{{ r.next_process_level }}</td>
+            <td class="px-4 text-gray-600 dark:text-gray-300 flex items-center h-full min-h-[40px]">{{
+                get_process_icon(r.next_process_level) }}<span class="truncate">{{ r.next_process_level }}</span></td>
             <td class="px-4 text-right font-medium">{{ r.time_window_1_2_days }}</td>
             <td class="px-4 text-right font-medium">{{ r.time_window_2_4_days }}</td>
             <td class="px-4 text-right font-medium">{{ r.time_window_more_than_4_days }}</td>

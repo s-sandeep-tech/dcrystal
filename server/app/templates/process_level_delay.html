@@ -40,30 +40,58 @@
         </div>
     </div>
 
-    <!-- Stats Grid -->
+    <!-- Stats Grid / Icon Summary Area -->
     <div
         class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Total Quantity</p>
-            <p id="stat-total-qty" class="text-sm font-bold text-gray-800 dark:text-white">{{
-                "{:,}".format(footer_totals.completed_quantity) if footer_totals else '0' }}</p>
+        <!-- Total Quantity -->
+        <div class="p-3 border-r border-gray-100 dark:border-gray-800 flex items-center gap-3 group">
+            <div
+                class="p-2 rounded-full bg-primary/5 text-primary group-hover:bg-primary/10 transition-colors shrink-0">
+                <span class="material-symbols-outlined text-[20px]">shopping_cart</span>
+            </div>
+            <div>
+                <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">Total Quantity</p>
+                <p id="stat-total-qty" class="text-sm font-black text-gray-800 dark:text-gray-100 tracking-tight">{{
+                    "{:,}".format(footer_totals.completed_quantity) if footer_totals else '0' }}</p>
+            </div>
         </div>
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wider">1-2 Days</p>
-            <p id="stat-1-2-days" class="text-sm font-bold text-emerald-600">{{
-                "{:,}".format(footer_totals.time_window_1_2_days)
-                if footer_totals else '0' }}</p>
+        <!-- 1-2 Days -->
+        <div class="p-3 border-r border-gray-100 dark:border-gray-800 flex items-center gap-3 group">
+            <div
+                class="p-2 rounded-full bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors shrink-0">
+                <span class="material-symbols-outlined text-[20px]">timer</span>
+            </div>
+            <div>
+                <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">1-2 Days</p>
+                <p id="stat-1-2-days" class="text-sm font-black text-emerald-700 dark:text-emerald-400 tracking-tight">
+                    {{
+                    "{:,}".format(footer_totals.time_window_1_2_days)
+                    if footer_totals else '0' }}</p>
+            </div>
         </div>
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wider">2-4 Days</p>
-            <p id="stat-2-4-days" class="text-sm font-bold text-indigo-600">{{
-                "{:,}".format(footer_totals.time_window_2_4_days)
-                if footer_totals else '0' }}</p>
+        <!-- 2-4 Days -->
+        <div class="p-3 border-r border-gray-100 dark:border-gray-800 flex items-center gap-3 group">
+            <div
+                class="p-2 rounded-full bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 transition-colors shrink-0">
+                <span class="material-symbols-outlined text-[20px]">pending</span>
+            </div>
+            <div>
+                <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">2-4 Days</p>
+                <p id="stat-2-4-days" class="text-sm font-black text-indigo-700 dark:text-indigo-400 tracking-tight">{{
+                    "{:,}".format(footer_totals.time_window_2_4_days)
+                    if footer_totals else '0' }}</p>
+            </div>
         </div>
-        <div class="p-2 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wider">> 4 Days</p>
-            <p id="stat-more-4-days" class="text-sm font-bold text-red-500">{{
-                "{:,}".format(footer_totals.time_window_more_than_4_days) if footer_totals else '0' }}</p>
+        <!-- > 4 Days -->
+        <div class="p-3 flex items-center gap-3 group">
+            <div class="p-2 rounded-full bg-red-50 text-red-600 group-hover:bg-red-100 transition-colors shrink-0">
+                <span class="material-symbols-outlined text-[20px]">warning</span>
+            </div>
+            <div>
+                <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">> 4 Days</p>
+                <p id="stat-more-4-days" class="text-sm font-black text-red-700 dark:text-red-400 tracking-tight">{{
+                    "{:,}".format(footer_totals.time_window_more_than_4_days) if footer_totals else '0' }}</p>
+            </div>
         </div>
     </div>
 
