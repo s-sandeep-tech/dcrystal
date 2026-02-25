@@ -31,6 +31,7 @@ def owner_wise_order_summary():
         to_date = request.args.get('to_date', '')
         enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
         order_ro = request.args.get('order_ro', '')
+        age = request.args.get('age', '', type=str)
 
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
@@ -65,6 +66,10 @@ def owner_wise_order_summary():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
             if order_ro:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_ro == order_ro)
+            
+            if age and age.isdigit():
+                age_val = int(age)
+                query = query.filter(func.current_date() - OwnerWiseOrderSummarySnapshot.order_date >= age_val)
             
             if enable_date_filter and from_date and to_date:
                 try:
@@ -244,6 +249,7 @@ def get_owner_wise_partial():
         to_date = request.args.get('to_date', '')
         enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
         order_ro = request.args.get('order_ro', '')
+        age = request.args.get('age', '', type=str)
         
         parent_level = request.args.get('parent_level')
         parent_value = request.args.get('parent_value')
@@ -283,6 +289,10 @@ def get_owner_wise_partial():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
             if order_ro:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_ro == order_ro)
+
+            if age and age.isdigit():
+                age_val = int(age)
+                query = query.filter(func.current_date() - OwnerWiseOrderSummarySnapshot.order_date >= age_val)
 
             if enable_date_filter and from_date and to_date:
                 try:
@@ -434,6 +444,7 @@ def get_leaf_detail():
         to_date = request.args.get('to_date', '')
         enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
         order_ro = request.args.get('order_ro', '')
+        age = request.args.get('age', '', type=str)
         
         query = db.session.query(OwnerWiseOrderSummarySnapshot)
         
@@ -450,6 +461,10 @@ def get_leaf_detail():
             query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
         if order_ro:
             query = query.filter(OwnerWiseOrderSummarySnapshot.order_ro == order_ro)
+        
+        if age and age.isdigit():
+            age_val = int(age)
+            query = query.filter(func.current_date() - OwnerWiseOrderSummarySnapshot.order_date >= age_val)
         
         if enable_date_filter and from_date and to_date:
             try:

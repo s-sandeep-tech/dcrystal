@@ -322,7 +322,14 @@
                 </select>
             </div>
 
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Age (Days)</label>
+                <input type="number" id="filter-age" value="{{ request.args.get('age', '') }}" placeholder="Min days..."
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+            </div>
+
             <div class="pt-2 border-t border-gray-100 dark:border-gray-800">
+
                 <div class="flex items-center justify-between mb-2">
                     <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Date Filter</label>
                     <input type="checkbox" id="enable-date-filter" onclick="toggleDateInputs()" {% if
