@@ -146,135 +146,113 @@ def sync_process_level_delay_data():
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         query = """
-       WITH base AS (
-  SELECT
-    od.order_id,
-    od.supplier AS party_name,
-    od.order_status,
+          WITH qc_agg AS (
+            SELECT
+              order_id,
+              MAX(qc_completed_at)::date AS qc_date
+            FROM ext_view.vw_order_qc_details
+            GROUP BY order_id
+          ),
+          hm_agg AS (
+            SELECT
+              order_id,
+              MAX(hm_out_date)::date AS hallmark_date,
+              -- If any record is Passed, treat as Passed (adjust if your logic differs)
+              CASE WHEN BOOL_OR(hm_status = 'Passed') THEN 'Passed' ELSE 'Not Passed' END AS hallmark_status
+            FROM ext_view.vw_order_hallmark_details
+            GROUP BY order_id
+          ),
+          base AS (
+            SELECT
+              od.order_id,
+              od.supplier AS party_name,
+              od.order_status,
+              od.order_date::date  AS order_date,
+              od.accepted_on::date AS accepted_date,
+              od.barcoded_at::date AS barcoded_date,
+              h.hallmark_date,
+              h.hallmark_status,
+              q.qc_date
+            FROM ext_view.vw_order_details od
+            LEFT JOIN qc_agg q ON q.order_id = od.order_id
+            LEFT JOIN hm_agg h ON h.order_id = od.order_id
+          ),
+          status_rows AS (
+            SELECT DISTINCT order_id, party_name,
+              'Order Accepted' AS completed_process_level,
+              accepted_date    AS last_completed_date
+            FROM base
+            WHERE accepted_date IS NOT NULL
 
-    od.order_date::date       AS order_date,
-    od.accepted_on::date      AS accepted_date,
-    od.barcoded_at::date      AS barcoded_date,
+            UNION ALL
+            SELECT DISTINCT order_id, party_name,
+              'Barcoded', barcoded_date
+            FROM base
+            WHERE barcoded_date IS NOT NULL
 
-    h.hm_out_date::date       AS hallmark_date,
-    h.hm_status               AS hallmark_status,
+            UNION ALL
+            SELECT DISTINCT order_id, party_name,
+              'Hallmark Completed', hallmark_date
+            FROM base
+            WHERE hallmark_date IS NOT NULL
+              AND hallmark_status = 'Passed'
 
-    q.qc_completed_at::date   AS qc_date
+            UNION ALL
+            SELECT DISTINCT order_id, party_name,
+              'QC Completed', qc_date
+            FROM base
+            WHERE qc_date IS NOT NULL
 
-  FROM ext_view.vw_order_details od
-  LEFT JOIN ext_view.vw_order_qc_details q
-    ON q.order_id = od.order_id
-  LEFT JOIN ext_view.vw_order_hallmark_details h
-    ON h.order_id = od.order_id
-),
+            UNION ALL
+            SELECT DISTINCT order_id, party_name,
+              'Invoiced',
+              COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date)
+            FROM base
+            WHERE order_status ILIKE '%invoice%'
 
-status_rows AS (
-  -- Order Accepted → Barcoding pending
-  SELECT
-    order_id,
-    party_name,
-    'Order Accepted' AS completed_process_level,
-    'Barcoding'      AS next_process_level,
-    accepted_date    AS last_completed_date,
-    (barcoded_date IS NOT NULL) AS is_next_done
-  FROM base
-  WHERE accepted_date IS NOT NULL
+            UNION ALL
+            SELECT DISTINCT order_id, party_name,
+              'Delivered',
+              COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date)
+            FROM base
+            WHERE order_status ILIKE '%deliver%'
+          ),
+          stage_flow AS (
+            SELECT * FROM (VALUES
+              ('Order Accepted',     'Barcoding', 1),
+              ('Barcoded',           'Hallmark',  2),
+              ('Hallmark Completed', 'QC',        3),
+              ('QC Completed',       'Invoice',   4),
+              ('Invoiced',           'Delivery',  5),
+              ('Delivered',          'Completed', 6)
+            ) AS t(completed_process_level, next_process_level, seq)
+          )
+          SELECT
+            s.party_name,
+            s.completed_process_level,
+            COUNT(*) AS completed_quantity,
+            f.next_process_level,
 
-  UNION ALL
+            COUNT(*) FILTER (
+              WHERE s.last_completed_date IS NOT NULL
+                AND (CURRENT_DATE - s.last_completed_date) BETWEEN 1 AND 2
+            ) AS "Time Window 1-2days",
 
-  -- Barcoded → Hallmark pending
-  SELECT
-    order_id,
-    party_name,
-    'Barcoded',
-    'Hallmark',
-    barcoded_date,
-    (hallmark_date IS NOT NULL AND hallmark_status = 'Passed') AS is_next_done
-  FROM base
-  WHERE barcoded_date IS NOT NULL
+            COUNT(*) FILTER (
+              WHERE s.last_completed_date IS NOT NULL
+                AND (CURRENT_DATE - s.last_completed_date) BETWEEN 3 AND 4
+            ) AS "Time Window 2-4days",
 
-  UNION ALL
+            COUNT(*) FILTER (
+              WHERE s.last_completed_date IS NOT NULL
+                AND (CURRENT_DATE - s.last_completed_date) > 4
+            ) AS "Time Window-morethan 4 days"
 
-  -- Hallmark Completed (only Passed) → QC pending
-  SELECT
-    order_id,
-    party_name,
-    'Hallmark Completed',
-    'QC',
-    hallmark_date,
-    (qc_date IS NOT NULL) AS is_next_done
-  FROM base
-  WHERE hallmark_date IS NOT NULL
-    AND hallmark_status = 'Passed'
-
-  UNION ALL
-
-  -- QC Completed → Invoice pending
-  SELECT
-    order_id,
-    party_name,
-    'QC Completed',
-    'Invoice',
-    qc_date,
-    (order_status ILIKE '%invoice%') AS is_next_done
-  FROM base
-  WHERE qc_date IS NOT NULL
-
-  UNION ALL
-
-  -- Invoiced → Delivery pending
-  SELECT
-    order_id,
-    party_name,
-    'Invoiced',
-    'Delivery',
-    COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date),
-    (order_status ILIKE '%deliver%') AS is_next_done
-  FROM base
-  WHERE order_status ILIKE '%invoice%'
-)
-
-SELECT
-  party_name,
-  completed_process_level,
-  COUNT(*) FILTER (WHERE is_next_done = false) AS completed_quantity,
-  next_process_level,
-
-  COUNT(*) FILTER (
-    WHERE is_next_done = false
-      AND last_completed_date IS NOT NULL
-      AND (CURRENT_DATE - last_completed_date) BETWEEN 1 AND 2
-  ) AS "Time Window 1-2days",
-
-  COUNT(*) FILTER (
-    WHERE is_next_done = false
-      AND last_completed_date IS NOT NULL
-      AND (CURRENT_DATE - last_completed_date) BETWEEN 3 AND 4
-  ) AS "Time Window 2-4days",
-
-  COUNT(*) FILTER (
-    WHERE is_next_done = false
-      AND last_completed_date IS NOT NULL
-      AND (CURRENT_DATE - last_completed_date) > 4
-  ) AS "Time Window-morethan 4 days"
-
-FROM status_rows
-GROUP BY
-  party_name,
-  completed_process_level,
-  next_process_level
-
-ORDER BY
-  party_name,
-  CASE completed_process_level
-    WHEN 'Order Accepted'     THEN 1
-    WHEN 'Barcoded'           THEN 2
-    WHEN 'Hallmark Completed' THEN 3
-    WHEN 'QC Completed'       THEN 4
-    WHEN 'Invoiced'           THEN 5
-    WHEN 'Delivered'          THEN 6
-    ELSE 99
-  END;
+          FROM status_rows s
+          JOIN stage_flow f
+            ON f.completed_process_level = s.completed_process_level
+          GROUP BY s.party_name, s.completed_process_level, f.next_process_level, f.seq
+          ORDER BY s.party_name, f.seq;
         """
         
         cur.execute(query)
