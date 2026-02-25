@@ -22,7 +22,7 @@ def inspect_data():
         # Check first 5 rows to see what's populated
         rows = OwnerWiseOrderSummarySnapshot.query.limit(5).all()
         for i, row in enumerate(rows):
-            print(f"Row {i}: Supplier={row.supplier}")
+            print(f"Row {i}: Supplier={row.supplier}, Date={row.order_date}, RO={row.order_ro}")
             print(f"  Ordered: {row.ordered_pcs}, Accepted: {row.accepted_pcs}, Rejected: {row.rejected_pcs}")
             print(f"  Barcoded: {row.barcoded_pcs}, HM: {row.hm_passed_pcs}, QC: {row.qc_passed_pcs}")
             print(f"  Invoiced: {row.invoiced_pcs}, Delivered: {row.delivered_pcs}")

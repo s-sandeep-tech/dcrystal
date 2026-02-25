@@ -82,6 +82,8 @@ def sync_owner_wise_data():
                     make=row.get('make'),
                     collection=row.get('collection'),
                     order_type=row.get('order_type'),
+                    order_date=row.get('order_date'),
+                    order_ro=row.get('order_ro'),
                     classification_owner=row.get('classification_owner'),
                     collection_owner=row.get('collection_owner'),
                     make_owner=row.get('make_owner'),

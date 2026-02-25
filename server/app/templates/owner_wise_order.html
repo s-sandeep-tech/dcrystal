@@ -310,50 +310,82 @@
                     {% endfor %}
                 </select>
             </div>
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order RO</label>
+                <select id="filter-order-ro"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All ROs</option>
+                    {% for ro in filter_options.order_ros %}
+                    <option value="{{ ro }}" {% if request.args.get('order_ro')==ro %}selected{% endif %}>{{ ro }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <div class="pt-2 border-t border-gray-100 dark:border-gray-800">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Owner
-                    Filters</label>
-                <div class="space-y-2">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Date Filter</label>
+                    <input type="checkbox" id="enable-date-filter" onclick="toggleDateInputs()" {% if
+                        request.args.get('enable_date_filter')=='true' %}checked{% endif %}
+                        class="rounded border-gray-300 text-primary focus:ring-primary h-3 w-3">
+                </div>
+                <div id="date-inputs"
+                    class="space-y-2 {% if request.args.get('enable_date_filter') != 'true' %}opacity-50 pointer-events-none{% endif %}">
                     <div class="space-y-1">
-                        <label class="text-[8px] text-gray-500 uppercase">Classification Owner</label>
-                        <select id="filter-class-owner"
-                            class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                            <option value="">All Owners</option>
-                            {% for own in filter_options.classification_owners %}
-                            <option value="{{ own }}" {% if request.args.get('classification_owner')==own %}selected{%
-                                endif %}>{{ own }}</option>
-                            {% endfor %}
-                        </select>
+                        <label class="text-[8px] text-gray-500 uppercase">From Date</label>
+                        <input type="date" id="filter-from-date" value="{{ request.args.get('from_date', '') }}"
+                            class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-1.5 ">
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[8px] text-gray-500 uppercase">Collection Owner</label>
-                        <select id="filter-coll-owner"
-                            class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                            <option value="">All Owners</option>
-                            {% for own in filter_options.collection_owners %}
-                            <option value="{{ own }}" {% if request.args.get('collection_owner')==own %}selected{% endif
-                                %}>{{ own }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[8px] text-gray-500 uppercase">Make Owner</label>
-                        <select id="filter-make-owner"
-                            class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                            <option value="">All Owners</option>
-                            {% for own in filter_options.make_owners %}
-                            <option value="{{ own }}" {% if request.args.get('make_owner')==own %}selected{% endif %}>{{
-                                own }}</option>
-                            {% endfor %}
-                        </select>
+                        <label class="text-[8px] text-gray-500 uppercase">To Date</label>
+                        <input type="date" id="filter-to-date" value="{{ request.args.get('to_date', '') }}"
+                            class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-1.5">
                     </div>
                 </div>
             </div>
+            <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Owner
+                Filters</label>
+            <div class="space-y-2">
+                <div class="space-y-1">
+                    <label class="text-[8px] text-gray-500 uppercase">Classification Owner</label>
+                    <select id="filter-class-owner"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                        <option value="">All Owners</option>
+                        {% for own in filter_options.classification_owners %}
+                        <option value="{{ own }}" {% if request.args.get('classification_owner')==own %}selected{% endif
+                            %}>{{ own }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[8px] text-gray-500 uppercase">Collection Owner</label>
+                    <select id="filter-coll-owner"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                        <option value="">All Owners</option>
+                        {% for own in filter_options.collection_owners %}
+                        <option value="{{ own }}" {% if request.args.get('collection_owner')==own %}selected{% endif %}>
+                            {{ own }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[8px] text-gray-500 uppercase">Make Owner</label>
+                    <select id="filter-make-owner"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                        <option value="">All Owners</option>
+                        {% for own in filter_options.make_owners %}
+                        <option value="{{ own }}" {% if request.args.get('make_owner')==own %}selected{% endif %}>{{
+                            own }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
         </div>
-        <button onclick="applyGlobalFilters()"
-            class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm mt-6 flex items-center justify-center gap-2">
-            <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
-        </button>
+    </div>
+    <button onclick="applyGlobalFilters()"
+        class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm mt-6 flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
+    </button>
     </div>
 </aside>
 

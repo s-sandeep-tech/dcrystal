@@ -221,12 +221,25 @@ function applyGlobalFilters() {
         'classification_owner': 'filter-class-owner',
         'collection_owner': 'filter-coll-owner',
         'make_owner': 'filter-make-owner',
-        'search': 'hierarchy-search'
+        'search': 'hierarchy-search',
+        'from_date': 'filter-from-date',
+        'to_date': 'filter-to-date',
+        'enable_date_filter': 'enable-date-filter',
+        'order_ro': 'filter-order-ro'
     };
 
     for (const [param, id] of Object.entries(configs)) {
-        const val = document.getElementById(id)?.value;
-        if (val) urlParams.set(param, val);
+        const el = document.getElementById(id);
+        if (!el) continue;
+
+        let val;
+        if (el.type === 'checkbox') {
+            val = el.checked ? 'true' : 'false';
+        } else {
+            val = el.value;
+        }
+
+        if (val && val !== 'false') urlParams.set(param, val);
         else urlParams.delete(param);
     }
 
@@ -238,15 +251,21 @@ function resetGlobalFilters() {
     const urlParams = new URLSearchParams(window.location.search);
     const ids = [
         'filter-division', 'filter-group', 'filter-purity', 'filter-classification', 'filter-order-type', 'filter-supplier',
-        'filter-class-owner', 'filter-coll-owner', 'filter-make-owner', 'hierarchy-search'
+        'filter-class-owner', 'filter-coll-owner', 'filter-make-owner', 'hierarchy-search',
+        'filter-from-date', 'filter-to-date', 'enable-date-filter', 'filter-order-ro'
     ];
 
     ids.forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.value = '';
-        const param = id.replace('filter-', '').replace('class-', 'classification_').replace('coll-', 'collection_').replace('hierarchy-', '');
+        if (!el) return;
+        if (el.type === 'checkbox') el.checked = false;
+        else el.value = '';
+
+        let param = id.replace('filter-', '').replace('class-', 'classification_').replace('coll-', 'collection_').replace('hierarchy-', '').replace('enable-', 'enable_');
         urlParams.delete(param);
     });
+
+    toggleDateInputs();
     urlParams.delete('all_rejected');
 
     urlParams.set('page', 1);
@@ -350,3 +369,15 @@ document.addEventListener('DOMContentLoaded', () => {
     loadFilterOptions();
     updateAllRejectedBtnState();
 });
+
+function toggleDateInputs() {
+    const isEnabled = document.getElementById('enable-date-filter')?.checked;
+    const container = document.getElementById('date-inputs');
+    if (container) {
+        if (isEnabled) {
+            container.classList.remove('opacity-50', 'pointer-events-none');
+        } else {
+            container.classList.add('opacity-50', 'pointer-events-none');
+        }
+    }
+}

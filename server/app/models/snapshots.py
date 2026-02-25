@@ -200,6 +200,8 @@ class OwnerWiseOrderSummarySnapshot(db.Model):
     make = db.Column('Make', db.Text, primary_key=True)
     collection = db.Column('Collection', db.Text, primary_key=True)
     order_type = db.Column('order_type', db.Text, primary_key=True)
+    order_date = db.Column('order_date', db.Date, primary_key=True)
+    order_ro = db.Column('order_ro', db.Text, primary_key=True)
     
     classification_owner = db.Column('Classification Owner', db.Text)
     collection_owner = db.Column('Collection Owner', db.Text)
@@ -236,6 +238,7 @@ class OwnerWiseOrderSummarySnapshot(db.Model):
     delivered_wt = db.Column('Delivered Wt', db.Numeric(18, 3))
     pending_to_be_delv_pcs = db.Column('Pending To Be Delv. Pcs', db.Numeric(18, 3))
     pending_to_be_delv_wt = db.Column('Pending To Be Delv. Wt', db.Numeric(18, 3))
+    
 
 class TicketLogSnapshot(db.Model):
     __tablename__ = 'ticket_log_snapshot'
