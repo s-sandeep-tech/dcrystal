@@ -302,3 +302,42 @@ class PartyProcessAgeingSnapshot(db.Model):
             'time_window_more_than_4_days': self.time_window_more_than_4_days,
             'report_date': self.report_date.isoformat() if self.report_date else None
         }
+
+class OutstandingPurchaseOrderStatusSnapshot(db.Model):
+    __tablename__ = 'outstanding_purchase_order_status_snapshot'
+
+    id = db.Column(db.Integer, primary_key=True)
+    classification_owner = db.Column('classification_owner', db.Text)
+    make_owner = db.Column('make_owner', db.Text)
+    collection_owner = db.Column('collection_owner', db.Text)
+    party = db.Column('party', db.Text)
+    order_number = db.Column('order_number', db.Text)
+    order_date = db.Column('order_date', db.Date)
+    classification = db.Column('classification', db.Text)
+    make = db.Column('make', db.Text)
+    collection = db.Column('collection', db.Text)
+    section = db.Column('section', db.Text)
+    order_pieces = db.Column('order_pieces', db.Numeric(18, 3))
+    order_weight = db.Column('order_weight', db.Numeric(18, 3))
+    accepted_pieces = db.Column('accepted_pieces', db.Numeric(18, 3))
+    accepted_weight = db.Column('accepted_weight', db.Numeric(18, 3))
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'classification_owner': self.classification_owner,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'party': self.party,
+            'order_number': self.order_number,
+            'order_date': self.order_date.isoformat() if self.order_date else None,
+            'classification': self.classification,
+            'make': self.make,
+            'collection': self.collection,
+            'section': self.section,
+            'order_pieces': float(self.order_pieces or 0),
+            'order_weight': float(self.order_weight or 0),
+            'accepted_pieces': float(self.accepted_pieces or 0),
+            'accepted_weight': float(self.accepted_weight or 0),
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }

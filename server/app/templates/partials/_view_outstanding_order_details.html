@@ -1,0 +1,98 @@
+<div class="p-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center gap-4">
+            <div class="flex items-center gap-2">
+                <span class="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded">
+                    <span class="material-symbols-outlined text-sm">public</span>
+                </span>
+                <div>
+                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Classification Owner</p>
+                    <p class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ classification_owner }}</p>
+                </div>
+            </div>
+            <div class="h-6 w-px bg-gray-200 dark:border-gray-700 hidden sm:block"></div>
+            <div class="flex items-center gap-2">
+                <span class="p-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded">
+                    <span class="material-symbols-outlined text-sm">precision_manufacturing</span>
+                </span>
+                <div>
+                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Make Owner</p>
+                    <p class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ make_owner }}</p>
+                </div>
+            </div>
+            <div class="h-6 w-px bg-gray-200 dark:border-gray-700 hidden sm:block"></div>
+            <div class="flex items-center gap-2">
+                <span class="p-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded">
+                    <span class="material-symbols-outlined text-sm">category</span>
+                </span>
+                <div>
+                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Collection Owner</p>
+                    <p class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ collection_owner }}</p>
+                </div>
+            </div>
+        </div>
+        <div
+            class="px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+            <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Total Orders</p>
+            <p class="text-sm font-black text-gray-800 dark:text-gray-200">{{ details|length }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="flex-1 overflow-auto bg-[#f8fafc] dark:bg-gray-900/50">
+    <table class="enterprise-grid w-full text-[11px] border-collapse sticky-header">
+        <thead>
+            <tr
+                class="bg-gray-100 dark:bg-gray-800 text-gray-500 uppercase font-bold text-[9px] tracking-wider shadow-sm">
+                <th class="px-4 py-3 text-left w-16">#</th>
+                <th class="text-left w-32">Party</th>
+                <th class="text-left w-32">Order Number</th>
+                <th class="text-left w-32">Order Date</th>
+                <th class="text-left w-24">Classification</th>
+                <th class="text-left w-24">Make</th>
+                <th class="text-left w-24">Collection</th>
+                <th class="text-left w-24">Section</th>
+                <th class="text-right text-blue-600">Order Pcs</th>
+                <th class="text-right text-blue-600">Order Wt</th>
+                <th class="text-right text-emerald-600">Accepted Pcs</th>
+                <th class="text-right text-emerald-600">Accepted Wt</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800/60 bg-white dark:bg-gray-900">
+            {% if details %}
+            {% for d in details %}
+            <tr class="hover:bg-blue-50/30 group transition-colors">
+                <td class="px-4 py-2.5 text-gray-400 font-medium whitespace-nowrap">{{ loop.index }}</td>
+                <td class="text-gray-700 dark:text-gray-300 font-medium max-w-xs truncate" title="{{ d.party }}">{{
+                    d.party }}</td>
+                <td class="text-gray-700 dark:text-gray-300 font-medium max-w-[120px] truncate"
+                    title="{{ d.order_number }}">{{ d.order_number }}</td>
+                <td class="text-gray-600 dark:text-gray-400">{{ d.order_date.strftime('%d-%m-%Y') if d.order_date else
+                    '-' }}</td>
+                <td class="text-gray-600 dark:text-gray-400 max-w-24 truncate" title="{{ d.classification }}">{{
+                    d.classification or '-' }}</td>
+                <td class="text-gray-600 dark:text-gray-400 max-w-24 truncate" title="{{ d.make }}">{{ d.make or '-' }}
+                </td>
+                <td class="text-gray-600 dark:text-gray-400 max-w-24 truncate" title="{{ d.collection }}">{{
+                    d.collection or '-' }}</td>
+                <td class="text-gray-600 dark:text-gray-400 max-w-24 truncate" title="{{ d.section }}">{{ d.section or
+                    '-' }}</td>
+                <td class="text-right font-medium text-blue-600/80">{{ "{:,.0f}".format(d.order_pieces) }}</td>
+                <td class="text-right font-medium text-blue-600/80">{{ "{:,.3f}".format(d.order_weight) }}</td>
+                <td class="text-right font-medium text-emerald-600/80">{{ "{:,.0f}".format(d.accepted_pieces) }}</td>
+                <td class="text-right font-medium text-emerald-600/80">{{ "{:,.3f}".format(d.accepted_weight) }}</td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="12" class="p-12 text-center text-gray-400">
+                    <div class="flex flex-col items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-4xl opacity-50">search_off</span>
+                        <p class="font-medium">No details found for this selection.</p>
+                    </div>
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>

@@ -58,6 +58,7 @@ def seed_rbac():
             {"title": "Location Wise Stock Snapshot", "url": "/branchweight", "icon": "scale", "order": 50},
             {"title": "Branch Weight Allocation & Refillv2", "url": "/branchweightv2", "icon": "dvr", "order": 60},
             {"title": "Owner Wise Summary", "url": "/ownerwiseordersummary", "icon": "person_pin", "order": 70},
+            {"title": "Outstanding PO Status", "url": "/outstanding_purchase_orders", "icon": "receipt_long", "order": 75},
             {"title": "Crystal General Issues", "url": "/crystal_issues", "icon": "report_problem", "order": 80},
             {"title": "Quality Control", "url": "#", "icon": "fact_check", "order": 90},
             {"title": "Dispatch", "url": "#", "icon": "local_shipping", "order": 100}
