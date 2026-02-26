@@ -317,6 +317,10 @@ class OutstandingPurchaseOrderStatusSnapshot(db.Model):
     make = db.Column('make', db.Text)
     collection = db.Column('collection', db.Text)
     section = db.Column('section', db.Text)
+    division = db.Column('division', db.Text)
+    group = db.Column('group', db.Text)
+    purity = db.Column('purity', db.Text)
+    purchase_ro = db.Column('purchase_ro', db.Text)
     order_pieces = db.Column('order_pieces', db.Numeric(18, 3))
     order_weight = db.Column('order_weight', db.Numeric(18, 3))
     accepted_pieces = db.Column('accepted_pieces', db.Numeric(18, 3))
@@ -335,6 +339,10 @@ class OutstandingPurchaseOrderStatusSnapshot(db.Model):
             'make': self.make,
             'collection': self.collection,
             'section': self.section,
+            'division': self.division,
+            'group': self.group,
+            'purity': self.purity,
+            'purchase_ro': self.purchase_ro,
             'order_pieces': float(self.order_pieces or 0),
             'order_weight': float(self.order_weight or 0),
             'accepted_pieces': float(self.accepted_pieces or 0),

@@ -96,6 +96,31 @@ def sync_process_delay():
     else:
         return result, 500
 
+@dashboard_bp.route('/settings/sync-outstanding-po', methods=['POST'])
+def sync_outstanding_po():
+    if not session.get('user_id') or not session.get('is_admin'):
+        return {"status": "error", "message": "Unauthorized: Admin access required"}, 401
+        
+    from app.utils.sync_manager import sync_outstanding_purchase_order_data
+    result = sync_outstanding_purchase_order_data()
+    
+    if result.get('status') == 'success':
+        try:
+            from app.extensions import redis_client
+            import json
+            count = result.get('count', 0)
+            payload = {
+                "title": "Outstanding PO Sync Complete",
+                "message": f"Successfully synced {count} records for Outstanding PO.",
+                "type": "success"
+            }
+            redis_client.publish('global_notifications', json.dumps(payload))
+        except Exception as e:
+            current_app.logger.error(f"Failed to publish global sync notification: {e}")
+        return result, 200   
+    else:
+        return result, 500
+
 @dashboard_bp.route('/settings/clear-cache', methods=['POST'])
 def clear_cache():
     if not session.get('user_id') or not session.get('is_admin'):

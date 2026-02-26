@@ -299,3 +299,133 @@ def sync_process_level_delay_data():
     finally:
         if conn:
             conn.close()
+
+def sync_outstanding_purchase_order_data():
+    """
+    Syncs data for the Outstanding Purchase Order Status Report
+    to outstanding_purchase_order_status_snapshot table.
+    Performs a full replacement (Delete & Insert).
+    """
+    from app.models.snapshots import OutstandingPurchaseOrderStatusSnapshot
+    
+    conn = None
+    try:
+        current_app.logger.info("Starting external data sync for OutstandingPurchaseOrderStatusSnapshot...")
+        conn = get_external_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        query = """
+        SELECT
+            od.supplier                    AS party,
+            od.order_no                    AS order_number,
+            od.order_date                  AS order_date,
+
+            opd.classification             AS classification,
+            opd.classification_owner       AS classification_owner,
+
+            opd.make                       AS make,
+            opd.make_owner                 AS make_owner,
+
+            opd.collection                 AS collection,
+            opd.collection_owner           AS collection_owner,
+
+            opd.section                    AS section,
+
+            -- Optional fields (include only if present in view)
+            opd.division                   AS division,
+            opd."group"                    AS "group",
+            opd.purity                     AS purity,
+
+            od.order_ro                    AS purchase_ro,
+
+            COUNT(*)                       AS order_pieces,
+            SUM(od.required_weight)        AS order_weight,
+
+            COUNT(*) FILTER (
+                WHERE od.accepted_on IS NOT NULL
+                  AND od.rejected_on IS NULL
+            )                               AS accepted_pieces,
+
+            SUM(od.barcoded_weight) FILTER (
+                WHERE od.accepted_on IS NOT NULL
+                  AND od.rejected_on IS NULL
+            )                               AS accepted_weight
+
+        FROM ext_view.vw_order_details od
+        INNER JOIN ext_view.vw_order_product_details opd
+            ON opd.order_id = od.order_id
+
+        GROUP BY
+            od.supplier,
+            od.order_no,
+            od.order_date,
+
+            opd.classification,
+            opd.classification_owner,
+
+            opd.make,
+            opd.make_owner,
+
+            opd.collection,
+            opd.collection_owner,
+
+            opd.section,
+            opd.division,
+            opd."group",
+            opd.purity,
+
+            od.order_ro;
+        """
+        
+        cur.execute(query)
+        external_data = cur.fetchall()
+        
+        if not external_data:
+            current_app.logger.warning("No data found for Outstanding Purchase Order sync.")
+            return {"status": "success", "count": 0, "message": "No data found to sync."}
+
+        try:
+            # Clear local table
+            db.session.query(OutstandingPurchaseOrderStatusSnapshot).delete()
+            
+            new_records = []
+            for row in external_data:
+                record = OutstandingPurchaseOrderStatusSnapshot(
+                    party=row.get('party'),
+                    order_number=row.get('order_number'),
+                    order_date=row.get('order_date'),
+                    classification=row.get('classification'),
+                    classification_owner=row.get('classification_owner'),
+                    make=row.get('make'),
+                    make_owner=row.get('make_owner'),
+                    collection=row.get('collection'),
+                    collection_owner=row.get('collection_owner'),
+                    section=row.get('section'),
+                    division=row.get('division'),
+                    group=row.get('group'),
+                    purity=row.get('purity'),
+                    purchase_ro=row.get('purchase_ro'),
+                    order_pieces=row.get('order_pieces'),
+                    order_weight=row.get('order_weight'),
+                    accepted_pieces=row.get('accepted_pieces'),
+                    accepted_weight=row.get('accepted_weight')
+                )
+                new_records.append(record)
+            
+            db.session.add_all(new_records)
+            db.session.commit()
+            
+            current_app.logger.info(f"Outstanding Purchase Order Sync complete. {len(new_records)} records synced.")
+            return {"status": "success", "count": len(new_records)}
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Local database error during outstanding PO sync: {str(e)}")
+            raise e
+            
+    except Exception as e:
+        current_app.logger.error(f"Outstanding PO Sync failed: {str(e)}")
+        return {"status": "error", "message": str(e)}
+    finally:
+        if conn:
+            conn.close()

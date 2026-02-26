@@ -111,6 +111,44 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const syncOutstandingPOBtn = document.getElementById('sync-outstanding-po-btn');
+    if (syncOutstandingPOBtn) {
+        syncOutstandingPOBtn.addEventListener('click', async () => {
+            const originalContent = syncOutstandingPOBtn.innerHTML;
+            syncOutstandingPOBtn.disabled = true;
+            syncOutstandingPOBtn.innerHTML = '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> Syncing...';
+
+            syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+            syncStatus.textContent = 'Contacting Azure PostgreSQL server for Outstanding PO...';
+            syncStatus.classList.remove('hidden');
+
+            try {
+                const syncUrl = window.SETTINGS_CONFIG ? window.SETTINGS_CONFIG.syncOutstandingPOUrl : '/settings/sync-outstanding-po';
+                const response = await fetch(syncUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/30';
+                    syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">check_circle</span> Sync Successful! ${data.count} records replaced for Outstanding PO.</div>`;
+                } else {
+                    throw new Error(data.message || 'Sync failed');
+                }
+            } catch (error) {
+                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/30';
+                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> Error: ${error.message}</div>`;
+            } finally {
+                syncOutstandingPOBtn.disabled = false;
+                syncOutstandingPOBtn.innerHTML = originalContent;
+            }
+        });
+    }
+
     // Clear Cache Logic
     const clearCacheBtn = document.getElementById('clear-cache-btn');
     if (clearCacheBtn) {
