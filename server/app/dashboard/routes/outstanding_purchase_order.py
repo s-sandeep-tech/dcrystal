@@ -157,7 +157,8 @@ def outstanding_purchase_order():
             func.sum(cast(OutstandingPurchaseOrderStatusSnapshot.order_pieces, Numeric)).label('order_pieces'),
             func.sum(cast(OutstandingPurchaseOrderStatusSnapshot.order_weight, Numeric)).label('order_weight'),
             func.sum(cast(OutstandingPurchaseOrderStatusSnapshot.accepted_pieces, Numeric)).label('accepted_pieces'),
-            func.sum(cast(OutstandingPurchaseOrderStatusSnapshot.accepted_weight, Numeric)).label('accepted_weight')
+            func.sum(cast(OutstandingPurchaseOrderStatusSnapshot.accepted_weight, Numeric)).label('accepted_weight'),
+            func.avg(func.current_date() - OutstandingPurchaseOrderStatusSnapshot.order_date).label('avg_delay')
         ]
         
         agg_q = db.session.query(*agg_cols)
@@ -206,6 +207,7 @@ def outstanding_purchase_order():
                 'order_weight': safe_float(r.order_weight),
                 'accepted_pieces': int(r.accepted_pieces or 0),
                 'accepted_weight': safe_float(r.accepted_weight),
+                'avg_delay': int(r.avg_delay or 0),
                 'level': level
             }
             if row_dict['make_owner'] is None: row_dict['make_owner'] = 'Unknown'
@@ -411,7 +413,8 @@ def get_outstanding_orders_partial():
             func.sum(cast(OutstandingPurchaseOrderStatusSnapshot.order_pieces, Numeric)).label('order_pieces'),
             func.sum(cast(OutstandingPurchaseOrderStatusSnapshot.order_weight, Numeric)).label('order_weight'),
             func.sum(cast(OutstandingPurchaseOrderStatusSnapshot.accepted_pieces, Numeric)).label('accepted_pieces'),
-            func.sum(cast(OutstandingPurchaseOrderStatusSnapshot.accepted_weight, Numeric)).label('accepted_weight')
+            func.sum(cast(OutstandingPurchaseOrderStatusSnapshot.accepted_weight, Numeric)).label('accepted_weight'),
+            func.avg(func.current_date() - OutstandingPurchaseOrderStatusSnapshot.order_date).label('avg_delay')
         ]
         
         stats = {}
@@ -451,6 +454,7 @@ def get_outstanding_orders_partial():
                 'order_weight': safe_float(r.order_weight),
                 'accepted_pieces': int(r.accepted_pieces or 0),
                 'accepted_weight': safe_float(r.accepted_weight),
+                'avg_delay': int(r.avg_delay or 0),
                 'level': level
             }
             if row_dict['make_owner'] is None: row_dict['make_owner'] = 'Unknown'
@@ -490,11 +494,21 @@ def get_outstanding_orders_details():
         if not classification_owner or not make_owner or not collection_owner:
             return '<div class="p-4 text-center text-red-500">Missing grouping parameters</div>', 400
             
-        details = OutstandingPurchaseOrderStatusSnapshot.query.filter_by(
-            classification_owner=classification_owner,
-            make_owner=make_owner,
-            collection_owner=collection_owner
-        ).all()
+        # Query details
+        query = db.session.query(
+            OutstandingPurchaseOrderStatusSnapshot,
+            (func.current_date() - OutstandingPurchaseOrderStatusSnapshot.order_date).label('delay_days')
+        ).filter(
+            OutstandingPurchaseOrderStatusSnapshot.classification_owner == classification_owner,
+            OutstandingPurchaseOrderStatusSnapshot.make_owner == make_owner,
+            OutstandingPurchaseOrderStatusSnapshot.collection_owner == collection_owner
+        )
+        
+        details = []
+        for row, delay in query.all():
+            d = row.to_dict()
+            d['delay_days'] = delay or 0
+            details.append(d)
         
         return render_template('partials/_view_outstanding_order_details.html', 
                                details=details, 
