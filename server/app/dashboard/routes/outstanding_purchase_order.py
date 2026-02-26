@@ -496,14 +496,64 @@ def get_outstanding_orders_details():
         make_owner = request.args.get('make_owner')
         collection_owner = request.args.get('collection_owner')
         
+        # Core Filters
+        search = request.args.get('search', '').strip()
+        purchase_ro = request.args.get('purchase_ro', '')
+        party = request.args.get('party', '')
+        classification = request.args.get('classification', '')
+        make = request.args.get('make', '')
+        collection = request.args.get('collection', '')
+        section = request.args.get('section', '')
+        division = request.args.get('division', '')
+        group = request.args.get('group', '')
+        purity = request.args.get('purity', '')
+        age_min = request.args.get('age_min', type=int)
+        age_max = request.args.get('age_max', type=int)
+        exclude_receipt = request.args.get('exclude_receipt', 'false') == 'true'
+
+        def apply_filters(query):
+            if search:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.classification_owner.ilike(f"%{search}%") | 
+                                     OutstandingPurchaseOrderStatusSnapshot.make_owner.ilike(f"%{search}%") |
+                                     OutstandingPurchaseOrderStatusSnapshot.collection_owner.ilike(f"%{search}%") |
+                                     OutstandingPurchaseOrderStatusSnapshot.party.ilike(f"%{search}%") |
+                                     OutstandingPurchaseOrderStatusSnapshot.order_number.ilike(f"%{search}%"))
+            if purchase_ro:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.purchase_ro == purchase_ro)
+            if party:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.party == party)
+            if classification:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.classification == classification)
+            if make:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.make == make)
+            if collection:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.collection == collection)
+            if section:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.section == section)
+            if division:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.division == division)
+            if group:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.group == group)
+            if purity:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.purity == purity)
+            if age_min is not None:
+                query = query.filter(func.current_date() - OutstandingPurchaseOrderStatusSnapshot.order_date >= age_min)
+            if age_max is not None:
+                query = query.filter(func.current_date() - OutstandingPurchaseOrderStatusSnapshot.order_date <= age_max)
+            if exclude_receipt:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.receipt_present != 'Y')
+            return query
+
         if not classification_owner or not make_owner or not collection_owner:
             return '<div class="p-4 text-center text-red-500">Missing grouping parameters</div>', 400
             
-        details = OutstandingPurchaseOrderStatusSnapshot.query.filter_by(
+        q = OutstandingPurchaseOrderStatusSnapshot.query.filter_by(
             classification_owner=classification_owner,
             make_owner=make_owner,
             collection_owner=collection_owner
-        ).all()
+        )
+        q = apply_filters(q)
+        details = q.all()
         
         return render_template('partials/_view_outstanding_order_details.html', 
                                details=details, 

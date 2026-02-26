@@ -389,7 +389,21 @@ function showOrderDetails(classificationOwner, makeOwner, collectionOwner) {
         </div>
     `;
 
-    fetch(`/api/outstanding_orders/details?classification_owner=${encodeURIComponent(classificationOwner)}&make_owner=${encodeURIComponent(makeOwner)}&collection_owner=${encodeURIComponent(collectionOwner)}`, {
+    const urlParams = new URLSearchParams(window.location.search);
+    const apiParams = new URLSearchParams();
+
+    // Core grouping params
+    apiParams.set('classification_owner', classificationOwner);
+    apiParams.set('make_owner', makeOwner);
+    apiParams.set('collection_owner', collectionOwner);
+
+    // Inherit all other filters
+    const filterFields = ['search', 'age_min', 'age_max', 'purchase_ro', 'party', 'classification', 'make', 'collection', 'section', 'division', 'group', 'purity', 'exclude_receipt'];
+    filterFields.forEach(f => {
+        if (urlParams.get(f)) apiParams.set(f, urlParams.get(f));
+    });
+
+    fetch(`/api/outstanding_orders/details?${apiParams.toString()}`, {
         headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
