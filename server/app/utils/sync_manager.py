@@ -351,7 +351,7 @@ def sync_outstanding_purchase_order_data():
           AND od.rejected_on IS NULL
     )                         AS accepted_pieces,
 
-    SUM(od.barcoded_weight) FILTER (
+    SUM(od.required_weight) FILTER (
         WHERE od.accepted_on IS NOT NULL
           AND od.rejected_on IS NULL
     )                         AS accepted_weight
