@@ -31,6 +31,7 @@ def owner_wise_order_summary():
         to_date = request.args.get('to_date', '')
         enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
         order_ro = request.args.get('order_ro', '')
+        order_request_type = request.args.get('order_request_type', '')
         age = request.args.get('age', '', type=str)
 
         page = request.args.get('page', 1, type=int)
@@ -66,6 +67,8 @@ def owner_wise_order_summary():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
             if order_ro:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_ro == order_ro)
+            if order_request_type:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.order_request_type == order_request_type)
             
             if age and age.isdigit():
                 age_val = int(age)
@@ -114,6 +117,7 @@ def owner_wise_order_summary():
             'make_owners': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.make_owner)).distinct().order_by(OwnerWiseOrderSummarySnapshot.make_owner).all() if r[0]],
             'classifications': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.classification)).distinct().order_by(OwnerWiseOrderSummarySnapshot.classification).all() if r[0]],
             'order_types': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.order_type)).distinct().order_by(OwnerWiseOrderSummarySnapshot.order_type).all() if r[0]],
+            'order_request_types': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.order_request_type)).distinct().order_by(OwnerWiseOrderSummarySnapshot.order_request_type).all() if r[0]],
             'order_ros': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.order_ro)).distinct().order_by(OwnerWiseOrderSummarySnapshot.order_ro).all() if r[0]]
         }
 
@@ -249,6 +253,7 @@ def get_owner_wise_partial():
         to_date = request.args.get('to_date', '')
         enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
         order_ro = request.args.get('order_ro', '')
+        order_request_type = request.args.get('order_request_type', '')
         age = request.args.get('age', '', type=str)
         
         parent_level = request.args.get('parent_level')
@@ -289,6 +294,8 @@ def get_owner_wise_partial():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
             if order_ro:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_ro == order_ro)
+            if order_request_type:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.order_request_type == order_request_type)
 
             if age and age.isdigit():
                 age_val = int(age)
@@ -444,6 +451,7 @@ def get_leaf_detail():
         to_date = request.args.get('to_date', '')
         enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
         order_ro = request.args.get('order_ro', '')
+        order_request_type = request.args.get('order_request_type', '')
         age = request.args.get('age', '', type=str)
         
         query = db.session.query(OwnerWiseOrderSummarySnapshot)
@@ -461,6 +469,8 @@ def get_leaf_detail():
             query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
         if order_ro:
             query = query.filter(OwnerWiseOrderSummarySnapshot.order_ro == order_ro)
+        if order_request_type:
+            query = query.filter(OwnerWiseOrderSummarySnapshot.order_request_type == order_request_type)
         
         if age and age.isdigit():
             age_val = int(age)

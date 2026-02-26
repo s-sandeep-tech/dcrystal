@@ -300,6 +300,18 @@
                 </select>
             </div>
             <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order Request Type</label>
+                <select id="filter-order-request-type"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Request Types</option>
+                    {% for ort in filter_options.order_request_types %}
+                    <option value="{{ ort }}" {% if request.args.get('order_request_type')==ort %}selected{% endif %}>{{
+                        ort }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-1">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Supplier</label>
                 <select id="filter-supplier"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
