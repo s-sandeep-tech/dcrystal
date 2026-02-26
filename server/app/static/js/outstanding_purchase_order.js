@@ -221,6 +221,10 @@ function applyGlobalFilters() {
         else urlParams.delete(field);
     });
 
+    const excludeReceipt = document.getElementById('filter-exclude-receipt')?.checked;
+    if (excludeReceipt) urlParams.set('exclude_receipt', 'true');
+    else urlParams.delete('exclude_receipt');
+
     urlParams.set('page', 1);
     updateUrlAndLoad(urlParams);
 }
@@ -238,6 +242,10 @@ function resetGlobalFilters() {
         const el = document.getElementById(`filter-${field.replace('_', '-')}`);
         if (el) el.value = '';
     });
+
+    urlParams.delete('exclude_receipt');
+    const excludeReceiptEl = document.getElementById('filter-exclude-receipt');
+    if (excludeReceiptEl) excludeReceiptEl.checked = false;
 
     const search = document.getElementById('hierarchy-search');
     if (search) search.value = '';
@@ -355,6 +363,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (el) el.value = urlParams.get(field);
         }
     });
+
+    if (urlParams.get('exclude_receipt') === 'true') {
+        const el = document.getElementById('filter-exclude-receipt');
+        if (el) el.checked = true;
+    }
 
     loadViewData();
     loadFilterOptions();

@@ -56,6 +56,7 @@
                 <th class="text-right text-blue-600">Order Wt</th>
                 <th class="text-right text-emerald-600">Accepted Pcs</th>
                 <th class="text-right text-emerald-600">Accepted Wt</th>
+                <th class="text-center w-16">Receipt</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 dark:divide-gray-800/60 bg-white dark:bg-gray-900">
@@ -81,11 +82,18 @@
                 <td class="text-right font-medium text-blue-600/80">{{ "{:,.3f}".format(d.order_weight) }}</td>
                 <td class="text-right font-medium text-emerald-600/80">{{ "{:,.0f}".format(d.accepted_pieces) }}</td>
                 <td class="text-right font-medium text-emerald-600/80">{{ "{:,.3f}".format(d.accepted_weight) }}</td>
+                <td class="text-center">
+                    {% if d.receipt_present == 'Y' %}
+                    <span class="material-symbols-outlined text-emerald-500 text-sm">check_circle</span>
+                    {% else %}
+                    <span class="material-symbols-outlined text-gray-300 text-sm">pending_actions</span>
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
             {% else %}
             <tr>
-                <td colspan="12" class="p-12 text-center text-gray-400">
+                <td colspan="13" class="p-12 text-center text-gray-400">
                     <div class="flex flex-col items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-4xl opacity-50">search_off</span>
                         <p class="font-medium">No details found for this selection.</p>

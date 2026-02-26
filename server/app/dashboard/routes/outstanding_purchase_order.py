@@ -81,6 +81,7 @@ def outstanding_purchase_order():
         purity = request.args.get('purity', '')
         age_min = request.args.get('age_min', type=int)
         age_max = request.args.get('age_max', type=int)
+        exclude_receipt = request.args.get('exclude_receipt', 'false') == 'true'
         
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
@@ -89,6 +90,7 @@ def outstanding_purchase_order():
                                      search=search, classification_owner=classification_owner, make_owner=make_owner, collection_owner=collection_owner, 
                                      purchase_ro=purchase_ro, party=party, classification=classification, make=make, collection=collection, section=section,
                                      division=division, group=group, purity=purity, age_min=age_min, age_max=age_max,
+                                     exclude_receipt=exclude_receipt,
                                      page=page, per_page=per_page)
         
         cached_data = redis_client.get(cache_key)
@@ -149,6 +151,8 @@ def outstanding_purchase_order():
                 query = query.filter(func.current_date() - OutstandingPurchaseOrderStatusSnapshot.order_date >= age_min)
             if age_max is not None:
                 query = query.filter(func.current_date() - OutstandingPurchaseOrderStatusSnapshot.order_date <= age_max)
+            if exclude_receipt:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.receipt_present != 'Y')
                 
             return query
 
@@ -307,8 +311,10 @@ def get_outstanding_orders_partial():
         purity = request.args.get('purity', '')
         age_min = request.args.get('age_min', type=int)
         age_max = request.args.get('age_max', type=int)
+        exclude_receipt = request.args.get('exclude_receipt', 'false') == 'true'
         
         parent_level = request.args.get('parent_level')
+
         parent_value = request.args.get('parent_value')
         grandparent_value = request.args.get('grandparent_value')
 
@@ -319,6 +325,7 @@ def get_outstanding_orders_partial():
                                      search=search, classification_owner=classification_owner, make_owner=make_owner, collection_owner=collection_owner, 
                                      purchase_ro=purchase_ro, party=party, classification=classification, make=make, collection=collection, section=section,
                                      division=division, group=group, purity=purity, age_min=age_min, age_max=age_max,
+                                     exclude_receipt=exclude_receipt,
                                      parent_level=parent_level, 
                                      parent_value=parent_value, grandparent_value=grandparent_value,
                                      page=page, per_page=per_page)
@@ -382,6 +389,8 @@ def get_outstanding_orders_partial():
                 query = query.filter(func.current_date() - OutstandingPurchaseOrderStatusSnapshot.order_date >= age_min)
             if age_max is not None:
                 query = query.filter(func.current_date() - OutstandingPurchaseOrderStatusSnapshot.order_date <= age_max)
+            if exclude_receipt:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.receipt_present != 'Y')
                 
             return query
 

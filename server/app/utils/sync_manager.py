@@ -54,7 +54,7 @@ def sync_owner_wise_data():
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         # Fetch data from external view
-        query = "SELECT * FROM ext_view.vw_ownership_wise_order_summary"
+        query = "SELECT * FROM ext_view.vw_ownership_wise_order_summary_with_order_type"
         cur.execute(query)
         external_data = cur.fetchall()
         
@@ -316,65 +316,68 @@ def sync_outstanding_purchase_order_data():
         
         query = """
         SELECT
-            od.supplier                    AS party,
-            od.order_no                    AS order_number,
-            od.order_date                  AS order_date,
+    od.supplier              AS party,
+    od.order_no              AS order_number,
+    od.order_date            AS order_date,
 
-            opd.classification             AS classification,
-            opd.classification_owner       AS classification_owner,
+    opd.classification       AS classification,
+    opd.classification_owner AS classification_owner,
 
-            opd.make                       AS make,
-            opd.make_owner                 AS make_owner,
+    opd.make                 AS make,
+    opd.make_owner           AS make_owner,
 
-            opd.collection                 AS collection,
-            opd.collection_owner           AS collection_owner,
+    opd.collection           AS collection,
+    opd.collection_owner     AS collection_owner,
 
-            opd.section                    AS section,
+    opd.section              AS section,
 
-            -- Optional fields (include only if present in view)
-            opd.division                   AS division,
-            opd."group"                    AS "group",
-            opd.purity                     AS purity,
+    -- Optional fields (include only if present in view)
+    opd.division             AS division,
+    opd."group"              AS "group",
+    opd.purity               AS purity,
 
-            od.order_ro                    AS purchase_ro,
+    od.order_ro              AS purchase_ro,
 
-            COUNT(*)                       AS order_pieces,
-            SUM(od.required_weight)        AS order_weight,
+    CASE
+        WHEN inv.order_receipt_created_at IS NOT NULL THEN 'Y'
+        ELSE 'N'
+    END                      AS receipt_present,
 
-            COUNT(*) FILTER (
-                WHERE od.accepted_on IS NOT NULL
-                  AND od.rejected_on IS NULL
-            )                               AS accepted_pieces,
+    COUNT(*)                 AS order_pieces,
+    SUM(od.required_weight)  AS order_weight,
 
-            SUM(od.barcoded_weight) FILTER (
-                WHERE od.accepted_on IS NOT NULL
-                  AND od.rejected_on IS NULL
-            )                               AS accepted_weight
+    COUNT(*) FILTER (
+        WHERE od.accepted_on IS NOT NULL
+          AND od.rejected_on IS NULL
+    )                         AS accepted_pieces,
 
-        FROM ext_view.vw_order_details od
-        INNER JOIN ext_view.vw_order_product_details opd
-            ON opd.order_id = od.order_id
+    SUM(od.barcoded_weight) FILTER (
+        WHERE od.accepted_on IS NOT NULL
+          AND od.rejected_on IS NULL
+    )                         AS accepted_weight
 
-        GROUP BY
-            od.supplier,
-            od.order_no,
-            od.order_date,
+FROM ext_view.vw_order_details od
+JOIN ext_view.vw_order_product_details opd
+  ON opd.order_id = od.order_id
+LEFT JOIN ext_view.vw_order_supplier_invoice_summary inv
+  ON inv.order_id = od.order_id
 
-            opd.classification,
-            opd.classification_owner,
-
-            opd.make,
-            opd.make_owner,
-
-            opd.collection,
-            opd.collection_owner,
-
-            opd.section,
-            opd.division,
-            opd."group",
-            opd.purity,
-
-            od.order_ro;
+GROUP BY
+    od.supplier,
+    od.order_no,
+    od.order_date,
+    opd.classification,
+    opd.classification_owner,
+    opd.make,
+    opd.make_owner,
+    opd.collection,
+    opd.collection_owner,
+    opd.section,
+    opd.division,
+    opd."group",
+    opd.purity,
+    od.order_ro,
+    CASE WHEN inv.order_receipt_created_at IS NOT NULL THEN 'Y' ELSE 'N' END;
         """
         
         cur.execute(query)
@@ -405,6 +408,7 @@ def sync_outstanding_purchase_order_data():
                     group=row.get('group'),
                     purity=row.get('purity'),
                     purchase_ro=row.get('purchase_ro'),
+                    receipt_present=row.get('receipt_present'),
                     order_pieces=row.get('order_pieces'),
                     order_weight=row.get('order_weight'),
                     accepted_pieces=row.get('accepted_pieces'),
