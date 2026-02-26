@@ -149,113 +149,140 @@ def sync_process_level_delay_data():
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         query = """
-          WITH qc_agg AS (
-            SELECT
-              order_id,
-              MAX(qc_completed_at)::date AS qc_date
-            FROM ext_view.vw_order_qc_details
-            GROUP BY order_id
-          ),
-          hm_agg AS (
-            SELECT
-              order_id,
-              MAX(hm_out_date)::date AS hallmark_date,
-              -- If any record is Passed, treat as Passed (adjust if your logic differs)
-              CASE WHEN BOOL_OR(hm_status = 'Passed') THEN 'Passed' ELSE 'Not Passed' END AS hallmark_status
-            FROM ext_view.vw_order_hallmark_details
-            GROUP BY order_id
-          ),
-          base AS (
-            SELECT
-              od.order_id,
-              od.supplier AS party_name,
-              od.order_status,
-              od.order_date::date  AS order_date,
-              od.accepted_on::date AS accepted_date,
-              od.barcoded_at::date AS barcoded_date,
-              h.hallmark_date,
-              h.hallmark_status,
-              q.qc_date
-            FROM ext_view.vw_order_details od
-            LEFT JOIN qc_agg q ON q.order_id = od.order_id
-            LEFT JOIN hm_agg h ON h.order_id = od.order_id
-          ),
-          status_rows AS (
-            SELECT DISTINCT order_id, party_name,
-              'Order Accepted' AS completed_process_level,
-              accepted_date    AS last_completed_date
-            FROM base
-            WHERE accepted_date IS NOT NULL
+          WITH
+qc_agg AS (
+  SELECT
+    order_id,
+    MAX(qc_completed_at)::date AS qc_date
+  FROM ext_view.vw_order_qc_details
+  GROUP BY order_id
+),
+hm_agg AS (
+  SELECT
+    order_id,
+    MAX(hm_out_date)::date AS hallmark_date,
+    CASE WHEN BOOL_OR(hm_status = 'Passed') THEN 'Passed' ELSE 'Not Passed' END AS hallmark_status
+  FROM ext_view.vw_order_hallmark_details
+  GROUP BY order_id
+),
+base AS (
+  SELECT
+    od.order_id,
+    od.supplier AS party_name,
+    od.order_status,
+    od.order_date::date  AS order_date,
+    od.accepted_on::date AS accepted_date,
+    od.barcoded_at::date AS barcoded_date,
+    h.hallmark_date,
+    h.hallmark_status,
+    q.qc_date
+  FROM ext_view.vw_order_details od
+  LEFT JOIN qc_agg q ON q.order_id = od.order_id
+  LEFT JOIN hm_agg h ON h.order_id = od.order_id
+),
+status_rows AS (
+  SELECT DISTINCT order_id, party_name,
+    'Order Accepted' AS completed_process_level,
+    accepted_date    AS last_completed_date
+  FROM base
+  WHERE accepted_date IS NOT NULL
 
-            UNION ALL
-            SELECT DISTINCT order_id, party_name,
-              'Barcoded', barcoded_date
-            FROM base
-            WHERE barcoded_date IS NOT NULL
+  UNION ALL
+  SELECT DISTINCT order_id, party_name,
+    'Barcoded', barcoded_date
+  FROM base
+  WHERE barcoded_date IS NOT NULL
 
-            UNION ALL
-            SELECT DISTINCT order_id, party_name,
-              'Hallmark Completed', hallmark_date
-            FROM base
-            WHERE hallmark_date IS NOT NULL
-              AND hallmark_status = 'Passed'
+  UNION ALL
+  SELECT DISTINCT order_id, party_name,
+    'Hallmark Completed', hallmark_date
+  FROM base
+  WHERE hallmark_date IS NOT NULL
+    AND hallmark_status = 'Passed'
 
-            UNION ALL
-            SELECT DISTINCT order_id, party_name,
-              'QC Completed', qc_date
-            FROM base
-            WHERE qc_date IS NOT NULL
+  UNION ALL
+  SELECT DISTINCT order_id, party_name,
+    'QC Completed', qc_date
+  FROM base
+  WHERE qc_date IS NOT NULL
 
-            UNION ALL
-            SELECT DISTINCT order_id, party_name,
-              'Invoiced',
-              COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date)
-            FROM base
-            WHERE order_status ILIKE '%invoice%'
+  UNION ALL
+  SELECT DISTINCT order_id, party_name,
+    'Invoiced',
+    COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date)
+  FROM base
+  WHERE order_status ILIKE '%invoice%'
 
-            UNION ALL
-            SELECT DISTINCT order_id, party_name,
-              'Delivered',
-              COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date)
-            FROM base
-            WHERE order_status ILIKE '%deliver%'
-          ),
-          stage_flow AS (
-            SELECT * FROM (VALUES
-              ('Order Accepted',     'Barcoding', 1),
-              ('Barcoded',           'Hallmark',  2),
-              ('Hallmark Completed', 'QC',        3),
-              ('QC Completed',       'Invoice',   4),
-              ('Invoiced',           'Delivery',  5),
-              ('Delivered',          'Completed', 6)
-            ) AS t(completed_process_level, next_process_level, seq)
-          )
-          SELECT
-            s.party_name,
-            s.completed_process_level,
-            COUNT(*) AS completed_quantity,
-            f.next_process_level,
+  UNION ALL
+  SELECT DISTINCT order_id, party_name,
+    'Delivered',
+    COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date)
+  FROM base
+  WHERE order_status ILIKE '%deliver%'
+),
+stage_flow AS (
+  SELECT * FROM (VALUES
+    ('Order Accepted',     'Barcoded',           'Barcoding', 1),
+    ('Barcoded',           'Hallmark Completed', 'Hallmark',  2),
+    ('Hallmark Completed', 'QC Completed',       'QC',        3),
+    ('QC Completed',       'Invoiced',           'Invoice',   4),
+    ('Invoiced',           'Delivered',          'Delivery',  5),
+    ('Delivered',          NULL,                'Completed', 6)
+  ) AS t(curr_stage, next_stage, next_process_level, seq)
+),
+joined AS (
+  SELECT
+    c.order_id,
+    c.party_name,
+    c.completed_process_level AS completed_process,
+    c.last_completed_date     AS completed_date,
 
-            COUNT(*) FILTER (
-              WHERE s.last_completed_date IS NOT NULL
-                AND (CURRENT_DATE - s.last_completed_date) BETWEEN 1 AND 2
-            ) AS "Time Window 1-2days",
+    f.next_stage,
+    f.next_process_level      AS next_process,
+    f.seq,
 
-            COUNT(*) FILTER (
-              WHERE s.last_completed_date IS NOT NULL
-                AND (CURRENT_DATE - s.last_completed_date) BETWEEN 3 AND 4
-            ) AS "Time Window 2-4days",
+    n.last_completed_date     AS next_completed_date,
+    (CURRENT_DATE - c.last_completed_date) AS days_waiting
+  FROM status_rows c
+  JOIN stage_flow f
+    ON f.curr_stage = c.completed_process_level
+  LEFT JOIN status_rows n
+    ON n.order_id = c.order_id
+   AND n.completed_process_level = f.next_stage
+  WHERE c.last_completed_date IS NOT NULL
+)
+SELECT
+  party_name        AS "Party Name",
+  completed_process AS "Completed Process",
+  COUNT(DISTINCT order_id) AS "Qty",
+  next_process      AS "Next Process",
 
-            COUNT(*) FILTER (
-              WHERE s.last_completed_date IS NOT NULL
-                AND (CURRENT_DATE - s.last_completed_date) > 4
-            ) AS "Time Window-morethan 4 days"
+  COUNT(DISTINCT order_id) FILTER (
+    WHERE next_stage IS NOT NULL
+      AND next_completed_date IS NULL
+  ) AS "Pending Qty",
 
-          FROM status_rows s
-          JOIN stage_flow f
-            ON f.completed_process_level = s.completed_process_level
-          GROUP BY s.party_name, s.completed_process_level, f.next_process_level, f.seq
-          ORDER BY s.party_name, f.seq;
+  COUNT(DISTINCT order_id) FILTER (
+    WHERE next_stage IS NOT NULL
+      AND next_completed_date IS NULL
+      AND days_waiting BETWEEN 1 AND 2
+  ) AS "1-2 Days",
+
+  COUNT(DISTINCT order_id) FILTER (
+    WHERE next_stage IS NOT NULL
+      AND next_completed_date IS NULL
+      AND days_waiting BETWEEN 3 AND 4
+  ) AS "2-4 Days",
+
+  COUNT(DISTINCT order_id) FILTER (
+    WHERE next_stage IS NOT NULL
+      AND next_completed_date IS NULL
+      AND days_waiting > 4
+  ) AS ">4 Days"
+
+FROM joined
+GROUP BY party_name, completed_process, next_process, seq
+ORDER BY party_name, seq;
         """
         
         cur.execute(query)
