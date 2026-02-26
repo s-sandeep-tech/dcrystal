@@ -78,10 +78,12 @@
                     d.collection or '-' }}</td>
                 <td class="text-gray-600 dark:text-gray-400 max-w-24 truncate" title="{{ d.section }}">{{ d.section or
                     '-' }}</td>
-                <td class="text-right font-medium text-blue-600/80">{{ "{:,.0f}".format(d.order_pieces) }}</td>
-                <td class="text-right font-medium text-blue-600/80">{{ "{:,.3f}".format(d.order_weight) }}</td>
-                <td class="text-right font-medium text-emerald-600/80">{{ "{:,.0f}".format(d.accepted_pieces) }}</td>
-                <td class="text-right font-medium text-emerald-600/80">{{ "{:,.3f}".format(d.accepted_weight) }}</td>
+                <td class="text-right font-medium text-blue-600/80">{{ "{:,.0f}".format(d.order_pieces or 0) }}</td>
+                <td class="text-right font-medium text-blue-600/80">{{ "{:,.3f}".format(d.order_weight or 0) }}</td>
+                <td class="text-right font-medium text-emerald-600/80">{{ "{:,.0f}".format(d.accepted_pieces or 0) }}
+                </td>
+                <td class="text-right font-medium text-emerald-600/80">{{ "{:,.3f}".format(d.accepted_weight or 0) }}
+                </td>
                 <td class="text-center">
                     {% if d.receipt_present == 'Y' %}
                     <span class="material-symbols-outlined text-emerald-500 text-sm">check_circle</span>

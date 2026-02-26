@@ -55,10 +55,10 @@
                 }}</td>
             <td class="text-gray-400">{{ r.make_owner or '-' }}</td>
             <td class="text-gray-400">{{ r.collection_owner or '-' }}</td>
-            <td class="text-right font-medium text-blue-600/80">{{ "{:,.0f}".format(r.order_pieces) }}</td>
-            <td class="text-right font-medium text-blue-600/80">{{ "{:,.3f}".format(r.order_weight) }}</td>
-            <td class="text-right font-medium text-emerald-600/80">{{ "{:,.0f}".format(r.accepted_pieces) }}</td>
-            <td class="text-right font-medium text-emerald-600/80">{{ "{:,.3f}".format(r.accepted_weight) }}</td>
+            <td class="text-right font-medium text-blue-600/80">{{ "{:,.0f}".format(r.order_pieces or 0) }}</td>
+            <td class="text-right font-medium text-blue-600/80">{{ "{:,.3f}".format(r.order_weight or 0) }}</td>
+            <td class="text-right font-medium text-emerald-600/80">{{ "{:,.0f}".format(r.accepted_pieces or 0) }}</td>
+            <td class="text-right font-medium text-emerald-600/80">{{ "{:,.3f}".format(r.accepted_weight or 0) }}</td>
         </tr>
         {% endfor %}
 
