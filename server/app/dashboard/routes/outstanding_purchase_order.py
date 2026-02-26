@@ -70,11 +70,25 @@ def outstanding_purchase_order():
         classification_owner = request.args.get('classification_owner', '')
         make_owner = request.args.get('make_owner', '')
         collection_owner = request.args.get('collection_owner', '')
+        purchase_ro = request.args.get('purchase_ro', '')
+        party = request.args.get('party', '')
+        classification = request.args.get('classification', '')
+        make = request.args.get('make', '')
+        collection = request.args.get('collection', '')
+        section = request.args.get('section', '')
+        division = request.args.get('division', '')
+        group = request.args.get('group', '')
+        purity = request.args.get('purity', '')
+        age_min = request.args.get('age_min', type=int)
+        age_max = request.args.get('age_max', type=int)
+        
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
 
         cache_key = generate_cache_key('opo_main', latest_date_query, 
                                      search=search, classification_owner=classification_owner, make_owner=make_owner, collection_owner=collection_owner, 
+                                     purchase_ro=purchase_ro, party=party, classification=classification, make=make, collection=collection, section=section,
+                                     division=division, group=group, purity=purity, age_min=age_min, age_max=age_max,
                                      page=page, per_page=per_page)
         
         cached_data = redis_client.get(cache_key)
@@ -104,13 +118,37 @@ def outstanding_purchase_order():
             if search:
                 query = query.filter(OutstandingPurchaseOrderStatusSnapshot.classification_owner.ilike(f"%{search}%") | 
                                      OutstandingPurchaseOrderStatusSnapshot.make_owner.ilike(f"%{search}%") |
-                                     OutstandingPurchaseOrderStatusSnapshot.collection_owner.ilike(f"%{search}%"))
+                                     OutstandingPurchaseOrderStatusSnapshot.collection_owner.ilike(f"%{search}%") |
+                                     OutstandingPurchaseOrderStatusSnapshot.party.ilike(f"%{search}%") |
+                                     OutstandingPurchaseOrderStatusSnapshot.order_number.ilike(f"%{search}%"))
             if classification_owner:
                 query = query.filter(OutstandingPurchaseOrderStatusSnapshot.classification_owner == classification_owner)
             if make_owner:
                 query = query.filter(OutstandingPurchaseOrderStatusSnapshot.make_owner == make_owner)
             if collection_owner:
                 query = query.filter(OutstandingPurchaseOrderStatusSnapshot.collection_owner == collection_owner)
+            if purchase_ro:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.purchase_ro == purchase_ro)
+            if party:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.party == party)
+            if classification:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.classification == classification)
+            if make:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.make == make)
+            if collection:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.collection == collection)
+            if section:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.section == section)
+            if division:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.division == division)
+            if group:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.group == group)
+            if purity:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.purity == purity)
+            if age_min is not None:
+                query = query.filter(func.current_date() - OutstandingPurchaseOrderStatusSnapshot.order_date >= age_min)
+            if age_max is not None:
+                query = query.filter(func.current_date() - OutstandingPurchaseOrderStatusSnapshot.order_date <= age_max)
                 
             return query
 
@@ -203,6 +241,16 @@ def outstanding_orders_options():
         make_owner = request.args.get('make_owner')
         
         options = {
+            'purchase_ros': [r[0] for r in db.session.query(OutstandingPurchaseOrderStatusSnapshot.purchase_ro.distinct()).order_by(OutstandingPurchaseOrderStatusSnapshot.purchase_ro).all() if r[0]],
+            'parties': [r[0] for r in db.session.query(OutstandingPurchaseOrderStatusSnapshot.party.distinct()).order_by(OutstandingPurchaseOrderStatusSnapshot.party).all() if r[0]],
+            'classifications': [r[0] for r in db.session.query(OutstandingPurchaseOrderStatusSnapshot.classification.distinct()).order_by(OutstandingPurchaseOrderStatusSnapshot.classification).all() if r[0]],
+            'makes': [r[0] for r in db.session.query(OutstandingPurchaseOrderStatusSnapshot.make.distinct()).order_by(OutstandingPurchaseOrderStatusSnapshot.make).all() if r[0]],
+            'collections': [r[0] for r in db.session.query(OutstandingPurchaseOrderStatusSnapshot.collection.distinct()).order_by(OutstandingPurchaseOrderStatusSnapshot.collection).all() if r[0]],
+            'sections': [r[0] for r in db.session.query(OutstandingPurchaseOrderStatusSnapshot.section.distinct()).order_by(OutstandingPurchaseOrderStatusSnapshot.section).all() if r[0]],
+            'divisions': [r[0] for r in db.session.query(OutstandingPurchaseOrderStatusSnapshot.division.distinct()).order_by(OutstandingPurchaseOrderStatusSnapshot.division).all() if r[0]],
+            'groups': [r[0] for r in db.session.query(OutstandingPurchaseOrderStatusSnapshot.group.distinct()).order_by(OutstandingPurchaseOrderStatusSnapshot.group).all() if r[0]],
+            'purities': [r[0] for r in db.session.query(OutstandingPurchaseOrderStatusSnapshot.purity.distinct()).order_by(OutstandingPurchaseOrderStatusSnapshot.purity).all() if r[0]],
+            
             'classification_owners': [r[0] for r in db.session.query(OutstandingPurchaseOrderStatusSnapshot.classification_owner.distinct()).order_by(OutstandingPurchaseOrderStatusSnapshot.classification_owner).all() if r[0]],
             'make_owners': [],
             'collection_owners': []
@@ -212,6 +260,7 @@ def outstanding_orders_options():
             options['make_owners'] = [r[0] for r in db.session.query(OutstandingPurchaseOrderStatusSnapshot.make_owner.distinct()).filter(OutstandingPurchaseOrderStatusSnapshot.classification_owner == classification_owner).order_by(OutstandingPurchaseOrderStatusSnapshot.make_owner).all() if r[0]]
         else:
             options['make_owners'] = [r[0] for r in db.session.query(OutstandingPurchaseOrderStatusSnapshot.make_owner.distinct()).order_by(OutstandingPurchaseOrderStatusSnapshot.make_owner).all() if r[0]]
+
             
         if make_owner:
             options['collection_owners'] = [r[0] for r in db.session.query(OutstandingPurchaseOrderStatusSnapshot.collection_owner.distinct()).filter(OutstandingPurchaseOrderStatusSnapshot.make_owner == make_owner).order_by(OutstandingPurchaseOrderStatusSnapshot.collection_owner).all() if r[0]]
@@ -247,6 +296,17 @@ def get_outstanding_orders_partial():
         classification_owner = request.args.get('classification_owner', '')
         make_owner = request.args.get('make_owner', '')
         collection_owner = request.args.get('collection_owner', '')
+        purchase_ro = request.args.get('purchase_ro', '')
+        party = request.args.get('party', '')
+        classification = request.args.get('classification', '')
+        make = request.args.get('make', '')
+        collection = request.args.get('collection', '')
+        section = request.args.get('section', '')
+        division = request.args.get('division', '')
+        group = request.args.get('group', '')
+        purity = request.args.get('purity', '')
+        age_min = request.args.get('age_min', type=int)
+        age_max = request.args.get('age_max', type=int)
         
         parent_level = request.args.get('parent_level')
         parent_value = request.args.get('parent_value')
@@ -257,6 +317,8 @@ def get_outstanding_orders_partial():
         
         cache_key = generate_cache_key('opo_partial', latest_date_query, 
                                      search=search, classification_owner=classification_owner, make_owner=make_owner, collection_owner=collection_owner, 
+                                     purchase_ro=purchase_ro, party=party, classification=classification, make=make, collection=collection, section=section,
+                                     division=division, group=group, purity=purity, age_min=age_min, age_max=age_max,
                                      parent_level=parent_level, 
                                      parent_value=parent_value, grandparent_value=grandparent_value,
                                      page=page, per_page=per_page)
@@ -289,13 +351,37 @@ def get_outstanding_orders_partial():
             if search:
                 query = query.filter(OutstandingPurchaseOrderStatusSnapshot.classification_owner.ilike(f"%{search}%") | 
                                      OutstandingPurchaseOrderStatusSnapshot.make_owner.ilike(f"%{search}%") |
-                                     OutstandingPurchaseOrderStatusSnapshot.collection_owner.ilike(f"%{search}%"))
+                                     OutstandingPurchaseOrderStatusSnapshot.collection_owner.ilike(f"%{search}%") |
+                                     OutstandingPurchaseOrderStatusSnapshot.party.ilike(f"%{search}%") |
+                                     OutstandingPurchaseOrderStatusSnapshot.order_number.ilike(f"%{search}%"))
             if classification_owner:
                 query = query.filter(OutstandingPurchaseOrderStatusSnapshot.classification_owner == classification_owner)
             if make_owner:
                 query = query.filter(OutstandingPurchaseOrderStatusSnapshot.make_owner == make_owner)
             if collection_owner:
                 query = query.filter(OutstandingPurchaseOrderStatusSnapshot.collection_owner == collection_owner)
+            if purchase_ro:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.purchase_ro == purchase_ro)
+            if party:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.party == party)
+            if classification:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.classification == classification)
+            if make:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.make == make)
+            if collection:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.collection == collection)
+            if section:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.section == section)
+            if division:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.division == division)
+            if group:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.group == group)
+            if purity:
+                query = query.filter(OutstandingPurchaseOrderStatusSnapshot.purity == purity)
+            if age_min is not None:
+                query = query.filter(func.current_date() - OutstandingPurchaseOrderStatusSnapshot.order_date >= age_min)
+            if age_max is not None:
+                query = query.filter(func.current_date() - OutstandingPurchaseOrderStatusSnapshot.order_date <= age_max)
                 
             return query
 

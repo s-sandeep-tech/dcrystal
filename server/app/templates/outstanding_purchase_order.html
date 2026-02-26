@@ -149,6 +149,42 @@
                 class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
         </div>
         <div class="space-y-4">
+            <!-- Age Filter -->
+            <div class="space-y-1.5 flex gap-2">
+                <div class="w-1/2">
+                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Min Age (Days)</label>
+                    <input type="number" id="filter-age-min"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2 placeholder:text-gray-400"
+                        min="0" placeholder="Min">
+                </div>
+                <div class="w-1/2">
+                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Max Age (Days)</label>
+                    <input type="number" id="filter-age-max"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2 placeholder:text-gray-400"
+                        min="0" placeholder="Max">
+                </div>
+            </div>
+
+            <!-- Identifiers -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Purchase RO</label>
+                <select id="filter-purchase-ro"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Purchase ROs</option>
+                </select>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Party</label>
+                <select id="filter-party"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Parties</option>
+                </select>
+            </div>
+
+            <hr class="border-gray-200 dark:border-gray-700">
+
+            <!-- Ownership -->
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification Owner</label>
                 <select id="filter-classification-owner" onchange="onClassificationOwnerChange(this.value)"
@@ -168,6 +204,61 @@
                 <select id="filter-collection-owner" onchange="onCollectionOwnerChange(this.value)"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Collection Owners</option>
+                </select>
+            </div>
+
+            <!-- Categories -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification</label>
+                <select id="filter-classification"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Classifications</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make</label>
+                <select id="filter-make"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Makes</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection</label>
+                <select id="filter-collection"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Collections</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Section</label>
+                <select id="filter-section"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Sections</option>
+                </select>
+            </div>
+
+            <hr class="border-gray-200 dark:border-gray-700">
+
+            <!-- Products -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Division</label>
+                <select id="filter-division"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Divisions</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Group</label>
+                <select id="filter-group"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Groups</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Purity</label>
+                <select id="filter-purity"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Purities</option>
                 </select>
             </div>
         </div>

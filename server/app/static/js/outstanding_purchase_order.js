@@ -214,6 +214,13 @@ function applyGlobalFilters() {
     if (searchVal) urlParams.set('search', searchVal);
     else urlParams.delete('search');
 
+    const fields = ['age_min', 'age_max', 'purchase_ro', 'party', 'classification', 'make', 'collection', 'section', 'division', 'group', 'purity'];
+    fields.forEach(field => {
+        const val = document.getElementById(`filter-${field.replace('_', '-')}`)?.value;
+        if (val) urlParams.set(field, val);
+        else urlParams.delete(field);
+    });
+
     urlParams.set('page', 1);
     updateUrlAndLoad(urlParams);
 }
@@ -224,6 +231,13 @@ function resetGlobalFilters() {
     urlParams.delete('classification_owner');
     urlParams.delete('make_owner');
     urlParams.delete('collection_owner');
+
+    const fields = ['age_min', 'age_max', 'purchase_ro', 'party', 'classification', 'make', 'collection', 'section', 'division', 'group', 'purity'];
+    fields.forEach(field => {
+        urlParams.delete(field);
+        const el = document.getElementById(`filter-${field.replace('_', '-')}`);
+        if (el) el.value = '';
+    });
 
     const search = document.getElementById('hierarchy-search');
     if (search) search.value = '';
@@ -297,6 +311,17 @@ async function loadFilterOptions() {
         });
         const options = await response.json();
 
+        populateSelect('filter-purchase-ro', options.purchase_ros, 'All Purchase ROs', urlParams.get('purchase_ro'));
+        populateSelect('filter-party', options.parties, 'All Parties', urlParams.get('party'));
+        populateSelect('filter-classification', options.classifications, 'All Classifications', urlParams.get('classification'));
+        populateSelect('filter-make', options.makes, 'All Makes', urlParams.get('make'));
+        populateSelect('filter-collection', options.collections, 'All Collections', urlParams.get('collection'));
+        populateSelect('filter-section', options.sections, 'All Sections', urlParams.get('section'));
+
+        populateSelect('filter-division', options.divisions, 'All Divisions', urlParams.get('division'));
+        populateSelect('filter-group', options.groups, 'All Groups', urlParams.get('group'));
+        populateSelect('filter-purity', options.purities, 'All Purities', urlParams.get('purity'));
+
         populateSelect('filter-classification-owner', options.classification_owners, 'All Classification Owners', urlParams.get('classification_owner'));
         populateSelect('filter-make-owner', options.make_owners, 'All Make Owners', urlParams.get('make_owner'));
         populateSelect('filter-collection-owner', options.collection_owners, 'All Collection Owners', urlParams.get('collection_owner'));
@@ -322,6 +347,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('search')) document.getElementById('hierarchy-search').value = urlParams.get('search');
+
+    const fields = ['age_min', 'age_max', 'purchase_ro', 'party', 'classification', 'make', 'collection', 'section', 'division', 'group', 'purity'];
+    fields.forEach(field => {
+        if (urlParams.get(field)) {
+            const el = document.getElementById(`filter-${field.replace('_', '-')}`);
+            if (el) el.value = urlParams.get(field);
+        }
+    });
 
     loadViewData();
     loadFilterOptions();
