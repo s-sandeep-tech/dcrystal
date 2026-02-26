@@ -252,10 +252,10 @@ joined AS (
   WHERE c.last_completed_date IS NOT NULL
 )
 SELECT
-  party_name        AS "Party Name",
-  completed_process AS "Completed Process",
-  COUNT(DISTINCT order_id) AS "Qty",
-  next_process      AS "Next Process",
+  party_name        AS "party_name",
+  completed_process AS "completed_process_level",
+  COUNT(DISTINCT order_id) AS "completed_quantity",
+  next_process      AS "next_process_level",
 
   COUNT(DISTINCT order_id) FILTER (
     WHERE next_stage IS NOT NULL
@@ -266,19 +266,19 @@ SELECT
     WHERE next_stage IS NOT NULL
       AND next_completed_date IS NULL
       AND days_waiting BETWEEN 1 AND 2
-  ) AS "1-2 Days",
+  ) AS "Time Window 1-2days",
 
   COUNT(DISTINCT order_id) FILTER (
     WHERE next_stage IS NOT NULL
       AND next_completed_date IS NULL
       AND days_waiting BETWEEN 3 AND 4
-  ) AS "2-4 Days",
+  ) AS "Time Window 2-4days",
 
   COUNT(DISTINCT order_id) FILTER (
     WHERE next_stage IS NOT NULL
       AND next_completed_date IS NULL
       AND days_waiting > 4
-  ) AS ">4 Days"
+  ) AS "Time Window-morethan 4 days"
 
 FROM joined
 GROUP BY party_name, completed_process, next_process, seq
