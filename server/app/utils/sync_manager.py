@@ -149,11 +149,13 @@ def sync_process_level_delay_data():
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         query = """
+          
           WITH
 qc_agg AS (
   SELECT
     order_id,
-    MAX(qc_completed_at)::date AS qc_date
+    MAX(qc_completed_at)::date AS qc_date, 
+    CASE WHEN BOOL_OR(qc_status_name = 'Passed') THEN 'Passed' ELSE 'Not Passed' END AS qc_status
   FROM ext_view.vw_order_qc_details
   GROUP BY order_id
 ),
@@ -175,7 +177,8 @@ base AS (
     od.barcoded_at::date AS barcoded_date,
     h.hallmark_date,
     h.hallmark_status,
-    q.qc_date
+    q.qc_date,
+	q.qc_status
   FROM ext_view.vw_order_details od
   LEFT JOIN qc_agg q ON q.order_id = od.order_id
   LEFT JOIN hm_agg h ON h.order_id = od.order_id
@@ -205,20 +208,47 @@ status_rows AS (
     'QC Completed', qc_date
   FROM base
   WHERE qc_date IS NOT NULL
+	AND qc_status = 'Passed'
 
   UNION ALL
   SELECT DISTINCT order_id, party_name,
     'Invoiced',
     COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date)
   FROM base
-  WHERE order_status ILIKE '%invoice%'
-
+  WHERE order_status ILIKE '%Invoice Approved%'
+  UNION ALL
+  -- Backfill Invoiced for orders that are already Delivered (RO Received)
+  SELECT DISTINCT b.order_id, b.party_name,
+    'Invoiced' AS completed_process_level,
+    COALESCE(b.qc_date, b.hallmark_date, b.barcoded_date, b.accepted_date, b.order_date) AS last_completed_date
+  FROM base b
+  WHERE b.order_status ILIKE '%RO Received%'
+    AND NOT EXISTS (
+      SELECT 1
+      FROM base bx
+      WHERE bx.order_id = b.order_id
+        AND bx.order_status ILIKE '%Invoice Approved%'
+    )
+	
+	  UNION ALL
+  -- Backfill Invoiced for orders that are already Delivered (RO Received)
+  SELECT DISTINCT b.order_id, b.party_name,
+    'Invoiced' AS completed_process_level,
+    COALESCE(b.qc_date, b.hallmark_date, b.barcoded_date, b.accepted_date, b.order_date) AS last_completed_date
+  FROM base b
+  WHERE b.order_status ILIKE '%RO Received%'
+    AND NOT EXISTS (
+      SELECT 1
+      FROM base bx
+      WHERE bx.order_id = b.order_id
+        AND bx.order_status ILIKE '%Invoice Approved%'
+    )
   UNION ALL
   SELECT DISTINCT order_id, party_name,
     'Delivered',
     COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date)
   FROM base
-  WHERE order_status ILIKE '%deliver%'
+  WHERE order_status ILIKE '%RO Received%'
 ),
 stage_flow AS (
   SELECT * FROM (VALUES
