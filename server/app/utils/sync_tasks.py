@@ -258,17 +258,48 @@ def sync_outstanding_purchase_order_data_task():
         
         emit_sync_update('processing', 'Fetching PO data from Azure...', 20, 'outstanding_po')
         query = """
-          SELECT od.supplier AS party, od.order_no AS order_number, od.order_date AS order_date,
-            opd.classification, opd.classification_owner, opd.make, opd.make_owner, opd.collection, opd.collection_owner, opd.section,
-            od.division, opd."group", opd.purity, od.order_ro AS purchase_ro,
-            CASE WHEN inv.order_receipt_created_at IS NOT NULL THEN 'Y' ELSE 'N' END AS receipt_present,
-            COUNT(*) AS order_pieces, SUM(od.required_weight) AS order_weight,
-            COUNT(*) FILTER (WHERE od.accepted_on IS NOT NULL AND od.rejected_on IS NULL) AS accepted_pieces,
-            SUM(od.required_weight) FILTER (WHERE od.accepted_on IS NOT NULL AND od.rejected_on IS NULL) AS accepted_weight
-          FROM ext_view.vw_order_details od JOIN ext_view.vw_order_product_details opd ON opd.order_id = od.order_id
-          LEFT JOIN ext_view.vw_order_supplier_invoice_summary inv ON inv.order_id = od.order_id
-          GROUP BY od.supplier, od.order_no, od.order_date, opd.classification, opd.classification_owner, opd.make, opd.make_owner, opd.collection, opd.collection_owner, opd.section, od.division, opd."group", opd.purity, od.order_ro, receipt_present
-        """
+          SELECT
+                od.supplier AS party,
+                od.order_no AS order_number,
+                od.order_date AS order_date,
+                opd.classification,
+                opd.classification_owner,
+                opd.make,
+                opd.make_owner,
+                opd.collection,
+                opd.collection_owner,
+                opd.section,
+                opd.division,
+                opd."group",
+                opd.purity,
+                od.order_ro AS purchase_ro,
+                CASE WHEN inv.order_receipt_created_at IS NOT NULL THEN 'Y' ELSE 'N' END AS receipt_present,
+                COUNT(*) AS order_pieces,
+                SUM(od.required_weight) AS order_weight,
+                COUNT(*) FILTER (WHERE od.accepted_on IS NOT NULL AND od.rejected_on IS NULL) AS accepted_pieces,
+                SUM(od.required_weight) FILTER (WHERE od.accepted_on IS NOT NULL AND od.rejected_on IS NULL) AS accepted_weight
+                FROM ext_view.vw_order_details od
+                JOIN ext_view.vw_order_product_details opd
+                ON opd.order_id = od.order_id
+                LEFT JOIN ext_view.vw_order_supplier_invoice_summary inv
+                ON inv.order_id = od.order_id
+                GROUP BY
+                od.supplier,
+                od.order_no,
+                od.order_date,
+                opd.classification,
+                opd.classification_owner,
+                opd.make,
+                opd.make_owner,
+                opd.collection,
+                opd.collection_owner,
+                opd.section,
+                opd.division,
+                opd."group",
+                opd.purity,
+                od.order_ro,
+                (inv.order_receipt_created_at IS NOT NULL);
+    """
         
         start_time = time.time()
         cur.execute("SET statement_timeout = 0")
