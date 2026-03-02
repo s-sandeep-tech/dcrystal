@@ -23,13 +23,13 @@ def login():
         session['is_admin'] = user.is_admin
         session['roles'] = [r.name for r in user.roles]
         
-        access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(days=1))
+        access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(days=7))
         
         response = jsonify(access_token=access_token, user=user.to_dict())
         # Set cookie for session recovery (standard GET requests)
         response.set_cookie('access_token', access_token, 
                             httponly=True, 
-                            max_age=24*3600, 
+                            max_age=7*24*3600, 
                             samesite='Lax')
         
         return response, 200
