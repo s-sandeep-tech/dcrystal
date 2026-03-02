@@ -32,9 +32,10 @@ def emit_sync_update(status, message, progress=0, data_type=None):
         
         # 3. Global notification for all users on success
         if status == 'success':
+            sync_name = data_type.replace('_', ' ').capitalize() if data_type else "Data"
             global_payload = {
-                "title": f"Sync Completed: {data_type.replace('_', ' ').capitalize()}" if data_type else "Sync Completed",
-                "message": message,
+                "title": f"Sync Successful: {sync_name}",
+                "message": f"The {sync_name} synchronization has completed successfully.",
                 "type": "success",
                 "icon": "sync"
             }

@@ -152,7 +152,11 @@ document.addEventListener('DOMContentLoaded', function () {
     socket.on('global_notification', function (data) {
         console.log('Global notification received:', data);
         if (window.showToast) {
-            window.showToast(data.title || 'Notification', data.message || '', data.type || 'info');
+            // showToast expect (title, message, type)
+            const title = data.title || 'System Notification';
+            const message = data.message || '';
+            const type = data.type || 'info';
+            window.showToast(title, message, type);
         }
     });
 
