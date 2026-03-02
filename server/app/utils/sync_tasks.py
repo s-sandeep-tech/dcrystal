@@ -338,7 +338,6 @@ def sync_process_level_delay_data_task():
             ) AS "Window 10+"
 
             FROM joined
-            WHERE party_name = 'AABHUSHAN JEWELLERS PVT LTD'
 
             GROUP BY
             party_name,
