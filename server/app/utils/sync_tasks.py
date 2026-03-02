@@ -267,7 +267,7 @@ def sync_outstanding_purchase_order_data_task():
             SUM(od.required_weight) FILTER (WHERE od.accepted_on IS NOT NULL AND od.rejected_on IS NULL) AS accepted_weight
           FROM ext_view.vw_order_details od JOIN ext_view.vw_order_product_details opd ON opd.order_id = od.order_id
           LEFT JOIN ext_view.vw_order_supplier_invoice_summary inv ON inv.order_id = od.order_id
-          GROUP BY od.supplier, od.order_no, od.order_date, opd.classification, opd.classification_owner, opd.make, opd.make_owner, opd.collection, opd.collection_owner, opd.section, od.division, opd."group", opd.purity, od.order_ro, receipt_present
+          GROUP BY od.supplier, od.order_no, od.order_date, opd.classification, opd.classification_owner, opd.make, opd.make_owner, opd.collection, opd.collection_owner, opd.section, opd.division, opd."group", opd.purity, od.order_ro, receipt_present
         """
         
         start_time = time.time()
