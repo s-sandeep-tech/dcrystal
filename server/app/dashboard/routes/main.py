@@ -52,24 +52,7 @@ def sync_data():
         
     from app.utils.sync_manager import sync_owner_wise_data
     result = sync_owner_wise_data()
-    
-    if result.get('status') == 'success':
-        try:
-            from app.extensions import redis_client
-            import json
-            count = result.get('count', 0)
-            payload = {
-                "title": "Data Sync Complete",
-                "message": f"Successfully synced {count} records. New data is available!",
-                "type": "success"
-            }
-            redis_client.publish('global_notifications', json.dumps(payload))
-        except Exception as e:
-            current_app.logger.error(f"Failed to publish global sync notification: {e}")
-            
-        return result, 200
-    else:
-        return result, 500
+    return result, 200 if result.get('status') == 'success' else 500
 
 @dashboard_bp.route('/settings/sync-process-delay', methods=['POST'])
 def sync_process_delay():
@@ -78,23 +61,7 @@ def sync_process_delay():
         
     from app.utils.sync_manager import sync_process_level_delay_data
     result = sync_process_level_delay_data()
-    
-    if result.get('status') == 'success':
-        try:
-            from app.extensions import redis_client
-            import json
-            count = result.get('count', 0)
-            payload = {
-                "title": "Process Delay Sync Complete",
-                "message": f"Successfully synced {count} records for Process Level Delay.",
-                "type": "success"
-            }
-            redis_client.publish('global_notifications', json.dumps(payload))
-        except Exception as e:
-            current_app.logger.error(f"Failed to publish global sync notification: {e}")
-        return result, 200   
-    else:
-        return result, 500
+    return result, 200 if result.get('status') == 'success' else 500
 
 @dashboard_bp.route('/settings/sync-outstanding-po', methods=['POST'])
 def sync_outstanding_po():
@@ -103,23 +70,7 @@ def sync_outstanding_po():
         
     from app.utils.sync_manager import sync_outstanding_purchase_order_data
     result = sync_outstanding_purchase_order_data()
-    
-    if result.get('status') == 'success':
-        try:
-            from app.extensions import redis_client
-            import json
-            count = result.get('count', 0)
-            payload = {
-                "title": "Outstanding PO Sync Complete",
-                "message": f"Successfully synced {count} records for Outstanding PO.",
-                "type": "success"
-            }
-            redis_client.publish('global_notifications', json.dumps(payload))
-        except Exception as e:
-            current_app.logger.error(f"Failed to publish global sync notification: {e}")
-        return result, 200   
-    else:
-        return result, 500
+    return result, 200 if result.get('status') == 'success' else 500
 
 @dashboard_bp.route('/settings/clear-cache', methods=['POST'])
 def clear_cache():

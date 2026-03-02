@@ -67,6 +67,16 @@ async function start() {
     }
   });
 
+  await subscriber.subscribe('sync_updates', (message) => {
+    console.log('Received sync update:', message);
+    try {
+      const data = JSON.parse(message);
+      io.emit('sync_update', data);
+    } catch (e) {
+      console.error('Error parsing sync update:', e);
+    }
+  });
+
   io.on('connection', (socket) => {
     // Determine the IP address (handling proxies if applicable)
     const ipAddress = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;

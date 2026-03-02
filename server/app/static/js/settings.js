@@ -33,80 +33,114 @@ document.addEventListener('DOMContentLoaded', () => {
     initSocketStatus();
 
     // Data Sync Logic
-    const syncBtn = document.getElementById('sync-btn');
-    const syncProcessBtn = document.getElementById('sync-process-delay-btn');
     const syncStatus = document.getElementById('sync-status');
 
+    function setSyncLoading(btn, text) {
+        btn.disabled = true;
+        btn.dataset.originalHtml = btn.innerHTML;
+        btn.innerHTML = `<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> ${text}...`;
+    }
+
+    function resetSyncBtn(btn) {
+        btn.disabled = false;
+        btn.innerHTML = btn.dataset.originalHtml;
+    }
+
+    // SocketIO Sync Updates
+    function initSyncSocket() {
+        if (window.socket) {
+            window.socket.on('sync_update', (data) => {
+                console.log('Sync Update Received:', data);
+                if (!syncStatus) return;
+
+                syncStatus.classList.remove('hidden');
+
+                if (data.status === 'processing') {
+                    syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/30';
+                    syncStatus.innerHTML = `
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-start justify-between">
+                                <span class="flex items-start gap-2 leading-tight">
+                                    <span class="material-symbols-outlined text-sm animate-spin mt-0.5">sync</span> 
+                                    <span class="flex-1">${data.message}</span>
+                                </span>
+                                <span class="shrink-0 ml-4">${data.progress}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                <div class="bg-primary h-full transition-all duration-500" style="width: ${data.progress}%"></div>
+                            </div>
+                        </div>
+                    `;
+                } else if (data.status === 'success') {
+                    syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/30';
+                    syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">check_circle</span> ${data.message}</div>`;
+
+                    // Reset all sync buttons
+                    [syncBtn, syncProcessBtn, syncOutstandingPOBtn].forEach(btn => {
+                        if (btn && btn.disabled) resetSyncBtn(btn);
+                    });
+
+                    if (typeof window.showToast === 'function') {
+                        window.showToast(data.message, 'success');
+                    }
+                } else if (data.status === 'error') {
+                    syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/30';
+                    syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${data.message}</div>`;
+
+                    // Reset all sync buttons
+                    [syncBtn, syncProcessBtn, syncOutstandingPOBtn].forEach(btn => {
+                        if (btn && btn.disabled) resetSyncBtn(btn);
+                    });
+
+                    if (typeof window.showToast === 'function') {
+                        window.showToast(data.message, 'error');
+                    }
+                }
+            });
+        } else {
+            setTimeout(initSyncSocket, 500);
+        }
+    }
+    initSyncSocket();
+
+    const syncBtn = document.getElementById('sync-btn');
     if (syncBtn) {
         syncBtn.addEventListener('click', async () => {
-            const originalContent = syncBtn.innerHTML;
-            syncBtn.disabled = true;
-            syncBtn.innerHTML = '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> Syncing...';
-
+            setSyncLoading(syncBtn, 'Queueing');
             syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
-            syncStatus.textContent = 'Contacting Azure PostgreSQL server...';
+            syncStatus.textContent = 'Adding task to queue...';
             syncStatus.classList.remove('hidden');
 
             try {
-                const syncUrl = window.SETTINGS_CONFIG ? window.SETTINGS_CONFIG.syncDataUrl : '/dashboard/sync';
-                const response = await fetch(syncUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
+                const response = await fetch(window.SETTINGS_CONFIG.syncDataUrl, { method: 'POST' });
                 const data = await response.json();
-
-                if (response.ok) {
-                    syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/30';
-                    syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">check_circle</span> Sync Successful! ${data.count} records replaced.</div>`;
-                } else {
-                    throw new Error(data.message || 'Sync failed');
-                }
+                if (!response.ok) throw new Error(data.message || 'Queueing failed');
+                syncStatus.textContent = data.message;
             } catch (error) {
-                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/30';
-                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> Error: ${error.message}</div>`;
-            } finally {
-                syncBtn.disabled = false;
-                syncBtn.innerHTML = originalContent;
+                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 text-red-600 border border-red-100';
+                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${error.message}</div>`;
+                resetSyncBtn(syncBtn);
             }
         });
     }
 
+    const syncProcessBtn = document.getElementById('sync-process-delay-btn');
     if (syncProcessBtn) {
         syncProcessBtn.addEventListener('click', async () => {
-            const originalContent = syncProcessBtn.innerHTML;
-            syncProcessBtn.disabled = true;
-            syncProcessBtn.innerHTML = '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> Syncing...';
-
+            setSyncLoading(syncProcessBtn, 'Queueing');
             syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
-            syncStatus.textContent = 'Contacting Azure PostgreSQL server for Process Level Delay...';
+            syncStatus.textContent = 'Adding process sync to queue...';
             syncStatus.classList.remove('hidden');
 
             try {
-                const syncUrl = window.SETTINGS_CONFIG ? window.SETTINGS_CONFIG.syncProcessDelayUrl : '/settings/sync-process-delay';
-                const response = await fetch(syncUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
+                const response = await fetch(window.SETTINGS_CONFIG.syncProcessDelayUrl, { method: 'POST' });
                 const data = await response.json();
-
-                if (response.ok) {
-                    syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/30';
-                    syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">check_circle</span> Sync Successful! ${data.count} records replaced for Process Level Delay.</div>`;
-                } else {
-                    throw new Error(data.message || 'Sync failed');
-                }
+                if (!response.ok) throw new Error(data.message || 'Queueing failed');
+                syncStatus.textContent = data.message;
             } catch (error) {
-                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/30';
-                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> Error: ${error.message}</div>`;
-            } finally {
-                syncProcessBtn.disabled = false;
-                syncProcessBtn.innerHTML = originalContent;
+                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 text-red-600 border border-red-100';
+                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${error.message}</div>`;
+                resetSyncBtn(syncProcessBtn);
             }
         });
     }
@@ -114,37 +148,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncOutstandingPOBtn = document.getElementById('sync-outstanding-po-btn');
     if (syncOutstandingPOBtn) {
         syncOutstandingPOBtn.addEventListener('click', async () => {
-            const originalContent = syncOutstandingPOBtn.innerHTML;
-            syncOutstandingPOBtn.disabled = true;
-            syncOutstandingPOBtn.innerHTML = '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> Syncing...';
-
+            setSyncLoading(syncOutstandingPOBtn, 'Queueing');
             syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
-            syncStatus.textContent = 'Contacting Azure PostgreSQL server for Outstanding PO...';
+            syncStatus.textContent = 'Adding PO sync to queue...';
             syncStatus.classList.remove('hidden');
 
             try {
-                const syncUrl = window.SETTINGS_CONFIG ? window.SETTINGS_CONFIG.syncOutstandingPOUrl : '/settings/sync-outstanding-po';
-                const response = await fetch(syncUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
+                const response = await fetch(window.SETTINGS_CONFIG.syncOutstandingPOUrl, { method: 'POST' });
                 const data = await response.json();
-
-                if (response.ok) {
-                    syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/30';
-                    syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">check_circle</span> Sync Successful! ${data.count} records replaced for Outstanding PO.</div>`;
-                } else {
-                    throw new Error(data.message || 'Sync failed');
-                }
+                if (!response.ok) throw new Error(data.message || 'Queueing failed');
+                syncStatus.textContent = data.message;
             } catch (error) {
-                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/30';
-                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> Error: ${error.message}</div>`;
-            } finally {
-                syncOutstandingPOBtn.disabled = false;
-                syncOutstandingPOBtn.innerHTML = originalContent;
+                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 text-red-600 border border-red-100';
+                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${error.message}</div>`;
+                resetSyncBtn(syncOutstandingPOBtn);
             }
         });
     }

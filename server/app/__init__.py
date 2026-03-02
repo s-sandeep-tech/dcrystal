@@ -19,6 +19,14 @@ def create_app():
         'postgresql+psycopg2://meetaccess:meetpass@localhost:5432/dcrystaldb'
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        "pool_pre_ping": True,
+        "pool_recycle": 3600,
+        "pool_timeout": 900, # 15 minutes
+        "connect_args": {
+            "connect_timeout": 60
+        }
+    }
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'super-secret-key-change-me')
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-123')
     app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']

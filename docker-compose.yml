@@ -40,6 +40,23 @@ services:
       - ./server:/app
       - ./uploads:/app/uploads
 
+  sync-consumer:
+    build: ./sync-consumer
+    env_file: .env
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://meetaccess:meetpass@db:5432/dcrystaldb
+      - REDIS_HOST=redis
+      - PYTHONPATH=/app:/app/server
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./sync-consumer:/app
+      - ./server:/app/server
+      - ./uploads:/app/uploads
+
   socket-server:
     build: ./socket-server
     env_file: .env
