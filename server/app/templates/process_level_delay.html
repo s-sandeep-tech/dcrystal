@@ -82,15 +82,28 @@
                     if footer_totals else '0' }}</p>
             </div>
         </div>
-        <!-- > 4 Days -->
+        <!-- 5-10 Days -->
+        <div class="p-3 border-r border-gray-100 dark:border-gray-800 flex items-center gap-3 group">
+            <div
+                class="p-2 rounded-full bg-orange-50 text-orange-600 group-hover:bg-orange-100 transition-colors shrink-0">
+                <span class="material-symbols-outlined text-[20px]">schedule</span>
+            </div>
+            <div>
+                <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">5-10 Days</p>
+                <p id="stat-5-10-days" class="text-sm font-black text-orange-700 dark:text-orange-400 tracking-tight">{{
+                    "{:,}".format(footer_totals.time_window_5_10_days)
+                    if footer_totals else '0' }}</p>
+            </div>
+        </div>
+        <!-- > 10 Days -->
         <div class="p-3 flex items-center gap-3 group">
             <div class="p-2 rounded-full bg-red-50 text-red-600 group-hover:bg-red-100 transition-colors shrink-0">
                 <span class="material-symbols-outlined text-[20px]">warning</span>
             </div>
             <div>
-                <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">> 4 Days</p>
-                <p id="stat-more-4-days" class="text-sm font-black text-red-700 dark:text-red-400 tracking-tight">{{
-                    "{:,}".format(footer_totals.time_window_more_than_4_days) if footer_totals else '0' }}</p>
+                <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wide">> 10 Days</p>
+                <p id="stat-more-10-days" class="text-sm font-black text-red-700 dark:text-red-400 tracking-tight">{{
+                    "{:,}".format(footer_totals.time_window_more_than_10_days) if footer_totals else '0' }}</p>
             </div>
         </div>
     </div>

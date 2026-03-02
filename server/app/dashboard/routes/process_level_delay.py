@@ -36,7 +36,8 @@ def _get_process_delay_data():
         func.sum(PartyProcessAgeingSnapshot.completed_quantity).label('total_qty'),
         func.sum(PartyProcessAgeingSnapshot.time_window_1_2_days).label('total_1_2'),
         func.sum(PartyProcessAgeingSnapshot.time_window_2_4_days).label('total_2_4'),
-        func.sum(PartyProcessAgeingSnapshot.time_window_more_than_4_days).label('total_more_4')
+        func.sum(PartyProcessAgeingSnapshot.time_window_5_10_days).label('total_5_10'),
+        func.sum(PartyProcessAgeingSnapshot.time_window_more_than_10_days).label('total_more_10')
     )
     
     if party_name:
@@ -52,7 +53,8 @@ def _get_process_delay_data():
         'completed_quantity': int(stats.total_qty or 0),
         'time_window_1_2_days': int(stats.total_1_2 or 0),
         'time_window_2_4_days': int(stats.total_2_4 or 0),
-        'time_window_more_than_4_days': int(stats.total_more_4 or 0)
+        'time_window_5_10_days': int(stats.total_5_10 or 0),
+        'time_window_more_than_10_days': int(stats.total_more_10 or 0)
     }
 
     return {

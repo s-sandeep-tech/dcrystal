@@ -70,7 +70,8 @@ function updateDashboardStats(stats) {
         'stat-total-qty': stats.total_qty,
         'stat-1-2-days': stats.total_1_2,
         'stat-2-4-days': stats.total_2_4,
-        'stat-more-4-days': stats.total_more_4
+        'stat-5-10-days': stats.total_5_10,
+        'stat-more-10-days': stats.total_more_10
     };
 
     for (const [id, value] of Object.entries(mappings)) {

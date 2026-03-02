@@ -218,7 +218,8 @@ def sync_process_level_delay_data_task():
               COUNT(DISTINCT order_id) FILTER (WHERE next_stage IS NOT NULL AND next_completed_date IS NULL) AS "Pending Qty",
               COUNT(DISTINCT order_id) FILTER (WHERE next_stage IS NOT NULL AND next_completed_date IS NULL AND days_waiting BETWEEN 1 AND 2) AS "Window 1-2",
               COUNT(DISTINCT order_id) FILTER (WHERE next_stage IS NOT NULL AND next_completed_date IS NULL AND days_waiting BETWEEN 3 AND 4) AS "Window 3-4",
-              COUNT(DISTINCT order_id) FILTER (WHERE next_stage IS NOT NULL AND next_completed_date IS NULL AND days_waiting > 4) AS "Window 4+"
+              COUNT(DISTINCT order_id) FILTER (WHERE next_stage IS NOT NULL AND next_completed_date IS NULL AND days_waiting BETWEEN 5 AND 10) AS "Window 5-10",
+              COUNT(DISTINCT order_id) FILTER (WHERE next_stage IS NOT NULL AND next_completed_date IS NULL AND days_waiting > 10) AS "Window 10+"
             FROM joined GROUP BY party_name, completed_process, next_process, seq ORDER BY party_name, seq
         """
         
@@ -241,7 +242,8 @@ def sync_process_level_delay_data_task():
                 next_process_level=row.get('next_process_level'),
                 time_window_1_2_days=row.get('Window 1-2'),
                 time_window_2_4_days=row.get('Window 3-4'),
-                time_window_more_than_4_days=row.get('Window 4+'),
+                time_window_5_10_days=row.get('Window 5-10'),
+                time_window_more_than_10_days=row.get('Window 10+'),
                 report_date=db.func.current_date()
             )
             new_records.append(record)
