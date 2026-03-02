@@ -29,6 +29,16 @@ def emit_sync_update(status, message, progress=0, data_type=None):
     # 2. Publish to Redis for Node.js socket server
     try:
         redis_client.publish('sync_updates', json.dumps(payload))
+        
+        # 3. Global notification for all users on success
+        if status == 'success':
+            global_payload = {
+                "title": f"Sync Completed: {data_type.replace('_', ' ').capitalize()}" if data_type else "Sync Completed",
+                "message": message,
+                "type": "success",
+                "icon": "sync"
+            }
+            redis_client.publish('global_notifications', json.dumps(global_payload))
     except Exception as e:
         logger.error(f"Failed to publish sync update to Redis: {e}")
 
