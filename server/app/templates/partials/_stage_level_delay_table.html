@@ -1,0 +1,107 @@
+{% if not is_child_rows %}
+<table class="enterprise-grid w-full text-[11px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
+            <th class="col-expander text-center px-0 w-8"></th>
+            <th class="text-left px-4">Level Detail</th>
+            <th class="text-left px-3">Party Name</th>
+            <th class="text-left px-3">Completed Process</th>
+            <th class="text-center px-3">Qty</th>
+            <th class="text-left px-3">Next Process</th>
+            <th class="text-center w-24">1-2 Days</th>
+            <th class="text-center w-24">3-4 Days</th>
+            <th class="text-center w-24">5-10 Days</th>
+            <th class="text-center w-24">>10 Days</th>
+            <th class="text-center w-24">Total</th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        {% endif %}
+
+        {% for r in rows %}
+        <tr class="parent-row hover:bg-blue-50/30 group animate-fade-in" data-level="{{ r.level }}"
+            data-value="{{ r.display_value }}" {% if r.level=='make_owner'
+            %}data-grandparent="{{ r.classification_owner }}" {% endif %}>
+            <td class="text-center px-0">
+                {% if r.level != 'leaf' %}
+                <button
+                    onclick="toggleRow(this, '{{ r.level }}', '{{ r.display_value }}', '{{ r.classification_owner if r.level == 'make_owner' else '' }}')"
+                    class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
+                    <span class="material-symbols-outlined text-[16px]">add_circle</span>
+                </button>
+                {% else %}
+                <button
+                    onclick="showDetails('{{ r.classification_owner }}', '{{ r.make_owner }}', '{{ r.collection_owner }}')"
+                    class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
+                    <span class="material-symbols-outlined text-[16px]">info</span>
+                </button>
+                {% endif %}
+            </td>
+            <td class="px-4 font-bold whitespace-nowrap">
+                <div class="flex items-center gap-2"
+                    style="padding-left: {{ '0px' if r.level == 'classification_owner' else ('20px' if r.level == 'make_owner' else ('40px' if r.level == 'collection_owner' else '60px')) }}">
+                    {% if r.level == 'leaf' %}
+                    <span class="material-symbols-outlined text-[14px] text-gray-300">description</span>
+                    {% elif r.level == 'collection_owner' %}
+                    <span class="material-symbols-outlined text-[14px] text-gray-300">person</span>
+                    {% elif r.level == 'make_owner' %}
+                    <span class="material-symbols-outlined text-[14px] text-gray-300">factory</span>
+                    {% else %}
+                    <span class="material-symbols-outlined text-[14px] text-gray-300">category</span>
+                    {% endif %}
+                    {{ r.display_value or 'Unknown' }}
+                </div>
+            </td>
+            <td class="px-3 py-2 text-gray-600 dark:text-gray-400 text-[10px]">{{ r.party if r.level == 'leaf' else '-'
+                }}</td>
+            <td class="px-3 py-2 text-gray-600 dark:text-gray-400 text-[10px]">{{ r.completed_process if r.level ==
+                'leaf' else '-' }}</td>
+            <td class="px-3 py-2 text-center font-bold text-gray-900 dark:text-gray-100">{{ r.qty or 0 }}</td>
+            <td class="px-3 py-2 text-gray-600 dark:text-gray-400 text-[10px]">{{ r.next_process if r.level == 'leaf'
+                else '-' }}</td>
+            <td class="px-3 py-2 text-center font-semibold text-blue-600">{{ r.tw1 or 0 }}</td>
+            <td class="px-3 py-2 text-center font-semibold text-orange-600">{{ r.tw2 or 0 }}</td>
+            <td class="px-3 py-2 text-center font-semibold text-pink-600">{{ r.tw3 or 0 }}</td>
+            <td class="px-3 py-2 text-center font-semibold text-red-600">{{ r.tw4 or 0 }}</td>
+            <td class="px-3 py-2 text-center font-bold bg-gray-50/50 dark:bg-gray-900/50">
+                {{ (r.tw1 or 0) + (r.tw2 or 0) + (r.tw3 or 0) + (r.tw4 or 0) }}
+            </td>
+        </tr>
+        {% endfor %}
+
+        {% if not rows and not is_child_rows %}
+        <tr>
+            <td colspan="11" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
+        </tr>
+        {% endif %}
+
+        {% if not is_child_rows %}
+    </tbody>
+    <tfoot class="sticky-footer">
+        <tr class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white uppercase text-[9px]">
+            <td class="p-2 text-right font-bold" colspan="2">Grand Total</td>
+            <td class="px-3 py-2" colspan="2"></td>
+            <td class="text-center font-bold px-3 text-gray-900 dark:text-white">{{ stats.qty or 0 }}</td>
+            <td class="px-3 py-2"></td>
+            <td class="text-center font-bold px-2 text-blue-600">{{ stats.tw1 or 0 }}</td>
+            <td class="text-center font-bold px-2 text-orange-600">{{ stats.tw2 or 0 }}</td>
+            <td class="text-center font-bold px-2 text-pink-600">{{ stats.tw3 or 0 }}</td>
+            <td class="text-center font-bold px-2 text-red-600">{{ stats.tw4 or 0 }}</td>
+            <td class="text-center font-bold px-2">{{ (stats.tw1 or 0) + (stats.tw2 or 0) + (stats.tw3 or 0) +
+                (stats.tw4 or 0) }}</td>
+        </tr>
+    </tfoot>
+</table>
+
+<script id="stats-metadata" type="application/json">
+    {{ stats | tojson }}
+</script>
+
+{% if pagination %}
+<div class="pagination-meta hidden" data-page="{{ pagination.page }}" data-per-page="{{ pagination.per_page }}"
+    data-total="{{ pagination.total }}" data-has-next="{{ 'true' if pagination.has_next else 'false' }}"
+    data-has-prev="{{ 'true' if pagination.has_prev else 'false' }}" data-next-num="{{ pagination.next_num or '' }}"
+    data-prev-num="{{ pagination.prev_num or '' }}" data-level="{{ current_level }}">
+</div>
+{% endif %}
+{% endif %}

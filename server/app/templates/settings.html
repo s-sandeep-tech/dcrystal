@@ -152,66 +152,96 @@
                             </h3>
                         </div>
                         <div class="p-6">
-                            <div
-                                class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
-                                <div class="flex items-center gap-4">
-                                    <div class="size-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
-                                        <span class="material-symbols-outlined text-purple-500 text-xl">sync_alt</span>
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                <div
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="size-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-purple-500 text-xl">sync_alt</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Owner Wise
+                                                Order
+                                                Summary Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh from external
+                                                Azure
+                                                database</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Owner Wise
-                                            Order
-                                            Summary Sync</h4>
-                                        <p class="text-[11px] text-gray-500 font-medium">Full refresh from external
-                                            Azure
-                                            database</p>
-                                    </div>
+                                    <button id="sync-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
                                 </div>
-                                <button id="sync-btn"
-                                    class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
-                                    <span class="material-symbols-outlined text-[14px]">sync</span>
-                                    Sync Now
-                                </button>
-                            </div>
 
-                            <div
-                                class="mt-4 flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
-                                <div class="flex items-center gap-4">
-                                    <div class="size-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
-                                        <span class="material-symbols-outlined text-indigo-500 text-xl">history</span>
+                                <div
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="size-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-indigo-500 text-xl">history</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Process
+                                                Level
+                                                Delay Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of process
+                                                delay
+                                                snapshots</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Process Level
-                                            Delay Sync</h4>
-                                        <p class="text-[11px] text-gray-500 font-medium">Full refresh of process delay
-                                            snapshots</p>
-                                    </div>
+                                    <button id="sync-process-delay-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-indigo-600 transition-all shadow-md shadow-indigo-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
                                 </div>
-                                <button id="sync-process-delay-btn"
-                                    class="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-indigo-600 transition-all shadow-md shadow-indigo-500/20">
-                                    <span class="material-symbols-outlined text-[14px]">sync</span>
-                                    Sync Now
-                                </button>
-                            </div>
 
-                            <div
-                                class="mt-4 flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
-                                <div class="flex items-center gap-4">
-                                    <div class="size-10 bg-teal-500/10 rounded-lg flex items-center justify-center">
-                                        <span class="material-symbols-outlined text-teal-500 text-xl">inventory</span>
+                                <div
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-teal-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-teal-500 text-xl">inventory</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Outstanding
+                                                Purchase Order Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of outstanding
+                                                purchase orders</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Outstanding
-                                            Purchase Order Sync</h4>
-                                        <p class="text-[11px] text-gray-500 font-medium">Full refresh of outstanding
-                                            purchase orders</p>
-                                    </div>
+                                    <button id="sync-outstanding-po-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-teal-600 transition-all shadow-md shadow-teal-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
                                 </div>
-                                <button id="sync-outstanding-po-btn"
-                                    class="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-teal-600 transition-all shadow-md shadow-teal-500/20">
-                                    <span class="material-symbols-outlined text-[14px]">sync</span>
-                                    Sync Now
-                                </button>
+
+                                <div
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-blue-500 text-xl">pending_actions</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Stage Level
+                                                Delay Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of stage-level
+                                                delay analytics</p>
+                                        </div>
+                                    </div>
+                                    <button id="sync-stage-delay-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-blue-600 transition-all shadow-md shadow-blue-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
+                                </div>
                             </div>
 
                             <div
@@ -488,6 +518,7 @@
             syncDataUrl: "{{ url_for('dashboard.sync_data') }}",
             syncProcessDelayUrl: "{{ url_for('dashboard.sync_process_delay') }}",
             syncOutstandingPOUrl: "{{ url_for('dashboard.sync_outstanding_po') }}",
+            syncStageDelayUrl: "{{ url_for('dashboard.sync_stage_delay') }}",
             clearCacheUrl: "{{ url_for('dashboard.clear_cache') }}"
         };
     </script>

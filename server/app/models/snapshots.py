@@ -354,3 +354,54 @@ class OutstandingPurchaseOrderStatusSnapshot(db.Model):
             'accepted_weight': float(self.accepted_weight or 0),
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+
+class StageLevelDelaySnapshot(db.Model):
+    __tablename__ = 'party_process_ageing_snapshot_V2'
+
+    id = db.Column(db.Integer, primary_key=True)
+    classification_owner = db.Column(db.Text)
+    make_owner = db.Column(db.Text)
+    collection_owner = db.Column(db.Text)
+    division = db.Column(db.Text)
+    group = db.Column('group', db.Text)
+    purity = db.Column(db.Text)
+    purchase_ro = db.Column(db.Text)
+    order_number = db.Column(db.String(20))
+    order_date = db.Column(db.Date)
+    barcode_number = db.Column(db.Text)
+    barcode_last_step_date = db.Column(db.Date)
+    party = db.Column(db.Text)
+    completed_process_level = db.Column(db.Text)
+    next_process_level = db.Column(db.Text)
+    
+    time_window_1_2_days = db.Column(db.Integer, default=0)
+    time_window_3_4_days = db.Column(db.Integer, default=0)
+    time_window_5_10_days = db.Column(db.Integer, default=0)
+    time_window_more_than_10_days = db.Column(db.Integer, default=0)
+    
+    snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'classification_owner': self.classification_owner,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'division': self.division,
+            'group': self.group,
+            'purity': self.purity,
+            'purchase_ro': self.purchase_ro,
+            'order_number': self.order_number,
+            'order_date': self.order_date.isoformat() if self.order_date else None,
+            'barcode_number': self.barcode_number,
+            'barcode_last_step_date': self.barcode_last_step_date.isoformat() if self.barcode_last_step_date else None,
+            'party': self.party,
+            'completed_process_level': self.completed_process_level,
+            'next_process_level': self.next_process_level,
+            'time_window_1_2_days': self.time_window_1_2_days,
+            'time_window_3_4_days': self.time_window_3_4_days,
+            'time_window_5_10_days': self.time_window_5_10_days,
+            'time_window_more_than_10_days': self.time_window_more_than_10_days,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
+        }

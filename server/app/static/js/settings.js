@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${data.message}</div>`;
 
                     // Reset all sync buttons
-                    [syncBtn, syncProcessBtn, syncOutstandingPOBtn].forEach(btn => {
+                    [syncBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn].forEach(btn => {
                         if (btn && btn.disabled) resetSyncBtn(btn);
                     });
 
@@ -162,6 +162,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 text-red-600 border border-red-100';
                 syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${error.message}</div>`;
                 resetSyncBtn(syncOutstandingPOBtn);
+            }
+        });
+    }
+
+    const syncStageDelayBtn = document.getElementById('sync-stage-delay-btn');
+    if (syncStageDelayBtn) {
+        syncStageDelayBtn.addEventListener('click', async () => {
+            setSyncLoading(syncStageDelayBtn, 'Queueing');
+            syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+            syncStatus.textContent = 'Adding Stage Level Delay sync to queue...';
+            syncStatus.classList.remove('hidden');
+
+            try {
+                const response = await fetch(window.SETTINGS_CONFIG.syncStageDelayUrl, { method: 'POST' });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Queueing failed');
+                syncStatus.textContent = data.message;
+            } catch (error) {
+                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 text-red-600 border border-red-100';
+                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${error.message}</div>`;
+                resetSyncBtn(syncStageDelayBtn);
             }
         });
     }

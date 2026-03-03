@@ -23,3 +23,6 @@ def sync_process_level_delay_data():
 
 def sync_outstanding_purchase_order_data():
     return enqueue_sync_task('outstanding_po')
+
+def sync_stage_level_delay_data():
+    return enqueue_sync_task('stage_delay')

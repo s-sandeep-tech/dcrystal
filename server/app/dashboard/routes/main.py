@@ -72,6 +72,15 @@ def sync_outstanding_po():
     result = sync_outstanding_purchase_order_data()
     return result, 200 if result.get('status') == 'success' else 500
 
+@dashboard_bp.route('/settings/sync-stage-delay', methods=['POST'])
+def sync_stage_delay():
+    if not session.get('user_id') or not session.get('is_admin'):
+        return {"status": "error", "message": "Unauthorized: Admin access required"}, 401
+        
+    from app.utils.sync_manager import sync_stage_level_delay_data
+    result = sync_stage_level_delay_data()
+    return result, 200 if result.get('status') == 'success' else 500
+
 @dashboard_bp.route('/settings/clear-cache', methods=['POST'])
 def clear_cache():
     if not session.get('user_id') or not session.get('is_admin'):

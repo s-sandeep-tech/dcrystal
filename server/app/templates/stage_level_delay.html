@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}StageLevel Delay Report{% endblock %}
+
+{% block extra_head %}
+<!-- Reuse some existing styles -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
+<style>
+    .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .dark .glass-card {
+        background: rgba(16, 25, 34, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main id="stageleveldelay-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    <!-- Header -->
+    <div
+        class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <h2 class="text-sm font-bold tracking-tight">StageLevel Delay Report <span
+                    class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded uppercase tracking-widest text-gray-500">v2.0</span>
+            </h2>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- Zoom Controls -->
+            <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
+                <button onclick="adjustZoom(-0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom Out">-</button>
+                <button id="zoom-level" onclick="adjustZoom(0, true)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700"
+                    title="Reset Zoom">100%</button>
+                <button onclick="adjustZoom(0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom In">+</button>
+            </div>
+            <div
+                class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
+                <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
+                <input id="hierarchy-search"
+                    class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0"
+                    placeholder="Search Order..." type="text" oninput="onSearchInput(this.value)" />
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Stats Grid -->
+    <div
+        class="grid grid-cols-2 lg:grid-cols-6 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">1-2 Days Delay</p>
+            <p id="stat-tw1" class="text-sm font-bold text-blue-600">0</p>
+        </div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">3-4 Days Delay</p>
+            <p id="stat-tw2" class="text-sm font-bold text-orange-600">0</p>
+        </div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">5-10 Days Delay</p>
+            <p id="stat-tw3" class="text-sm font-bold text-pink-600">0</p>
+        </div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">> 10 Days Delay</p>
+            <p id="stat-tw4" class="text-sm font-bold text-red-600">0</p>
+        </div>
+
+        <!-- Drill-down level -->
+        <div class="p-2 lg:col-span-2 text-center flex flex-col justify-center">
+            <div class="flex items-center justify-center gap-1.5">
+                <span class="text-[9px] font-bold text-gray-400 uppercase">Drill-down Level:</span>
+                <span id="current-level-badge"
+                    class="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-bold rounded uppercase">CLASSIFICATION
+                    OWNER</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination Strip -->
+    <div
+        class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <span class="material-symbols-outlined text-[14px]">info</span>
+            <span>Showing stage delay summaries. Use sidebar filters to explore deeper.</span>
+        </div>
+
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <div class="flex items-center gap-2">
+                <span class="text-gray-400">Rows:</span>
+                <select id="per-page-select" onchange="changePerPage(this.value)"
+                    class="bg-transparent border-none text-[10px] font-bold focus:ring-0 p-0 cursor-pointer">
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
+            <span id="pagination-info" class="font-medium">0-0 of 0</span>
+            <div class="flex items-center gap-1">
+                <button id="btn-prev" class="p-0.5 hover:bg-gray-100 rounded disabled:opacity-50">
+                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                </button>
+                <button id="btn-next" class="p-0.5 hover:bg-gray-100 rounded disabled:opacity-50">
+                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Container -->
+    <div id="table-area" class="flex-1 overflow-auto relative">
+        <div id="view-delay" class="dashboard-view">
+            <!-- Table content loaded via partial -->
+        </div>
+    </div>
+</main>
+
+<!-- Details Modal -->
+<div id="detailsModal" class="fixed inset-0 z-[100] hidden">
+    <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onclick="closeDetails()"></div>
+    <div
+        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[95vw] bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col h-[85vh] overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-xl">info</span>
+                <div>
+                    <h2 class="text-sm font-bold text-gray-800 dark:text-white uppercase tracking-tight"
+                        id="modalTitle">Order Details</h2>
+                    <p id="modalSubtitle" class="text-[10px] text-gray-400 mt-0.5"></p>
+                </div>
+            </div>
+            <button onclick="closeDetails()"
+                class="size-8 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                <span class="material-symbols-outlined text-xl">close</span>
+            </button>
+        </div>
+
+        <div class="flex-1 flex flex-col overflow-hidden min-h-[400px]">
+            <div class="overflow-auto flex-1">
+                <table
+                    class="enterprise-grid w-full text-[11px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+                    <thead>
+                        <tr
+                            class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
+                            <th class="px-3 py-2 text-left">Division</th>
+                            <th class="px-3 py-2 text-left">Group</th>
+                            <th class="px-3 py-2 text-left">Purity</th>
+                            <th class="px-3 py-2 text-left">Purchase RO</th>
+                            <th class="px-3 py-2 text-left">Order Number</th>
+                            <th class="px-3 py-2 text-left">Order Date</th>
+                            <th class="px-3 py-2 text-left">Barcode</th>
+                            <th class="px-3 py-2 text-left">Last Step Date</th>
+                            <th class="px-3 py-2 text-center text-blue-500">1-2d</th>
+                            <th class="px-3 py-2 text-center text-orange-500">3-4d</th>
+                            <th class="px-3 py-2 text-center text-pink-500">5-10d</th>
+                            <th class="px-3 py-2 text-center text-red-500">>10d</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalTableBody" class="divide-y divide-gray-100 dark:divide-gray-800">
+                        <!-- Rows injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block sidebar %}
+<aside
+    class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xs font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> FILTERS
+            </h2>
+            <button onclick="resetFilters()"
+                class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+        </div>
+        <div class="space-y-4">
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Party</label>
+                <select id="filter-party"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                    <option value="">All Parties</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Completed Process</label>
+                <select id="filter-completed"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                    <option value="">All Processes</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Next Process</label>
+                <select id="filter-next"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                    <option value="">All Processes</option>
+                </select>
+            </div>
+        </div>
+        <button onclick="applyFilters()"
+            class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm mt-6 flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
+        </button>
+    </div>
+</aside>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/stage_level_delay.js') }}"></script>
+{% endblock %}

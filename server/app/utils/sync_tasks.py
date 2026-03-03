@@ -4,7 +4,8 @@ from app.extensions import db, socketio, redis_client
 from app.models.snapshots import (
     OwnerWiseOrderSummarySnapshot, 
     PartyProcessAgeingSnapshot,
-    OutstandingPurchaseOrderStatusSnapshot
+    OutstandingPurchaseOrderStatusSnapshot,
+    StageLevelDelaySnapshot
 )
 from flask import current_app
 import os
@@ -483,6 +484,296 @@ def sync_outstanding_purchase_order_data_task():
         error_msg = str(e)
         logger.error(f"OutstandingPO Sync error: {error_msg}")
         emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'outstanding_po')
+        return {"status": "error", "message": error_msg}
+    finally:
+        if conn: conn.close()
+
+def sync_stage_level_delay_data_task():
+    """Sync StageLevel Delay data using the provided analytical query."""
+    conn = None
+    try:
+        emit_sync_update('processing', 'Starting StageLevel Delay Sync...', 5, 'stage_delay')
+        conn = get_external_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        emit_sync_update('processing', 'Fetching data from Azure...', 20, 'stage_delay')
+        query = """
+WITH
+qc_agg AS (
+  SELECT
+    order_id,
+    MAX(qc_completed_at)::date AS qc_date,
+    MAX(qc_completed_at) FILTER (WHERE qc_status_name <> 'Passed')::date AS qc_rejected_date,
+    CASE
+      WHEN BOOL_OR(qc_status_name = 'Reject') THEN 'Rejected'
+      WHEN BOOL_OR(qc_status_name = 'Passed')
+        OR BOOL_OR(qc_status_name = 'Accepted with issue') THEN 'Passed'
+      ELSE 'Not Passed'
+    END AS qc_status
+  FROM ext_view.vw_order_qc_details
+  GROUP BY order_id
+),
+
+hm_agg AS (
+  SELECT
+    order_id,
+    MAX(hm_out_date)::date AS hallmark_date,
+    CASE
+      WHEN BOOL_OR(hm_status = 'Passed') THEN 'Passed'
+      ELSE 'Not Passed'
+    END AS hallmark_status
+  FROM ext_view.vw_order_hallmark_details
+  GROUP BY order_id
+),
+
+/* Direct fetch (not MAX). Keeps 1 row per order_id to prevent join duplicates */
+prod_one AS (
+  SELECT DISTINCT ON (order_id)
+    order_id,
+    classification_owner,
+    make_owner,
+    collection_owner,
+    division,
+    "group",
+    purity
+  FROM ext_view.vw_order_product_details
+  ORDER BY order_id
+),
+
+base AS (
+  SELECT
+    od.order_id,
+    od.supplier AS party_name,
+    od.order_ro,
+    od.order_no,
+    od.order_status,
+    od.order_date::date  AS order_date,
+    od.accepted_on::date AS accepted_date,
+    od.barcoded_at::date AS barcoded_date,
+    od.barcode,
+
+    p.classification_owner,
+    p.make_owner,
+    p.collection_owner,
+    p.division,
+    p."group",
+    p.purity,
+
+    h.hallmark_date,
+    h.hallmark_status,
+    q.qc_date,
+    q.qc_status,
+    q.qc_rejected_date
+  FROM ext_view.vw_order_details od
+  LEFT JOIN prod_one p ON p.order_id = od.order_id
+  LEFT JOIN qc_agg  q  ON q.order_id = od.order_id
+  LEFT JOIN hm_agg  h  ON h.order_id = od.order_id
+),
+
+status_rows AS (
+  SELECT
+    order_id, party_name, order_ro, order_no,
+    classification_owner, make_owner, collection_owner, division, "group", purity,
+    order_date, barcode,
+    'Order Accepted' AS completed_process_level,
+    accepted_date    AS last_completed_date
+  FROM base
+  WHERE accepted_date IS NOT NULL
+
+  UNION ALL
+  SELECT
+    order_id, party_name, order_ro, order_no,
+    classification_owner, make_owner, collection_owner, division, "group", purity,
+    order_date, barcode,
+    'Barcoded', barcoded_date
+  FROM base
+  WHERE barcoded_date IS NOT NULL
+
+  UNION ALL
+  SELECT
+    order_id, party_name, order_ro, order_no,
+    classification_owner, make_owner, collection_owner, division, "group", purity,
+    order_date, barcode,
+    'Hallmark Completed', hallmark_date
+  FROM base
+  WHERE hallmark_date IS NOT NULL
+    AND hallmark_status = 'Passed'
+
+  UNION ALL
+  SELECT
+    order_id, party_name, order_ro, order_no,
+    classification_owner, make_owner, collection_owner, division, "group", purity,
+    order_date, barcode,
+    'QC Completed', COALESCE(qc_date, CURRENT_DATE)
+  FROM base
+  WHERE qc_status = 'Passed'
+
+  UNION ALL
+  SELECT
+    order_id, party_name, order_ro, order_no,
+    classification_owner, make_owner, collection_owner, division, "group", purity,
+    order_date, barcode,
+    'QC Rejected', qc_rejected_date
+  FROM base
+  WHERE qc_status = 'Rejected'
+
+  UNION ALL
+  SELECT
+    order_id, party_name, order_ro, order_no,
+    classification_owner, make_owner, collection_owner, division, "group", purity,
+    order_date, barcode,
+    'Invoiced',
+    COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date)
+  FROM base
+  WHERE order_status ILIKE '%Invoice Approved%'
+     OR order_status ILIKE '%RO Received%'
+
+  UNION ALL
+  SELECT
+    order_id, party_name, order_ro, order_no,
+    classification_owner, make_owner, collection_owner, division, "group", purity,
+    order_date, barcode,
+    'Delivered',
+    COALESCE(qc_date, hallmark_date, barcoded_date, accepted_date, order_date)
+  FROM base
+  WHERE order_status ILIKE '%RO Received%'
+),
+
+/* keep only the latest date per (order_id, stage) */
+status_rows_dedup AS (
+  SELECT DISTINCT ON (order_id, completed_process_level)
+    *
+  FROM status_rows
+  WHERE last_completed_date IS NOT NULL
+  ORDER BY order_id, completed_process_level, last_completed_date DESC
+),
+
+stage_flow AS (
+  SELECT *
+  FROM (VALUES
+    ('Order Accepted',     'Barcoded',           'Barcoding', 1),
+    ('Barcoded',           'Hallmark Completed', 'Hallmark',  2),
+    ('Hallmark Completed', 'QC Completed',       'QC',        3),
+    ('QC Completed',       'Invoiced',           'Invoice',   4),
+    ('Invoiced',           'Delivered',          'Delivery',  5),
+    ('Delivered',          NULL,                'Completed', 6),
+    ('QC Rejected',        NULL,                'Rejected',  35)
+  ) AS t(curr_stage, next_stage, next_process_level, seq)
+),
+
+joined AS (
+  SELECT
+    c.*,
+    f.next_stage,
+    f.next_process_level AS next_process_level,
+    f.seq,
+    n.last_completed_date AS next_completed_date,
+    (CURRENT_DATE - c.last_completed_date) AS days_waiting
+  FROM status_rows_dedup c
+  JOIN stage_flow f
+    ON f.curr_stage = c.completed_process_level
+  LEFT JOIN status_rows_dedup n
+    ON n.order_id = c.order_id
+   AND (
+        (f.next_stage <> 'QC Completed' AND n.completed_process_level = f.next_stage)
+     OR (f.next_stage = 'QC Completed' AND n.completed_process_level IN ('QC Completed', 'QC Rejected'))
+   )
+),
+
+/* optional: only latest stage per item (recommended) */
+current_stage AS (
+  SELECT DISTINCT ON (order_id)
+    *
+  FROM joined
+  ORDER BY order_id, seq DESC, last_completed_date DESC
+)
+
+SELECT
+  order_id,
+  party_name,
+  order_ro,
+  order_no,
+
+  classification_owner,
+  make_owner,
+  collection_owner,
+  division,
+  "group",
+  purity,
+  order_date,
+  barcode,
+
+  completed_process_level,
+  last_completed_date AS completed_date,
+
+  next_process_level,
+  days_waiting,
+
+  CASE
+    WHEN next_stage IS NOT NULL AND next_completed_date IS NULL AND days_waiting BETWEEN 1 AND 2 THEN '1-2'
+    WHEN next_stage IS NOT NULL AND next_completed_date IS NULL AND days_waiting BETWEEN 3 AND 4 THEN '3-4'
+    WHEN next_stage IS NOT NULL AND next_completed_date IS NULL AND days_waiting BETWEEN 5 AND 10 THEN '5-10'
+    WHEN next_stage IS NOT NULL AND next_completed_date IS NULL AND days_waiting > 10 THEN '10+'
+    WHEN next_stage IS NOT NULL AND next_completed_date IS NULL THEN '0'
+    ELSE NULL
+  END AS pending_window
+
+FROM current_stage;
+        """
+        
+        start_time = time.time()
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        duration = time.time() - start_time
+        
+        logger.info(f"StageLevelDelay query took {duration:.2f} seconds.")
+        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, 'stage_delay')
+        
+        # Clear existing
+        db.session.query(StageLevelDelaySnapshot).delete()
+        
+        new_records = []
+        for row in rows:
+            # parsing window count
+            w1 = 1 if row.get('pending_window') == '1-2' else 0
+            w2 = 1 if row.get('pending_window') == '3-4' else 0
+            w3 = 1 if row.get('pending_window') == '5-10' else 0
+            w4 = 1 if row.get('pending_window') == '10+' else 0
+            
+            record = StageLevelDelaySnapshot(
+                classification_owner=row.get('classification_owner'),
+                make_owner=row.get('make_owner'),
+                collection_owner=row.get('collection_owner'),
+                division=row.get('division'),
+                group=row.get('group'),
+                purity=row.get('purity'),
+                purchase_ro=row.get('order_ro'),
+                order_number=row.get('order_no'),
+                order_date=row.get('order_date'),
+                barcode_number=row.get('barcode'),
+                barcode_last_step_date=row.get('completed_date'),
+                party=row.get('party_name'),
+                completed_process_level=row.get('completed_process_level'),
+                next_process_level=row.get('next_process_level'),
+                time_window_1_2_days=w1,
+                time_window_3_4_days=w2,
+                time_window_5_10_days=w3,
+                time_window_more_than_10_days=w4,
+                snapshot_date=db.func.current_date()
+            )
+            new_records.append(record)
+        
+        db.session.add_all(new_records)
+        db.session.commit()
+        
+        emit_sync_update('success', f'StageLevel Delay Sync completed! {len(rows)} records updated.', 100, 'stage_delay')
+        return {"status": "success", "count": len(rows)}
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        logger.error(f"StageLevelDelay Sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'stage_delay')
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
