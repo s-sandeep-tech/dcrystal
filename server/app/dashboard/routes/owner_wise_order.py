@@ -458,7 +458,7 @@ def get_leaf_detail():
         
         if all_rejected:
             query = query.filter(OwnerWiseOrderSummarySnapshot.ordered_pcs == OwnerWiseOrderSummarySnapshot.rejected_pcs)
-        
+
         if classification_owner:
             query = query.filter(OwnerWiseOrderSummarySnapshot.classification_owner == classification_owner)
         if make_owner:

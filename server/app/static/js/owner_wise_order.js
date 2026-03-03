@@ -83,12 +83,37 @@ function updateHeaderStats(stats) {
         'stat-invoiced-wt': stats.invoiced_wt,
         'stat-invoiced-pcs': stats.invoiced_pcs,
         'stat-delivered-wt': stats.delivered_wt,
-        'stat-delivered-pcs': stats.delivered_pcs
+        'stat-delivered-pcs': stats.delivered_pcs,
+        'stat-pending-to-be-delv-wt': stats.pending_to_be_delv_wt,
+        'stat-pending-to-be-delv-pcs': stats.pending_to_be_delv_pcs
     };
 
     for (const [id, value] of Object.entries(mappings)) {
         const el = document.getElementById(id);
-        if (el) el.textContent = value || (id.endsWith('-wt') ? '0.00' : '0');
+        if (el) {
+            if (id.endsWith('-pcs')) {
+                // Formatting pieces: ensuring " Pcs" suffix
+                const cleanValue = value ? value.toString().replace(/ Pcs/gi, '') : '0';
+                el.textContent = cleanValue + ' Pcs';
+            } else if (id.endsWith('-wt')) {
+                // Formatting weights: ensuring 3 decimal places
+                let formattedValue = '0.000';
+                if (value) {
+                    // If it's already a formatted string from backend (e.g., "1,234.567"), use it
+                    if (typeof value === 'string' && value.includes('.')) {
+                        formattedValue = value;
+                    } else {
+                        formattedValue = parseFloat(value).toLocaleString(undefined, {
+                            minimumFractionDigits: 3,
+                            maximumFractionDigits: 3
+                        });
+                    }
+                }
+                el.textContent = formattedValue;
+            } else {
+                el.textContent = value || '0';
+            }
+        }
     }
 
     const barMappings = {
@@ -98,7 +123,8 @@ function updateHeaderStats(stats) {
         'stat-hallmarked-bar': stats.hallmarked_perc,
         'stat-qc-passed-bar': stats.qc_passed_perc,
         'stat-invoiced-bar': stats.invoiced_perc,
-        'stat-delivered-bar': stats.delivered_perc
+        'stat-delivered-bar': stats.delivered_perc,
+        'stat-pending-to-be-delv-bar': stats.pending_to_be_delv_perc
     };
 
     for (const [id, perc] of Object.entries(barMappings)) {
