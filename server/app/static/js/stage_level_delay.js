@@ -273,7 +273,19 @@ async function showDetails(classOwner, makeOwner, collOwner) {
     const subtitle = document.getElementById('modalSubtitle');
 
     modal.classList.remove('hidden');
-    tableBody.innerHTML = '<tr><td colspan="12" class="text-center py-8">Loading...</td></tr>';
+    tableBody.innerHTML = `
+        <tr>
+            <td colspan="12" class="py-12">
+                <div class="flex flex-col items-center justify-center gap-3">
+                    <span class="material-symbols-outlined text-4xl text-primary animate-spin">progress_activity</span>
+                    <div class="flex flex-col items-center gap-1">
+                        <span class="text-sm font-bold text-gray-700 dark:text-gray-200">Fetching Details</span>
+                        <span class="text-[10px] text-gray-400 font-medium">Please wait while we pull the analytical data...</span>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `;
     title.textContent = `Details: ${collOwner}`;
     subtitle.textContent = `${classOwner} > ${makeOwner}`;
 
