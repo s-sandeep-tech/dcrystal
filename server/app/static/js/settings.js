@@ -1326,7 +1326,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </td>
                     <td class="px-4 py-3 font-mono text-[10px]">${user.ip_address || 'Unknown IP'}</td>
-                    <td class="px-4 py-3 text-[10px]">${user.connected_at || 'Just now'}</td>
+                    <td class="px-4 py-3 text-[10px]">${user.connected_at ? new Date(user.connected_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true, year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Just now'}</td>
                     <td class="px-4 py-3 font-mono text-[9px] text-gray-400 text-right"><span class="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded break-all">${user.sid}</span></td>
                 `;
                 activeUsersTbody.appendChild(tr);
