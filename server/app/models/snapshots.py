@@ -373,6 +373,7 @@ class StageLevelDelaySnapshot(db.Model):
     party = db.Column(db.Text)
     completed_process_level = db.Column(db.Text)
     next_process_level = db.Column(db.Text)
+    seq = db.Column(db.Integer)
     
     time_window_1_2_days = db.Column(db.Integer, default=0)
     time_window_3_4_days = db.Column(db.Integer, default=0)
@@ -399,6 +400,7 @@ class StageLevelDelaySnapshot(db.Model):
             'party': self.party,
             'completed_process_level': self.completed_process_level,
             'next_process_level': self.next_process_level,
+            'seq': self.seq,
             'time_window_1_2_days': self.time_window_1_2_days,
             'time_window_3_4_days': self.time_window_3_4_days,
             'time_window_5_10_days': self.time_window_5_10_days,

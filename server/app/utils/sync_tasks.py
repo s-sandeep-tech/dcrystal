@@ -708,6 +708,7 @@ SELECT
 
   next_process_level,
   days_waiting,
+  seq,
 
   CASE
     WHEN next_stage IS NOT NULL AND next_completed_date IS NULL AND days_waiting BETWEEN 1 AND 2 THEN '1-2'
@@ -756,6 +757,7 @@ FROM current_stage;
                 party=row.get('party_name'),
                 completed_process_level=row.get('completed_process_level'),
                 next_process_level=row.get('next_process_level'),
+                seq=row.get('seq'),
                 time_window_1_2_days=w1,
                 time_window_3_4_days=w2,
                 time_window_5_10_days=w3,

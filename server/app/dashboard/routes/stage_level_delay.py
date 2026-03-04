@@ -220,7 +220,7 @@ def stage_level_delay_details():
         if collection_owner:
             query = query.filter(StageLevelDelaySnapshot.collection_owner == collection_owner)
             
-        results = query.all()
+        results = query.order_by(StageLevelDelaySnapshot.seq.asc()).all()
         return jsonify([r.to_dict() for r in results])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
