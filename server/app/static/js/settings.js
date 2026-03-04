@@ -1266,7 +1266,7 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshUsersBtn.addEventListener('click', fetchActiveUsers);
     }
 
-    function fetchActiveUsers() {
+    async function fetchActiveUsers() {
         if (typeof window.socket === 'undefined' || !window.socket.connected) {
             if (activeUsersTbody) activeUsersTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-red-500">Socket connection offline</td></tr>`;
             return;
@@ -1274,7 +1274,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (activeUsersTbody) activeUsersTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400"><span class="material-symbols-outlined animate-spin inline-block text-lg align-middle mr-2">sync</span> Refreshing...</td></tr>`;
 
-        window.socket.emit('get_active_users', {}, (response) => {
+        window.socket.emit('get_active_users', {}, async (response) => {
             if (!activeUsersTbody) return;
             activeUsersTbody.innerHTML = '';
 
@@ -1283,7 +1283,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            const userIds = response.users.map(u => u.user_id).filter(id => id && id !== 'Guest' && id !== 'N/A');
+            let userNamesMap = {};
+
+            if (userIds.length > 0) {
+                try {
+                    const res = await fetch('/api/admin/users/batch', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${window.jwtToken}`
+                        },
+                        body: JSON.stringify({ user_ids: userIds })
+                    });
+                    if (res.ok) {
+                        userNamesMap = await res.json();
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch user details", e);
+                }
+            }
+
             response.users.forEach((user, index) => {
+                let displayUsername = user.username && user.username !== 'Unknown' && user.username !== 'Guest' ? user.username : 'Unknown';
+                let displayUserId = user.user_id || 'N/A';
+
+                if (userNamesMap[user.user_id]) {
+                    displayUsername = userNamesMap[user.user_id].username;
+                    displayUserId = userNamesMap[user.user_id].user_id;
+                }
+
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20";
                 tr.innerHTML = `
@@ -1291,9 +1320,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td class="px-4 py-3 font-semibold text-gray-900 dark:text-white">
                         <div class="flex items-center gap-2">
                             <div class="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
-                                ${user.username ? user.username.substring(0, 2).toUpperCase() : '??'}
+                                ${displayUsername !== 'Unknown' && displayUsername ? displayUsername.substring(0, 2).toUpperCase() : '??'}
                             </div>
-                            ${user.username || 'Unknown'} <span class="text-[9px] text-gray-400 font-normal">(${user.user_id || 'N/A'})</span>
+                            ${displayUsername} <span class="text-[9px] text-gray-400 font-normal">(${displayUserId})</span>
                         </div>
                     </td>
                     <td class="px-4 py-3 font-mono text-[10px]">${user.ip_address || 'Unknown IP'}</td>

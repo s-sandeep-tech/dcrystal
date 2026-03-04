@@ -408,3 +408,23 @@ def get_audit_logs():
         "details": l.details,
         "created_at": l.created_at.isoformat()
     } for l in logs])
+
+@admin_rbac_bp.route('/users/batch', methods=['POST'])
+@jwt_required()
+@require_role('ADMIN')
+def get_users_batch():
+    data = request.json
+    user_ids = data.get('user_ids', [])
+    if not user_ids:
+        return jsonify({})
+    
+    # query by primary key `id` because JWT `sub` is `user.id` (which comes as `user_id` from Socket)
+    users = User.query.filter(User.id.in_(user_ids)).all()
+    result = {
+        str(u.id): {
+            "username": u.username,
+            "user_id": getattr(u, 'user_id', 'N/A')
+        } 
+        for u in users
+    }
+    return jsonify(result)
