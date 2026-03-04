@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Order Pending and Rejection Summary{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
+<style>
+    .enterprise-grid th,
+    .enterprise-grid td {
+        padding: 3px 6px;
+        white-space: nowrap;
+        font-size: 10px;
+    }
+
+    .enterprise-grid thead th {
+        font-size: 8.5px;
+        padding: 2px 4px;
+    }
+
+    .col-wt {
+        width: 55px;
+        min-width: 55px;
+    }
+
+    .col-pcs {
+        width: 35px;
+        min-width: 35px;
+    }
+
+    .col-detail {
+        min-width: 200px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main id="orderpendingrejection-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    <!-- Header -->
+    <div
+        class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <h2 class="text-sm font-bold tracking-tight">Order Pending and Rejection Summary</h2>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- Zoom Controls -->
+            <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
+                <button onclick="adjustZoom(-0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom Out">-</button>
+                <button id="zoom-level" onclick="adjustZoom(0, true)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700"
+                    title="Reset Zoom">100%</button>
+                <button onclick="adjustZoom(0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom In">+</button>
+            </div>
+            <div
+                class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
+                <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
+                <input id="hierarchy-search"
+                    class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0"
+                    placeholder="Search Party / RO..." type="text" oninput="onSearchInput(this.value)" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Grid (Horizontal Summary) -->
+    <div
+        class="flex gap-1 p-1 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 overflow-x-auto no-scrollbar">
+        <div class="min-w-[100px] p-1.5 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[8px] text-gray-500 font-bold uppercase">Pending to Accept</p>
+            <p class="text-xs font-bold text-gray-700 dark:text-gray-200">{{
+                "%.3f"|format(stats.pending_accept_wt|float) if stats else '0.000' }} / <span class="text-[10px]">{{
+                    stats.pending_accept_pcs or 0 }}</span></p>
+        </div>
+        <div class="min-w-[100px] p-1.5 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[8px] text-gray-500 font-bold uppercase">Rejected</p>
+            <p class="text-xs font-bold text-red-600">{{ "%.3f"|format(stats.rejected_wt|float) if stats else '0.000' }}
+                / <span class="text-[10px]">{{ stats.rejected_pcs or 0 }}</span></p>
+        </div>
+        <div class="min-w-[100px] p-1.5 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[8px] text-gray-500 font-bold uppercase">HM Failed</p>
+            <p class="text-xs font-bold text-gray-700 dark:text-gray-200">{{ "%.3f"|format(stats.hm_failed_wt|float) if
+                stats else '0.000' }} / <span class="text-[10px]">{{ stats.hm_failed_pcs or 0 }}</span></p>
+        </div>
+        <div class="min-w-[100px] p-1.5 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[8px] text-gray-500 font-bold uppercase">HM Test Cut</p>
+            <p class="text-xs font-bold text-gray-700 dark:text-gray-200">{{ stats.hm_test_cut_pcs or 0 }} <span
+                    class="text-[9px] text-gray-400">Pcs</span></p>
+        </div>
+        <div class="min-w-[100px] p-1.5 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[8px] text-gray-500 font-bold uppercase">QC Pending</p>
+            <p class="text-xs font-bold text-gray-700 dark:text-gray-200">{{ "%.3f"|format(stats.qc_pending_wt|float) if
+                stats else '0.000' }} / <span class="text-[10px]">{{ stats.qc_pending_pcs or 0 }}</span></p>
+        </div>
+        <div class="min-w-[100px] p-1.5 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[8px] text-gray-500 font-bold uppercase">QC Rejected</p>
+            <p class="text-xs font-bold text-red-600">{{ "%.3f"|format(stats.qc_rejected_wt|float) if stats else '0.000'
+                }} / <span class="text-[10px]">{{ stats.qc_rejected_pcs or 0 }}</span></p>
+        </div>
+        <div class="min-w-[100px] p-1.5 text-center">
+            <p class="text-[8px] text-gray-500 font-bold uppercase">Not Barcoded</p>
+            <p class="text-xs font-bold text-gray-700 dark:text-gray-200">{{ "%.3f"|format(stats.not_barcode_wt|float)
+                if stats else '0.000' }} / <span class="text-[10px]">{{ stats.not_barcode_pcs or 0 }}</span></p>
+        </div>
+    </div>
+
+    <!-- Pagination Strip -->
+    <div
+        class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <span class="material-symbols-outlined text-[14px]">info</span>
+            <span>Drill-down Level: <span id="current-level-badge"
+                    class="px-1.5 py-0.5 bg-primary/10 text-primary font-bold rounded uppercase ml-1">{{ current_level
+                    }}</span></span>
+        </div>
+
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <div class="flex items-center gap-2">
+                <span class="text-gray-400">Rows:</span>
+                <select id="per-page-select" onchange="changePerPage(this.value)"
+                    class="bg-transparent border-none text-[10px] font-bold focus:ring-0 p-0 cursor-pointer">
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
+            <span id="pagination-info" class="font-medium">0-0 of 0</span>
+            <div class="flex items-center gap-1">
+                <button id="btn-prev" class="p-0.5 hover:bg-gray-100 rounded disabled:opacity-50">
+                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                </button>
+                <button id="btn-next" class="p-0.5 hover:bg-gray-100 rounded disabled:opacity-50">
+                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Container -->
+    <div id="table-area" class="flex-1 overflow-auto relative">
+        <div id="view-report" class="dashboard-view">
+            {% include 'partials/_view_order_pending_rejection.html' %}
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block sidebar %}
+<aside
+    class="w-64 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xs font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> FILTERS
+            </h2>
+            <button onclick="resetGlobalFilters()"
+                class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+        </div>
+        <div class="space-y-4">
+            <!-- Filter groups could be dynamically populated like in owner_wise_order.py if list_options logic is added -->
+            <!-- For now, we'll keep placeholders or basic selects -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification Owner</label>
+                <input id="filter-classification-owner" type="text" placeholder="Search owner..."
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make Owner</label>
+                <input id="filter-make-owner" type="text" placeholder="Search owner..."
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection Owner</label>
+                <input id="filter-collection-owner" type="text" placeholder="Search owner..."
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+            </div>
+            <div class="h-px bg-gray-100 dark:bg-gray-800 my-4"></div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Party</label>
+                <input id="filter-party" type="text" placeholder="Search party..."
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Purchase RO</label>
+                <input id="filter-order-ro" type="text" placeholder="Search RO..."
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order Review Status</label>
+                <select id="filter-order-type"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Statuses</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="REJECTED">Rejected</option>
+                </select>
+            </div>
+        </div>
+        <button onclick="applyGlobalFilters()"
+            class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm mt-6 flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
+        </button>
+    </div>
+</aside>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/order_pending_rejection.js') }}"></script>
+{% endblock %}

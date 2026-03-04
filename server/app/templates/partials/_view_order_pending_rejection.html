@@ -1,0 +1,154 @@
+{% if not is_child_rows %}
+<table class="enterprise-grid w-full text-[11px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
+            <th class="col-expander text-center px-0 w-8" rowspan="2"></th>
+            <th class="col-detail text-left px-4" rowspan="2">Level Detail</th>
+            <th class="text-center border-l-2 border-gray-300 dark:border-gray-600" colspan="2">Pending to Accept</th>
+            <th class="text-center border-l-2 border-gray-300 dark:border-gray-600" colspan="2">Rejected</th>
+            <th class="text-center border-l-2 border-gray-300 dark:border-gray-600" colspan="2">Hallmark Failed</th>
+            <th class="text-center border-l-2 border-gray-300 dark:border-gray-600" colspan="2">Hallmark Test Cut</th>
+            <th class="text-center border-l-2 border-gray-300 dark:border-gray-600" colspan="2">QC Pending</th>
+            <th class="text-center border-l-2 border-gray-300 dark:border-gray-600" colspan="2">QC Rejected</th>
+            <th class="text-center border-l-2 border-gray-300 dark:border-gray-600" colspan="2">Not Barcoded</th>
+        </tr>
+        <tr
+            class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider border-b border-gray-200 dark:border-gray-700">
+            <th class="col-wt text-right border-l-2 border-gray-300 dark:border-gray-600">Wt</th>
+            <th class="col-pcs text-right">Pcs</th>
+            <th class="col-wt text-right border-l-2 border-gray-300 dark:border-gray-600">Wt</th>
+            <th class="col-pcs text-right">Pcs</th>
+            <th class="col-wt text-right border-l-2 border-gray-300 dark:border-gray-600">Wt</th>
+            <th class="col-pcs text-right">Pcs</th>
+            <th class="col-wt text-right border-l-2 border-gray-300 dark:border-gray-600">Wt</th>
+            <th class="col-pcs text-right">Pcs</th>
+            <th class="col-wt text-right border-l-2 border-gray-300 dark:border-gray-600">Wt</th>
+            <th class="col-pcs text-right">Pcs</th>
+            <th class="col-wt text-right border-l-2 border-gray-300 dark:border-gray-600">Wt</th>
+            <th class="col-pcs text-right">Pcs</th>
+            <th class="col-wt text-right border-l-2 border-gray-300 dark:border-gray-600">Wt</th>
+            <th class="col-pcs text-right">Pcs</th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        {% endif %}
+
+        {% for r in rows %}
+        <tr class="parent-row hover:bg-blue-50/30 group animate-fade-in" data-level="{{ r.level }}">
+            <td class="text-center px-0">
+                {% if r.level != 'collection' %}
+                <button onclick="toggleRow(this, '{{ r.level }}', '{{ r.party if r.level == 'party' else (r.purchase_ro if r.level == 'purchase_ro' else (r.division if r.level == 'division' else (r.group if r.level == 'group' else (r.purity if r.level == 'purity' else (r.classification if r.level == 'classification' else r.make))))) }}', {
+                grandparent_party: '{{ r.party }}',
+                grandparent_ro: '{{ r.purchase_ro }}',
+                grandparent_division: '{{ r.division }}',
+                grandparent_group: '{{ r.group }}',
+                grandparent_purity: '{{ r.purity }}',
+                grandparent_classification: '{{ r.classification }}',
+                grandparent_make: '{{ r.make }}'
+            })" class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
+                    <span class="material-symbols-outlined text-[16px]">add_circle</span>
+                </button>
+                {% else %}
+                <span class="material-symbols-outlined text-[10px] text-gray-200">fiber_manual_record</span>
+                {% endif %}
+            </td>
+            <td class="px-4 font-bold min-w-[150px]">
+                <div class="flex items-center gap-2" style="padding-left: {{ 
+            '0px' if r.level == 'party' else 
+            ('15px' if r.level == 'purchase_ro' else 
+            ('30px' if r.level == 'division' else 
+            ('45px' if r.level == 'group' else 
+            ('60px' if r.level == 'purity' else 
+            ('75px' if r.level == 'classification' else 
+            ('90px' if r.level == 'make' else '105px')))))) }}">
+                    <span class="material-symbols-outlined text-[14px] text-gray-300">
+                        {% if r.level == 'party' %}person{% elif r.level == 'purchase_ro' %}task{% else %}folder{% endif
+                        %}
+                    </span>
+                    <span>
+                        {% if r.level == 'party' %}{{ r.party }}
+                        {% elif r.level == 'purchase_ro' %}{{ r.purchase_ro }}
+                        {% elif r.level == 'division' %}{{ r.division }}
+                        {% elif r.level == 'group' %}{{ r.group }}
+                        {% elif r.level == 'purity' %}{{ r.purity }}
+                        {% elif r.level == 'classification' %}{{ r.classification }}
+                        {% elif r.level == 'make' %}{{ r.make }}
+                        {% else %}{{ r.collection }}{% endif %}
+                    </span>
+                </div>
+            </td>
+
+            <!-- Data Columns -->
+            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-800 text-gray-600">{{
+                "%.3f"|format(r.pending_accept_wt) }}</td>
+            <td class="col-pcs text-right font-medium">{{ r.pending_accept_pcs }}</td>
+
+            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-800 text-red-600/70">{{
+                "%.3f"|format(r.rejected_wt) }}</td>
+            <td class="col-pcs text-right font-medium text-red-600">{{ r.rejected_pcs }}</td>
+
+            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-800 text-gray-600">{{
+                "%.3f"|format(r.hm_failed_wt) }}</td>
+            <td class="col-pcs text-right font-medium">{{ r.hm_failed_pcs }}</td>
+
+            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-800 text-gray-600">{{
+                "%.3f"|format(r.hm_test_cut_wt) }}</td>
+            <td class="col-pcs text-right font-medium">{{ r.hm_test_cut_pcs }}</td>
+
+            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-800 text-gray-600">{{
+                "%.3f"|format(r.qc_pending_wt) }}</td>
+            <td class="col-pcs text-right font-medium">{{ r.qc_pending_pcs }}</td>
+
+            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-800 text-red-600/70">{{
+                "%.3f"|format(r.qc_rejected_wt) }}</td>
+            <td class="col-pcs text-right font-medium text-red-600">{{ r.qc_rejected_pcs }}</td>
+
+            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-800 text-gray-600">{{
+                "%.3f"|format(r.not_barcode_wt) }}</td>
+            <td class="col-pcs text-right font-medium">{{ r.not_barcode_pcs }}</td>
+        </tr>
+        {% endfor %}
+
+        {% if not rows and not is_child_rows %}
+        <tr>
+            <td colspan="16" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
+        </tr>
+        {% endif %}
+
+        {% if not is_child_rows %}
+    </tbody>
+    <tfoot class="sticky-footer">
+        <tr class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white uppercase text-[8px] font-bold">
+            <td class="p-2 text-right" colspan="2">Grand Total</td>
+            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-700">{{
+                "%.3f"|format(stats.pending_accept_wt or 0) }}</td>
+            <td class="col-pcs text-right">{{ stats.pending_accept_pcs or 0 }}</td>
+            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-700">{{
+                "%.3f"|format(stats.rejected_wt or 0) }}</td>
+            <td class="col-pcs text-right">{{ stats.rejected_pcs or 0 }}</td>
+            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-700">{{
+                "%.3f"|format(stats.hm_failed_wt or 0) }}</td>
+            <td class="col-pcs text-right">{{ stats.hm_failed_pcs or 0 }}</td>
+            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-700">{{
+                "%.3f"|format(stats.hm_test_cut_wt or 0) }}</td>
+            <td class="col-pcs text-right">{{ stats.hm_test_cut_pcs or 0 }}</td>
+            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-700">{{
+                "%.3f"|format(stats.qc_pending_wt or 0) }}</td>
+            <td class="col-pcs text-right">{{ stats.qc_pending_pcs or 0 }}</td>
+            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-700">{{
+                "%.3f"|format(stats.qc_rejected_wt or 0) }}</td>
+            <td class="col-pcs text-right">{{ stats.qc_rejected_pcs or 0 }}</td>
+            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-700">{{
+                "%.3f"|format(stats.not_barcode_wt or 0) }}</td>
+            <td class="col-pcs text-right">{{ stats.not_barcode_pcs or 0 }}</td>
+        </tr>
+    </tfoot>
+</table>
+
+<div class="pagination-meta hidden" data-page="{{ pagination.page if pagination else 1 }}"
+    data-per-page="{{ pagination.per_page if pagination else 50 }}"
+    data-total="{{ pagination.total if pagination else 0 }}"
+    data-has-prev="{{ 'true' if pagination and pagination.has_prev else 'false' }}"
+    data-has-next="{{ 'true' if pagination and pagination.has_next else 'false' }}" data-level="{{ current_level }}">
+</div>
+{% endif %}
