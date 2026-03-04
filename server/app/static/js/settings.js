@@ -1313,6 +1313,43 @@ document.addEventListener('DOMContentLoaded', () => {
                     displayUserId = userNamesMap[user.user_id].user_id;
                 }
 
+                let timeString = 'Just now';
+                if (user.connected_at) {
+                    const connectedDate = new Date(user.connected_at);
+                    const now = new Date();
+
+                    // Format date: "4 Mar 2026, 11:04:59 am"
+                    const formattedDate = connectedDate.toLocaleString('en-IN', {
+                        timeZone: 'Asia/Kolkata',
+                        hour12: true,
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    }).replace('am', 'am').replace('pm', 'pm'); // Ensure lowercase am/pm if required, though toLocaleString typically handles it
+
+                    // Calculate relative time
+                    const diffMs = now - connectedDate;
+                    const diffMins = Math.floor(diffMs / 60000);
+                    const diffHours = Math.floor(diffMins / 60);
+                    const diffDays = Math.floor(diffHours / 24);
+
+                    let timeAgo = '';
+                    if (diffMins < 1) {
+                        timeAgo = 'Just now';
+                    } else if (diffMins < 60) {
+                        timeAgo = `${diffMins} Min ago`;
+                    } else if (diffHours < 24) {
+                        timeAgo = `${diffHours} Hr${diffHours > 1 ? 's' : ''} ago`;
+                    } else {
+                        timeAgo = `${diffDays} Day${diffDays > 1 ? 's' : ''} ago`;
+                    }
+
+                    timeString = timeAgo === 'Just now' ? 'Just now' : `${formattedDate} ( ${timeAgo} )`;
+                }
+
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20";
                 tr.innerHTML = `
@@ -1326,7 +1363,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </td>
                     <td class="px-4 py-3 font-mono text-[10px]">${user.ip_address || 'Unknown IP'}</td>
-                    <td class="px-4 py-3 text-[10px]">${user.connected_at ? new Date(user.connected_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true, year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Just now'}</td>
+                    <td class="px-4 py-3 text-[10px]">${timeString}</td>
                     <td class="px-4 py-3 font-mono text-[9px] text-gray-400 text-right"><span class="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded break-all">${user.sid}</span></td>
                 `;
                 activeUsersTbody.appendChild(tr);
