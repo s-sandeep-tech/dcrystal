@@ -441,10 +441,15 @@ def get_owner_wise_partial():
 @jwt_required()
 def get_leaf_detail():
     try:
-        # Get filters to identify the specific leaf node context
+        search = request.args.get('search', '').strip()
+        division = request.args.get('division', '')
+        group_name = request.args.get('group', '')
+        purity = request.args.get('purity', '')
+        supplier = request.args.get('supplier', '')
         classification_owner = request.args.get('classification_owner', '')
-        make_owner = request.args.get('make_owner', '')
         collection_owner = request.args.get('collection_owner', '')
+        make_owner = request.args.get('make_owner', '')
+        classification = request.args.get('classification', '')
         order_type = request.args.get('order_type', '')
         all_rejected = request.args.get('all_rejected', 'false') == 'true'
         from_date = request.args.get('from_date', '')
@@ -453,29 +458,45 @@ def get_leaf_detail():
         order_ro = request.args.get('order_ro', '')
         order_request_type = request.args.get('order_request_type', '')
         age = request.args.get('age', '', type=str)
-        
+
         query = db.session.query(OwnerWiseOrderSummarySnapshot)
-        
+
         if all_rejected:
             query = query.filter(OwnerWiseOrderSummarySnapshot.ordered_pcs == OwnerWiseOrderSummarySnapshot.rejected_pcs)
-
+        if search:
+            query = query.filter(
+                (OwnerWiseOrderSummarySnapshot.classification_owner.ilike(f"%{search}%")) |
+                (OwnerWiseOrderSummarySnapshot.collection_owner.ilike(f"%{search}%")) |
+                (OwnerWiseOrderSummarySnapshot.make_owner.ilike(f"%{search}%")) |
+                (OwnerWiseOrderSummarySnapshot.collection.ilike(f"%{search}%"))
+            )
+        if division:
+            query = query.filter(OwnerWiseOrderSummarySnapshot.division == division)
+        if group_name:
+            query = query.filter(OwnerWiseOrderSummarySnapshot.group_name == group_name)
+        if purity:
+            query = query.filter(OwnerWiseOrderSummarySnapshot.purity == purity)
+        if supplier:
+            query = query.filter(OwnerWiseOrderSummarySnapshot.supplier == supplier)
         if classification_owner:
             query = query.filter(OwnerWiseOrderSummarySnapshot.classification_owner == classification_owner)
-        if make_owner:
-            query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == make_owner)
         if collection_owner:
             query = query.filter(OwnerWiseOrderSummarySnapshot.collection_owner == collection_owner)
+        if make_owner:
+            query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == make_owner)
+        if classification:
+            query = query.filter(OwnerWiseOrderSummarySnapshot.classification == classification)
         if order_type:
             query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
         if order_ro:
             query = query.filter(OwnerWiseOrderSummarySnapshot.order_ro == order_ro)
         if order_request_type:
             query = query.filter(OwnerWiseOrderSummarySnapshot.order_request_type == order_request_type)
-        
+
         if age and age.isdigit():
             age_val = int(age)
             query = query.filter(func.current_date() - OwnerWiseOrderSummarySnapshot.order_date >= age_val)
-        
+
         if enable_date_filter and from_date and to_date:
             try:
                 fd = datetime.strptime(from_date, '%Y-%m-%d').date()
@@ -483,6 +504,17 @@ def get_leaf_detail():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_date.between(fd, td))
             except ValueError:
                 pass
+
+        # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_manager_2 = 'MANAGER_2' in roles
+        if not session.get('is_admin', False) and not is_manager_2 and session.get('username'):
+            u = session.get('username').strip().lower()
+            query = query.filter(
+                (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
+                (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
+                (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
+            )
             
         results = query.all()
         

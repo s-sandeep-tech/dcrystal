@@ -19,14 +19,14 @@ async function openLeafModal(classOwner, makeOwner, collOwner) {
 
     try {
         const urlParams = new URLSearchParams(window.location.search);
-        const allRejected = urlParams.get('all_rejected') || 'false';
 
-        const params = new URLSearchParams({
-            classification_owner: classOwner,
-            make_owner: makeOwner,
-            collection_owner: collOwner,
-            all_rejected: allRejected
-        });
+        // Start with existing global filters
+        const params = new URLSearchParams(urlParams);
+
+        // Override or set owner parameters specific to the modal item
+        params.set('classification_owner', classOwner);
+        params.set('make_owner', makeOwner);
+        params.set('collection_owner', collOwner);
 
         const response = await fetch(`/partial/leaf_detail?${params.toString()}`, {
             headers: {
