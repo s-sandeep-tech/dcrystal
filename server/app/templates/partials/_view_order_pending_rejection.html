@@ -4,7 +4,8 @@
         <tr
             class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider border-b border-gray-200 dark:border-gray-700">
             <th class="col-expander text-center px-0 w-8"></th>
-            <th class="col-detail text-left px-4" style="width: 385px;">Level Detail</th>
+            <th class="col-detail text-left px-4" style="width: 385px; min-width: 385px; max-width: 385px;">Level Detail
+            </th>
             <th class="col-stacked border-l-2 border-gray-300 dark:border-gray-600">Pending to Accept</th>
             <th class="col-stacked border-l-2 border-gray-300 dark:border-gray-600">Rejected</th>
             <th class="col-stacked border-l-2 border-gray-300 dark:border-gray-600">Hallmark Failed</th>
@@ -36,7 +37,7 @@
                 <span class="material-symbols-outlined text-[10px] text-gray-200">fiber_manual_record</span>
                 {% endif %}
             </td>
-            <td class="px-4 font-bold min-w-[150px]">
+            <td class="px-4 font-bold" style="width: 385px; min-width: 385px; max-width: 385px;">
                 <div class="flex items-center gap-2" style="padding-left: {{ 
             '0px' if r.level == 'party' else 
             ('15px' if r.level == 'purchase_ro' else 
