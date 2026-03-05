@@ -33,6 +33,7 @@ def order_pending_rejection_summary():
         order_type = request.args.get('order_type', '')
         batch = request.args.get('batch', '')
         days = request.args.get('days', type=int) if request.args.get('days') else None
+        status_filter = request.args.get('status_filter', '')
         
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
@@ -73,6 +74,20 @@ def order_pending_rejection_summary():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.batch == batch)
             if days:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_date >= func.current_date() - days)
+            
+            if status_filter == 'pending':
+                query = query.filter(
+                    (OwnerWiseOrderSummarySnapshot.ordered_pcs > (OwnerWiseOrderSummarySnapshot.accepted_pcs + OwnerWiseOrderSummarySnapshot.rejected_pcs)) |
+                    (OwnerWiseOrderSummarySnapshot.qc_pending_pcs > 0) |
+                    (OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs > 0)
+                )
+            elif status_filter == 'rejected':
+                query = query.filter(OwnerWiseOrderSummarySnapshot.rejected_wt > 0)
+            elif status_filter == 'full_rejected':
+                query = query.filter(
+                    (OwnerWiseOrderSummarySnapshot.ordered_wt == OwnerWiseOrderSummarySnapshot.rejected_wt) &
+                    (OwnerWiseOrderSummarySnapshot.ordered_wt > 0)
+                )
             
             # User-based filtering
             roles = [r.upper() for r in session.get('roles', [])]
@@ -158,6 +173,9 @@ def order_pending_rejection_summary():
             return [r[0] for r in db.session.query(column).distinct().filter(column != None).order_by(column).all() if r[0]]
 
         filter_options = {
+            'divisions': get_distinct(OwnerWiseOrderSummarySnapshot.division),
+            'groups': get_distinct(OwnerWiseOrderSummarySnapshot.group_name),
+            'purities': get_distinct(OwnerWiseOrderSummarySnapshot.purity),
             'classification_owners': get_distinct(OwnerWiseOrderSummarySnapshot.classification_owner),
             'make_owners': get_distinct(OwnerWiseOrderSummarySnapshot.make_owner),
             'collection_owners': get_distinct(OwnerWiseOrderSummarySnapshot.collection_owner),
@@ -233,6 +251,7 @@ def get_order_pending_rejection_partial():
         order_type = request.args.get('order_type', '')
         batch = request.args.get('batch', '')
         days = request.args.get('days', type=int) if request.args.get('days') else None
+        status_filter = request.args.get('status_filter', '')
 
         parent_level = request.args.get('parent_level')
         parent_value = request.args.get('parent_value')
@@ -287,6 +306,20 @@ def get_order_pending_rejection_partial():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.batch == batch)
             if days:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_date >= func.current_date() - days)
+
+            if status_filter == 'pending':
+                query = query.filter(
+                    (OwnerWiseOrderSummarySnapshot.ordered_pcs > (OwnerWiseOrderSummarySnapshot.accepted_pcs + OwnerWiseOrderSummarySnapshot.rejected_pcs)) |
+                    (OwnerWiseOrderSummarySnapshot.qc_pending_pcs > 0) |
+                    (OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs > 0)
+                )
+            elif status_filter == 'rejected':
+                query = query.filter(OwnerWiseOrderSummarySnapshot.rejected_wt > 0)
+            elif status_filter == 'full_rejected':
+                query = query.filter(
+                    (OwnerWiseOrderSummarySnapshot.ordered_wt == OwnerWiseOrderSummarySnapshot.rejected_wt) &
+                    (OwnerWiseOrderSummarySnapshot.ordered_wt > 0)
+                )
             
             roles = [r.upper() for r in session.get('roles', [])]
             if not session.get('is_admin', False) and 'MANAGER_2' not in roles and session.get('username'):

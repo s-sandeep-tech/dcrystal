@@ -18,6 +18,40 @@ function adjustZoom(delta, reset = false) {
     }
 }
 
+function formatNumber(num, decimals = 0) {
+    const n = parseFloat(num);
+    return new Intl.NumberFormat('en-IN', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+    }).format(isNaN(n) ? 0 : n);
+}
+
+function updateSummaryCards(data) {
+    const mappings = {
+        'stat-pending-accept-wt': { val: data.pendingAcceptWt, dec: 3 },
+        'stat-pending-accept-pcs': { val: data.pendingAcceptPcs, suffix: ' Pcs' },
+        'stat-rejected-wt': { val: data.rejectedWt, dec: 3 },
+        'stat-rejected-pcs': { val: data.rejectedPcs, suffix: ' Pcs' },
+        'stat-hm-failed-wt': { val: data.hmFailedWt, dec: 3 },
+        'stat-hm-failed-pcs': { val: data.hmFailedPcs, suffix: ' Pcs' },
+        'stat-hm-test-cut-pcs': { val: data.hmTestCutPcs },
+        'stat-qc-pending-wt': { val: data.qcPendingWt, dec: 3 },
+        'stat-qc-pending-pcs': { val: data.qcPendingPcs, suffix: ' Pcs' },
+        'stat-qc-rejected-wt': { val: data.qcRejectedWt, dec: 3 },
+        'stat-qc-rejected-pcs': { val: data.qcRejectedPcs, suffix: ' Pcs' },
+        'stat-not-barcoded-wt': { val: data.notBarcodedWt, dec: 3 },
+        'stat-not-barcoded-pcs': { val: data.notBarcodedPcs, suffix: ' Pcs' }
+    };
+
+    for (const [id, config] of Object.entries(mappings)) {
+        const el = document.getElementById(id);
+        if (el) {
+            let formatted = formatNumber(config.val || 0, config.dec || 0);
+            el.textContent = config.suffix ? `${formatted}${config.suffix}` : formatted;
+        }
+    }
+}
+
 function setDatePreset(days) {
     const urlParams = new URLSearchParams(window.location.search);
     if (days) {
@@ -32,15 +66,45 @@ function setDatePreset(days) {
 
 function updatePresetUI(days) {
     document.querySelectorAll('.preset-btn').forEach(btn => {
-        btn.classList.remove('bg-primary', 'text-white', 'border-primary');
-        btn.classList.add('bg-white', 'dark:bg-gray-900', 'text-gray-700', 'dark:text-gray-300', 'border-gray-200', 'dark:border-gray-700');
+        btn.classList.remove('bg-primary', 'text-white', 'border-primary', 'hover:bg-primary/90');
+        btn.classList.add('bg-white', 'dark:bg-gray-900', 'text-gray-700', 'dark:text-gray-300', 'border-gray-200', 'dark:border-gray-700', 'hover:bg-gray-50', 'dark:hover:bg-gray-800');
     });
 
     if (days) {
         const activeBtn = document.getElementById(`preset-${days}d`);
         if (activeBtn) {
-            activeBtn.classList.add('bg-primary', 'text-white', 'border-primary');
-            activeBtn.classList.remove('bg-white', 'dark:bg-gray-900', 'text-gray-700', 'dark:text-gray-300', 'border-gray-200', 'dark:border-gray-700');
+            activeBtn.classList.add('bg-primary', 'text-white', 'border-primary', 'hover:bg-primary/90');
+            activeBtn.classList.remove('bg-white', 'dark:bg-gray-900', 'text-gray-700', 'dark:text-gray-300', 'border-gray-200', 'dark:border-gray-700', 'hover:bg-gray-50', 'dark:hover:bg-gray-800');
+        }
+    }
+}
+function setStatusFilter(status) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentStatus = urlParams.get('status_filter');
+
+    if (status === currentStatus) {
+        urlParams.delete('status_filter');
+        updateStatusUI(null);
+    } else {
+        urlParams.set('status_filter', status);
+        updateStatusUI(status);
+    }
+
+    urlParams.set('page', 1);
+    updateUrlAndLoad(urlParams);
+}
+
+function updateStatusUI(status) {
+    document.querySelectorAll('.status-preset-btn').forEach(btn => {
+        btn.classList.remove('bg-primary', 'text-white', 'border-primary', 'hover:bg-primary/90');
+        btn.classList.add('bg-white', 'dark:bg-gray-900', 'text-gray-700', 'dark:text-gray-300', 'border-gray-200', 'dark:border-gray-700', 'hover:bg-gray-50', 'dark:hover:bg-gray-800');
+    });
+
+    if (status) {
+        const activeBtn = document.getElementById(`status-preset-${status}`);
+        if (activeBtn) {
+            activeBtn.classList.add('bg-primary', 'text-white', 'border-primary', 'hover:bg-primary/90');
+            activeBtn.classList.remove('bg-white', 'dark:bg-gray-900', 'text-gray-700', 'dark:text-gray-300', 'border-gray-200', 'dark:border-gray-700', 'hover:bg-gray-50', 'dark:hover:bg-gray-800');
         }
     }
 }
@@ -70,6 +134,11 @@ async function loadViewData() {
         if (metaDiv) {
             updatePaginationControls(metaDiv.dataset);
             updateLevelBadge(metaDiv.dataset.level);
+        }
+
+        const statsMeta = activeView.querySelector('.stats-meta');
+        if (statsMeta) {
+            updateSummaryCards(statsMeta.dataset);
         }
 
     } catch (error) {
@@ -166,7 +235,8 @@ function applyGlobalFilters() {
         'filter-classification-owner', 'filter-make-owner', 'filter-collection-owner',
         'filter-classification', 'filter-make', 'filter-collection',
         'filter-supplier', 'filter-order-ro', 'filter-batch',
-        'filter-order-type', 'filter-order-request-type'
+        'filter-order-type', 'filter-order-request-type',
+        'filter-division', 'filter-group', 'filter-purity'
     ];
 
     filterIds.forEach(id => {
@@ -178,6 +248,9 @@ function applyGlobalFilters() {
 
     const activeDays = urlParams.get('days');
     if (activeDays) urlParams.set('days', activeDays);
+
+    const activeStatus = urlParams.get('status_filter');
+    if (activeStatus) urlParams.set('status_filter', activeStatus);
 
     const searchVal = document.getElementById('hierarchy-search')?.value?.trim();
     if (searchVal) urlParams.set('search', searchVal);
@@ -192,7 +265,8 @@ function resetGlobalFilters() {
         'filter-classification-owner', 'filter-make-owner', 'filter-collection-owner',
         'filter-classification', 'filter-make', 'filter-collection',
         'filter-supplier', 'filter-order-ro', 'filter-batch',
-        'filter-order-type', 'filter-order-request-type', 'hierarchy-search'
+        'filter-order-type', 'filter-order-request-type', 'hierarchy-search',
+        'filter-division', 'filter-group', 'filter-purity'
     ];
 
     filterIds.forEach(id => {
@@ -201,6 +275,7 @@ function resetGlobalFilters() {
     });
 
     updatePresetUI(null);
+    updateStatusUI(null);
 
     const urlParams = new URLSearchParams();
     urlParams.set('page', 1);
@@ -282,6 +357,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (urlParams.has('days')) {
         updatePresetUI(urlParams.get('days'));
+    }
+
+    if (urlParams.has('status_filter')) {
+        updateStatusUI(urlParams.get('status_filter'));
     }
 
     loadViewData();

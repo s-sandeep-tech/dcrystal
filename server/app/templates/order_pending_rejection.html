@@ -180,33 +180,33 @@
         <div class="stat-card">
             <p class="stat-label"><span
                     class="material-symbols-outlined text-blue-premium">pending_actions</span>Pending to Accept</p>
-            <p class="stat-val text-blue-premium">
+            <p class="stat-val text-blue-premium" id="stat-pending-accept-wt">
                 {{ "{:,.3f}".format(stats.pending_accept_wt|float) if stats else '0.000' }}
             </p>
-            <p class="stat-pcs">{{ "{:,}".format(stats.pending_accept_pcs or 0) }} Pcs</p>
+            <p class="stat-pcs" id="stat-pending-accept-pcs">{{ "{:,}".format(stats.pending_accept_pcs or 0) }} Pcs</p>
         </div>
 
         <div class="stat-card">
             <p class="stat-label"><span class="material-symbols-outlined text-red-premium">cancel</span>Rejected</p>
-            <p class="stat-val text-red-premium">
+            <p class="stat-val text-red-premium" id="stat-rejected-wt">
                 {{ "{:,.3f}".format(stats.rejected_wt|float) if stats else '0.000' }}
             </p>
-            <p class="stat-pcs">{{ "{:,}".format(stats.rejected_pcs or 0) }} Pcs</p>
+            <p class="stat-pcs" id="stat-rejected-pcs">{{ "{:,}".format(stats.rejected_pcs or 0) }} Pcs</p>
         </div>
 
         <div class="stat-card">
             <p class="stat-label"><span class="material-symbols-outlined text-indigo-premium">gpp_maybe</span>HM Failed
             </p>
-            <p class="stat-val text-indigo-premium">
+            <p class="stat-val text-indigo-premium" id="stat-hm-failed-wt">
                 {{ "{:,.3f}".format(stats.hm_failed_wt|float) if stats else '0.000' }}
             </p>
-            <p class="stat-pcs">{{ "{:,}".format(stats.hm_failed_pcs or 0) }} Pcs</p>
+            <p class="stat-pcs" id="stat-hm-failed-pcs">{{ "{:,}".format(stats.hm_failed_pcs or 0) }} Pcs</p>
         </div>
 
         <div class="stat-card">
             <p class="stat-label"><span class="material-symbols-outlined text-cyan-premium">content_cut</span>HM Test
                 Cut</p>
-            <p class="stat-val text-cyan-premium">
+            <p class="stat-val text-cyan-premium" id="stat-hm-test-cut-pcs">
                 {{ "{:,}".format(stats.hm_test_cut_pcs or 0) }}
             </p>
             <p class="stat-pcs">Pieces</p>
@@ -215,28 +215,28 @@
         <div class="stat-card">
             <p class="stat-label"><span class="material-symbols-outlined text-amber-premium">fact_check</span>QC Pending
             </p>
-            <p class="stat-val text-amber-premium">
+            <p class="stat-val text-amber-premium" id="stat-qc-pending-wt">
                 {{ "{:,.3f}".format(stats.qc_pending_wt|float) if stats else '0.000' }}
             </p>
-            <p class="stat-pcs">{{ "{:,}".format(stats.qc_pending_pcs or 0) }} Pcs</p>
+            <p class="stat-pcs" id="stat-qc-pending-pcs">{{ "{:,}".format(stats.qc_pending_pcs or 0) }} Pcs</p>
         </div>
 
         <div class="stat-card">
             <p class="stat-label"><span class="material-symbols-outlined text-red-premium">dangerous</span>QC Rejected
             </p>
-            <p class="stat-val text-red-premium">
+            <p class="stat-val text-red-premium" id="stat-qc-rejected-wt">
                 {{ "{:,.3f}".format(stats.qc_rejected_wt|float) if stats else '0.000' }}
             </p>
-            <p class="stat-pcs">{{ "{:,}".format(stats.qc_rejected_pcs or 0) }} Pcs</p>
+            <p class="stat-pcs" id="stat-qc-rejected-pcs">{{ "{:,}".format(stats.qc_rejected_pcs or 0) }} Pcs</p>
         </div>
 
         <div class="stat-card">
             <p class="stat-label"><span class="material-symbols-outlined text-orange-premium">barcode_scanner</span>Not
                 Barcoded</p>
-            <p class="stat-val text-orange-premium">
+            <p class="stat-val text-orange-premium" id="stat-not-barcoded-wt">
                 {{ "{:,.3f}".format(stats.not_barcode_wt|float) if stats else '0.000' }}
             </p>
-            <p class="stat-pcs">{{ "{:,}".format(stats.not_barcode_pcs or 0) }} Pcs</p>
+            <p class="stat-pcs" id="stat-not-barcoded-pcs">{{ "{:,}".format(stats.not_barcode_pcs or 0) }} Pcs</p>
         </div>
     </div>
 
@@ -295,22 +295,42 @@
         </div>
         <div class="space-y-4">
             <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Status Filter</label>
+                <div class="flex flex-col gap-1.5">
+                    <button id="status-preset-pending" onclick="setStatusFilter('pending')"
+                        class="status-preset-btn flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold border border-gray-200 dark:border-gray-700 rounded transition-all">
+                        <span class="material-symbols-outlined text-[16px] text-amber-500">pending</span>
+                        <span>Pending Orders</span>
+                    </button>
+                    <button id="status-preset-rejected" onclick="setStatusFilter('rejected')"
+                        class="status-preset-btn flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold border border-gray-200 dark:border-gray-700 rounded transition-all">
+                        <span class="material-symbols-outlined text-[16px] text-red-500">block</span>
+                        <span>Rejected Items</span>
+                    </button>
+                    <button id="status-preset-full_rejected" onclick="setStatusFilter('full_rejected')"
+                        class="status-preset-btn flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold border border-gray-200 dark:border-gray-700 rounded transition-all">
+                        <span class="material-symbols-outlined text-[16px] text-red-700">cancel</span>
+                        <span>Fully Rejected</span>
+                    </button>
+                </div>
+            </div>
+            <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Date Range
                     Presets</label>
                 <div class="grid grid-cols-2 gap-2">
                     <button id="preset-10d" onclick="setDatePreset(10)"
-                        class="preset-btn px-2 py-1.5 text-[10px] font-bold border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50">Last
+                        class="preset-btn px-2 py-1.5 text-[10px] font-bold border border-gray-200 dark:border-gray-700 rounded">Last
                         10d</button>
                     <button id="preset-25d" onclick="setDatePreset(25)"
-                        class="preset-btn px-2 py-1.5 text-[10px] font-bold border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50">Last
+                        class="preset-btn px-2 py-1.5 text-[10px] font-bold border border-gray-200 dark:border-gray-700 rounded">Last
                         25d</button>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <button id="preset-30d" onclick="setDatePreset(30)"
-                        class="preset-btn px-2 py-1.5 text-[10px] font-bold border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50">Last
+                        class="preset-btn px-2 py-1.5 text-[10px] font-bold border border-gray-200 dark:border-gray-700 rounded">Last
                         30d</button>
                     <button id="preset-60d" onclick="setDatePreset(60)"
-                        class="preset-btn px-2 py-1.5 text-[10px] font-bold border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50">Last
+                        class="preset-btn px-2 py-1.5 text-[10px] font-bold border border-gray-200 dark:border-gray-700 rounded">Last
                         60d</button>
                 </div>
             </div>
@@ -319,6 +339,9 @@
                 <select id="filter-division"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Divisions</option>
+                    {% for opt in filter_options.divisions %}
+                    <option value="{{ opt }}">{{ opt }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="space-y-1.5">
@@ -326,6 +349,9 @@
                 <select id="filter-group"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Groups</option>
+                    {% for opt in filter_options.groups %}
+                    <option value="{{ opt }}">{{ opt }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="space-y-1.5">
@@ -333,66 +359,9 @@
                 <select id="filter-purity"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Purities</option>
-                </select>
-            </div>
-            <div class="space-y-1.5">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification</label>
-                <select id="filter-classification"
-                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Classifications</option>
-                </select>
-            </div>
-            <div class="space-y-1.5">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make</label>
-                <select id="filter-make"
-                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Makes</option>
-                </select>
-            </div>
-            <div class="space-y-1.5">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection</label>
-                <select id="filter-collection"
-                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Collections</option>
-                </select>
-            </div>
-            <div class="space-y-1.5">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Party</label>
-                <select id="filter-party"
-                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Parties</option>
-                </select>
-            </div>
-            <div class="space-y-1.5 border-t border-gray-100 dark:border-gray-800 pt-3 mt-3">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make
-                    Owner</label>
-                <select id="filter-make-owner"
-                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Make Owners</option>
-                </select>
-            </div>
-            <div class="space-y-1.5">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection
-                    Owner</label>
-                <select id="filter-collection-owner"
-                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Collection Owners</option>
-                </select>
-            </div>
-            <div class="space-y-1.5">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification
-                    Owner</label>
-                <select id="filter-classification-owner"
-                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Class-Owners</option>
-                </select>
-            </div>
-            <div class="space-y-1.5">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Business
-                    Head</label>
-                <select id="filter-business-head"
-                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Business Heads</option>
+                    {% for opt in filter_options.purities %}
+                    <option value="{{ opt }}">{{ opt }}</option>
+                    {% endfor %}
                 </select>
             </div>
         </div>

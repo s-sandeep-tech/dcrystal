@@ -145,6 +145,16 @@
     </tfoot>
 </table>
 
+<div class="stats-meta hidden" data-pending-accept-wt="{{ stats.pending_accept_wt|float or 0 }}"
+    data-pending-accept-pcs="{{ stats.pending_accept_pcs or 0 }}" data-rejected-wt="{{ stats.rejected_wt|float or 0 }}"
+    data-rejected-pcs="{{ stats.rejected_pcs or 0 }}" data-hm-failed-wt="{{ stats.hm_failed_wt|float or 0 }}"
+    data-hm-failed-pcs="{{ stats.hm_failed_pcs or 0 }}" data-hm-test-cut-wt="{{ stats.hm_test_cut_wt|float or 0 }}"
+    data-hm-test-cut-pcs="{{ stats.hm_test_cut_pcs or 0 }}" data-qc-pending-wt="{{ stats.qc_pending_wt|float or 0 }}"
+    data-qc-pending-pcs="{{ stats.qc_pending_pcs or 0 }}" data-qc-rejected-wt="{{ stats.qc_rejected_wt|float or 0 }}"
+    data-qc-rejected-pcs="{{ stats.qc_rejected_pcs or 0 }}" data-not-barcoded-wt="{{ stats.not_barcode_wt|float or 0 }}"
+    data-not-barcoded-pcs="{{ stats.not_barcode_pcs or 0 }}">
+</div>
+
 <div class="pagination-meta hidden" data-page="{{ pagination.page if pagination else 1 }}"
     data-per-page="{{ pagination.per_page if pagination else 50 }}"
     data-total="{{ pagination.total if pagination else 0 }}"
