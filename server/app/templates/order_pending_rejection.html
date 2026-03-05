@@ -282,9 +282,10 @@
 {% endblock %}
 
 {% block sidebar %}
-<aside
-    class="w-64 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
-    <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
+<div
+    class="flex flex-col h-full bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 shrink-0 w-64">
+    <!-- Scrollable Filter Content -->
+    <div class="flex-1 overflow-y-auto p-4 no-scrollbar">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-xs font-bold flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> FILTERS
@@ -293,142 +294,141 @@
                 class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
         </div>
         <div class="space-y-4">
-            <!-- Filter groups could be dynamically populated like in owner_wise_order.py if list_options logic is added -->
-            <!-- For now, we'll keep placeholders or basic selects -->
-            <div class="space-y-4">
-                <!-- Owner Filters -->
-                <div class="space-y-1.5">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification
-                        Owner</label>
-                    <select id="filter-classification-owner"
-                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                        <option value="">All Owners</option>
-                        {% for opt in filter_options.classification_owners %}
-                        <option value="{{ opt }}">{{ opt }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="space-y-1.5">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make Owner</label>
-                    <select id="filter-make-owner"
-                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                        <option value="">All Owners</option>
-                        {% for opt in filter_options.make_owners %}
-                        <option value="{{ opt }}">{{ opt }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="space-y-1.5">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection Owner</label>
-                    <select id="filter-collection-owner"
-                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                        <option value="">All Owners</option>
-                        {% for opt in filter_options.collection_owners %}
-                        <option value="{{ opt }}">{{ opt }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="h-px bg-gray-100 dark:bg-gray-800 my-4"></div>
-
-                <!-- Category Filters -->
-                <div class="space-y-1.5">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification</label>
-                    <select id="filter-classification"
-                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                        <option value="">All</option>
-                        {% for opt in filter_options.classifications %}
-                        <option value="{{ opt }}">{{ opt }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="space-y-1.5">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make</label>
-                    <select id="filter-make"
-                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                        <option value="">All</option>
-                        {% for opt in filter_options.makes %}
-                        <option value="{{ opt }}">{{ opt }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="space-y-1.5">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection</label>
-                    <select id="filter-collection"
-                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                        <option value="">All</option>
-                        {% for opt in filter_options.collections %}
-                        <option value="{{ opt }}">{{ opt }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="h-px bg-gray-100 dark:bg-gray-800 my-4"></div>
-
-                <!-- Party & RO Filters -->
-                <div class="space-y-1.5">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Party</label>
-                    <select id="filter-party"
-                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                        <option value="">All Parties</option>
-                        {% for opt in filter_options.parties %}
-                        <option value="{{ opt }}">{{ opt }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="space-y-1.5">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Purchase RO</label>
-                    <select id="filter-order-ro"
-                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                        <option value="">All ROs</option>
-                        {% for opt in filter_options.purchase_ros %}
-                        <option value="{{ opt }}">{{ opt }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="space-y-1.5">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Purchase Order
-                        Number</label>
-                    <select id="filter-batch"
-                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                        <option value="">All Batches</option>
-                        {% for opt in filter_options.batches %}
-                        <option value="{{ opt }}">{{ opt }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="h-px bg-gray-100 dark:bg-gray-800 my-4"></div>
-
-                <!-- Order Status Filters -->
-                <div class="space-y-1.5">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order Type</label>
-                    <select id="filter-order-type"
-                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                        <option value="">All Types</option>
-                        {% for opt in filter_options.order_types %}
-                        <option value="{{ opt }}">{{ opt }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="space-y-1.5">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order Request
-                        Type</label>
-                    <select id="filter-order-request-type"
-                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                        <option value="">All Request Types</option>
-                        {% for opt in filter_options.order_request_types %}
-                        <option value="{{ opt }}">{{ opt }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+            <!-- Owner Filters -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification Owner</label>
+                <select id="filter-classification-owner"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Owners</option>
+                    {% for opt in filter_options.classification_owners %}
+                    <option value="{{ opt }}">{{ opt }}</option>
+                    {% endfor %}
+                </select>
             </div>
-            <button onclick="applyGlobalFilters()"
-                class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm mt-6 flex items-center justify-center gap-2">
-                <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
-            </button>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make Owner</label>
+                <select id="filter-make-owner"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Owners</option>
+                    {% for opt in filter_options.make_owners %}
+                    <option value="{{ opt }}">{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection Owner</label>
+                <select id="filter-collection-owner"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Owners</option>
+                    {% for opt in filter_options.collection_owners %}
+                    <option value="{{ opt }}">{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="h-px bg-gray-100 dark:bg-gray-800 my-4"></div>
+
+            <!-- Category Filters -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification</label>
+                <select id="filter-classification"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All</option>
+                    {% for opt in filter_options.classifications %}
+                    <option value="{{ opt }}">{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make</label>
+                <select id="filter-make"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All</option>
+                    {% for opt in filter_options.makes %}
+                    <option value="{{ opt }}">{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection</label>
+                <select id="filter-collection"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All</option>
+                    {% for opt in filter_options.collections %}
+                    <option value="{{ opt }}">{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="h-px bg-gray-100 dark:bg-gray-800 my-4"></div>
+
+            <!-- Party & RO Filters -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Party</label>
+                <select id="filter-party"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Parties</option>
+                    {% for opt in filter_options.parties %}
+                    <option value="{{ opt }}">{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Purchase RO</label>
+                <select id="filter-order-ro"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All ROs</option>
+                    {% for opt in filter_options.purchase_ros %}
+                    <option value="{{ opt }}">{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Purchase Order
+                    Number</label>
+                <select id="filter-batch"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Batches</option>
+                    {% for opt in filter_options.batches %}
+                    <option value="{{ opt }}">{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="h-px bg-gray-100 dark:bg-gray-800 my-4"></div>
+
+            <!-- Order Status Filters -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order Type</label>
+                <select id="filter-order-type"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Types</option>
+                    {% for opt in filter_options.order_types %}
+                    <option value="{{ opt }}">{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order Request Type</label>
+                <select id="filter-order-request-type"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Request Types</option>
+                    {% for opt in filter_options.order_request_types %}
+                    <option value="{{ opt }}">{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
-</aside>
+    </div>
+
+    <!-- Fixed Footer with Apply Button -->
+    <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <button onclick="applyGlobalFilters()"
+            class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
+        </button>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
