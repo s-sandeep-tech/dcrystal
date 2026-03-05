@@ -107,32 +107,32 @@ def order_pending_rejection_summary():
         # Aggregated Metrics
         agg_cols = [
             # 1. Pending to Accept (Persisted Columns)
-            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_accepted_pcs).label('pending_to_accepted_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_accepted_wt).label('pending_to_accepted_wt'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.pending_to_accepted_pcs, 0)).label('pending_to_accepted_pcs'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.pending_to_accepted_wt, 0)).label('pending_to_accepted_wt'),
             
             # 2. Rejected
-            func.sum(OwnerWiseOrderSummarySnapshot.rejected_pcs).label('rejected_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.rejected_wt).label('rejected_wt'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.rejected_pcs, 0)).label('rejected_pcs'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.rejected_wt, 0)).label('rejected_wt'),
             
             # 3. Hallmark Failed
-            func.sum(OwnerWiseOrderSummarySnapshot.hm_failed_pcs).label('hm_failed_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.hm_failed_wt).label('hm_failed_wt'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_pcs, 0)).label('hm_failed_pcs'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_wt, 0)).label('hm_failed_wt'),
             
             # 4. Hallmark Test Cut = Hm Processed - (Hm Passed + Hm Failed)
-            func.sum(OwnerWiseOrderSummarySnapshot.hm_processed_pcs - OwnerWiseOrderSummarySnapshot.hm_passed_pcs - OwnerWiseOrderSummarySnapshot.hm_failed_pcs).label('hm_test_cut_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.hm_testcut_wt - OwnerWiseOrderSummarySnapshot.hm_passed_wt - OwnerWiseOrderSummarySnapshot.hm_failed_wt).label('hm_test_cut_wt'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_processed_pcs, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_passed_pcs, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_pcs, 0)).label('hm_test_cut_pcs'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_testcut_wt, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_passed_wt, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_wt, 0)).label('hm_test_cut_wt'),
             
             # 5. QC Pending
-            func.sum(OwnerWiseOrderSummarySnapshot.qc_pending_pcs).label('qc_pending_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.qc_pending_wt).label('qc_pending_wt'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.qc_pending_pcs, 0)).label('qc_pending_pcs'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.qc_pending_wt, 0)).label('qc_pending_wt'),
             
             # 6. QC Rejected
-            func.sum(OwnerWiseOrderSummarySnapshot.qc_rejected_pcs).label('qc_rejected_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.qc_rejected_wt).label('qc_rejected_wt'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.qc_rejected_pcs, 0)).label('qc_rejected_pcs'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.qc_rejected_wt, 0)).label('qc_rejected_wt'),
             
             # 7. Not Barcoded
-            func.sum(OwnerWiseOrderSummarySnapshot.not_barcoded_pcs).label('not_barcode_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.not_barcoded_wt).label('not_barcode_wt'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.not_barcoded_pcs, 0)).label('not_barcode_pcs'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.not_barcoded_wt, 0)).label('not_barcode_wt'),
         ]
 
         # Global Stats
@@ -395,20 +395,33 @@ def get_order_pending_rejection_partial():
             base_query = db.session.query(OwnerWiseOrderSummarySnapshot)
 
         agg_cols = [
-            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_accepted_pcs).label('pending_to_accepted_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_accepted_wt).label('pending_to_accepted_wt'),
-            func.sum(OwnerWiseOrderSummarySnapshot.rejected_pcs).label('rejected_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.rejected_wt).label('rejected_wt'),
-            func.sum(OwnerWiseOrderSummarySnapshot.hm_failed_pcs).label('hm_failed_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.hm_failed_wt).label('hm_failed_wt'),
-            func.sum(OwnerWiseOrderSummarySnapshot.hm_processed_pcs - OwnerWiseOrderSummarySnapshot.hm_passed_pcs - OwnerWiseOrderSummarySnapshot.hm_failed_pcs).label('hm_test_cut_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.hm_testcut_wt - OwnerWiseOrderSummarySnapshot.hm_passed_wt - OwnerWiseOrderSummarySnapshot.hm_failed_wt).label('hm_test_cut_wt'),
-            func.sum(OwnerWiseOrderSummarySnapshot.qc_pending_pcs).label('qc_pending_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.qc_pending_wt).label('qc_pending_wt'),
-            func.sum(OwnerWiseOrderSummarySnapshot.qc_rejected_pcs).label('qc_rejected_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.qc_rejected_wt).label('qc_rejected_wt'),
-            func.sum(OwnerWiseOrderSummarySnapshot.not_barcoded_pcs).label('not_barcode_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.not_barcoded_wt).label('not_barcode_wt'),
+            # 1. Pending to Accept (Persisted Columns)
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.pending_to_accepted_pcs, 0)).label('pending_to_accepted_pcs'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.pending_to_accepted_wt, 0)).label('pending_to_accepted_wt'),
+            
+            # 2. Rejected
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.rejected_pcs, 0)).label('rejected_pcs'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.rejected_wt, 0)).label('rejected_wt'),
+            
+            # 3. Hallmark Failed
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_pcs, 0)).label('hm_failed_pcs'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_wt, 0)).label('hm_failed_wt'),
+            
+            # 4. Hallmark Test Cut = Hm Processed - (Hm Passed + Hm Failed)
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_processed_pcs, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_passed_pcs, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_pcs, 0)).label('hm_test_cut_pcs'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_testcut_wt, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_passed_wt, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_wt, 0)).label('hm_test_cut_wt'),
+            
+            # 5. QC Pending
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.qc_pending_pcs, 0)).label('qc_pending_pcs'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.qc_pending_wt, 0)).label('qc_pending_wt'),
+            
+            # 6. QC Rejected
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.qc_rejected_pcs, 0)).label('qc_rejected_pcs'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.qc_rejected_wt, 0)).label('qc_rejected_wt'),
+            
+            # 7. Not Barcoded
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.not_barcoded_pcs, 0)).label('not_barcode_pcs'),
+            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.not_barcoded_wt, 0)).label('not_barcode_wt'),
         ]
 
         main_q = base_query.with_entities(*(group_cols + agg_cols))
@@ -418,10 +431,8 @@ def get_order_pending_rejection_partial():
         # Global stats for the footer (only for main table load)
         stats = None
         if not is_child_rows:
-            stats_q = db.session.query(*agg_cols)
             # Use a fresh query for global stats with same filters but no parent filters
-            from sqlalchemy.orm import Query
-            global_stats_q = db.session.query(OwnerWiseOrderSummarySnapshot).with_entities(*agg_cols)
+            global_stats_q = db.session.query(*agg_cols)
             global_stats_q = apply_filters(global_stats_q)
             stats = global_stats_q.first()
         

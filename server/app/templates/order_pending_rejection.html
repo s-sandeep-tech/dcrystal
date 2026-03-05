@@ -207,10 +207,10 @@
         <div class="stat-card">
             <p class="stat-label"><span class="material-symbols-outlined text-cyan-premium">content_cut</span>HM Test
                 Cut</p>
-            <p class="stat-val text-cyan-premium" id="stat-hm-test-cut-pcs">
-                {{ "{:,}".format(stats.hm_test_cut_pcs or 0) }}
+            <p class="stat-val text-cyan-premium" id="stat-hm-test-cut-wt">
+                {{ "{:,.3f}".format(stats.hm_test_cut_wt|float) if stats else '0.000' }}
             </p>
-            <p class="stat-pcs">Pieces</p>
+            <p class="stat-pcs" id="stat-hm-test-cut-pcs">{{ "{:,}".format(stats.hm_test_cut_pcs or 0) }} Pcs</p>
         </div>
 
         <div class="stat-card">
