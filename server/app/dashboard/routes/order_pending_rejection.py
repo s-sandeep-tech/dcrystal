@@ -422,46 +422,7 @@ def get_order_pending_rejection_partial():
             # Use a fresh query for global stats with same filters but no parent filters
             from sqlalchemy.orm import Query
             global_stats_q = db.session.query(OwnerWiseOrderSummarySnapshot).with_entities(*agg_cols)
-            # Need a version of apply_filters that doesn't use the localized base_query
-            # Actually, I can just use the same logic as the main route
-            def apply_global_filters(q):
-                if search:
-                    q = q.filter(
-                        (OwnerWiseOrderSummarySnapshot.supplier.ilike(f"%{search}%")) |
-                        (OwnerWiseOrderSummarySnapshot.order_ro.ilike(f"%{search}%"))
-                    )
-                if division: q = q.filter(OwnerWiseOrderSummarySnapshot.division == division)
-                if group_name: q = q.filter(OwnerWiseOrderSummarySnapshot.group_name == group_name)
-                if purity: q = q.filter(OwnerWiseOrderSummarySnapshot.purity == purity)
-                if supplier: q = q.filter(OwnerWiseOrderSummarySnapshot.supplier == supplier)
-                if classification_owner: q = q.filter(OwnerWiseOrderSummarySnapshot.classification_owner == classification_owner)
-                if collection_owner: q = q.filter(OwnerWiseOrderSummarySnapshot.collection_owner == collection_owner)
-                if make_owner: q = q.filter(OwnerWiseOrderSummarySnapshot.make_owner == make_owner)
-                if classification: q = q.filter(OwnerWiseOrderSummarySnapshot.classification == classification)
-                if make: q = q.filter(OwnerWiseOrderSummarySnapshot.make == make)
-                if collection: q = q.filter(OwnerWiseOrderSummarySnapshot.collection == collection)
-                if order_ro: q = q.filter(OwnerWiseOrderSummarySnapshot.order_ro == order_ro)
-                if order_request_type: q = q.filter(OwnerWiseOrderSummarySnapshot.order_request_type == order_request_type)
-                if order_type: q = q.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
-                if batch: q = q.filter(OwnerWiseOrderSummarySnapshot.batch == batch)
-                
-                if use_date_range:
-                    if date_from: q = q.filter(OwnerWiseOrderSummarySnapshot.order_date >= date_from)
-                    if date_to: q = q.filter(OwnerWiseOrderSummarySnapshot.order_date <= date_to)
-                elif days:
-                    q = q.filter(OwnerWiseOrderSummarySnapshot.order_date >= func.current_date() - days)
-                
-                roles = [r.upper() for r in session.get('roles', [])]
-                if not session.get('is_admin', False) and 'MANAGER_2' not in roles and session.get('username'):
-                    u = session.get('username').strip().lower()
-                    q = q.filter(
-                        (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
-                        (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
-                        (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
-                    )
-                return q
-            
-            global_stats_q = apply_global_filters(global_stats_q)
+            global_stats_q = apply_filters(global_stats_q)
             stats = global_stats_q.first()
         
         pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
