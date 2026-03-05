@@ -240,6 +240,9 @@ async function toggleModalRow(btn, level, value, grandparentValue = null) {
     const tr = btn.closest('tr');
     if (!tr) return;
 
+    const content = document.getElementById('detailsModalContent');
+    if (!content) return;
+
     const icon = btn.querySelector('.material-symbols-outlined');
     const isExpanded = icon.textContent === 'remove_circle';
 
