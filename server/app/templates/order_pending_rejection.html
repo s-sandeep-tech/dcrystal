@@ -181,9 +181,10 @@
             <p class="stat-label"><span
                     class="material-symbols-outlined text-blue-premium">pending_actions</span>Pending to Accept</p>
             <p class="stat-val text-blue-premium" id="stat-pending-accept-wt">
-                {{ "{:,.3f}".format(stats.pending_accept_wt|float) if stats else '0.000' }}
+                {{ "{:,.3f}".format(stats.pending_to_accepted_wt|float) if stats else '0.000' }}
             </p>
-            <p class="stat-pcs" id="stat-pending-accept-pcs">{{ "{:,}".format(stats.pending_accept_pcs or 0) }} Pcs</p>
+            <p class="stat-pcs" id="stat-pending-accept-pcs">{{ "{:,}".format(stats.pending_to_accepted_pcs or 0) }} Pcs
+            </p>
         </div>
 
         <div class="stat-card">
