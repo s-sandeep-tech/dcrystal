@@ -336,9 +336,9 @@
                 </div>
             </div>
 
-            <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+            <div class="space-y-2 p-2 border border-gray-200 dark:border-gray-700 rounded-md">
                 <div class="flex items-center justify-between">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Custom Date
+                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest leading-none">Custom Date
                         Range</label>
                     <label class="inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="enable-date-range" class="sr-only peer"
@@ -352,12 +352,12 @@
                     <div class="space-y-1">
                         <span class="text-[8px] font-semibold text-gray-500 uppercase">From</span>
                         <input type="date" id="filter-date-from" onchange="applyGlobalFilters()"
-                            class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[10px] p-1.5">
+                            class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[10px] p-1.5 focus:ring-1 focus:ring-primary outline-none">
                     </div>
                     <div class="space-y-1">
                         <span class="text-[8px] font-semibold text-gray-500 uppercase">To</span>
                         <input type="date" id="filter-date-to" onchange="applyGlobalFilters()"
-                            class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[10px] p-1.5">
+                            class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[10px] p-1.5 focus:ring-1 focus:ring-primary outline-none">
                     </div>
                 </div>
             </div>
