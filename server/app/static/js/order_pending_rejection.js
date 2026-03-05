@@ -139,7 +139,7 @@ function applyGlobalFilters() {
     const filterIds = [
         'filter-classification-owner', 'filter-make-owner', 'filter-collection-owner',
         'filter-classification', 'filter-make', 'filter-collection',
-        'filter-party', 'filter-order-ro', 'filter-batch',
+        'filter-supplier', 'filter-order-ro', 'filter-batch',
         'filter-order-type', 'filter-order-request-type'
     ];
 
@@ -162,7 +162,7 @@ function resetGlobalFilters() {
     const filterIds = [
         'filter-classification-owner', 'filter-make-owner', 'filter-collection-owner',
         'filter-classification', 'filter-make', 'filter-collection',
-        'filter-party', 'filter-order-ro', 'filter-batch',
+        'filter-supplier', 'filter-order-ro', 'filter-batch',
         'filter-order-type', 'filter-order-request-type', 'hierarchy-search'
     ];
 
@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterIds = [
         'filter-classification-owner', 'filter-make-owner', 'filter-collection-owner',
         'filter-classification', 'filter-make', 'filter-collection',
-        'filter-party', 'filter-order-ro', 'filter-batch',
+        'filter-supplier', 'filter-order-ro', 'filter-batch',
         'filter-order-type', 'filter-order-request-type', 'hierarchy-search'
     ];
     filterIds.forEach(id => {
