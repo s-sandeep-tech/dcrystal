@@ -204,6 +204,11 @@ async function showDetails(co, mo, colo) {
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 
+    // Store context for subsequent drill-downs in modal
+    content.dataset.co = co;
+    content.dataset.mo = mo;
+    content.dataset.colo = colo;
+
     title.textContent = "Loading Details...";
     subtitle.textContent = `${co} > ${mo} > ${colo}`;
 
@@ -228,6 +233,76 @@ async function showDetails(co, mo, colo) {
     } catch (error) {
         console.error('Error fetching details:', error);
         content.innerHTML = `<div class="p-12 text-center text-red-500 font-bold uppercase tracking-widest text-[10px]">Failed to load analytical details. Please try again.</div>`;
+    }
+}
+
+async function toggleModalRow(btn, level, value, grandparentValue = null) {
+    const tr = btn.closest('tr');
+    if (!tr) return;
+
+    const icon = btn.querySelector('.material-symbols-outlined');
+    const isExpanded = icon.textContent === 'remove_circle';
+
+    if (isExpanded) {
+        // Collapse: Hide all children
+        let nextTr = tr.nextElementSibling;
+        while (nextTr) {
+            const nextLevel = nextTr.dataset.level;
+
+            // Stop if we hit a row at the same or higher level than the one being collapsed
+            if (level === 'party' && nextLevel === 'party') break;
+            if (level === 'make' && (nextLevel === 'make' || nextLevel === 'party')) break;
+
+            const toRemove = nextTr;
+            nextTr = nextTr.nextElementSibling;
+            toRemove.remove();
+        }
+        icon.textContent = 'add_circle';
+        tr.classList.remove('bg-blue-50/20');
+    } else {
+        // Expand: Fetch children
+        icon.textContent = 'hourglass_empty'; // Loading state
+
+        try {
+            const params = new URLSearchParams();
+            // Use stored context
+            params.set('classification_owner', content.dataset.co);
+            params.set('make_owner', content.dataset.mo);
+            params.set('collection_owner', content.dataset.colo);
+
+            // Add modal-specific drill-down params
+            params.set('modal_parent_level', level);
+            params.set('modal_parent_value', value);
+            if (grandparentValue) params.set('modal_grandparent_value', grandparentValue);
+
+            const response = await fetch(`/api/orderdelaytracking/details?${params.toString()}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                }
+            });
+
+            if (!response.ok) throw new Error("Failed to load modal children");
+            const html = await response.text();
+
+            const template = document.createElement('template');
+            template.innerHTML = html;
+            const newRows = template.content.querySelectorAll('tr');
+
+            let referenceNode = tr;
+            newRows.forEach(newRow => {
+                newRow.classList.add('child-row');
+                newRow.classList.add('animate-fade-in');
+                referenceNode.parentNode.insertBefore(newRow, referenceNode.nextSibling);
+                referenceNode = newRow;
+            });
+
+            icon.textContent = 'remove_circle';
+            tr.classList.add('bg-blue-50/20');
+
+        } catch (e) {
+            console.error(e);
+            icon.textContent = 'error';
+        }
     }
 }
 

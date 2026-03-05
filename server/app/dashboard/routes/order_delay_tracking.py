@@ -273,9 +273,42 @@ def get_order_delay_tracking_details():
         make_owner = request.args.get('make_owner')
         collection_owner = request.args.get('collection_owner')
         
+        # Modal-specific drill-down params
+        parent_level = request.args.get('modal_parent_level')
+        parent_value = request.args.get('modal_parent_value')
+        
         latest_date_query = db.session.query(func.max(OrderDelayTrackingSnapshot.snapshot_date)).scalar()
         
-        # Aggregation for the modal: Make, Collection, Party (Supplier)
+        # Base filters from the main report's leaf node
+        base_filters = []
+        if latest_date_query:
+            base_filters.append(OrderDelayTrackingSnapshot.snapshot_date == latest_date_query)
+        if classification_owner:
+            base_filters.append(OrderDelayTrackingSnapshot.classification_owner == classification_owner)
+        if make_owner:
+            base_filters.append(OrderDelayTrackingSnapshot.make_owner == make_owner)
+        if collection_owner:
+            base_filters.append(OrderDelayTrackingSnapshot.collection_owner == collection_owner)
+
+        # Determine current modal level
+        level = 'party'  # Start with Party (Supplier)
+        group_cols = [OrderDelayTrackingSnapshot.supplier]
+        
+        if parent_level == 'party':
+            level = 'make'
+            group_cols = [OrderDelayTrackingSnapshot.make]
+            base_filters.append(OrderDelayTrackingSnapshot.supplier == parent_value)
+        elif parent_level == 'make':
+            level = 'collection'
+            group_cols = [OrderDelayTrackingSnapshot.collection]
+            # When drilling down to collection, we need to know the make AND the party
+            # But for simplicity, we'll assume the parent_value is the Make
+            # and we might need the grandparent value (Party)
+            grandparent_value = request.args.get('modal_grandparent_value')
+            if grandparent_value:
+                base_filters.append(OrderDelayTrackingSnapshot.supplier == grandparent_value)
+            base_filters.append(OrderDelayTrackingSnapshot.make == parent_value)
+
         agg_cols = [
             func.sum(OrderDelayTrackingSnapshot.delay_1_2_days).label('delay_1_2_days'),
             func.sum(OrderDelayTrackingSnapshot.delay_3_4_days).label('delay_3_4_days'),
@@ -283,40 +316,32 @@ def get_order_delay_tracking_details():
             func.sum(OrderDelayTrackingSnapshot.delay_more_than_10_days).label('delay_more_than_10_days')
         ]
         
-        group_cols = [
-            OrderDelayTrackingSnapshot.supplier,
-            OrderDelayTrackingSnapshot.make,
-            OrderDelayTrackingSnapshot.collection
-        ]
-        
         query = db.session.query(*(group_cols + agg_cols))
-        
-        if latest_date_query:
-            query = query.filter(OrderDelayTrackingSnapshot.snapshot_date == latest_date_query)
-            
-        if classification_owner:
-            query = query.filter(OrderDelayTrackingSnapshot.classification_owner == classification_owner)
-        if make_owner:
-            query = query.filter(OrderDelayTrackingSnapshot.make_owner == make_owner)
-        if collection_owner:
-            query = query.filter(OrderDelayTrackingSnapshot.collection_owner == collection_owner)
+        for f in base_filters:
+            query = query.filter(f)
             
         results = query.group_by(*group_cols).order_by(*group_cols).all()
         
-        # Convert to dict for template
         processed_details = []
         for r in results:
-            processed_details.append({
-                'make': r.make,
-                'collection': r.collection,
-                'supplier': r.supplier,
+            row = {
+                'level': level,
+                'display_value': r[0],
                 'delay_1_2_days': int(r.delay_1_2_days or 0),
                 'delay_3_4_days': int(r.delay_3_4_days or 0),
                 'delay_5_10_days': int(r.delay_5_10_days or 0),
                 'delay_more_than_10_days': int(r.delay_more_than_10_days or 0)
-            })
+            }
+            if level == 'make':
+                row['party'] = parent_value
+            elif level == 'collection':
+                row['party'] = request.args.get('modal_grandparent_value')
+                row['make'] = parent_value
+            processed_details.append(row)
             
-        return render_template('partials/_view_order_delay_tracking_details.html', details=processed_details)
+        return render_template('partials/_view_order_delay_tracking_details.html', 
+                               details=processed_details, 
+                               is_child_rows=bool(parent_level))
     except Exception as e:
         logger.error(f"Error in get_order_delay_tracking_details: {str(e)}")
         return f'<div class="p-4 text-red-500 font-bold">Error: {str(e)}</div>', 200
