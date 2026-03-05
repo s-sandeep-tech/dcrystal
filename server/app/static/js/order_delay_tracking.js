@@ -39,41 +39,74 @@ async function loadViewData() {
         const html = await response.text();
         activeView.innerHTML = html;
 
-        // Update pagination info if meta exists
-        const paginationInfo = activeView.querySelector('#pagination-metadata');
-        if (paginationInfo) {
-            updatePaginationControls(paginationInfo.dataset);
-        }
-
     } catch (error) {
         console.error('Error loading view:', error);
         activeView.innerHTML = `<div class="p-8 text-center text-red-500">Error loading data.</div>`;
     }
 }
 
-function updatePaginationControls(meta) {
-    const page = parseInt(meta.page);
-    const perPage = parseInt(meta.perPage);
-    const total = parseInt(meta.total);
-    const hasPrev = meta.hasPrev === 'true';
-    const hasNext = meta.hasNext === 'true';
+async function toggleRow(btn, level, value, grandparentValue = null) {
+    const tr = btn.closest('tr');
+    if (!tr) return;
 
-    const start = (page - 1) * perPage + 1;
-    const end = Math.min(page * perPage, total);
-    const infoSpan = document.getElementById('pagination-info');
-    if (infoSpan) {
-        infoSpan.textContent = total > 0 ? `${start}-${end} of ${total}` : '0-0 of 0';
-    }
+    const icon = btn.querySelector('.material-symbols-outlined');
+    const isExpanded = icon.textContent === 'remove_circle';
 
-    const btnPrev = document.getElementById('btn-prev');
-    const btnNext = document.getElementById('btn-next');
-    if (btnPrev) {
-        btnPrev.disabled = !hasPrev;
-        btnPrev.onclick = hasPrev ? () => changePage(parseInt(meta.prevNum)) : null;
-    }
-    if (btnNext) {
-        btnNext.disabled = !hasNext;
-        btnNext.onclick = hasNext ? () => changePage(parseInt(meta.nextNum)) : null;
+    if (isExpanded) {
+        // Collapse: Hide all children
+        let nextTr = tr.nextElementSibling;
+        while (nextTr) {
+            const nextLevel = nextTr.dataset.level;
+
+            // Stop if we hit a row at the same or higher level than the one being collapsed
+            if (level === 'classification_owner' && nextLevel === 'classification_owner') break;
+            if (level === 'make_owner' && (nextLevel === 'make_owner' || nextLevel === 'classification_owner')) break;
+
+            const toRemove = nextTr;
+            nextTr = nextTr.nextElementSibling;
+            toRemove.remove();
+        }
+        icon.textContent = 'add_circle';
+        tr.classList.remove('bg-blue-50/30');
+    } else {
+        // Expand: Fetch children
+        icon.textContent = 'hourglass_empty'; // Loading state
+
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const params = new URLSearchParams(urlParams);
+            params.set('parent_level', level);
+            params.set('parent_value', value);
+            if (grandparentValue) params.set('grandparent_value', grandparentValue);
+
+            const response = await fetch(`/partial/orderdelaytracking?${params.toString()}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                }
+            });
+
+            if (!response.ok) throw new Error("Failed to load children");
+            const html = await response.text();
+
+            const template = document.createElement('template');
+            template.innerHTML = html;
+            const newRows = template.content.querySelectorAll('tr');
+
+            let referenceNode = tr;
+            newRows.forEach(newRow => {
+                newRow.classList.add('child-row');
+                newRow.classList.add('animate-fade-in');
+                referenceNode.parentNode.insertBefore(newRow, referenceNode.nextSibling);
+                referenceNode = newRow;
+            });
+
+            icon.textContent = 'remove_circle';
+            tr.classList.add('bg-blue-50/30');
+
+        } catch (e) {
+            console.error(e);
+            icon.textContent = 'error';
+        }
     }
 }
 
@@ -106,9 +139,9 @@ async function loadFilterOptions() {
         });
         const options = await response.json();
 
-        populateSelect('filter-classification-owner', options.classification_owners, 'All Owners');
-        populateSelect('filter-make-owner', options.make_owners, 'All Owners');
-        populateSelect('filter-collection-owner', options.collection_owners, 'All Owners');
+        populateSelect('filter-classification-owner', options.classification_owners, 'Classification Owner');
+        populateSelect('filter-make-owner', options.make_owners, 'Make Owner');
+        populateSelect('filter-collection-owner', options.collection_owners, 'Collection Owner');
 
         // Restore values from URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -124,7 +157,7 @@ async function loadFilterOptions() {
 function populateSelect(id, list, placeholder) {
     const el = document.getElementById(id);
     if (!el) return;
-    let html = `<option value="">${placeholder}</option>`;
+    let html = `<option value="">All ${placeholder}s</option>`;
     list.forEach(item => {
         html += `<option value="${item}">${item}</option>`;
     });
@@ -160,34 +193,41 @@ function resetGlobalFilters() {
     updateUrlAndLoad(urlParams);
 }
 
-async function showDetails(co, mo, colo, bucket) {
+async function showDetails(co, mo, colo) {
     const modal = document.getElementById('detailsModal');
     const content = document.getElementById('detailsModalContent');
+    const title = document.getElementById('modalTitle');
+    const subtitle = document.getElementById('modalSubtitle');
 
     if (!modal || !content) return;
 
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 
+    title.textContent = "Loading Details...";
+    subtitle.textContent = `${co} > ${mo} > ${colo}`;
+
     content.innerHTML = `
-        <div class="flex flex-col items-center justify-center h-full py-24 text-gray-400">
+        <div class="flex flex-col items-center justify-center grow py-24 text-gray-400">
             <div class="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p class="text-[10px] font-medium uppercase tracking-widest">Fetching details...</p>
+            <p class="text-[10px] font-medium uppercase tracking-widest italic">Retrieving aggregate delay data...</p>
         </div>
     `;
 
     try {
-        const response = await fetch(`/api/orderdelaytracking/details?classification_owner=${encodeURIComponent(co)}&make_owner=${encodeURIComponent(mo)}&collection_owner=${encodeURIComponent(colo)}&delay_bucket=${encodeURIComponent(bucket)}`, {
+        const response = await fetch(`/api/orderdelaytracking/details?classification_owner=${encodeURIComponent(co)}&make_owner=${encodeURIComponent(mo)}&collection_owner=${encodeURIComponent(colo)}`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             }
         });
         if (!response.ok) throw new Error('Failed to fetch details');
         const html = await response.text();
+
+        title.textContent = `Delay Details: ${colo}`;
         content.innerHTML = html;
     } catch (error) {
         console.error('Error fetching details:', error);
-        content.innerHTML = `<div class="p-12 text-center text-red-500">Failed to load details.</div>`;
+        content.innerHTML = `<div class="p-12 text-center text-red-500 font-bold uppercase tracking-widest text-[10px]">Failed to load analytical details. Please try again.</div>`;
     }
 }
 
@@ -196,28 +236,6 @@ function closeDetailsModal() {
     if (modal) {
         modal.classList.add('hidden');
         document.body.style.overflow = '';
-    }
-}
-
-async function triggerSync(type) {
-    if (!confirm('Are you sure you want to trigger a fresh data synchronization? This may take a few minutes.')) return;
-
-    try {
-        const response = await fetch(`/api/sync/trigger?type=${type}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-            }
-        });
-        const result = await response.json();
-        if (result.status === 'success') {
-            alert('Sync task queued! You will receive a notification when it completes.');
-        } else {
-            alert('Failed to queue sync task: ' + result.message);
-        }
-    } catch (e) {
-        console.error('Sync trigger error:', e);
-        alert('Error triggering sync.');
     }
 }
 

@@ -76,8 +76,13 @@
                 class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary text-xl">list_alt</span>
-                    <h2 class="text-sm font-bold text-gray-800 dark:text-white uppercase tracking-tight">Order Delay
-                        Details</h2>
+                    <div class="flex flex-col">
+                        <h2 id="modalTitle"
+                            class="text-sm font-bold text-gray-800 dark:text-white uppercase tracking-tight">Order Delay
+                            Details</h2>
+                        <span id="modalSubtitle"
+                            class="text-[10px] text-gray-400 font-medium lowercase tracking-wide"></span>
+                    </div>
                 </div>
                 <button onclick="closeDetailsModal()"
                     class="size-8 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
