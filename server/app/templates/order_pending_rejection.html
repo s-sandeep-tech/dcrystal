@@ -78,6 +78,13 @@
         text-transform: uppercase;
         letter-spacing: 0.05em;
         margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .stat-label .material-symbols-outlined {
+        font-size: 14px;
     }
 
     .stat-val {
@@ -93,37 +100,8 @@
         color: #94a3b8;
     }
 
-    .stat-indicator {
-        position: absolute;
-        bottom: 0;
-        left: 10%;
-        right: 10%;
-        height: 3px;
-        border-radius: 2px 2px 0 0;
-    }
-
-    .indicator-blue {
-        background: #3b82f6;
-    }
-
-    .indicator-red {
-        background: #ef4444;
-    }
-
-    .indicator-indigo {
-        background: #6366f1;
-    }
-
-    .indicator-cyan {
-        background: #06b6d4;
-    }
-
-    .indicator-amber {
-        background: #f59e0b;
-    }
-
-    .indicator-orange {
-        background: #f97316;
+    .text-blue-premium {
+        color: #2563eb;
     }
 
     .text-blue-premium {
@@ -190,66 +168,65 @@
     <!-- Stats Grid (Horizontal Summary) -->
     <div class="stats-grid no-scrollbar">
         <div class="stat-card">
-            <p class="stat-label">Pending to Accept</p>
+            <p class="stat-label"><span
+                    class="material-symbols-outlined text-blue-premium">pending_actions</span>Pending to Accept</p>
             <p class="stat-val text-blue-premium">
                 {{ "{:,.3f}".format(stats.pending_accept_wt|float) if stats else '0.000' }}
             </p>
             <p class="stat-pcs">{{ "{:,}".format(stats.pending_accept_pcs or 0) }} Pcs</p>
-            <div class="stat-indicator indicator-blue"></div>
         </div>
 
         <div class="stat-card">
-            <p class="stat-label">Rejected</p>
+            <p class="stat-label"><span class="material-symbols-outlined text-red-premium">cancel</span>Rejected</p>
             <p class="stat-val text-red-premium">
                 {{ "{:,.3f}".format(stats.rejected_wt|float) if stats else '0.000' }}
             </p>
             <p class="stat-pcs">{{ "{:,}".format(stats.rejected_pcs or 0) }} Pcs</p>
-            <div class="stat-indicator indicator-red"></div>
         </div>
 
         <div class="stat-card">
-            <p class="stat-label">HM Failed</p>
+            <p class="stat-label"><span class="material-symbols-outlined text-indigo-premium">gpp_maybe</span>HM Failed
+            </p>
             <p class="stat-val text-indigo-premium">
                 {{ "{:,.3f}".format(stats.hm_failed_wt|float) if stats else '0.000' }}
             </p>
             <p class="stat-pcs">{{ "{:,}".format(stats.hm_failed_pcs or 0) }} Pcs</p>
-            <div class="stat-indicator indicator-indigo"></div>
         </div>
 
         <div class="stat-card">
-            <p class="stat-label">HM Test Cut</p>
+            <p class="stat-label"><span class="material-symbols-outlined text-cyan-premium">content_cut</span>HM Test
+                Cut</p>
             <p class="stat-val text-cyan-premium">
                 {{ "{:,}".format(stats.hm_test_cut_pcs or 0) }}
             </p>
             <p class="stat-pcs">Pieces</p>
-            <div class="stat-indicator indicator-cyan"></div>
         </div>
 
         <div class="stat-card">
-            <p class="stat-label">QC Pending</p>
+            <p class="stat-label"><span class="material-symbols-outlined text-amber-premium">fact_check</span>QC Pending
+            </p>
             <p class="stat-val text-amber-premium">
                 {{ "{:,.3f}".format(stats.qc_pending_wt|float) if stats else '0.000' }}
             </p>
             <p class="stat-pcs">{{ "{:,}".format(stats.qc_pending_pcs or 0) }} Pcs</p>
-            <div class="stat-indicator indicator-amber"></div>
         </div>
 
         <div class="stat-card">
-            <p class="stat-label">QC Rejected</p>
+            <p class="stat-label"><span class="material-symbols-outlined text-red-premium">dangerous</span>QC Rejected
+            </p>
             <p class="stat-val text-red-premium">
                 {{ "{:,.3f}".format(stats.qc_rejected_wt|float) if stats else '0.000' }}
             </p>
             <p class="stat-pcs">{{ "{:,}".format(stats.qc_rejected_pcs or 0) }} Pcs</p>
-            <div class="stat-indicator indicator-red"></div>
         </div>
 
         <div class="stat-card">
-            <p class="stat-label">Not Barcoded</p>
+            <p class="stat-label"><span class="material-symbols-outlined text-orange-premium">barcode_scanner</span>Not
+                Barcoded</p>
             <p class="stat-val text-orange-premium">
                 {{ "{:,.3f}".format(stats.not_barcode_wt|float) if stats else '0.000' }}
             </p>
             <p class="stat-pcs">{{ "{:,}".format(stats.not_barcode_pcs or 0) }} Pcs</p>
-            <div class="stat-indicator indicator-orange"></div>
         </div>
     </div>
 
