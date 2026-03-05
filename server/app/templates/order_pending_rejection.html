@@ -48,6 +48,108 @@
         line-height: 1.1;
     }
 
+    .stats-grid {
+        display: flex;
+        background: #fff;
+        border-bottom: 1px solid #e2e8f0;
+        overflow-x: auto;
+    }
+
+    .stat-card {
+        flex: 1;
+        min-width: 140px;
+        padding: 12px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-right: 1px solid #f1f5f9;
+        position: relative;
+    }
+
+    .stat-card:last-child {
+        border-right: none;
+    }
+
+    .stat-label {
+        font-size: 8.5px;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 6px;
+    }
+
+    .stat-val {
+        font-size: 14px;
+        font-weight: 900;
+        line-height: 1;
+        margin-bottom: 4px;
+    }
+
+    .stat-pcs {
+        font-size: 9px;
+        font-weight: 600;
+        color: #94a3b8;
+    }
+
+    .stat-indicator {
+        position: absolute;
+        bottom: 0;
+        left: 10%;
+        right: 10%;
+        height: 3px;
+        border-radius: 2px 2px 0 0;
+    }
+
+    .indicator-blue {
+        background: #3b82f6;
+    }
+
+    .indicator-red {
+        background: #ef4444;
+    }
+
+    .indicator-indigo {
+        background: #6366f1;
+    }
+
+    .indicator-cyan {
+        background: #06b6d4;
+    }
+
+    .indicator-amber {
+        background: #f59e0b;
+    }
+
+    .indicator-orange {
+        background: #f97316;
+    }
+
+    .text-blue-premium {
+        color: #2563eb;
+    }
+
+    .text-red-premium {
+        color: #dc2626;
+    }
+
+    .text-indigo-premium {
+        color: #4f46e5;
+    }
+
+    .text-cyan-premium {
+        color: #0891b2;
+    }
+
+    .text-amber-premium {
+        color: #d97706;
+    }
+
+    .text-orange-premium {
+        color: #ea580c;
+    }
+
     .col-detail {
         min-width: 100px;
     }
@@ -86,43 +188,68 @@
     </div>
 
     <!-- Stats Grid (Horizontal Summary) -->
-    <div
-        class="flex gap-1 p-1 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 overflow-x-auto no-scrollbar">
-        <div class="min-w-[100px] p-1.5 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[8px] text-gray-500 font-bold uppercase">Pending to Accept</p>
-            <p class="text-xs font-bold text-gray-700 dark:text-gray-200">{{
-                "%.3f"|format(stats.pending_accept_wt|float) if stats else '0.000' }} / <span class="text-[10px]">{{
-                    stats.pending_accept_pcs or 0 }}</span></p>
+    <div class="stats-grid no-scrollbar">
+        <div class="stat-card">
+            <p class="stat-label">Pending to Accept</p>
+            <p class="stat-val text-blue-premium">
+                {{ "{:,.3f}".format(stats.pending_accept_wt|float) if stats else '0.000' }}
+            </p>
+            <p class="stat-pcs">{{ "{:,}".format(stats.pending_accept_pcs or 0) }} Pcs</p>
+            <div class="stat-indicator indicator-blue"></div>
         </div>
-        <div class="min-w-[100px] p-1.5 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[8px] text-gray-500 font-bold uppercase">Rejected</p>
-            <p class="text-xs font-bold text-red-600">{{ "%.3f"|format(stats.rejected_wt|float) if stats else '0.000' }}
-                / <span class="text-[10px]">{{ stats.rejected_pcs or 0 }}</span></p>
+
+        <div class="stat-card">
+            <p class="stat-label">Rejected</p>
+            <p class="stat-val text-red-premium">
+                {{ "{:,.3f}".format(stats.rejected_wt|float) if stats else '0.000' }}
+            </p>
+            <p class="stat-pcs">{{ "{:,}".format(stats.rejected_pcs or 0) }} Pcs</p>
+            <div class="stat-indicator indicator-red"></div>
         </div>
-        <div class="min-w-[100px] p-1.5 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[8px] text-gray-500 font-bold uppercase">HM Failed</p>
-            <p class="text-xs font-bold text-gray-700 dark:text-gray-200">{{ "%.3f"|format(stats.hm_failed_wt|float) if
-                stats else '0.000' }} / <span class="text-[10px]">{{ stats.hm_failed_pcs or 0 }}</span></p>
+
+        <div class="stat-card">
+            <p class="stat-label">HM Failed</p>
+            <p class="stat-val text-indigo-premium">
+                {{ "{:,.3f}".format(stats.hm_failed_wt|float) if stats else '0.000' }}
+            </p>
+            <p class="stat-pcs">{{ "{:,}".format(stats.hm_failed_pcs or 0) }} Pcs</p>
+            <div class="stat-indicator indicator-indigo"></div>
         </div>
-        <div class="min-w-[100px] p-1.5 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[8px] text-gray-500 font-bold uppercase">HM Test Cut</p>
-            <p class="text-xs font-bold text-gray-700 dark:text-gray-200">{{ stats.hm_test_cut_pcs or 0 }} <span
-                    class="text-[9px] text-gray-400">Pcs</span></p>
+
+        <div class="stat-card">
+            <p class="stat-label">HM Test Cut</p>
+            <p class="stat-val text-cyan-premium">
+                {{ "{:,}".format(stats.hm_test_cut_pcs or 0) }}
+            </p>
+            <p class="stat-pcs">Pieces</p>
+            <div class="stat-indicator indicator-cyan"></div>
         </div>
-        <div class="min-w-[100px] p-1.5 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[8px] text-gray-500 font-bold uppercase">QC Pending</p>
-            <p class="text-xs font-bold text-gray-700 dark:text-gray-200">{{ "%.3f"|format(stats.qc_pending_wt|float) if
-                stats else '0.000' }} / <span class="text-[10px]">{{ stats.qc_pending_pcs or 0 }}</span></p>
+
+        <div class="stat-card">
+            <p class="stat-label">QC Pending</p>
+            <p class="stat-val text-amber-premium">
+                {{ "{:,.3f}".format(stats.qc_pending_wt|float) if stats else '0.000' }}
+            </p>
+            <p class="stat-pcs">{{ "{:,}".format(stats.qc_pending_pcs or 0) }} Pcs</p>
+            <div class="stat-indicator indicator-amber"></div>
         </div>
-        <div class="min-w-[100px] p-1.5 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[8px] text-gray-500 font-bold uppercase">QC Rejected</p>
-            <p class="text-xs font-bold text-red-600">{{ "%.3f"|format(stats.qc_rejected_wt|float) if stats else '0.000'
-                }} / <span class="text-[10px]">{{ stats.qc_rejected_pcs or 0 }}</span></p>
+
+        <div class="stat-card">
+            <p class="stat-label">QC Rejected</p>
+            <p class="stat-val text-red-premium">
+                {{ "{:,.3f}".format(stats.qc_rejected_wt|float) if stats else '0.000' }}
+            </p>
+            <p class="stat-pcs">{{ "{:,}".format(stats.qc_rejected_pcs or 0) }} Pcs</p>
+            <div class="stat-indicator indicator-red"></div>
         </div>
-        <div class="min-w-[100px] p-1.5 text-center">
-            <p class="text-[8px] text-gray-500 font-bold uppercase">Not Barcoded</p>
-            <p class="text-xs font-bold text-gray-700 dark:text-gray-200">{{ "%.3f"|format(stats.not_barcode_wt|float)
-                if stats else '0.000' }} / <span class="text-[10px]">{{ stats.not_barcode_pcs or 0 }}</span></p>
+
+        <div class="stat-card">
+            <p class="stat-label">Not Barcoded</p>
+            <p class="stat-val text-orange-premium">
+                {{ "{:,.3f}".format(stats.not_barcode_wt|float) if stats else '0.000' }}
+            </p>
+            <p class="stat-pcs">{{ "{:,}".format(stats.not_barcode_pcs or 0) }} Pcs</p>
+            <div class="stat-indicator indicator-orange"></div>
         </div>
     </div>
 
