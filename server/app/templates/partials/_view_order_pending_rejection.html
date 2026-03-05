@@ -64,38 +64,38 @@
 
             <!-- Data Columns -->
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-gray-800">
-                <span class="val-wt">{{ "%.3f"|format(r.pending_accept_wt) }}</span>
-                <span class="val-pcs">{{ r.pending_accept_pcs }} Pcs</span>
+                <span class="val-wt">{{ "{:,.3f}".format(r.pending_accept_wt|float) }}</span>
+                <span class="val-pcs">{{ "{:,}".format(r.pending_accept_pcs or 0) }} Pcs</span>
             </td>
 
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-red-600">
-                <span class="val-wt">{{ "%.3f"|format(r.rejected_wt) }}</span>
-                <span class="val-pcs text-red-600/70">{{ r.rejected_pcs }} Pcs</span>
+                <span class="val-wt">{{ "{:,.3f}".format(r.rejected_wt|float) }}</span>
+                <span class="val-pcs text-red-600/70">{{ "{:,}".format(r.rejected_pcs or 0) }} Pcs</span>
             </td>
 
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-gray-800">
-                <span class="val-wt">{{ "%.3f"|format(r.hm_failed_wt) }}</span>
-                <span class="val-pcs">{{ r.hm_failed_pcs }} Pcs</span>
+                <span class="val-wt">{{ "{:,.3f}".format(r.hm_failed_wt|float) }}</span>
+                <span class="val-pcs">{{ "{:,}".format(r.hm_failed_pcs or 0) }} Pcs</span>
             </td>
 
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-gray-800">
-                <span class="val-wt">{{ "%.3f"|format(r.hm_test_cut_wt) }}</span>
-                <span class="val-pcs">{{ r.hm_test_cut_pcs }} Pcs</span>
+                <span class="val-wt">{{ "{:,.3f}".format(r.hm_test_cut_wt|float) }}</span>
+                <span class="val-pcs">{{ "{:,}".format(r.hm_test_cut_pcs or 0) }} Pcs</span>
             </td>
 
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-gray-800">
-                <span class="val-wt">{{ "%.3f"|format(r.qc_pending_wt) }}</span>
-                <span class="val-pcs">{{ r.qc_pending_pcs }} Pcs</span>
+                <span class="val-wt">{{ "{:,.3f}".format(r.qc_pending_wt|float) }}</span>
+                <span class="val-pcs">{{ "{:,}".format(r.qc_pending_pcs or 0) }} Pcs</span>
             </td>
 
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-red-600">
-                <span class="val-wt">{{ "%.3f"|format(r.qc_rejected_wt) }}</span>
-                <span class="val-pcs text-red-600/70">{{ r.qc_rejected_pcs }} Pcs</span>
+                <span class="val-wt">{{ "{:,.3f}".format(r.qc_rejected_wt|float) }}</span>
+                <span class="val-pcs text-red-600/70">{{ "{:,}".format(r.qc_rejected_pcs or 0) }} Pcs</span>
             </td>
 
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-gray-800">
-                <span class="val-wt">{{ "%.3f"|format(r.not_barcode_wt) }}</span>
-                <span class="val-pcs">{{ r.not_barcode_pcs }} Pcs</span>
+                <span class="val-wt">{{ "{:,.3f}".format(r.not_barcode_wt|float) }}</span>
+                <span class="val-pcs">{{ "{:,}".format(r.not_barcode_pcs or 0) }} Pcs</span>
             </td>
         </tr>
         {% endfor %}
@@ -112,32 +112,32 @@
         <tr class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white uppercase text-[9px] font-bold">
             <td class="p-2 text-right" colspan="2">Grand Total</td>
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700">
-                <span class="val-wt">{{ "%.3f"|format(stats.pending_accept_wt or 0) }}</span>
-                <span class="val-pcs">{{ stats.pending_accept_pcs or 0 }} Pcs</span>
+                <span class="val-wt">{{ "{:,.3f}".format(stats.pending_accept_wt|float or 0) }}</span>
+                <span class="val-pcs">{{ "{:,}".format(stats.pending_accept_pcs or 0) }} Pcs</span>
             </td>
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700 text-red-600">
-                <span class="val-wt">{{ "%.3f"|format(stats.rejected_wt or 0) }}</span>
-                <span class="val-pcs text-red-600/70">{{ stats.rejected_pcs or 0 }} Pcs</span>
+                <span class="val-wt">{{ "{:,.3f}".format(stats.rejected_wt|float or 0) }}</span>
+                <span class="val-pcs text-red-600/70">{{ "{:,}".format(stats.rejected_pcs or 0) }} Pcs</span>
             </td>
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700">
-                <span class="val-wt">{{ "%.3f"|format(stats.hm_failed_wt or 0) }}</span>
-                <span class="val-pcs">{{ stats.hm_failed_pcs or 0 }} Pcs</span>
+                <span class="val-wt">{{ "{:,.3f}".format(stats.hm_failed_wt|float or 0) }}</span>
+                <span class="val-pcs">{{ "{:,}".format(stats.hm_failed_pcs or 0) }} Pcs</span>
             </td>
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700">
-                <span class="val-wt">{{ "%.3f"|format(stats.hm_test_cut_wt or 0) }}</span>
-                <span class="val-pcs">{{ stats.hm_test_cut_pcs or 0 }} Pcs</span>
+                <span class="val-wt">{{ "{:,.3f}".format(stats.hm_test_cut_wt|float or 0) }}</span>
+                <span class="val-pcs">{{ "{:,}".format(stats.hm_test_cut_pcs or 0) }} Pcs</span>
             </td>
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700">
-                <span class="val-wt">{{ "%.3f"|format(stats.qc_pending_wt or 0) }}</span>
-                <span class="val-pcs">{{ stats.qc_pending_pcs or 0 }} Pcs</span>
+                <span class="val-wt">{{ "{:,.3f}".format(stats.qc_pending_wt|float or 0) }}</span>
+                <span class="val-pcs">{{ "{:,}".format(stats.qc_pending_pcs or 0) }} Pcs</span>
             </td>
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700 text-red-600">
-                <span class="val-wt">{{ "%.3f"|format(stats.qc_rejected_wt or 0) }}</span>
-                <span class="val-pcs text-red-600/70">{{ stats.qc_rejected_pcs or 0 }} Pcs</span>
+                <span class="val-wt">{{ "{:,.3f}".format(stats.qc_rejected_wt|float or 0) }}</span>
+                <span class="val-pcs text-red-600/70">{{ "{:,}".format(stats.qc_rejected_pcs or 0) }} Pcs</span>
             </td>
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700">
-                <span class="val-wt">{{ "%.3f"|format(stats.not_barcode_wt or 0) }}</span>
-                <span class="val-pcs">{{ stats.not_barcode_pcs or 0 }} Pcs</span>
+                <span class="val-wt">{{ "{:,.3f}".format(stats.not_barcode_wt|float or 0) }}</span>
+                <span class="val-pcs">{{ "{:,}".format(stats.not_barcode_pcs or 0) }} Pcs</span>
             </td>
         </tr>
     </tfoot>
