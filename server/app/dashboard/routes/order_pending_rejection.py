@@ -32,7 +32,8 @@ def order_pending_rejection_summary():
         order_request_type = request.args.get('order_request_type', '')
         order_type = request.args.get('order_type', '')
         batch = request.args.get('batch', '')
-
+        days = request.args.get('days', type=int) if request.args.get('days') else None
+        
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
 
@@ -70,6 +71,8 @@ def order_pending_rejection_summary():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
             if batch:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.batch == batch)
+            if days:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.order_date >= func.current_date() - days)
             
             # User-based filtering
             roles = [r.upper() for r in session.get('roles', [])]
@@ -229,6 +232,7 @@ def get_order_pending_rejection_partial():
         order_request_type = request.args.get('order_request_type', '')
         order_type = request.args.get('order_type', '')
         batch = request.args.get('batch', '')
+        days = request.args.get('days', type=int) if request.args.get('days') else None
 
         parent_level = request.args.get('parent_level')
         parent_value = request.args.get('parent_value')
@@ -281,6 +285,8 @@ def get_order_pending_rejection_partial():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
             if batch:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.batch == batch)
+            if days:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.order_date >= func.current_date() - days)
             
             roles = [r.upper() for r in session.get('roles', [])]
             if not session.get('is_admin', False) and 'MANAGER_2' not in roles and session.get('username'):

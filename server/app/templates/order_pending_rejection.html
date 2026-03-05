@@ -294,6 +294,109 @@
                 class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
         </div>
         <div class="space-y-4">
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Date Range
+                    Presets</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="preset-10d" onclick="setDatePreset(10)"
+                        class="preset-btn px-2 py-1.5 text-[10px] font-bold border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50">Last
+                        10d</button>
+                    <button id="preset-25d" onclick="setDatePreset(25)"
+                        class="preset-btn px-2 py-1.5 text-[10px] font-bold border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50">Last
+                        25d</button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="preset-30d" onclick="setDatePreset(30)"
+                        class="preset-btn px-2 py-1.5 text-[10px] font-bold border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50">Last
+                        30d</button>
+                    <button id="preset-60d" onclick="setDatePreset(60)"
+                        class="preset-btn px-2 py-1.5 text-[10px] font-bold border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50">Last
+                        60d</button>
+                </div>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Division</label>
+                <select id="filter-division"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Divisions</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Group</label>
+                <select id="filter-group"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Groups</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Purity</label>
+                <select id="filter-purity"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Purities</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification</label>
+                <select id="filter-classification"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Classifications</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make</label>
+                <select id="filter-make"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Makes</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection</label>
+                <select id="filter-collection"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Collections</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Party</label>
+                <select id="filter-party"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Parties</option>
+                </select>
+            </div>
+            <div class="space-y-1.5 border-t border-gray-100 dark:border-gray-800 pt-3 mt-3">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make
+                    Owner</label>
+                <select id="filter-make-owner"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Make Owners</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection
+                    Owner</label>
+                <select id="filter-collection-owner"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Collection Owners</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification
+                    Owner</label>
+                <select id="filter-classification-owner"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Class-Owners</option>
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Business
+                    Head</label>
+                <select id="filter-business-head"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Business Heads</option>
+                </select>
+            </div>
+        </div>
+        <div class="space-y-4">
             <!-- Owner Filters -->
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification Owner</label>

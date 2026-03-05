@@ -13,9 +13,35 @@ function adjustZoom(delta, reset = false) {
     tableArea.style.zoom = currentZoom;
     localStorage.setItem('orderpendingrejection-zoom', currentZoom);
 
-    const zoomLevel = document.getElementById('zoom-level');
     if (zoomLevel) {
         zoomLevel.textContent = Math.round(currentZoom * 100) + '%';
+    }
+}
+
+function setDatePreset(days) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (days) {
+        urlParams.set('days', days);
+    } else {
+        urlParams.delete('days');
+    }
+    urlParams.set('page', 1);
+    updateUrlAndLoad(urlParams);
+    updatePresetUI(days);
+}
+
+function updatePresetUI(days) {
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.classList.remove('bg-primary', 'text-white', 'border-primary');
+        btn.classList.add('bg-white', 'dark:bg-gray-900', 'text-gray-700', 'dark:text-gray-300', 'border-gray-200', 'dark:border-gray-700');
+    });
+
+    if (days) {
+        const activeBtn = document.getElementById(`preset-${days}d`);
+        if (activeBtn) {
+            activeBtn.classList.add('bg-primary', 'text-white', 'border-primary');
+            activeBtn.classList.remove('bg-white', 'dark:bg-gray-900', 'text-gray-700', 'dark:text-gray-300', 'border-gray-200', 'dark:border-gray-700');
+        }
     }
 }
 
@@ -150,6 +176,9 @@ function applyGlobalFilters() {
         else urlParams.delete(paramKey);
     });
 
+    const activeDays = urlParams.get('days');
+    if (activeDays) urlParams.set('days', activeDays);
+
     const searchVal = document.getElementById('hierarchy-search')?.value?.trim();
     if (searchVal) urlParams.set('search', searchVal);
     else urlParams.delete('search');
@@ -170,6 +199,8 @@ function resetGlobalFilters() {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
+
+    updatePresetUI(null);
 
     const urlParams = new URLSearchParams();
     urlParams.set('page', 1);
@@ -248,6 +279,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (el) el.value = urlParams.get(paramKey);
         }
     });
+
+    if (urlParams.has('days')) {
+        updatePresetUI(urlParams.get('days'));
+    }
 
     loadViewData();
 });
