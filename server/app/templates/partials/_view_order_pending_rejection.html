@@ -68,7 +68,8 @@
                 <span class="val-pcs">{{ "{:,}".format(r.pending_accept_pcs or 0) }} Pcs</span>
             </td>
 
-            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-red-600">
+            <td
+                class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-red-600 {{ 'bg-red-highlight' if (r.rejected_wt|float > 0 or r.rejected_pcs > 0) else '' }}">
                 <span class="val-wt">{{ "{:,.3f}".format(r.rejected_wt|float) }}</span>
                 <span class="val-pcs text-red-600/70">{{ "{:,}".format(r.rejected_pcs or 0) }} Pcs</span>
             </td>
@@ -88,7 +89,8 @@
                 <span class="val-pcs">{{ "{:,}".format(r.qc_pending_pcs or 0) }} Pcs</span>
             </td>
 
-            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-red-600">
+            <td
+                class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-red-600 {{ 'bg-red-highlight' if (r.qc_rejected_wt|float > 0 or r.qc_rejected_pcs > 0) else '' }}">
                 <span class="val-wt">{{ "{:,.3f}".format(r.qc_rejected_wt|float) }}</span>
                 <span class="val-pcs text-red-600/70">{{ "{:,}".format(r.qc_rejected_pcs or 0) }} Pcs</span>
             </td>
