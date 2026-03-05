@@ -34,6 +34,9 @@ def order_pending_rejection_summary():
         batch = request.args.get('batch', '')
         days = request.args.get('days', type=int) if request.args.get('days') else None
         status_filter = request.args.get('status_filter', '')
+        use_date_range = request.args.get('use_date_range') == 'true'
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
         
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
@@ -72,7 +75,12 @@ def order_pending_rejection_summary():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
             if batch:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.batch == batch)
-            if days:
+            if use_date_range:
+                if date_from:
+                    query = query.filter(OwnerWiseOrderSummarySnapshot.order_date >= date_from)
+                if date_to:
+                    query = query.filter(OwnerWiseOrderSummarySnapshot.order_date <= date_to)
+            elif days:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_date >= func.current_date() - days)
             
             if status_filter == 'pending':
@@ -248,6 +256,9 @@ def get_order_pending_rejection_partial():
         batch = request.args.get('batch', '')
         days = request.args.get('days', type=int) if request.args.get('days') else None
         status_filter = request.args.get('status_filter', '')
+        use_date_range = request.args.get('use_date_range') == 'true'
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
 
         parent_level = request.args.get('parent_level')
         parent_value = request.args.get('parent_value')
@@ -300,15 +311,16 @@ def get_order_pending_rejection_partial():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
             if batch:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.batch == batch)
-            if days:
+            if use_date_range:
+                if date_from:
+                    query = query.filter(OwnerWiseOrderSummarySnapshot.order_date >= date_from)
+                if date_to:
+                    query = query.filter(OwnerWiseOrderSummarySnapshot.order_date <= date_to)
+            elif days:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_date >= func.current_date() - days)
 
             if status_filter == 'pending':
-                query = query.filter(
-                    (OwnerWiseOrderSummarySnapshot.ordered_pcs > (OwnerWiseOrderSummarySnapshot.accepted_pcs + OwnerWiseOrderSummarySnapshot.rejected_pcs)) |
-                    (OwnerWiseOrderSummarySnapshot.qc_pending_pcs > 0) |
-                    (OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs > 0)
-                )
+                query = query.filter(OwnerWiseOrderSummarySnapshot.pending_to_accepted_wt > 0)
             elif status_filter == 'rejected':
                 query = query.filter(OwnerWiseOrderSummarySnapshot.rejected_wt > 0)
             elif status_filter == 'full_rejected':
@@ -432,6 +444,12 @@ def get_order_pending_rejection_partial():
                 if order_request_type: q = q.filter(OwnerWiseOrderSummarySnapshot.order_request_type == order_request_type)
                 if order_type: q = q.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
                 if batch: q = q.filter(OwnerWiseOrderSummarySnapshot.batch == batch)
+                
+                if use_date_range:
+                    if date_from: q = q.filter(OwnerWiseOrderSummarySnapshot.order_date >= date_from)
+                    if date_to: q = q.filter(OwnerWiseOrderSummarySnapshot.order_date <= date_to)
+                elif days:
+                    q = q.filter(OwnerWiseOrderSummarySnapshot.order_date >= func.current_date() - days)
                 
                 roles = [r.upper() for r in session.get('roles', [])]
                 if not session.get('is_admin', False) and 'MANAGER_2' not in roles and session.get('username'):

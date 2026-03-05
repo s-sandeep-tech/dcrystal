@@ -335,6 +335,32 @@
                         60d</button>
                 </div>
             </div>
+
+            <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                <div class="flex items-center justify-between">
+                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Custom Date
+                        Range</label>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="enable-date-range" class="sr-only peer"
+                            onchange="applyGlobalFilters()">
+                        <div
+                            class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all dark:border-gray-600 peer-checked:bg-primary">
+                        </div>
+                    </label>
+                </div>
+                <div class="grid grid-cols-1 gap-2">
+                    <div class="space-y-1">
+                        <span class="text-[8px] font-semibold text-gray-500 uppercase">From</span>
+                        <input type="date" id="filter-date-from" onchange="applyGlobalFilters()"
+                            class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[10px] p-1.5">
+                    </div>
+                    <div class="space-y-1">
+                        <span class="text-[8px] font-semibold text-gray-500 uppercase">To</span>
+                        <input type="date" id="filter-date-to" onchange="applyGlobalFilters()"
+                            class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[10px] p-1.5">
+                    </div>
+                </div>
+            </div>
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Division</label>
                 <select id="filter-division"

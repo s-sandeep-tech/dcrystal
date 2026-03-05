@@ -249,6 +249,26 @@ function applyGlobalFilters() {
     const activeDays = urlParams.get('days');
     if (activeDays) urlParams.set('days', activeDays);
 
+    const enableDateRange = document.getElementById('enable-date-range')?.checked;
+    const dateFrom = document.getElementById('filter-date-from')?.value;
+    const dateTo = document.getElementById('filter-date-to')?.value;
+
+    if (enableDateRange) {
+        urlParams.set('use_date_range', 'true');
+        if (dateFrom) urlParams.set('date_from', dateFrom);
+        else urlParams.delete('date_from');
+        if (dateTo) urlParams.set('date_to', dateTo);
+        else urlParams.delete('date_to');
+
+        // If custom range is enabled, clear the days preset
+        urlParams.delete('days');
+        updatePresetUI(null);
+    } else {
+        urlParams.delete('use_date_range');
+        urlParams.delete('date_from');
+        urlParams.delete('date_to');
+    }
+
     const activeStatus = urlParams.get('status_filter');
     if (activeStatus) urlParams.set('status_filter', activeStatus);
 
@@ -273,6 +293,13 @@ function resetGlobalFilters() {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
+
+    const enableDateRange = document.getElementById('enable-date-range');
+    if (enableDateRange) enableDateRange.checked = false;
+    const dateFrom = document.getElementById('filter-date-from');
+    if (dateFrom) dateFrom.value = '';
+    const dateTo = document.getElementById('filter-date-to');
+    if (dateTo) dateTo.value = '';
 
     updatePresetUI(null);
     updateStatusUI(null);
