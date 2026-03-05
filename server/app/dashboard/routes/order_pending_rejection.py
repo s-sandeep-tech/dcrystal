@@ -286,26 +286,41 @@ def get_order_pending_rejection_partial():
             level = 'group'
             base_query = db.session.query(OwnerWiseOrderSummarySnapshot).filter(OwnerWiseOrderSummarySnapshot.division == parent_value)
             if grandparent_ro: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.order_ro == grandparent_ro)
+            if grandparent_party: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.supplier == grandparent_party)
         elif parent_level == 'group':
             group_cols = [OwnerWiseOrderSummarySnapshot.supplier, OwnerWiseOrderSummarySnapshot.order_ro, OwnerWiseOrderSummarySnapshot.division, OwnerWiseOrderSummarySnapshot.group_name, OwnerWiseOrderSummarySnapshot.purity]
             level = 'purity'
             base_query = db.session.query(OwnerWiseOrderSummarySnapshot).filter(OwnerWiseOrderSummarySnapshot.group_name == parent_value)
             if grandparent_division: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.division == grandparent_division)
+            if grandparent_ro: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.order_ro == grandparent_ro)
+            if grandparent_party: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.supplier == grandparent_party)
         elif parent_level == 'purity':
             group_cols = [OwnerWiseOrderSummarySnapshot.supplier, OwnerWiseOrderSummarySnapshot.order_ro, OwnerWiseOrderSummarySnapshot.division, OwnerWiseOrderSummarySnapshot.group_name, OwnerWiseOrderSummarySnapshot.purity, OwnerWiseOrderSummarySnapshot.classification]
             level = 'classification'
             base_query = db.session.query(OwnerWiseOrderSummarySnapshot).filter(OwnerWiseOrderSummarySnapshot.purity == parent_value)
             if grandparent_group: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.group_name == grandparent_group)
+            if grandparent_division: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.division == grandparent_division)
+            if grandparent_ro: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.order_ro == grandparent_ro)
+            if grandparent_party: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.supplier == grandparent_party)
         elif parent_level == 'classification':
             group_cols = [OwnerWiseOrderSummarySnapshot.supplier, OwnerWiseOrderSummarySnapshot.order_ro, OwnerWiseOrderSummarySnapshot.division, OwnerWiseOrderSummarySnapshot.group_name, OwnerWiseOrderSummarySnapshot.purity, OwnerWiseOrderSummarySnapshot.classification, OwnerWiseOrderSummarySnapshot.make]
             level = 'make'
             base_query = db.session.query(OwnerWiseOrderSummarySnapshot).filter(OwnerWiseOrderSummarySnapshot.classification == parent_value)
             if grandparent_purity: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.purity == grandparent_purity)
+            if grandparent_group: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.group_name == grandparent_group)
+            if grandparent_division: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.division == grandparent_division)
+            if grandparent_ro: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.order_ro == grandparent_ro)
+            if grandparent_party: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.supplier == grandparent_party)
         elif parent_level == 'make':
             group_cols = [OwnerWiseOrderSummarySnapshot.supplier, OwnerWiseOrderSummarySnapshot.order_ro, OwnerWiseOrderSummarySnapshot.division, OwnerWiseOrderSummarySnapshot.group_name, OwnerWiseOrderSummarySnapshot.purity, OwnerWiseOrderSummarySnapshot.classification, OwnerWiseOrderSummarySnapshot.make, OwnerWiseOrderSummarySnapshot.collection]
             level = 'collection'
             base_query = db.session.query(OwnerWiseOrderSummarySnapshot).filter(OwnerWiseOrderSummarySnapshot.make == parent_value)
             if grandparent_classification: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.classification == grandparent_classification)
+            if grandparent_purity: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.purity == grandparent_purity)
+            if grandparent_group: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.group_name == grandparent_group)
+            if grandparent_division: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.division == grandparent_division)
+            if grandparent_ro: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.order_ro == grandparent_ro)
+            if grandparent_party: base_query = base_query.filter(OwnerWiseOrderSummarySnapshot.supplier == grandparent_party)
         else:
             group_cols = [OwnerWiseOrderSummarySnapshot.supplier]
             level = 'party'
