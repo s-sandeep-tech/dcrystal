@@ -28,8 +28,8 @@ function formatNumber(num, decimals = 0) {
 
 function updateSummaryCards(data) {
     const mappings = {
-        'stat-pending-accept-wt': { val: data.pendingAcceptWt, dec: 3 },
-        'stat-pending-accept-pcs': { val: data.pendingAcceptPcs, suffix: ' Pcs' },
+        'stat-pending-accept-wt': { val: data.pendingToAcceptedWt, dec: 3 },
+        'stat-pending-accept-pcs': { val: data.pendingToAcceptedPcs, suffix: ' Pcs' },
         'stat-rejected-wt': { val: data.rejectedWt, dec: 3 },
         'stat-rejected-pcs': { val: data.rejectedPcs, suffix: ' Pcs' },
         'stat-hm-failed-wt': { val: data.hmFailedWt, dec: 3 },

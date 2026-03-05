@@ -76,11 +76,7 @@ def order_pending_rejection_summary():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_date >= func.current_date() - days)
             
             if status_filter == 'pending':
-                query = query.filter(
-                    (OwnerWiseOrderSummarySnapshot.ordered_pcs > (OwnerWiseOrderSummarySnapshot.accepted_pcs + OwnerWiseOrderSummarySnapshot.rejected_pcs)) |
-                    (OwnerWiseOrderSummarySnapshot.qc_pending_pcs > 0) |
-                    (OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs > 0)
-                )
+                query = query.filter(OwnerWiseOrderSummarySnapshot.pending_to_accepted_wt > 0)
             elif status_filter == 'rejected':
                 query = query.filter(OwnerWiseOrderSummarySnapshot.rejected_wt > 0)
             elif status_filter == 'full_rejected':
@@ -102,9 +98,9 @@ def order_pending_rejection_summary():
 
         # Aggregated Metrics
         agg_cols = [
-            # 1. Pending to Accept = Ordered - (Accepted + Rejected)
-            func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs - OwnerWiseOrderSummarySnapshot.accepted_pcs - OwnerWiseOrderSummarySnapshot.rejected_pcs).label('pending_accept_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.ordered_wt - OwnerWiseOrderSummarySnapshot.accepted_wt - OwnerWiseOrderSummarySnapshot.rejected_wt).label('pending_accept_wt'),
+            # 1. Pending to Accept (Persisted Columns)
+            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_accepted_pcs).label('pending_to_accepted_pcs'),
+            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_accepted_wt).label('pending_to_accepted_wt'),
             
             # 2. Rejected
             func.sum(OwnerWiseOrderSummarySnapshot.rejected_pcs).label('rejected_pcs'),
@@ -201,8 +197,8 @@ def order_pending_rejection_summary():
                 'make': r[6] if current_level in ['make', 'collection'] else '',
                 'collection': r[7] if current_level == 'collection' else '',
                 
-                'pending_accept_pcs': int(r.pending_accept_pcs or 0),
-                'pending_accept_wt': float(r.pending_accept_wt or 0),
+                'pending_to_accepted_pcs': int(r.pending_to_accepted_pcs or 0),
+                'pending_to_accepted_wt': float(r.pending_to_accepted_wt or 0),
                 'rejected_pcs': int(r.rejected_pcs or 0),
                 'rejected_wt': float(r.rejected_wt or 0),
                 'hm_failed_pcs': int(r.hm_failed_pcs or 0),
@@ -464,8 +460,8 @@ def get_order_pending_rejection_partial():
                 'make': r[6] if level in ['make', 'collection'] else '',
                 'collection': r[7] if level == 'collection' else '',
                 
-                'pending_accept_pcs': int(r.pending_accept_pcs or 0),
-                'pending_accept_wt': float(r.pending_accept_wt or 0),
+                'pending_to_accepted_pcs': int(r.pending_to_accepted_pcs or 0),
+                'pending_to_accepted_wt': float(r.pending_to_accepted_wt or 0),
                 'rejected_pcs': int(r.rejected_pcs or 0),
                 'rejected_wt': float(r.rejected_wt or 0),
                 'hm_failed_pcs': int(r.hm_failed_pcs or 0),

@@ -144,7 +144,9 @@ def sync_owner_wise_data_task():
                 delivered_pcs=row.get('delivered_pcs'),
                 delivered_wt=row.get('delivered_wt'),
                 pending_to_be_delv_pcs=row.get('pending_to_deliver_pcs'),
-                pending_to_be_delv_wt=row.get('pending_to_deliver_wt')
+                pending_to_be_delv_wt=row.get('pending_to_deliver_wt'),
+                pending_to_accepted_pcs=row.get('pending_to_accepted_pcs'),
+                pending_to_accepted_wt=row.get('pending_to_accepted_wt')
             )
             new_records.append(record)
         

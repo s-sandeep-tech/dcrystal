@@ -241,6 +241,9 @@ class OwnerWiseOrderSummarySnapshot(db.Model):
     pending_to_be_delv_pcs = db.Column('Pending To Be Delv. Pcs', db.Numeric(18, 3))
     pending_to_be_delv_wt = db.Column('Pending To Be Delv. Wt', db.Numeric(18, 3))
     
+    pending_to_accepted_pcs = db.Column('Pending To Accepted Pcs', db.Numeric(18, 3))
+    pending_to_accepted_wt = db.Column('Pending To Accepted Wt', db.Numeric(18, 3))
+    
 
 class TicketLogSnapshot(db.Model):
     __tablename__ = 'ticket_log_snapshot'
