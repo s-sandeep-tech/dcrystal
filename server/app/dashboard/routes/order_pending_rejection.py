@@ -31,6 +31,7 @@ def order_pending_rejection_summary():
         order_ro = request.args.get('order_ro', '')
         order_request_type = request.args.get('order_request_type', '')
         order_type = request.args.get('order_type', '')
+        batch = request.args.get('batch', '')
 
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
@@ -67,6 +68,8 @@ def order_pending_rejection_summary():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_request_type == order_request_type)
             if order_type:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
+            if batch:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.batch == batch)
             
             # User-based filtering
             roles = [r.upper() for r in session.get('roles', [])]
@@ -151,6 +154,24 @@ def order_pending_rejection_summary():
         
         pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
         
+        # Fetch Filter Options
+        def get_distinct(column):
+            return [r[0] for r in db.session.query(column).distinct().filter(column != None).order_by(column).all() if r[0]]
+
+        filter_options = {
+            'classification_owners': get_distinct(OwnerWiseOrderSummarySnapshot.classification_owner),
+            'make_owners': get_distinct(OwnerWiseOrderSummarySnapshot.make_owner),
+            'collection_owners': get_distinct(OwnerWiseOrderSummarySnapshot.collection_owner),
+            'classifications': get_distinct(OwnerWiseOrderSummarySnapshot.classification),
+            'makes': get_distinct(OwnerWiseOrderSummarySnapshot.make),
+            'collections': get_distinct(OwnerWiseOrderSummarySnapshot.collection),
+            'purchase_ros': get_distinct(OwnerWiseOrderSummarySnapshot.order_ro),
+            'parties': get_distinct(OwnerWiseOrderSummarySnapshot.supplier),
+            'batches': get_distinct(OwnerWiseOrderSummarySnapshot.batch),
+            'order_types': get_distinct(OwnerWiseOrderSummarySnapshot.order_type),
+            'order_request_types': get_distinct(OwnerWiseOrderSummarySnapshot.order_request_type),
+        }
+
         processed_rows = []
         for r in pagination.items:
             row = {
@@ -187,7 +208,8 @@ def order_pending_rejection_summary():
                              stats=stats, 
                              rows=processed_rows, 
                              pagination=pagination, 
-                             current_level=current_level)
+                             current_level=current_level,
+                             filter_options=filter_options)
     except Exception as e:
         logger.error(f"Error in order_pending_rejection_summary: {str(e)}")
         return f"Error: {str(e)}", 500
@@ -210,6 +232,7 @@ def get_order_pending_rejection_partial():
         order_ro = request.args.get('order_ro', '')
         order_request_type = request.args.get('order_request_type', '')
         order_type = request.args.get('order_type', '')
+        batch = request.args.get('batch', '')
 
         parent_level = request.args.get('parent_level')
         parent_value = request.args.get('parent_value')
@@ -260,6 +283,8 @@ def get_order_pending_rejection_partial():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_request_type == order_request_type)
             if order_type:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
+            if batch:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.batch == batch)
             
             roles = [r.upper() for r in session.get('roles', [])]
             if not session.get('is_admin', False) and 'MANAGER_2' not in roles and session.get('username'):
@@ -375,6 +400,7 @@ def get_order_pending_rejection_partial():
                 if order_ro: q = q.filter(OwnerWiseOrderSummarySnapshot.order_ro == order_ro)
                 if order_request_type: q = q.filter(OwnerWiseOrderSummarySnapshot.order_request_type == order_request_type)
                 if order_type: q = q.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
+                if batch: q = q.filter(OwnerWiseOrderSummarySnapshot.batch == batch)
                 
                 roles = [r.upper() for r in session.get('roles', [])]
                 if not session.get('is_admin', False) and 'MANAGER_2' not in roles and session.get('username'):

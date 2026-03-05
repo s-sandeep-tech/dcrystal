@@ -138,7 +138,9 @@ function applyGlobalFilters() {
 
     const filterIds = [
         'filter-classification-owner', 'filter-make-owner', 'filter-collection-owner',
-        'filter-party', 'filter-order-ro', 'filter-order-type'
+        'filter-classification', 'filter-make', 'filter-collection',
+        'filter-party', 'filter-order-ro', 'filter-batch',
+        'filter-order-type', 'filter-order-request-type'
     ];
 
     filterIds.forEach(id => {
@@ -159,7 +161,9 @@ function applyGlobalFilters() {
 function resetGlobalFilters() {
     const filterIds = [
         'filter-classification-owner', 'filter-make-owner', 'filter-collection-owner',
-        'filter-party', 'filter-order-ro', 'filter-order-type', 'hierarchy-search'
+        'filter-classification', 'filter-make', 'filter-collection',
+        'filter-party', 'filter-order-ro', 'filter-batch',
+        'filter-order-type', 'filter-order-request-type', 'hierarchy-search'
     ];
 
     filterIds.forEach(id => {
@@ -233,7 +237,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Sync filters from URL
     const filterIds = [
         'filter-classification-owner', 'filter-make-owner', 'filter-collection-owner',
-        'filter-party', 'filter-order-ro', 'filter-order-type', 'hierarchy-search'
+        'filter-classification', 'filter-make', 'filter-collection',
+        'filter-party', 'filter-order-ro', 'filter-batch',
+        'filter-order-type', 'filter-order-request-type', 'hierarchy-search'
     ];
     filterIds.forEach(id => {
         const paramKey = id.replace('filter-', '').replace('hierarchy-', '').replace(/-/g, '_');
