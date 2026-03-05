@@ -1,33 +1,17 @@
 {% if not is_child_rows %}
 <table class="enterprise-grid w-full text-[11px] border-collapse bg-white dark:bg-gray-900 sticky-header">
     <thead>
-        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
-            <th class="col-expander text-center px-0 w-8" rowspan="2"></th>
-            <th class="col-detail text-left px-4" rowspan="2">Level Detail</th>
-            <th class="text-center border-l-2 border-gray-300 dark:border-gray-600" colspan="2">Pending to Accept</th>
-            <th class="text-center border-l-2 border-gray-300 dark:border-gray-600" colspan="2">Rejected</th>
-            <th class="text-center border-l-2 border-gray-300 dark:border-gray-600" colspan="2">Hallmark Failed</th>
-            <th class="text-center border-l-2 border-gray-300 dark:border-gray-600" colspan="2">Hallmark Test Cut</th>
-            <th class="text-center border-l-2 border-gray-300 dark:border-gray-600" colspan="2">QC Pending</th>
-            <th class="text-center border-l-2 border-gray-300 dark:border-gray-600" colspan="2">QC Rejected</th>
-            <th class="text-center border-l-2 border-gray-300 dark:border-gray-600" colspan="2">Not Barcoded</th>
-        </tr>
         <tr
-            class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider border-b border-gray-200 dark:border-gray-700">
-            <th class="col-wt text-right border-l-2 border-gray-300 dark:border-gray-600">Wt</th>
-            <th class="col-pcs text-right">Pcs</th>
-            <th class="col-wt text-right border-l-2 border-gray-300 dark:border-gray-600">Wt</th>
-            <th class="col-pcs text-right">Pcs</th>
-            <th class="col-wt text-right border-l-2 border-gray-300 dark:border-gray-600">Wt</th>
-            <th class="col-pcs text-right">Pcs</th>
-            <th class="col-wt text-right border-l-2 border-gray-300 dark:border-gray-600">Wt</th>
-            <th class="col-pcs text-right">Pcs</th>
-            <th class="col-wt text-right border-l-2 border-gray-300 dark:border-gray-600">Wt</th>
-            <th class="col-pcs text-right">Pcs</th>
-            <th class="col-wt text-right border-l-2 border-gray-300 dark:border-gray-600">Wt</th>
-            <th class="col-pcs text-right">Pcs</th>
-            <th class="col-wt text-right border-l-2 border-gray-300 dark:border-gray-600">Wt</th>
-            <th class="col-pcs text-right">Pcs</th>
+            class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider border-b border-gray-200 dark:border-gray-700">
+            <th class="col-expander text-center px-0 w-8"></th>
+            <th class="col-detail text-left px-4">Level Detail</th>
+            <th class="col-stacked border-l-2 border-gray-300 dark:border-gray-600">Pending to Accept</th>
+            <th class="col-stacked border-l-2 border-gray-300 dark:border-gray-600">Rejected</th>
+            <th class="col-stacked border-l-2 border-gray-300 dark:border-gray-600">Hallmark Failed</th>
+            <th class="col-stacked border-l-2 border-gray-300 dark:border-gray-600">Hallmark Test Cut</th>
+            <th class="col-stacked border-l-2 border-gray-300 dark:border-gray-600">QC Pending</th>
+            <th class="col-stacked border-l-2 border-gray-300 dark:border-gray-600">QC Rejected</th>
+            <th class="col-stacked border-l-2 border-gray-300 dark:border-gray-600">Not Barcoded</th>
         </tr>
     </thead>
     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -79,33 +63,40 @@
             </td>
 
             <!-- Data Columns -->
-            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-800 text-gray-600">{{
-                "%.3f"|format(r.pending_accept_wt) }}</td>
-            <td class="col-pcs text-right font-medium">{{ r.pending_accept_pcs }}</td>
+            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-gray-800">
+                <span class="val-wt">{{ "%.3f"|format(r.pending_accept_wt) }}</span>
+                <span class="val-pcs">{{ r.pending_accept_pcs }} Pcs</span>
+            </td>
 
-            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-800 text-red-600/70">{{
-                "%.3f"|format(r.rejected_wt) }}</td>
-            <td class="col-pcs text-right font-medium text-red-600">{{ r.rejected_pcs }}</td>
+            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-red-600">
+                <span class="val-wt">{{ "%.3f"|format(r.rejected_wt) }}</span>
+                <span class="val-pcs text-red-600/70">{{ r.rejected_pcs }} Pcs</span>
+            </td>
 
-            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-800 text-gray-600">{{
-                "%.3f"|format(r.hm_failed_wt) }}</td>
-            <td class="col-pcs text-right font-medium">{{ r.hm_failed_pcs }}</td>
+            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-gray-800">
+                <span class="val-wt">{{ "%.3f"|format(r.hm_failed_wt) }}</span>
+                <span class="val-pcs">{{ r.hm_failed_pcs }} Pcs</span>
+            </td>
 
-            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-800 text-gray-600">{{
-                "%.3f"|format(r.hm_test_cut_wt) }}</td>
-            <td class="col-pcs text-right font-medium">{{ r.hm_test_cut_pcs }}</td>
+            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-gray-800">
+                <span class="val-wt">{{ "%.3f"|format(r.hm_test_cut_wt) }}</span>
+                <span class="val-pcs">{{ r.hm_test_cut_pcs }} Pcs</span>
+            </td>
 
-            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-800 text-gray-600">{{
-                "%.3f"|format(r.qc_pending_wt) }}</td>
-            <td class="col-pcs text-right font-medium">{{ r.qc_pending_pcs }}</td>
+            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-gray-800">
+                <span class="val-wt">{{ "%.3f"|format(r.qc_pending_wt) }}</span>
+                <span class="val-pcs">{{ r.qc_pending_pcs }} Pcs</span>
+            </td>
 
-            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-800 text-red-600/70">{{
-                "%.3f"|format(r.qc_rejected_wt) }}</td>
-            <td class="col-pcs text-right font-medium text-red-600">{{ r.qc_rejected_pcs }}</td>
+            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-red-600">
+                <span class="val-wt">{{ "%.3f"|format(r.qc_rejected_wt) }}</span>
+                <span class="val-pcs text-red-600/70">{{ r.qc_rejected_pcs }} Pcs</span>
+            </td>
 
-            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-800 text-gray-600">{{
-                "%.3f"|format(r.not_barcode_wt) }}</td>
-            <td class="col-pcs text-right font-medium">{{ r.not_barcode_pcs }}</td>
+            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-800 text-gray-800">
+                <span class="val-wt">{{ "%.3f"|format(r.not_barcode_wt) }}</span>
+                <span class="val-pcs">{{ r.not_barcode_pcs }} Pcs</span>
+            </td>
         </tr>
         {% endfor %}
 
@@ -118,29 +109,36 @@
         {% if not is_child_rows %}
     </tbody>
     <tfoot class="sticky-footer">
-        <tr class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white uppercase text-[8px] font-bold">
+        <tr class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white uppercase text-[9px] font-bold">
             <td class="p-2 text-right" colspan="2">Grand Total</td>
-            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-700">{{
-                "%.3f"|format(stats.pending_accept_wt or 0) }}</td>
-            <td class="col-pcs text-right">{{ stats.pending_accept_pcs or 0 }}</td>
-            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-700">{{
-                "%.3f"|format(stats.rejected_wt or 0) }}</td>
-            <td class="col-pcs text-right">{{ stats.rejected_pcs or 0 }}</td>
-            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-700">{{
-                "%.3f"|format(stats.hm_failed_wt or 0) }}</td>
-            <td class="col-pcs text-right">{{ stats.hm_failed_pcs or 0 }}</td>
-            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-700">{{
-                "%.3f"|format(stats.hm_test_cut_wt or 0) }}</td>
-            <td class="col-pcs text-right">{{ stats.hm_test_cut_pcs or 0 }}</td>
-            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-700">{{
-                "%.3f"|format(stats.qc_pending_wt or 0) }}</td>
-            <td class="col-pcs text-right">{{ stats.qc_pending_pcs or 0 }}</td>
-            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-700">{{
-                "%.3f"|format(stats.qc_rejected_wt or 0) }}</td>
-            <td class="col-pcs text-right">{{ stats.qc_rejected_pcs or 0 }}</td>
-            <td class="col-wt text-right border-l-2 border-gray-200 dark:border-gray-700">{{
-                "%.3f"|format(stats.not_barcode_wt or 0) }}</td>
-            <td class="col-pcs text-right">{{ stats.not_barcode_pcs or 0 }}</td>
+            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700">
+                <span class="val-wt">{{ "%.3f"|format(stats.pending_accept_wt or 0) }}</span>
+                <span class="val-pcs">{{ stats.pending_accept_pcs or 0 }} Pcs</span>
+            </td>
+            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700 text-red-600">
+                <span class="val-wt">{{ "%.3f"|format(stats.rejected_wt or 0) }}</span>
+                <span class="val-pcs text-red-600/70">{{ stats.rejected_pcs or 0 }} Pcs</span>
+            </td>
+            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700">
+                <span class="val-wt">{{ "%.3f"|format(stats.hm_failed_wt or 0) }}</span>
+                <span class="val-pcs">{{ stats.hm_failed_pcs or 0 }} Pcs</span>
+            </td>
+            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700">
+                <span class="val-wt">{{ "%.3f"|format(stats.hm_test_cut_wt or 0) }}</span>
+                <span class="val-pcs">{{ stats.hm_test_cut_pcs or 0 }} Pcs</span>
+            </td>
+            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700">
+                <span class="val-wt">{{ "%.3f"|format(stats.qc_pending_wt or 0) }}</span>
+                <span class="val-pcs">{{ stats.qc_pending_pcs or 0 }} Pcs</span>
+            </td>
+            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700 text-red-600">
+                <span class="val-wt">{{ "%.3f"|format(stats.qc_rejected_wt or 0) }}</span>
+                <span class="val-pcs text-red-600/70">{{ stats.qc_rejected_pcs or 0 }} Pcs</span>
+            </td>
+            <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700">
+                <span class="val-wt">{{ "%.3f"|format(stats.not_barcode_wt or 0) }}</span>
+                <span class="val-pcs">{{ stats.not_barcode_pcs or 0 }} Pcs</span>
+            </td>
         </tr>
     </tfoot>
 </table>

@@ -17,18 +17,39 @@
         padding: 2px 4px;
     }
 
-    .col-wt {
-        width: 55px;
-        min-width: 55px;
+    .col-stacked {
+        min-width: 32px;
+        width: 10%;
+        text-align: right;
+        padding: 3px 4px !important;
     }
 
-    .col-pcs {
-        width: 20px;
-        min-width: 25px;
+    .val-wt {
+        display: block;
+        font-weight: 800;
+        font-size: 10px;
+        line-height: 1.1;
+    }
+
+    .val-pcs {
+        display: block;
+        font-size: 8.5px;
+        color: #64748b;
+        margin-top: 0px;
+    }
+
+    .enterprise-grid thead th.col-stacked {
+        vertical-align: middle;
+        text-align: center;
+        padding: 4px 2px !important;
+        font-size: 8px;
+        white-space: normal;
+        /* Allow header wrapping to save width */
+        line-height: 1.1;
     }
 
     .col-detail {
-        min-width: 200px;
+        min-width: 100px;
     }
 </style>
 {% endblock %}
