@@ -284,9 +284,9 @@ def get_order_delay_tracking_details():
         ]
         
         group_cols = [
+            OrderDelayTrackingSnapshot.supplier,
             OrderDelayTrackingSnapshot.make,
-            OrderDelayTrackingSnapshot.collection,
-            OrderDelayTrackingSnapshot.supplier
+            OrderDelayTrackingSnapshot.collection
         ]
         
         query = db.session.query(*(group_cols + agg_cols))
