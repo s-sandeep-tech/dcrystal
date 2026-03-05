@@ -26,3 +26,6 @@ def sync_outstanding_purchase_order_data():
 
 def sync_stage_level_delay_data():
     return enqueue_sync_task('stage_delay')
+
+def sync_order_delay_tracking_data():
+    return enqueue_sync_task('order_delay_tracking')

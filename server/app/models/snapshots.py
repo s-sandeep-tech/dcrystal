@@ -411,3 +411,59 @@ class StageLevelDelaySnapshot(db.Model):
             'time_window_more_than_10_days': self.time_window_more_than_10_days,
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
         }
+
+class OrderDelayTrackingSnapshot(db.Model):
+    __tablename__ = 'order_delay_tracking_snapshot'
+
+    id = db.Column(db.Integer, primary_key=True)
+    classification_owner = db.Column(db.Text)
+    make_owner = db.Column(db.Text)
+    collection_owner = db.Column(db.Text)
+    delay_1_2_days = db.Column(db.Integer, default=0)
+    delay_3_4_days = db.Column(db.Integer, default=0)
+    delay_5_10_days = db.Column(db.Integer, default=0)
+    delay_more_than_10_days = db.Column(db.Integer, default=0)
+    supplier = db.Column(db.Text)
+    po_id = db.Column(db.Text)
+    order_id = db.Column(db.Text)
+    po_number = db.Column(db.Text)
+    po_date = db.Column(db.Date)
+    delivery_target_date = db.Column(db.Date)
+    qc_target_date = db.Column(db.Date)
+    hm_requested_at = db.Column(db.DateTime)
+    hm_out_date = db.Column(db.DateTime)
+    qc_date = db.Column(db.DateTime)
+    qc_completed_at = db.Column(db.DateTime)
+    invoice_date = db.Column(db.Date)
+    order_receipt_created_at = db.Column(db.DateTime)
+    delay_days = db.Column(db.Integer)
+    
+    snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'classification_owner': self.classification_owner,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'delay_1_2_days': self.delay_1_2_days,
+            'delay_3_4_days': self.delay_3_4_days,
+            'delay_5_10_days': self.delay_5_10_days,
+            'delay_more_than_10_days': self.delay_more_than_10_days,
+            'supplier': self.supplier,
+            'po_id': self.po_id,
+            'order_id': self.order_id,
+            'po_number': self.po_number,
+            'po_date': self.po_date.isoformat() if self.po_date else None,
+            'delivery_target_date': self.delivery_target_date.isoformat() if self.delivery_target_date else None,
+            'qc_target_date': self.qc_target_date.isoformat() if self.qc_target_date else None,
+            'hm_requested_at': self.hm_requested_at.isoformat() if self.hm_requested_at else None,
+            'hm_out_date': self.hm_out_date.isoformat() if self.hm_out_date else None,
+            'qc_date': self.qc_date.isoformat() if self.qc_date else None,
+            'qc_completed_at': self.qc_completed_at.isoformat() if self.qc_completed_at else None,
+            'invoice_date': self.invoice_date.isoformat() if self.invoice_date else None,
+            'order_receipt_created_at': self.order_receipt_created_at.isoformat() if self.order_receipt_created_at else None,
+            'delay_days': self.delay_days,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
+        }

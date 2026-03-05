@@ -81,6 +81,15 @@ def sync_stage_delay():
     result = sync_stage_level_delay_data()
     return result, 200 if result.get('status') == 'success' else 500
 
+@dashboard_bp.route('/settings/sync-order-delay', methods=['POST'])
+def sync_order_delay():
+    if not session.get('user_id') or not session.get('is_admin'):
+        return {"status": "error", "message": "Unauthorized: Admin access required"}, 401
+        
+    from app.utils.sync_manager import sync_order_delay_tracking_data
+    result = sync_order_delay_tracking_data()
+    return result, 200 if result.get('status') == 'success' else 500
+
 @dashboard_bp.route('/settings/clear-cache', methods=['POST'])
 def clear_cache():
     if not session.get('user_id') or not session.get('is_admin'):

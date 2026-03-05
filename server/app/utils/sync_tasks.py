@@ -5,7 +5,8 @@ from app.models.snapshots import (
     OwnerWiseOrderSummarySnapshot, 
     PartyProcessAgeingSnapshot,
     OutstandingPurchaseOrderStatusSnapshot,
-    StageLevelDelaySnapshot
+    StageLevelDelaySnapshot,
+    OrderDelayTrackingSnapshot
 )
 from flask import current_app
 import os
@@ -779,6 +780,139 @@ FROM current_stage;
         error_msg = str(e)
         logger.error(f"StageLevelDelay Sync error: {error_msg}")
         emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'stage_delay')
+        return {"status": "error", "message": error_msg}
+    finally:
+        if conn: conn.close()
+
+def sync_order_delay_tracking_data_task():
+    """Sync Order Delay Tracking data using the provided analytical query."""
+    conn = None
+    try:
+        emit_sync_update('processing', 'Starting Order Delay Tracking Sync...', 5, 'order_delay_tracking')
+        conn = get_external_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        emit_sync_update('processing', 'Fetching data from Azure...', 20, 'order_delay_tracking')
+        query = """
+SELECT
+    po.po_id,
+    od.order_id,
+    p.classification_owner,
+    p.make_owner,
+    p.collection_owner,
+    p.make,
+    p.collection,
+    po.supplier,
+    po.po_number,
+    po.po_date,
+    po.delivery_target_date,
+    po.qc_target_date,
+    hm.hm_requested_at,
+    hm.hm_out_date,
+    qc.qc_date,
+    qc.qc_completed_at,
+    inv.invoice_date,
+    inv.order_receipt_created_at,
+
+    /* Optional: numeric overdue days (0 if not overdue) */
+    CASE
+        WHEN po.delivery_target_date IS NULL THEN NULL
+        WHEN CURRENT_DATE > po.delivery_target_date THEN (CURRENT_DATE - po.delivery_target_date)
+        ELSE 0
+    END AS delay_days,
+
+    /* Buckets */
+    CASE
+        WHEN po.delivery_target_date IS NULL THEN NULL
+        WHEN CURRENT_DATE > po.delivery_target_date
+             AND (CURRENT_DATE - po.delivery_target_date) BETWEEN 1 AND 2
+        THEN 1 ELSE 0
+    END AS "1-2 days delay",
+
+    CASE
+        WHEN po.delivery_target_date IS NULL THEN NULL
+        WHEN CURRENT_DATE > po.delivery_target_date
+             AND (CURRENT_DATE - po.delivery_target_date) BETWEEN 3 AND 4
+        THEN 1 ELSE 0
+    END AS "3-4 days delay",
+
+    CASE
+        WHEN po.delivery_target_date IS NULL THEN NULL
+        WHEN CURRENT_DATE > po.delivery_target_date
+             AND (CURRENT_DATE - po.delivery_target_date) BETWEEN 5 AND 10
+        THEN 1 ELSE 0
+    END AS "5-10 days delay",
+
+    CASE
+        WHEN po.delivery_target_date IS NULL THEN NULL
+        WHEN CURRENT_DATE > po.delivery_target_date
+             AND (CURRENT_DATE - po.delivery_target_date) > 10
+        THEN 1 ELSE 0
+    END AS ">10 days delay"
+
+FROM ext_view.vw_purchase_order po
+INNER JOIN ext_view.vw_order_details od
+    ON po.po_id = od.po_id
+INNER JOIN ext_view.vw_order_product_details p
+    ON p.order_id = od.order_id
+LEFT JOIN ext_view.vw_order_hallmark_details hm
+    ON hm.order_id = od.order_id
+LEFT JOIN ext_view.vw_order_qc_details qc
+    ON qc.order_id = od.order_id
+LEFT JOIN ext_view.vw_order_supplier_invoice_summary inv
+    ON inv.order_id = od.order_id;
+        """
+        
+        start_time = time.time()
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        duration = time.time() - start_time
+        
+        logger.info(f"OrderDelayTracking query took {duration:.2f} seconds.")
+        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, 'order_delay_tracking')
+        
+        # Clear existing
+        db.session.query(OrderDelayTrackingSnapshot).delete()
+        
+        new_records = []
+        for row in rows:
+            record = OrderDelayTrackingSnapshot(
+                classification_owner=row.get('classification_owner'),
+                make_owner=row.get('make_owner'),
+                collection_owner=row.get('collection_owner'),
+                delay_1_2_days=row.get('1-2 days delay'),
+                delay_3_4_days=row.get('3-4 days delay'),
+                delay_5_10_days=row.get('5-10 days delay'),
+                delay_more_than_10_days=row.get('>10 days delay'),
+                supplier=row.get('supplier'),
+                po_id=row.get('po_id'),
+                order_id=row.get('order_id'),
+                po_number=row.get('po_number'),
+                po_date=row.get('po_date'),
+                delivery_target_date=row.get('delivery_target_date'),
+                qc_target_date=row.get('qc_target_date'),
+                hm_requested_at=row.get('hm_requested_at'),
+                hm_out_date=row.get('hm_out_date'),
+                qc_date=row.get('qc_date'),
+                qc_completed_at=row.get('qc_completed_at'),
+                invoice_date=row.get('invoice_date'),
+                order_receipt_created_at=row.get('order_receipt_created_at'),
+                delay_days=row.get('delay_days'),
+                snapshot_date=db.func.current_date()
+            )
+            new_records.append(record)
+        
+        db.session.add_all(new_records)
+        db.session.commit()
+        
+        emit_sync_update('success', f'Order Delay Tracking Sync completed! {len(rows)} records updated.', 100, 'order_delay_tracking')
+        return {"status": "success", "count": len(rows)}
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        logger.error(f"OrderDelayTracking Sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'order_delay_tracking')
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()

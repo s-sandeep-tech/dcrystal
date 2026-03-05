@@ -1,0 +1,96 @@
+<div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse min-w-[1000px]">
+        <thead>
+            <tr class="bg-gray-50 dark:bg-gray-800/50 sticky top-0 z-10 shadow-[inset_0_-1px_0_rgba(0,0,0,0.05)]">
+                <th
+                    class="px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
+                    Classification Owner</th>
+                <th
+                    class="px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
+                    Make Owner</th>
+                <th
+                    class="px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
+                    Collection Owner</th>
+                <th
+                    class="px-4 py-3 text-[10px] font-bold text-amber-600 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 text-center">
+                    1-2 Days Delay</th>
+                <th
+                    class="px-4 py-3 text-[10px] font-bold text-orange-600 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 text-center">
+                    3-4 Days Delay</th>
+                <th
+                    class="px-4 py-3 text-[10px] font-bold text-red-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 text-center">
+                    5-10 Days Delay</th>
+                <th
+                    class="px-4 py-3 text-[10px] font-bold text-red-700 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 text-center">
+                    >10 Days Delay</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            {% for row in rows %}
+            <tr class="hover:bg-blue-50/30 dark:hover:bg-primary/5 transition-colors group cursor-default">
+                <td class="px-4 py-2.5 text-[11px] font-medium text-gray-700 dark:text-gray-300">{{
+                    row.classification_owner }}</td>
+                <td class="px-4 py-2.5 text-[11px] font-medium text-gray-700 dark:text-gray-300">{{ row.make_owner }}
+                </td>
+                <td class="px-4 py-2.5 text-[11px] font-medium text-gray-700 dark:text-gray-300">{{ row.collection_owner
+                    }}</td>
+                <td class="px-4 py-2.5 text-[11px] font-bold text-center">
+                    {% if row.delay_1_2_days > 0 %}
+                    <button
+                        onclick="showDetails('{{ row.classification_owner }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '1-2')"
+                        class="px-2 py-0.5 bg-amber-50 text-amber-700 rounded hover:bg-amber-100 transition-colors">
+                        {{ row.delay_1_2_days }}
+                    </button>
+                    {% else %}
+                    <span class="text-gray-300">0</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2.5 text-[11px] font-bold text-center">
+                    {% if row.delay_3_4_days > 0 %}
+                    <button
+                        onclick="showDetails('{{ row.classification_owner }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '3-4')"
+                        class="px-2 py-0.5 bg-orange-50 text-orange-700 rounded hover:bg-orange-100 transition-colors">
+                        {{ row.delay_3_4_days }}
+                    </button>
+                    {% else %}
+                    <span class="text-gray-300">0</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2.5 text-[11px] font-bold text-center">
+                    {% if row.delay_5_10_days > 0 %}
+                    <button
+                        onclick="showDetails('{{ row.classification_owner }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '5-10')"
+                        class="px-2 py-0.5 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors">
+                        {{ row.delay_5_10_days }}
+                    </button>
+                    {% else %}
+                    <span class="text-gray-300">0</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2.5 text-[11px] font-bold text-center">
+                    {% if row.delay_more_than_10_days > 0 %}
+                    <button
+                        onclick="showDetails('{{ row.classification_owner }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '10+')"
+                        class="px-2 py-0.5 bg-red-100 text-red-800 rounded hover:bg-red-200 transition-colors">
+                        {{ row.delay_more_than_10_days }}
+                    </button>
+                    {% else %}
+                    <span class="text-gray-300">0</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot class="sticky bottom-0 z-10">
+            <tr class="bg-gray-100 dark:bg-gray-800 font-bold border-t border-gray-200 dark:border-gray-700">
+                <td colspan="3" class="px-4 py-3 text-[10px] uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                    Total</td>
+                <td class="px-4 py-3 text-[12px] text-center text-amber-700">{{ footer_totals.delay_1_2_days }}</td>
+                <td class="px-4 py-3 text-[12px] text-center text-orange-700">{{ footer_totals.delay_3_4_days }}</td>
+                <td class="px-4 py-3 text-[12px] text-center text-red-600">{{ footer_totals.delay_5_10_days }}</td>
+                <td class="px-4 py-3 text-[12px] text-center text-red-800">{{ footer_totals.delay_more_than_10_days }}
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
