@@ -58,10 +58,13 @@ def order_delay_tracking():
         classification_owner = request.args.get('classification_owner', '')
         make_owner = request.args.get('make_owner', '')
         collection_owner = request.args.get('collection_owner', '')
+        supplier = request.args.get('supplier', '')
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
 
         def apply_filters(query):
+            if supplier:
+                query = query.filter(OrderDelayTrackingSnapshot.supplier == supplier)
             if classification_owner:
                 query = query.filter(OrderDelayTrackingSnapshot.classification_owner == classification_owner)
             if make_owner:
@@ -131,6 +134,7 @@ def order_delay_tracking():
 def order_delay_tracking_options():
     try:
         options = {
+            'suppliers': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.supplier.distinct()).order_by(OrderDelayTrackingSnapshot.supplier).all() if r[0]],
             'classification_owners': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.classification_owner.distinct()).order_by(OrderDelayTrackingSnapshot.classification_owner).all() if r[0]],
             'make_owners': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.make_owner.distinct()).order_by(OrderDelayTrackingSnapshot.make_owner).all() if r[0]],
             'collection_owners': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.collection_owner.distinct()).order_by(OrderDelayTrackingSnapshot.collection_owner).all() if r[0]]
@@ -146,6 +150,7 @@ def get_order_delay_tracking_partial():
         latest_date_query = db.session.query(func.max(OrderDelayTrackingSnapshot.snapshot_date)).scalar()
         
         # Filters from Sidebar
+        f_supplier = request.args.get('supplier', '')
         f_classification_owner = request.args.get('classification_owner', '')
         f_make_owner = request.args.get('make_owner', '')
         f_collection_owner = request.args.get('collection_owner', '')
@@ -159,6 +164,8 @@ def get_order_delay_tracking_partial():
         per_page = request.args.get('per_page', 50, type=int)
         
         def apply_filters(query):
+            if f_supplier:
+                query = query.filter(OrderDelayTrackingSnapshot.supplier == f_supplier)
             if f_classification_owner:
                 query = query.filter(OrderDelayTrackingSnapshot.classification_owner == f_classification_owner)
             if f_make_owner:

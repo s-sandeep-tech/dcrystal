@@ -139,12 +139,14 @@ async function loadFilterOptions() {
         });
         const options = await response.json();
 
+        populateSelect('filter-supplier', options.suppliers, 'Party');
         populateSelect('filter-classification-owner', options.classification_owners, 'Classification Owner');
         populateSelect('filter-make-owner', options.make_owners, 'Make Owner');
         populateSelect('filter-collection-owner', options.collection_owners, 'Collection Owner');
 
         // Restore values from URL
         const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('supplier')) document.getElementById('filter-supplier').value = urlParams.get('supplier');
         if (urlParams.get('classification_owner')) document.getElementById('filter-classification-owner').value = urlParams.get('classification_owner');
         if (urlParams.get('make_owner')) document.getElementById('filter-make-owner').value = urlParams.get('make_owner');
         if (urlParams.get('collection_owner')) document.getElementById('filter-collection-owner').value = urlParams.get('collection_owner');
@@ -167,10 +169,12 @@ function populateSelect(id, list, placeholder) {
 function applyGlobalFilters() {
     const urlParams = new URLSearchParams(window.location.search);
 
+    const supplier = document.getElementById('filter-supplier').value;
     const co = document.getElementById('filter-classification-owner').value;
     const mo = document.getElementById('filter-make-owner').value;
     const coll = document.getElementById('filter-collection-owner').value;
 
+    if (supplier) urlParams.set('supplier', supplier); else urlParams.delete('supplier');
     if (co) urlParams.set('classification_owner', co); else urlParams.delete('classification_owner');
     if (mo) urlParams.set('make_owner', mo); else urlParams.delete('make_owner');
     if (coll) urlParams.set('collection_owner', coll); else urlParams.delete('collection_owner');
@@ -181,11 +185,13 @@ function applyGlobalFilters() {
 
 function resetGlobalFilters() {
     const urlParams = new URLSearchParams(window.location.search);
+    urlParams.delete('supplier');
     urlParams.delete('classification_owner');
     urlParams.delete('make_owner');
     urlParams.delete('collection_owner');
     urlParams.set('page', 1);
 
+    document.getElementById('filter-supplier').value = '';
     document.getElementById('filter-classification-owner').value = '';
     document.getElementById('filter-make-owner').value = '';
     document.getElementById('filter-collection-owner').value = '';
