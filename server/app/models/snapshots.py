@@ -437,6 +437,8 @@ class OrderDelayTrackingSnapshot(db.Model):
     invoice_date = db.Column(db.Date)
     order_receipt_created_at = db.Column(db.DateTime)
     delay_days = db.Column(db.Integer)
+    make = db.Column(db.Text)
+    collection = db.Column(db.Text)
     
     snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -465,5 +467,7 @@ class OrderDelayTrackingSnapshot(db.Model):
             'invoice_date': self.invoice_date.isoformat() if self.invoice_date else None,
             'order_receipt_created_at': self.order_receipt_created_at.isoformat() if self.order_receipt_created_at else None,
             'delay_days': self.delay_days,
+            'make': self.make,
+            'collection': self.collection,
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
         }

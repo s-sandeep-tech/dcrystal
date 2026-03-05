@@ -899,6 +899,8 @@ LEFT JOIN ext_view.vw_order_supplier_invoice_summary inv
                 invoice_date=row.get('invoice_date'),
                 order_receipt_created_at=row.get('order_receipt_created_at'),
                 delay_days=row.get('delay_days'),
+                make=row.get('make'),
+                collection=row.get('collection'),
                 snapshot_date=db.func.current_date()
             )
             new_records.append(record)

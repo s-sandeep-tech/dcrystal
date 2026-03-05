@@ -145,26 +145,32 @@ def get_order_delay_tracking_partial():
     try:
         latest_date_query = db.session.query(func.max(OrderDelayTrackingSnapshot.snapshot_date)).scalar()
         
-        # Filters
-        classification_owner = request.args.get('classification_owner', '')
-        make_owner = request.args.get('make_owner', '')
-        collection_owner = request.args.get('collection_owner', '')
+        # Filters from Sidebar
+        f_classification_owner = request.args.get('classification_owner', '')
+        f_make_owner = request.args.get('make_owner', '')
+        f_collection_owner = request.args.get('collection_owner', '')
+        
+        # Breadcrumb / Level tracking
+        parent_level = request.args.get('parent_level', '')
+        parent_value = request.args.get('parent_value', '')
+        grandparent_value = request.args.get('grandparent_value', '')
+        
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
         
         def apply_filters(query):
-            if classification_owner:
-                query = query.filter(OrderDelayTrackingSnapshot.classification_owner == classification_owner)
-            if make_owner:
-                query = query.filter(OrderDelayTrackingSnapshot.make_owner == make_owner)
-            if collection_owner:
-                query = query.filter(OrderDelayTrackingSnapshot.collection_owner == collection_owner)
+            if f_classification_owner:
+                query = query.filter(OrderDelayTrackingSnapshot.classification_owner == f_classification_owner)
+            if f_make_owner:
+                query = query.filter(OrderDelayTrackingSnapshot.make_owner == f_make_owner)
+            if f_collection_owner:
+                query = query.filter(OrderDelayTrackingSnapshot.collection_owner == f_collection_owner)
             
             if latest_date_query:
                 query = query.filter(OrderDelayTrackingSnapshot.snapshot_date == latest_date_query)
             return query
 
-        # Aggregation
+        # Aggregation columns
         agg_cols = [
             func.sum(OrderDelayTrackingSnapshot.delay_1_2_days).label('delay_1_2_days'),
             func.sum(OrderDelayTrackingSnapshot.delay_3_4_days).label('delay_3_4_days'),
@@ -172,13 +178,40 @@ def get_order_delay_tracking_partial():
             func.sum(OrderDelayTrackingSnapshot.delay_more_than_10_days).label('delay_more_than_10_days')
         ]
         
-        group_cols = [
-            OrderDelayTrackingSnapshot.classification_owner,
-            OrderDelayTrackingSnapshot.make_owner,
-            OrderDelayTrackingSnapshot.collection_owner
-        ]
+        group_cols = []
+        base_query = db.session.query(OrderDelayTrackingSnapshot)
+        
+        if not parent_level:
+            level = 'classification_owner'
+            group_cols = [OrderDelayTrackingSnapshot.classification_owner]
+        elif parent_level == 'classification_owner':
+            level = 'make_owner'
+            group_cols = [OrderDelayTrackingSnapshot.classification_owner, OrderDelayTrackingSnapshot.make_owner]
+            base_query = base_query.filter(OrderDelayTrackingSnapshot.classification_owner == parent_value)
+        elif parent_level == 'make_owner':
+            level = 'collection_owner'
+            group_cols = [OrderDelayTrackingSnapshot.classification_owner, OrderDelayTrackingSnapshot.make_owner, OrderDelayTrackingSnapshot.collection_owner]
+            base_query = base_query.filter(OrderDelayTrackingSnapshot.make_owner == parent_value)
+            if grandparent_value:
+                base_query = base_query.filter(OrderDelayTrackingSnapshot.classification_owner == grandparent_value)
+        else:
+            level = 'unknown'
 
-        main_q = db.session.query(*(group_cols + agg_cols))
+        # Totals for footer (only for root level)
+        footer_totals = {}
+        if not parent_level:
+            total_q = db.session.query(*agg_cols)
+            total_q = apply_filters(total_q)
+            totals = total_q.first()
+            footer_totals = {
+                'delay_1_2_days': int(totals.delay_1_2_days or 0) if totals else 0,
+                'delay_3_4_days': int(totals.delay_3_4_days or 0) if totals else 0,
+                'delay_5_10_days': int(totals.delay_5_10_days or 0) if totals else 0,
+                'delay_more_than_10_days': int(totals.delay_more_than_10_days or 0) if totals else 0
+            }
+
+        # Main query for rows
+        main_q = base_query.with_entities(*(group_cols + agg_cols))
         main_q = apply_filters(main_q)
         main_q = main_q.group_by(*group_cols).order_by(*group_cols)
         
@@ -186,31 +219,48 @@ def get_order_delay_tracking_partial():
         
         processed_rows = []
         for r in pagination.items:
-            processed_rows.append({
-                'classification_owner': r[0] or 'Unknown',
-                'make_owner': r[1] or 'Unknown',
-                'collection_owner': r[2] or 'Unknown',
+            row_dict = {
                 'delay_1_2_days': int(r.delay_1_2_days or 0),
                 'delay_3_4_days': int(r.delay_3_4_days or 0),
                 'delay_5_10_days': int(r.delay_5_10_days or 0),
-                'delay_more_than_10_days': int(r.delay_more_than_10_days or 0)
-            })
+                'delay_more_than_10_days': int(r.delay_more_than_10_days or 0),
+                'level': level
+            }
+            
+            if level == 'classification_owner':
+                row_dict.update({
+                    'classification_owner': r[0] or 'Unknown',
+                    'make_owner': '',
+                    'collection_owner': '',
+                    'display_value': r[0] or 'Unknown'
+                })
+            elif level == 'make_owner':
+                row_dict.update({
+                    'classification_owner': r[0],
+                    'make_owner': r[1] or 'Unknown',
+                    'collection_owner': '',
+                    'display_value': r[1] or 'Unknown'
+                })
+            elif level == 'collection_owner':
+                row_dict.update({
+                    'classification_owner': r[0],
+                    'make_owner': r[1],
+                    'collection_owner': r[2] or 'Unknown',
+                    'display_value': r[2] or 'Unknown'
+                })
+            
+            processed_rows.append(row_dict)
 
-        # Totals for footer
-        total_q = db.session.query(*agg_cols)
-        total_q = apply_filters(total_q)
-        totals = total_q.first()
-        footer_totals = {
-            'delay_1_2_days': int(totals.delay_1_2_days or 0) if totals else 0,
-            'delay_3_4_days': int(totals.delay_3_4_days or 0) if totals else 0,
-            'delay_5_10_days': int(totals.delay_5_10_days or 0) if totals else 0,
-            'delay_more_than_10_days': int(totals.delay_more_than_10_days or 0) if totals else 0
-        }
-
+        is_child_rows = bool(parent_level)
         return render_template('partials/_view_order_delay_tracking.html', 
                              rows=processed_rows, 
-                             pagination=pagination, 
-                             footer_totals=footer_totals)
+                             pagination=pagination if not is_child_rows else None, 
+                             footer_totals=footer_totals,
+                             current_level=level,
+                             is_child_rows=is_child_rows,
+                             parent_level=parent_level,
+                             parent_value=parent_value,
+                             grandparent_value=grandparent_value)
     except Exception as e:
         logger.error(f"Error in get_order_delay_tracking_partial: {str(e)}")
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
@@ -222,28 +272,51 @@ def get_order_delay_tracking_details():
         classification_owner = request.args.get('classification_owner')
         make_owner = request.args.get('make_owner')
         collection_owner = request.args.get('collection_owner')
-        delay_bucket = request.args.get('delay_bucket') # 1-2, 3-4, 5-10, 10+
         
-        query = OrderDelayTrackingSnapshot.query
+        latest_date_query = db.session.query(func.max(OrderDelayTrackingSnapshot.snapshot_date)).scalar()
+        
+        # Aggregation for the modal: Make, Collection, Party (Supplier)
+        agg_cols = [
+            func.sum(OrderDelayTrackingSnapshot.delay_1_2_days).label('delay_1_2_days'),
+            func.sum(OrderDelayTrackingSnapshot.delay_3_4_days).label('delay_3_4_days'),
+            func.sum(OrderDelayTrackingSnapshot.delay_5_10_days).label('delay_5_10_days'),
+            func.sum(OrderDelayTrackingSnapshot.delay_more_than_10_days).label('delay_more_than_10_days')
+        ]
+        
+        group_cols = [
+            OrderDelayTrackingSnapshot.make,
+            OrderDelayTrackingSnapshot.collection,
+            OrderDelayTrackingSnapshot.supplier
+        ]
+        
+        query = db.session.query(*(group_cols + agg_cols))
+        
+        if latest_date_query:
+            query = query.filter(OrderDelayTrackingSnapshot.snapshot_date == latest_date_query)
+            
         if classification_owner:
-            query = query.filter_by(classification_owner=classification_owner)
+            query = query.filter(OrderDelayTrackingSnapshot.classification_owner == classification_owner)
         if make_owner:
-            query = query.filter_by(make_owner=make_owner)
+            query = query.filter(OrderDelayTrackingSnapshot.make_owner == make_owner)
         if collection_owner:
-            query = query.filter_by(collection_owner=collection_owner)
+            query = query.filter(OrderDelayTrackingSnapshot.collection_owner == collection_owner)
             
-        if delay_bucket == '1-2':
-            query = query.filter(OrderDelayTrackingSnapshot.delay_1_2_days > 0)
-        elif delay_bucket == '3-4':
-            query = query.filter(OrderDelayTrackingSnapshot.delay_3_4_days > 0)
-        elif delay_bucket == '5-10':
-            query = query.filter(OrderDelayTrackingSnapshot.delay_5_10_days > 0)
-        elif delay_bucket == '10+':
-            query = query.filter(OrderDelayTrackingSnapshot.delay_more_than_10_days > 0)
-            
-        details = query.all()
+        results = query.group_by(*group_cols).order_by(*group_cols).all()
         
-        return render_template('partials/_view_order_delay_tracking_details.html', details=details)
+        # Convert to dict for template
+        processed_details = []
+        for r in results:
+            processed_details.append({
+                'make': r.make,
+                'collection': r.collection,
+                'supplier': r.supplier,
+                'delay_1_2_days': int(r.delay_1_2_days or 0),
+                'delay_3_4_days': int(r.delay_3_4_days or 0),
+                'delay_5_10_days': int(r.delay_5_10_days or 0),
+                'delay_more_than_10_days': int(r.delay_more_than_10_days or 0)
+            })
+            
+        return render_template('partials/_view_order_delay_tracking_details.html', details=processed_details)
     except Exception as e:
         logger.error(f"Error in get_order_delay_tracking_details: {str(e)}")
-        return f'Error: {str(e)}', 500
+        return f'<div class="p-4 text-red-500 font-bold">Error: {str(e)}</div>', 200

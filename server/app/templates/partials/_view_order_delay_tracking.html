@@ -1,96 +1,126 @@
-<div class="overflow-x-auto">
-    <table class="w-full text-left border-collapse min-w-[1000px]">
+{% if not is_child_rows %}
+<div class="overflow-x-auto shadow-sm rounded-lg border border-gray-100 dark:border-gray-800">
+    <table class="w-full text-left border-collapse min-w-[1000px] bg-white dark:bg-gray-900">
         <thead>
             <tr class="bg-gray-50 dark:bg-gray-800/50 sticky top-0 z-10 shadow-[inset_0_-1px_0_rgba(0,0,0,0.05)]">
+                <th class="w-10 px-2 py-3 border-b border-gray-100 dark:border-gray-800"></th>
                 <th
                     class="px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
-                    Classification Owner</th>
+                    Owner Hierarchy</th>
                 <th
-                    class="px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
-                    Make Owner</th>
-                <th
-                    class="px-4 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800">
-                    Collection Owner</th>
-                <th
-                    class="px-4 py-3 text-[10px] font-bold text-amber-600 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 text-center">
+                    class="px-4 py-3 text-[10px] font-bold text-amber-600 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 text-center w-28">
                     1-2 Days Delay</th>
                 <th
-                    class="px-4 py-3 text-[10px] font-bold text-orange-600 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 text-center">
+                    class="px-4 py-3 text-[10px] font-bold text-orange-600 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 text-center w-28">
                     3-4 Days Delay</th>
                 <th
-                    class="px-4 py-3 text-[10px] font-bold text-red-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 text-center">
+                    class="px-4 py-3 text-[10px] font-bold text-red-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 text-center w-28">
                     5-10 Days Delay</th>
                 <th
-                    class="px-4 py-3 text-[10px] font-bold text-red-700 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 text-center">
+                    class="px-4 py-3 text-[10px] font-bold text-red-700 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 text-center w-28">
                     >10 Days Delay</th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-            {% for row in rows %}
-            <tr class="hover:bg-blue-50/30 dark:hover:bg-primary/5 transition-colors group cursor-default">
-                <td class="px-4 py-2.5 text-[11px] font-medium text-gray-700 dark:text-gray-300">{{
-                    row.classification_owner }}</td>
-                <td class="px-4 py-2.5 text-[11px] font-medium text-gray-700 dark:text-gray-300">{{ row.make_owner }}
-                </td>
-                <td class="px-4 py-2.5 text-[11px] font-medium text-gray-700 dark:text-gray-300">{{ row.collection_owner
-                    }}</td>
-                <td class="px-4 py-2.5 text-[11px] font-bold text-center">
-                    {% if row.delay_1_2_days > 0 %}
+        <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
+            {% endif %}
+
+            {% for r in rows %}
+            <tr class="parent-row hover:bg-blue-50/20 dark:hover:bg-primary/5 transition-colors group cursor-default"
+                data-level="{{ r.level }}" data-value="{{ r.display_value }}" {% if r.level=='make_owner'
+                %}data-grandparent="{{ r.classification_owner }}" {% endif %}>
+                <td class="px-2 py-2.5 text-center">
+                    {% if r.level != 'collection_owner' %}
                     <button
-                        onclick="showDetails('{{ row.classification_owner }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '1-2')"
-                        class="px-2 py-0.5 bg-amber-50 text-amber-700 rounded hover:bg-amber-100 transition-colors">
-                        {{ row.delay_1_2_days }}
+                        onclick="toggleRow(this, '{{ r.level }}', '{{ r.display_value }}', '{{ r.classification_owner if r.level == 'make_owner' else '' }}')"
+                        class="flex items-center justify-center w-6 h-6 rounded-full text-gray-400 hover:text-primary hover:bg-primary/10 transition-all focus:outline-none">
+                        <span class="material-symbols-outlined text-[18px]">add_circle</span>
                     </button>
                     {% else %}
-                    <span class="text-gray-300">0</span>
+                    <button
+                        onclick="showDetails('{{ r.classification_owner }}', '{{ r.make_owner }}', '{{ r.collection_owner }}')"
+                        class="flex items-center justify-center w-6 h-6 rounded-full text-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all focus:outline-none"
+                        title="View Details">
+                        <span class="material-symbols-outlined text-[18px]">info</span>
+                    </button>
                     {% endif %}
                 </td>
-                <td class="px-4 py-2.5 text-[11px] font-bold text-center">
-                    {% if row.delay_3_4_days > 0 %}
-                    <button
-                        onclick="showDetails('{{ row.classification_owner }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '3-4')"
-                        class="px-2 py-0.5 bg-orange-50 text-orange-700 rounded hover:bg-orange-100 transition-colors">
-                        {{ row.delay_3_4_days }}
-                    </button>
-                    {% else %}
-                    <span class="text-gray-300">0</span>
-                    {% endif %}
+                <td class="px-4 py-2.5">
+                    <div class="flex items-center gap-2"
+                        style="padding-left: {{ '0px' if r.level == 'classification_owner' else ('24px' if r.level == 'make_owner' else '48px') }}">
+                        {% if r.level == 'classification_owner' %}
+                        <span class="material-symbols-outlined text-[16px] text-gray-400">category</span>
+                        {% elif r.level == 'make_owner' %}
+                        <span class="material-symbols-outlined text-[16px] text-gray-400">factory</span>
+                        {% else %}
+                        <span class="material-symbols-outlined text-[16px] text-blue-400">person</span>
+                        {% endif %}
+                        <span
+                            class="text-[11px] {{ 'font-bold' if r.level == 'classification_owner' else ('font-semibold' if r.level == 'make_owner' else 'font-medium') }} text-gray-700 dark:text-gray-300">
+                            {{ r.display_value or 'Unknown' }}
+                        </span>
+                    </div>
                 </td>
-                <td class="px-4 py-2.5 text-[11px] font-bold text-center">
-                    {% if row.delay_5_10_days > 0 %}
-                    <button
-                        onclick="showDetails('{{ row.classification_owner }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '5-10')"
-                        class="px-2 py-0.5 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors">
-                        {{ row.delay_5_10_days }}
-                    </button>
-                    {% else %}
-                    <span class="text-gray-300">0</span>
-                    {% endif %}
+                <td class="px-3 py-2.5 text-[11px] font-bold text-center text-amber-600">
+                    {{ r.delay_1_2_days or 0 }}
                 </td>
-                <td class="px-4 py-2.5 text-[11px] font-bold text-center">
-                    {% if row.delay_more_than_10_days > 0 %}
-                    <button
-                        onclick="showDetails('{{ row.classification_owner }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '10+')"
-                        class="px-2 py-0.5 bg-red-100 text-red-800 rounded hover:bg-red-200 transition-colors">
-                        {{ row.delay_more_than_10_days }}
-                    </button>
-                    {% else %}
-                    <span class="text-gray-300">0</span>
-                    {% endif %}
+                <td class="px-3 py-2.5 text-[11px] font-bold text-center text-orange-600">
+                    {{ r.delay_3_4_days or 0 }}
+                </td>
+                <td class="px-3 py-2.5 text-[11px] font-bold text-center text-red-500">
+                    {{ r.delay_5_10_days or 0 }}
+                </td>
+                <td class="px-3 py-2.5 text-[11px] font-bold text-center text-red-700">
+                    {{ r.delay_more_than_10_days or 0 }}
                 </td>
             </tr>
             {% endfor %}
+
+            {% if not is_child_rows %}
+            {% if not rows %}
+            <tr>
+                <td colspan="6" class="px-4 py-12 text-center text-gray-400 italic text-[11px]">
+                    No data found for the selected filters.
+                </td>
+            </tr>
+            {% endif %}
         </tbody>
-        <tfoot class="sticky bottom-0 z-10">
-            <tr class="bg-gray-100 dark:bg-gray-800 font-bold border-t border-gray-200 dark:border-gray-700">
-                <td colspan="3" class="px-4 py-3 text-[10px] uppercase tracking-wider text-gray-600 dark:text-gray-400">
-                    Total</td>
-                <td class="px-4 py-3 text-[12px] text-center text-amber-700">{{ footer_totals.delay_1_2_days }}</td>
-                <td class="px-4 py-3 text-[12px] text-center text-orange-700">{{ footer_totals.delay_3_4_days }}</td>
-                <td class="px-4 py-3 text-[12px] text-center text-red-600">{{ footer_totals.delay_5_10_days }}</td>
-                <td class="px-4 py-3 text-[12px] text-center text-red-800">{{ footer_totals.delay_more_than_10_days }}
+        {% if rows %}
+        <tfoot
+            class="sticky bottom-0 z-10 bg-gray-50 dark:bg-gray-800/90 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700">
+            <tr class="font-bold text-gray-900 dark:text-white">
+                <td colspan="2" class="px-6 py-3 text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Grand Total
+                </td>
+                <td class="px-4 py-3 text-[12px] text-center text-amber-600">{{ footer_totals.delay_1_2_days }}</td>
+                <td class="px-4 py-3 text-[12px] text-center text-orange-600">{{ footer_totals.delay_3_4_days }}</td>
+                <td class="px-4 py-3 text-[12px] text-center text-red-500">{{ footer_totals.delay_5_10_days }}</td>
+                <td class="px-4 py-3 text-[12px] text-center text-red-700">{{ footer_totals.delay_more_than_10_days }}
                 </td>
             </tr>
         </tfoot>
+        {% endif %}
     </table>
 </div>
+
+{% if pagination %}
+<div class="mt-4 flex items-center justify-between px-2 pagination-container">
+    <div class="text-[11px] text-gray-500 dark:text-gray-400">
+        Showing <span class="font-semibold text-gray-700 dark:text-gray-200">{{ (pagination.page - 1) *
+            pagination.per_page + 1 }}</span>
+        to <span class="font-semibold text-gray-700 dark:text-gray-200">{{ [(pagination.page * pagination.per_page),
+            pagination.total] | min }}</span>
+        of <span class="font-semibold text-gray-700 dark:text-gray-200">{{ pagination.total }}</span> results
+    </div>
+    <div class="flex gap-1">
+        <button onclick="changePage({{ pagination.prev_num }})" {% if not pagination.has_prev %}disabled{% endif %}
+            class="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-[11px] font-medium transition-colors {{ 'text-gray-300 cursor-not-allowed' if not pagination.has_prev else 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800' }}">
+            Previous
+        </button>
+        <button onclick="changePage({{ pagination.next_num }})" {% if not pagination.has_next %}disabled{% endif %}
+            class="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-[11px] font-medium transition-colors {{ 'text-gray-300 cursor-not-allowed' if not pagination.has_next else 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800' }}">
+            Next
+        </button>
+    </div>
+</div>
+{% endif %}
+{% endif %}
