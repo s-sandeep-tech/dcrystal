@@ -115,8 +115,8 @@
         <tr class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white uppercase text-[9px] font-bold">
             <td class="p-2 text-right" colspan="2">Grand Total</td>
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700">
-                <span class="val-wt">{{ "{:,.3f}".format(stats.pending_accept_wt|float or 0) }}</span>
-                <span class="val-pcs">{{ "{:,}".format(stats.pending_accept_pcs or 0) }} Pcs</span>
+                <span class="val-wt">{{ "{:,.3f}".format(stats.pending_to_accepted_wt|float or 0) }}</span>
+                <span class="val-pcs">{{ "{:,}".format(stats.pending_to_accepted_pcs or 0) }} Pcs</span>
             </td>
             <td class="col-stacked border-l-2 border-gray-200 dark:border-gray-700 text-red-600">
                 <span class="val-wt">{{ "{:,.3f}".format(stats.rejected_wt|float or 0) }}</span>
