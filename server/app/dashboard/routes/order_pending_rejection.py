@@ -383,8 +383,8 @@ def get_order_pending_rejection_partial():
             base_query = db.session.query(OwnerWiseOrderSummarySnapshot)
 
         agg_cols = [
-            func.sum(OwnerWiseOrderSummarySnapshot.ordered_pcs - OwnerWiseOrderSummarySnapshot.accepted_pcs - OwnerWiseOrderSummarySnapshot.rejected_pcs).label('pending_accept_pcs'),
-            func.sum(OwnerWiseOrderSummarySnapshot.ordered_wt - OwnerWiseOrderSummarySnapshot.accepted_wt - OwnerWiseOrderSummarySnapshot.rejected_wt).label('pending_accept_wt'),
+            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_accepted_pcs).label('pending_to_accepted_pcs'),
+            func.sum(OwnerWiseOrderSummarySnapshot.pending_to_accepted_wt).label('pending_to_accepted_wt'),
             func.sum(OwnerWiseOrderSummarySnapshot.rejected_pcs).label('rejected_pcs'),
             func.sum(OwnerWiseOrderSummarySnapshot.rejected_wt).label('rejected_wt'),
             func.sum(OwnerWiseOrderSummarySnapshot.hm_failed_pcs).label('hm_failed_pcs'),
