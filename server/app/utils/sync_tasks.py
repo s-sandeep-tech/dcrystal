@@ -127,6 +127,7 @@ def sync_owner_wise_data_task():
                 not_barcoded_pcs=row.get('not_barcoded_pcs'),
                 not_barcoded_wt=row.get('not_barcoded_wt'),
                 hm_processed_pcs=row.get('hm_processed_pcs'),
+                hm_testcut_wt=row.get('hm_testcut_wt'),
                 hm_passed_pcs=row.get('hm_passed_pcs'),
                 hm_passed_wt=row.get('hm_passed_wt'),
                 hm_failed_pcs=row.get('hm_failed_pcs'),

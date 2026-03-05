@@ -98,11 +98,7 @@ def order_pending_rejection_summary():
             
             # 4. Hallmark Test Cut = Hm Processed - (Hm Passed + Hm Failed)
             func.sum(OwnerWiseOrderSummarySnapshot.hm_processed_pcs - OwnerWiseOrderSummarySnapshot.hm_passed_pcs - OwnerWiseOrderSummarySnapshot.hm_failed_pcs).label('hm_test_cut_pcs'),
-            # Hm Processed Weight is not explicitly in the model, we use hm_passed_wt + hm_failed_wt as reference? 
-            # Actually, "test cut" usually refers to the pieces part or some specific weight diff. 
-            # Since hm_processed_wt is missing, we'll set it to 0 or same logic if available.
-            # I'll just use the PCS for now as weight isn't clearly available for HM Processed in this model.
-            literal_column("0").label('hm_test_cut_wt'),
+            func.sum(OwnerWiseOrderSummarySnapshot.hm_testcut_wt - OwnerWiseOrderSummarySnapshot.hm_passed_wt - OwnerWiseOrderSummarySnapshot.hm_failed_wt).label('hm_test_cut_wt'),
             
             # 5. QC Pending
             func.sum(OwnerWiseOrderSummarySnapshot.qc_pending_pcs).label('qc_pending_pcs'),
@@ -359,7 +355,7 @@ def get_order_pending_rejection_partial():
             func.sum(OwnerWiseOrderSummarySnapshot.hm_failed_pcs).label('hm_failed_pcs'),
             func.sum(OwnerWiseOrderSummarySnapshot.hm_failed_wt).label('hm_failed_wt'),
             func.sum(OwnerWiseOrderSummarySnapshot.hm_processed_pcs - OwnerWiseOrderSummarySnapshot.hm_passed_pcs - OwnerWiseOrderSummarySnapshot.hm_failed_pcs).label('hm_test_cut_pcs'),
-            literal_column("0").label('hm_test_cut_wt'),
+            func.sum(OwnerWiseOrderSummarySnapshot.hm_testcut_wt - OwnerWiseOrderSummarySnapshot.hm_passed_wt - OwnerWiseOrderSummarySnapshot.hm_failed_wt).label('hm_test_cut_wt'),
             func.sum(OwnerWiseOrderSummarySnapshot.qc_pending_pcs).label('qc_pending_pcs'),
             func.sum(OwnerWiseOrderSummarySnapshot.qc_pending_wt).label('qc_pending_wt'),
             func.sum(OwnerWiseOrderSummarySnapshot.qc_rejected_pcs).label('qc_rejected_pcs'),

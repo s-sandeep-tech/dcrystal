@@ -546,6 +546,7 @@ def get_leaf_detail():
                             'not_bar_pcs': 0, 'not_bar_wt': 0,
                             'hm_proc_pcs': 0, 'hm_pass_pcs': 0, 'hm_pass_wt': 0,
                             'hm_fail_pcs': 0, 'hm_fail_wt': 0,
+                            'hm_test_cut_pcs': 0, 'hm_test_cut_wt': 0,
                             'qc_proc_pcs': 0, 'qc_pass_pcs': 0, 'qc_pass_wt': 0,
                             'qc_pend_pcs': 0, 'qc_pend_wt': 0,
                             'qc_rej_pcs': 0, 'qc_rej_wt': 0,
@@ -604,6 +605,8 @@ def get_leaf_detail():
                 m['hm_pass_wt'] += float(r.hm_passed_wt or 0)
                 m['hm_fail_pcs'] += float(r.hm_failed_pcs or 0)
                 m['hm_fail_wt'] += float(r.hm_failed_wt or 0)
+                m['hm_test_cut_pcs'] += (float(r.hm_processed_pcs or 0) - float(r.hm_passed_pcs or 0) - float(r.hm_failed_pcs or 0))
+                m['hm_test_cut_wt'] += (float(r.hm_testcut_wt or 0) - float(r.hm_passed_wt or 0) - float(r.hm_failed_wt or 0))
                 m['qc_proc_pcs'] += float(r.qc_processed_pcs or 0)
                 m['qc_pass_pcs'] += float(r.qc_passed_pcs or 0)
                 m['qc_pass_wt'] += float(r.qc_passed_wt or 0)
@@ -641,6 +644,7 @@ def get_leaf_detail():
             'not_bar_pcs': 0, 'not_bar_wt': 0,
             'hm_proc_pcs': 0, 'hm_pass_pcs': 0, 'hm_pass_wt': 0,
             'hm_fail_pcs': 0, 'hm_fail_wt': 0,
+            'hm_test_cut_pcs': 0, 'hm_test_cut_wt': 0,
             'qc_proc_pcs': 0, 'qc_pass_pcs': 0, 'qc_pass_wt': 0,
             'qc_pend_pcs': 0, 'qc_pend_wt': 0,
             'qc_rej_pcs': 0, 'qc_rej_wt': 0,
@@ -665,6 +669,8 @@ def get_leaf_detail():
             grand_total['hm_pass_wt'] += float(r.hm_passed_wt or 0)
             grand_total['hm_fail_pcs'] += float(r.hm_failed_pcs or 0)
             grand_total['hm_fail_wt'] += float(r.hm_failed_wt or 0)
+            grand_total['hm_test_cut_pcs'] += (float(r.hm_processed_pcs or 0) - float(r.hm_passed_pcs or 0) - float(r.hm_failed_pcs or 0))
+            grand_total['hm_test_cut_wt'] += (float(r.hm_testcut_wt or 0) - float(r.hm_passed_wt or 0) - float(r.hm_failed_wt or 0))
             grand_total['qc_proc_pcs'] += float(r.qc_processed_pcs or 0)
             grand_total['qc_pass_pcs'] += float(r.qc_passed_pcs or 0)
             grand_total['qc_pass_wt'] += float(r.qc_passed_wt or 0)

@@ -34,7 +34,7 @@
                 <th colspan="4"
                     class="px-2 py-1.5 text-center border-r bg-indigo-50/30 dark:bg-indigo-900/10 text-indigo-700 dark:text-indigo-400">
                     Barcode</th>
-                <th colspan="5"
+                <th colspan="7"
                     class="px-2 py-1.5 text-center border-r bg-cyan-50/30 dark:bg-cyan-900/10 text-cyan-700 dark:text-cyan-400">
                     Hallmark (HM)</th>
                 <th colspan="7"
@@ -70,6 +70,8 @@
                 <th class="px-2 py-2 text-right border-r">Passed Wt</th>
                 <th class="px-2 py-2 text-right border-r">Failed Pcs</th>
                 <th class="px-2 py-2 text-right border-r">Failed Wt</th>
+                <th class="px-2 py-2 text-right border-r text-red-500">Test Cut Pcs</th>
+                <th class="px-2 py-2 text-right border-r text-red-500">Test Cut Wt</th>
                 <!-- QC -->
                 <th class="px-2 py-2 text-right border-r">Processed pcs</th>
                 <th class="px-2 py-2 text-right border-r">Passed Pcs</th>
@@ -142,6 +144,10 @@
                 </td>
                 <td class="px-2 py-2 text-right border-r text-red-500 font-bold bg-cyan-50/10">{{
                     "%.3f"|format(node.metrics.hm_fail_wt) }}</td>
+                <td class="px-2 py-2 text-right border-r text-red-600 bg-cyan-50/10 font-black italic">{{
+                    node.metrics.hm_test_cut_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-red-600 font-black bg-cyan-50/10 italic">{{
+                    "%.3f"|format(node.metrics.hm_test_cut_wt) }}</td>
                 <!-- QC -->
                 <td class="px-2 py-2 text-right border-r text-amber-600 bg-amber-50/10">{{ node.metrics.qc_proc_pcs|int
                     }}</td>
@@ -225,6 +231,10 @@
                 </td>
                 <td class="px-2 py-2 text-right border-r text-red-600 text-[13px] font-black">{{
                     "%.3f"|format(grand_total.hm_fail_wt) }}</td>
+                <td class="px-2 py-2 text-right border-r text-red-700 text-[13px] font-black underline">{{
+                    grand_total.hm_test_cut_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-red-700 text-[13px] font-black underline">{{
+                    "%.3f"|format(grand_total.hm_test_cut_wt) }}</td>
                 <!-- QC -->
                 <td class="px-2 py-2 text-right border-r text-amber-700 dark:text-amber-400 text-[13px]">{{
                     grand_total.qc_proc_pcs|int }}</td>

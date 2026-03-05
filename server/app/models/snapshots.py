@@ -220,6 +220,7 @@ class OwnerWiseOrderSummarySnapshot(db.Model):
     not_barcoded_wt = db.Column('Not Barcode Wt', db.Numeric(18, 3))
     
     hm_processed_pcs = db.Column('Hm Processed Pcs', db.Numeric(18, 3))
+    hm_testcut_wt = db.Column('Hm Testcut Wt', db.Numeric(18, 3))
     hm_passed_pcs = db.Column('Hm Passed Pcs', db.Numeric(18, 3))
     hm_passed_wt = db.Column('Hm Passed Wt', db.Numeric(18, 3))
     hm_failed_pcs = db.Column('Hm Failed Pcs', db.Numeric(18, 3))
