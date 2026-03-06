@@ -23,6 +23,14 @@ async function loadViewData() {
     const activeView = document.getElementById('view-order-delay');
     if (!activeView) return;
 
+    // Show loading state
+    activeView.innerHTML = `
+        <div class="w-full h-full flex flex-col items-center justify-center text-gray-400 min-h-[400px]">
+            <div class="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p class="text-[10px] font-medium uppercase tracking-widest">Loading order delay data...</p>
+        </div>
+    `;
+
     const urlParams = new URLSearchParams(window.location.search);
     const searchParams = urlParams.toString();
 
@@ -39,9 +47,52 @@ async function loadViewData() {
         const html = await response.text();
         activeView.innerHTML = html;
 
+        // Parse stats
+        const statsScript = activeView.querySelector('#stats-metadata');
+        if (statsScript) {
+            try {
+                const stats = JSON.parse(statsScript.textContent);
+                updateDashboardStats(stats);
+            } catch (e) {
+                console.error('Error parsing stats metadata:', e);
+            }
+        }
+
+        // Parse pagination & Level
+        const metaDiv = activeView.querySelector('.pagination-meta');
+        if (metaDiv) {
+            updatePaginationControls(metaDiv.dataset);
+            updateLevelBadge(metaDiv.dataset.level);
+        }
+
     } catch (error) {
         console.error('Error loading view:', error);
         activeView.innerHTML = `<div class="p-8 text-center text-red-500">Error loading data.</div>`;
+    }
+}
+
+function updateLevelBadge(level) {
+    const badge = document.getElementById('current-level-badge');
+    if (badge) {
+        badge.textContent = level ? level.toUpperCase() : 'CLASSIFICATION_OWNER';
+    }
+}
+
+function updateDashboardStats(stats) {
+    if (!stats) return;
+
+    const mappings = {
+        'stat-delay-1-2': stats.delay_1_2_days,
+        'stat-delay-3-4': stats.delay_3_4_days,
+        'stat-delay-5-10': stats.delay_5_10_days,
+        'stat-delay-more-10': stats.delay_more_than_10_days
+    };
+
+    for (const [id, value] of Object.entries(mappings)) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = value || 0;
+        }
     }
 }
 
@@ -110,6 +161,32 @@ async function toggleRow(btn, level, value, grandparentValue = null) {
     }
 }
 
+function updatePaginationControls(meta) {
+    const page = parseInt(meta.page);
+    const perPage = parseInt(meta.perPage);
+    const total = parseInt(meta.total);
+    const hasPrev = meta.hasPrev === 'true';
+    const hasNext = meta.hasNext === 'true';
+
+    const start = (page - 1) * perPage + 1;
+    const end = Math.min(page * perPage, total);
+    const infoSpan = document.getElementById('pagination-info');
+    if (infoSpan) {
+        infoSpan.textContent = total > 0 ? `${start}-${end} of ${total}` : '0-0 of 0';
+    }
+
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    if (btnPrev) {
+        btnPrev.disabled = !hasPrev;
+        btnPrev.onclick = hasPrev ? () => changePage(parseInt(meta.prevNum)) : null;
+    }
+    if (btnNext) {
+        btnNext.disabled = !hasNext;
+        btnNext.onclick = hasNext ? () => changePage(parseInt(meta.nextNum)) : null;
+    }
+}
+
 function changePage(page) {
     if (!page) return;
     const urlParams = new URLSearchParams(window.location.search);
@@ -173,11 +250,13 @@ function applyGlobalFilters() {
     const co = document.getElementById('filter-classification-owner').value;
     const mo = document.getElementById('filter-make-owner').value;
     const coll = document.getElementById('filter-collection-owner').value;
+    const searchVal = document.getElementById('hierarchy-search')?.value;
 
     if (supplier) urlParams.set('supplier', supplier); else urlParams.delete('supplier');
     if (co) urlParams.set('classification_owner', co); else urlParams.delete('classification_owner');
     if (mo) urlParams.set('make_owner', mo); else urlParams.delete('make_owner');
     if (coll) urlParams.set('collection_owner', coll); else urlParams.delete('collection_owner');
+    if (searchVal) urlParams.set('search', searchVal); else urlParams.delete('search');
 
     urlParams.set('page', 1);
     updateUrlAndLoad(urlParams);
@@ -189,6 +268,7 @@ function resetGlobalFilters() {
     urlParams.delete('classification_owner');
     urlParams.delete('make_owner');
     urlParams.delete('collection_owner');
+    urlParams.delete('search');
     urlParams.set('page', 1);
 
     document.getElementById('filter-supplier').value = '';
@@ -196,7 +276,17 @@ function resetGlobalFilters() {
     document.getElementById('filter-make-owner').value = '';
     document.getElementById('filter-collection-owner').value = '';
 
+    const search = document.getElementById('hierarchy-search');
+    if (search) search.value = '';
+
     updateUrlAndLoad(urlParams);
+}
+
+function onSearchInput(value) {
+    clearTimeout(window.searchTimeout);
+    window.searchTimeout = setTimeout(() => {
+        applyGlobalFilters();
+    }, 500);
 }
 
 async function showDetails(co, mo, colo) {
@@ -326,6 +416,10 @@ function closeDetailsModal() {
 document.addEventListener('DOMContentLoaded', () => {
     const tableArea = document.getElementById('table-area');
     if (tableArea) tableArea.style.zoom = currentZoom;
+
+    // Sync UI from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('search')) document.getElementById('hierarchy-search').value = urlParams.get('search');
 
     loadViewData();
     loadFilterOptions();

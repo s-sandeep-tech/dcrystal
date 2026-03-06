@@ -102,25 +102,15 @@
     </table>
 </div>
 
-{% if pagination %}
-<div class="mt-4 flex items-center justify-between px-2 pagination-container">
-    <div class="text-[11px] text-gray-500 dark:text-gray-400">
-        Showing <span class="font-semibold text-gray-700 dark:text-gray-200">{{ (pagination.page - 1) *
-            pagination.per_page + 1 }}</span>
-        to <span class="font-semibold text-gray-700 dark:text-gray-200">{{ [(pagination.page * pagination.per_page),
-            pagination.total] | min }}</span>
-        of <span class="font-semibold text-gray-700 dark:text-gray-200">{{ pagination.total }}</span> results
-    </div>
-    <div class="flex gap-1">
-        <button onclick="changePage({{ pagination.prev_num }})" {% if not pagination.has_prev %}disabled{% endif %}
-            class="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-[11px] font-medium transition-colors {{ 'text-gray-300 cursor-not-allowed' if not pagination.has_prev else 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800' }}">
-            Previous
-        </button>
-        <button onclick="changePage({{ pagination.next_num }})" {% if not pagination.has_next %}disabled{% endif %}
-            class="px-2 py-1 rounded border border-gray-200 dark:border-gray-700 text-[11px] font-medium transition-colors {{ 'text-gray-300 cursor-not-allowed' if not pagination.has_next else 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800' }}">
-            Next
-        </button>
-    </div>
+<script id="stats-metadata" type="application/json">
+    {{ footer_totals | tojson }}
+</script>
+<div class="pagination-meta hidden" data-page="{{ pagination.page if pagination else 1 }}"
+    data-per-page="{{ pagination.per_page if pagination else 50 }}"
+    data-total="{{ pagination.total if pagination else 0 }}"
+    data-prev-num="{{ pagination.prev_num if pagination and pagination.has_prev else '' }}"
+    data-next-num="{{ pagination.next_num if pagination and pagination.has_next else '' }}"
+    data-has-prev="{{ 'true' if pagination and pagination.has_prev else 'false' }}"
+    data-has-next="{{ 'true' if pagination and pagination.has_next else 'false' }}" data-level="{{ current_level }}">
 </div>
-{% endif %}
 {% endif %}
