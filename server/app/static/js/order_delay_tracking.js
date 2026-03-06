@@ -212,6 +212,8 @@ async function loadFilterOptions() {
         populateSelect('filter-classification-owner', options.classification_owners, 'Classification Owner');
         populateSelect('filter-make-owner', options.make_owners, 'Make Owner');
         populateSelect('filter-collection-owner', options.collection_owners, 'Collection Owner');
+        populateSelect('filter-make', options.makes, 'Make');
+        populateSelect('filter-collection', options.collections, 'Collection');
 
         // Restore values from URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -219,6 +221,8 @@ async function loadFilterOptions() {
         if (urlParams.get('classification_owner')) document.getElementById('filter-classification-owner').value = urlParams.get('classification_owner');
         if (urlParams.get('make_owner')) document.getElementById('filter-make-owner').value = urlParams.get('make_owner');
         if (urlParams.get('collection_owner')) document.getElementById('filter-collection-owner').value = urlParams.get('collection_owner');
+        if (urlParams.get('make')) document.getElementById('filter-make').value = urlParams.get('make');
+        if (urlParams.get('collection')) document.getElementById('filter-collection').value = urlParams.get('collection');
 
     } catch (e) {
         console.error('Error loading options:', e);
@@ -242,12 +246,16 @@ function applyGlobalFilters() {
     const co = document.getElementById('filter-classification-owner').value;
     const mo = document.getElementById('filter-make-owner').value;
     const coll = document.getElementById('filter-collection-owner').value;
+    const make = document.getElementById('filter-make').value;
+    const collection = document.getElementById('filter-collection').value;
     const searchVal = document.getElementById('hierarchy-search')?.value;
 
     if (supplier) urlParams.set('supplier', supplier); else urlParams.delete('supplier');
     if (co) urlParams.set('classification_owner', co); else urlParams.delete('classification_owner');
     if (mo) urlParams.set('make_owner', mo); else urlParams.delete('make_owner');
     if (coll) urlParams.set('collection_owner', coll); else urlParams.delete('collection_owner');
+    if (make) urlParams.set('make', make); else urlParams.delete('make');
+    if (collection) urlParams.set('collection', collection); else urlParams.delete('collection');
     if (searchVal) urlParams.set('search', searchVal); else urlParams.delete('search');
 
     urlParams.set('page', 1);
@@ -260,6 +268,8 @@ function resetGlobalFilters() {
     urlParams.delete('classification_owner');
     urlParams.delete('make_owner');
     urlParams.delete('collection_owner');
+    urlParams.delete('make');
+    urlParams.delete('collection');
     urlParams.delete('search');
     urlParams.set('page', 1);
 
@@ -267,6 +277,8 @@ function resetGlobalFilters() {
     document.getElementById('filter-classification-owner').value = '';
     document.getElementById('filter-make-owner').value = '';
     document.getElementById('filter-collection-owner').value = '';
+    document.getElementById('filter-make').value = '';
+    document.getElementById('filter-collection').value = '';
 
     const search = document.getElementById('hierarchy-search');
     if (search) search.value = '';

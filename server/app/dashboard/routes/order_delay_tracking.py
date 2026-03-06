@@ -59,6 +59,8 @@ def order_delay_tracking():
         make_owner = request.args.get('make_owner', '')
         collection_owner = request.args.get('collection_owner', '')
         supplier = request.args.get('supplier', '')
+        make = request.args.get('make', '')
+        collection = request.args.get('collection', '')
         search = request.args.get('search', '').strip()
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
@@ -72,12 +74,18 @@ def order_delay_tracking():
                 query = query.filter(OrderDelayTrackingSnapshot.make_owner == make_owner)
             if collection_owner:
                 query = query.filter(OrderDelayTrackingSnapshot.collection_owner == collection_owner)
+            if make:
+                query = query.filter(OrderDelayTrackingSnapshot.make == make)
+            if collection:
+                query = query.filter(OrderDelayTrackingSnapshot.collection == collection)
             if search:
                 query = query.filter(
                     OrderDelayTrackingSnapshot.classification_owner.ilike(f"%{search}%") |
                     OrderDelayTrackingSnapshot.make_owner.ilike(f"%{search}%") |
                     OrderDelayTrackingSnapshot.collection_owner.ilike(f"%{search}%") |
-                    OrderDelayTrackingSnapshot.supplier.ilike(f"%{search}%")
+                    OrderDelayTrackingSnapshot.supplier.ilike(f"%{search}%") |
+                    OrderDelayTrackingSnapshot.make.ilike(f"%{search}%") |
+                    OrderDelayTrackingSnapshot.collection.ilike(f"%{search}%")
                 )
             
             if latest_date_query:
@@ -145,7 +153,9 @@ def order_delay_tracking_options():
             'suppliers': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.supplier.distinct()).order_by(OrderDelayTrackingSnapshot.supplier).all() if r[0]],
             'classification_owners': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.classification_owner.distinct()).order_by(OrderDelayTrackingSnapshot.classification_owner).all() if r[0]],
             'make_owners': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.make_owner.distinct()).order_by(OrderDelayTrackingSnapshot.make_owner).all() if r[0]],
-            'collection_owners': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.collection_owner.distinct()).order_by(OrderDelayTrackingSnapshot.collection_owner).all() if r[0]]
+            'collection_owners': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.collection_owner.distinct()).order_by(OrderDelayTrackingSnapshot.collection_owner).all() if r[0]],
+            'makes': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.make.distinct()).order_by(OrderDelayTrackingSnapshot.make).all() if r[0]],
+            'collections': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.collection.distinct()).order_by(OrderDelayTrackingSnapshot.collection).all() if r[0]]
         }
         return jsonify(options)
     except Exception as e:
@@ -162,6 +172,8 @@ def get_order_delay_tracking_partial():
         f_classification_owner = request.args.get('classification_owner', '')
         f_make_owner = request.args.get('make_owner', '')
         f_collection_owner = request.args.get('collection_owner', '')
+        f_make = request.args.get('make', '')
+        f_collection = request.args.get('collection', '')
         f_search = request.args.get('search', '').strip()
         
         # Breadcrumb / Level tracking
@@ -181,12 +193,18 @@ def get_order_delay_tracking_partial():
                 query = query.filter(OrderDelayTrackingSnapshot.make_owner == f_make_owner)
             if f_collection_owner:
                 query = query.filter(OrderDelayTrackingSnapshot.collection_owner == f_collection_owner)
+            if f_make:
+                query = query.filter(OrderDelayTrackingSnapshot.make == f_make)
+            if f_collection:
+                query = query.filter(OrderDelayTrackingSnapshot.collection == f_collection)
             if f_search:
                 query = query.filter(
                     OrderDelayTrackingSnapshot.classification_owner.ilike(f"%{f_search}%") |
                     OrderDelayTrackingSnapshot.make_owner.ilike(f"%{f_search}%") |
                     OrderDelayTrackingSnapshot.collection_owner.ilike(f"%{f_search}%") |
-                    OrderDelayTrackingSnapshot.supplier.ilike(f"%{f_search}%")
+                    OrderDelayTrackingSnapshot.supplier.ilike(f"%{f_search}%") |
+                    OrderDelayTrackingSnapshot.make.ilike(f"%{f_search}%") |
+                    OrderDelayTrackingSnapshot.collection.ilike(f"%{f_search}%")
                 )
             
             if latest_date_query:
