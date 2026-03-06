@@ -230,7 +230,7 @@ def pending_acceptance():
         # Calculate Stats
         stats = calculate_stats(query)
         
-        query = query.order_by(PendingAcceptanceSnapshot.pending_to_accepted_wt.desc())
+        query = query.order_by(PendingAcceptanceSnapshot.accepted_wt.desc(), PendingAcceptanceSnapshot.pending_to_accepted_wt.desc())
         
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         
@@ -334,7 +334,7 @@ def get_pending_acceptance_partial():
         # Calculate Stats
         stats = calculate_stats(query)
         
-        query = query.order_by(PendingAcceptanceSnapshot.pending_to_accepted_wt.desc())
+        query = query.order_by(PendingAcceptanceSnapshot.accepted_wt.desc(), PendingAcceptanceSnapshot.pending_to_accepted_wt.desc())
         
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         
