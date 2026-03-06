@@ -64,9 +64,9 @@ def apply_filters(query, search, latest_date_query, collection_owner=None, make_
     if delay is not None:
         try:
             delay_val = int(delay)
-            # Filter condition: snapshot_date - order_date >= delay
-            # SQL: snapshot_date - order_date >= N
-            query = query.filter((PendingAcceptanceSnapshot.snapshot_date - PendingAcceptanceSnapshot.order_date) >= delay_val)
+            # Filter condition: current_date - order_date >= delay
+            # SQL: current_date - order_date >= N
+            query = query.filter((func.current_date() - PendingAcceptanceSnapshot.order_date) >= delay_val)
         except (ValueError, TypeError):
             pass
 
