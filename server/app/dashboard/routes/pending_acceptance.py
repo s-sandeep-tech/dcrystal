@@ -200,12 +200,12 @@ def pending_acceptance():
                 base_q = base_q.filter(func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u)
 
             return {
-                'collection_owners': [current_username] if restrict_to_user else [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.collection_owner).distinct().order_by(PendingAcceptanceSnapshot.collection_owner).all() if r[0]],
-                'make_owners': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.make_owner).distinct().order_by(PendingAcceptanceSnapshot.make_owner).all() if r[0]],
-                'suppliers': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.supplier).distinct().order_by(PendingAcceptanceSnapshot.supplier).all() if r[0]],
-                'collections': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.collection).distinct().order_by(PendingAcceptanceSnapshot.collection).all() if r[0]],
-                'order_types': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.order_type).distinct().order_by(PendingAcceptanceSnapshot.order_type).all() if r[0]],
-                'order_request_types': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.order_request_type).distinct().order_by(PendingAcceptanceSnapshot.order_request_type).all() if r[0]],
+                'collection_owners': [current_username] if restrict_to_user else [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.collection_owner).distinct().order_by(PendingAcceptanceSnapshot.collection_owner).all()],
+                'make_owners': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.make_owner).distinct().order_by(PendingAcceptanceSnapshot.make_owner).all()],
+                'suppliers': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.supplier).distinct().order_by(PendingAcceptanceSnapshot.supplier).all()],
+                'collections': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.collection).distinct().order_by(PendingAcceptanceSnapshot.collection).all()],
+                'order_types': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.order_type).distinct().order_by(PendingAcceptanceSnapshot.order_type).all()],
+                'order_request_types': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.order_request_type).distinct().order_by(PendingAcceptanceSnapshot.order_request_type).all()],
             }
 
         filter_options = fetch_filter_options()
@@ -233,11 +233,16 @@ def pending_acceptance():
             # Fallback for unexpected session state
             query = query.filter(False)
         
-        query = apply_filters(query, search, latest_date_query, 
-                            collection_owner=f_collection_owner, make_owner=f_make_owner,
-                            supplier=f_supplier, collection=f_collection,
-                            feedback_status=f_feedback_status,
-                            order_type=f_order_type, order_request_type=f_order_request_type)
+        query = apply_filters(
+            query, search, latest_date_query, 
+            collection_owner=f_collection_owner, 
+            make_owner=f_make_owner,
+            supplier=f_supplier, 
+            collection=f_collection,
+            feedback_status=f_feedback_status,
+            order_type=f_order_type, 
+            order_request_type=f_order_request_type
+        )
         
         # Calculate Stats
         stats = calculate_stats(query)
@@ -345,11 +350,16 @@ def get_pending_acceptance_partial():
             query = query.filter(func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u)
         elif not is_admin and not is_manager_2 and not current_username:
             query = query.filter(False)
-        query = apply_filters(query, search, latest_date_query,
-                            collection_owner=f_collection_owner, make_owner=f_make_owner,
-                            supplier=f_supplier, collection=f_collection,
-                            feedback_status=f_feedback_status,
-                            order_type=f_order_type, order_request_type=f_order_request_type)
+        query = apply_filters(
+            query, search, latest_date_query,
+            collection_owner=f_collection_owner, 
+            make_owner=f_make_owner,
+            supplier=f_supplier, 
+            collection=f_collection,
+            feedback_status=f_feedback_status,
+            order_type=f_order_type, 
+            order_request_type=f_order_request_type
+        )
         
         # Calculate Stats
         stats = calculate_stats(query)
