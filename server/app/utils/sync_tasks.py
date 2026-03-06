@@ -933,7 +933,7 @@ def sync_pending_acceptance_data_task():
         SELECT collection_owner, make_owner, supplier, collection, order_wt, accepted_wt, pending_to_accepted_wt 
         FROM ext_view.vw_ownership_wise_order_summary_with_order_type
         WHERE pending_to_accepted_wt > 0
-        ORDER BY pending_to_accepted_wt DESC
+        ORDER BY accepted_wt DESC, pending_to_accepted_wt DESC
         """
         
         start_time = time.time()
