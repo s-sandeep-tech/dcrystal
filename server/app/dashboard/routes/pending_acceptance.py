@@ -132,9 +132,12 @@ def pending_acceptance():
         
         # Helper to fetch filter lists
         def fetch_filter_options():
-            base_q = db.session.query(PendingAcceptanceSnapshot).filter(PendingAcceptanceSnapshot.snapshot_date == latest_date_query)
+            base_q = db.session.query(PendingAcceptanceSnapshot).filter(
+                PendingAcceptanceSnapshot.snapshot_date == latest_date_query,
+                PendingAcceptanceSnapshot.collection_owner == current_username
+            )
             return {
-                'collection_owners': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.collection_owner).distinct().order_by(PendingAcceptanceSnapshot.collection_owner).all() if r[0]],
+                'collection_owners': [current_username] if current_username else [],
                 'make_owners': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.make_owner).distinct().order_by(PendingAcceptanceSnapshot.make_owner).all() if r[0]],
                 'suppliers': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.supplier).distinct().order_by(PendingAcceptanceSnapshot.supplier).all() if r[0]],
                 'collections': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.collection).distinct().order_by(PendingAcceptanceSnapshot.collection).all() if r[0]],
@@ -155,6 +158,9 @@ def pending_acceptance():
                                  filter_options=filter_options)
 
         query = get_base_query()
+        # Enforce collection_owner = current_username
+        query = query.filter(PendingAcceptanceSnapshot.collection_owner == current_username)
+        
         query = apply_filters(query, search, latest_date_query, 
                             collection_owner=f_collection_owner, make_owner=f_make_owner,
                             supplier=f_supplier, collection=f_collection)
@@ -235,6 +241,9 @@ def get_pending_acceptance_partial():
                              current_username=current_username)
 
         query = get_base_query()
+        # Enforce collection_owner = current_username
+        query = query.filter(PendingAcceptanceSnapshot.collection_owner == current_username)
+        
         query = apply_filters(query, search, latest_date_query,
                             collection_owner=f_collection_owner, make_owner=f_make_owner,
                             supplier=f_supplier, collection=f_collection)
