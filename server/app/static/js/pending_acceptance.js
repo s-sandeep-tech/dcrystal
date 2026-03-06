@@ -53,6 +53,14 @@ function applyGlobalFilters() {
     if (supplier) urlParams.set('supplier', supplier);
     else urlParams.delete('supplier');
 
+    const orderType = document.getElementById('filter-order-type')?.value;
+    if (orderType) urlParams.set('order_type', orderType);
+    else urlParams.delete('order_type');
+
+    const orderRequestType = document.getElementById('filter-order-request-type')?.value;
+    if (orderRequestType) urlParams.set('order_request_type', orderRequestType);
+    else urlParams.delete('order_request_type');
+
     const collection = document.getElementById('filter-collection')?.value;
     if (collection) urlParams.set('collection', collection);
     else urlParams.delete('collection');
@@ -78,6 +86,12 @@ function resetGlobalFilters() {
 
     const supplier = document.getElementById('filter-supplier');
     if (supplier) supplier.value = '';
+
+    const orderType = document.getElementById('filter-order-type');
+    if (orderType) orderType.value = '';
+
+    const orderRequestType = document.getElementById('filter-order-request-type');
+    if (orderRequestType) orderRequestType.value = '';
 
     const collection = document.getElementById('filter-collection');
     if (collection) collection.value = '';
@@ -152,6 +166,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (urlParams.get('supplier')) {
         const sel = document.getElementById('filter-supplier');
         if (sel) sel.value = urlParams.get('supplier');
+    }
+    if (urlParams.get('order_type')) {
+        const sel = document.getElementById('filter-order-type');
+        if (sel) sel.value = urlParams.get('order_type');
+    }
+    if (urlParams.get('order_request_type')) {
+        const sel = document.getElementById('filter-order-request-type');
+        if (sel) sel.value = urlParams.get('order_request_type');
     }
     if (urlParams.get('collection')) {
         const sel = document.getElementById('filter-collection');

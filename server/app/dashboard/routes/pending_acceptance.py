@@ -55,7 +55,7 @@ def get_latest_feedback_subquery():
         )
     ).subquery()
 
-def apply_filters(query, search, latest_date_query, collection_owner=None, make_owner=None, supplier=None, collection=None, feedback_status=None):
+def apply_filters(query, search, latest_date_query, collection_owner=None, make_owner=None, supplier=None, collection=None, feedback_status=None, order_type=None, order_request_type=None):
     if latest_date_query:
         query = query.filter(PendingAcceptanceSnapshot.snapshot_date == latest_date_query)
         
@@ -73,6 +73,10 @@ def apply_filters(query, search, latest_date_query, collection_owner=None, make_
         query = query.filter(PendingAcceptanceSnapshot.supplier == supplier)
     if collection:
         query = query.filter(PendingAcceptanceSnapshot.collection == collection)
+    if order_type:
+        query = query.filter(PendingAcceptanceSnapshot.order_type == order_type)
+    if order_request_type:
+        query = query.filter(PendingAcceptanceSnapshot.order_request_type == order_request_type)
         
     if feedback_status:
         has_feedback = db.session.query(PendingAcceptanceFeedback.id).filter(
@@ -160,6 +164,8 @@ def pending_acceptance():
         f_make_owner = request.args.get('make_owner', '')
         f_supplier = request.args.get('supplier', '')
         f_collection = request.args.get('collection', '')
+        f_order_type = request.args.get('order_type', '')
+        f_order_request_type = request.args.get('order_request_type', '')
         f_feedback_status = request.args.get('feedback_status', '')
         
         page = request.args.get('page', 1, type=int)
@@ -179,7 +185,10 @@ def pending_acceptance():
                                      search=search, feedback_status=f_feedback_status,
                                      collection_owner=f_collection_owner,
                                      make_owner=f_make_owner, supplier=f_supplier, 
-                                     collection=f_collection, page=page, per_page=per_page)
+                                     collection=f_collection, 
+                                     order_type=f_order_type,
+                                     order_request_type=f_order_request_type,
+                                     page=page, per_page=per_page)
         
         # 3. Helper to fetch filter lists
         def fetch_filter_options():
@@ -195,6 +204,8 @@ def pending_acceptance():
                 'make_owners': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.make_owner).distinct().order_by(PendingAcceptanceSnapshot.make_owner).all() if r[0]],
                 'suppliers': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.supplier).distinct().order_by(PendingAcceptanceSnapshot.supplier).all() if r[0]],
                 'collections': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.collection).distinct().order_by(PendingAcceptanceSnapshot.collection).all() if r[0]],
+                'order_types': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.order_type).distinct().order_by(PendingAcceptanceSnapshot.order_type).all() if r[0]],
+                'order_request_types': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.order_request_type).distinct().order_by(PendingAcceptanceSnapshot.order_request_type).all() if r[0]],
             }
 
         filter_options = fetch_filter_options()
@@ -225,7 +236,8 @@ def pending_acceptance():
         query = apply_filters(query, search, latest_date_query, 
                             collection_owner=f_collection_owner, make_owner=f_make_owner,
                             supplier=f_supplier, collection=f_collection,
-                            feedback_status=f_feedback_status)
+                            feedback_status=f_feedback_status,
+                            order_type=f_order_type, order_request_type=f_order_request_type)
         
         # Calculate Stats
         stats = calculate_stats(query)
@@ -247,6 +259,8 @@ def pending_acceptance():
                 'make_owner': snap.make_owner or '',
                 'supplier': snap.supplier or '',
                 'collection': snap.collection or '',
+                'order_type': snap.order_type or '',
+                'order_request_type': snap.order_request_type or '',
                 'order_wt': float(snap.order_wt or 0),
                 'accepted_wt': float(snap.accepted_wt or 0),
                 'pending_to_accepted_wt': float(snap.pending_to_accepted_wt or 0),
@@ -287,6 +301,8 @@ def get_pending_acceptance_partial():
         f_make_owner = request.args.get('make_owner', '')
         f_supplier = request.args.get('supplier', '')
         f_collection = request.args.get('collection', '')
+        f_order_type = request.args.get('order_type', '')
+        f_order_request_type = request.args.get('order_request_type', '')
         f_feedback_status = request.args.get('feedback_status', '')
         
         page = request.args.get('page', 1, type=int)
@@ -298,6 +314,7 @@ def get_pending_acceptance_partial():
         is_admin = session.get('is_admin', False)
         current_username = session.get('username', '').strip()
         
+        # Determine if restrict to user
         restrict_to_user = not is_admin and not is_manager_2 and current_username
         
         # 2. Update cache key to be user/role specific
@@ -306,7 +323,10 @@ def get_pending_acceptance_partial():
                                      search=search, feedback_status=f_feedback_status,
                                      collection_owner=f_collection_owner,
                                      make_owner=f_make_owner, supplier=f_supplier, 
-                                     collection=f_collection, page=page, per_page=per_page)
+                                     collection=f_collection, 
+                                     order_type=f_order_type,
+                                     order_request_type=f_order_request_type,
+                                     page=page, per_page=per_page)
         
         cached_data = redis_client.get(cache_key)
         if cached_data:
@@ -325,11 +345,11 @@ def get_pending_acceptance_partial():
             query = query.filter(func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u)
         elif not is_admin and not is_manager_2 and not current_username:
             query = query.filter(False)
-        
         query = apply_filters(query, search, latest_date_query,
                             collection_owner=f_collection_owner, make_owner=f_make_owner,
                             supplier=f_supplier, collection=f_collection,
-                            feedback_status=f_feedback_status)
+                            feedback_status=f_feedback_status,
+                            order_type=f_order_type, order_request_type=f_order_request_type)
         
         # Calculate Stats
         stats = calculate_stats(query)
@@ -351,6 +371,8 @@ def get_pending_acceptance_partial():
                 'make_owner': snap.make_owner or '',
                 'supplier': snap.supplier or '',
                 'collection': snap.collection or '',
+                'order_type': snap.order_type or '',
+                'order_request_type': snap.order_request_type or '',
                 'order_wt': float(snap.order_wt or 0),
                 'accepted_wt': float(snap.accepted_wt or 0),
                 'pending_to_accepted_wt': float(snap.pending_to_accepted_wt or 0),

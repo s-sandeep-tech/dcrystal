@@ -930,7 +930,7 @@ def sync_pending_acceptance_data_task():
         
         emit_sync_update('processing', 'Fetching data from Azure...', 20, 'pending_acceptance')
         query = """
-        SELECT collection_owner, make_owner, supplier, collection, order_wt, accepted_wt, pending_to_accepted_wt 
+        SELECT collection_owner, make_owner, supplier, collection, order_wt, accepted_wt, pending_to_accepted_wt, order_type, order_request_type 
         FROM ext_view.vw_ownership_wise_order_summary_with_order_type
         WHERE pending_to_accepted_wt > 0
         ORDER BY accepted_wt DESC, pending_to_accepted_wt DESC
@@ -958,6 +958,8 @@ def sync_pending_acceptance_data_task():
                 order_wt=row.get('order_wt'),
                 accepted_wt=row.get('accepted_wt'),
                 pending_to_accepted_wt=row.get('pending_to_accepted_wt'),
+                order_type=row.get('order_type'),
+                order_request_type=row.get('order_request_type')
                 snapshot_date=db.func.current_date()
             )
             new_records.append(record)

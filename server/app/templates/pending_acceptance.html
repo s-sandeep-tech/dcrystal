@@ -282,6 +282,30 @@
                 </select>
             </div>
             <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order Type</label>
+                <select id="filter-order-type"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Order Types</option>
+                    {% if filter_options %}
+                    {% for ot in filter_options.order_types %}
+                    <option value="{{ ot }}">{{ ot }}</option>
+                    {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order Request Type</label>
+                <select id="filter-order-request-type"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Reguest Types</option>
+                    {% if filter_options %}
+                    {% for ort in filter_options.order_request_types %}
+                    <option value="{{ ort }}">{{ ort }}</option>
+                    {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+            <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection</label>
                 <select id="filter-collection"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
