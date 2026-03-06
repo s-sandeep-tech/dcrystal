@@ -55,10 +55,21 @@ def get_latest_feedback_subquery():
         )
     ).subquery()
 
-def apply_filters(query, search, latest_date_query, collection_owner=None, make_owner=None, supplier=None, collection=None, feedback_status=None, order_type=None, order_request_type=None):
-    if latest_date_query:
-        query = query.filter(PendingAcceptanceSnapshot.snapshot_date == latest_date_query)
-        
+def apply_filters(query, search, latest_date_query, collection_owner=None, make_owner=None, 
+                supplier=None, collection=None, feedback_status=None,
+                order_type=None, order_request_type=None, delay=None):
+    # Enforce latest snapshot date
+    query = query.filter(PendingAcceptanceSnapshot.snapshot_date == latest_date_query)
+
+    if delay is not None:
+        try:
+            delay_val = int(delay)
+            # Filter condition: snapshot_date - order_date >= delay
+            # SQL: snapshot_date - order_date >= N
+            query = query.filter((PendingAcceptanceSnapshot.snapshot_date - PendingAcceptanceSnapshot.order_date) >= delay_val)
+        except (ValueError, TypeError):
+            pass
+
     if search:
         query = query.filter(PendingAcceptanceSnapshot.supplier.ilike(f"%{search}%") | 
                              PendingAcceptanceSnapshot.collection_owner.ilike(f"%{search}%") |
@@ -167,6 +178,7 @@ def pending_acceptance():
         f_order_type = request.args.get('order_type', '')
         f_order_request_type = request.args.get('order_request_type', '')
         f_feedback_status = request.args.get('feedback_status', '')
+        f_delay = request.args.get('delay', '')
         
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
@@ -188,6 +200,7 @@ def pending_acceptance():
                                      collection=f_collection, 
                                      order_type=f_order_type,
                                      order_request_type=f_order_request_type,
+                                     delay=f_delay,
                                      page=page, per_page=per_page)
         
         # 3. Helper to fetch filter lists
@@ -241,7 +254,8 @@ def pending_acceptance():
             collection=f_collection,
             feedback_status=f_feedback_status,
             order_type=f_order_type, 
-            order_request_type=f_order_request_type
+            order_request_type=f_order_request_type,
+            delay=f_delay
         )
         
         # Calculate Stats
@@ -309,6 +323,7 @@ def get_pending_acceptance_partial():
         f_order_type = request.args.get('order_type', '')
         f_order_request_type = request.args.get('order_request_type', '')
         f_feedback_status = request.args.get('feedback_status', '')
+        f_delay = request.args.get('delay', '5')
         
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
@@ -331,6 +346,7 @@ def get_pending_acceptance_partial():
                                      collection=f_collection, 
                                      order_type=f_order_type,
                                      order_request_type=f_order_request_type,
+                                     delay=f_delay,
                                      page=page, per_page=per_page)
         
         cached_data = redis_client.get(cache_key)
@@ -358,7 +374,8 @@ def get_pending_acceptance_partial():
             collection=f_collection,
             feedback_status=f_feedback_status,
             order_type=f_order_type, 
-            order_request_type=f_order_request_type
+            order_request_type=f_order_request_type,
+            delay=f_delay
         )
         
         # Calculate Stats

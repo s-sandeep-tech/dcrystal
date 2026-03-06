@@ -65,6 +65,10 @@ function applyGlobalFilters() {
     if (collection) urlParams.set('collection', collection);
     else urlParams.delete('collection');
 
+    const delay = document.getElementById('filter-delay')?.value;
+    if (delay !== undefined && delay !== '') urlParams.set('delay', delay);
+    else urlParams.delete('delay');
+
     urlParams.set('page', 1);
     updateUrlAndLoad(urlParams);
 }
@@ -95,6 +99,9 @@ function resetGlobalFilters() {
 
     const collection = document.getElementById('filter-collection');
     if (collection) collection.value = '';
+
+    const delay = document.getElementById('filter-delay');
+    if (delay) delay.value = '5';
 
     updateUrlAndLoad(urlParams);
 }
@@ -178,6 +185,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (urlParams.get('collection')) {
         const sel = document.getElementById('filter-collection');
         if (sel) sel.value = urlParams.get('collection');
+    }
+    if (urlParams.get('delay')) {
+        const sel = document.getElementById('filter-delay');
+        if (sel) sel.value = urlParams.get('delay');
     }
 
     const metaDiv = document.querySelector('.pagination-meta');
