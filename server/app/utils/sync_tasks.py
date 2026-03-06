@@ -959,7 +959,7 @@ def sync_pending_acceptance_data_task():
                 accepted_wt=row.get('accepted_wt'),
                 pending_to_accepted_wt=row.get('pending_to_accepted_wt'),
                 order_type=row.get('order_type'),
-                order_request_type=row.get('order_request_type')
+                order_request_type=row.get('order_request_type'),
                 snapshot_date=db.func.current_date()
             )
             new_records.append(record)
