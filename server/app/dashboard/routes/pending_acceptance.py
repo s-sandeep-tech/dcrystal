@@ -317,19 +317,26 @@ def get_pending_acceptance_partial():
 def save_pending_acceptance_feedback():
     try:
         data = request.json
-        user_id = get_jwt_identity()
-        user = User.query.filter_by(user_id=user_id).first()
+        current_username = session.get('username', '').strip()
         
-        collection_owner = data.get('collection_owner')
+        collection_owner = data.get('collection_owner', '').strip()
         make_owner = data.get('make_owner')
         supplier = data.get('supplier')
         collection = data.get('collection')
-        feedback_text = data.get('feedback_text')
+        feedback_text = data.get('feedback_text', '').strip()
         
-        # We enforce at least collection_owner for identifier and feedback text
-        # Sometimes fields can be genuinely empty strings in DB from Azure 
-        if collection_owner is None or not feedback_text:
+        if not current_username:
+            return jsonify({"status": "error", "message": "User session expired. Please login again."}), 401
+
+        if not collection_owner or not feedback_text:
             return jsonify({"status": "error", "message": "Missing required fields"}), 400
+
+        # Check: only the collector owner can save feedback
+        if current_username.lower() != collection_owner.lower():
+            return jsonify({
+                "status": "error", 
+                "message": f"Unauthorized. Only {collection_owner} can save feedback for this record."
+            }), 403
             
         new_feedback = PendingAcceptanceFeedback(
             collection_owner=collection_owner,
@@ -337,17 +344,18 @@ def save_pending_acceptance_feedback():
             supplier=supplier,
             collection=collection,
             feedback_text=feedback_text,
-            username=user.username,
+            username=current_username,
             created_at=datetime.utcnow()
         )
         db.session.add(new_feedback)
         db.session.commit()
         
         # Clear cache for this route
-        for key in redis_client.scan_iter("pending_acc_main:*"):
-            redis_client.delete(key)
-        for key in redis_client.scan_iter("pending_acc_partial:*"):
-            redis_client.delete(key)
+        try:
+            for key in redis_client.scan_iter("pending_acc_*"):
+                redis_client.delete(key)
+        except Exception as e:
+            logger.error(f"Error clearing cache: {str(e)}")
             
         return jsonify({"status": "success", "message": "Feedback saved successfully"})
     except Exception as e:
