@@ -34,6 +34,10 @@ function applyGlobalFilters() {
     if (searchVal) urlParams.set('search', searchVal);
     else urlParams.delete('search');
 
+    const feedbackStatus = document.getElementById('filter-feedback-status')?.value;
+    if (feedbackStatus) urlParams.set('feedback_status', feedbackStatus);
+    else urlParams.delete('feedback_status');
+
     const collectionOwner = document.getElementById('filter-collection-owner')?.value;
     if (collectionOwner) urlParams.set('collection_owner', collectionOwner);
     else urlParams.delete('collection_owner');
@@ -59,6 +63,9 @@ function resetGlobalFilters() {
 
     const searchInput = document.getElementById('hierarchy-search');
     if (searchInput) searchInput.value = '';
+
+    const feedbackStatus = document.getElementById('filter-feedback-status');
+    if (feedbackStatus) feedbackStatus.value = '';
 
     const collOwner = document.getElementById('filter-collection-owner');
     if (collOwner) collOwner.value = '';
@@ -127,6 +134,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (input) input.value = urlParams.get('search');
     }
 
+    if (urlParams.get('feedback_status')) {
+        const sel = document.getElementById('filter-feedback-status');
+        if (sel) sel.value = urlParams.get('feedback_status');
+    }
     if (urlParams.get('collection_owner')) {
         const sel = document.getElementById('filter-collection-owner');
         if (sel) sel.value = urlParams.get('collection_owner');

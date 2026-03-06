@@ -29,7 +29,33 @@ def generate_cache_key(prefix, snapshot_date=None, **kwargs):
     date_str = snapshot_date.strftime("%Y%m%d%H%M%S") if snapshot_date else "latest"
     return f"{prefix}:{date_str}:{args_str}"
 
-def apply_filters(query, search, latest_date_query, collection_owner=None, make_owner=None, supplier=None, collection=None):
+def get_latest_feedback_subquery():
+    # Subquery for latest feedback
+    subq = db.session.query(
+        PendingAcceptanceFeedback.collection_owner,
+        PendingAcceptanceFeedback.make_owner,
+        PendingAcceptanceFeedback.supplier,
+        PendingAcceptanceFeedback.collection,
+        func.max(PendingAcceptanceFeedback.created_at).label('max_date')
+    ).group_by(
+        PendingAcceptanceFeedback.collection_owner,
+        PendingAcceptanceFeedback.make_owner,
+        PendingAcceptanceFeedback.supplier,
+        PendingAcceptanceFeedback.collection
+    ).subquery()
+    
+    return db.session.query(PendingAcceptanceFeedback).join(
+        subq,
+        db.and_(
+            func.coalesce(PendingAcceptanceFeedback.collection_owner, '') == func.coalesce(subq.c.collection_owner, ''),
+            func.coalesce(PendingAcceptanceFeedback.make_owner, '') == func.coalesce(subq.c.make_owner, ''),
+            func.coalesce(PendingAcceptanceFeedback.supplier, '') == func.coalesce(subq.c.supplier, ''),
+            func.coalesce(PendingAcceptanceFeedback.collection, '') == func.coalesce(subq.c.collection, ''),
+            PendingAcceptanceFeedback.created_at == subq.c.max_date
+        )
+    ).subquery()
+
+def apply_filters(query, search, latest_date_query, collection_owner=None, make_owner=None, supplier=None, collection=None, feedback_status=None):
     if latest_date_query:
         query = query.filter(PendingAcceptanceSnapshot.snapshot_date == latest_date_query)
         
@@ -48,33 +74,17 @@ def apply_filters(query, search, latest_date_query, collection_owner=None, make_
     if collection:
         query = query.filter(PendingAcceptanceSnapshot.collection == collection)
         
+    if feedback_status:
+        latest_feedback = get_latest_feedback_subquery()
+        if feedback_status == 'with':
+            query = query.filter(latest_feedback.c.feedback_text != None)
+        elif feedback_status == 'without':
+            query = query.filter(latest_feedback.c.feedback_text == None)
+            
     return query
 
 def get_base_query():
-    # Subquery for latest feedback
-    subq = db.session.query(
-        PendingAcceptanceFeedback.collection_owner,
-        PendingAcceptanceFeedback.make_owner,
-        PendingAcceptanceFeedback.supplier,
-        PendingAcceptanceFeedback.collection,
-        func.max(PendingAcceptanceFeedback.created_at).label('max_date')
-    ).group_by(
-        PendingAcceptanceFeedback.collection_owner,
-        PendingAcceptanceFeedback.make_owner,
-        PendingAcceptanceFeedback.supplier,
-        PendingAcceptanceFeedback.collection
-    ).subquery()
-    
-    latest_feedback = db.session.query(PendingAcceptanceFeedback).join(
-        subq,
-        db.and_(
-            func.coalesce(PendingAcceptanceFeedback.collection_owner, '') == func.coalesce(subq.c.collection_owner, ''),
-            func.coalesce(PendingAcceptanceFeedback.make_owner, '') == func.coalesce(subq.c.make_owner, ''),
-            func.coalesce(PendingAcceptanceFeedback.supplier, '') == func.coalesce(subq.c.supplier, ''),
-            func.coalesce(PendingAcceptanceFeedback.collection, '') == func.coalesce(subq.c.collection, ''),
-            PendingAcceptanceFeedback.created_at == subq.c.max_date
-        )
-    ).subquery()
+    latest_feedback = get_latest_feedback_subquery()
     
     query = db.session.query(
         PendingAcceptanceSnapshot,
@@ -117,6 +127,7 @@ def pending_acceptance():
         f_make_owner = request.args.get('make_owner', '')
         f_supplier = request.args.get('supplier', '')
         f_collection = request.args.get('collection', '')
+        f_feedback_status = request.args.get('feedback_status', '')
         
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
@@ -132,7 +143,8 @@ def pending_acceptance():
         # 2. Update cache key to be user/role specific
         cache_key = generate_cache_key('pending_acc_main', latest_date_query, 
                                      username=current_username if restrict_to_user else 'admin',
-                                     search=search, collection_owner=f_collection_owner,
+                                     search=search, feedback_status=f_feedback_status,
+                                     collection_owner=f_collection_owner,
                                      make_owner=f_make_owner, supplier=f_supplier, 
                                      collection=f_collection, page=page, per_page=per_page)
         
@@ -178,7 +190,8 @@ def pending_acceptance():
         
         query = apply_filters(query, search, latest_date_query, 
                             collection_owner=f_collection_owner, make_owner=f_make_owner,
-                            supplier=f_supplier, collection=f_collection)
+                            supplier=f_supplier, collection=f_collection,
+                            feedback_status=f_feedback_status)
         query = query.order_by(PendingAcceptanceSnapshot.pending_to_accepted_wt.desc())
         
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -233,6 +246,7 @@ def get_pending_acceptance_partial():
         f_make_owner = request.args.get('make_owner', '')
         f_supplier = request.args.get('supplier', '')
         f_collection = request.args.get('collection', '')
+        f_feedback_status = request.args.get('feedback_status', '')
         
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
@@ -248,7 +262,8 @@ def get_pending_acceptance_partial():
         # 2. Update cache key to be user/role specific
         cache_key = generate_cache_key('pending_acc_partial', latest_date_query, 
                                      username=current_username if restrict_to_user else 'admin',
-                                     search=search, collection_owner=f_collection_owner,
+                                     search=search, feedback_status=f_feedback_status,
+                                     collection_owner=f_collection_owner,
                                      make_owner=f_make_owner, supplier=f_supplier, 
                                      collection=f_collection, page=page, per_page=per_page)
         
@@ -271,7 +286,8 @@ def get_pending_acceptance_partial():
         
         query = apply_filters(query, search, latest_date_query,
                             collection_owner=f_collection_owner, make_owner=f_make_owner,
-                            supplier=f_supplier, collection=f_collection)
+                            supplier=f_supplier, collection=f_collection,
+                            feedback_status=f_feedback_status)
         query = query.order_by(PendingAcceptanceSnapshot.pending_to_accepted_wt.desc())
         
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
