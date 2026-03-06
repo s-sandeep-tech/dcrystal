@@ -15,6 +15,9 @@ async function loadViewData() {
 
         const metaDiv = activeView.querySelector('.pagination-meta');
         if (metaDiv) updatePaginationControls(metaDiv.dataset);
+
+        const statsDiv = activeView.querySelector('.stats-meta');
+        if (statsDiv) updateStatsCards(statsDiv.dataset);
     } catch (error) {
         console.error('Error loading view:', error);
         activeView.innerHTML = `<div class="p-8 text-center text-red-500">Error loading data.</div>`;
@@ -157,7 +160,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const metaDiv = document.querySelector('.pagination-meta');
     if (metaDiv) updatePaginationControls(metaDiv.dataset);
+
+    const statsDiv = document.querySelector('.stats-meta');
+    if (statsDiv) updateStatsCards(statsDiv.dataset);
 });
+
+function updateStatsCards(stats) {
+    const orderWt = parseFloat(stats.totalOrderWt || 0);
+    const acceptedWt = parseFloat(stats.totalAcceptedWt || 0);
+    const pendingWt = parseFloat(stats.totalPendingWt || 0);
+    const withFeedback = parseInt(stats.withFeedback || 0);
+    const withoutFeedback = parseInt(stats.withoutFeedback || 0);
+
+    const fmt = (v) => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 3, maximumFractionDigits: 3 }).format(v);
+
+    const elOrder = document.getElementById('stat-order-wt');
+    if (elOrder) elOrder.textContent = fmt(orderWt);
+
+    const elAccepted = document.getElementById('stat-accepted-wt');
+    if (elAccepted) elAccepted.textContent = fmt(acceptedWt);
+
+    const elPending = document.getElementById('stat-pending-wt');
+    if (elPending) elPending.textContent = fmt(pendingWt);
+
+    const elWith = document.getElementById('stat-with-feedback');
+    if (elWith) elWith.textContent = withFeedback.toLocaleString();
+
+    const elWithout = document.getElementById('stat-without-feedback');
+    if (elWithout) elWithout.textContent = withoutFeedback.toLocaleString();
+}
 
 // Modal stuff
 function openFeedbackModal(collectionOwner, makeOwner, supplier, collection, currFeedback) {

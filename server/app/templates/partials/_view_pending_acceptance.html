@@ -6,6 +6,7 @@
             <th class="text-left">Supplier</th>
             <th class="text-left">Collection</th>
             <th class="text-right">Order Wt</th>
+            <th class="text-right text-emerald-600">Accepted Wt</th>
             <th class="text-right text-red-600">Pending to Accepted Wt</th>
             <th class="text-left pl-4 max-w-xs">Feedback</th>
             <th class="text-center w-24">Action</th>
@@ -19,6 +20,7 @@
             <td class="text-gray-600 dark:text-gray-400">{{ r.supplier }}</td>
             <td class="text-gray-600 dark:text-gray-400">{{ r.collection }}</td>
             <td class="text-right font-medium text-gray-700 dark:text-gray-300">{{ "%.3f"|format(r.order_wt) }}</td>
+            <td class="text-right font-bold text-emerald-600">{{ "%.3f"|format(r.accepted_wt) }}</td>
             <td class="text-right font-bold text-red-600">{{ "%.3f"|format(r.pending_to_accepted_wt) }}</td>
             <td class="text-left pl-4 max-w-xs truncate" title="{{ r.feedback_text }}">
                 {% if r.feedback_text %}
@@ -43,11 +45,18 @@
 
         {% if not rows %}
         <tr>
-            <td colspan="8" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
+            <td colspan="9" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
         </tr>
         {% endif %}
     </tbody>
 </table>
+
+<div class="stats-meta hidden" data-total-order-wt="{{ stats.total_order_wt if stats else 0 }}"
+    data-total-accepted-wt="{{ stats.total_accepted_wt if stats else 0 }}"
+    data-total-pending-wt="{{ stats.total_pending_wt if stats else 0 }}"
+    data-with-feedback="{{ stats.with_feedback if stats else 0 }}"
+    data-without-feedback="{{ stats.without_feedback if stats else 0 }}">
+</div>
 
 <div class="pagination-meta hidden" data-page="{{ pagination.page if pagination else 1 }}"
     data-per-page="{{ pagination.per_page if pagination else 50 }}"

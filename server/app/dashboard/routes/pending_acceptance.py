@@ -4,7 +4,7 @@ from app.dashboard import dashboard_bp
 from app.models.snapshots import PendingAcceptanceSnapshot, PendingAcceptanceFeedback
 from app.models.auth import User
 from app.extensions import db, redis_client
-from sqlalchemy import func
+from sqlalchemy import func, case
 from datetime import datetime
 import logging
 import json
@@ -108,6 +108,33 @@ def get_base_query():
     )
     return query
 
+def calculate_stats(query):
+    try:
+        s = query.subquery()
+        res = db.session.query(
+            func.sum(s.c.order_wt),
+            func.sum(s.c.accepted_wt),
+            func.sum(s.c.pending_to_accepted_wt),
+            func.count(case((s.c.feedback_text != None, 1))),
+            func.count(case((s.c.feedback_text == None, 1)))
+        ).first()
+        
+        return {
+            'total_order_wt': float(res[0] or 0),
+            'total_accepted_wt': float(res[1] or 0),
+            'total_pending_wt': float(res[2] or 0),
+            'with_feedback': int(res[3] or 0),
+            'without_feedback': int(res[4] or 0)
+        }
+    except Exception as e:
+        logger.error(f"Error calculating stats: {str(e)}")
+        return {
+            'total_order_wt': 0,
+            'total_pending_wt': 0,
+            'with_feedback': 0,
+            'without_feedback': 0
+        }
+
 @dashboard_bp.route('/pending-acceptance-feedback')
 @jwt_required()
 def pending_acceptance():
@@ -181,6 +208,7 @@ def pending_acceptance():
                                  sync_time=sync_time, 
                                  rows=data['rows'], 
                                  pagination=pagination,
+                                 stats=data.get('stats', {}),
                                  current_username=current_username,
                                  filter_options=filter_options)
 
@@ -198,6 +226,10 @@ def pending_acceptance():
                             collection_owner=f_collection_owner, make_owner=f_make_owner,
                             supplier=f_supplier, collection=f_collection,
                             feedback_status=f_feedback_status)
+        
+        # Calculate Stats
+        stats = calculate_stats(query)
+        
         query = query.order_by(PendingAcceptanceSnapshot.pending_to_accepted_wt.desc())
         
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -225,7 +257,8 @@ def pending_acceptance():
             
         cache_payload = {
             'rows': processed_rows,
-            'total': pagination.total
+            'total': pagination.total,
+            'stats': stats
         }
         redis_client.setex(cache_key, 3600, json.dumps(cache_payload))
         
@@ -234,6 +267,7 @@ def pending_acceptance():
                              sync_time=sync_time, 
                              rows=processed_rows, 
                              pagination=pagination,
+                             stats=stats,
                              current_username=current_username,
                              filter_options=filter_options)
                              
@@ -278,9 +312,10 @@ def get_pending_acceptance_partial():
             data = json.loads(cached_data)
             pagination = CachedPagination(data['rows'], page, per_page, data['total'])
             return render_template('partials/_view_pending_acceptance.html', 
-                             rows=data['rows'], 
-                             pagination=pagination,
-                             current_username=current_username)
+                                 rows=data['rows'], 
+                                 pagination=pagination,
+                                 stats=data.get('stats', {}),
+                                 current_username=current_username)
 
         query = get_base_query()
         # 3. Enforce user restrictions if not admin/manager
@@ -294,6 +329,10 @@ def get_pending_acceptance_partial():
                             collection_owner=f_collection_owner, make_owner=f_make_owner,
                             supplier=f_supplier, collection=f_collection,
                             feedback_status=f_feedback_status)
+        
+        # Calculate Stats
+        stats = calculate_stats(query)
+        
         query = query.order_by(PendingAcceptanceSnapshot.pending_to_accepted_wt.desc())
         
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -321,13 +360,15 @@ def get_pending_acceptance_partial():
             
         cache_payload = {
             'rows': processed_rows,
-            'total': pagination.total
+            'total': pagination.total,
+            'stats': stats
         }
         redis_client.setex(cache_key, 3600, json.dumps(cache_payload))
         
         return render_template('partials/_view_pending_acceptance.html', 
                              rows=processed_rows, 
                              pagination=pagination,
+                             stats=stats,
                              current_username=current_username)
                              
     except Exception as e:

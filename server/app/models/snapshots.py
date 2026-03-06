@@ -481,6 +481,7 @@ class PendingAcceptanceSnapshot(db.Model):
     supplier = db.Column(db.Text)
     collection = db.Column(db.Text)
     order_wt = db.Column(db.Numeric(18, 3))
+    accepted_wt = db.Column(db.Numeric(18, 3))
     pending_to_accepted_wt = db.Column(db.Numeric(18, 3))
     snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -493,6 +494,7 @@ class PendingAcceptanceSnapshot(db.Model):
             'supplier': self.supplier,
             'collection': self.collection,
             'order_wt': float(self.order_wt or 0),
+            'accepted_wt': float(self.accepted_wt or 0),
             'pending_to_accepted_wt': float(self.pending_to_accepted_wt or 0),
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
         }
