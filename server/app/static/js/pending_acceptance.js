@@ -65,8 +65,9 @@ function applyGlobalFilters() {
     if (collection) urlParams.set('collection', collection);
     else urlParams.delete('collection');
 
+    const delayEnable = document.getElementById('filter-delay-enable')?.checked;
     const delay = document.getElementById('filter-delay')?.value;
-    if (delay !== undefined && delay !== '') urlParams.set('delay', delay);
+    if (delayEnable && delay !== '') urlParams.set('delay', delay);
     else urlParams.delete('delay');
 
     urlParams.set('page', 1);
@@ -102,6 +103,8 @@ function resetGlobalFilters() {
 
     const delay = document.getElementById('filter-delay');
     if (delay) delay.value = '5';
+    const delayEnable = document.getElementById('filter-delay-enable');
+    if (delayEnable) delayEnable.checked = true;
 
     updateUrlAndLoad(urlParams);
 }
@@ -189,6 +192,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (urlParams.get('delay')) {
         const sel = document.getElementById('filter-delay');
         if (sel) sel.value = urlParams.get('delay');
+        const enable = document.getElementById('filter-delay-enable');
+        if (enable) enable.checked = true;
+    } else {
+        const enable = document.getElementById('filter-delay-enable');
+        if (enable) enable.checked = false;
     }
 
     const metaDiv = document.querySelector('.pagination-meta');

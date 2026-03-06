@@ -246,12 +246,6 @@
                 </select>
             </div>
             <div class="space-y-1.5">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Delay (Days)</label>
-                <input type="number" id="filter-delay" value="5" min="0"
-                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2"
-                    placeholder="Min. Days">
-            </div>
-            <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection Owner</label>
                 <select id="filter-collection-owner"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
@@ -322,6 +316,19 @@
                     {% endfor %}
                     {% endif %}
                 </select>
+            </div>
+            <div class="pt-4 mt-2 border-t border-gray-100 dark:border-gray-800">
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Delay (Days)</label>
+                    <div class="flex items-center gap-1.5 cursor-pointer">
+                        <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Enable</span>
+                        <input type="checkbox" id="filter-delay-enable" checked
+                            class="rounded border-gray-300 text-primary focus:ring-primary size-3">
+                    </div>
+                </div>
+                <input type="number" id="filter-delay" value="5" min="0"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2"
+                    placeholder="Min. Days">
             </div>
         </div>
         <button onclick="applyGlobalFilters()"
