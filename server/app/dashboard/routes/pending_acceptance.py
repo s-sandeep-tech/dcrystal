@@ -75,11 +75,17 @@ def apply_filters(query, search, latest_date_query, collection_owner=None, make_
         query = query.filter(PendingAcceptanceSnapshot.collection == collection)
         
     if feedback_status:
-        latest_feedback = get_latest_feedback_subquery()
+        has_feedback = db.session.query(PendingAcceptanceFeedback.id).filter(
+            func.coalesce(PendingAcceptanceFeedback.collection_owner, '') == func.coalesce(PendingAcceptanceSnapshot.collection_owner, ''),
+            func.coalesce(PendingAcceptanceFeedback.make_owner, '') == func.coalesce(PendingAcceptanceSnapshot.make_owner, ''),
+            func.coalesce(PendingAcceptanceFeedback.supplier, '') == func.coalesce(PendingAcceptanceSnapshot.supplier, ''),
+            func.coalesce(PendingAcceptanceFeedback.collection, '') == func.coalesce(PendingAcceptanceSnapshot.collection, '')
+        ).exists()
+        
         if feedback_status == 'with':
-            query = query.filter(latest_feedback.c.feedback_text != None)
+            query = query.filter(has_feedback)
         elif feedback_status == 'without':
-            query = query.filter(latest_feedback.c.feedback_text == None)
+            query = query.filter(~has_feedback)
             
     return query
 
