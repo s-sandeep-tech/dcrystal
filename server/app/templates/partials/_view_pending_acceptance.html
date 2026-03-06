@@ -70,7 +70,7 @@
             <td class="text-center">
                 {% if r.collection_owner == current_username %}
                 <button
-                    onclick="openFeedbackModal('{{ r.collection_owner }}', '{{ r.make_owner }}', '{{ r.supplier }}', '{{ r.collection }}', '{{ r.feedback_text | replace('\'', '\\\'') }}')"
+                    onclick="openFeedbackModal('{{ r.collection_owner }}', '{{ r.make_owner }}', '{{ r.supplier }}', '{{ r.collection }}', '{{ r.feedback_text | replace('\'', '\\\'') }}', '{{ r.feedback_category }}')"
                     class="py-1 px-2.5 text-[10px] font-bold text-primary bg-primary/10 hover:bg-primary hover:text-white rounded transition-colors shadow-sm inline-flex items-center gap-1">
                     <span class="material-symbols-outlined text-[12px]">edit</span> Feedback
                 </button>

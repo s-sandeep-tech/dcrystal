@@ -286,6 +286,7 @@ def pending_acceptance():
                 'accepted_wt': float(snap.accepted_wt or 0),
                 'pending_to_accepted_wt': float(snap.pending_to_accepted_wt or 0),
                 'feedback_text': fb_text or '',
+                'feedback_category': fb_category or '',
                 'feedback_username': fb_user or '',
                 'feedback_date': fb_date.strftime('%Y-%m-%d %H:%M') if fb_date else ''
             }
@@ -407,6 +408,7 @@ def get_pending_acceptance_partial():
                 'accepted_wt': float(snap.accepted_wt or 0),
                 'pending_to_accepted_wt': float(snap.pending_to_accepted_wt or 0),
                 'feedback_text': fb_text or '',
+                'feedback_category': fb_category or '',
                 'feedback_username': fb_user or '',
                 'feedback_date': fb_date.strftime('%Y-%m-%d %H:%M') if fb_date else ''
             }

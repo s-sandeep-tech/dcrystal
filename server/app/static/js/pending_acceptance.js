@@ -234,7 +234,7 @@ function updateStatsCards(stats) {
 }
 
 // Modal stuff
-function openFeedbackModal(collectionOwner, makeOwner, supplier, collection, currFeedback) {
+function openFeedbackModal(collectionOwner, makeOwner, supplier, collection, currFeedback, currCategory) {
     document.getElementById('fb_collection_owner').value = collectionOwner;
     document.getElementById('fb_make_owner').value = makeOwner;
     document.getElementById('fb_supplier').value = supplier;
@@ -245,9 +245,8 @@ function openFeedbackModal(collectionOwner, makeOwner, supplier, collection, cur
     const ta = document.getElementById('feedbackText');
     ta.value = currFeedback || '';
 
-    // We should ideally pass the category too, but for now we reset it
     const cat = document.getElementById('feedbackCategory');
-    if (cat) cat.value = '';
+    if (cat) cat.value = currCategory || '';
 
     document.getElementById('feedbackModal').classList.remove('hidden');
 }
