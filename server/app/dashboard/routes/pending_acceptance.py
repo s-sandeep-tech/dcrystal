@@ -29,7 +29,7 @@ def generate_cache_key(prefix, snapshot_date=None, **kwargs):
     date_str = snapshot_date.strftime("%Y%m%d%H%M%S") if snapshot_date else "latest"
     return f"{prefix}:{date_str}:{args_str}"
 
-def apply_filters(query, search, latest_date_query):
+def apply_filters(query, search, latest_date_query, collection_owner=None, make_owner=None, supplier=None, collection=None):
     if latest_date_query:
         query = query.filter(PendingAcceptanceSnapshot.snapshot_date == latest_date_query)
         
@@ -38,6 +38,16 @@ def apply_filters(query, search, latest_date_query):
                              PendingAcceptanceSnapshot.collection_owner.ilike(f"%{search}%") |
                              PendingAcceptanceSnapshot.make_owner.ilike(f"%{search}%") |
                              PendingAcceptanceSnapshot.collection.ilike(f"%{search}%"))
+                             
+    if collection_owner:
+        query = query.filter(PendingAcceptanceSnapshot.collection_owner == collection_owner)
+    if make_owner:
+        query = query.filter(PendingAcceptanceSnapshot.make_owner == make_owner)
+    if supplier:
+        query = query.filter(PendingAcceptanceSnapshot.supplier == supplier)
+    if collection:
+        query = query.filter(PendingAcceptanceSnapshot.collection == collection)
+        
     return query
 
 def get_base_query():
@@ -97,20 +107,41 @@ def pending_acceptance():
                                  sync_time=sync_time, 
                                  rows=[], 
                                  pagination=None,
-                                 current_username='')
+                                 current_username='',
+                                 filters={})
 
         latest_date_query = db.session.query(func.max(PendingAcceptanceSnapshot.snapshot_date)).scalar()
         
         search = request.args.get('search', '').strip()
+        f_collection_owner = request.args.get('collection_owner', '')
+        f_make_owner = request.args.get('make_owner', '')
+        f_supplier = request.args.get('supplier', '')
+        f_collection = request.args.get('collection', '')
+        
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
         
-        cache_key = generate_cache_key('pending_acc_main', latest_date_query, search=search, page=page, per_page=per_page)
+        cache_key = generate_cache_key('pending_acc_main', latest_date_query, 
+                                     search=search, collection_owner=f_collection_owner,
+                                     make_owner=f_make_owner, supplier=f_supplier, 
+                                     collection=f_collection, page=page, per_page=per_page)
         
         current_user_id = get_jwt_identity()
         user = User.query.filter_by(user_id=current_user_id).first()
         current_username = user.username if user else ''
         
+        # Helper to fetch filter lists
+        def fetch_filter_options():
+            base_q = db.session.query(PendingAcceptanceSnapshot).filter(PendingAcceptanceSnapshot.snapshot_date == latest_date_query)
+            return {
+                'collection_owners': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.collection_owner).distinct().order_by(PendingAcceptanceSnapshot.collection_owner).all() if r[0]],
+                'make_owners': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.make_owner).distinct().order_by(PendingAcceptanceSnapshot.make_owner).all() if r[0]],
+                'suppliers': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.supplier).distinct().order_by(PendingAcceptanceSnapshot.supplier).all() if r[0]],
+                'collections': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.collection).distinct().order_by(PendingAcceptanceSnapshot.collection).all() if r[0]],
+            }
+
+        filter_options = fetch_filter_options()
+
         cached_data = redis_client.get(cache_key)
         if cached_data:
             data = json.loads(cached_data)
@@ -120,10 +151,13 @@ def pending_acceptance():
                                  sync_time=sync_time, 
                                  rows=data['rows'], 
                                  pagination=pagination,
-                                 current_username=current_username)
+                                 current_username=current_username,
+                                 filter_options=filter_options)
 
         query = get_base_query()
-        query = apply_filters(query, search, latest_date_query)
+        query = apply_filters(query, search, latest_date_query, 
+                            collection_owner=f_collection_owner, make_owner=f_make_owner,
+                            supplier=f_supplier, collection=f_collection)
         query = query.order_by(PendingAcceptanceSnapshot.pending_to_accepted_wt.desc())
         
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -160,7 +194,8 @@ def pending_acceptance():
                              sync_time=sync_time, 
                              rows=processed_rows, 
                              pagination=pagination,
-                             current_username=current_username)
+                             current_username=current_username,
+                             filter_options=filter_options)
                              
     except Exception as e:
         logger.error(f"Error in pending_acceptance: {str(e)}")
@@ -173,10 +208,18 @@ def get_pending_acceptance_partial():
         latest_date_query = db.session.query(func.max(PendingAcceptanceSnapshot.snapshot_date)).scalar()
         
         search = request.args.get('search', '').strip()
+        f_collection_owner = request.args.get('collection_owner', '')
+        f_make_owner = request.args.get('make_owner', '')
+        f_supplier = request.args.get('supplier', '')
+        f_collection = request.args.get('collection', '')
+        
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
         
-        cache_key = generate_cache_key('pending_acc_partial', latest_date_query, search=search, page=page, per_page=per_page)
+        cache_key = generate_cache_key('pending_acc_partial', latest_date_query, 
+                                     search=search, collection_owner=f_collection_owner,
+                                     make_owner=f_make_owner, supplier=f_supplier, 
+                                     collection=f_collection, page=page, per_page=per_page)
         
         current_user_id = get_jwt_identity()
         user = User.query.filter_by(user_id=current_user_id).first()
@@ -192,7 +235,9 @@ def get_pending_acceptance_partial():
                              current_username=current_username)
 
         query = get_base_query()
-        query = apply_filters(query, search, latest_date_query)
+        query = apply_filters(query, search, latest_date_query,
+                            collection_owner=f_collection_owner, make_owner=f_make_owner,
+                            supplier=f_supplier, collection=f_collection)
         query = query.order_by(PendingAcceptanceSnapshot.pending_to_accepted_wt.desc())
         
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)

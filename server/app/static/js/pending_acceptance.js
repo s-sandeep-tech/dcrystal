@@ -29,11 +29,49 @@ function updateUrlAndLoad(params) {
 
 function applyGlobalFilters() {
     const urlParams = new URLSearchParams(window.location.search);
+
     const searchVal = document.getElementById('hierarchy-search')?.value;
     if (searchVal) urlParams.set('search', searchVal);
     else urlParams.delete('search');
 
+    const collectionOwner = document.getElementById('filter-collection-owner')?.value;
+    if (collectionOwner) urlParams.set('collection_owner', collectionOwner);
+    else urlParams.delete('collection_owner');
+
+    const makeOwner = document.getElementById('filter-make-owner')?.value;
+    if (makeOwner) urlParams.set('make_owner', makeOwner);
+    else urlParams.delete('make_owner');
+
+    const supplier = document.getElementById('filter-supplier')?.value;
+    if (supplier) urlParams.set('supplier', supplier);
+    else urlParams.delete('supplier');
+
+    const collection = document.getElementById('filter-collection')?.value;
+    if (collection) urlParams.set('collection', collection);
+    else urlParams.delete('collection');
+
     urlParams.set('page', 1);
+    updateUrlAndLoad(urlParams);
+}
+
+function resetGlobalFilters() {
+    const urlParams = new URLSearchParams();
+
+    const searchInput = document.getElementById('hierarchy-search');
+    if (searchInput) searchInput.value = '';
+
+    const collOwner = document.getElementById('filter-collection-owner');
+    if (collOwner) collOwner.value = '';
+
+    const makeOwner = document.getElementById('filter-make-owner');
+    if (makeOwner) makeOwner.value = '';
+
+    const supplier = document.getElementById('filter-supplier');
+    if (supplier) supplier.value = '';
+
+    const collection = document.getElementById('filter-collection');
+    if (collection) collection.value = '';
+
     updateUrlAndLoad(urlParams);
 }
 
@@ -84,7 +122,28 @@ function changePerPage(perPage) {
 
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('search')) document.getElementById('hierarchy-search').value = urlParams.get('search');
+    if (urlParams.get('search')) {
+        const input = document.getElementById('hierarchy-search');
+        if (input) input.value = urlParams.get('search');
+    }
+
+    if (urlParams.get('collection_owner')) {
+        const sel = document.getElementById('filter-collection-owner');
+        if (sel) sel.value = urlParams.get('collection_owner');
+    }
+    if (urlParams.get('make_owner')) {
+        const sel = document.getElementById('filter-make-owner');
+        if (sel) sel.value = urlParams.get('make_owner');
+    }
+    if (urlParams.get('supplier')) {
+        const sel = document.getElementById('filter-supplier');
+        if (sel) sel.value = urlParams.get('supplier');
+    }
+    if (urlParams.get('collection')) {
+        const sel = document.getElementById('filter-collection');
+        if (sel) sel.value = urlParams.get('collection');
+    }
+
     const metaDiv = document.querySelector('.pagination-meta');
     if (metaDiv) updatePaginationControls(metaDiv.dataset);
 });
