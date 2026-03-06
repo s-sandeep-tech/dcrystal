@@ -471,3 +471,53 @@ class OrderDelayTrackingSnapshot(db.Model):
             'collection': self.collection,
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
         }
+
+class PendingAcceptanceSnapshot(db.Model):
+    __tablename__ = 'pending_acceptance_feedback_snapshot'
+
+    id = db.Column(db.Integer, primary_key=True)
+    collection_owner = db.Column(db.Text)
+    make_owner = db.Column(db.Text)
+    supplier = db.Column(db.Text)
+    collection = db.Column(db.Text)
+    order_wt = db.Column(db.Numeric(18, 3))
+    pending_to_accepted_wt = db.Column(db.Numeric(18, 3))
+    snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'collection_owner': self.collection_owner,
+            'make_owner': self.make_owner,
+            'supplier': self.supplier,
+            'collection': self.collection,
+            'order_wt': float(self.order_wt or 0),
+            'pending_to_accepted_wt': float(self.pending_to_accepted_wt or 0),
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
+        }
+
+class PendingAcceptanceFeedback(db.Model):
+    __tablename__ = 'pending_acceptance_feedback'
+
+    id = db.Column(db.Integer, primary_key=True)
+    collection_owner = db.Column(db.Text)
+    make_owner = db.Column(db.Text)
+    supplier = db.Column(db.Text)
+    collection = db.Column(db.Text)
+    feedback_text = db.Column(db.Text)
+    username = db.Column(db.String(80))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'collection_owner': self.collection_owner,
+            'make_owner': self.make_owner,
+            'supplier': self.supplier,
+            'collection': self.collection,
+            'feedback_text': self.feedback_text,
+            'username': self.username,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+

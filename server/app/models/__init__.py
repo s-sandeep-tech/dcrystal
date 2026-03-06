@@ -11,7 +11,10 @@ from .snapshots import (
     TicketLogSnapshot,
     PartyProcessAgeingSnapshot,
     OutstandingPurchaseOrderStatusSnapshot,
-    StageLevelDelaySnapshot
+    OutstandingPurchaseOrderStatusSnapshot,
+    StageLevelDelaySnapshot,
+    PendingAcceptanceSnapshot,
+    PendingAcceptanceFeedback
 )
 from .rbac import Role, Permission, Menu, RoleMenu, RolePermission, UserRole, AuditLog, UserPasswordHistory
 
@@ -38,5 +41,7 @@ __all__ = [
     'UserPasswordHistory',
     'PartyProcessAgeingSnapshot',
     'OutstandingPurchaseOrderStatusSnapshot',
-    'StageLevelDelaySnapshot'
+    'StageLevelDelaySnapshot',
+    'PendingAcceptanceSnapshot',
+    'PendingAcceptanceFeedback'
 ]

@@ -90,6 +90,15 @@ def sync_order_delay():
     result = sync_order_delay_tracking_data()
     return result, 200 if result.get('status') == 'success' else 500
 
+@dashboard_bp.route('/settings/sync-pending-acceptance', methods=['POST'])
+def sync_pending_acceptance():
+    if not session.get('user_id') or not session.get('is_admin'):
+        return {"status": "error", "message": "Unauthorized: Admin access required"}, 401
+        
+    from app.utils.sync_manager import sync_pending_acceptance_feedback_data
+    result = sync_pending_acceptance_feedback_data()
+    return result, 200 if result.get('status') == 'success' else 500
+
 @dashboard_bp.route('/settings/clear-cache', methods=['POST'])
 def clear_cache():
     if not session.get('user_id') or not session.get('is_admin'):

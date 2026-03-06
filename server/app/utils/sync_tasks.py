@@ -6,7 +6,8 @@ from app.models.snapshots import (
     PartyProcessAgeingSnapshot,
     OutstandingPurchaseOrderStatusSnapshot,
     StageLevelDelaySnapshot,
-    OrderDelayTrackingSnapshot
+    OrderDelayTrackingSnapshot,
+    PendingAcceptanceSnapshot
 )
 from flask import current_app
 import os
@@ -915,6 +916,61 @@ LEFT JOIN ext_view.vw_order_supplier_invoice_summary inv
         error_msg = str(e)
         logger.error(f"OrderDelayTracking Sync error: {error_msg}")
         emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'order_delay_tracking')
+        return {"status": "error", "message": error_msg}
+    finally:
+        if conn: conn.close()
+
+def sync_pending_acceptance_data_task():
+    """Sync Pending Acceptance data using the provided analytical query."""
+    conn = None
+    try:
+        emit_sync_update('processing', 'Starting Pending Acceptance Sync...', 5, 'pending_acceptance')
+        conn = get_external_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        emit_sync_update('processing', 'Fetching data from Azure...', 20, 'pending_acceptance')
+        query = """
+        SELECT collection_owner, make_owner, supplier, collection, order_wt, pending_to_accepted_wt 
+        FROM ext_view.vw_ownership_wise_order_summary_with_order_type
+        WHERE pending_to_accepted_wt > 0
+        ORDER BY pending_to_accepted_wt DESC
+        """
+        
+        start_time = time.time()
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        duration = time.time() - start_time
+        
+        logger.info(f"PendingAcceptance query took {duration:.2f} seconds.")
+        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, 'pending_acceptance')
+        
+        # Clear existing
+        db.session.query(PendingAcceptanceSnapshot).delete()
+        
+        new_records = []
+        for row in rows:
+            record = PendingAcceptanceSnapshot(
+                collection_owner=row.get('collection_owner'),
+                make_owner=row.get('make_owner'),
+                supplier=row.get('supplier'),
+                collection=row.get('collection'),
+                order_wt=row.get('order_wt'),
+                pending_to_accepted_wt=row.get('pending_to_accepted_wt'),
+                snapshot_date=db.func.current_date()
+            )
+            new_records.append(record)
+        
+        db.session.add_all(new_records)
+        db.session.commit()
+        
+        emit_sync_update('success', f'Pending Acceptance Sync completed! {len(rows)} records updated.', 100, 'pending_acceptance')
+        return {"status": "success", "count": len(rows)}
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        logger.error(f"PendingAcceptance Sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'pending_acceptance')
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()

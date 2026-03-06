@@ -264,6 +264,28 @@
                                         Sync Now
                                     </button>
                                 </div>
+
+                                <div
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-rose-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-rose-500 text-xl">fact_check</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Pending
+                                                Acceptance
+                                                Report Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of pending
+                                                acceptance data</p>
+                                        </div>
+                                    </div>
+                                    <button id="sync-pending-acceptance-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-rose-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-rose-600 transition-all shadow-md shadow-rose-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
+                                </div>
                             </div>
 
                             <div
@@ -542,6 +564,7 @@
             syncOutstandingPOUrl: "{{ url_for('dashboard.sync_outstanding_po') }}",
             syncStageDelayUrl: "{{ url_for('dashboard.sync_stage_delay') }}",
             syncOrderDelayUrl: "{{ url_for('dashboard.sync_order_delay') }}",
+            syncPendingAcceptanceUrl: "{{ url_for('dashboard.sync_pending_acceptance') }}",
             clearCacheUrl: "{{ url_for('dashboard.clear_cache') }}"
         };
     </script>

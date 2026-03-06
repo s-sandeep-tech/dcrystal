@@ -1,0 +1,277 @@
+from flask import render_template, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.dashboard import dashboard_bp
+from app.models.snapshots import PendingAcceptanceSnapshot, PendingAcceptanceFeedback
+from app.models.auth import User
+from app.extensions import db, redis_client
+from sqlalchemy import func
+from datetime import datetime
+import logging
+import json
+
+logger = logging.getLogger(__name__)
+
+class CachedPagination:
+    def __init__(self, items, page, per_page, total):
+        self.items = items
+        self.page = page
+        self.per_page = per_page
+        self.total = total
+        self.has_prev = page > 1
+        self.has_next = (page * per_page) < total
+        self.prev_num = page - 1
+        self.next_num = page + 1
+        self.pages = (total + per_page - 1) // per_page if per_page else 0
+
+def generate_cache_key(prefix, snapshot_date=None, **kwargs):
+    sorted_kwargs = dict(sorted(kwargs.items()))
+    args_str = ":".join(f"{k}={v}" for k, v in sorted_kwargs.items() if v)
+    date_str = snapshot_date.strftime("%Y%m%d%H%M%S") if snapshot_date else "latest"
+    return f"{prefix}:{date_str}:{args_str}"
+
+def apply_filters(query, search, latest_date_query):
+    if latest_date_query:
+        query = query.filter(PendingAcceptanceSnapshot.snapshot_date == latest_date_query)
+        
+    if search:
+        query = query.filter(PendingAcceptanceSnapshot.supplier.ilike(f"%{search}%") | 
+                             PendingAcceptanceSnapshot.collection_owner.ilike(f"%{search}%") |
+                             PendingAcceptanceSnapshot.make_owner.ilike(f"%{search}%") |
+                             PendingAcceptanceSnapshot.collection.ilike(f"%{search}%"))
+    return query
+
+def get_base_query():
+    # Subquery for latest feedback
+    subq = db.session.query(
+        PendingAcceptanceFeedback.collection_owner,
+        PendingAcceptanceFeedback.make_owner,
+        PendingAcceptanceFeedback.supplier,
+        PendingAcceptanceFeedback.collection,
+        func.max(PendingAcceptanceFeedback.created_at).label('max_date')
+    ).group_by(
+        PendingAcceptanceFeedback.collection_owner,
+        PendingAcceptanceFeedback.make_owner,
+        PendingAcceptanceFeedback.supplier,
+        PendingAcceptanceFeedback.collection
+    ).subquery()
+    
+    latest_feedback = db.session.query(PendingAcceptanceFeedback).join(
+        subq,
+        db.and_(
+            func.coalesce(PendingAcceptanceFeedback.collection_owner, '') == func.coalesce(subq.c.collection_owner, ''),
+            func.coalesce(PendingAcceptanceFeedback.make_owner, '') == func.coalesce(subq.c.make_owner, ''),
+            func.coalesce(PendingAcceptanceFeedback.supplier, '') == func.coalesce(subq.c.supplier, ''),
+            func.coalesce(PendingAcceptanceFeedback.collection, '') == func.coalesce(subq.c.collection, ''),
+            PendingAcceptanceFeedback.created_at == subq.c.max_date
+        )
+    ).subquery()
+    
+    query = db.session.query(
+        PendingAcceptanceSnapshot,
+        latest_feedback.c.feedback_text,
+        latest_feedback.c.username,
+        latest_feedback.c.created_at
+    ).outerjoin(
+        latest_feedback,
+        db.and_(
+            func.coalesce(PendingAcceptanceSnapshot.collection_owner, '') == func.coalesce(latest_feedback.c.collection_owner, ''),
+            func.coalesce(PendingAcceptanceSnapshot.make_owner, '') == func.coalesce(latest_feedback.c.make_owner, ''),
+            func.coalesce(PendingAcceptanceSnapshot.supplier, '') == func.coalesce(latest_feedback.c.supplier, ''),
+            func.coalesce(PendingAcceptanceSnapshot.collection, '') == func.coalesce(latest_feedback.c.collection, '')
+        )
+    )
+    return query
+
+@dashboard_bp.route('/pending-acceptance-feedback')
+@jwt_required()
+def pending_acceptance():
+    try:
+        from app.models.core import Notification
+        unread_count = Notification.query.filter_by(is_read=False).count()
+        sync_time = datetime.now().strftime("%H:%M")
+
+        has_any_data = db.session.query(PendingAcceptanceSnapshot.id).first()
+        if not has_any_data:
+            return render_template('pending_acceptance.html', 
+                                 unread_count=unread_count, 
+                                 sync_time=sync_time, 
+                                 rows=[], 
+                                 pagination=None,
+                                 current_username='')
+
+        latest_date_query = db.session.query(func.max(PendingAcceptanceSnapshot.snapshot_date)).scalar()
+        
+        search = request.args.get('search', '').strip()
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+        
+        cache_key = generate_cache_key('pending_acc_main', latest_date_query, search=search, page=page, per_page=per_page)
+        
+        current_user_id = get_jwt_identity()
+        user = User.query.filter_by(user_id=current_user_id).first()
+        current_username = user.username if user else ''
+        
+        cached_data = redis_client.get(cache_key)
+        if cached_data:
+            data = json.loads(cached_data)
+            pagination = CachedPagination(data['rows'], page, per_page, data['total'])
+            return render_template('pending_acceptance.html', 
+                                 unread_count=unread_count, 
+                                 sync_time=sync_time, 
+                                 rows=data['rows'], 
+                                 pagination=pagination,
+                                 current_username=current_username)
+
+        query = get_base_query()
+        query = apply_filters(query, search, latest_date_query)
+        query = query.order_by(PendingAcceptanceSnapshot.pending_to_accepted_wt.desc())
+        
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        
+        processed_rows = []
+        for r in pagination.items:
+            snap = r[0]
+            fb_text = r[1]
+            fb_user = r[2]
+            fb_date = r[3]
+            
+            row_dict = {
+                'id': snap.id,
+                'collection_owner': snap.collection_owner or '',
+                'make_owner': snap.make_owner or '',
+                'supplier': snap.supplier or '',
+                'collection': snap.collection or '',
+                'order_wt': float(snap.order_wt or 0),
+                'pending_to_accepted_wt': float(snap.pending_to_accepted_wt or 0),
+                'feedback_text': fb_text or '',
+                'feedback_username': fb_user or '',
+                'feedback_date': fb_date.strftime('%Y-%m-%d %H:%M') if fb_date else ''
+            }
+            processed_rows.append(row_dict)
+            
+        cache_payload = {
+            'rows': processed_rows,
+            'total': pagination.total
+        }
+        redis_client.setex(cache_key, 3600, json.dumps(cache_payload))
+        
+        return render_template('pending_acceptance.html', 
+                             unread_count=unread_count, 
+                             sync_time=sync_time, 
+                             rows=processed_rows, 
+                             pagination=pagination,
+                             current_username=current_username)
+                             
+    except Exception as e:
+        logger.error(f"Error in pending_acceptance: {str(e)}")
+        return f"Error: {str(e)}", 500
+
+@dashboard_bp.route('/partial/pending-acceptance-feedback')
+@jwt_required()
+def get_pending_acceptance_partial():
+    try:
+        latest_date_query = db.session.query(func.max(PendingAcceptanceSnapshot.snapshot_date)).scalar()
+        
+        search = request.args.get('search', '').strip()
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+        
+        cache_key = generate_cache_key('pending_acc_partial', latest_date_query, search=search, page=page, per_page=per_page)
+        
+        current_user_id = get_jwt_identity()
+        user = User.query.filter_by(user_id=current_user_id).first()
+        current_username = user.username if user else ''
+        
+        cached_data = redis_client.get(cache_key)
+        if cached_data:
+            data = json.loads(cached_data)
+            pagination = CachedPagination(data['rows'], page, per_page, data['total'])
+            return render_template('partials/_view_pending_acceptance.html', 
+                             rows=data['rows'], 
+                             pagination=pagination,
+                             current_username=current_username)
+
+        query = get_base_query()
+        query = apply_filters(query, search, latest_date_query)
+        query = query.order_by(PendingAcceptanceSnapshot.pending_to_accepted_wt.desc())
+        
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        
+        processed_rows = []
+        for r in pagination.items:
+            snap = r[0]
+            fb_text = r[1]
+            fb_user = r[2]
+            fb_date = r[3]
+            
+            row_dict = {
+                'id': snap.id,
+                'collection_owner': snap.collection_owner or '',
+                'make_owner': snap.make_owner or '',
+                'supplier': snap.supplier or '',
+                'collection': snap.collection or '',
+                'order_wt': float(snap.order_wt or 0),
+                'pending_to_accepted_wt': float(snap.pending_to_accepted_wt or 0),
+                'feedback_text': fb_text or '',
+                'feedback_username': fb_user or '',
+                'feedback_date': fb_date.strftime('%Y-%m-%d %H:%M') if fb_date else ''
+            }
+            processed_rows.append(row_dict)
+            
+        cache_payload = {
+            'rows': processed_rows,
+            'total': pagination.total
+        }
+        redis_client.setex(cache_key, 3600, json.dumps(cache_payload))
+        
+        return render_template('partials/_view_pending_acceptance.html', 
+                             rows=processed_rows, 
+                             pagination=pagination,
+                             current_username=current_username)
+                             
+    except Exception as e:
+        logger.error(f"Error in pending_acceptance_partial: {str(e)}")
+        return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
+
+@dashboard_bp.route('/api/pending-acceptance-feedback/feedback', methods=['POST'])
+@jwt_required()
+def save_pending_acceptance_feedback():
+    try:
+        data = request.json
+        user_id = get_jwt_identity()
+        user = User.query.filter_by(user_id=user_id).first()
+        
+        collection_owner = data.get('collection_owner')
+        make_owner = data.get('make_owner')
+        supplier = data.get('supplier')
+        collection = data.get('collection')
+        feedback_text = data.get('feedback_text')
+        
+        # We enforce at least collection_owner for identifier and feedback text
+        # Sometimes fields can be genuinely empty strings in DB from Azure 
+        if collection_owner is None or not feedback_text:
+            return jsonify({"status": "error", "message": "Missing required fields"}), 400
+            
+        new_feedback = PendingAcceptanceFeedback(
+            collection_owner=collection_owner,
+            make_owner=make_owner,
+            supplier=supplier,
+            collection=collection,
+            feedback_text=feedback_text,
+            username=user.username,
+            created_at=datetime.utcnow()
+        )
+        db.session.add(new_feedback)
+        db.session.commit()
+        
+        # Clear cache for this route
+        for key in redis_client.scan_iter("pending_acc_main:*"):
+            redis_client.delete(key)
+        for key in redis_client.scan_iter("pending_acc_partial:*"):
+            redis_client.delete(key)
+            
+        return jsonify({"status": "success", "message": "Feedback saved successfully"})
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error saving feedback: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500

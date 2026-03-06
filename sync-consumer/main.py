@@ -9,6 +9,7 @@ from app.utils.sync_tasks import (
     sync_outstanding_purchase_order_data_task,
     sync_stage_level_delay_data_task,
     sync_order_delay_tracking_data_task,
+    sync_pending_acceptance_data_task,
     emit_sync_update
 )
 
@@ -43,6 +44,8 @@ def process_queue():
                     sync_stage_level_delay_data_task()
                 elif task_type == 'order_delay_tracking':
                     sync_order_delay_tracking_data_task()
+                elif task_type == 'pending_acceptance':
+                    sync_pending_acceptance_data_task()
                 else:
                     logger.error(f"Unknown task type: {task_type}")
                     emit_sync_update('error', f'Unknown task type: {task_type}')

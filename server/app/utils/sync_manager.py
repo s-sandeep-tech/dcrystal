@@ -29,3 +29,6 @@ def sync_stage_level_delay_data():
 
 def sync_order_delay_tracking_data():
     return enqueue_sync_task('order_delay_tracking')
+
+def sync_pending_acceptance_feedback_data():
+    return enqueue_sync_task('pending_acceptance')

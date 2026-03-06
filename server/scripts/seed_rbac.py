@@ -59,6 +59,7 @@ def seed_rbac():
             {"title": "Branch Weight Allocation & Refillv2", "url": "/branchweightv2", "icon": "dvr", "order": 60},
             {"title": "StageLevel Delay Report", "url": "/stageleveldelay", "icon": "query_stats", "order": 65},
             {"title": "Owner Wise Summary", "url": "/ownerwiseordersummary", "icon": "person_pin", "order": 70},
+            {"title": "Pending Acceptance Report", "url": "/pending-acceptance-feedback", "icon": "assignment_turned_in", "order": 72},
             {"title": "Outstanding PO Status", "url": "/outstanding_purchase_orders", "icon": "receipt_long", "order": 75},
             {"title": "Crystal General Issues", "url": "/crystal_issues", "icon": "report_problem", "order": 80},
             {"title": "Quality Control", "url": "#", "icon": "fact_check", "order": 90},

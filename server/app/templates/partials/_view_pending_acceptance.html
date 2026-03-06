@@ -1,0 +1,59 @@
+<table class="enterprise-grid w-full text-[11px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
+            <th class="text-left px-4 pl-6">Collection Owner</th>
+            <th class="text-left">Make Owner</th>
+            <th class="text-left">Supplier</th>
+            <th class="text-left">Collection</th>
+            <th class="text-right">Order Wt</th>
+            <th class="text-right text-red-600">Pending to Accepted Wt</th>
+            <th class="text-left pl-4 max-w-xs">Feedback</th>
+            <th class="text-center w-24">Action</th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        {% for r in rows %}
+        <tr class="hover:bg-blue-50/30 group animate-fade-in">
+            <td class="px-4 pl-6 font-bold text-gray-800 dark:text-gray-200">{{ r.collection_owner }}</td>
+            <td class="text-gray-600 dark:text-gray-400">{{ r.make_owner }}</td>
+            <td class="text-gray-600 dark:text-gray-400">{{ r.supplier }}</td>
+            <td class="text-gray-600 dark:text-gray-400">{{ r.collection }}</td>
+            <td class="text-right font-medium text-gray-700 dark:text-gray-300">{{ "%.3f"|format(r.order_wt) }}</td>
+            <td class="text-right font-bold text-red-600">{{ "%.3f"|format(r.pending_to_accepted_wt) }}</td>
+            <td class="text-left pl-4 max-w-xs truncate" title="{{ r.feedback_text }}">
+                {% if r.feedback_text %}
+                <span class="text-gray-800 dark:text-gray-200">{{ r.feedback_text }}</span>
+                <span class="block text-[9px] text-gray-400 mt-0.5">By {{ r.feedback_username }} on {{ r.feedback_date
+                    }}</span>
+                {% else %}
+                <span class="text-gray-400 italic">No feedback</span>
+                {% endif %}
+            </td>
+            <td class="text-center">
+                {% if r.collection_owner == current_username %}
+                <button
+                    onclick="openFeedbackModal('{{ r.collection_owner }}', '{{ r.make_owner }}', '{{ r.supplier }}', '{{ r.collection }}', '{{ r.feedback_text | replace('\'', '\\\'') }}')"
+                    class="py-1 px-2.5 text-[10px] font-bold text-primary bg-primary/10 hover:bg-primary hover:text-white rounded transition-colors shadow-sm inline-flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[12px]">edit</span> Feedback
+                </button>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+
+        {% if not rows %}
+        <tr>
+            <td colspan="8" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
+
+<div class="pagination-meta hidden" data-page="{{ pagination.page if pagination else 1 }}"
+    data-per-page="{{ pagination.per_page if pagination else 50 }}"
+    data-total="{{ pagination.total if pagination else 0 }}"
+    data-prev-num="{{ pagination.prev_num if pagination and pagination.has_prev else '' }}"
+    data-next-num="{{ pagination.next_num if pagination and pagination.has_next else '' }}"
+    data-has-prev="{{ 'true' if pagination and pagination.has_prev else 'false' }}"
+    data-has-next="{{ 'true' if pagination and pagination.has_next else 'false' }}">
+</div>
