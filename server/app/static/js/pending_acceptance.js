@@ -104,7 +104,7 @@ function resetGlobalFilters() {
     const delay = document.getElementById('filter-delay');
     if (delay) delay.value = '5';
     const delayEnable = document.getElementById('filter-delay-enable');
-    if (delayEnable) delayEnable.checked = true;
+    if (delayEnable) delayEnable.checked = false;
 
     updateUrlAndLoad(urlParams);
 }
@@ -197,6 +197,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         const enable = document.getElementById('filter-delay-enable');
         if (enable) enable.checked = false;
+        const sel = document.getElementById('filter-delay');
+        if (sel) sel.value = '5';
     }
 
     const metaDiv = document.querySelector('.pagination-meta');

@@ -178,7 +178,7 @@ def pending_acceptance():
         f_order_type = request.args.get('order_type', '')
         f_order_request_type = request.args.get('order_request_type', '')
         f_feedback_status = request.args.get('feedback_status', '')
-        f_delay = request.args.get('delay', '')
+        f_delay = request.args.get('delay')
         
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
@@ -323,7 +323,7 @@ def get_pending_acceptance_partial():
         f_order_type = request.args.get('order_type', '')
         f_order_request_type = request.args.get('order_request_type', '')
         f_feedback_status = request.args.get('feedback_status', '')
-        f_delay = request.args.get('delay', '5')
+        f_delay = request.args.get('delay')
         
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
