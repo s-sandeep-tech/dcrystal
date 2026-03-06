@@ -314,6 +314,12 @@ def get_order_delay_tracking_details():
         make_owner = request.args.get('make_owner')
         collection_owner = request.args.get('collection_owner')
         
+        # Parent Filters (Global)
+        supplier = request.args.get('supplier', '')
+        make_filter = request.args.get('make', '')
+        collection_filter = request.args.get('collection', '')
+        search = request.args.get('search', '').strip()
+        
         # Modal-specific drill-down params
         parent_level = request.args.get('modal_parent_level')
         parent_value = request.args.get('modal_parent_value')
@@ -330,6 +336,25 @@ def get_order_delay_tracking_details():
             base_filters.append(OrderDelayTrackingSnapshot.make_owner == make_owner)
         if collection_owner:
             base_filters.append(OrderDelayTrackingSnapshot.collection_owner == collection_owner)
+
+        # Apply Global Filters
+        if supplier:
+            base_filters.append(OrderDelayTrackingSnapshot.supplier == supplier)
+        if make_filter:
+            base_filters.append(OrderDelayTrackingSnapshot.make == make_filter)
+        if collection_filter:
+            base_filters.append(OrderDelayTrackingSnapshot.collection == collection_filter)
+        if search:
+            base_filters.append(
+                db.or_(
+                    OrderDelayTrackingSnapshot.classification_owner.ilike(f"%{search}%"),
+                    OrderDelayTrackingSnapshot.make_owner.ilike(f"%{search}%"),
+                    OrderDelayTrackingSnapshot.collection_owner.ilike(f"%{search}%"),
+                    OrderDelayTrackingSnapshot.supplier.ilike(f"%{search}%"),
+                    OrderDelayTrackingSnapshot.make.ilike(f"%{search}%"),
+                    OrderDelayTrackingSnapshot.collection.ilike(f"%{search}%")
+                )
+            )
 
         # Determine current modal level
         level = 'party'  # Start with Party (Supplier)

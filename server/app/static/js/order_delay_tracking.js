@@ -320,7 +320,19 @@ async function showDetails(co, mo, colo) {
     `;
 
     try {
-        const response = await fetch(`/api/orderdelaytracking/details?classification_owner=${encodeURIComponent(co)}&make_owner=${encodeURIComponent(mo)}&collection_owner=${encodeURIComponent(colo)}`, {
+        const urlParams = new URLSearchParams(window.location.search);
+        const params = new URLSearchParams();
+        params.set('classification_owner', co);
+        params.set('make_owner', mo);
+        params.set('collection_owner', colo);
+
+        // Pass existing global filters to the modal constraints
+        if (urlParams.get('supplier')) params.set('supplier', urlParams.get('supplier'));
+        if (urlParams.get('make')) params.set('make', urlParams.get('make'));
+        if (urlParams.get('collection')) params.set('collection', urlParams.get('collection'));
+        if (urlParams.get('search')) params.set('search', urlParams.get('search'));
+
+        const response = await fetch(`/api/orderdelaytracking/details?${params.toString()}`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             }
@@ -367,11 +379,18 @@ async function toggleModalRow(btn, level, value, grandparentValue = null) {
         icon.textContent = 'hourglass_empty'; // Loading state
 
         try {
+            const urlParams = new URLSearchParams(window.location.search);
             const params = new URLSearchParams();
             // Use stored context
             params.set('classification_owner', content.dataset.co);
             params.set('make_owner', content.dataset.mo);
             params.set('collection_owner', content.dataset.colo);
+
+            // Pass existing global filters to the modal constraints
+            if (urlParams.get('supplier')) params.set('supplier', urlParams.get('supplier'));
+            if (urlParams.get('make')) params.set('make', urlParams.get('make'));
+            if (urlParams.get('collection')) params.set('collection', urlParams.get('collection'));
+            if (urlParams.get('search')) params.set('search', urlParams.get('search'));
 
             // Add modal-specific drill-down params
             params.set('modal_parent_level', level);
