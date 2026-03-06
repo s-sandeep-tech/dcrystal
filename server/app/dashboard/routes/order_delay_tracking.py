@@ -422,8 +422,14 @@ def get_order_delay_tracking_details():
                 for o in orders_list:
                     if o.get('order_number') and o['order_number'] not in seen_po:
                         seen_po.add(o['order_number'])
+                        for date_field in ['order_date', 'production_date', 'delivery_date']:
+                            if o.get(date_field):
+                                val = o[date_field]
+                                if isinstance(val, str) and 'T' in val:
+                                    o[date_field] = val.split('T')[0]
+                                elif hasattr(val, 'strftime'):
+                                    o[date_field] = val.strftime('%Y-%m-%d')
                         unique_orders.append(o)
-                # Parse to simpler date format strings if full ISO string is there
                 row['orders'] = unique_orders
             processed_details.append(row)
             
