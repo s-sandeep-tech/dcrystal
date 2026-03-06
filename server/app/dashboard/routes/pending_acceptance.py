@@ -270,8 +270,9 @@ def pending_acceptance():
         for r in pagination.items:
             snap = r[0]
             fb_text = r[1]
-            fb_user = r[2]
-            fb_date = r[3]
+            fb_category = r[2]
+            fb_user = r[3]
+            fb_date = r[4]
             
             row_dict = {
                 'id': snap.id,
@@ -390,8 +391,9 @@ def get_pending_acceptance_partial():
         for r in pagination.items:
             snap = r[0]
             fb_text = r[1]
-            fb_user = r[2]
-            fb_date = r[3]
+            fb_category = r[2]
+            fb_user = r[3]
+            fb_date = r[4]
             
             row_dict = {
                 'id': snap.id,
