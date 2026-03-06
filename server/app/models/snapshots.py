@@ -514,6 +514,7 @@ class PendingAcceptanceFeedback(db.Model):
     supplier = db.Column(db.Text)
     collection = db.Column(db.Text)
     feedback_text = db.Column(db.Text)
+    feedback_category = db.Column(db.String(100))
     username = db.Column(db.String(80))
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
@@ -525,6 +526,7 @@ class PendingAcceptanceFeedback(db.Model):
             'supplier': self.supplier,
             'collection': self.collection,
             'feedback_text': self.feedback_text,
+            'feedback_category': self.feedback_category,
             'username': self.username,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }

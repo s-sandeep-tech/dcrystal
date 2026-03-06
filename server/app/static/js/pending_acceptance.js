@@ -245,12 +245,18 @@ function openFeedbackModal(collectionOwner, makeOwner, supplier, collection, cur
     const ta = document.getElementById('feedbackText');
     ta.value = currFeedback || '';
 
+    // We should ideally pass the category too, but for now we reset it
+    const cat = document.getElementById('feedbackCategory');
+    if (cat) cat.value = '';
+
     document.getElementById('feedbackModal').classList.remove('hidden');
 }
 
 function closeFeedbackModal() {
     document.getElementById('feedbackModal').classList.add('hidden');
     document.getElementById('feedbackText').value = '';
+    const cat = document.getElementById('feedbackCategory');
+    if (cat) cat.value = '';
 }
 
 async function saveFeedback() {
@@ -261,7 +267,8 @@ async function saveFeedback() {
         make_owner: document.getElementById('fb_make_owner').value,
         supplier: document.getElementById('fb_supplier').value,
         collection: document.getElementById('fb_collection').value,
-        feedback_text: document.getElementById('feedbackText').value
+        feedback_text: document.getElementById('feedbackText').value,
+        feedback_category: document.getElementById('feedbackCategory').value
     };
 
     if (!payload.feedback_text.trim()) {

@@ -110,6 +110,7 @@ def get_base_query():
     query = db.session.query(
         PendingAcceptanceSnapshot,
         latest_feedback.c.feedback_text,
+        latest_feedback.c.feedback_category,
         latest_feedback.c.username,
         latest_feedback.c.created_at
     ).outerjoin(
@@ -438,6 +439,7 @@ def save_pending_acceptance_feedback():
         supplier = data.get('supplier')
         collection = data.get('collection')
         feedback_text = data.get('feedback_text', '').strip()
+        feedback_category = data.get('feedback_category', '').strip()
         
         if not current_username:
             return jsonify({"status": "error", "message": "User session expired. Please login again."}), 401
@@ -458,6 +460,7 @@ def save_pending_acceptance_feedback():
             supplier=supplier,
             collection=collection,
             feedback_text=feedback_text,
+            feedback_category=feedback_category,
             username=current_username,
             created_at=datetime.utcnow()
         )

@@ -42,8 +42,15 @@
 
                                 <div class="text-[10px] space-y-2">
                                     <div class="flex items-center justify-between border-b border-gray-700/50 pb-1.5">
-                                        <span class="font-bold text-blue-400 uppercase tracking-wider">User
-                                            Feedback</span>
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-blue-400 uppercase tracking-wider">User
+                                                Feedback</span>
+                                            {% if r.feedback_category %}
+                                            <span
+                                                class="text-[8px] text-amber-400 font-bold uppercase tracking-widest mt-0.5">{{
+                                                r.feedback_category }}</span>
+                                            {% endif %}
+                                        </div>
                                         <span class="text-[9px] text-gray-400 italic">{{ r.feedback_username }}</span>
                                     </div>
                                     <p class="whitespace-normal leading-relaxed text-gray-200">{{ r.feedback_text }}</p>

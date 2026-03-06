@@ -206,6 +206,17 @@
                 <input type="hidden" id="fb_make_owner">
                 <input type="hidden" id="fb_supplier">
                 <input type="hidden" id="fb_collection">
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Category</label>
+                    <select id="feedbackCategory"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-2.5 text-sm focus:ring-primary focus:border-primary">
+                        <option value="">Select Category</option>
+                        <option value="Payment issues">Payment issues</option>
+                        <option value="discussion pending">discussion pending</option>
+                        <option value="design related issues">design related issues</option>
+                        <option value="others">others</option>
+                    </select>
+                </div>
                 <textarea id="feedbackText" rows="4"
                     class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-3 text-sm focus:ring-primary focus:border-primary resize-none placeholder:text-gray-400"
                     placeholder="Enter your feedback here..."></textarea>
