@@ -126,40 +126,14 @@ def pending_acceptance():
                                      make_owner=f_make_owner, supplier=f_supplier, 
                                      collection=f_collection, page=page, per_page=per_page)
         
-        current_user_id = get_jwt_identity()
-        user = User.query.filter_by(user_id=current_user_id).first()
-        current_username = user.username if user else ''
-        
-        # Helper to fetch filter lists
-        def fetch_filter_options():
-            base_q = db.session.query(PendingAcceptanceSnapshot).filter(
-                PendingAcceptanceSnapshot.snapshot_date == latest_date_query,
-                PendingAcceptanceSnapshot.collection_owner == current_username
-            )
-            return {
-                'collection_owners': [current_username] if current_username else [],
-                'make_owners': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.make_owner).distinct().order_by(PendingAcceptanceSnapshot.make_owner).all() if r[0]],
-                'suppliers': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.supplier).distinct().order_by(PendingAcceptanceSnapshot.supplier).all() if r[0]],
-                'collections': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.collection).distinct().order_by(PendingAcceptanceSnapshot.collection).all() if r[0]],
-            }
-
-        filter_options = fetch_filter_options()
-
-        cached_data = redis_client.get(cache_key)
-        if cached_data:
-            data = json.loads(cached_data)
-            pagination = CachedPagination(data['rows'], page, per_page, data['total'])
-            return render_template('pending_acceptance.html', 
-                                 unread_count=unread_count, 
-                                 sync_time=sync_time, 
-                                 rows=data['rows'], 
-                                 pagination=pagination,
-                                 current_username=current_username,
-                                 filter_options=filter_options)
-
-        query = get_base_query()
-        # Enforce collection_owner = current_username
-        query = query.filter(PendingAcceptanceSnapshot.collection_owner == current_username)
+        # Enforce collection_owner = session username, case-insensitive and trimmed
+        current_username = session.get('username', '').strip()
+        if current_username:
+            u = current_username.lower()
+            query = query.filter(func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u)
+        else:
+            # If no username in session, show nothing (or handle as needed)
+            query = query.filter(False)
         
         query = apply_filters(query, search, latest_date_query, 
                             collection_owner=f_collection_owner, make_owner=f_make_owner,
@@ -227,9 +201,8 @@ def get_pending_acceptance_partial():
                                      make_owner=f_make_owner, supplier=f_supplier, 
                                      collection=f_collection, page=page, per_page=per_page)
         
-        current_user_id = get_jwt_identity()
-        user = User.query.filter_by(user_id=current_user_id).first()
-        current_username = user.username if user else ''
+        # Enforce collection_owner = session username, case-insensitive and trimmed
+        current_username = session.get('username', '').strip()
         
         cached_data = redis_client.get(cache_key)
         if cached_data:
@@ -242,7 +215,11 @@ def get_pending_acceptance_partial():
 
         query = get_base_query()
         # Enforce collection_owner = current_username
-        query = query.filter(PendingAcceptanceSnapshot.collection_owner == current_username)
+        if current_username:
+            u = current_username.lower()
+            query = query.filter(func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u)
+        else:
+            query = query.filter(False)
         
         query = apply_filters(query, search, latest_date_query,
                             collection_owner=f_collection_owner, make_owner=f_make_owner,
