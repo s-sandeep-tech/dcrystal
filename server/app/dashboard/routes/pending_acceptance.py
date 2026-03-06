@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.dashboard import dashboard_bp
 from app.models.snapshots import PendingAcceptanceSnapshot, PendingAcceptanceFeedback
@@ -121,18 +121,53 @@ def pending_acceptance():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
         
+        current_username = session.get('username', '').strip()
+        
+        # 1. Update cache key to be user-specific
         cache_key = generate_cache_key('pending_acc_main', latest_date_query, 
+                                     username=current_username,
                                      search=search, collection_owner=f_collection_owner,
                                      make_owner=f_make_owner, supplier=f_supplier, 
                                      collection=f_collection, page=page, per_page=per_page)
         
-        # Enforce collection_owner = session username, case-insensitive and trimmed
-        current_username = session.get('username', '').strip()
+        # 2. Helper to fetch filter lists (restricted to this user)
+        def fetch_filter_options():
+            if not current_username:
+                return {'collection_owners': [], 'make_owners': [], 'suppliers': [], 'collections': []}
+            
+            u = current_username.lower()
+            base_q = db.session.query(PendingAcceptanceSnapshot).filter(
+                PendingAcceptanceSnapshot.snapshot_date == latest_date_query,
+                func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u
+            )
+            return {
+                'collection_owners': [current_username],
+                'make_owners': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.make_owner).distinct().order_by(PendingAcceptanceSnapshot.make_owner).all() if r[0]],
+                'suppliers': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.supplier).distinct().order_by(PendingAcceptanceSnapshot.supplier).all() if r[0]],
+                'collections': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.collection).distinct().order_by(PendingAcceptanceSnapshot.collection).all() if r[0]],
+            }
+
+        filter_options = fetch_filter_options()
+
+        cached_data = redis_client.get(cache_key)
+        if cached_data:
+            data = json.loads(cached_data)
+            pagination = CachedPagination(data['rows'], page, per_page, data['total'])
+            return render_template('pending_acceptance.html', 
+                                 unread_count=unread_count, 
+                                 sync_time=sync_time, 
+                                 rows=data['rows'], 
+                                 pagination=pagination,
+                                 current_username=current_username,
+                                 filter_options=filter_options)
+
+        query = get_base_query()
+        
+        # 3. Enforce collection_owner = session username, case-insensitive
         if current_username:
             u = current_username.lower()
             query = query.filter(func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u)
         else:
-            # If no username in session, show nothing (or handle as needed)
             query = query.filter(False)
         
         query = apply_filters(query, search, latest_date_query, 
@@ -196,13 +231,15 @@ def get_pending_acceptance_partial():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
         
+        # Enforce collection_owner = session username, case-insensitive and trimmed
+        current_username = session.get('username', '').strip()
+        
+        # 1. Update cache key to be user-specific
         cache_key = generate_cache_key('pending_acc_partial', latest_date_query, 
+                                     username=current_username,
                                      search=search, collection_owner=f_collection_owner,
                                      make_owner=f_make_owner, supplier=f_supplier, 
                                      collection=f_collection, page=page, per_page=per_page)
-        
-        # Enforce collection_owner = session username, case-insensitive and trimmed
-        current_username = session.get('username', '').strip()
         
         cached_data = redis_client.get(cache_key)
         if cached_data:
