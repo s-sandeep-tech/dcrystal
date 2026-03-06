@@ -120,28 +120,33 @@ def pending_acceptance():
         
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
-        
+        # 1. Role-based bypass logic
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_manager_2 = 'MANAGER_2' in roles
+        is_admin = session.get('is_admin', False)
         current_username = session.get('username', '').strip()
         
-        # 1. Update cache key to be user-specific
+        # Determine if we should apply the "own data only" restriction
+        restrict_to_user = not is_admin and not is_manager_2 and current_username
+        
+        # 2. Update cache key to be user/role specific
         cache_key = generate_cache_key('pending_acc_main', latest_date_query, 
-                                     username=current_username,
+                                     username=current_username if restrict_to_user else 'admin',
                                      search=search, collection_owner=f_collection_owner,
                                      make_owner=f_make_owner, supplier=f_supplier, 
                                      collection=f_collection, page=page, per_page=per_page)
         
-        # 2. Helper to fetch filter lists (restricted to this user)
+        # 3. Helper to fetch filter lists
         def fetch_filter_options():
-            if not current_username:
-                return {'collection_owners': [], 'make_owners': [], 'suppliers': [], 'collections': []}
-            
-            u = current_username.lower()
             base_q = db.session.query(PendingAcceptanceSnapshot).filter(
-                PendingAcceptanceSnapshot.snapshot_date == latest_date_query,
-                func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u
+                PendingAcceptanceSnapshot.snapshot_date == latest_date_query
             )
+            if restrict_to_user:
+                u = current_username.lower()
+                base_q = base_q.filter(func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u)
+
             return {
-                'collection_owners': [current_username],
+                'collection_owners': [current_username] if restrict_to_user else [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.collection_owner).distinct().order_by(PendingAcceptanceSnapshot.collection_owner).all() if r[0]],
                 'make_owners': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.make_owner).distinct().order_by(PendingAcceptanceSnapshot.make_owner).all() if r[0]],
                 'suppliers': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.supplier).distinct().order_by(PendingAcceptanceSnapshot.supplier).all() if r[0]],
                 'collections': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.collection).distinct().order_by(PendingAcceptanceSnapshot.collection).all() if r[0]],
@@ -163,11 +168,12 @@ def pending_acceptance():
 
         query = get_base_query()
         
-        # 3. Enforce collection_owner = session username, case-insensitive
-        if current_username:
+        # 4. Enforce user restrictions if not admin/manager
+        if restrict_to_user:
             u = current_username.lower()
             query = query.filter(func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u)
-        else:
+        elif not is_admin and not is_manager_2 and not current_username:
+            # Fallback for unexpected session state
             query = query.filter(False)
         
         query = apply_filters(query, search, latest_date_query, 
@@ -231,12 +237,17 @@ def get_pending_acceptance_partial():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
         
-        # Enforce collection_owner = session username, case-insensitive and trimmed
+        # 1. Role-based bypass logic
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_manager_2 = 'MANAGER_2' in roles
+        is_admin = session.get('is_admin', False)
         current_username = session.get('username', '').strip()
         
-        # 1. Update cache key to be user-specific
+        restrict_to_user = not is_admin and not is_manager_2 and current_username
+        
+        # 2. Update cache key to be user/role specific
         cache_key = generate_cache_key('pending_acc_partial', latest_date_query, 
-                                     username=current_username,
+                                     username=current_username if restrict_to_user else 'admin',
                                      search=search, collection_owner=f_collection_owner,
                                      make_owner=f_make_owner, supplier=f_supplier, 
                                      collection=f_collection, page=page, per_page=per_page)
@@ -251,11 +262,11 @@ def get_pending_acceptance_partial():
                              current_username=current_username)
 
         query = get_base_query()
-        # Enforce collection_owner = current_username
-        if current_username:
+        # 3. Enforce user restrictions if not admin/manager
+        if restrict_to_user:
             u = current_username.lower()
             query = query.filter(func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u)
-        else:
+        elif not is_admin and not is_manager_2 and not current_username:
             query = query.filter(False)
         
         query = apply_filters(query, search, latest_date_query,
