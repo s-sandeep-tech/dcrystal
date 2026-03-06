@@ -101,10 +101,8 @@
 
     <!-- Table Container -->
     <div id="table-area" class="flex-1 overflow-auto relative">
-        <div id="view-order-delay"
-            class="dashboard-view w-full h-full flex flex-col items-center justify-center text-gray-400 min-h-[400px]">
-            <div class="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p class="text-[10px] font-medium uppercase tracking-widest">Loading order delay data...</p>
+        <div id="view-order-delay" class="dashboard-view">
+            {% include 'partials/_view_order_delay_tracking.html' %}
         </div>
     </div>
 

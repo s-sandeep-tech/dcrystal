@@ -23,14 +23,6 @@ async function loadViewData() {
     const activeView = document.getElementById('view-order-delay');
     if (!activeView) return;
 
-    // Show loading state
-    activeView.innerHTML = `
-        <div class="w-full h-full flex flex-col items-center justify-center text-gray-400 min-h-[400px]">
-            <div class="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p class="text-[10px] font-medium uppercase tracking-widest">Loading order delay data...</p>
-        </div>
-    `;
-
     const urlParams = new URLSearchParams(window.location.search);
     const searchParams = urlParams.toString();
 
