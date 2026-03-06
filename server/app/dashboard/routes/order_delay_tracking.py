@@ -382,6 +382,18 @@ def get_order_delay_tracking_details():
             func.sum(OrderDelayTrackingSnapshot.delay_more_than_10_days).label('delay_more_than_10_days')
         ]
         
+        if level == 'collection':
+            agg_cols.append(
+                func.json_agg(
+                    func.json_build_object(
+                        'order_number', OrderDelayTrackingSnapshot.po_number,
+                        'order_date', OrderDelayTrackingSnapshot.po_date,
+                        'production_date', OrderDelayTrackingSnapshot.hm_out_date,
+                        'delivery_date', OrderDelayTrackingSnapshot.delivery_target_date
+                    )
+                ).label('orders')
+            )
+        
         query = db.session.query(*(group_cols + agg_cols))
         for f in base_filters:
             query = query.filter(f)
@@ -403,6 +415,16 @@ def get_order_delay_tracking_details():
             elif level == 'collection':
                 row['party'] = request.args.get('modal_grandparent_value')
                 row['make'] = parent_value
+                # If aggregation orders exist, load them safely and unique them
+                orders_list = getattr(r, 'orders', []) or []
+                unique_orders = []
+                seen_po = set()
+                for o in orders_list:
+                    if o.get('order_number') and o['order_number'] not in seen_po:
+                        seen_po.add(o['order_number'])
+                        unique_orders.append(o)
+                # Parse to simpler date format strings if full ISO string is there
+                row['orders'] = unique_orders
             processed_details.append(row)
             
         return render_template('partials/_view_order_delay_tracking_details.html', 

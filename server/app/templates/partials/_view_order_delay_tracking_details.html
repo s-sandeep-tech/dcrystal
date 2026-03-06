@@ -54,6 +54,45 @@
                             class="text-[11px] {{ 'font-bold' if item.level == 'party' else ('font-semibold' if item.level == 'make' else 'font-medium') }} text-gray-700 dark:text-gray-300">
                             {{ item.display_value or 'Unknown' }}
                         </span>
+
+                        {% if item.level == 'collection' and item.orders %}
+                        <div class="relative group/info ml-1 flex items-center">
+                            <span
+                                class="material-symbols-outlined text-[14px] text-gray-400 cursor-help hover:text-primary transition-colors">info</span>
+
+                            <div
+                                class="absolute left-full top-1/2 -translate-y-1/2 ml-2 hidden group-hover/info:block z-[99] min-w-[340px] pointer-events-none">
+                                <div
+                                    class="bg-gray-800 dark:bg-gray-900 border border-gray-700 shadow-xl shadow-black/20 rounded-lg p-2.5 text-white">
+                                    <table class="w-full text-left text-[10px]">
+                                        <thead>
+                                            <tr class="text-gray-400 border-b border-gray-700/80">
+                                                <th class="pb-1.5 pr-2 font-medium">Order No.</th>
+                                                <th class="pb-1.5 px-2 font-medium">Order Date</th>
+                                                <th class="pb-1.5 px-2 font-medium">Prod. Date</th>
+                                                <th class="pb-1.5 pl-2 font-medium">Delivery Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-700/50">
+                                            {% for order in item.orders %}
+                                            <tr class="hover:bg-gray-700/30">
+                                                <td class="py-1.5 pr-2 max-w-[80px] truncate text-blue-300 font-medium"
+                                                    title="{{ order.order_number }}">{{ order.order_number or '-' }}
+                                                </td>
+                                                <td class="py-1.5 px-2 whitespace-nowrap">{{ order.order_date or '-' }}
+                                                </td>
+                                                <td class="py-1.5 px-2 whitespace-nowrap">{{ order.production_date or
+                                                    '-' }}</td>
+                                                <td class="py-1.5 pl-2 whitespace-nowrap">{{ order.delivery_date or '-'
+                                                    }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </td>
                 <td class="px-3 py-2 text-[11px] font-bold text-center text-amber-600">
