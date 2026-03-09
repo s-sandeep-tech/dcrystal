@@ -170,7 +170,7 @@ def get_recent_logs():
         "ip": log.ip_address,
         "status": log.status,
         "reason": log.failure_reason,
-        "timestamp": log.timestamp.isoformat() if log.timestamp else None
+        "timestamp": log.timestamp.isoformat() + 'Z' if log.timestamp else None
     } for log in logs])
 
 from sqlalchemy import or_
@@ -208,7 +208,7 @@ def get_login_logs():
             "ip": log.ip_address,
             "status": log.status,
             "reason": log.failure_reason,
-            "timestamp": log.timestamp.isoformat() if log.timestamp else None
+            "timestamp": log.timestamp.isoformat() + 'Z' if log.timestamp else None
         } for log, username in pagination.items],
         "total": pagination.total,
         "pages": pagination.pages,
