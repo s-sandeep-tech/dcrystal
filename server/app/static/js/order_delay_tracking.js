@@ -26,6 +26,14 @@ async function loadViewData() {
     const urlParams = new URLSearchParams(window.location.search);
     const searchParams = urlParams.toString();
 
+    // Show loading spinner while fetching
+    activeView.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-32 text-gray-400">
+            <div class="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p class="text-[10px] font-medium uppercase tracking-widest italic animate-pulse">Loading report data...</p>
+        </div>
+    `;
+
     try {
         const response = await fetch(`/partial/orderdelaytracking?${searchParams}`, {
             headers: {
