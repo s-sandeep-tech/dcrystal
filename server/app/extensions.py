@@ -30,5 +30,5 @@ migrate = Migrate()
 limiter = Limiter(
     key_func=get_remote_address,
     storage_uri=f"redis://{REDIS_HOST}:{REDIS_PORT}",
-    default_limits=["200 per day", "50 per hour"]
+    default_limits=[]
 )
