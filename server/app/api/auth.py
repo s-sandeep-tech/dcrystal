@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, session
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from app.models import User, UserPasswordHistory
+from app.models import User, UserPasswordHistory, LoginAttemptLog
 from app.extensions import db, limiter
 from datetime import timedelta
 from app.services.auth_service import auth_service
@@ -157,12 +157,60 @@ def get_auth_status(user_id):
 @auth_bp.route('/debug/recent-logs', methods=['GET'])
 @jwt_required()
 def get_recent_logs():
-    # Check if requester is admin
+    """Debug endpoint to see recent login attempts (Admin only)"""
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if not user or not user.is_admin:
+        return jsonify({"msg": "Admin privilege required"}), 403
+    
+    logs = LoginAttemptLog.query.order_by(LoginAttemptLog.timestamp.desc()).limit(50).all()
+    return jsonify([{
+        "id": log.id,
+        "username": log.username_submitted,
+        "ip": log.ip_address,
+        "status": log.status,
+        "reason": log.failure_reason,
+        "timestamp": log.timestamp.isoformat() if log.timestamp else None
+    } for log in logs])
+
+from sqlalchemy import or_
+
+@auth_bp.route('/login-logs', methods=['GET'])
+@jwt_required()
+def get_login_logs():
+    """Get paginated login logs (Admin only)"""
     admin_id = get_jwt_identity()
     admin = User.query.get(admin_id)
     if not admin or not admin.is_admin:
         return jsonify({"msg": "Admin access required"}), 403
-
-    limit = request.args.get('limit', 50, type=int)
-    logs = LoginAttemptLog.query.order_by(LoginAttemptLog.timestamp.desc()).limit(limit).all()
-    return jsonify([log.to_dict() for log in logs]), 200
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    
+    # Robust join to find the user name even if log mapping is inconsistent
+    query = db.session.query(LoginAttemptLog, User.username).outerjoin(
+        User, or_(
+            LoginAttemptLog.user_id == User.user_id,
+            LoginAttemptLog.username_submitted == User.user_id,
+            LoginAttemptLog.username_submitted == User.username
+        )
+    )
+    
+    pagination = query.order_by(LoginAttemptLog.timestamp.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    return jsonify({
+        "logs": [{
+            "id": log.id,
+            "user_code": log.user_id if log.user_id else log.username_submitted,
+            "user_name": username if username else "-",
+            "ip": log.ip_address,
+            "status": log.status,
+            "reason": log.failure_reason,
+            "timestamp": log.timestamp.isoformat() if log.timestamp else None
+        } for log, username in pagination.items],
+        "total": pagination.total,
+        "pages": pagination.pages,
+        "current_page": pagination.page
+    }), 200

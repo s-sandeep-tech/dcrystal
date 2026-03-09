@@ -40,7 +40,7 @@ class AuthService:
         user.last_login_at = datetime.utcnow()
         user.last_login_ip = ip
         db.session.commit()
-        self.log_attempt(user.username, user_id=user.user_id, status='success')
+        self.log_attempt(user.user_id, user_id=user.user_id, status='success')
 
     def is_locked_out(self, user):
         if user and user.lockout_until:

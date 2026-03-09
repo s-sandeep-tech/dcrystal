@@ -1047,6 +1047,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'general': { nav: document.getElementById('nav-general'), pane: null },
         'notifications': { nav: document.getElementById('nav-notifications'), pane: null },
         'sessions': { nav: document.getElementById('nav-sessions'), pane: document.getElementById('tab-sessions') },
+        'login-logs': { nav: document.getElementById('nav-login-logs'), pane: document.getElementById('tab-login-logs') },
         'roles': { nav: document.getElementById('nav-roles'), pane: document.getElementById('tab-roles') },
         'menus': { nav: document.getElementById('nav-menus'), pane: document.getElementById('tab-menus') },
         'mappings': { nav: document.getElementById('nav-mappings'), pane: document.getElementById('tab-mappings') },
@@ -1077,6 +1078,9 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (tabId) {
             case 'sessions':
                 fetchActiveUsers();
+                break;
+            case 'login-logs':
+                fetchLoginLogs(1);
                 break;
             case 'roles':
                 fetchRoles();
@@ -1421,4 +1425,102 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         switchTab('status');
     }
+    // === LOGIN LOGS LOGIC ===
+    let loginLogsCurrentPage = 1;
+
+    async function fetchLoginLogs(page = 1) {
+        const tbody = document.getElementById('login-logs-tbody');
+        if (!tbody) return;
+
+        try {
+            const res = await fetch(`/api/auth/login-logs?page=${page}&per_page=10`, {
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                renderLoginLogsTable(data.logs);
+                renderLoginLogsPagination(data);
+                loginLogsCurrentPage = data.current_page;
+            } else {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">Error loading logs (${res.status})</td></tr>`;
+            }
+        } catch (e) {
+            console.error('fetchLoginLogs error:', e);
+            tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">Network error loading logs</td></tr>`;
+        }
+    }
+
+    function renderLoginLogsTable(logs) {
+        const tbody = document.getElementById('login-logs-tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">No login logs found.</td></tr>';
+            return;
+        }
+
+        logs.forEach(log => {
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors border-b border-gray-100 dark:border-gray-800";
+
+            const statusClass = log.status === 'success'
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+
+            const localTime = log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A';
+
+            tr.innerHTML = `
+                <td class="px-4 py-3 text-gray-500 font-mono">${localTime}</td>
+                <td class="px-4 py-3 font-mono text-primary font-bold">${log.user_code || '---'}</td>
+                <td class="px-4 py-3 font-bold text-gray-900 dark:text-white">${log.user_name}</td>
+                <td class="px-4 py-3 font-mono">${log.ip}</td>
+                <td class="px-4 py-3">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider ${statusClass} border border-transparent">
+                        ${log.status}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-gray-400">${log.reason || '-'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderLoginLogsPagination(data) {
+        const info = document.getElementById('login-logs-pagination-info');
+        if (info) {
+            const start = data.total > 0 ? (data.current_page - 1) * 10 + 1 : 0;
+            const end = Math.min(data.current_page * 10, data.total);
+            info.innerText = `Showing ${start}-${end} of ${data.total}`;
+        }
+
+        const buttons = document.getElementById('login-logs-pagination-buttons');
+        if (!buttons) return;
+        buttons.innerHTML = '';
+
+        // Prev
+        const prev = document.createElement('button');
+        prev.className = `p-1.5 rounded border transition-all ${data.current_page > 1 ? 'border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800' : 'opacity-30 cursor-not-allowed border-gray-100 dark:border-gray-800'}`;
+        prev.innerHTML = '<span class="material-symbols-outlined text-sm block">chevron_left</span>';
+        if (data.current_page > 1) prev.onclick = () => fetchLoginLogs(data.current_page - 1);
+        buttons.appendChild(prev);
+
+        // Next
+        const next = document.createElement('button');
+        next.className = `p-1.5 rounded border transition-all ${data.current_page < data.pages ? 'border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800' : 'opacity-30 cursor-not-allowed border-gray-100 dark:border-gray-800'}`;
+        next.innerHTML = '<span class="material-symbols-outlined text-sm block">chevron_right</span>';
+        if (data.current_page < data.pages) next.onclick = () => fetchLoginLogs(data.current_page + 1);
+        buttons.appendChild(next);
+    }
+
+    const refreshLoginLogsBtn = document.getElementById('refresh-login-logs-btn');
+    if (refreshLoginLogsBtn) {
+        refreshLoginLogsBtn.onclick = () => fetchLoginLogs(loginLogsCurrentPage);
+    }
+
+    // Initial fetch if we are on login-logs tab
+    if (activeTab === 'login-logs') {
+        fetchLoginLogs(1);
+    }
 });
+

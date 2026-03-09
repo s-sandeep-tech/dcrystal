@@ -20,6 +20,7 @@ from .rbac import Role, Permission, Menu, RoleMenu, RolePermission, UserRole, Au
 
 __all__ = [
     'User',
+    'LoginAttemptLog',
     'Order',
     'DashboardStats',
     'Notification',
