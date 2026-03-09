@@ -4,6 +4,7 @@ from app.models import User, UserPasswordHistory, LoginAttemptLog
 from app.extensions import db, limiter
 from datetime import timedelta
 from app.services.auth_service import auth_service
+from app.utils.decorators import require_role
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -156,13 +157,9 @@ def get_auth_status(user_id):
 
 @auth_bp.route('/debug/recent-logs', methods=['GET'])
 @jwt_required()
+@require_role('ADMIN')
 def get_recent_logs():
     """Debug endpoint to see recent login attempts (Admin only)"""
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
-    if not user or not user.is_admin:
-        return jsonify({"msg": "Admin privilege required"}), 403
-    
     logs = LoginAttemptLog.query.order_by(LoginAttemptLog.timestamp.desc()).limit(50).all()
     return jsonify([{
         "id": log.id,
@@ -177,12 +174,9 @@ from sqlalchemy import or_
 
 @auth_bp.route('/login-logs', methods=['GET'])
 @jwt_required()
+@require_role('ADMIN')
 def get_login_logs():
     """Get paginated login logs (Admin only)"""
-    admin_id = get_jwt_identity()
-    admin = User.query.get(admin_id)
-    if not admin or not admin.is_admin:
-        return jsonify({"msg": "Admin access required"}), 403
     
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)

@@ -38,7 +38,7 @@
                             <span class="material-symbols-outlined text-sm">notifications</span>
                             Notifications
                         </a>
-                        {% if session.get('is_admin') %}
+                        {% if session.get('is_admin') or 'ADMIN' in session.get('roles', []) %}
                         <a href="#" id="nav-sessions"
                             class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
                             <span class="material-symbols-outlined text-sm">hub</span>
@@ -332,7 +332,7 @@
                     </div>
                 </div> <!-- End Tab Pane Status -->
 
-                {% if session.get('is_admin') %}
+                {% if session.get('is_admin') or 'ADMIN' in session.get('roles', []) %}
                 <!-- Tab Pane: Active Sessions (WebSocket) -->
                 <div id="tab-sessions" class="tab-pane hidden space-y-6">
                     <div
