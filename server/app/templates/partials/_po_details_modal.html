@@ -15,7 +15,7 @@
                 <td class="text-left px-4 py-1.5 font-medium text-gray-800 dark:text-gray-200">{{ row.po_number }}</td>
                 <td class="text-left py-1.5 text-gray-600 dark:text-gray-400">{{ row.po_date }}</td>
                 <td class="text-right px-4 py-1.5 text-blue-600">{{ "%.3f"|format(row.total_weight) }}</td>
-                <td class="text-right py-1.5 text-indigo-600 px-4">{{ "%.3f"|format(row.order_piece) }}</td>
+                <td class="text-right py-1.5 text-indigo-600 px-4">{{ "%.0f"|format(row.order_piece) }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -24,7 +24,7 @@
                 <td colspan="2" class="text-right px-4 py-2 text-[10px] text-gray-500 uppercase tracking-wider">Grand
                     Total:</td>
                 <td class="text-right px-4 py-2 text-blue-600">{{ "%.3f"|format(totals.po_weight) }}</td>
-                <td class="text-right py-2 text-indigo-600 px-4">{{ "%.3f"|format(totals.po_pieces) }}</td>
+                <td class="text-right py-2 text-indigo-600 px-4">{{ "%.0f"|format(totals.po_pieces) }}</td>
             </tr>
         </tfoot>
     </table>
