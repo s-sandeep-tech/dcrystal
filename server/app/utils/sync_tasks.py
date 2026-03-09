@@ -930,10 +930,28 @@ def sync_pending_acceptance_data_task():
         
         emit_sync_update('processing', 'Fetching data from Azure...', 20, 'pending_acceptance')
         query = """
-        SELECT collection_owner, make_owner, supplier, collection, order_wt, accepted_wt, pending_to_accepted_wt, order_type, order_request_type, order_date
-        FROM ext_view.vw_ownership_wise_order_summary_with_order_type
-        WHERE pending_to_accepted_wt > 0
-        ORDER BY accepted_wt DESC, pending_to_accepted_wt DESC
+        SELECT 
+            a.collection_owner,
+            a.make_owner,
+            po.supplier,
+            a.collection,
+            po.po_number,
+            po.po_date,
+            po.total_weight,
+            po.total_quantity AS order_piece,
+            a.order_wt,
+            a.accepted_wt,
+            a.pending_to_accepted_wt,
+            a.order_type,
+            a.order_request_type,
+            a.order_date
+        FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number a
+        LEFT JOIN ext_view.vw_purchase_order po
+            ON po.po_number = a.po_number
+        WHERE a.pending_to_accepted_wt > 0
+        ORDER BY 
+            a.accepted_wt DESC,
+            a.pending_to_accepted_wt DESC;
         """
         
         start_time = time.time()
@@ -955,6 +973,10 @@ def sync_pending_acceptance_data_task():
                 make_owner=row.get('make_owner'),
                 supplier=row.get('supplier'),
                 collection=row.get('collection'),
+                po_number=row.get('po_number'),
+                po_date=row.get('po_date'),
+                total_weight=row.get('total_weight'),
+                order_piece=row.get('order_piece'),
                 order_wt=row.get('order_wt'),
                 accepted_wt=row.get('accepted_wt'),
                 pending_to_accepted_wt=row.get('pending_to_accepted_wt'),

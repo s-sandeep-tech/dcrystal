@@ -480,6 +480,10 @@ class PendingAcceptanceSnapshot(db.Model):
     make_owner = db.Column(db.Text)
     supplier = db.Column(db.Text)
     collection = db.Column(db.Text)
+    po_number = db.Column(db.Text)
+    po_date = db.Column(db.Date)
+    total_weight = db.Column(db.Numeric(18, 3))
+    order_piece = db.Column(db.Numeric(18, 3))
     order_wt = db.Column(db.Numeric(18, 3))
     accepted_wt = db.Column(db.Numeric(18, 3))
     pending_to_accepted_wt = db.Column(db.Numeric(18, 3))
@@ -496,6 +500,10 @@ class PendingAcceptanceSnapshot(db.Model):
             'make_owner': self.make_owner,
             'supplier': self.supplier,
             'collection': self.collection,
+            'po_number': self.po_number,
+            'po_date': self.po_date.isoformat() if self.po_date else '',
+            'total_weight': float(self.total_weight or 0),
+            'order_piece': float(self.order_piece or 0),
             'order_wt': float(self.order_wt or 0),
             'accepted_wt': float(self.accepted_wt or 0),
             'pending_to_accepted_wt': float(self.pending_to_accepted_wt or 0),

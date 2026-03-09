@@ -89,26 +89,41 @@ def apply_filters(query, search, latest_date_query, collection_owner=None, make_
     if order_request_type:
         query = query.filter(PendingAcceptanceSnapshot.order_request_type == order_request_type)
         
-    if feedback_status:
-        has_feedback = db.session.query(PendingAcceptanceFeedback.id).filter(
-            func.coalesce(PendingAcceptanceFeedback.collection_owner, '') == func.coalesce(PendingAcceptanceSnapshot.collection_owner, ''),
-            func.coalesce(PendingAcceptanceFeedback.make_owner, '') == func.coalesce(PendingAcceptanceSnapshot.make_owner, ''),
-            func.coalesce(PendingAcceptanceFeedback.supplier, '') == func.coalesce(PendingAcceptanceSnapshot.supplier, ''),
-            func.coalesce(PendingAcceptanceFeedback.collection, '') == func.coalesce(PendingAcceptanceSnapshot.collection, '')
-        ).exists()
-        
-        if feedback_status == 'with':
-            query = query.filter(has_feedback)
-        elif feedback_status == 'without':
-            query = query.filter(~has_feedback)
-            
     return query
 
-def get_base_query():
+def get_base_query(query_filter_func=None, feedback_status=None):
     latest_feedback = get_latest_feedback_subquery()
     
+    # Base query for aggregation
+    q = db.session.query(
+        PendingAcceptanceSnapshot.collection_owner,
+        PendingAcceptanceSnapshot.make_owner,
+        PendingAcceptanceSnapshot.supplier,
+        PendingAcceptanceSnapshot.collection,
+        func.sum(PendingAcceptanceSnapshot.order_wt).label('sum_order_wt'),
+        func.sum(PendingAcceptanceSnapshot.accepted_wt).label('sum_accepted_wt'),
+        func.sum(PendingAcceptanceSnapshot.pending_to_accepted_wt).label('sum_pending_to_accepted_wt')
+    )
+    
+    if query_filter_func:
+        q = query_filter_func(q)
+        
+    q = q.group_by(
+        PendingAcceptanceSnapshot.collection_owner,
+        PendingAcceptanceSnapshot.make_owner,
+        PendingAcceptanceSnapshot.supplier,
+        PendingAcceptanceSnapshot.collection
+    ).subquery('agg_snapshot')
+
+    # Join with feedback
     query = db.session.query(
-        PendingAcceptanceSnapshot,
+        q.c.collection_owner,
+        q.c.make_owner,
+        q.c.supplier,
+        q.c.collection,
+        q.c.sum_order_wt,
+        q.c.sum_accepted_wt,
+        q.c.sum_pending_to_accepted_wt,
         latest_feedback.c.feedback_text,
         latest_feedback.c.feedback_category,
         latest_feedback.c.username,
@@ -116,21 +131,29 @@ def get_base_query():
     ).outerjoin(
         latest_feedback,
         db.and_(
-            func.coalesce(PendingAcceptanceSnapshot.collection_owner, '') == func.coalesce(latest_feedback.c.collection_owner, ''),
-            func.coalesce(PendingAcceptanceSnapshot.make_owner, '') == func.coalesce(latest_feedback.c.make_owner, ''),
-            func.coalesce(PendingAcceptanceSnapshot.supplier, '') == func.coalesce(latest_feedback.c.supplier, ''),
-            func.coalesce(PendingAcceptanceSnapshot.collection, '') == func.coalesce(latest_feedback.c.collection, '')
+            func.coalesce(q.c.collection_owner, '') == func.coalesce(latest_feedback.c.collection_owner, ''),
+            func.coalesce(q.c.make_owner, '') == func.coalesce(latest_feedback.c.make_owner, ''),
+            func.coalesce(q.c.supplier, '') == func.coalesce(latest_feedback.c.supplier, ''),
+            func.coalesce(q.c.collection, '') == func.coalesce(latest_feedback.c.collection, '')
         )
     )
+
+    if feedback_status:
+        if feedback_status == 'with':
+            query = query.filter(latest_feedback.c.feedback_text != None)
+        elif feedback_status == 'without':
+            query = query.filter(latest_feedback.c.feedback_text == None)
+            
+    query = query.order_by(q.c.sum_accepted_wt.desc(), q.c.sum_pending_to_accepted_wt.desc())
     return query
 
 def calculate_stats(query):
     try:
-        s = query.subquery()
+        s = query.order_by(None).subquery()
         res = db.session.query(
-            func.sum(s.c.order_wt),
-            func.sum(s.c.accepted_wt),
-            func.sum(s.c.pending_to_accepted_wt),
+            func.sum(s.c.sum_order_wt),
+            func.sum(s.c.sum_accepted_wt),
+            func.sum(s.c.sum_pending_to_accepted_wt),
             func.count(case((s.c.feedback_text != None, 1))),
             func.count(case((s.c.feedback_text == None, 1)))
         ).first()
@@ -143,6 +166,7 @@ def calculate_stats(query):
             'without_feedback': int(res[4] or 0)
         }
     except Exception as e:
+        db.session.rollback()
         logger.error(f"Error calculating stats: {str(e)}")
         return {
             'total_order_wt': 0,
@@ -237,58 +261,52 @@ def pending_acceptance():
                                  current_username=current_username,
                                  filter_options=filter_options)
 
-        query = get_base_query()
+        # 4. Filter function to apply to base snapshot query before aggregation
+        def filter_func(q):
+            if restrict_to_user:
+                u = current_username.lower()
+                q = q.filter((func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u) | 
+                             (func.lower(func.trim(PendingAcceptanceSnapshot.make_owner)) == u))
+            elif not is_admin and not is_manager_2 and not current_username:
+                q = q.filter(False)
+            
+            return apply_filters(
+                q, search, latest_date_query, 
+                collection_owner=f_collection_owner, 
+                make_owner=f_make_owner,
+                supplier=f_supplier, 
+                collection=f_collection,
+                order_type=f_order_type, 
+                order_request_type=f_order_request_type,
+                delay=f_delay
+            )
+
+        query = get_base_query(query_filter_func=filter_func, feedback_status=f_feedback_status)
         
-        # 4. Enforce user restrictions if not admin/manager
-        if restrict_to_user:
-            u = current_username.lower()
-            query = query.filter(func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u)
-        elif not is_admin and not is_manager_2 and not current_username:
-            # Fallback for unexpected session state
-            query = query.filter(False)
-        
-        query = apply_filters(
-            query, search, latest_date_query, 
-            collection_owner=f_collection_owner, 
-            make_owner=f_make_owner,
-            supplier=f_supplier, 
-            collection=f_collection,
-            feedback_status=f_feedback_status,
-            order_type=f_order_type, 
-            order_request_type=f_order_request_type,
-            delay=f_delay
-        )
-        
-        # Calculate Stats
+        # Calculate Stats (now passing the formulated query)
         stats = calculate_stats(query)
         
-        query = query.order_by(PendingAcceptanceSnapshot.accepted_wt.desc(), PendingAcceptanceSnapshot.pending_to_accepted_wt.desc())
         
+
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         
         processed_rows = []
         for r in pagination.items:
-            snap = r[0]
-            fb_text = r[1]
-            fb_category = r[2]
-            fb_user = r[3]
-            fb_date = r[4]
-            
             row_dict = {
-                'id': snap.id,
-                'collection_owner': snap.collection_owner or '',
-                'make_owner': snap.make_owner or '',
-                'supplier': snap.supplier or '',
-                'collection': snap.collection or '',
-                'order_type': snap.order_type or '',
-                'order_request_type': snap.order_request_type or '',
-                'order_wt': float(snap.order_wt or 0),
-                'accepted_wt': float(snap.accepted_wt or 0),
-                'pending_to_accepted_wt': float(snap.pending_to_accepted_wt or 0),
-                'feedback_text': fb_text or '',
-                'feedback_category': fb_category or '',
-                'feedback_username': fb_user or '',
-                'feedback_date': fb_date.strftime('%Y-%m-%d %H:%M') if fb_date else ''
+                'id': f"{r.collection_owner}_{r.make_owner}_{r.supplier}_{r.collection}",
+                'collection_owner': r.collection_owner or '',
+                'make_owner': r.make_owner or '',
+                'supplier': r.supplier or '',
+                'collection': r.collection or '',
+                'order_type': '', # Hide individual strings since it's grouped
+                'order_request_type': '',
+                'order_wt': float(r.sum_order_wt or 0),
+                'accepted_wt': float(r.sum_accepted_wt or 0),
+                'pending_to_accepted_wt': float(r.sum_pending_to_accepted_wt or 0),
+                'feedback_text': r.feedback_text or '',
+                'feedback_category': r.feedback_category or '',
+                'feedback_username': r.username or '',
+                'feedback_date': r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else ''
             }
             processed_rows.append(row_dict)
             
@@ -362,55 +380,52 @@ def get_pending_acceptance_partial():
                                  stats=data.get('stats', {}),
                                  current_username=current_username)
 
-        query = get_base_query()
-        # 3. Enforce user restrictions if not admin/manager
-        if restrict_to_user:
-            u = current_username.lower()
-            query = query.filter(func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u)
-        elif not is_admin and not is_manager_2 and not current_username:
-            query = query.filter(False)
-        query = apply_filters(
-            query, search, latest_date_query,
-            collection_owner=f_collection_owner, 
-            make_owner=f_make_owner,
-            supplier=f_supplier, 
-            collection=f_collection,
-            feedback_status=f_feedback_status,
-            order_type=f_order_type, 
-            order_request_type=f_order_request_type,
-            delay=f_delay
-        )
+        # 3. Filter function to apply to base snapshot query before aggregation
+        def filter_func(q):
+            if restrict_to_user:
+                u = current_username.lower()
+                q = q.filter((func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u) | 
+                             (func.lower(func.trim(PendingAcceptanceSnapshot.make_owner)) == u))
+            elif not is_admin and not is_manager_2 and not current_username:
+                q = q.filter(False)
+            
+            return apply_filters(
+                q, search, latest_date_query, 
+                collection_owner=f_collection_owner, 
+                make_owner=f_make_owner,
+                supplier=f_supplier, 
+                collection=f_collection,
+                order_type=f_order_type, 
+                order_request_type=f_order_request_type,
+                delay=f_delay
+            )
+
+        query = get_base_query(query_filter_func=filter_func, feedback_status=f_feedback_status)
         
-        # Calculate Stats
+        # Calculate Stats (now passing the formulated query)
         stats = calculate_stats(query)
         
-        query = query.order_by(PendingAcceptanceSnapshot.accepted_wt.desc(), PendingAcceptanceSnapshot.pending_to_accepted_wt.desc())
         
+
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         
         processed_rows = []
         for r in pagination.items:
-            snap = r[0]
-            fb_text = r[1]
-            fb_category = r[2]
-            fb_user = r[3]
-            fb_date = r[4]
-            
             row_dict = {
-                'id': snap.id,
-                'collection_owner': snap.collection_owner or '',
-                'make_owner': snap.make_owner or '',
-                'supplier': snap.supplier or '',
-                'collection': snap.collection or '',
-                'order_type': snap.order_type or '',
-                'order_request_type': snap.order_request_type or '',
-                'order_wt': float(snap.order_wt or 0),
-                'accepted_wt': float(snap.accepted_wt or 0),
-                'pending_to_accepted_wt': float(snap.pending_to_accepted_wt or 0),
-                'feedback_text': fb_text or '',
-                'feedback_category': fb_category or '',
-                'feedback_username': fb_user or '',
-                'feedback_date': fb_date.strftime('%Y-%m-%d %H:%M') if fb_date else ''
+                'id': f"{r.collection_owner}_{r.make_owner}_{r.supplier}_{r.collection}",
+                'collection_owner': r.collection_owner or '',
+                'make_owner': r.make_owner or '',
+                'supplier': r.supplier or '',
+                'collection': r.collection or '',
+                'order_type': '', 
+                'order_request_type': '',
+                'order_wt': float(r.sum_order_wt or 0),
+                'accepted_wt': float(r.sum_accepted_wt or 0),
+                'pending_to_accepted_wt': float(r.sum_pending_to_accepted_wt or 0),
+                'feedback_text': r.feedback_text or '',
+                'feedback_category': r.feedback_category or '',
+                'feedback_username': r.username or '',
+                'feedback_date': r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else ''
             }
             processed_rows.append(row_dict)
             
@@ -430,6 +445,89 @@ def get_pending_acceptance_partial():
     except Exception as e:
         logger.error(f"Error in pending_acceptance_partial: {str(e)}")
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
+
+@dashboard_bp.route('/api/pending-acceptance-feedback/po-details')
+@jwt_required()
+def get_pending_acceptance_po_details():
+    try:
+        latest_date_query = db.session.query(func.max(PendingAcceptanceSnapshot.snapshot_date)).scalar()
+        
+        collection_owner = request.args.get('collection_owner', '')
+        make_owner = request.args.get('make_owner', '')
+        supplier = request.args.get('supplier', '')
+        collection = request.args.get('collection', '')
+        
+        # Apply global filters to match exactly what is in the main row
+        search = request.args.get('search', '').strip()
+        f_order_type = request.args.get('order_type', '')
+        f_order_request_type = request.args.get('order_request_type', '')
+        f_delay = request.args.get('delay')
+        
+        query = db.session.query(
+            PendingAcceptanceSnapshot.po_number,
+            PendingAcceptanceSnapshot.po_date,
+            PendingAcceptanceSnapshot.total_weight,
+            PendingAcceptanceSnapshot.order_piece,
+            func.sum(PendingAcceptanceSnapshot.order_wt).label('sum_order_wt')
+        ).filter(
+            PendingAcceptanceSnapshot.snapshot_date == latest_date_query,
+            func.coalesce(PendingAcceptanceSnapshot.collection_owner, '') == collection_owner,
+            func.coalesce(PendingAcceptanceSnapshot.make_owner, '') == make_owner,
+            func.coalesce(PendingAcceptanceSnapshot.supplier, '') == supplier,
+            func.coalesce(PendingAcceptanceSnapshot.collection, '') == collection
+        )
+        
+        if search:
+            query = query.filter(PendingAcceptanceSnapshot.supplier.ilike(f"%{search}%") | 
+                                 PendingAcceptanceSnapshot.collection_owner.ilike(f"%{search}%") |
+                                 PendingAcceptanceSnapshot.make_owner.ilike(f"%{search}%") |
+                                 PendingAcceptanceSnapshot.collection.ilike(f"%{search}%"))
+        
+        if f_order_type:
+            query = query.filter(PendingAcceptanceSnapshot.order_type == f_order_type)
+        if f_order_request_type:
+            query = query.filter(PendingAcceptanceSnapshot.order_request_type == f_order_request_type)
+            
+        if f_delay is not None:
+            try:
+                delay_val = int(f_delay)
+                query = query.filter(PendingAcceptanceSnapshot.order_date <= func.current_date() - delay_val)
+            except (ValueError, TypeError):
+                pass
+                
+        query = query.group_by(
+            PendingAcceptanceSnapshot.po_number,
+            PendingAcceptanceSnapshot.po_date,
+            PendingAcceptanceSnapshot.total_weight,
+            PendingAcceptanceSnapshot.order_piece
+        )
+        
+        records = query.all()
+        
+        details = []
+        totals = {'po_pieces': 0, 'po_weight': 0, 'order_wt': 0}
+        
+        for r in records:
+            po_w = float(r.total_weight or 0)
+            po_p = float(r.order_piece or 0)
+            o_w = float(r.sum_order_wt or 0)
+            
+            totals['po_pieces'] += po_p
+            totals['po_weight'] += po_w
+            totals['order_wt'] += o_w
+            
+            details.append({
+                'po_number': r.po_number or 'N/A',
+                'po_date': r.po_date.strftime('%Y-%m-%d') if r.po_date else '',
+                'total_weight': po_w,
+                'order_piece': po_p,
+                'order_wt': o_w
+            })
+            
+        return render_template('partials/_po_details_modal.html', details=details, totals=totals)
+    except Exception as e:
+        logger.error(f"Error in PO details load: {str(e)}")
+        return f'<div class="p-8 text-center text-red-500 font-bold">Error loading PO Details: {str(e)}</div>', 200
 
 @dashboard_bp.route('/api/pending-acceptance-feedback/feedback', methods=['POST'])
 @jwt_required()
@@ -451,11 +549,22 @@ def save_pending_acceptance_feedback():
         if not collection_owner or not feedback_text:
             return jsonify({"status": "error", "message": "Missing required fields"}), 400
 
-        # Check: only the collector owner can save feedback
-        if current_username.lower() != collection_owner.lower():
+        # Check: either the collector owner or the make owner can save feedback
+        is_authorized = False
+        allowed_owners = []
+        if collection_owner:
+            allowed_owners.append(collection_owner.strip().lower())
+        if make_owner:
+            allowed_owners.append(make_owner.strip().lower())
+            
+        if current_username.lower() in allowed_owners:
+            is_authorized = True
+
+        if not is_authorized:
+            owners_str = " or ".join(filter(None, [collection_owner, make_owner]))
             return jsonify({
                 "status": "error", 
-                "message": f"Unauthorized. Only {collection_owner} can save feedback for this record."
+                "message": f"Unauthorized. Only {owners_str} can save feedback for this record."
             }), 403
             
         new_feedback = PendingAcceptanceFeedback(

@@ -301,3 +301,57 @@ async function saveFeedback() {
         btnIcon.classList.remove('animate-spin');
     }
 }
+
+// PO Details Modal
+async function showPODetailsModal(collectionOwner, makeOwner, supplier, collection) {
+    console.log('Opening PO Details for:', { collectionOwner, makeOwner, supplier, collection });
+    document.getElementById('poOwnerText').textContent = collectionOwner || 'N/A';
+    document.getElementById('poMakeText').textContent = makeOwner || 'N/A';
+    document.getElementById('poSupplierText').textContent = supplier || 'N/A';
+    document.getElementById('poCollectionText').textContent = collection || 'N/A';
+
+    const contentDiv = document.getElementById('poDetailsContent');
+    contentDiv.innerHTML = `
+        <div class="flex flex-col items-center justify-center p-8 text-gray-400">
+            <span class="material-symbols-outlined text-3xl animate-spin mb-2 text-primary">sync</span>
+            <span class="text-xs font-medium uppercase tracking-widest">Loading Details...</span>
+        </div>
+    `;
+
+    document.getElementById('poDetailsModal').classList.remove('hidden');
+
+    // Pass same filters mapping to main API
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('collection_owner', collectionOwner);
+    urlParams.set('make_owner', makeOwner);
+    urlParams.set('supplier', supplier);
+    urlParams.set('collection', collection);
+
+    try {
+        const response = await fetch(`/api/pending-acceptance-feedback/po-details?${urlParams.toString()}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+        });
+
+        if (!response.ok) throw new Error('Failed to load details');
+
+        const html = await response.text();
+        contentDiv.innerHTML = html;
+
+    } catch (error) {
+        console.error('Error fetching PO Details:', error);
+        contentDiv.innerHTML = `
+            <div class="p-8 text-center text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-900/30">
+                <span class="material-symbols-outlined text-2xl mb-2">error</span>
+                <p class="font-bold">Error loading details</p>
+                <p class="text-xs mt-1 opacity-80">${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+function closePODetailsModal() {
+    document.getElementById('poDetailsModal').classList.add('hidden');
+    document.getElementById('poDetailsContent').innerHTML = '';
+}

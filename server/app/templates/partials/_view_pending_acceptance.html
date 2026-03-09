@@ -19,7 +19,13 @@
             <td class="text-gray-600 dark:text-gray-400">{{ r.make_owner }}</td>
             <td class="text-gray-600 dark:text-gray-400">{{ r.supplier }}</td>
             <td class="text-gray-600 dark:text-gray-400">{{ r.collection }}</td>
-            <td class="text-right font-medium text-gray-700 dark:text-gray-300">{{ "%.3f"|format(r.order_wt) }}</td>
+            <td class="text-right font-medium text-gray-700 dark:text-gray-300">
+                <a href="javascript:void(0)"
+                    onclick="showPODetailsModal('{{ (r.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (r.make_owner or '') | replace('\'', '\\\'') }}', '{{ (r.supplier or '') | replace('\'', '\\\'') }}', '{{ (r.collection or '') | replace('\'', '\\\'') }}')"
+                    class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 decoration-blue-200 dark:decoration-blue-800 hover:decoration-blue-600 dark:hover:decoration-blue-400 transition-all font-bold group-hover:scale-105 inline-block">
+                    {{ "%.3f"|format(r.order_wt) }}
+                </a>
+            </td>
             <td class="text-right font-bold text-emerald-600">{{ "%.3f"|format(r.accepted_wt) }}</td>
             <td class="text-right font-bold text-red-600">{{ "%.3f"|format(r.pending_to_accepted_wt) }}</td>
             <td class="text-left pl-4 max-w-xs !overflow-visible">
@@ -68,11 +74,12 @@
                 </div>
             </td>
             <td class="text-center">
-                {% if r.collection_owner == current_username %}
+                {% set u = current_username | trim | lower %}
+                {% if (r.collection_owner | trim | lower) == u or (r.make_owner | trim | lower) == u %}
                 <button
-                    onclick="openFeedbackModal('{{ r.collection_owner }}', '{{ r.make_owner }}', '{{ r.supplier }}', '{{ r.collection }}', '{{ r.feedback_text | replace('\'', '\\\'') }}', '{{ r.feedback_category }}')"
-                    class="py-1 px-2.5 text-[10px] font-bold text-primary bg-primary/10 hover:bg-primary hover:text-white rounded transition-colors shadow-sm inline-flex items-center gap-1">
-                    <span class="material-symbols-outlined text-[12px]">edit</span> Feedback
+                    onclick="openFeedbackModal('{{ (r.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (r.make_owner or '') | replace('\'', '\\\'') }}', '{{ (r.supplier or '') | replace('\'', '\\\'') }}', '{{ (r.collection or '') | replace('\'', '\\\'') }}', '{{ (r.feedback_text or '') | replace('\'', '\\\'') }}', '{{ (r.feedback_category or '') | replace('\'', '\\\'') }}')"
+                    class="size-7 flex items-center justify-center bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-primary hover:border-primary/30 rounded-lg transition-all shadow-sm">
+                    <span class="material-symbols-outlined text-[12px]">edit</span>
                 </button>
                 {% endif %}
             </td>
