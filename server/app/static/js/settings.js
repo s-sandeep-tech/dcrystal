@@ -1468,7 +1468,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                 : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
 
-            const localTime = log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A';
+            const istOptions = {
+                timeZone: 'Asia/Kolkata',
+                year: 'numeric', month: 'numeric', day: 'numeric',
+                hour: 'numeric', minute: 'numeric', second: 'numeric',
+                hour12: true
+            };
+            const localTime = log.timestamp ? new Date(log.timestamp).toLocaleString('en-IN', istOptions) : 'N/A';
 
             tr.innerHTML = `
                 <td class="px-4 py-3 text-gray-500 font-mono">${localTime}</td>

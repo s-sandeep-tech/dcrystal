@@ -9,10 +9,13 @@ class AuthService:
         self.lockout_minutes = lockout_minutes
 
     def log_attempt(self, username, user_id=None, status='failure', failure_reason=None):
+        # Capture full IP chain if behind proxy
+        ip_addr = request.headers.get('X-Forwarded-For', request.remote_addr)
+        
         log = LoginAttemptLog(
             user_id=user_id,
             username_submitted=username,
-            ip_address=request.remote_addr,
+            ip_address=ip_addr,
             user_agent=request.headers.get('User-Agent'),
             status=status,
             failure_reason=failure_reason
