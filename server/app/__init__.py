@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, render_template
 from flask_cors import CORS
 from app.extensions import db, socketio, jwt, migrate, limiter
 import os
@@ -102,5 +102,14 @@ def create_app():
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(admin_rbac_bp, url_prefix='/api/admin')
+
+    # Register Error Handlers
+    @app.errorhandler(404)
+    def page_not_found(e):
+        return render_template('errors/404.html'), 404
+
+    @app.errorhandler(500)
+    def internal_server_error(e):
+        return render_template('errors/500.html'), 500
 
     return app
