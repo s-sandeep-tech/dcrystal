@@ -468,7 +468,9 @@ def get_pending_acceptance_po_details():
             PendingAcceptanceSnapshot.po_date,
             PendingAcceptanceSnapshot.total_weight,
             PendingAcceptanceSnapshot.order_piece,
-            func.sum(PendingAcceptanceSnapshot.order_wt).label('sum_order_wt')
+            func.sum(PendingAcceptanceSnapshot.order_wt).label('sum_order_wt'),
+            func.sum(PendingAcceptanceSnapshot.accepted_wt).label('sum_accepted_wt'),
+            func.sum(PendingAcceptanceSnapshot.pending_to_accepted_wt).label('sum_pending_to_accepted_wt')
         ).filter(
             PendingAcceptanceSnapshot.snapshot_date == latest_date_query,
             func.coalesce(PendingAcceptanceSnapshot.collection_owner, '') == collection_owner,
@@ -505,23 +507,29 @@ def get_pending_acceptance_po_details():
         records = query.all()
         
         details = []
-        totals = {'po_pieces': 0, 'po_weight': 0, 'order_wt': 0}
+        totals = {'po_pieces': 0, 'po_weight': 0, 'order_wt': 0, 'accepted_wt': 0, 'pending_to_accepted_wt': 0}
         
         for r in records:
             po_w = float(r.total_weight or 0)
             po_p = float(r.order_piece or 0)
             o_w = float(r.sum_order_wt or 0)
+            a_w = float(r.sum_accepted_wt or 0)
+            p_a_w = float(r.sum_pending_to_accepted_wt or 0)
             
             totals['po_pieces'] += po_p
             totals['po_weight'] += po_w
             totals['order_wt'] += o_w
+            totals['accepted_wt'] += a_w
+            totals['pending_to_accepted_wt'] += p_a_w
             
             details.append({
                 'po_number': r.po_number or 'N/A',
                 'po_date': r.po_date.strftime('%Y-%m-%d') if r.po_date else '',
                 'total_weight': po_w,
                 'order_piece': po_p,
-                'order_wt': o_w
+                'order_wt': o_w,
+                'accepted_wt': a_w,
+                'pending_to_accepted_wt': p_a_w
             })
             
         return render_template('partials/_po_details_modal.html', details=details, totals=totals)
