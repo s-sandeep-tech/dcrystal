@@ -4,11 +4,9 @@
         <thead>
             <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
                 <th class="text-left px-4 py-2">PO Number</th>
-                <th class="text-left py-2">PO Date</th>
-                <th class="text-right py-2 px-4 shadow-border-b text-blue-600">Total Weight</th>
-                <th class="text-right py-2 shadow-border-b text-indigo-600">Order Piece</th>
-                <th class="text-right px-4 py-2 font-bold shadow-border-b text-gray-800 dark:text-gray-200">Order Wt
-                </th>
+                <th class="text-left py-2 px-4">PO Date</th>
+                <th class="text-right py-2 px-4 text-blue-600">Total Weight</th>
+                <th class="text-right px-4 py-2 text-indigo-600">Order Piece</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -17,9 +15,7 @@
                 <td class="text-left px-4 py-1.5 font-medium text-gray-800 dark:text-gray-200">{{ row.po_number }}</td>
                 <td class="text-left py-1.5 text-gray-600 dark:text-gray-400">{{ row.po_date }}</td>
                 <td class="text-right px-4 py-1.5 text-blue-600">{{ "%.3f"|format(row.total_weight) }}</td>
-                <td class="text-right py-1.5 text-indigo-600">{{ "%.3f"|format(row.order_piece) }}</td>
-                <td class="text-right px-4 py-1.5 font-bold text-gray-700 dark:text-gray-300">{{
-                    "%.3f"|format(row.order_wt) }}</td>
+                <td class="text-right py-1.5 text-indigo-600 px-4">{{ "%.3f"|format(row.order_piece) }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -28,9 +24,7 @@
                 <td colspan="2" class="text-right px-4 py-2 text-[10px] text-gray-500 uppercase tracking-wider">Grand
                     Total:</td>
                 <td class="text-right px-4 py-2 text-blue-600">{{ "%.3f"|format(totals.po_weight) }}</td>
-                <td class="text-right py-2 text-indigo-600">{{ "%.3f"|format(totals.po_pieces) }}</td>
-                <td class="text-right px-4 py-2 text-gray-800 dark:text-gray-200">{{ "%.3f"|format(totals.order_wt) }}
-                </td>
+                <td class="text-right py-2 text-indigo-600 px-4">{{ "%.3f"|format(totals.po_pieces) }}</td>
             </tr>
         </tfoot>
     </table>
