@@ -1,4 +1,4 @@
-from .auth import User
+from .auth import User, LoginAttemptLog
 from .core import Order, DashboardStats, Notification
 from .inventory import LocationWiseStockSnapshot, AllocatedBarcodesSnapshot
 from .snapshots import (

@@ -12,6 +12,13 @@ class User(db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Security fields
+    failed_attempt_count = db.Column(db.Integer, default=0)
+    last_failed_at = db.Column(db.DateTime, nullable=True)
+    lockout_until = db.Column(db.DateTime, nullable=True)
+    last_login_at = db.Column(db.DateTime, nullable=True)
+    last_login_ip = db.Column(db.String(45), nullable=True) # 45 for IPv6 support
     # Relationships
     roles = db.relationship('Role', secondary='user_role', backref=db.backref('users', lazy='dynamic'))
 
@@ -29,5 +36,31 @@ class User(db.Model):
             'is_admin': self.is_admin,
             'email': self.email,
             'created_at': self.created_at.isoformat(),
-            'roles': [r.name for r in self.roles]
+            'roles': [r.name for r in self.roles],
+            'failed_attempt_count': self.failed_attempt_count,
+            'lockout_until': self.lockout_until.isoformat() if self.lockout_until else None
+        }
+
+class LoginAttemptLog(db.Model):
+    __tablename__ = 'login_attempt_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(50), nullable=True) # user_id from User model
+    username_submitted = db.Column(db.String(80), nullable=False)
+    ip_address = db.Column(db.String(45), nullable=False)
+    user_agent = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(20), nullable=False) # 'success', 'failure'
+    failure_reason = db.Column(db.String(50), nullable=True) # 'invalid_credentials', 'locked_out', 'rate_limited', etc.
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'username_submitted': self.username_submitted,
+            'ip_address': self.ip_address,
+            'user_agent': self.user_agent,
+            'status': self.status,
+            'failure_reason': self.failure_reason,
+            'timestamp': self.timestamp.isoformat()
         }

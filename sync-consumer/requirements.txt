@@ -9,3 +9,5 @@ eventlet
 flask-jwt-extended
 passlib
 bcrypt==3.1.7
+flask-limiter
+flask-migrate

@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
-from app.extensions import db, socketio, jwt
+from app.extensions import db, socketio, jwt, migrate, limiter
 import os
 
 def create_app():
@@ -34,11 +34,13 @@ def create_app():
     app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 
     db.init_app(app)
+    migrate.init_app(app, db)
+    limiter.init_app(app)
     socketio.init_app(app)
     jwt.init_app(app)
     # Ensure all tables are created (including Notification)
     with app.app_context():
-        db.create_all()
+        # db.create_all() # Handled by migrations
         
         # Create a default user if none exists
         from app.models import User

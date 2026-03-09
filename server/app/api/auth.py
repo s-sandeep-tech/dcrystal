@@ -1,12 +1,14 @@
 from flask import Blueprint, request, jsonify, session
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app.models import User, UserPasswordHistory
-from app.extensions import db
+from app.extensions import db, limiter
 from datetime import timedelta
+from app.services.auth_service import auth_service
 
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['POST'])
+@limiter.limit("10 per minute per IP")
 def login():
     data = request.json
     user_id = data.get('user_id')
@@ -16,12 +18,23 @@ def login():
         return jsonify({"msg": "Missing user id or password"}), 400
 
     user = User.query.filter_by(user_id=user_id).first()
+
+    # Rate limit per account identifier (custom limit)
+    # Note: Flask-Limiter doesn't easily support dynamic identifiers in @limit decorators for complex logic,
+    # but we handle it via AuthService lockout.
+
+    if user and auth_service.is_locked_out(user):
+        auth_service.log_attempt(user_id, user_id=user.user_id, status='failure', failure_reason='locked_out')
+        return jsonify({"msg": "Account is temporarily locked. Please try again later."}), 423
+
     if user and user.check_password(password):
         # Store in session for server-side auth checks (e.g. data filtering)
         session['user_id'] = user.user_id
         session['username'] = user.username
         session['is_admin'] = user.is_admin
         session['roles'] = [r.name for r in user.roles]
+        
+        auth_service.handle_successful_login(user, request.remote_addr)
         
         access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(days=7))
         
@@ -34,6 +47,8 @@ def login():
         
         return response, 200
 
+    # Handle failure (user exists or not)
+    auth_service.handle_failed_login(user, user_id)
     return jsonify({"msg": "Bad user id or password"}), 401
 
 @auth_bp.route('/register', methods=['POST'])
@@ -115,3 +130,39 @@ def update_password():
     db.session.commit()
     
     return jsonify({"msg": "Password updated successfully"}), 200
+
+@auth_bp.route('/debug/auth-status/<user_id>', methods=['GET'])
+@jwt_required()
+def get_auth_status(user_id):
+    # Check if requester is admin
+    admin_id = get_jwt_identity()
+    admin = User.query.get(admin_id)
+    if not admin or not admin.is_admin:
+        return jsonify({"msg": "Admin access required"}), 403
+
+    user = User.query.filter_by(user_id=user_id).first()
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
+
+    return jsonify({
+        "user_id": user.user_id,
+        "failed_attempt_count": user.failed_attempt_count,
+        "lockout_until": user.lockout_until.isoformat() if user.lockout_until else None,
+        "is_locked_out": auth_service.is_locked_out(user),
+        "last_failed_at": user.last_failed_at.isoformat() if user.last_failed_at else None,
+        "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
+        "last_login_ip": user.last_login_ip
+    }), 200
+
+@auth_bp.route('/debug/recent-logs', methods=['GET'])
+@jwt_required()
+def get_recent_logs():
+    # Check if requester is admin
+    admin_id = get_jwt_identity()
+    admin = User.query.get(admin_id)
+    if not admin or not admin.is_admin:
+        return jsonify({"msg": "Admin access required"}), 403
+
+    limit = request.args.get('limit', 50, type=int)
+    logs = LoginAttemptLog.query.order_by(LoginAttemptLog.timestamp.desc()).limit(limit).all()
+    return jsonify([log.to_dict() for log in logs]), 200
