@@ -41,6 +41,10 @@
             scrollbar-width: none;
         }
 
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
         .animate-zoom-in {
             animation: zoomIn 0.2s ease-out;
         }
@@ -79,7 +83,8 @@
                 <span class="material-symbols-outlined text-lg">diamond</span>
             </div>
 
-            <div id="dynamicSidebarMenu" class="flex flex-col gap-4 items-center flex-1">
+            <div id="dynamicSidebarMenu"
+                class="flex flex-col gap-4 items-center flex-1 overflow-y-auto no-scrollbar w-full">
                 <!-- Fallback loading indicator or base dashboard icon during fetch -->
                 <div class="size-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
