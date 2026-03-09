@@ -222,9 +222,9 @@ def get_order_pending_rejection_partial():
             func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_pcs, 0)).label('hm_failed_pcs'),
             func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_wt, 0)).label('hm_failed_wt'),
             
-            # 4. Hallmark Test Cut = Hm Processed - (Hm Passed + Hm Failed)
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_processed_pcs, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_passed_pcs, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_pcs, 0)).label('hm_test_cut_pcs'),
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_testcut_wt, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_passed_wt, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_wt, 0)).label('hm_test_cut_wt'),
+            # 4. Hallmark Test Cut (Direct from table, converted to positive)
+            func.abs(func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_testcut_pcs, 0))).label('hm_test_cut_pcs'),
+            func.abs(func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_testcut_wt, 0))).label('hm_test_cut_wt'),
             
             # 5. QC Pending
             func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.qc_pending_pcs, 0)).label('qc_pending_pcs'),
