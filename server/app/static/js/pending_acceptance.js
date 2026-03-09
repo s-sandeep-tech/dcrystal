@@ -202,7 +202,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const metaDiv = document.querySelector('.pagination-meta');
-    if (metaDiv) updatePaginationControls(metaDiv.dataset);
+    if (metaDiv) {
+        updatePaginationControls(metaDiv.dataset);
+    } else {
+        // No metadata means initial shell, load data via AJAX
+        loadViewData();
+    }
 
     const statsDiv = document.querySelector('.stats-meta');
     if (statsDiv) updateStatsCards(statsDiv.dataset);

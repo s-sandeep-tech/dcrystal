@@ -248,83 +248,15 @@ def pending_acceptance():
 
         filter_options = fetch_filter_options()
 
-        cached_data = redis_client.get(cache_key)
-        if cached_data:
-            data = json.loads(cached_data)
-            pagination = CachedPagination(data['rows'], page, per_page, data['total'])
-            return render_template('pending_acceptance.html', 
-                                 unread_count=unread_count, 
-                                 sync_time=sync_time, 
-                                 rows=data['rows'], 
-                                 pagination=pagination,
-                                 stats=data.get('stats', {}),
-                                 current_username=current_username,
-                                 filter_options=filter_options)
+        filter_options = fetch_filter_options()
 
-        # 4. Filter function to apply to base snapshot query before aggregation
-        def filter_func(q):
-            if restrict_to_user:
-                u = current_username.lower()
-                q = q.filter((func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u) | 
-                             (func.lower(func.trim(PendingAcceptanceSnapshot.make_owner)) == u))
-            elif not is_admin and not is_manager_2 and not current_username:
-                q = q.filter(False)
-            
-            return apply_filters(
-                q, search, latest_date_query, 
-                collection_owner=f_collection_owner, 
-                make_owner=f_make_owner,
-                supplier=f_supplier, 
-                collection=f_collection,
-                order_type=f_order_type, 
-                order_request_type=f_order_request_type,
-                delay=f_delay
-            )
-
-        query = get_base_query(query_filter_func=filter_func, feedback_status=f_feedback_status)
-        
-        # Calculate Stats (now passing the formulated query)
-        stats = calculate_stats(query)
-        
-        
-
-        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-        
-        processed_rows = []
-        for r in pagination.items:
-            row_dict = {
-                'id': f"{r.collection_owner}_{r.make_owner}_{r.supplier}_{r.collection}",
-                'collection_owner': r.collection_owner or '',
-                'make_owner': r.make_owner or '',
-                'supplier': r.supplier or '',
-                'collection': r.collection or '',
-                'order_type': '', # Hide individual strings since it's grouped
-                'order_request_type': '',
-                'order_wt': float(r.sum_order_wt or 0),
-                'accepted_wt': float(r.sum_accepted_wt or 0),
-                'pending_to_accepted_wt': float(r.sum_pending_to_accepted_wt or 0),
-                'feedback_text': r.feedback_text or '',
-                'feedback_category': r.feedback_category or '',
-                'feedback_username': r.username or '',
-                'feedback_date': r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else ''
-            }
-            processed_rows.append(row_dict)
-            
-        cache_payload = {
-            'rows': processed_rows,
-            'total': pagination.total,
-            'stats': stats
-        }
-        redis_client.setex(cache_key, 3600, json.dumps(cache_payload))
-        
         return render_template('pending_acceptance.html', 
                              unread_count=unread_count, 
                              sync_time=sync_time, 
-                             rows=processed_rows, 
-                             pagination=pagination,
-                             stats=stats,
+                             stats=None,
                              current_username=current_username,
-                             filter_options=filter_options)
+                             filter_options=filter_options,
+                             initial_load=True)
                              
     except Exception as e:
         logger.error(f"Error in pending_acceptance: {str(e)}")
