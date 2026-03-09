@@ -1312,6 +1312,11 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshUsersBtn.addEventListener('click', fetchActiveUsers);
     }
 
+    // Active Users Pagination State
+    let currentActiveUsersPage = 1;
+    const activeUsersPerPage = 12;
+    let allActiveUsers = [];
+
     async function fetchActiveUsers() {
         if (typeof window.socket === 'undefined' || !window.socket.connected) {
             if (activeUsersTbody) activeUsersTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-red-500">Socket connection offline</td></tr>`;
@@ -1322,99 +1327,127 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.socket.emit('get_active_users', {}, async (response) => {
             if (!activeUsersTbody) return;
-            activeUsersTbody.innerHTML = '';
 
             if (!response || !response.users || response.users.length === 0) {
                 activeUsersTbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No active users found.</td></tr>`;
+                allActiveUsers = [];
+                renderActiveUsersPagination();
                 return;
             }
 
-            const userIds = response.users.map(u => u.user_id).filter(id => id && id !== 'Guest' && id !== 'N/A');
-            let userNamesMap = {};
+            allActiveUsers = response.users;
+            currentActiveUsersPage = 1; // Reset to page 1 on refresh
+            renderActiveUsers();
+        });
+    }
 
-            if (userIds.length > 0) {
-                try {
-                    const res = await fetch('/api/admin/users/batch', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${window.jwtToken}`
-                        },
-                        body: JSON.stringify({ user_ids: userIds })
-                    });
-                    if (res.ok) {
-                        userNamesMap = await res.json();
-                    }
-                } catch (e) {
-                    console.error("Failed to fetch user details", e);
+    async function renderActiveUsers() {
+        if (!activeUsersTbody) return;
+        activeUsersTbody.innerHTML = '';
+
+        const start = (currentActiveUsersPage - 1) * activeUsersPerPage;
+        const end = Math.min(start + activeUsersPerPage, allActiveUsers.length);
+        const usersToDisplay = allActiveUsers.slice(start, end);
+
+        const userIds = usersToDisplay.map(u => u.user_id).filter(id => id && id !== 'Guest' && id !== 'N/A');
+        let userNamesMap = {};
+
+        if (userIds.length > 0) {
+            try {
+                const res = await fetch('/api/admin/users/batch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    },
+                    body: JSON.stringify({ user_ids: userIds })
+                });
+                if (res.ok) {
+                    userNamesMap = await res.json();
                 }
+            } catch (e) {
+                console.error("Failed to fetch user details", e);
+            }
+        }
+
+        usersToDisplay.forEach((user, index) => {
+            const actualIndex = start + index + 1;
+            let displayUsername = user.username && user.username !== 'Unknown' && user.username !== 'Guest' ? user.username : 'Unknown';
+            let displayUserId = user.user_id || 'N/A';
+
+            if (userNamesMap[user.user_id]) {
+                displayUsername = userNamesMap[user.user_id].username;
+                displayUserId = userNamesMap[user.user_id].user_id;
             }
 
-            response.users.forEach((user, index) => {
-                let displayUsername = user.username && user.username !== 'Unknown' && user.username !== 'Guest' ? user.username : 'Unknown';
-                let displayUserId = user.user_id || 'N/A';
+            let timeString = 'Just now';
+            if (user.connected_at) {
+                const connectedDate = new Date(user.connected_at);
+                const istOptions = {
+                    timeZone: 'Asia/Kolkata', year: 'numeric', month: 'short', day: 'numeric',
+                    hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
+                };
+                const formattedDate = connectedDate.toLocaleString('en-IN', istOptions);
+                const diffMs = new Date() - connectedDate;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMins / 60);
+                const diffDays = Math.floor(diffHours / 24);
 
-                if (userNamesMap[user.user_id]) {
-                    displayUsername = userNamesMap[user.user_id].username;
-                    displayUserId = userNamesMap[user.user_id].user_id;
-                }
+                let timeAgo = diffMins < 1 ? 'Just now' : diffMins < 60 ? `${diffMins} Min ago` : diffHours < 24 ? `${diffHours} Hr${diffHours > 1 ? 's' : ''} ago` : `${diffDays} Day${diffDays > 1 ? 's' : ''} ago`;
+                timeString = timeAgo === 'Just now' ? 'Just now' : `${formattedDate} ( ${timeAgo} )`;
+            }
 
-                let timeString = 'Just now';
-                if (user.connected_at) {
-                    const connectedDate = new Date(user.connected_at);
-                    const now = new Date();
-
-                    // Format date: "4 Mar 2026, 11:04:59 am"
-                    const formattedDate = connectedDate.toLocaleString('en-IN', {
-                        timeZone: 'Asia/Kolkata',
-                        hour12: true,
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        second: '2-digit'
-                    }).replace('am', 'am').replace('pm', 'pm'); // Ensure lowercase am/pm if required, though toLocaleString typically handles it
-
-                    // Calculate relative time
-                    const diffMs = now - connectedDate;
-                    const diffMins = Math.floor(diffMs / 60000);
-                    const diffHours = Math.floor(diffMins / 60);
-                    const diffDays = Math.floor(diffHours / 24);
-
-                    let timeAgo = '';
-                    if (diffMins < 1) {
-                        timeAgo = 'Just now';
-                    } else if (diffMins < 60) {
-                        timeAgo = `${diffMins} Min ago`;
-                    } else if (diffHours < 24) {
-                        timeAgo = `${diffHours} Hr${diffHours > 1 ? 's' : ''} ago`;
-                    } else {
-                        timeAgo = `${diffDays} Day${diffDays > 1 ? 's' : ''} ago`;
-                    }
-
-                    timeString = timeAgo === 'Just now' ? 'Just now' : `${formattedDate} ( ${timeAgo} )`;
-                }
-
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20";
-                tr.innerHTML = `
-                    <td class="px-4 py-3 font-medium text-center">${index + 1}</td>
-                    <td class="px-4 py-3 font-semibold text-gray-900 dark:text-white">
-                        <div class="flex items-center gap-2">
-                            <div class="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
-                                ${displayUsername !== 'Unknown' && displayUsername ? displayUsername.substring(0, 2).toUpperCase() : '??'}
-                            </div>
-                            ${displayUsername} <span class="text-[9px] text-gray-400 font-normal">(${displayUserId})</span>
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20";
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-medium text-center">${actualIndex}</td>
+                <td class="px-4 py-3 font-semibold text-gray-900 dark:text-white">
+                    <div class="flex items-center gap-2">
+                        <div class="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
+                            ${displayUsername !== 'Unknown' && displayUsername ? displayUsername.substring(0, 2).toUpperCase() : '??'}
                         </div>
-                    </td>
-                    <td class="px-4 py-3 font-mono text-[10px]">${user.ip_address || 'Unknown IP'}</td>
-                    <td class="px-4 py-3 text-[10px]">${timeString}</td>
-                    <td class="px-4 py-3 font-mono text-[9px] text-gray-400 text-right"><span class="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded break-all">${user.sid}</span></td>
-                `;
-                activeUsersTbody.appendChild(tr);
-            });
+                        ${displayUsername} <span class="text-[9px] text-gray-400 font-normal">(${displayUserId})</span>
+                    </div>
+                </td>
+                <td class="px-4 py-3 font-mono text-[10px]">${user.ip_address || 'Unknown IP'}</td>
+                <td class="px-4 py-3 text-[10px]">${timeString}</td>
+                <td class="px-4 py-3 font-mono text-[9px] text-gray-400 text-right"><span class="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded break-all">${user.sid}</span></td>
+            `;
+            activeUsersTbody.appendChild(tr);
         });
+
+        renderActiveUsersPagination();
+    }
+
+    function renderActiveUsersPagination() {
+        const total = allActiveUsers.length;
+        const totalPages = Math.ceil(total / activeUsersPerPage);
+        const start = total > 0 ? (currentActiveUsersPage - 1) * activeUsersPerPage + 1 : 0;
+        const end = Math.min(currentActiveUsersPage * activeUsersPerPage, total);
+
+        const info = document.getElementById('active-users-pagination-info');
+        const prevBtn = document.getElementById('prev-active-users-btn');
+        const nextBtn = document.getElementById('next-active-users-btn');
+
+        if (info) info.textContent = `Showing ${start}-${end} of ${total}`;
+        if (prevBtn) {
+            prevBtn.disabled = currentActiveUsersPage === 1;
+            prevBtn.onclick = () => {
+                if (currentActiveUsersPage > 1) {
+                    currentActiveUsersPage--;
+                    renderActiveUsers();
+                }
+            };
+        }
+        if (nextBtn) {
+            nextBtn.disabled = currentActiveUsersPage >= totalPages || total === 0;
+            nextBtn.onclick = () => {
+                if (currentActiveUsersPage < totalPages) {
+                    currentActiveUsersPage++;
+                    renderActiveUsers();
+                }
+            };
+        }
     }
 
     // Handle URL params on load - Moved to end to ensure all constants are initialized
