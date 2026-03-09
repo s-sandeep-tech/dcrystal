@@ -391,5 +391,12 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStatusUI(urlParams.get('status_filter'));
     }
 
-    loadViewData();
+    const metaDiv = document.querySelector('.pagination-meta');
+    if (metaDiv) {
+        updatePaginationControls(metaDiv.dataset);
+        updateLevelBadge(metaDiv.dataset.level);
+    } else {
+        // No metadata means initial shell, load data via AJAX
+        loadViewData();
+    }
 });

@@ -276,7 +276,14 @@
     <!-- Table Container -->
     <div id="table-area" class="flex-1 overflow-auto relative">
         <div id="view-report" class="dashboard-view">
+            {% if initial_load %}
+            <div class="flex flex-col items-center justify-center p-12 text-gray-400 h-full min-h-[400px]">
+                <span class="material-symbols-outlined text-4xl animate-spin mb-4 text-primary">sync</span>
+                <span class="text-xs font-bold uppercase tracking-widest">Loading Report Data...</span>
+            </div>
+            {% else %}
             {% include 'partials/_view_order_pending_rejection.html' %}
+            {% endif %}
         </div>
     </div>
 </main>

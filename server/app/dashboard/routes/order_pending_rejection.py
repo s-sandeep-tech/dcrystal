@@ -16,162 +16,6 @@ def order_pending_rejection_summary():
         unread_count = Notification.query.filter_by(is_read=False).count()
         sync_time = datetime.now().strftime("%H:%M")
 
-        # Filters
-        search = request.args.get('search', '').strip()
-        division = request.args.get('division', '')
-        group_name = request.args.get('group', '')
-        purity = request.args.get('purity', '')
-        supplier = request.args.get('supplier', '')
-        classification_owner = request.args.get('classification_owner', '')
-        collection_owner = request.args.get('collection_owner', '')
-        make_owner = request.args.get('make_owner', '')
-        classification = request.args.get('classification', '')
-        make = request.args.get('make', '')
-        collection = request.args.get('collection', '')
-        order_ro = request.args.get('order_ro', '')
-        order_request_type = request.args.get('order_request_type', '')
-        order_type = request.args.get('order_type', '')
-        batch = request.args.get('batch', '')
-        days = request.args.get('days', type=int) if request.args.get('days') else None
-        status_filter = request.args.get('status_filter', '')
-        use_date_range = request.args.get('use_date_range') == 'true'
-        date_from = request.args.get('date_from')
-        date_to = request.args.get('date_to')
-        
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 50, type=int)
-
-        def apply_filters(query):
-            if search:
-                query = query.filter(
-                    (OwnerWiseOrderSummarySnapshot.supplier.ilike(f"%{search}%")) |
-                    (OwnerWiseOrderSummarySnapshot.order_ro.ilike(f"%{search}%"))
-                )
-            if division:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.division == division)
-            if group_name:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.group_name == group_name)
-            if purity:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.purity == purity)
-            if supplier:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.supplier == supplier)
-            if classification_owner:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.classification_owner == classification_owner)
-            if collection_owner:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.collection_owner == collection_owner)
-            if make_owner:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == make_owner)
-            if classification:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.classification == classification)
-            if make:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.make == make)
-            if collection:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.collection == collection)
-            if order_ro:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.order_ro == order_ro)
-            if order_request_type:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.order_request_type == order_request_type)
-            if order_type:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
-            if batch:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.batch == batch)
-            if use_date_range:
-                if date_from:
-                    query = query.filter(OwnerWiseOrderSummarySnapshot.order_date >= date_from)
-                if date_to:
-                    query = query.filter(OwnerWiseOrderSummarySnapshot.order_date <= date_to)
-            elif days:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.order_date >= func.current_date() - days)
-            
-            if status_filter == 'pending':
-                query = query.filter(OwnerWiseOrderSummarySnapshot.pending_to_accepted_wt > 0)
-            elif status_filter == 'rejected':
-                query = query.filter(OwnerWiseOrderSummarySnapshot.rejected_wt > 0)
-            elif status_filter == 'full_rejected':
-                query = query.filter(
-                    (OwnerWiseOrderSummarySnapshot.ordered_wt == OwnerWiseOrderSummarySnapshot.rejected_wt) &
-                    (OwnerWiseOrderSummarySnapshot.ordered_wt > 0)
-                )
-            
-            # User-based filtering
-            roles = [r.upper() for r in session.get('roles', [])]
-            if not session.get('is_admin', False) and 'MANAGER_2' not in roles and session.get('username'):
-                u = session.get('username').strip().lower()
-                query = query.filter(
-                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
-                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
-                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
-                )
-            return query
-
-        # Aggregated Metrics
-        agg_cols = [
-            # 1. Pending to Accept (Persisted Columns)
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.pending_to_accepted_pcs, 0)).label('pending_to_accepted_pcs'),
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.pending_to_accepted_wt, 0)).label('pending_to_accepted_wt'),
-            
-            # 2. Rejected
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.rejected_pcs, 0)).label('rejected_pcs'),
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.rejected_wt, 0)).label('rejected_wt'),
-            
-            # 3. Hallmark Failed
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_pcs, 0)).label('hm_failed_pcs'),
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_wt, 0)).label('hm_failed_wt'),
-            
-            # 4. Hallmark Test Cut = Hm Processed - (Hm Passed + Hm Failed)
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_processed_pcs, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_passed_pcs, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_pcs, 0)).label('hm_test_cut_pcs'),
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.hm_testcut_wt, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_passed_wt, 0) - func.coalesce(OwnerWiseOrderSummarySnapshot.hm_failed_wt, 0)).label('hm_test_cut_wt'),
-            
-            # 5. QC Pending
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.qc_pending_pcs, 0)).label('qc_pending_pcs'),
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.qc_pending_wt, 0)).label('qc_pending_wt'),
-            
-            # 6. QC Rejected
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.qc_rejected_pcs, 0)).label('qc_rejected_pcs'),
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.qc_rejected_wt, 0)).label('qc_rejected_wt'),
-            
-            # 7. Not Barcoded
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.not_barcoded_pcs, 0)).label('not_barcode_pcs'),
-            func.sum(func.coalesce(OwnerWiseOrderSummarySnapshot.not_barcoded_wt, 0)).label('not_barcode_wt'),
-        ]
-
-        # Global Stats
-        stats_q = db.session.query(*agg_cols)
-        stats_q = apply_filters(stats_q)
-        stats = stats_q.first()
-
-        # Drill-down level (Party -> Purchase RO -> Division -> Group -> Purity -> Classification -> Make -> Collection)
-        if not supplier:
-            group_cols = [OwnerWiseOrderSummarySnapshot.supplier]
-            current_level = 'party'
-        elif supplier and not order_ro:
-            group_cols = [OwnerWiseOrderSummarySnapshot.supplier, OwnerWiseOrderSummarySnapshot.order_ro]
-            current_level = 'purchase_ro'
-        elif order_ro and not division:
-            group_cols = [OwnerWiseOrderSummarySnapshot.supplier, OwnerWiseOrderSummarySnapshot.order_ro, OwnerWiseOrderSummarySnapshot.division]
-            current_level = 'division'
-        elif division and not group_name:
-            group_cols = [OwnerWiseOrderSummarySnapshot.supplier, OwnerWiseOrderSummarySnapshot.order_ro, OwnerWiseOrderSummarySnapshot.division, OwnerWiseOrderSummarySnapshot.group_name]
-            current_level = 'group'
-        elif group_name and not purity:
-            group_cols = [OwnerWiseOrderSummarySnapshot.supplier, OwnerWiseOrderSummarySnapshot.order_ro, OwnerWiseOrderSummarySnapshot.division, OwnerWiseOrderSummarySnapshot.group_name, OwnerWiseOrderSummarySnapshot.purity]
-            current_level = 'purity'
-        elif purity and not classification:
-            group_cols = [OwnerWiseOrderSummarySnapshot.supplier, OwnerWiseOrderSummarySnapshot.order_ro, OwnerWiseOrderSummarySnapshot.division, OwnerWiseOrderSummarySnapshot.group_name, OwnerWiseOrderSummarySnapshot.purity, OwnerWiseOrderSummarySnapshot.classification]
-            current_level = 'classification'
-        elif classification and not make:
-            group_cols = [OwnerWiseOrderSummarySnapshot.supplier, OwnerWiseOrderSummarySnapshot.order_ro, OwnerWiseOrderSummarySnapshot.division, OwnerWiseOrderSummarySnapshot.group_name, OwnerWiseOrderSummarySnapshot.purity, OwnerWiseOrderSummarySnapshot.classification, OwnerWiseOrderSummarySnapshot.make]
-            current_level = 'make'
-        else:
-            group_cols = [OwnerWiseOrderSummarySnapshot.supplier, OwnerWiseOrderSummarySnapshot.order_ro, OwnerWiseOrderSummarySnapshot.division, OwnerWiseOrderSummarySnapshot.group_name, OwnerWiseOrderSummarySnapshot.purity, OwnerWiseOrderSummarySnapshot.classification, OwnerWiseOrderSummarySnapshot.make, OwnerWiseOrderSummarySnapshot.collection]
-            current_level = 'collection'
-
-        main_q = db.session.query(*(group_cols + agg_cols))
-        main_q = apply_filters(main_q)
-        main_q = main_q.group_by(*group_cols).order_by(*group_cols)
-        
-        pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
-        
         # Fetch Filter Options
         def get_distinct(column):
             return [r[0] for r in db.session.query(column).distinct().filter(column != None).order_by(column).all() if r[0]]
@@ -193,44 +37,15 @@ def order_pending_rejection_summary():
             'order_request_types': get_distinct(OwnerWiseOrderSummarySnapshot.order_request_type),
         }
 
-        processed_rows = []
-        for r in pagination.items:
-            row = {
-                'party': r[0] or 'Unknown',
-                'purchase_ro': r[1] if current_level in ['purchase_ro', 'division', 'group', 'purity', 'classification', 'make', 'collection'] else '',
-                'division': r[2] if current_level in ['division', 'group', 'purity', 'classification', 'make', 'collection'] else '',
-                'group': r[3] if current_level in ['group', 'purity', 'classification', 'make', 'collection'] else '',
-                'purity': str(r[4]) if current_level in ['purity', 'classification', 'make', 'collection'] else '',
-                'classification': r[5] if current_level in ['classification', 'make', 'collection'] else '',
-                'make': r[6] if current_level in ['make', 'collection'] else '',
-                'collection': r[7] if current_level == 'collection' else '',
-                
-                'pending_to_accepted_pcs': int(r.pending_to_accepted_pcs or 0),
-                'pending_to_accepted_wt': float(r.pending_to_accepted_wt or 0),
-                'rejected_pcs': int(r.rejected_pcs or 0),
-                'rejected_wt': float(r.rejected_wt or 0),
-                'hm_failed_pcs': int(r.hm_failed_pcs or 0),
-                'hm_failed_wt': float(r.hm_failed_wt or 0),
-                'hm_test_cut_pcs': int(r.hm_test_cut_pcs or 0),
-                'hm_test_cut_wt': float(r.hm_test_cut_wt or 0),
-                'qc_pending_pcs': int(r.qc_pending_pcs or 0),
-                'qc_pending_wt': float(r.qc_pending_wt or 0),
-                'qc_rejected_pcs': int(r.qc_rejected_pcs or 0),
-                'qc_rejected_wt': float(r.qc_rejected_wt or 0),
-                'not_barcode_pcs': int(r.not_barcode_pcs or 0),
-                'not_barcode_wt': float(r.not_barcode_wt or 0),
-                'level': current_level
-            }
-            processed_rows.append(row)
-
         return render_template('order_pending_rejection.html', 
                              unread_count=unread_count, 
                              sync_time=sync_time, 
-                             stats=stats, 
-                             rows=processed_rows, 
-                             pagination=pagination, 
-                             current_level=current_level,
-                             filter_options=filter_options)
+                             stats=None, 
+                             rows=[], 
+                             pagination=None, 
+                             current_level='',
+                             filter_options=filter_options,
+                             initial_load=True)
     except Exception as e:
         logger.error(f"Error in order_pending_rejection_summary: {str(e)}")
         return f"Error: {str(e)}", 500
