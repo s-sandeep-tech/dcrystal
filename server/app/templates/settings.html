@@ -152,9 +152,13 @@
                     <div
                         class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex flex-col">
                         <div
-                            class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 text-left">
-                            <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Data Management
-                            </h3>
+                            class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 flex items-center justify-between">
+                            <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Data Management</h3>
+                            <button id="sync-all-btn"
+                                class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 transition-all shadow-md shadow-primary/20 active:scale-95">
+                                <span class="material-symbols-outlined text-[14px]">sync</span>
+                                Sync All
+                            </button>
                         </div>
                         <div class="p-6">
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -621,6 +625,31 @@
                         Permission</button>
                 </div>
             </form>
+        </div>
+    </div>
+    <!-- Confirmation Modal -->
+    <div id="confirmModal"
+        class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center hidden opacity-0 transition-opacity">
+        <div class="bg-white dark:bg-gray-900 rounded-xl w-full max-w-sm p-6 shadow-2xl transform scale-95 transition-transform"
+            id="confirmModalContent">
+            <div class="flex flex-col items-center text-center">
+                <div class="size-12 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
+                    <span class="material-symbols-outlined text-primary text-2xl">help_outline</span>
+                </div>
+                <h3 id="confirmModalTitle" class="text-lg font-bold text-gray-900 dark:text-white mb-2">Confirm Action</h3>
+                <p id="confirmModalMessage" class="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to proceed with this action?</p>
+                
+                <div class="flex gap-3 w-full">
+                    <button id="confirmCancelBtn"
+                        class="flex-1 px-4 py-2.5 text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button id="confirmProceedBtn"
+                        class="flex-1 px-4 py-2.5 text-sm font-bold bg-primary text-white rounded-lg hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-95">
+                        Confirm
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
     {% endblock %}

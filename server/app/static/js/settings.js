@@ -57,8 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (data.status === 'processing') {
                     syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/30';
+                    const prefix = window.isSyncAllActive ? `<span class="font-bold uppercase text-[9px] mb-1 block">Batch Sync Progress</span>` : '';
                     syncStatus.innerHTML = `
                         <div class="flex flex-col gap-2">
+                            ${prefix}
                             <div class="flex items-start justify-between">
                                 <span class="flex items-start gap-2 leading-tight">
                                     <span class="material-symbols-outlined text-sm animate-spin mt-0.5">sync</span> 
@@ -75,10 +77,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/30';
                     syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">check_circle</span> ${data.message}</div>`;
 
-                    // Reset all sync buttons
-                    [syncBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn].forEach(btn => {
-                        if (btn && btn.disabled) resetSyncBtn(btn);
-                    });
+                    // Reset all sync buttons IF NOT in Sync All mode
+                    if (!window.isSyncAllActive) {
+                        [syncBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn].forEach(btn => {
+                            if (btn && btn.disabled) resetSyncBtn(btn);
+                        });
+                    }
 
                     if (typeof window.showToast === 'function') {
                         window.showToast(data.message, 'success');
@@ -88,9 +92,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${data.message}</div>`;
 
                     // Reset all sync buttons
-                    [syncBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn].forEach(btn => {
-                        if (btn && btn.disabled) resetSyncBtn(btn);
-                    });
+                    if (!window.isSyncAllActive) {
+                        [syncBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn].forEach(btn => {
+                            if (btn && btn.disabled) resetSyncBtn(btn);
+                        });
+                    }
 
                     if (typeof window.showToast === 'function') {
                         window.showToast(data.message, 'error');
@@ -104,128 +110,132 @@ document.addEventListener('DOMContentLoaded', () => {
     initSyncSocket();
 
     const syncBtn = document.getElementById('sync-btn');
-    if (syncBtn) {
-        syncBtn.addEventListener('click', async () => {
-            setSyncLoading(syncBtn, 'Queueing');
-            syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
-            syncStatus.textContent = 'Adding task to queue...';
-            syncStatus.classList.remove('hidden');
-
-            try {
-                const response = await fetch(window.SETTINGS_CONFIG.syncDataUrl, { method: 'POST' });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.message || 'Queueing failed');
-                syncStatus.textContent = data.message;
-            } catch (error) {
-                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 text-red-600 border border-red-100';
-                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${error.message}</div>`;
-                resetSyncBtn(syncBtn);
-            }
-        });
-    }
-
     const syncProcessBtn = document.getElementById('sync-process-delay-btn');
-    if (syncProcessBtn) {
-        syncProcessBtn.addEventListener('click', async () => {
-            setSyncLoading(syncProcessBtn, 'Queueing');
-            syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
-            syncStatus.textContent = 'Adding process sync to queue...';
-            syncStatus.classList.remove('hidden');
-
-            try {
-                const response = await fetch(window.SETTINGS_CONFIG.syncProcessDelayUrl, { method: 'POST' });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.message || 'Queueing failed');
-                syncStatus.textContent = data.message;
-            } catch (error) {
-                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 text-red-600 border border-red-100';
-                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${error.message}</div>`;
-                resetSyncBtn(syncProcessBtn);
-            }
-        });
-    }
-
     const syncOutstandingPOBtn = document.getElementById('sync-outstanding-po-btn');
-    if (syncOutstandingPOBtn) {
-        syncOutstandingPOBtn.addEventListener('click', async () => {
-            setSyncLoading(syncOutstandingPOBtn, 'Queueing');
-            syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
-            syncStatus.textContent = 'Adding PO sync to queue...';
-            syncStatus.classList.remove('hidden');
-
-            try {
-                const response = await fetch(window.SETTINGS_CONFIG.syncOutstandingPOUrl, { method: 'POST' });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.message || 'Queueing failed');
-                syncStatus.textContent = data.message;
-            } catch (error) {
-                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 text-red-600 border border-red-100';
-                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${error.message}</div>`;
-                resetSyncBtn(syncOutstandingPOBtn);
-            }
-        });
-    }
-
     const syncStageDelayBtn = document.getElementById('sync-stage-delay-btn');
-    if (syncStageDelayBtn) {
-        syncStageDelayBtn.addEventListener('click', async () => {
-            setSyncLoading(syncStageDelayBtn, 'Queueing');
-            syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
-            syncStatus.textContent = 'Adding Stage Level Delay sync to queue...';
-            syncStatus.classList.remove('hidden');
-
-            try {
-                const response = await fetch(window.SETTINGS_CONFIG.syncStageDelayUrl, { method: 'POST' });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.message || 'Queueing failed');
-                syncStatus.textContent = data.message;
-            } catch (error) {
-                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 text-red-600 border border-red-100';
-                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${error.message}</div>`;
-                resetSyncBtn(syncStageDelayBtn);
-            }
-        });
-    }
-
     const syncOrderDelayBtn = document.getElementById('sync-order-delay-btn');
-    if (syncOrderDelayBtn) {
-        syncOrderDelayBtn.addEventListener('click', async () => {
-            setSyncLoading(syncOrderDelayBtn, 'Queueing');
-            syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
-            syncStatus.textContent = 'Adding Order Delay Tracking sync to queue...';
-            syncStatus.classList.remove('hidden');
+    const syncPendingAcceptanceBtn = document.getElementById('sync-pending-acceptance-btn');
+    const syncAllBtn = document.getElementById('sync-all-btn');
 
-            try {
-                const response = await fetch(window.SETTINGS_CONFIG.syncOrderDelayUrl, { method: 'POST' });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.message || 'Queueing failed');
-                syncStatus.textContent = data.message;
-            } catch (error) {
-                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 text-red-600 border border-red-100';
-                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${error.message}</div>`;
-                resetSyncBtn(syncOrderDelayBtn);
-            }
+    async function triggerSync(btn, url, label) {
+        setSyncLoading(btn, 'Queueing');
+        syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+        syncStatus.textContent = `Queueing ${label}...`;
+        syncStatus.classList.remove('hidden');
+
+        try {
+            const response = await fetch(url, { method: 'POST' });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Queueing failed');
+            syncStatus.textContent = data.message;
+            return true;
+        } catch (error) {
+            syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 text-red-600 border border-red-100';
+            syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${error.message}</div>`;
+            resetSyncBtn(btn);
+            return false;
+        }
+    }
+
+    if (syncBtn) syncBtn.addEventListener('click', () => triggerSync(syncBtn, window.SETTINGS_CONFIG.syncDataUrl, 'Owner Wise Sync'));
+    if (syncProcessBtn) syncProcessBtn.addEventListener('click', () => triggerSync(syncProcessBtn, window.SETTINGS_CONFIG.syncProcessDelayUrl, 'Process Delay Sync'));
+    if (syncOutstandingPOBtn) syncOutstandingPOBtn.addEventListener('click', () => triggerSync(syncOutstandingPOBtn, window.SETTINGS_CONFIG.syncOutstandingPOUrl, 'PO Sync'));
+    if (syncStageDelayBtn) syncStageDelayBtn.addEventListener('click', () => triggerSync(syncStageDelayBtn, window.SETTINGS_CONFIG.syncStageDelayUrl, 'Stage Delay Sync'));
+    if (syncOrderDelayBtn) syncOrderDelayBtn.addEventListener('click', () => triggerSync(syncOrderDelayBtn, window.SETTINGS_CONFIG.syncOrderDelayUrl, 'Order Delay Sync'));
+    if (syncPendingAcceptanceBtn) syncPendingAcceptanceBtn.addEventListener('click', () => triggerSync(syncPendingAcceptanceBtn, window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, 'Pending Acceptance Sync'));
+
+    function showConfirmModal(title, message) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('confirmModal');
+            const content = document.getElementById('confirmModalContent');
+            const titleEl = document.getElementById('confirmModalTitle');
+            const messageEl = document.getElementById('confirmModalMessage');
+            const cancelBtn = document.getElementById('confirmCancelBtn');
+            const proceedBtn = document.getElementById('confirmProceedBtn');
+
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.add('opacity-100');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            }, 10);
+
+            const cleanup = (result) => {
+                modal.classList.remove('opacity-100');
+                content.classList.remove('scale-100');
+                content.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    cancelBtn.removeEventListener('click', onCancel);
+                    proceedBtn.removeEventListener('click', onProceed);
+                    resolve(result);
+                }, 200);
+            };
+
+            const onCancel = () => cleanup(false);
+            const onProceed = () => cleanup(true);
+
+            cancelBtn.addEventListener('click', onCancel);
+            proceedBtn.addEventListener('click', onProceed);
         });
     }
 
-    const syncPendingAcceptanceBtn = document.getElementById('sync-pending-acceptance-btn');
-    if (syncPendingAcceptanceBtn) {
-        syncPendingAcceptanceBtn.addEventListener('click', async () => {
-            setSyncLoading(syncPendingAcceptanceBtn, 'Queueing');
-            syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
-            syncStatus.textContent = 'Adding Pending Acceptance sync to queue...';
-            syncStatus.classList.remove('hidden');
+    if (syncAllBtn) {
+        syncAllBtn.addEventListener('click', async () => {
+            const confirmed = await showConfirmModal(
+                'Sync All Data',
+                'Start all sync processes sequentially? This may take several minutes and will overwrite current cached snapshots.'
+            );
+            if (!confirmed) return;
 
-            try {
-                const response = await fetch(window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, { method: 'POST' });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.message || 'Queueing failed');
-                syncStatus.textContent = data.message;
-            } catch (error) {
-                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 text-red-600 border border-red-100';
-                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${error.message}</div>`;
-                resetSyncBtn(syncPendingAcceptanceBtn);
+            const tasks = [
+                { url: window.SETTINGS_CONFIG.syncDataUrl, label: 'Owner Wise Summary', type: 'owner_wise' },
+                { url: window.SETTINGS_CONFIG.syncProcessDelayUrl, label: 'Process Delay', type: 'process_delay' },
+                { url: window.SETTINGS_CONFIG.syncOutstandingPOUrl, label: 'Outstanding PO', type: 'outstanding_po' },
+                { url: window.SETTINGS_CONFIG.syncStageDelayUrl, label: 'Stage Delay', type: 'stage_delay' },
+                { url: window.SETTINGS_CONFIG.syncOrderDelayUrl, label: 'Order Delay', type: 'order_delay_tracking' },
+                { url: window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, label: 'Pending Acceptance', type: 'pending_acceptance' }
+            ];
+
+            setSyncLoading(syncAllBtn, 'Processing');
+            window.isSyncAllActive = true;
+
+            for (let i = 0; i < tasks.length; i++) {
+                const task = tasks[i];
+                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100';
+                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm animate-spin">sync</span> [${i + 1}/${tasks.length}] ${task.label}: Initializing...</div>`;
+                syncStatus.classList.remove('hidden');
+
+                const success = await triggerSync(syncAllBtn, task.url, task.label);
+                if (!success) {
+                    window.isSyncAllActive = false;
+                    return;
+                }
+
+                // Wait for task completion via socket
+                await new Promise((resolve) => {
+                    const handler = (data) => {
+                        if (data.type === task.type && (data.status === 'success' || data.status === 'error')) {
+                            window.socket.off('sync_update', handler);
+                            if (data.status === 'error') {
+                                window.isSyncAllActive = false;
+                                resolve(false);
+                            } else {
+                                resolve(true);
+                            }
+                        }
+                    };
+                    window.socket.on('sync_update', handler);
+                });
+
+                if (!window.isSyncAllActive) break;
             }
+
+            window.isSyncAllActive = false;
+            resetSyncBtn(syncAllBtn);
         });
     }
 
