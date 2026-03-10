@@ -10,7 +10,7 @@
 <main id="order-delay-tracking-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
     <!-- Header -->
     <div
-        class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
+        class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-1 shrink-0 flex items-center justify-between">
         <div class="flex items-center gap-4">
             <h2 class="text-sm font-bold tracking-tight">Order Delay Tracking Report</h2>
         </div>
@@ -40,22 +40,22 @@
     <!-- Stats Grid -->
     <div
         class="grid grid-cols-2 lg:grid-cols-5 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+        <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase">1-2 Days Delay</p>
             <p id="stat-delay-1-2" class="text-sm font-bold text-amber-600">{{ footer_totals.delay_1_2_days|default(0)
                 }}</p>
         </div>
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+        <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase">3-4 Days Delay</p>
             <p id="stat-delay-3-4" class="text-sm font-bold text-orange-600">{{ footer_totals.delay_3_4_days|default(0)
                 }}</p>
         </div>
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+        <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase">5-10 Days Delay</p>
             <p id="stat-delay-5-10" class="text-sm font-bold text-red-500">{{ footer_totals.delay_5_10_days|default(0)
                 }}</p>
         </div>
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+        <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase">>10 Days Delay</p>
             <p id="stat-delay-more-10" class="text-sm font-bold text-red-700">{{
                 footer_totals.delay_more_than_10_days|default(0) }}</p>
@@ -71,7 +71,7 @@
 
     <!-- Pagination Strip -->
     <div
-        class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+        class="px-3 py-1 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
             <span class="material-symbols-outlined text-[14px]">info</span>
             <span>Showing Order Delay summaries. Use sidebar filters to explore deeper.</span>
