@@ -555,6 +555,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(e);
             showToast('Network error', 'error');
         }
+    };
+
     window.clearUserLockout = async function(id) {
         const user = gManagedUsers.find(u => u.id === id);
         if (!user) return;
