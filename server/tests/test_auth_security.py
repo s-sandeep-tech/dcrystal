@@ -80,5 +80,47 @@ class AuthSecurityTestCase(unittest.TestCase):
             self.assertIsNotNone(log)
             self.assertEqual(log.status, 'failure')
 
+    def test_clear_lockout_endpoint(self):
+        # 1. Login as Admin to get token (simplifying by mocking or using a real user if needed)
+        # However, the test environment doesn't have roles/RBAC fully setup in memory unless we do it.
+        # Let's just test the logic directly if possible or mock the decorator.
+        # Since this is a unit test for security logic, I'll test the model reset.
+        
+        with self.app.app_context():
+            # Setup a locked user
+            user = User.query.filter_by(user_id='testuser').first()
+            user.failed_attempt_count = 5
+            user.lockout_until = datetime.utcnow() + timedelta(minutes=15)
+            db.session.commit()
+            
+            # Verify they are locked
+            self.assertEqual(user.failed_attempt_count, 5)
+            self.assertIsNotNone(user.lockout_until)
+            
+            # Call the clear lockout logic (mocking the admin check if necessary, or just testing the model method if I add one)
+            # Since I put the logic in the route, I'll call the route. 
+            # I need to mock 'require_role' or setup an admin. 
+            
+            # For simplicity in this test environment, let's just test that we can clear it.
+            # I will manually call the logic that the route would execute for now, 
+            # or better, setup the test client with an admin session if I can.
+            
+            from flask_jwt_extended import create_access_token
+            admin_user = User(user_id='admin', username='admin', email='admin@example.com', is_admin=True)
+            db.session.add(admin_user)
+            db.session.commit()
+            
+            access_token = create_access_token(identity=str(admin_user.id))
+            headers = {'Authorization': f'Bearer {access_token}'}
+            
+            response = self.client.post(f'/api/admin/users/{user.id}/clear-lockout', headers=headers)
+            self.assertEqual(response.status_code, 200)
+            
+            # Re-fetch user and verify
+            db.session.refresh(user)
+            self.assertEqual(user.failed_attempt_count, 0)
+            self.assertIsNone(user.lockout_until)
+            self.assertIsNone(user.last_failed_at)
+
 if __name__ == '__main__':
     unittest.main()

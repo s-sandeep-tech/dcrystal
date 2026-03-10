@@ -393,6 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="px-4 py-3 text-gray-400 whitespace-nowrap">${new Date(u.created_at).toLocaleDateString()}</td>
                 <td class="px-4 py-3 text-right whitespace-nowrap">
                     ${u.is_admin ? '<span class="text-gray-300 p-1 opacity-20" title="Admin password cannot be reset through user management"><span class="material-symbols-outlined text-[16px]">lock</span></span>' : `<button onclick="openChangePasswordModal(${u.id})" class="text-gray-400 hover:text-amber-500 transition-colors p-1" title="Change Password"><span class="material-symbols-outlined text-[16px]">key</span></button>`}
+                    ${(u.failed_attempt_count > 0 || u.lockout_until) ? `<button onclick="clearUserLockout(${u.id})" class="text-gray-400 hover:text-green-500 transition-colors p-1 ml-1" title="Clear Lockout"><span class="material-symbols-outlined text-[16px]">restart_alt</span></button>` : ''}
                     <button onclick="editUser(${u.id})" class="text-gray-400 hover:text-primary transition-colors p-1 ml-1" title="Edit User"><span class="material-symbols-outlined text-[16px]">edit</span></button>
                     <button onclick="deleteUser(${u.id})" class="text-gray-400 hover:text-red-500 transition-colors p-1 ml-1" title="Delete User"><span class="material-symbols-outlined text-[16px]">delete</span></button>
                 </td>
@@ -549,6 +550,29 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 const err = await res.json();
                 showToast(err.msg || 'Error updating password', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Network error', 'error');
+        }
+    window.clearUserLockout = async function(id) {
+        const user = gManagedUsers.find(u => u.id === id);
+        if (!user) return;
+        
+        if (!confirm(`Are you sure you want to clear lockout for ${user.username}?`)) return;
+
+        try {
+            const res = await fetch(`/api/admin/users/${id}/clear-lockout`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+
+            if (res.ok) {
+                showToast('User lockout cleared successfully', 'success');
+                fetchUsers(userCurrentPage);
+            } else {
+                const err = await res.json();
+                showToast(err.msg || 'Error clearing lockout', 'error');
             }
         } catch (e) {
             console.error(e);

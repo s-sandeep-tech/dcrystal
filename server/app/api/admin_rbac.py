@@ -264,6 +264,23 @@ def change_user_password(user_id):
     db.session.commit()
     return jsonify({"msg": "Password updated successfully"}), 200
 
+@admin_rbac_bp.route('/users/<int:user_id>/clear-lockout', methods=['POST'])
+@jwt_required()
+@require_role('ADMIN')
+def clear_user_lockout(user_id):
+    user = User.query.get_or_404(user_id)
+    
+    # Reset security fields
+    user.failed_attempt_count = 0
+    user.lockout_until = None
+    user.last_failed_at = None
+    
+    # Audit log
+    log_audit(get_jwt_identity(), "CLEAR_LOCKOUT", "USER", user_id, {"username": user.username})
+    
+    db.session.commit()
+    return jsonify({"msg": f"Lockout cleared for user {user.username}"}), 200
+
 @admin_rbac_bp.route('/users/search', methods=['GET'])
 @jwt_required()
 @require_role('ADMIN')
