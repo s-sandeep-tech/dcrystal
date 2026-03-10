@@ -36,8 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncStatus = document.getElementById('sync-status');
 
     function setSyncLoading(btn, text) {
+        if (!btn.disabled) {
+            btn.dataset.originalHtml = btn.innerHTML;
+        }
         btn.disabled = true;
-        btn.dataset.originalHtml = btn.innerHTML;
         btn.innerHTML = `<span class="material-symbols-outlined text-[14px] animate-spin">sync</span> ${text}...`;
     }
 
@@ -84,6 +86,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     }
 
+                    // Remove highlight from wrapper div
+                    if (data.type) {
+                        const wrapper = document.getElementById(`sync-wrapper-${data.type}`);
+                        if (wrapper) {
+                            wrapper.classList.remove('border-primary', 'ring-1', 'ring-primary/20', 'bg-white', 'dark:bg-gray-800/80', 'shadow-lg');
+                            wrapper.classList.add('bg-gray-50', 'dark:bg-gray-800/50', 'border-gray-100', 'dark:border-gray-700');
+                        }
+                    }
+
                     if (typeof window.showToast === 'function') {
                         window.showToast(data.message, 'success');
                     }
@@ -96,6 +107,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         [syncBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
                         });
+                    }
+
+                    // Remove highlight from wrapper div
+                    if (data.type) {
+                        const wrapper = document.getElementById(`sync-wrapper-${data.type}`);
+                        if (wrapper) {
+                            wrapper.classList.remove('border-primary', 'ring-1', 'ring-primary/20', 'bg-white', 'dark:bg-gray-800/80', 'shadow-lg');
+                            wrapper.classList.add('bg-gray-50', 'dark:bg-gray-800/50', 'border-gray-100', 'dark:border-gray-700');
+                        }
                     }
 
                     if (typeof window.showToast === 'function') {
@@ -117,11 +137,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncPendingAcceptanceBtn = document.getElementById('sync-pending-acceptance-btn');
     const syncAllBtn = document.getElementById('sync-all-btn');
 
-    async function triggerSync(btn, url, label) {
+    async function triggerSync(btn, url, label, type) {
         setSyncLoading(btn, 'Queueing');
         syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
         syncStatus.textContent = `Queueing ${label}...`;
         syncStatus.classList.remove('hidden');
+
+        // Add highlight
+        if (type) {
+            const wrapper = document.getElementById(`sync-wrapper-${type}`);
+            if (wrapper) {
+                wrapper.classList.remove('bg-gray-50', 'dark:bg-gray-800/50', 'border-gray-100', 'dark:border-gray-700');
+                wrapper.classList.add('border-primary', 'ring-1', 'ring-primary/20', 'bg-white', 'dark:bg-gray-800/80', 'shadow-lg');
+            }
+        }
 
         try {
             const response = await fetch(url, { method: 'POST' });
@@ -133,16 +162,25 @@ document.addEventListener('DOMContentLoaded', () => {
             syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 text-red-600 border border-red-100';
             syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${error.message}</div>`;
             resetSyncBtn(btn);
+
+            // Remove highlight on quick fail
+            if (type) {
+                const wrapper = document.getElementById(`sync-wrapper-${type}`);
+                if (wrapper) {
+                    wrapper.classList.remove('border-primary', 'ring-1', 'ring-primary/20', 'bg-white', 'dark:bg-gray-800/80', 'shadow-lg');
+                    wrapper.classList.add('bg-gray-50', 'dark:bg-gray-800/50', 'border-gray-100', 'dark:border-gray-700');
+                }
+            }
             return false;
         }
     }
 
-    if (syncBtn) syncBtn.addEventListener('click', () => triggerSync(syncBtn, window.SETTINGS_CONFIG.syncDataUrl, 'Owner Wise Sync'));
-    if (syncProcessBtn) syncProcessBtn.addEventListener('click', () => triggerSync(syncProcessBtn, window.SETTINGS_CONFIG.syncProcessDelayUrl, 'Process Delay Sync'));
-    if (syncOutstandingPOBtn) syncOutstandingPOBtn.addEventListener('click', () => triggerSync(syncOutstandingPOBtn, window.SETTINGS_CONFIG.syncOutstandingPOUrl, 'PO Sync'));
-    if (syncStageDelayBtn) syncStageDelayBtn.addEventListener('click', () => triggerSync(syncStageDelayBtn, window.SETTINGS_CONFIG.syncStageDelayUrl, 'Stage Delay Sync'));
-    if (syncOrderDelayBtn) syncOrderDelayBtn.addEventListener('click', () => triggerSync(syncOrderDelayBtn, window.SETTINGS_CONFIG.syncOrderDelayUrl, 'Order Delay Sync'));
-    if (syncPendingAcceptanceBtn) syncPendingAcceptanceBtn.addEventListener('click', () => triggerSync(syncPendingAcceptanceBtn, window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, 'Pending Acceptance Sync'));
+    if (syncBtn) syncBtn.addEventListener('click', () => triggerSync(syncBtn, window.SETTINGS_CONFIG.syncDataUrl, 'Owner Wise Sync', 'owner_wise'));
+    if (syncProcessBtn) syncProcessBtn.addEventListener('click', () => triggerSync(syncProcessBtn, window.SETTINGS_CONFIG.syncProcessDelayUrl, 'Process Delay Sync', 'process_delay'));
+    if (syncOutstandingPOBtn) syncOutstandingPOBtn.addEventListener('click', () => triggerSync(syncOutstandingPOBtn, window.SETTINGS_CONFIG.syncOutstandingPOUrl, 'PO Sync', 'outstanding_po'));
+    if (syncStageDelayBtn) syncStageDelayBtn.addEventListener('click', () => triggerSync(syncStageDelayBtn, window.SETTINGS_CONFIG.syncStageDelayUrl, 'Stage Delay Sync', 'stage_delay'));
+    if (syncOrderDelayBtn) syncOrderDelayBtn.addEventListener('click', () => triggerSync(syncOrderDelayBtn, window.SETTINGS_CONFIG.syncOrderDelayUrl, 'Order Delay Sync', 'order_delay_tracking'));
+    if (syncPendingAcceptanceBtn) syncPendingAcceptanceBtn.addEventListener('click', () => triggerSync(syncPendingAcceptanceBtn, window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, 'Pending Acceptance Sync', 'pending_acceptance'));
 
     function showConfirmModal(title, message) {
         return new Promise((resolve) => {
@@ -203,13 +241,22 @@ document.addEventListener('DOMContentLoaded', () => {
             setSyncLoading(syncAllBtn, 'Processing');
             window.isSyncAllActive = true;
 
+            // Clear any existing highlights
+            tasks.forEach(t => {
+                const wrapper = document.getElementById(`sync-wrapper-${t.type}`);
+                if (wrapper) {
+                    wrapper.classList.remove('border-primary', 'ring-1', 'ring-primary/20', 'bg-white', 'dark:bg-gray-800/80');
+                }
+            });
+
             for (let i = 0; i < tasks.length; i++) {
                 const task = tasks[i];
+
                 syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100';
                 syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm animate-spin">sync</span> [${i + 1}/${tasks.length}] ${task.label}: Initializing...</div>`;
                 syncStatus.classList.remove('hidden');
 
-                const success = await triggerSync(syncAllBtn, task.url, task.label);
+                const success = await triggerSync(syncAllBtn, task.url, task.label, task.type);
                 if (!success) {
                     window.isSyncAllActive = false;
                     return;
