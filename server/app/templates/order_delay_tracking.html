@@ -41,42 +41,65 @@
     <div
         class="grid grid-cols-2 lg:grid-cols-9 gap-1 p-1 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
         <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[8px] text-amber-600 font-bold uppercase truncate">Prod 1-2</p>
-            <p id="stat-delay-1-2" class="text-xs font-bold text-amber-600">{{ footer_totals.delay_1_2_days|default(0) }}</p>
+            <p class="text-[8px] text-amber-600 font-bold uppercase truncate">Prod: 1-2 Days</p>
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[10px] text-amber-600/50">timer</span>
+                <p id="stat-delay-1-2" class="text-xs font-bold text-amber-600">{{ footer_totals.delay_1_2_days|default(0) }}</p>
+            </div>
         </div>
         <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[8px] text-amber-600 font-bold uppercase truncate">Prod 3-4</p>
-            <p id="stat-delay-3-4" class="text-xs font-bold text-orange-600">{{ footer_totals.delay_3_4_days|default(0) }}</p>
+            <p class="text-[8px] text-amber-600 font-bold uppercase truncate">Prod: 3-4 Days</p>
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[10px] text-orange-600/50">schedule</span>
+                <p id="stat-delay-3-4" class="text-xs font-bold text-orange-600">{{ footer_totals.delay_3_4_days|default(0) }}</p>
+            </div>
         </div>
         <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[8px] text-amber-600 font-bold uppercase truncate">Prod 5-10</p>
-            <p id="stat-delay-5-10" class="text-xs font-bold text-red-500">{{ footer_totals.delay_5_10_days|default(0) }}</p>
+            <p class="text-[8px] text-amber-600 font-bold uppercase truncate">Prod: 5-10 Days</p>
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[10px] text-red-500/50">history</span>
+                <p id="stat-delay-5-10" class="text-xs font-bold text-red-500">{{ footer_totals.delay_5_10_days|default(0) }}</p>
+            </div>
         </div>
         <div class="p-1 border-r border-gray-300 dark:border-gray-700 text-center">
-            <p class="text-[8px] text-amber-600 font-bold uppercase truncate">Prod >10</p>
-            <p id="stat-delay-more-10" class="text-xs font-bold text-red-700">{{ footer_totals.delay_more_than_10_days|default(0) }}</p>
+            <p class="text-[8px] text-amber-600 font-bold uppercase truncate">Prod: >10 Days</p>
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[10px] text-red-700/50">error</span>
+                <p id="stat-delay-more-10" class="text-xs font-bold text-red-700">{{ footer_totals.delay_more_than_10_days|default(0) }}</p>
+            </div>
         </div>
         <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center bg-blue-50/10">
-            <p class="text-[8px] text-blue-600 font-bold uppercase truncate">QC 1-2</p>
-            <p id="stat-qc-delay-1-2" class="text-xs font-bold text-blue-600">{{ footer_totals.qc_delay_1_2_days|default(0) }}</p>
+            <p class="text-[8px] text-blue-600 font-bold uppercase truncate">QC: 1-2 Days</p>
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[10px] text-blue-600/50">flaky</span>
+                <p id="stat-qc-delay-1-2" class="text-xs font-bold text-blue-600">{{ footer_totals.qc_delay_1_2_days|default(0) }}</p>
+            </div>
         </div>
         <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center bg-blue-50/10">
-            <p class="text-[8px] text-blue-600 font-bold uppercase truncate">QC 3-4</p>
-            <p id="stat-qc-delay-3-4" class="text-xs font-bold text-indigo-600">{{ footer_totals.qc_delay_3_4_days|default(0) }}</p>
+            <p class="text-[8px] text-blue-600 font-bold uppercase truncate">QC: 3-4 Days</p>
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[10px] text-indigo-600/50">fact_check</span>
+                <p id="stat-qc-delay-3-4" class="text-xs font-bold text-indigo-600">{{ footer_totals.qc_delay_3_4_days|default(0) }}</p>
+            </div>
         </div>
         <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center bg-blue-50/10">
-            <p class="text-[8px] text-blue-600 font-bold uppercase truncate">QC 5-10</p>
-            <p id="stat-qc-delay-5-10" class="text-xs font-bold text-purple-500">{{ footer_totals.qc_delay_5_10_days|default(0) }}</p>
+            <p class="text-[8px] text-blue-600 font-bold uppercase truncate">QC: 5-10 Days</p>
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[10px] text-purple-500/50">playlist_add_check</span>
+                <p id="stat-qc-delay-5-10" class="text-xs font-bold text-purple-500">{{ footer_totals.qc_delay_5_10_days|default(0) }}</p>
+            </div>
         </div>
         <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center bg-blue-50/10">
-            <p class="text-[8px] text-blue-600 font-bold uppercase truncate">QC >10</p>
-            <p id="stat-qc-delay-more-10" class="text-xs font-bold text-fuchsia-700">{{ footer_totals.qc_delay_more_than_10_days|default(0) }}</p>
+            <p class="text-[8px] text-blue-600 font-bold uppercase truncate">QC: >10 Days</p>
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[10px] text-fuchsia-700/50">warning</span>
+                <p id="stat-qc-delay-more-10" class="text-xs font-bold text-fuchsia-700">{{ footer_totals.qc_delay_more_than_10_days|default(0) }}</p>
+            </div>
         </div>
         <div class="p-2 text-center flex flex-col justify-center">
-            <div class="flex items-center justify-center gap-1.5">
-                <span class="text-[9px] font-bold text-gray-400 uppercase">Drill-down Level:</span>
-                <span id="current-level-badge"
-                    class="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-bold rounded uppercase">CLASSIFICATION_OWNER</span>
+            <div id="current-level-badge" class="flex items-center justify-center gap-1.5 px-2 py-1 bg-primary/5 text-primary text-[10px] font-bold rounded-lg uppercase tracking-tight">
+                <span class="material-symbols-outlined text-[16px]">layers</span>
+                <span>Classification</span>
             </div>
         </div>
     </div>

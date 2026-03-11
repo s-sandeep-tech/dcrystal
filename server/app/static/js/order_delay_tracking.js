@@ -53,6 +53,12 @@ async function loadViewData() {
             try {
                 const stats = JSON.parse(statsScript.textContent);
                 updateDashboardStats(stats);
+                
+                // Also update level badge if it exists in the meta
+                const metaDiv = activeView.querySelector('.pagination-meta');
+                if (metaDiv) {
+                    updateLevelBadge(metaDiv.dataset.level, stats.row_count);
+                }
             } catch (e) {
                 console.error('Error parsing stats metadata:', e);
             }
@@ -62,7 +68,7 @@ async function loadViewData() {
         const metaDiv = activeView.querySelector('.pagination-meta');
         if (metaDiv) {
             updatePaginationControls(metaDiv.dataset);
-            updateLevelBadge(metaDiv.dataset.level);
+            // The updateLevelBadge call was moved into the statsScript block
         }
 
     } catch (error) {
@@ -71,11 +77,25 @@ async function loadViewData() {
     }
 }
 
-function updateLevelBadge(level) {
+function updateLevelBadge(level, count = 0) {
     const badge = document.getElementById('current-level-badge');
-    if (badge) {
-        badge.textContent = level ? level.toUpperCase() : 'CLASSIFICATION_OWNER';
+    if (!badge) return;
+
+    let icon = 'layers';
+    let text = 'Classification';
+
+    if (level === 'make_owner') {
+        icon = 'factory';
+        text = 'Make Owner';
+    } else if (level === 'collection_owner') {
+        icon = 'inventory_2';
+        text = 'Collection Owner';
     }
+
+    badge.innerHTML = `
+        <span class="material-symbols-outlined text-[16px]">${icon}</span>
+        <span>${text} (${count})</span>
+    `;
 }
 
 function updateDashboardStats(stats) {

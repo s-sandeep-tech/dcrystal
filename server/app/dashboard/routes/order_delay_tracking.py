@@ -42,7 +42,8 @@ def order_delay_tracking():
             'delay_1_2_days': 0, 'delay_3_4_days': 0,
             'delay_5_10_days': 0, 'delay_more_than_10_days': 0,
             'qc_delay_1_2_days': 0, 'qc_delay_3_4_days': 0,
-            'qc_delay_5_10_days': 0, 'qc_delay_more_than_10_days': 0
+            'qc_delay_5_10_days': 0, 'qc_delay_more_than_10_days': 0,
+            'row_count': 0
         }
 
         return render_template('order_delay_tracking.html', 
@@ -152,29 +153,37 @@ def get_order_delay_tracking_partial():
         else:
             level = 'unknown'
 
-        # Totals for footer (only for root level)
-        footer_totals = {}
-        if not parent_level:
-            total_q = db.session.query(*agg_cols)
-            total_q = apply_filters(total_q)
-            totals = total_q.first()
-            footer_totals = {
-                'delay_1_2_days': int(totals.delay_1_2_days or 0) if totals else 0,
-                'delay_3_4_days': int(totals.delay_3_4_days or 0) if totals else 0,
-                'delay_5_10_days': int(totals.delay_5_10_days or 0) if totals else 0,
-                'delay_more_than_10_days': int(totals.delay_more_than_10_days or 0) if totals else 0,
-                'qc_delay_1_2_days': int(totals.qc_delay_1_2_days or 0) if totals else 0,
-                'qc_delay_3_4_days': int(totals.qc_delay_3_4_days or 0) if totals else 0,
-                'qc_delay_5_10_days': int(totals.qc_delay_5_10_days or 0) if totals else 0,
-                'qc_delay_more_than_10_days': int(totals.qc_delay_more_than_10_days or 0) if totals else 0
-            }
-
         # Main query for rows
         main_q = base_query.with_entities(*(group_cols + agg_cols))
         main_q = apply_filters(main_q)
         main_q = main_q.group_by(*group_cols).order_by(*group_cols)
         
         pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
+
+        # Totals for footer
+        total_q = db.session.query(*agg_cols)
+        total_q = apply_filters(total_q)
+        
+        # If we are in a drill-down, we need to apply the parent filters to the totals as well
+        if parent_level == 'classification_owner':
+            total_q = total_q.filter(OrderDelayTrackingSnapshot.classification_owner == parent_value)
+        elif parent_level == 'make_owner':
+            total_q = total_q.filter(OrderDelayTrackingSnapshot.make_owner == parent_value)
+            if grandparent_value:
+                total_q = total_q.filter(OrderDelayTrackingSnapshot.classification_owner == grandparent_value)
+                
+        totals = total_q.first()
+        footer_totals = {
+            'delay_1_2_days': int(totals.delay_1_2_days or 0) if totals else 0,
+            'delay_3_4_days': int(totals.delay_3_4_days or 0) if totals else 0,
+            'delay_5_10_days': int(totals.delay_5_10_days or 0) if totals else 0,
+            'delay_more_than_10_days': int(totals.delay_more_than_10_days or 0) if totals else 0,
+            'qc_delay_1_2_days': int(totals.qc_delay_1_2_days or 0) if totals else 0,
+            'qc_delay_3_4_days': int(totals.qc_delay_3_4_days or 0) if totals else 0,
+            'qc_delay_5_10_days': int(totals.qc_delay_5_10_days or 0) if totals else 0,
+            'qc_delay_more_than_10_days': int(totals.qc_delay_more_than_10_days or 0) if totals else 0,
+            'row_count': pagination.total if not parent_level else len(pagination.items)
+        }
         
         processed_rows = []
         for r in pagination.items:
