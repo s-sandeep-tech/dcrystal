@@ -8,18 +8,27 @@
                 <th
                     class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700">
                     Drill-down Hierarchy (Party > Make > Collection)</th>
-                <th
-                    class="px-3 py-2 text-[10px] font-bold text-amber-600 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 text-center w-32">
-                    1-2 Days Delay</th>
-                <th
-                    class="px-3 py-2 text-[10px] font-bold text-orange-600 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 text-center w-32">
-                    3-4 Days Delay</th>
-                <th
-                    class="px-3 py-2 text-[10px] font-bold text-red-500 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 text-center w-32">
-                    5-10 Days Delay</th>
-                <th
-                    class="px-3 py-2 text-[10px] font-bold text-red-700 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 text-center w-32">
-                    >10 Days Delay</th>
+                <th colspan="4"
+                    class="px-3 py-2 text-[10px] font-bold text-amber-600 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 text-center">
+                    Production Delay</th>
+                <th colspan="4"
+                    class="px-3 py-2 text-[10px] font-bold text-blue-600 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 text-center">
+                    QC Delay</th>
+            </tr>
+            <tr class="bg-gray-50 dark:bg-gray-800/50">
+                <th class="border-b border-gray-200 dark:border-gray-700"></th>
+                <th class="border-b border-gray-200 dark:border-gray-700"></th>
+                <!-- Prod Buckets -->
+                <th class="px-3 py-1 text-[9px] font-bold text-amber-600 text-center border-b border-gray-200 dark:border-gray-700">1-2d</th>
+                <th class="px-3 py-1 text-[9px] font-bold text-orange-600 text-center border-b border-gray-200 dark:border-gray-700">3-4d</th>
+                <th class="px-3 py-1 text-[9px] font-bold text-red-500 text-center border-b border-gray-200 dark:border-gray-700">5-10d</th>
+                <th class="px-3 py-1 text-[9px] font-bold text-red-700 text-center border-b border-gray-200 dark:border-gray-700">>10d</th>
+                <!-- QC Buckets -->
+                <th class="px-3 py-1 text-[9px] font-bold text-blue-600 text-center border-b border-gray-200 dark:border-gray-700 border-l border-gray-100 dark:border-gray-800">1-2d</th>
+                <th class="px-3 py-1 text-[9px] font-bold text-indigo-600 text-center border-b border-gray-200 dark:border-gray-700">3-4d</th>
+                <th class="px-3 py-1 text-[9px] font-bold text-purple-500 text-center border-b border-gray-200 dark:border-gray-700">5-10d</th>
+                <th class="px-3 py-1 text-[9px] font-bold text-fuchsia-700 text-center border-b border-gray-200 dark:border-gray-700">>10d</th>
+            </tr>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -102,14 +111,26 @@
                 <td class="px-3 py-2 text-[11px] font-bold text-center text-red-500">
                     {{ item.delay_5_10_days or 0 }}
                 </td>
-                <td class="px-3 py-2 text-[11px] font-bold text-center text-red-700">
+                <td class="px-3 py-2 text-[11px] font-bold text-center text-red-700 border-r border-gray-50 dark:border-gray-800/50">
                     {{ item.delay_more_than_10_days or 0 }}
+                </td>
+                <td class="px-3 py-2 text-[11px] font-bold text-center text-blue-600">
+                    {{ item.qc_delay_1_2_days or 0 }}
+                </td>
+                <td class="px-3 py-2 text-[11px] font-bold text-center text-indigo-600">
+                    {{ item.qc_delay_3_4_days or 0 }}
+                </td>
+                <td class="px-3 py-2 text-[11px] font-bold text-center text-purple-500">
+                    {{ item.qc_delay_5_10_days or 0 }}
+                </td>
+                <td class="px-3 py-2 text-[11px] font-bold text-center text-fuchsia-700">
+                    {{ item.qc_delay_more_than_10_days or 0 }}
                 </td>
             </tr>
             {% else %}
             {% if not is_child_rows %}
             <tr>
-                <td colspan="6" class="px-3 py-12 text-center text-gray-400 text-xs italic">
+                <td colspan="10" class="px-3 py-12 text-center text-gray-400 text-xs italic">
                     No orders found for this selection.
                 </td>
             </tr>

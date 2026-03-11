@@ -796,73 +796,148 @@ def sync_order_delay_tracking_data_task():
         
         emit_sync_update('processing', 'Fetching data from Azure...', 20, 'order_delay_tracking')
         query = """
-            WITH pro AS MATERIALIZED (
-            SELECT DISTINCT order_id
-            FROM ext_view.vw_order_status_process
-            WHERE status IN ('Process Pending', 'Barcode Pending')
-        ),
-        filtered_orders AS MATERIALIZED (
-            SELECT
-                od.order_id,
-                od.po_id
-            FROM ext_view.vw_order_details od
-            INNER JOIN pro
-                ON pro.order_id = od.order_id
-        )
-        SELECT
-            po.po_id,
-            fo.order_id,
-            p.classification_owner,
-            p.make_owner,
-            p.collection_owner,
-            p.make,
-            p.collection,
-            po.supplier,
-            po.po_number,
-            po.po_date,
-            po.delivery_target_date,
-            po.qc_target_date,
+WITH production_orders AS MATERIALIZED (
+    SELECT DISTINCT order_id
+    FROM ext_view.vw_order_status_process
+    WHERE status IN ('Process Pending', 'Barcode Pending')
+),
+qc_orders AS MATERIALIZED (
+    SELECT DISTINCT order_id
+    FROM ext_view.vw_order_status_process
+    WHERE process = 'Final QC'
+),
+base_orders AS MATERIALIZED (
+    SELECT
+        od.order_id,
+        od.po_id
+    FROM ext_view.vw_order_details od
+),
 
-            CASE
-                WHEN po.delivery_target_date IS NULL THEN NULL
-                WHEN CURRENT_DATE > po.delivery_target_date
-                    THEN CURRENT_DATE - po.delivery_target_date
-                ELSE 0
-            END AS delay_days,
+prod_bucket AS (
+    SELECT
+        bo.order_id,
+        CASE
+            WHEN po.delivery_target_date IS NULL THEN NULL
+            WHEN CURRENT_DATE > po.delivery_target_date
+                THEN CURRENT_DATE - po.delivery_target_date
+            ELSE 0
+        END AS production_delay_days,
 
-            CASE
-                WHEN po.delivery_target_date IS NULL THEN NULL
-                WHEN CURRENT_DATE > po.delivery_target_date
-                    AND (CURRENT_DATE - po.delivery_target_date) BETWEEN 1 AND 2
-                THEN 1 ELSE 0
-            END AS "1-2 days delay",
+        CASE
+            WHEN po.delivery_target_date IS NULL THEN NULL
+            WHEN CURRENT_DATE > po.delivery_target_date
+                 AND (CURRENT_DATE - po.delivery_target_date) BETWEEN 1 AND 2
+            THEN 1 ELSE 0
+        END AS production_1_2_delay,
 
-            CASE
-                WHEN po.delivery_target_date IS NULL THEN NULL
-                WHEN CURRENT_DATE > po.delivery_target_date
-                    AND (CURRENT_DATE - po.delivery_target_date) BETWEEN 3 AND 4
-                THEN 1 ELSE 0
-            END AS "3-4 days delay",
+        CASE
+            WHEN po.delivery_target_date IS NULL THEN NULL
+            WHEN CURRENT_DATE > po.delivery_target_date
+                 AND (CURRENT_DATE - po.delivery_target_date) BETWEEN 3 AND 4
+            THEN 1 ELSE 0
+        END AS production_3_4_delay,
 
-            CASE
-                WHEN po.delivery_target_date IS NULL THEN NULL
-                WHEN CURRENT_DATE > po.delivery_target_date
-                    AND (CURRENT_DATE - po.delivery_target_date) BETWEEN 5 AND 10
-                THEN 1 ELSE 0
-            END AS "5-10 days delay",
+        CASE
+            WHEN po.delivery_target_date IS NULL THEN NULL
+            WHEN CURRENT_DATE > po.delivery_target_date
+                 AND (CURRENT_DATE - po.delivery_target_date) BETWEEN 5 AND 10
+            THEN 1 ELSE 0
+        END AS production_5_10_delay,
 
-            CASE
-                WHEN po.delivery_target_date IS NULL THEN NULL
-                WHEN CURRENT_DATE > po.delivery_target_date
-                    AND (CURRENT_DATE - po.delivery_target_date) > 10
-                THEN 1 ELSE 0
-            END AS ">10 days delay"
+        CASE
+            WHEN po.delivery_target_date IS NULL THEN NULL
+            WHEN CURRENT_DATE > po.delivery_target_date
+                 AND (CURRENT_DATE - po.delivery_target_date) > 10
+            THEN 1 ELSE 0
+        END AS production_gt_10_delay
+    FROM base_orders bo
+    INNER JOIN production_orders pr
+        ON pr.order_id = bo.order_id
+    INNER JOIN ext_view.vw_purchase_order po
+        ON po.po_id = bo.po_id
+),
 
-        FROM filtered_orders fo
-        INNER JOIN ext_view.vw_purchase_order po
-            ON po.po_id = fo.po_id
-        INNER JOIN ext_view.vw_order_product_details p
-            ON p.order_id = fo.order_id;
+qc_bucket AS (
+    SELECT
+        bo.order_id,
+        CASE
+            WHEN po.qc_target_date IS NULL THEN NULL
+            WHEN CURRENT_DATE > po.qc_target_date
+                THEN CURRENT_DATE - po.qc_target_date
+            ELSE 0
+        END AS qc_delay_days,
+
+        CASE
+            WHEN po.qc_target_date IS NULL THEN NULL
+            WHEN CURRENT_DATE > po.qc_target_date
+                 AND (CURRENT_DATE - po.qc_target_date) BETWEEN 1 AND 2
+            THEN 1 ELSE 0
+        END AS qc_1_2_delay,
+
+        CASE
+            WHEN po.qc_target_date IS NULL THEN NULL
+            WHEN CURRENT_DATE > po.qc_target_date
+                 AND (CURRENT_DATE - po.qc_target_date) BETWEEN 3 AND 4
+            THEN 1 ELSE 0
+        END AS qc_3_4_delay,
+
+        CASE
+            WHEN po.qc_target_date IS NULL THEN NULL
+            WHEN CURRENT_DATE > po.qc_target_date
+                 AND (CURRENT_DATE - po.qc_target_date) BETWEEN 5 AND 10
+            THEN 1 ELSE 0
+        END AS qc_5_10_delay,
+
+        CASE
+            WHEN po.qc_target_date IS NULL THEN NULL
+            WHEN CURRENT_DATE > po.qc_target_date
+                 AND (CURRENT_DATE - po.qc_target_date) > 10
+            THEN 1 ELSE 0
+        END AS qc_gt_10_delay
+    FROM base_orders bo
+    INNER JOIN qc_orders q
+        ON q.order_id = bo.order_id
+    INNER JOIN ext_view.vw_purchase_order po
+        ON po.po_id = bo.po_id
+)
+
+SELECT
+    po.po_id,
+    bo.order_id,
+    p.classification_owner,
+    p.make_owner,
+    p.collection_owner,
+    p.make,
+    p.collection,
+    po.supplier,
+    po.po_number,
+    po.po_date,
+    po.delivery_target_date,
+    po.qc_target_date,
+
+    pb.production_delay_days,
+    pb.production_1_2_delay,
+    pb.production_3_4_delay,
+    pb.production_5_10_delay,
+    pb.production_gt_10_delay,
+
+    qb.qc_delay_days,
+    qb.qc_1_2_delay,
+    qb.qc_3_4_delay,
+    qb.qc_5_10_delay,
+    qb.qc_gt_10_delay
+
+FROM base_orders bo
+INNER JOIN ext_view.vw_purchase_order po
+    ON po.po_id = bo.po_id
+INNER JOIN ext_view.vw_order_product_details p
+    ON p.order_id = bo.order_id
+LEFT JOIN prod_bucket pb
+    ON pb.order_id = bo.order_id
+LEFT JOIN qc_bucket qb
+    ON qb.order_id = bo.order_id
+WHERE pb.order_id IS NOT NULL
+   OR qb.order_id IS NOT NULL;
         """
         
         start_time = time.time()
@@ -883,10 +958,16 @@ def sync_order_delay_tracking_data_task():
                 classification_owner=row.get('classification_owner'),
                 make_owner=row.get('make_owner'),
                 collection_owner=row.get('collection_owner'),
-                delay_1_2_days=row.get('1-2 days delay'),
-                delay_3_4_days=row.get('3-4 days delay'),
-                delay_5_10_days=row.get('5-10 days delay'),
-                delay_more_than_10_days=row.get('>10 days delay'),
+                delay_1_2_days=row.get('production_1_2_delay'),
+                delay_3_4_days=row.get('production_3_4_delay'),
+                delay_5_10_days=row.get('production_5_10_delay'),
+                delay_more_than_10_days=row.get('production_gt_10_delay'),
+                delay_days=row.get('production_delay_days'),
+                qc_delay_1_2_days=row.get('qc_1_2_delay'),
+                qc_delay_3_4_days=row.get('qc_3_4_delay'),
+                qc_delay_5_10_days=row.get('qc_5_10_delay'),
+                qc_delay_more_than_10_days=row.get('qc_gt_10_delay'),
+                qc_delay_days=row.get('qc_delay_days'),
                 supplier=row.get('supplier'),
                 po_id=row.get('po_id'),
                 order_id=row.get('order_id'),
@@ -894,13 +975,6 @@ def sync_order_delay_tracking_data_task():
                 po_date=row.get('po_date'),
                 delivery_target_date=row.get('delivery_target_date'),
                 qc_target_date=row.get('qc_target_date'),
-                #hm_requested_at=row.get('hm_requested_at'),
-                #hm_out_date=row.get('hm_out_date'),
-                #qc_date=row.get('qc_date'),
-                #qc_completed_at=row.get('qc_completed_at'),
-                #invoice_date=row.get('invoice_date'),
-                #order_receipt_created_at=row.get('order_receipt_created_at'),
-                delay_days=row.get('delay_days'),
                 make=row.get('make'),
                 collection=row.get('collection'),
                 snapshot_date=db.func.current_date()

@@ -441,6 +441,13 @@ class OrderDelayTrackingSnapshot(db.Model):
     make = db.Column(db.Text)
     collection = db.Column(db.Text)
     
+    # QC Delay Fields
+    qc_delay_1_2_days = db.Column(db.Integer, default=0)
+    qc_delay_3_4_days = db.Column(db.Integer, default=0)
+    qc_delay_5_10_days = db.Column(db.Integer, default=0)
+    qc_delay_more_than_10_days = db.Column(db.Integer, default=0)
+    qc_delay_days = db.Column(db.Integer)
+    
     snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
@@ -454,6 +461,11 @@ class OrderDelayTrackingSnapshot(db.Model):
             'delay_3_4_days': self.delay_3_4_days,
             'delay_5_10_days': self.delay_5_10_days,
             'delay_more_than_10_days': self.delay_more_than_10_days,
+            'qc_delay_1_2_days': self.qc_delay_1_2_days,
+            'qc_delay_3_4_days': self.qc_delay_3_4_days,
+            'qc_delay_5_10_days': self.qc_delay_5_10_days,
+            'qc_delay_more_than_10_days': self.qc_delay_more_than_10_days,
+            'qc_delay_days': self.qc_delay_days,
             'supplier': self.supplier,
             'po_id': self.po_id,
             'order_id': self.order_id,

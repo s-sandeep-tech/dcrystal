@@ -40,7 +40,9 @@ def order_delay_tracking():
 
         empty_totals = {
             'delay_1_2_days': 0, 'delay_3_4_days': 0,
-            'delay_5_10_days': 0, 'delay_more_than_10_days': 0
+            'delay_5_10_days': 0, 'delay_more_than_10_days': 0,
+            'qc_delay_1_2_days': 0, 'qc_delay_3_4_days': 0,
+            'qc_delay_5_10_days': 0, 'qc_delay_more_than_10_days': 0
         }
 
         return render_template('order_delay_tracking.html', 
@@ -124,7 +126,11 @@ def get_order_delay_tracking_partial():
             func.sum(OrderDelayTrackingSnapshot.delay_1_2_days).label('delay_1_2_days'),
             func.sum(OrderDelayTrackingSnapshot.delay_3_4_days).label('delay_3_4_days'),
             func.sum(OrderDelayTrackingSnapshot.delay_5_10_days).label('delay_5_10_days'),
-            func.sum(OrderDelayTrackingSnapshot.delay_more_than_10_days).label('delay_more_than_10_days')
+            func.sum(OrderDelayTrackingSnapshot.delay_more_than_10_days).label('delay_more_than_10_days'),
+            func.sum(OrderDelayTrackingSnapshot.qc_delay_1_2_days).label('qc_delay_1_2_days'),
+            func.sum(OrderDelayTrackingSnapshot.qc_delay_3_4_days).label('qc_delay_3_4_days'),
+            func.sum(OrderDelayTrackingSnapshot.qc_delay_5_10_days).label('qc_delay_5_10_days'),
+            func.sum(OrderDelayTrackingSnapshot.qc_delay_more_than_10_days).label('qc_delay_more_than_10_days')
         ]
         
         group_cols = []
@@ -156,7 +162,11 @@ def get_order_delay_tracking_partial():
                 'delay_1_2_days': int(totals.delay_1_2_days or 0) if totals else 0,
                 'delay_3_4_days': int(totals.delay_3_4_days or 0) if totals else 0,
                 'delay_5_10_days': int(totals.delay_5_10_days or 0) if totals else 0,
-                'delay_more_than_10_days': int(totals.delay_more_than_10_days or 0) if totals else 0
+                'delay_more_than_10_days': int(totals.delay_more_than_10_days or 0) if totals else 0,
+                'qc_delay_1_2_days': int(totals.qc_delay_1_2_days or 0) if totals else 0,
+                'qc_delay_3_4_days': int(totals.qc_delay_3_4_days or 0) if totals else 0,
+                'qc_delay_5_10_days': int(totals.qc_delay_5_10_days or 0) if totals else 0,
+                'qc_delay_more_than_10_days': int(totals.qc_delay_more_than_10_days or 0) if totals else 0
             }
 
         # Main query for rows
@@ -173,6 +183,10 @@ def get_order_delay_tracking_partial():
                 'delay_3_4_days': int(r.delay_3_4_days or 0),
                 'delay_5_10_days': int(r.delay_5_10_days or 0),
                 'delay_more_than_10_days': int(r.delay_more_than_10_days or 0),
+                'qc_delay_1_2_days': int(r.qc_delay_1_2_days or 0),
+                'qc_delay_3_4_days': int(r.qc_delay_3_4_days or 0),
+                'qc_delay_5_10_days': int(r.qc_delay_5_10_days or 0),
+                'qc_delay_more_than_10_days': int(r.qc_delay_more_than_10_days or 0),
                 'level': level
             }
             
@@ -287,7 +301,11 @@ def get_order_delay_tracking_details():
             func.sum(OrderDelayTrackingSnapshot.delay_1_2_days).label('delay_1_2_days'),
             func.sum(OrderDelayTrackingSnapshot.delay_3_4_days).label('delay_3_4_days'),
             func.sum(OrderDelayTrackingSnapshot.delay_5_10_days).label('delay_5_10_days'),
-            func.sum(OrderDelayTrackingSnapshot.delay_more_than_10_days).label('delay_more_than_10_days')
+            func.sum(OrderDelayTrackingSnapshot.delay_more_than_10_days).label('delay_more_than_10_days'),
+            func.sum(OrderDelayTrackingSnapshot.qc_delay_1_2_days).label('qc_delay_1_2_days'),
+            func.sum(OrderDelayTrackingSnapshot.qc_delay_3_4_days).label('qc_delay_3_4_days'),
+            func.sum(OrderDelayTrackingSnapshot.qc_delay_5_10_days).label('qc_delay_5_10_days'),
+            func.sum(OrderDelayTrackingSnapshot.qc_delay_more_than_10_days).label('qc_delay_more_than_10_days')
         ]
         
         if level == 'collection':
@@ -316,7 +334,11 @@ def get_order_delay_tracking_details():
                 'delay_1_2_days': int(r.delay_1_2_days or 0),
                 'delay_3_4_days': int(r.delay_3_4_days or 0),
                 'delay_5_10_days': int(r.delay_5_10_days or 0),
-                'delay_more_than_10_days': int(r.delay_more_than_10_days or 0)
+                'delay_more_than_10_days': int(r.delay_more_than_10_days or 0),
+                'qc_delay_1_2_days': int(r.qc_delay_1_2_days or 0),
+                'qc_delay_3_4_days': int(r.qc_delay_3_4_days or 0),
+                'qc_delay_5_10_days': int(r.qc_delay_5_10_days or 0),
+                'qc_delay_more_than_10_days': int(r.qc_delay_more_than_10_days or 0)
             }
             if level == 'make':
                 row['party'] = parent_value

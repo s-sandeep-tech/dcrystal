@@ -85,7 +85,11 @@ function updateDashboardStats(stats) {
         'stat-delay-1-2': stats.delay_1_2_days,
         'stat-delay-3-4': stats.delay_3_4_days,
         'stat-delay-5-10': stats.delay_5_10_days,
-        'stat-delay-more-10': stats.delay_more_than_10_days
+        'stat-delay-more-10': stats.delay_more_than_10_days,
+        'stat-qc-delay-1-2': stats.qc_delay_1_2_days,
+        'stat-qc-delay-3-4': stats.qc_delay_3_4_days,
+        'stat-qc-delay-5-10': stats.qc_delay_5_10_days,
+        'stat-qc-delay-more-10': stats.qc_delay_more_than_10_days
     };
 
     for (const [id, value] of Object.entries(mappings)) {

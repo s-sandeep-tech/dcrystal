@@ -39,26 +39,38 @@
 
     <!-- Stats Grid -->
     <div
-        class="grid grid-cols-2 lg:grid-cols-5 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
+        class="grid grid-cols-2 lg:grid-cols-9 gap-1 p-1 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
         <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">1-2 Days Delay</p>
-            <p id="stat-delay-1-2" class="text-sm font-bold text-amber-600">{{ footer_totals.delay_1_2_days|default(0)
-                }}</p>
+            <p class="text-[8px] text-amber-600 font-bold uppercase truncate">Prod 1-2</p>
+            <p id="stat-delay-1-2" class="text-xs font-bold text-amber-600">{{ footer_totals.delay_1_2_days|default(0) }}</p>
         </div>
         <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">3-4 Days Delay</p>
-            <p id="stat-delay-3-4" class="text-sm font-bold text-orange-600">{{ footer_totals.delay_3_4_days|default(0)
-                }}</p>
+            <p class="text-[8px] text-amber-600 font-bold uppercase truncate">Prod 3-4</p>
+            <p id="stat-delay-3-4" class="text-xs font-bold text-orange-600">{{ footer_totals.delay_3_4_days|default(0) }}</p>
         </div>
         <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">5-10 Days Delay</p>
-            <p id="stat-delay-5-10" class="text-sm font-bold text-red-500">{{ footer_totals.delay_5_10_days|default(0)
-                }}</p>
+            <p class="text-[8px] text-amber-600 font-bold uppercase truncate">Prod 5-10</p>
+            <p id="stat-delay-5-10" class="text-xs font-bold text-red-500">{{ footer_totals.delay_5_10_days|default(0) }}</p>
         </div>
         <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">>10 Days Delay</p>
-            <p id="stat-delay-more-10" class="text-sm font-bold text-red-700">{{
-                footer_totals.delay_more_than_10_days|default(0) }}</p>
+            <p class="text-[8px] text-amber-600 font-bold uppercase truncate">Prod >10</p>
+            <p id="stat-delay-more-10" class="text-xs font-bold text-red-700">{{ footer_totals.delay_more_than_10_days|default(0) }}</p>
+        </div>
+        <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center bg-blue-50/10">
+            <p class="text-[8px] text-blue-600 font-bold uppercase truncate">QC 1-2</p>
+            <p id="stat-qc-delay-1-2" class="text-xs font-bold text-blue-600">{{ footer_totals.qc_delay_1_2_days|default(0) }}</p>
+        </div>
+        <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center bg-blue-50/10">
+            <p class="text-[8px] text-blue-600 font-bold uppercase truncate">QC 3-4</p>
+            <p id="stat-qc-delay-3-4" class="text-xs font-bold text-indigo-600">{{ footer_totals.qc_delay_3_4_days|default(0) }}</p>
+        </div>
+        <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center bg-blue-50/10">
+            <p class="text-[8px] text-blue-600 font-bold uppercase truncate">QC 5-10</p>
+            <p id="stat-qc-delay-5-10" class="text-xs font-bold text-purple-500">{{ footer_totals.qc_delay_5_10_days|default(0) }}</p>
+        </div>
+        <div class="p-1 border-r border-gray-100 dark:border-gray-800 text-center bg-blue-50/10">
+            <p class="text-[8px] text-blue-600 font-bold uppercase truncate">QC >10</p>
+            <p id="stat-qc-delay-more-10" class="text-xs font-bold text-fuchsia-700">{{ footer_totals.qc_delay_more_than_10_days|default(0) }}</p>
         </div>
         <div class="p-2 text-center flex flex-col justify-center">
             <div class="flex items-center justify-center gap-1.5">
