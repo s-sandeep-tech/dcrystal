@@ -32,3 +32,6 @@ def sync_order_delay_tracking_data():
 
 def sync_pending_acceptance_feedback_data():
     return enqueue_sync_task('pending_acceptance')
+
+def sync_rejected_weight_data():
+    return enqueue_sync_task('rejected_weight')

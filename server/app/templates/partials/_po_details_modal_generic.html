@@ -1,0 +1,53 @@
+<div class="overflow-x-auto rounded-lg border border-gray-100 dark:border-gray-800">
+    <table class="w-full text-left border-collapse min-w-[800px]">
+        <thead>
+            <tr class="bg-gray-100/50 dark:bg-gray-800/80">
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">PO Number</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">PO Date</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right">Total Wt</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right">Order Pcs</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right">Order Wt</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right">Accepted Wt</th>
+                {% if report_type == 'RW' %}
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right">Rejected Wt</th>
+                {% else %}
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right">Pending Wt</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            {% for r in details %}
+            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors">
+                <td class="px-4 py-3 text-[11px] font-bold text-primary">{{ r.po_number }}</td>
+                <td class="px-4 py-3 text-[11px] text-gray-600 dark:text-gray-400">{{ r.po_date }}</td>
+                <td class="px-4 py-3 text-[11px] text-right font-mono">{{ "{:,.3f}".format(r.total_weight) }}</td>
+                <td class="px-4 py-3 text-[11px] text-right font-mono">{{ r.order_piece | int }}</td>
+                <td class="px-4 py-3 text-[11px] text-right font-mono">{{ "{:,.3f}".format(r.order_wt) }}</td>
+                <td class="px-4 py-3 text-[11px] text-right font-mono text-emerald-600">{{ "{:,.3f}".format(r.accepted_wt) }}</td>
+                <td class="px-4 py-3 text-[11px] text-right font-mono text-red-600">
+                    {% if report_type == 'RW' %}
+                    {{ "{:,.3f}".format(r.rejected_wt) }}
+                    {% else %}
+                    {{ "{:,.3f}".format(r.pending_to_accepted_wt) }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="bg-gray-50/80 dark:bg-gray-800/80 font-bold border-t border-gray-200 dark:border-gray-800">
+                <td colspan="3" class="px-4 py-3 text-[10px] uppercase tracking-wider text-gray-500">Totals</td>
+                <td class="px-4 py-3 text-[11px] text-right font-mono">{{ totals.po_pieces | int }}</td>
+                <td class="px-4 py-3 text-[11px] text-right font-mono">{{ "{:,.3f}".format(totals.order_wt) }}</td>
+                <td class="px-4 py-3 text-[11px] text-right font-mono text-emerald-600">{{ "{:,.3f}".format(totals.accepted_wt) }}</td>
+                <td class="px-4 py-3 text-[11px] text-right font-mono text-red-600">
+                    {% if report_type == 'RW' %}
+                    {{ "{:,.3f}".format(totals.rejected_wt) }}
+                    {% else %}
+                    {{ "{:,.3f}".format(totals.pending_to_accepted_wt) }}
+                    {% endif %}
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+</div>

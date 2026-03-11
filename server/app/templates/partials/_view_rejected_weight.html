@@ -1,0 +1,94 @@
+<div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse min-w-[1200px]">
+        <thead>
+            <tr class="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Make Owner</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Collection Owner</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Supplier</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Collection</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-right">Order Wt</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-right">Accepted Wt</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-right">Rejected Wt</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Feedback</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center">Action</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            {% for row in rows %}
+            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors group">
+                <td class="px-4 py-3">
+                    <div class="flex flex-col">
+                        <span class="text-[11px] font-bold text-gray-900 dark:text-white">{{ row.make_owner }}</span>
+                    </div>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="text-[11px] font-medium text-gray-600 dark:text-gray-400">{{ row.collection_owner }}</span>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="text-[11px] text-gray-600 dark:text-gray-400">{{ row.supplier }}</span>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="text-[11px] font-medium text-primary">{{ row.collection }}</span>
+                </td>
+                <td class="px-4 py-3 text-right">
+                    <span class="text-[11px] font-mono font-bold text-gray-700 dark:text-gray-300">{{ "{:,.3f}".format(row.order_wt) }}</span>
+                </td>
+                <td class="px-4 py-3 text-right">
+                    <span class="text-[11px] font-mono font-bold text-emerald-600">{{ "{:,.3f}".format(row.accepted_wt) }}</span>
+                </td>
+                <td class="px-4 py-3 text-right">
+                    <span class="text-[11px] font-mono font-bold text-red-600">{{ "{:,.3f}".format(row.rejected_wt) }}</span>
+                </td>
+                <td class="px-4 py-3">
+                    {% if row.feedback_text %}
+                    <div class="flex flex-col gap-0.5 max-w-[250px]">
+                        <div class="flex items-center gap-1.5">
+                            <span class="px-1.5 py-0.5 rounded-[4px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[9px] font-bold uppercase tracking-wider border border-indigo-100 dark:border-indigo-800/50">
+                                {{ row.feedback_category }}
+                            </span>
+                            <span class="text-[9px] text-gray-400 font-medium italic">{{ row.feedback_username }} • {{ row.feedback_date }}</span>
+                        </div>
+                        <p class="text-[11px] text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">{{ row.feedback_text }}</p>
+                    </div>
+                    {% else %}
+                    <span class="text-[10px] italic text-gray-400">No feedback yet</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3">
+                    <div class="flex items-center justify-center gap-2">
+                        <button onclick="openFeedbackModal('{{ row.collection_owner }}', '{{ row.make_owner }}', '{{ row.supplier }}', '{{ row.collection }}')"
+                            class="size-8 flex items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 transition-all shadow-sm">
+                            <span class="material-symbols-outlined text-lg">add_comment</span>
+                        </button>
+                        <button onclick="viewPODetails('{{ row.collection_owner }}', '{{ row.make_owner }}', '{{ row.supplier }}', '{{ row.collection }}')"
+                            class="size-8 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-primary hover:text-white dark:hover:bg-primary transition-all shadow-sm">
+                            <span class="material-symbols-outlined text-lg">visibility</span>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            {% if not rows %}
+            <tr>
+                <td colspan="9" class="px-4 py-12 text-center">
+                    <div class="flex flex-col items-center justify-center">
+                        <span class="material-symbols-outlined text-4xl text-gray-300 mb-2">inventory_2</span>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">No records found matching filters</p>
+                    </div>
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+{% if pagination and pagination.pages > 1 %}
+<div class="hidden">
+    <!-- Hidden pagination data for JS to sync -->
+    <div id="hidden-total">{{ pagination.total }}</div>
+    <div id="hidden-page">{{ pagination.page }}</div>
+    <div id="hidden-per-page">{{ pagination.per_page }}</div>
+    <div id="hidden-has-prev">{{ 'true' if pagination.has_prev else 'false' }}</div>
+    <div id="hidden-has-next">{{ 'true' if pagination.has_next else 'false' }}</div>
+</div>
+{% endif %}

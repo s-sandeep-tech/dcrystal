@@ -7,7 +7,8 @@ from app.models.snapshots import (
     OutstandingPurchaseOrderStatusSnapshot,
     StageLevelDelaySnapshot,
     OrderDelayTrackingSnapshot,
-    PendingAcceptanceSnapshot
+    PendingAcceptanceSnapshot,
+    RejectedWeightSnapshot
 )
 from flask import current_app
 import os
@@ -1072,6 +1073,86 @@ def sync_pending_acceptance_data_task():
         error_msg = str(e)
         logger.error(f"PendingAcceptance Sync error: {error_msg}")
         emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'pending_acceptance')
+        return {"status": "error", "message": error_msg}
+    finally:
+        if conn: conn.close()
+
+def sync_rejected_weight_data_task():
+    """Sync Rejected Weight data using the provided analytical query."""
+    conn = None
+    try:
+        emit_sync_update('processing', 'Starting Rejected Weight Sync...', 5, 'rejected_weight')
+        conn = get_external_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        emit_sync_update('processing', 'Fetching data from Azure...', 20, 'rejected_weight')
+        query = """
+        SELECT 
+            a.collection_owner,
+            a.make_owner,
+            po.supplier,
+            a.collection,
+            po.po_number,
+            po.po_date,
+            po.total_weight,
+            po.total_quantity AS order_piece,
+            a.order_wt,
+            a.accepted_wt,
+            a.rejected_wt,
+            a.order_type,
+            a.order_request_type,
+            a.order_date
+        FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number a
+        LEFT JOIN ext_view.vw_purchase_order po
+            ON po.po_number = a.po_number
+        WHERE a.rejected_wt > 0
+        ORDER BY 
+            a.rejected_wt DESC;
+        """
+        
+        start_time = time.time()
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        duration = time.time() - start_time
+        
+        logger.info(f"RejectedWeight query took {duration:.2f} seconds.")
+        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, 'rejected_weight')
+        
+        # Clear existing
+        db.session.query(RejectedWeightSnapshot).delete()
+        
+        new_records = []
+        for row in rows:
+            record = RejectedWeightSnapshot(
+                collection_owner=row.get('collection_owner'),
+                make_owner=row.get('make_owner'),
+                supplier=row.get('supplier'),
+                collection=row.get('collection'),
+                po_number=row.get('po_number'),
+                po_date=row.get('po_date'),
+                total_weight=row.get('total_weight'),
+                order_piece=row.get('order_piece'),
+                order_wt=row.get('order_wt'),
+                accepted_wt=row.get('accepted_wt'),
+                rejected_wt=row.get('rejected_wt'),
+                order_type=row.get('order_type'),
+                order_request_type=row.get('order_request_type'),
+                order_date=row.get('order_date'),
+                snapshot_date=db.func.current_date()
+            )
+            new_records.append(record)
+        
+        db.session.add_all(new_records)
+        db.session.commit()
+        
+        emit_sync_update('success', f'Rejected Weight Sync completed! {len(rows)} records updated.', 100, 'rejected_weight')
+        return {"status": "success", "count": len(rows)}
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        logger.error(f"RejectedWeight Sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'rejected_weight')
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()

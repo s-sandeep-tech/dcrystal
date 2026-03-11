@@ -526,6 +526,47 @@ class PendingAcceptanceSnapshot(db.Model):
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
         }
 
+class RejectedWeightSnapshot(db.Model):
+    __tablename__ = 'rejection_weight_and_feedback_snapshot'
+
+    id = db.Column(db.Integer, primary_key=True)
+    collection_owner = db.Column(db.Text)
+    make_owner = db.Column(db.Text)
+    supplier = db.Column(db.Text)
+    collection = db.Column(db.Text)
+    po_number = db.Column(db.Text)
+    po_date = db.Column(db.Date)
+    total_weight = db.Column(db.Numeric(18, 3))
+    order_piece = db.Column(db.Numeric(18, 3))
+    order_wt = db.Column(db.Numeric(18, 3))
+    accepted_wt = db.Column(db.Numeric(18, 3))
+    rejected_wt = db.Column(db.Numeric(18, 3))
+    order_type = db.Column(db.Text)
+    order_request_type = db.Column(db.Text)
+    order_date = db.Column(db.Date)
+    snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'collection_owner': self.collection_owner,
+            'make_owner': self.make_owner,
+            'supplier': self.supplier,
+            'collection': self.collection,
+            'po_number': self.po_number,
+            'po_date': self.po_date.isoformat() if self.po_date else '',
+            'total_weight': float(self.total_weight or 0),
+            'order_piece': float(self.order_piece or 0),
+            'order_wt': float(self.order_wt or 0),
+            'accepted_wt': float(self.accepted_wt or 0),
+            'rejected_wt': float(self.rejected_wt or 0),
+            'order_type': self.order_type or '',
+            'order_request_type': self.order_request_type or '',
+            'order_date': self.order_date.isoformat() if self.order_date else '',
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
+        }
+
 class PendingAcceptanceFeedback(db.Model):
     __tablename__ = 'pending_acceptance_feedback'
 
@@ -537,6 +578,7 @@ class PendingAcceptanceFeedback(db.Model):
     feedback_text = db.Column(db.Text)
     feedback_category = db.Column(db.String(100))
     username = db.Column(db.String(80))
+    page_code = db.Column(db.String(20)) # 'PA' for Pending Acceptance, 'RW' for Rejected Weight
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     def to_dict(self):
