@@ -1,7 +1,7 @@
 <table class="enterprise-grid w-full text-[11px] border-collapse bg-white dark:bg-gray-900 sticky-header">
     <thead>
         <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
-            <th class="text-left px-4 pl-6 text-blue-700 dark:text-blue-300">Make Owner</th>
+            <th class="text-left px-4 pl-6 text-gray-800 dark:text-gray-200">Make Owner</th>
             <th class="text-left">Collection Owner</th>
             <th class="text-left">Supplier</th>
             <th class="text-left">Collection</th>
@@ -15,8 +15,8 @@
     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
         {% for r in rows %}
         <tr class="hover:bg-blue-50/30 group animate-fade-in">
-            <td class="px-4 pl-6 font-bold text-blue-700 dark:text-blue-300">{{ r.make_owner }}</td>
-            <td class="text-gray-600 dark:text-gray-400 font-bold px-4">{{ r.collection_owner }}</td>
+            <td class="px-4 pl-6 font-bold text-gray-800 dark:text-gray-200">{{ r.make_owner }}</td>
+            <td class="text-gray-600 dark:text-gray-400 px-4">{{ r.collection_owner }}</td>
             <td class="text-gray-600 dark:text-gray-400">{{ r.supplier }}</td>
             <td class="text-gray-600 dark:text-gray-400">{{ r.collection }}</td>
             <td class="text-right font-medium text-gray-700 dark:text-gray-300">

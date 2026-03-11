@@ -5,7 +5,7 @@ from app.models.snapshots import PendingAcceptanceSnapshot, PendingAcceptanceFee
 from app.models.auth import User
 from app.extensions import db, redis_client
 from sqlalchemy import func, case
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import json
 
@@ -357,7 +357,7 @@ def get_pending_acceptance_partial():
                 'feedback_text': r.feedback_text or '',
                 'feedback_category': r.feedback_category or '',
                 'feedback_username': r.username or '',
-                'feedback_date': r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else ''
+                'feedback_date': (r.created_at + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M') if r.created_at else ''
             }
             processed_rows.append(row_dict)
             
