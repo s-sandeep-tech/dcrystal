@@ -14,74 +14,71 @@
     </thead>
     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
         {% for r in rows %}
-        <tr class="hover:bg-blue-50/30 group animate-fade-in">
-            <td class="px-4 pl-6 font-bold text-gray-800 dark:text-gray-200">{{ r.make_owner }}</td>
-            <td class="text-gray-600 dark:text-gray-400 px-4">{{ r.collection_owner }}</td>
-            <td class="text-gray-600 dark:text-gray-400">{{ r.supplier }}</td>
-            <td class="text-gray-600 dark:text-gray-400">{{ r.collection }}</td>
-            <td class="text-right font-medium text-gray-700 dark:text-gray-300">
+        <tr class="hover:bg-blue-50/30 group animate-fade-in transition-colors">
+            <td class="px-4 pl-6 py-1.5 font-bold text-gray-800 dark:text-gray-200">{{ r.make_owner }}</td>
+            <td class="text-gray-600 dark:text-gray-400 px-4 py-1.5 text-[10px]">{{ r.collection_owner }}</td>
+            <td class="text-gray-600 dark:text-gray-400 py-1.5 text-[10px]">{{ r.supplier }}</td>
+            <td class="text-gray-600 dark:text-gray-400 py-1.5 text-[10px]">{{ r.collection }}</td>
+            <td class="text-right font-medium text-gray-700 dark:text-gray-300 py-1.5">
                 <a href="javascript:void(0)"
                     onclick="viewPODetails('{{ (r.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (r.make_owner or '') | replace('\'', '\\\'') }}', '{{ (r.supplier or '') | replace('\'', '\\\'') }}', '{{ (r.collection or '') | replace('\'', '\\\'') }}')"
-                    class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 decoration-blue-200 dark:decoration-blue-800 hover:decoration-blue-600 dark:hover:decoration-blue-400 transition-all font-bold group-hover:scale-105 inline-block">
+                    class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 decoration-blue-200 dark:decoration-blue-800 hover:decoration-blue-600 dark:hover:decoration-blue-400 transition-all font-bold group-hover:scale-105 inline-block text-[10px]">
                     {{ "{:,.3f}".format(r.order_wt) }}
                 </a>
             </td>
-            <td class="text-right font-bold text-emerald-600">{{ "{:,.3f}".format(r.accepted_wt) }}</td>
-            <td class="text-right font-bold text-red-600">{{ "{:,.3f}".format(r.rejected_wt) }}</td>
-            <td class="text-left pl-4 max-w-xs !overflow-visible">
+            <td class="text-right font-bold text-emerald-600 py-1.5 text-[10px]">{{ "{:,.3f}".format(r.accepted_wt) }}</td>
+            <td class="text-right font-bold text-red-600 py-1.5 text-[10px]">{{ "{:,.3f}".format(r.rejected_wt) }}</td>
+            <td class="text-left pl-4 py-1.5 max-w-xs !overflow-visible">
                 <div class="flex items-center gap-2">
                     {% if r.feedback_text %}
-                    <span class="truncate text-gray-800 dark:text-gray-200">{{ r.feedback_text }}</span>
+                    <span class="truncate text-gray-800 dark:text-gray-200 max-w-[120px] text-[10px]">{{ r.feedback_text }}</span>
                     <div class="relative group inline-flex items-center">
-                        <span
-                            class="material-symbols-outlined text-[14px] text-gray-400 cursor-help hover:text-primary transition-colors">info</span>
+                        <span class="material-symbols-outlined text-[13px] text-indigo-400 cursor-help hover:text-primary transition-colors">info</span>
 
-                        <!-- Tooltip Baloon -->
-                        <div
-                            class="absolute right-full top-1/2 -translate-y-1/2 mr-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] min-w-[280px] max-w-[320px] pointer-events-none">
-                            <div
-                                class="bg-gray-800 dark:bg-gray-900 border border-gray-700 shadow-xl shadow-black/40 rounded-lg p-3 text-white relative">
-                                <!-- Arrow (Pointing Right) -->
-                                <div
-                                    class="absolute left-full top-1/2 -translate-y-1/2 -ml-1 border-8 border-transparent border-l-gray-800 dark:border-l-gray-900">
-                                </div>
-
+                        <!-- Tooltip Balloon -->
+                        <div class="absolute right-full top-1/2 -translate-y-1/2 mr-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] min-w-[280px] max-w-[320px] pointer-events-none">
+                            <div class="bg-gray-800 dark:bg-gray-900 border border-gray-700 shadow-xl shadow-black/40 rounded-lg p-3 text-white relative">
+                                <div class="absolute left-full top-1/2 -translate-y-1/2 -ml-1 border-8 border-transparent border-l-gray-800 dark:border-l-gray-900"></div>
                                 <div class="text-[10px] space-y-2">
                                     <div class="flex items-center justify-between border-b border-gray-700/50 pb-1.5">
                                         <div class="flex flex-col">
-                                            <span class="font-bold text-blue-400 uppercase tracking-wider">User
-                                                Feedback</span>
+                                            <span class="font-bold text-blue-400 uppercase tracking-wider">User Feedback</span>
                                             {% if r.feedback_category %}
-                                            <span
-                                                class="text-[8px] text-amber-400 font-bold uppercase tracking-widest mt-0.5">{{
-                                                r.feedback_category }}</span>
+                                            <span class="text-[8px] text-amber-400 font-bold uppercase tracking-widest mt-0.5">{{ r.feedback_category }}</span>
                                             {% endif %}
                                         </div>
                                         <span class="text-[9px] text-gray-400 italic">{{ r.feedback_username }}</span>
                                     </div>
-                                    <p class="whitespace-normal leading-relaxed text-gray-200">{{ r.feedback_text }}</p>
-                                    <div
-                                        class="pt-1.5 border-t border-gray-700/50 text-[9px] text-gray-400 flex justify-end italic">
-                                        {{ r.feedback_date }}
-                                    </div>
+                                    <p class="whitespace-normal leading-relaxed text-gray-200 italic">"{{ r.feedback_text }}"</p>
+                                    <div class="pt-1.5 border-t border-gray-700/50 text-[9px] text-gray-400 flex justify-end italic">{{ r.feedback_date }}</div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     {% else %}
-                    <span class="text-gray-400 italic">No feedback</span>
+                    <span class="text-gray-400 italic text-[10px]">No feedback</span>
                     {% endif %}
                 </div>
             </td>
-            <td class="text-center">
-                {% set u = current_username | trim | lower %}
-                {% if (r.collection_owner | trim | lower) == u or (r.make_owner | trim | lower) == u %}
-                <button
-                    onclick="openFeedbackModal('{{ (r.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (r.make_owner or '') | replace('\'', '\\\'') }}', '{{ (r.supplier or '') | replace('\'', '\\\'') }}', '{{ (r.collection or '') | replace('\'', '\\\'') }}', '{{ (r.feedback_text or '') | replace('\'', '\\\'') }}', '{{ (r.feedback_category or '') | replace('\'', '\\\'') }}')"
-                    class="size-7 flex items-center justify-center bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-primary hover:border-primary/30 rounded-lg transition-all shadow-sm mx-auto">
-                    <span class="material-symbols-outlined text-[12px]">edit</span>
-                </button>
-                {% endif %}
+            <td class="px-4 py-1.5 whitespace-nowrap text-center">
+                <div class="inline-flex items-center gap-1.5">
+                    <!-- View PO Details -->
+                    <button
+                        onclick="viewPODetails('{{ (r.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (r.make_owner or '') | replace('\'', '\\\'') }}', '{{ (r.supplier or '') | replace('\'', '\\\'') }}', '{{ (r.collection or '') | replace('\'', '\\\'') }}')"
+                        class="size-6.5 flex items-center justify-center bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-primary hover:border-primary/30 rounded transition-all shadow-sm mx-auto"
+                        title="View PO Details">
+                        <span class="material-symbols-outlined text-[14px]">visibility</span>
+                    </button>
+                    {% set u = current_username | trim | lower %}
+                    {% if (r.collection_owner | trim | lower) == u or (r.make_owner | trim | lower) == u %}
+                    <button
+                        onclick="openFeedbackModal('{{ (r.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (r.make_owner or '') | replace('\'', '\\\'') }}', '{{ (r.supplier or '') | replace('\'', '\\\'') }}', '{{ (r.collection or '') | replace('\'', '\\\'') }}', '{{ (r.feedback_text or '') | replace('\'', '\\\'') }}', '{{ (r.feedback_category or '') | replace('\'', '\\\'') }}')"
+                        class="size-6.5 flex items-center justify-center bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-600 hover:text-white transition-all shadow-sm mx-auto"
+                        title="Add/Edit Feedback">
+                        <span class="material-symbols-outlined text-[14px]">edit</span>
+                    </button>
+                    {% endif %}
+                </div>
             </td>
         </tr>
         {% endfor %}
