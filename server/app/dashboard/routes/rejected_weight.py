@@ -444,6 +444,27 @@ def save_rejected_weight_feedback():
         if not current_username:
             return jsonify({"status": "error", "message": "User session expired. Please login again."}), 401
             
+        if not collection_owner or not feedback_text:
+            return jsonify({"status": "error", "message": "Missing required fields"}), 400
+
+        # Check: either the collector owner or the make owner can save feedback
+        is_authorized = False
+        allowed_owners = []
+        if collection_owner:
+            allowed_owners.append(collection_owner.strip().lower())
+        if make_owner:
+            allowed_owners.append(make_owner.strip().lower())
+            
+        if current_username.lower() in allowed_owners:
+            is_authorized = True
+
+        if not is_authorized:
+            owners_str = " or ".join(filter(None, [collection_owner, make_owner]))
+            return jsonify({
+                "status": "error", 
+                "message": f"Unauthorized. Only {owners_str} can save feedback for this record."
+            }), 403
+            
         new_feedback = PendingAcceptanceFeedback(
             collection_owner=collection_owner,
             make_owner=make_owner,

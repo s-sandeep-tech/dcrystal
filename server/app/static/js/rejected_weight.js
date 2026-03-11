@@ -13,17 +13,11 @@ async function loadViewData() {
         const html = await response.text();
         activeView.innerHTML = html;
 
-        // Synchronize pagination and stats from hidden fields in the partial
-        const total = document.getElementById('hidden-total')?.textContent;
-        if (total) {
-            updatePaginationControls({
-                total: total,
-                page: document.getElementById('hidden-page').textContent,
-                perPage: document.getElementById('hidden-per-page').textContent,
-                hasPrev: document.getElementById('hidden-has-prev').textContent,
-                hasNext: document.getElementById('hidden-has-next').textContent
-            });
-        }
+        const metaDiv = activeView.querySelector('.pagination-meta');
+        if (metaDiv) updatePaginationControls(metaDiv.dataset);
+
+        const statsDiv = activeView.querySelector('.stats-meta');
+        if (statsDiv) updateStatsCards(statsDiv.dataset);
     } catch (error) {
         console.error('Error loading view:', error);
         activeView.innerHTML = `<div class="p-8 text-center text-red-500">Error loading data.</div>`;
@@ -138,16 +132,16 @@ function updatePaginationControls(meta) {
     const btnNext = document.getElementById('btn-next');
     if (btnPrev) {
         btnPrev.disabled = !hasPrev;
-        btnPrev.onclick = hasPrev ? () => changePage(page - 1) : null;
+        btnPrev.onclick = hasPrev ? () => changePage(parseInt(meta.prevNum)) : null;
     }
     if (btnNext) {
         btnNext.disabled = !hasNext;
-        btnNext.onclick = hasNext ? () => changePage(page + 1) : null;
+        btnNext.onclick = hasNext ? () => changePage(parseInt(meta.nextNum)) : null;
     }
 }
 
 function changePage(page) {
-    if (!page || page < 1) return;
+    if (!page) return;
     const urlParams = new URLSearchParams(window.location.search);
     urlParams.set('page', page);
     updateUrlAndLoad(urlParams);
@@ -180,8 +174,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if (enable) enable.checked = true;
     }
 
-    loadViewData();
+    const metaDiv = document.querySelector('.pagination-meta');
+    if (metaDiv) {
+        updatePaginationControls(metaDiv.dataset);
+    } else {
+        loadViewData();
+    }
+
+    const statsDiv = document.querySelector('.stats-meta');
+    if (statsDiv) updateStatsCards(statsDiv.dataset);
 });
+
+function updateStatsCards(stats) {
+    const orderWt = parseFloat(stats.totalOrderWt || 0);
+    const acceptedWt = parseFloat(stats.totalAcceptedWt || 0);
+    const rejectedWt = parseFloat(stats.totalRejectedWt || 0);
+    const withFeedback = parseInt(stats.withFeedback || 0);
+    const withoutFeedback = parseInt(stats.withoutFeedback || 0);
+
+    const fmt = (v) => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 3, maximumFractionDigits: 3 }).format(v);
+
+    const elOrder = document.getElementById('stat-order-wt');
+    if (elOrder) elOrder.textContent = fmt(orderWt);
+
+    const elAccepted = document.getElementById('stat-accepted-wt');
+    if (elAccepted) elAccepted.textContent = fmt(acceptedWt);
+
+    const elRejected = document.getElementById('stat-rejected-wt');
+    if (elRejected) elRejected.textContent = fmt(rejectedWt);
+
+    const elWith = document.getElementById('stat-with-feedback');
+    if (elWith) elWith.textContent = withFeedback.toLocaleString();
+
+    const elWithout = document.getElementById('stat-without-feedback');
+    if (elWithout) elWithout.textContent = withoutFeedback.toLocaleString();
+}
 
 // Modal stuff
 function openFeedbackModal(collectionOwner, makeOwner, supplier, collection, currFeedback, currCategory) {
@@ -203,6 +230,9 @@ function openFeedbackModal(collectionOwner, makeOwner, supplier, collection, cur
 
 function closeFeedbackModal() {
     document.getElementById('feedbackModal').classList.add('hidden');
+    document.getElementById('feedbackText').value = '';
+    const cat = document.getElementById('feedbackCategory');
+    if (cat) cat.value = '';
 }
 
 async function saveFeedback() {
@@ -275,7 +305,11 @@ async function viewPODetails(collectionOwner, makeOwner, supplier, collection) {
         contentDiv.innerHTML = html;
     } catch (error) {
         console.error('Error fetching PO Details:', error);
-        contentDiv.innerHTML = `<div class="p-8 text-center text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-900/30 font-bold">Error loading details: ${error.message}</div>`;
+        contentDiv.innerHTML = `<div class="p-8 text-center text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-900/30">
+                <span class="material-symbols-outlined text-2xl mb-2">error</span>
+                <p class="font-bold">Error loading details</p>
+                <p class="text-xs mt-1 opacity-80">${error.message}</p>
+            </div>`;
     }
 }
 
