@@ -377,7 +377,7 @@ def sync_process_level_delay_data_task():
                 time_window_2_4_days=row.get('Window 3-4'),
                 time_window_5_10_days=row.get('Window 5-10'),
                 time_window_more_than_10_days=row.get('Window 10+'),
-                sort_order=row.get('SortOrder') or 0,
+                sort_order=row.get('SortOrder'),
                 report_date=db.func.current_date()
             )
             new_records.append(record)
