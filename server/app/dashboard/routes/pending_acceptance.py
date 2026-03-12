@@ -102,7 +102,6 @@ def get_base_query(query_filter_func=None, feedback_status=None):
         PendingAcceptanceSnapshot.make_owner,
         PendingAcceptanceSnapshot.supplier,
         PendingAcceptanceSnapshot.collection,
-        PendingAcceptanceSnapshot.classification,
         func.sum(PendingAcceptanceSnapshot.order_wt).label('sum_order_wt'),
         func.sum(PendingAcceptanceSnapshot.accepted_wt).label('sum_accepted_wt'),
         func.sum(PendingAcceptanceSnapshot.pending_to_accepted_wt).label('sum_pending_to_accepted_wt')
@@ -115,8 +114,7 @@ def get_base_query(query_filter_func=None, feedback_status=None):
         PendingAcceptanceSnapshot.collection_owner,
         PendingAcceptanceSnapshot.make_owner,
         PendingAcceptanceSnapshot.supplier,
-        PendingAcceptanceSnapshot.collection,
-        PendingAcceptanceSnapshot.classification
+        PendingAcceptanceSnapshot.collection
     ).subquery('agg_snapshot')
 
     # Join with feedback
@@ -125,7 +123,6 @@ def get_base_query(query_filter_func=None, feedback_status=None):
         q.c.make_owner,
         q.c.supplier,
         q.c.collection,
-        q.c.classification,
         q.c.sum_order_wt,
         q.c.sum_accepted_wt,
         q.c.sum_pending_to_accepted_wt,
@@ -139,8 +136,7 @@ def get_base_query(query_filter_func=None, feedback_status=None):
             func.coalesce(q.c.collection_owner, '') == func.coalesce(latest_feedback.c.collection_owner, ''),
             func.coalesce(q.c.make_owner, '') == func.coalesce(latest_feedback.c.make_owner, ''),
             func.coalesce(q.c.supplier, '') == func.coalesce(latest_feedback.c.supplier, ''),
-            func.coalesce(q.c.collection, '') == func.coalesce(latest_feedback.c.collection, ''),
-            func.coalesce(q.c.classification, '') == func.coalesce(latest_feedback.c.classification, '')
+            func.coalesce(q.c.collection, '') == func.coalesce(latest_feedback.c.collection, '')
         )
     )
 
@@ -359,7 +355,6 @@ def get_pending_acceptance_partial():
                 'make_owner': r.make_owner or '',
                 'supplier': r.supplier or '',
                 'collection': r.collection or '',
-                'classification': r.classification or '',
                 'order_type': '', 
                 'order_request_type': '',
                 'order_wt': float(r.sum_order_wt or 0),
