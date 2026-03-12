@@ -97,51 +97,53 @@
                             <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">System Status
                             </h3>
                         </div>
-                        <div class="p-6 space-y-6">
-                            <!-- Redis Status -->
-                            <div
-                                class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
-                                <div class="flex items-center gap-4">
-                                    <div class="size-10 bg-red-500/10 rounded-lg flex items-center justify-center">
-                                        <span class="material-symbols-outlined text-red-500 text-xl">database</span>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Redis Status -->
+                                <div
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-red-500/10 rounded-lg flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-red-500 text-xl">database</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Redis Server
+                                            </h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Real-time data
+                                                synchronization
+                                                cache</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Redis Server
-                                        </h4>
-                                        <p class="text-[11px] text-gray-500 font-medium">Real-time data
-                                            synchronization
-                                            cache</p>
+                                    <div class="flex items-center gap-2">
+                                        <span
+                                            class="size-2 rounded-full {{ 'bg-green-500 animate-pulse' if redis_status else 'bg-red-500' }}"></span>
+                                        <span
+                                            class="text-[11px] font-bold uppercase {{ 'text-green-500' if redis_status else 'text-red-500' }}">
+                                            {{ 'Connected' if redis_status else 'Disconnected' }}
+                                        </span>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    <span
-                                        class="size-2 rounded-full {{ 'bg-green-500 animate-pulse' if redis_status else 'bg-red-500' }}"></span>
-                                    <span
-                                        class="text-[11px] font-bold uppercase {{ 'text-green-500' if redis_status else 'text-red-500' }}">
-                                        {{ 'Connected' if redis_status else 'Disconnected' }}
-                                    </span>
-                                </div>
-                            </div>
 
-                            <!-- Socket.IO Status -->
-                            <div
-                                class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
-                                <div class="flex items-center gap-4">
-                                    <div class="size-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                                        <span class="material-symbols-outlined text-primary text-xl">hub</span>
+                                <!-- Socket.IO Status -->
+                                <div
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-primary text-xl">hub</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Socket.IO
+                                                Service
+                                            </h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Bidirectional event-based
+                                                communication</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Socket.IO
-                                            Service
-                                        </h4>
-                                        <p class="text-[11px] text-gray-500 font-medium">Bidirectional event-based
-                                            communication</p>
+                                    <div class="flex items-center gap-2">
+                                        <span id="socket-status-dot" class="size-2 rounded-full bg-gray-400"></span>
+                                        <span id="socket-status-text"
+                                            class="text-[11px] font-bold uppercase text-gray-400">Checking...</span>
                                     </div>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span id="socket-status-dot" class="size-2 rounded-full bg-gray-400"></span>
-                                    <span id="socket-status-text"
-                                        class="text-[11px] font-bold uppercase text-gray-400">Checking...</span>
                                 </div>
                             </div>
                         </div>
