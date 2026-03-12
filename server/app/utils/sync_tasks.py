@@ -1029,7 +1029,7 @@ def sync_pending_acceptance_data_task():
         FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number a
         LEFT JOIN ext_view.vw_purchase_order po
             ON po.po_number = a.po_number
-        WHERE a.pending_to_accepted_wt > 0 and where order_qty <> cancelled_pcs
+        WHERE a.pending_to_accepted_wt > 0 and a.order_qty <> a.cancelled_pcs
         ORDER BY 
             a.accepted_wt DESC,
             a.pending_to_accepted_wt DESC;
