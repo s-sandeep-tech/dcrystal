@@ -1050,6 +1050,7 @@ def sync_pending_acceptance_data_task():
                 make_owner=row.get('make_owner'),
                 supplier=row.get('supplier'),
                 collection=row.get('collection'),
+                classification=row.get('classification'),
                 po_number=row.get('po_number'),
                 po_date=row.get('po_date'),
                 total_weight=row.get('total_weight'),
