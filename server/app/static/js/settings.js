@@ -293,7 +293,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearCacheBtn = document.getElementById('clear-cache-btn');
     if (clearCacheBtn) {
         clearCacheBtn.addEventListener('click', async () => {
-            if (!confirm('Are you sure you want to clear all application cache? This will affect all users.')) return;
+            const confirmed = await showConfirmModal(
+                'Clear Application Cache',
+                'Are you sure you want to flush all application cache? This will clear all report snapshots and temporary data for all users.'
+            );
+            if (!confirmed) return;
 
             const originalContent = clearCacheBtn.innerHTML;
             clearCacheBtn.disabled = true;
