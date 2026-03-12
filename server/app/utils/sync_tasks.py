@@ -85,7 +85,7 @@ def sync_owner_wise_data_task():
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         emit_sync_update('processing', 'Fetching data from Azure PostgreSQL...', 20, 'owner_wise')
-        query = "SELECT * FROM ext_view.vw_ownership_wise_order_summary_with_order_type"
+        query = "SELECT * FROM ext_view.vw_ownership_wise_order_summary_with_order_type where order_qty <> cancelled_pcs"
         
         start_time = time.time()
         # Ensure session doesn't time out for this specific slow query
@@ -1027,7 +1027,7 @@ def sync_pending_acceptance_data_task():
         FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number a
         LEFT JOIN ext_view.vw_purchase_order po
             ON po.po_number = a.po_number
-        WHERE a.pending_to_accepted_wt > 0
+        WHERE a.pending_to_accepted_wt > 0 and where order_qty <> cancelled_pcs
         ORDER BY 
             a.accepted_wt DESC,
             a.pending_to_accepted_wt DESC;
@@ -1109,7 +1109,7 @@ def sync_rejected_weight_data_task():
         FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number a
         LEFT JOIN ext_view.vw_purchase_order po
             ON po.po_number = a.po_number
-        WHERE a.rejected_wt > 0
+        WHERE a.rejected_wt > 0 and  order_qty <> cancelled_pcs
         ORDER BY 
             a.rejected_wt DESC;
         """
