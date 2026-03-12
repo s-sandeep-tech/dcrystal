@@ -125,6 +125,8 @@ def sync_owner_wise_data_task():
                 accepted_wt=row.get('accepted_wt'),
                 rejected_pcs=row.get('rejected_pcs'),
                 rejected_wt=row.get('rejected_wt'),
+                cancelled_pcs=row.get('cancelled_pcs'),
+                cancelled_wt=row.get('cancelled_wt'),
                 barcoded_pcs=row.get('barcoded_pcs'),
                 barcoded_wt=row.get('barcoded_wt'),
                 not_barcoded_pcs=row.get('not_barcoded_pcs'),

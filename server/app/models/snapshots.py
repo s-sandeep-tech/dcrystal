@@ -214,6 +214,8 @@ class OwnerWiseOrderSummarySnapshot(db.Model):
     accepted_wt = db.Column('Accepted Wt', db.Numeric(18, 3))
     rejected_pcs = db.Column('Rejected Pcs', db.Numeric(18, 3))
     rejected_wt = db.Column('Rejected Wt', db.Numeric(18, 3))
+    cancelled_pcs = db.Column('Cancelled Pcs', db.Numeric(18, 3))
+    cancelled_wt = db.Column('Cancelled Wt', db.Numeric(18, 3))
     barcoded_pcs = db.Column('Barcoded Pcs', db.Numeric(18, 3))
     barcoded_wt = db.Column('Barcoded Wt', db.Numeric(18, 3))
     not_barcoded_pcs = db.Column('Not Barcod Pcs', db.Numeric(18, 3))

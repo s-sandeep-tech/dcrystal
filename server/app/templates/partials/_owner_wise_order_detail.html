@@ -31,6 +31,9 @@
                 <th colspan="2"
                     class="px-2 py-1.5 text-center border-r bg-red-50/30 dark:bg-red-900/10 text-red-700 dark:text-red-400">
                     Rejected</th>
+                <th colspan="2"
+                    class="px-2 py-1.5 text-center border-r bg-red-50/30 dark:bg-red-900/10 text-red-700 dark:text-red-400">
+                    Cancelled</th>
                 <th colspan="4"
                     class="px-2 py-1.5 text-center border-r bg-indigo-50/30 dark:bg-indigo-900/10 text-indigo-700 dark:text-indigo-400">
                     Barcode</th>
@@ -57,6 +60,9 @@
                 <th class="px-2 py-2 text-right border-r">Pcs</th>
                 <th class="px-2 py-2 text-right border-r">Wt</th>
                 <!-- Rejected -->
+                <th class="px-2 py-2 text-right border-r">Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Wt</th>
+                <!-- Cancelled -->
                 <th class="px-2 py-2 text-right border-r">Pcs</th>
                 <th class="px-2 py-2 text-right border-r">Wt</th>
                 <!-- Barcoding -->
@@ -124,6 +130,10 @@
                 <td class="px-2 py-2 text-right border-r text-red-600 bg-red-50/10">{{ node.metrics.rej_pcs|int }}</td>
                 <td class="px-2 py-2 text-right border-r text-red-600 font-bold bg-red-50/10">{{
                     "%.3f"|format(node.metrics.rej_wt) }}</td>
+                <!-- Cancelled -->
+                <td class="px-2 py-2 text-right border-r text-red-600 bg-red-50/10">{{ node.metrics.can_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-red-600 font-bold bg-red-50/10">{{
+                    "%.3f"|format(node.metrics.can_wt) }}</td>
                 <!-- Barcoding -->
                 <td class="px-2 py-2 text-right border-r text-indigo-600 bg-indigo-50/10">{{ node.metrics.bar_pcs|int }}
                 </td>
@@ -211,6 +221,11 @@
                     grand_total.rej_pcs|int }}</td>
                 <td class="px-2 py-2 text-right border-r text-red-700 dark:text-red-400 text-[13px] font-black">{{
                     "%.3f"|format(grand_total.rej_wt) }}</td>
+                <!-- Cancelled -->
+                <td class="px-2 py-2 text-right border-r text-red-700 dark:text-red-400 text-[13px]">{{
+                    grand_total.can_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-red-700 dark:text-red-400 text-[13px] font-black">
+                    {{ "%.3f"|format(grand_total.can_wt) }}</td>
                 <!-- Barcoding -->
                 <td class="px-2 py-2 text-right border-r text-indigo-700 dark:text-indigo-400 text-[13px]">{{
                     grand_total.bar_pcs|int }}</td>
