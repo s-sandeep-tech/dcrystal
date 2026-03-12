@@ -56,7 +56,7 @@ def get_latest_feedback_subquery():
     ).filter(PendingAcceptanceFeedback.page_code == 'PA').subquery()
 
 def apply_filters(query, search, latest_date_query, collection_owner=None, make_owner=None, 
-                supplier=None, collection=None, feedback_status=None,
+                supplier=None, collection=None, classification=None, feedback_status=None,
                 order_type=None, order_request_type=None, delay=None):
     # Enforce latest snapshot date
     query = query.filter(PendingAcceptanceSnapshot.snapshot_date == latest_date_query)
@@ -84,6 +84,8 @@ def apply_filters(query, search, latest_date_query, collection_owner=None, make_
         query = query.filter(PendingAcceptanceSnapshot.supplier == supplier)
     if collection:
         query = query.filter(PendingAcceptanceSnapshot.collection == collection)
+    if classification:
+        query = query.filter(PendingAcceptanceSnapshot.classification == classification)
     if order_type:
         query = query.filter(PendingAcceptanceSnapshot.order_type == order_type)
     if order_request_type:
@@ -100,6 +102,7 @@ def get_base_query(query_filter_func=None, feedback_status=None):
         PendingAcceptanceSnapshot.make_owner,
         PendingAcceptanceSnapshot.supplier,
         PendingAcceptanceSnapshot.collection,
+        PendingAcceptanceSnapshot.classification,
         func.sum(PendingAcceptanceSnapshot.order_wt).label('sum_order_wt'),
         func.sum(PendingAcceptanceSnapshot.accepted_wt).label('sum_accepted_wt'),
         func.sum(PendingAcceptanceSnapshot.pending_to_accepted_wt).label('sum_pending_to_accepted_wt')
@@ -112,7 +115,8 @@ def get_base_query(query_filter_func=None, feedback_status=None):
         PendingAcceptanceSnapshot.collection_owner,
         PendingAcceptanceSnapshot.make_owner,
         PendingAcceptanceSnapshot.supplier,
-        PendingAcceptanceSnapshot.collection
+        PendingAcceptanceSnapshot.collection,
+        PendingAcceptanceSnapshot.classification
     ).subquery('agg_snapshot')
 
     # Join with feedback
@@ -121,6 +125,7 @@ def get_base_query(query_filter_func=None, feedback_status=None):
         q.c.make_owner,
         q.c.supplier,
         q.c.collection,
+        q.c.classification,
         q.c.sum_order_wt,
         q.c.sum_accepted_wt,
         q.c.sum_pending_to_accepted_wt,
@@ -134,7 +139,8 @@ def get_base_query(query_filter_func=None, feedback_status=None):
             func.coalesce(q.c.collection_owner, '') == func.coalesce(latest_feedback.c.collection_owner, ''),
             func.coalesce(q.c.make_owner, '') == func.coalesce(latest_feedback.c.make_owner, ''),
             func.coalesce(q.c.supplier, '') == func.coalesce(latest_feedback.c.supplier, ''),
-            func.coalesce(q.c.collection, '') == func.coalesce(latest_feedback.c.collection, '')
+            func.coalesce(q.c.collection, '') == func.coalesce(latest_feedback.c.collection, ''),
+            func.coalesce(q.c.classification, '') == func.coalesce(latest_feedback.c.classification, '')
         )
     )
 
@@ -202,6 +208,7 @@ def pending_acceptance():
         f_collection = request.args.get('collection', '')
         f_order_type = request.args.get('order_type', '')
         f_order_request_type = request.args.get('order_request_type', '')
+        f_classification = request.args.get('classification', '')
         f_feedback_status = request.args.get('feedback_status', '')
         f_delay = request.args.get('delay')
         
@@ -223,6 +230,7 @@ def pending_acceptance():
                                      collection_owner=f_collection_owner,
                                      make_owner=f_make_owner, supplier=f_supplier, 
                                      collection=f_collection, 
+                                     classification=f_classification,
                                      order_type=f_order_type,
                                      order_request_type=f_order_request_type,
                                      delay=f_delay,
@@ -242,11 +250,10 @@ def pending_acceptance():
                 'make_owners': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.make_owner).distinct().order_by(PendingAcceptanceSnapshot.make_owner).all()],
                 'suppliers': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.supplier).distinct().order_by(PendingAcceptanceSnapshot.supplier).all()],
                 'collections': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.collection).distinct().order_by(PendingAcceptanceSnapshot.collection).all()],
+                'classifications': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.classification).distinct().order_by(PendingAcceptanceSnapshot.classification).all()],
                 'order_types': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.order_type).distinct().order_by(PendingAcceptanceSnapshot.order_type).all()],
                 'order_request_types': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.order_request_type).distinct().order_by(PendingAcceptanceSnapshot.order_request_type).all()],
             }
-
-        filter_options = fetch_filter_options()
 
         filter_options = fetch_filter_options()
 
@@ -273,6 +280,7 @@ def get_pending_acceptance_partial():
         f_make_owner = request.args.get('make_owner', '')
         f_supplier = request.args.get('supplier', '')
         f_collection = request.args.get('collection', '')
+        f_classification = request.args.get('classification', '')
         f_order_type = request.args.get('order_type', '')
         f_order_request_type = request.args.get('order_request_type', '')
         f_feedback_status = request.args.get('feedback_status', '')
@@ -297,6 +305,7 @@ def get_pending_acceptance_partial():
                                      collection_owner=f_collection_owner,
                                      make_owner=f_make_owner, supplier=f_supplier, 
                                      collection=f_collection, 
+                                     classification=f_classification,
                                      order_type=f_order_type,
                                      order_request_type=f_order_request_type,
                                      delay=f_delay,
@@ -327,6 +336,7 @@ def get_pending_acceptance_partial():
                 make_owner=f_make_owner,
                 supplier=f_supplier, 
                 collection=f_collection,
+                classification=f_classification,
                 order_type=f_order_type, 
                 order_request_type=f_order_request_type,
                 delay=f_delay
@@ -349,6 +359,7 @@ def get_pending_acceptance_partial():
                 'make_owner': r.make_owner or '',
                 'supplier': r.supplier or '',
                 'collection': r.collection or '',
+                'classification': r.classification or '',
                 'order_type': '', 
                 'order_request_type': '',
                 'order_wt': float(r.sum_order_wt or 0),
@@ -388,9 +399,11 @@ def get_pending_acceptance_po_details():
         make_owner = request.args.get('make_owner', '')
         supplier = request.args.get('supplier', '')
         collection = request.args.get('collection', '')
+        classification = request.args.get('classification', '')
         
         # Apply global filters to match exactly what is in the main row
         search = request.args.get('search', '').strip()
+        f_classification = request.args.get('classification', '')
         f_order_type = request.args.get('order_type', '')
         f_order_request_type = request.args.get('order_request_type', '')
         f_delay = request.args.get('delay')

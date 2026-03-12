@@ -1011,6 +1011,7 @@ def sync_pending_acceptance_data_task():
             a.make_owner,
             po.supplier,
             a.collection,
+            a.classification,
             po.po_number,
             po.po_date,
             po.total_weight,

@@ -493,6 +493,7 @@ class PendingAcceptanceSnapshot(db.Model):
     make_owner = db.Column(db.Text)
     supplier = db.Column(db.Text)
     collection = db.Column(db.Text)
+    classification = db.Column(db.Text)
     po_number = db.Column(db.Text)
     po_date = db.Column(db.Date)
     total_weight = db.Column(db.Numeric(18, 3))

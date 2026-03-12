@@ -61,6 +61,10 @@ function applyGlobalFilters() {
     if (orderRequestType) urlParams.set('order_request_type', orderRequestType);
     else urlParams.delete('order_request_type');
 
+    const classification = document.getElementById('filter-classification')?.value;
+    if (classification) urlParams.set('classification', classification);
+    else urlParams.delete('classification');
+
     const collection = document.getElementById('filter-collection')?.value;
     if (collection) urlParams.set('collection', collection);
     else urlParams.delete('collection');
@@ -97,6 +101,9 @@ function resetGlobalFilters() {
 
     const orderRequestType = document.getElementById('filter-order-request-type');
     if (orderRequestType) orderRequestType.value = '';
+
+    const classification = document.getElementById('filter-classification');
+    if (classification) classification.value = '';
 
     const collection = document.getElementById('filter-collection');
     if (collection) collection.value = '';
@@ -184,6 +191,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (urlParams.get('order_request_type')) {
         const sel = document.getElementById('filter-order-request-type');
         if (sel) sel.value = urlParams.get('order_request_type');
+    }
+    if (urlParams.get('classification')) {
+        const sel = document.getElementById('filter-classification');
+        if (sel) sel.value = urlParams.get('classification');
     }
     if (urlParams.get('collection')) {
         const sel = document.getElementById('filter-collection');
