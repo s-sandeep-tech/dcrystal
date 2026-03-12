@@ -1111,7 +1111,7 @@ def sync_rejected_weight_data_task():
         FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number a
         LEFT JOIN ext_view.vw_purchase_order po
             ON po.po_number = a.po_number
-        WHERE a.rejected_wt > 0 and  order_qty <> cancelled_pcs
+        WHERE a.rejected_wt > 0 and  a.order_qty <> a.cancelled_pcs
         ORDER BY 
             a.rejected_wt DESC;
         """
