@@ -343,7 +343,7 @@ def sync_process_level_delay_data_task():
                 AND next_completed_date IS NULL
                 AND days_waiting > 10
             ) AS "Window 10+",
-            seq AS sortorder
+            seq AS sort_order
 
             FROM joined
             GROUP BY
@@ -377,7 +377,7 @@ def sync_process_level_delay_data_task():
                 time_window_2_4_days=row.get('Window 3-4'),
                 time_window_5_10_days=row.get('Window 5-10'),
                 time_window_more_than_10_days=row.get('Window 10+'),
-                sort_order=row.get('sortorder'),
+                sort_order=row.get('sort_order') or 0,
                 report_date=db.func.current_date()
             )
             new_records.append(record)
