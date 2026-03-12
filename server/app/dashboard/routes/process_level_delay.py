@@ -24,9 +24,16 @@ def _get_process_delay_data():
     if next_process:
         query = query.filter(PartyProcessAgeingSnapshot.next_process_level.ilike(f"%{next_process}%"))
 
-    # Pagination
+    # Pagination and Sorting
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
+    
+    # Sort by party name and then custom sort order
+    query = query.order_by(
+        PartyProcessAgeingSnapshot.party_name.asc(),
+        PartyProcessAgeingSnapshot.sort_order.asc()
+    )
+    
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
     rows = [r.to_dict() for r in pagination.items]

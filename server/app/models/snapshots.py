@@ -295,6 +295,7 @@ class PartyProcessAgeingSnapshot(db.Model):
     time_window_2_4_days = db.Column(db.Integer, nullable=False, default=0)
     time_window_5_10_days = db.Column(db.Integer, nullable=False, default=0)
     time_window_more_than_10_days = db.Column(db.Integer, nullable=False, default=0)
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
     report_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
@@ -308,6 +309,7 @@ class PartyProcessAgeingSnapshot(db.Model):
             'time_window_2_4_days': self.time_window_2_4_days,
             'time_window_5_10_days': self.time_window_5_10_days,
             'time_window_more_than_10_days': self.time_window_more_than_10_days,
+            'sort_order': self.sort_order,
             'report_date': self.report_date.isoformat() if self.report_date else None
         }
 
