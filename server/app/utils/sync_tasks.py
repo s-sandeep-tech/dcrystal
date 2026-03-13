@@ -817,6 +817,7 @@ base_orders AS MATERIALIZED (
         od.order_id,
         od.po_id
     FROM ext_view.vw_order_details od
+    Where od.cancelled_on is null
 ),
 
 prod_bucket AS (
