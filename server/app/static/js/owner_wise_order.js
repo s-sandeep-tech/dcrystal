@@ -85,7 +85,9 @@ function updateHeaderStats(stats) {
         'stat-delivered-wt': stats.delivered_wt,
         'stat-delivered-pcs': stats.delivered_pcs,
         'stat-pending-to-be-delv-wt': stats.pending_to_be_delv_wt,
-        'stat-pending-to-be-delv-pcs': stats.pending_to_be_delv_pcs
+        'stat-pending-to-be-delv-pcs': stats.pending_to_be_delv_pcs,
+        'stat-cancelled-wt': stats.cancelled_wt,
+        'stat-cancelled-pcs': stats.cancelled_pcs
     };
 
     for (const [id, value] of Object.entries(mappings)) {
@@ -124,7 +126,8 @@ function updateHeaderStats(stats) {
         'stat-qc-passed-bar': stats.qc_passed_perc,
         'stat-invoiced-bar': stats.invoiced_perc,
         'stat-delivered-bar': stats.delivered_perc,
-        'stat-pending-to-be-delv-bar': stats.pending_to_be_delv_perc
+        'stat-pending-to-be-delv-bar': stats.pending_to_be_delv_perc,
+        'stat-cancelled-bar': stats.cancelled_perc
     };
 
     for (const [id, perc] of Object.entries(barMappings)) {
