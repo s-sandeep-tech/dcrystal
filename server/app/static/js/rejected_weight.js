@@ -70,6 +70,32 @@ function applyGlobalFilters() {
     if (delayEnable && delay !== '') urlParams.set('delay', delay);
     else urlParams.delete('delay');
 
+    const enableDateFilter = document.getElementById('enable-date-filter')?.checked;
+    const fromDate = document.getElementById('filter-from-date')?.value;
+    const toDate = document.getElementById('filter-to-date')?.value;
+    if (enableDateFilter && fromDate && toDate) {
+        urlParams.set('enable_date_filter', 'true');
+        urlParams.set('from_date', fromDate);
+        urlParams.set('to_date', toDate);
+    } else {
+        urlParams.delete('enable_date_filter');
+        urlParams.delete('from_date');
+        urlParams.delete('to_date');
+    }
+
+    const enableFeedbackDateFilter = document.getElementById('enable-feedback-date-filter')?.checked;
+    const feedbackFromDate = document.getElementById('filter-feedback-from-date')?.value;
+    const feedbackToDate = document.getElementById('filter-feedback-to-date')?.value;
+    if (enableFeedbackDateFilter && feedbackFromDate && feedbackToDate) {
+        urlParams.set('enable_feedback_date_filter', 'true');
+        urlParams.set('feedback_from_date', feedbackFromDate);
+        urlParams.set('feedback_to_date', feedbackToDate);
+    } else {
+        urlParams.delete('enable_feedback_date_filter');
+        urlParams.delete('feedback_from_date');
+        urlParams.delete('feedback_to_date');
+    }
+
     urlParams.set('page', 1);
     updateUrlAndLoad(urlParams);
 }
@@ -105,6 +131,22 @@ function resetGlobalFilters() {
     if (delay) delay.value = '5';
     const delayEnable = document.getElementById('filter-delay-enable');
     if (delayEnable) delayEnable.checked = false;
+
+    const enableDateFilter = document.getElementById('enable-date-filter');
+    if (enableDateFilter) enableDateFilter.checked = false;
+    const fromDate = document.getElementById('filter-from-date');
+    if (fromDate) fromDate.value = '';
+    const toDate = document.getElementById('filter-to-date');
+    if (toDate) toDate.value = '';
+    toggleDateInputs();
+
+    const enableFeedbackDateFilter = document.getElementById('enable-feedback-date-filter');
+    if (enableFeedbackDateFilter) enableFeedbackDateFilter.checked = false;
+    const feedbackFromDate = document.getElementById('filter-feedback-from-date');
+    if (feedbackFromDate) feedbackFromDate.value = '';
+    const feedbackToDate = document.getElementById('filter-feedback-to-date');
+    if (feedbackToDate) feedbackToDate.value = '';
+    toggleFeedbackDateInputs();
 
     updateUrlAndLoad(urlParams);
 }
@@ -172,6 +214,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sel) sel.value = urlParams.get('delay');
         const enable = document.getElementById('filter-delay-enable');
         if (enable) enable.checked = true;
+    }
+
+    if (urlParams.get('enable_date_filter') === 'true') {
+        const enable = document.getElementById('enable-date-filter');
+        if (enable) enable.checked = true;
+        const from = document.getElementById('filter-from-date');
+        if (from) from.value = urlParams.get('from_date') || '';
+        const to = document.getElementById('filter-to-date');
+        if (to) to.value = urlParams.get('to_date') || '';
+        toggleDateInputs();
+    }
+
+    if (urlParams.get('enable_feedback_date_filter') === 'true') {
+        const enable = document.getElementById('enable-feedback-date-filter');
+        if (enable) enable.checked = true;
+        const from = document.getElementById('filter-feedback-from-date');
+        if (from) from.value = urlParams.get('feedback_from_date') || '';
+        const to = document.getElementById('filter-feedback-to-date');
+        if (to) to.value = urlParams.get('feedback_to_date') || '';
+        toggleFeedbackDateInputs();
     }
 
     const metaDiv = document.querySelector('.pagination-meta');
@@ -316,4 +378,28 @@ async function viewPODetails(collectionOwner, makeOwner, supplier, collection) {
 function closePODetailsModal() {
     document.getElementById('poDetailsModal').classList.add('hidden');
     document.getElementById('poDetailsContent').innerHTML = '';
+}
+
+function toggleDateInputs() {
+    const isChecked = document.getElementById('enable-date-filter')?.checked;
+    const container = document.getElementById('date-inputs');
+    if (container) {
+        if (isChecked) {
+            container.classList.remove('opacity-40', 'pointer-events-none');
+        } else {
+            container.classList.add('opacity-40', 'pointer-events-none');
+        }
+    }
+}
+
+function toggleFeedbackDateInputs() {
+    const isChecked = document.getElementById('enable-feedback-date-filter')?.checked;
+    const container = document.getElementById('feedback-date-inputs');
+    if (container) {
+        if (isChecked) {
+            container.classList.remove('opacity-40', 'pointer-events-none');
+        } else {
+            container.classList.add('opacity-40', 'pointer-events-none');
+        }
+    }
 }
