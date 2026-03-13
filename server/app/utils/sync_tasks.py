@@ -815,9 +815,9 @@ qc_orders AS MATERIALIZED (
 base_orders AS MATERIALIZED (
     SELECT
         od.order_id,
-        od.po_id
+        od.po_id, 
+        od.cancelled_on 
     FROM ext_view.vw_order_details od
-    Where od.cancelled_on is null
 ),
 
 prod_bucket AS (
@@ -862,6 +862,7 @@ prod_bucket AS (
         ON pr.order_id = bo.order_id
     INNER JOIN ext_view.vw_purchase_order po
         ON po.po_id = bo.po_id
+    WHERE bo.cancelled_on is null
 ),
 
 qc_bucket AS (
