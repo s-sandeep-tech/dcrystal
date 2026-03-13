@@ -203,6 +203,7 @@ class OwnerWiseOrderSummarySnapshot(db.Model):
     order_type = db.Column('order_type', db.Text, primary_key=True)
     order_date = db.Column('order_date', db.Date, primary_key=True)
     order_ro = db.Column('order_ro', db.Text, primary_key=True)
+    provision_type = db.Column('provision_type', db.Text, primary_key=True)
     
     classification_owner = db.Column('Classification Owner', db.Text)
     collection_owner = db.Column('Collection Owner', db.Text)

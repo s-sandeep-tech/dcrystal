@@ -256,6 +256,7 @@ function applyGlobalFilters() {
         'enable_date_filter': 'enable-date-filter',
         'order_ro': 'filter-order-ro',
         'order_request_type': 'filter-order-request-type',
+        'provision_type': 'filter-provision-type',
         'age': 'filter-age'
     };
 
@@ -283,7 +284,7 @@ function resetGlobalFilters() {
     const ids = [
         'filter-division', 'filter-group', 'filter-purity', 'filter-classification', 'filter-order-type', 'filter-supplier',
         'filter-class-owner', 'filter-coll-owner', 'filter-make-owner', 'hierarchy-search',
-        'filter-from-date', 'filter-to-date', 'enable-date-filter', 'filter-order-ro', 'filter-order-request-type', 'filter-age'
+        'filter-from-date', 'filter-to-date', 'enable-date-filter', 'filter-order-ro', 'filter-order-request-type', 'filter-provision-type', 'filter-age'
     ];
 
     ids.forEach(id => {
