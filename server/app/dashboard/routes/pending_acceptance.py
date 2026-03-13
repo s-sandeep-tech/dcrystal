@@ -57,7 +57,8 @@ def get_latest_feedback_subquery():
 
 def apply_filters(query, search, latest_date_query, collection_owner=None, make_owner=None, 
                 supplier=None, collection=None, classification=None, feedback_status=None,
-                order_type=None, order_request_type=None, delay=None):
+                order_type=None, order_request_type=None, delay=None,
+                from_date=None, to_date=None, enable_date_filter=False):
     # Enforce latest snapshot date
     query = query.filter(PendingAcceptanceSnapshot.snapshot_date == latest_date_query)
 
@@ -91,9 +92,20 @@ def apply_filters(query, search, latest_date_query, collection_owner=None, make_
     if order_request_type:
         query = query.filter(PendingAcceptanceSnapshot.order_request_type == order_request_type)
         
+    if enable_date_filter and from_date and to_date:
+        try:
+            fd = datetime.strptime(from_date, '%Y-%m-%d').date()
+            td = datetime.strptime(to_date, '%Y-%m-%d').date()
+            # Order date filtering
+            query = query.filter(PendingAcceptanceSnapshot.order_date.between(fd, td))
+        except ValueError:
+            pass
+            
     return query
 
-def get_base_query(query_filter_func=None, feedback_status=None):
+def get_base_query(query_filter_func=None, feedback_status=None, 
+                   feedback_from_date=None, feedback_to_date=None, 
+                   enable_feedback_date_filter=False):
     latest_feedback = get_latest_feedback_subquery()
     
     # Base query for aggregation
@@ -139,6 +151,16 @@ def get_base_query(query_filter_func=None, feedback_status=None):
             func.coalesce(q.c.collection, '') == func.coalesce(latest_feedback.c.collection, '')
         )
     )
+
+    if enable_feedback_date_filter and feedback_from_date and feedback_to_date:
+        try:
+            ffd = datetime.strptime(feedback_from_date, '%Y-%m-%d').date()
+            ftd = datetime.strptime(feedback_to_date, '%Y-%m-%d').date()
+            # Since created_at is DateTime, we compare using between
+            ftd_plus_one = ftd + timedelta(days=1)
+            query = query.filter(latest_feedback.c.created_at >= ffd, latest_feedback.c.created_at < ftd_plus_one)
+        except ValueError:
+            pass
 
     if feedback_status:
         if feedback_status == 'with':
@@ -207,6 +229,13 @@ def pending_acceptance():
         f_classification = request.args.get('classification', '')
         f_feedback_status = request.args.get('feedback_status', '')
         f_delay = request.args.get('delay')
+        f_from_date = request.args.get('from_date', '')
+        f_to_date = request.args.get('to_date', '')
+        f_enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
+
+        f_feedback_from_date = request.args.get('feedback_from_date', '')
+        f_feedback_to_date = request.args.get('feedback_to_date', '')
+        f_enable_feedback_date_filter = request.args.get('enable_feedback_date_filter', 'false') == 'true'
         
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
@@ -230,6 +259,12 @@ def pending_acceptance():
                                      order_type=f_order_type,
                                      order_request_type=f_order_request_type,
                                      delay=f_delay,
+                                     from_date=f_from_date,
+                                     to_date=f_to_date,
+                                     enable_date_filter=f_enable_date_filter,
+                                     feedback_from_date=f_feedback_from_date,
+                                     feedback_to_date=f_feedback_to_date,
+                                     enable_feedback_date_filter=f_enable_feedback_date_filter,
                                      page=page, per_page=per_page)
         
         # 3. Helper to fetch filter lists
@@ -281,6 +316,13 @@ def get_pending_acceptance_partial():
         f_order_request_type = request.args.get('order_request_type', '')
         f_feedback_status = request.args.get('feedback_status', '')
         f_delay = request.args.get('delay')
+        f_from_date = request.args.get('from_date', '')
+        f_to_date = request.args.get('to_date', '')
+        f_enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
+
+        f_feedback_from_date = request.args.get('feedback_from_date', '')
+        f_feedback_to_date = request.args.get('feedback_to_date', '')
+        f_enable_feedback_date_filter = request.args.get('enable_feedback_date_filter', 'false') == 'true'
         
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
@@ -305,6 +347,12 @@ def get_pending_acceptance_partial():
                                      order_type=f_order_type,
                                      order_request_type=f_order_request_type,
                                      delay=f_delay,
+                                     from_date=f_from_date,
+                                     to_date=f_to_date,
+                                     enable_date_filter=f_enable_date_filter,
+                                     feedback_from_date=f_feedback_from_date,
+                                     feedback_to_date=f_feedback_to_date,
+                                     enable_feedback_date_filter=f_enable_feedback_date_filter,
                                      page=page, per_page=per_page)
         
         cached_data = redis_client.get(cache_key)
@@ -335,10 +383,16 @@ def get_pending_acceptance_partial():
                 classification=f_classification,
                 order_type=f_order_type, 
                 order_request_type=f_order_request_type,
-                delay=f_delay
+                delay=f_delay,
+                from_date=f_from_date,
+                to_date=f_to_date,
+                enable_date_filter=f_enable_date_filter
             )
 
-        query = get_base_query(query_filter_func=filter_func, feedback_status=f_feedback_status)
+        query = get_base_query(query_filter_func=filter_func, feedback_status=f_feedback_status,
+                               feedback_from_date=f_feedback_from_date,
+                               feedback_to_date=f_feedback_to_date,
+                               enable_feedback_date_filter=f_enable_feedback_date_filter)
         
         # Calculate Stats (now passing the formulated query)
         stats = calculate_stats(query)
