@@ -85,7 +85,7 @@ def sync_owner_wise_data_task():
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         emit_sync_update('processing', 'Fetching data from Azure PostgreSQL...', 20, 'owner_wise')
-        query = "SELECT * FROM ext_view.vw_ownership_wise_order_summary_with_order_type where order_qty <> cancelled_pcs"
+        query = "SELECT * FROM ext_view.vw_ownership_wise_order_summary_with_order_type_provision_type where order_qty <> cancelled_pcs"
         
         start_time = time.time()
         # Ensure session doesn't time out for this specific slow query
