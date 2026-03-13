@@ -507,7 +507,7 @@ def get_leaf_detail():
 
         if age and age.isdigit():
             age_val = int(age)
-            query = query.filter(func.current_date() - OwnerWiseOrderSummarySnapshot.order_date >= age_val)
+            query = query.filter(func.current_date() - OwnerWiseOrderSummarySnapshot.order_date <= age_val)
 
         if enable_date_filter and from_date and to_date:
             try:
