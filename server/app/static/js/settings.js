@@ -284,6 +284,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!window.isSyncAllActive) break;
             }
 
+            if (window.isSyncAllActive) {
+                // All tasks completed successfully, clear cache
+                syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-100';
+                syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm animate-spin">sync</span> Clearing Application Cache...</div>`;
+                syncStatus.classList.remove('hidden');
+
+                try {
+                    const clearUrl = window.SETTINGS_CONFIG ? window.SETTINGS_CONFIG.clearCacheUrl : '/settings/clear-cache';
+                    const response = await fetch(clearUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/30';
+                        syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">check_circle</span> All Sync Tasks and Cache Clear Completed</div>`;
+                        if (typeof window.showToast === 'function') {
+                            window.showToast('All sync tasks completed and cache cleared successfully', 'success');
+                        }
+                    } else {
+                        throw new Error(data.message || 'Clear cache failed');
+                    }
+                } catch (error) {
+                    syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/30';
+                    syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">warning</span> Sync completed but failed to clear cache: ${error.message}</div>`;
+                    if (typeof window.showToast === 'function') {
+                        window.showToast('Sync completed, cache clear failed: ' + error.message, 'warning');
+                    }
+                }
+            }
+
             window.isSyncAllActive = false;
             resetSyncBtn(syncAllBtn);
         });
