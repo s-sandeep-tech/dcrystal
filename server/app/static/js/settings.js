@@ -94,10 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             wrapper.classList.add('bg-gray-50', 'dark:bg-gray-800/50', 'border-gray-100', 'dark:border-gray-700');
                         }
                     }
-
-                    if (typeof window.showToast === 'function') {
-                        window.showToast(data.message, 'success');
-                    }
                 } else if (data.status === 'error') {
                     syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/30';
                     syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">error</span> ${data.message}</div>`;

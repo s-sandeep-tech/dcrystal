@@ -66,8 +66,7 @@ async function start() {
         console.log(`Relaying targeted notification to socket: ${data.socket_id}`);
         io.to(data.socket_id).emit('new_notification', data);
       } else {
-        // Fallback or Global sync notifications
-        io.emit('new_notification', data);
+        // Global broadcast: only emit global_notification for toasts
         io.emit('global_notification', data); 
       }
     } catch (e) {
