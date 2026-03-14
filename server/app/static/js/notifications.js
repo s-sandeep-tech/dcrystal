@@ -143,6 +143,11 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log('New notification received:', data);
         updateBadge();
 
+        // Show a visible toast for the user
+        if (window.showToast) {
+            window.showToast(data.title || 'Notification', data.message || '', data.type || 'info');
+        }
+
         // If the dropdown is currently open and visible, prepend the new notification
         if (notifList && !notifDropdown.classList.contains('hidden')) {
             prependNotification(data);
@@ -231,6 +236,13 @@ document.addEventListener('DOMContentLoaded', function () {
             ? `<span class="text-[8px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-gray-600 dark:text-gray-400 font-mono">${data.related_order_id}</span>`
             : '';
 
+        const actionUrlHtml = data.action_url
+            ? `<a href="${data.action_url}" class="mt-2 inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 rounded text-[9px] font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors">
+                <span class="material-symbols-outlined text-[12px]">download</span>
+                Download File
+            </a>`
+            : '';
+
         const itemHtml = `
         <div class="p-3 border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-all duration-500 opacity-0 -translate-y-2 ${bgClass}">
             <div class="flex gap-3">
@@ -247,6 +259,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <p class="text-[9px] font-bold ${timeColor}">${data.time || 'Just now'}</p>
                         ${relatedOrderHtml}
                     </div>
+                    ${actionUrlHtml}
                 </div>
             </div>
         </div>

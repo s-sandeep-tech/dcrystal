@@ -61,7 +61,15 @@ async function start() {
     console.log('Received global notification:', message);
     try {
       const data = JSON.parse(message);
-      io.emit('global_notification', data);
+      
+      if (data.socket_id) {
+        console.log(`Relaying targeted notification to socket: ${data.socket_id}`);
+        io.to(data.socket_id).emit('new_notification', data);
+      } else {
+        // Fallback or Global sync notifications
+        io.emit('new_notification', data);
+        io.emit('global_notification', data); 
+      }
     } catch (e) {
       console.error('Error parsing global notification:', e);
     }

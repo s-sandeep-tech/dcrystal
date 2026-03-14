@@ -51,6 +51,8 @@ class Notification(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     priority = db.Column(db.String(20), default='medium')  # high, medium, low
     related_order_id = db.Column(db.String(50), db.ForeignKey('orders.order_id'), nullable=True)
+    user_id = db.Column(db.String(50), nullable=True) # If null, broadcast to all
+    action_url = db.Column(db.String(500), nullable=True)  # Optional download/action link
 
     # Relationship to Order
     order = db.relationship('Order', backref='notifications', foreign_keys=[related_order_id])
@@ -65,7 +67,9 @@ class Notification(db.Model):
             'is_read': self.is_read,
             'created_at': self.created_at,
             'priority': self.priority,
-            'related_order_id': self.related_order_id
+            'related_order_id': self.related_order_id,
+            'user_id': self.user_id,
+            'action_url': self.action_url
         }
     
     def get_time_ago(self):
@@ -84,3 +88,25 @@ class Notification(db.Model):
         else:
             days = int(seconds / 86400)
             return f"{days}d ago"
+
+class ExportDownloadLog(db.Model):
+    __tablename__ = 'export_download_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False)
+    username = db.Column(db.String(100))
+    user_id = db.Column(db.String(50))
+    ip_address = db.Column(db.String(45))
+    user_agent = db.Column(db.Text)
+    downloaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'filename': self.filename,
+            'username': self.username,
+            'user_id': self.user_id,
+            'ip_address': self.ip_address,
+            'user_agent': self.user_agent,
+            'downloaded_at': self.downloaded_at.isoformat()
+        }

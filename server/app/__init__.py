@@ -8,7 +8,7 @@ def create_app():
     CORS(app)
     # Import models to register them with SQLAlchemy
     from app.models import (
-        User, Notification, Order, DashboardStats,
+        User, Notification, Order, DashboardStats, ExportDownloadLog,
         OrderStatusReportSnapshot, ShortStatusReportSnapshot, OrderProvisionSummaryReport,
         LocationWiseOrderSnapshot, AllocatedBarcodesSnapshot, OwnerWiseOrderSummarySnapshot
     )
@@ -102,6 +102,23 @@ def create_app():
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(admin_rbac_bp, url_prefix='/api/admin')
+
+    # Context Processor for Global Template Variables
+    @app.context_processor
+    def inject_global_vars():
+        from flask import session
+        from app.models import Notification
+        from sqlalchemy import or_
+        
+        user_id = session.get('user_id')
+        unread_count = 0
+        if user_id:
+            unread_count = Notification.query.filter(
+                Notification.is_read == False,
+                or_(Notification.user_id == user_id, Notification.user_id == None)
+            ).count()
+        
+        return dict(unread_count=unread_count)
 
     # Register Error Handlers
     @app.errorhandler(404)

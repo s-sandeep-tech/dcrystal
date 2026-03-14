@@ -1,7 +1,7 @@
-from flask import render_template, request, jsonify
-from flask_jwt_extended import jwt_required
+from flask import render_template, request, jsonify, send_file, abort, session
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.dashboard import dashboard_bp
-from app.models import Notification, OutstandingPurchaseOrderStatusSnapshot
+from app.models import Notification, OutstandingPurchaseOrderStatusSnapshot, ExportDownloadLog
 from app.extensions import db
 from sqlalchemy import func, cast, Numeric
 from datetime import datetime
@@ -563,3 +563,79 @@ def get_outstanding_orders_details():
     except Exception as e:
         logger.error(f"Error in get_outstanding_orders_details: {str(e)}")
         return f'<div class="p-4 text-center text-red-500">Error: {str(e)}</div>', 200
+
+
+@dashboard_bp.route('/api/outstanding_orders/export', methods=['POST'])
+@jwt_required()
+def queue_outstanding_orders_export():
+    """Enqueue a background Excel export job for the current filter state."""
+    try:
+        data = request.get_json(force=True) or {}
+        filters = data.get('filters', {})
+
+        socket_id = data.get('socket_id')
+        user_id = get_jwt_identity()
+        job_payload = json.dumps({
+            'type': 'export_opo',
+            'filters': filters,
+            'socket_id': socket_id,
+            'user_id': user_id
+        })
+        redis_client.rpush('export_queue', job_payload)
+
+        logger.info(f"Queued export_opo job with filters: {filters}")
+        return jsonify({
+            'status': 'queued',
+            'message': 'Export job enqueued. You will be notified when the file is ready.'
+        }), 202
+    except Exception as e:
+        logger.error(f"Error queuing export: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@dashboard_bp.route('/exports/download/<path:filename>')
+def download_export_file(filename):
+    """Serve a generated export file for download with logging."""
+    import os
+    from datetime import datetime
+    
+    # Consistent path to exports directory
+    if os.path.isdir('/app/uploads'):
+        exports_dir = '/app/uploads/exports'
+    else:
+        exports_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+            'uploads', 'exports'
+        )
+    filepath = os.path.join(exports_dir, filename)
+
+    # 1. Existence Check
+    if not os.path.exists(filepath) or not os.path.isfile(filepath):
+        logger.warning(f"Download attempt for non-existent file: {filename}")
+        abort(404)
+
+    # 2. Logging
+    try:
+        log_entry = ExportDownloadLog(
+            filename=filename,
+            username=session.get('username'),
+            user_id=session.get('user_id'),
+            ip_address=request.remote_addr,
+            user_agent=request.user_agent.string,
+            downloaded_at=datetime.utcnow()
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        logger.info(f"Download logged: {filename} by user {session.get('username')}")
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to log download for {filename}: {str(e)}")
+        # We still serve the file even if logging fails, but we've recorded the error
+
+    # 3. Deliver File
+    return send_file(
+        filepath,
+        as_attachment=True,
+        download_name=filename,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )

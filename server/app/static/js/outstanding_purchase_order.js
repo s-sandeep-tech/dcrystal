@@ -434,3 +434,73 @@ function closeDetailsModal() {
         document.body.style.overflow = '';
     }
 }
+
+async function exportToExcel() {
+    const btn = document.getElementById('btn-export-excel');
+    const btnIcon = document.getElementById('export-btn-icon');
+    const btnLabel = document.getElementById('export-btn-label');
+
+    if (!btn || btn.disabled) return;
+
+    // Set loading state
+    btn.disabled = true;
+    btn.classList.add('opacity-75', 'cursor-not-allowed');
+    if (btnIcon) btnIcon.classList.add('animate-spin');
+    if (btnLabel) btnLabel.textContent = 'Queuing...';
+
+    // Collect all current filters from the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const filters = {};
+    const filterKeys = [
+        'search', 'classification_owner', 'make_owner', 'collection_owner',
+        'purchase_ro', 'party', 'classification', 'make', 'collection',
+        'section', 'division', 'group', 'purity', 'age_min', 'age_max',
+        'exclude_receipt'
+    ];
+    filterKeys.forEach(key => {
+        const val = urlParams.get(key);
+        if (val) filters[key] = val;
+    });
+
+    try {
+        const response = await fetch('/api/outstanding_orders/export', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+            filters,
+            socket_id: window.socket ? window.socket.id : null 
+        })
+        });
+
+        if (response.status === 202) {
+            if (window.showToast) {
+                window.showToast(
+                    'Export Queued',
+                    'Your export is being generated. You\'ll get a notification with a download link when it\'s ready.',
+                    'success'
+                );
+            }
+        } else {
+            const err = await response.json();
+            if (window.showToast) {
+                window.showToast('Export Failed', err.message || 'Could not queue export.', 'error');
+            }
+        }
+    } catch (e) {
+        console.error('Export request failed:', e);
+        if (window.showToast) {
+            window.showToast('Export Failed', 'Network error. Please try again.', 'error');
+        }
+    } finally {
+        // Restore button state
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.classList.remove('opacity-75', 'cursor-not-allowed');
+            if (btnIcon) btnIcon.classList.remove('animate-spin');
+            if (btnLabel) btnLabel.textContent = 'Export Excel';
+        }, 2000);
+    }
+}

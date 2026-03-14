@@ -26,6 +26,13 @@
                     notif.related_order_id }}</span>
                 {% endif %}
             </div>
+            {% if notif.action_url %}
+            <a href="{{ notif.action_url }}"
+                class="mt-2 inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 rounded text-[9px] font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors">
+                <span class="material-symbols-outlined text-[12px]">download</span>
+                Download File
+            </a>
+            {% endif %}
         </div>
     </div>
 </div>
