@@ -72,19 +72,6 @@
             </div>
         </div>
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Accepted Wt</p>
-            <div class="flex flex-col">
-                <p id="stat-accepted-wt" class="text-sm font-bold text-emerald-600">{{ stats.accepted_wt if stats else
-                    '0.00' }}</p>
-                <p id="stat-accepted-pcs" class="text-[9px] text-emerald-600/70 font-medium">{{ stats.accepted_pcs if
-                    stats else '0' }} Pcs</p>
-            </div>
-            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-accepted-bar" class="h-full bg-emerald-500 transition-all duration-500"
-                    style="width: {{ stats.accepted_perc if stats else 0 }}%"></div>
-            </div>
-        </div>
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase">Rejected Wt</p>
             <div class="flex flex-col">
                 <p id="stat-rejected-wt" class="text-sm font-bold text-red-600">{{ stats.rejected_wt if stats else
@@ -107,6 +94,19 @@
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-cancelled-bar" class="h-full bg-red-500 transition-all duration-500"
                     style="width: {{ stats.cancelled_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Accepted Wt</p>
+            <div class="flex flex-col">
+                <p id="stat-accepted-wt" class="text-sm font-bold text-emerald-600">{{ stats.accepted_wt if stats else
+                    '0.00' }}</p>
+                <p id="stat-accepted-pcs" class="text-[9px] text-emerald-600/70 font-medium">{{ stats.accepted_pcs if
+                    stats else '0' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-accepted-bar" class="h-full bg-emerald-500 transition-all duration-500"
+                    style="width: {{ stats.accepted_perc if stats else 0 }}%"></div>
             </div>
         </div>
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">

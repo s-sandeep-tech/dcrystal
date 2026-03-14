@@ -26,14 +26,14 @@
                     Level Detail</th>
                 <th colspan="2" class="px-2 py-1.5 text-center border-r bg-gray-100/30 dark:bg-gray-700/30">Ordered</th>
                 <th colspan="2"
-                    class="px-2 py-1.5 text-center border-r bg-emerald-50/30 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400">
-                    Accepted</th>
-                <th colspan="2"
                     class="px-2 py-1.5 text-center border-r bg-red-50/30 dark:bg-red-900/10 text-red-700 dark:text-red-400">
                     Rejected</th>
                 <th colspan="2"
                     class="px-2 py-1.5 text-center border-r bg-red-50/30 dark:bg-red-900/10 text-red-700 dark:text-red-400">
                     Cancelled</th>
+                <th colspan="2"
+                    class="px-2 py-1.5 text-center border-r bg-emerald-50/30 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400">
+                    Accepted</th>
                 <th colspan="4"
                     class="px-2 py-1.5 text-center border-r bg-indigo-50/30 dark:bg-indigo-900/10 text-indigo-700 dark:text-indigo-400">
                     Barcode</th>
@@ -56,13 +56,13 @@
                 <!-- Ordered -->
                 <th class="px-2 py-2 text-right border-r">Pcs</th>
                 <th class="px-2 py-2 text-right border-r">Wt</th>
-                <!-- Accepted -->
-                <th class="px-2 py-2 text-right border-r">Pcs</th>
-                <th class="px-2 py-2 text-right border-r">Wt</th>
                 <!-- Rejected -->
                 <th class="px-2 py-2 text-right border-r">Pcs</th>
                 <th class="px-2 py-2 text-right border-r">Wt</th>
                 <!-- Cancelled -->
+                <th class="px-2 py-2 text-right border-r">Pcs</th>
+                <th class="px-2 py-2 text-right border-r">Wt</th>
+                <!-- Accepted -->
                 <th class="px-2 py-2 text-right border-r">Pcs</th>
                 <th class="px-2 py-2 text-right border-r">Wt</th>
                 <!-- Barcoding -->
@@ -121,11 +121,6 @@
                 <td class="px-2 py-2 text-right border-r text-gray-500 font-medium">{{ node.metrics.ord_pcs|int }}</td>
                 <td class="px-2 py-2 text-right border-r font-black text-gray-900 dark:text-gray-100">{{
                     "%.3f"|format(node.metrics.ord_wt) }}</td>
-                <!-- Accepted -->
-                <td class="px-2 py-2 text-right border-r text-emerald-600 bg-emerald-50/10">{{ node.metrics.acc_pcs|int
-                    }}</td>
-                <td class="px-2 py-2 text-right border-r text-emerald-600 font-bold bg-emerald-50/10">{{
-                    "%.3f"|format(node.metrics.acc_wt) }}</td>
                 <!-- Rejected -->
                 <td class="px-2 py-2 text-right border-r text-red-600 bg-red-50/10">{{ node.metrics.rej_pcs|int }}</td>
                 <td class="px-2 py-2 text-right border-r text-red-600 font-bold bg-red-50/10">{{
@@ -134,6 +129,11 @@
                 <td class="px-2 py-2 text-right border-r text-red-600 bg-red-50/10">{{ node.metrics.can_pcs|int }}</td>
                 <td class="px-2 py-2 text-right border-r text-red-600 font-bold bg-red-50/10">{{
                     "%.3f"|format(node.metrics.can_wt) }}</td>
+                <!-- Accepted -->
+                <td class="px-2 py-2 text-right border-r text-emerald-600 bg-emerald-50/10">{{ node.metrics.acc_pcs|int
+                    }}</td>
+                <td class="px-2 py-2 text-right border-r text-emerald-600 font-bold bg-emerald-50/10">{{
+                    "%.3f"|format(node.metrics.acc_wt) }}</td>
                 <!-- Barcoding -->
                 <td class="px-2 py-2 text-right border-r text-indigo-600 bg-indigo-50/10">{{ node.metrics.bar_pcs|int }}
                 </td>
@@ -211,11 +211,6 @@
                     grand_total.ord_pcs|int }}</td>
                 <td class="px-2 py-2 text-right border-r text-[13px] text-primary dark:text-primary-light font-black">{{
                     "%.3f"|format(grand_total.ord_wt) }}</td>
-                <!-- Accepted -->
-                <td class="px-2 py-2 text-right border-r text-emerald-700 dark:text-emerald-400 text-[13px]">{{
-                    grand_total.acc_pcs|int }}</td>
-                <td class="px-2 py-2 text-right border-r text-emerald-700 dark:text-emerald-400 text-[13px] font-black">
-                    {{ "%.3f"|format(grand_total.acc_wt) }}</td>
                 <!-- Rejected -->
                 <td class="px-2 py-2 text-right border-r text-red-700 dark:text-red-400 text-[13px]">{{
                     grand_total.rej_pcs|int }}</td>
@@ -226,6 +221,11 @@
                     grand_total.can_pcs|int }}</td>
                 <td class="px-2 py-2 text-right border-r text-red-700 dark:text-red-400 text-[13px] font-black">
                     {{ "%.3f"|format(grand_total.can_wt) }}</td>
+                <!-- Accepted -->
+                <td class="px-2 py-2 text-right border-r text-emerald-700 dark:text-emerald-400 text-[13px]">{{
+                    grand_total.acc_pcs|int }}</td>
+                <td class="px-2 py-2 text-right border-r text-emerald-700 dark:text-emerald-400 text-[13px] font-black">
+                    {{ "%.3f"|format(grand_total.acc_wt) }}</td>
                 <!-- Barcoding -->
                 <td class="px-2 py-2 text-right border-r text-indigo-700 dark:text-indigo-400 text-[13px]">{{
                     grand_total.bar_pcs|int }}</td>

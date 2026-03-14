@@ -5,9 +5,9 @@
             <th class="col-expander text-center px-0 w-8"></th>
             <th class="text-left px-2">Owner Detail</th>
             <th class="text-right px-2 bg-gray-100/30">Ordered</th>
-            <th class="text-right px-2 bg-emerald-50/20">Accepted</th>
             <th class="text-right px-2 bg-red-50/20">Rejected</th>
             <th class="text-right px-2 bg-red-50/20">Cancelled</th>
+            <th class="text-right px-2 bg-emerald-50/20">Accepted</th>
             <th class="text-right px-2 bg-indigo-50/20">Barcoded</th>
             <th class="text-right px-2 bg-cyan-50/20">Hallmarked</th>
             <th class="text-right px-2 bg-amber-50/20">QC Passed</th>
@@ -59,12 +59,6 @@
             </td>
             <td class="text-right px-2">
                 <div class="flex flex-col">
-                    <span class="font-bold text-emerald-600">{{ "%.3f"|format(r.acc_wt) }}</span>
-                    <span class="text-[9px] text-emerald-600/70">{{ r.acc_pcs }} Pcs</span>
-                </div>
-            </td>
-            <td class="text-right px-2">
-                <div class="flex flex-col">
                     <span class="font-bold text-red-600">{{ "%.3f"|format(r.rej_wt) }}</span>
                     <span class="text-[9px] text-red-600/70">{{ r.rej_pcs }} Pcs</span>
                 </div>
@@ -73,6 +67,12 @@
                 <div class="flex flex-col">
                     <span class="font-bold text-red-600">{{ "%.3f"|format(r.can_wt) }}</span>
                     <span class="text-[9px] text-red-600/70">{{ r.can_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="font-bold text-emerald-600">{{ "%.3f"|format(r.acc_wt) }}</span>
+                    <span class="text-[9px] text-emerald-600/70">{{ r.acc_pcs }} Pcs</span>
                 </div>
             </td>
             <td class="text-right px-2">
@@ -136,12 +136,6 @@
             </td>
             <td class="text-right px-2">
                 <div class="flex flex-col">
-                    <span class="text-emerald-600 text-xs">{{ stats.accepted_wt }}</span>
-                    <span class="text-[9px] text-emerald-600/70">{{ stats.accepted_pcs }} Pcs</span>
-                </div>
-            </td>
-            <td class="text-right px-2">
-                <div class="flex flex-col">
                     <span class="text-red-600 text-xs">{{ stats.rejected_wt }}</span>
                     <span class="text-[9px] text-red-600/70">{{ stats.rejected_pcs }} Pcs</span>
                 </div>
@@ -150,6 +144,12 @@
                 <div class="flex flex-col">
                     <span class="text-red-600 text-xs">{{ stats.cancelled_wt }}</span>
                     <span class="text-[9px] text-red-600/70">{{ stats.cancelled_pcs }} Pcs</span>
+                </div>
+            </td>
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="text-emerald-600 text-xs">{{ stats.accepted_wt }}</span>
+                    <span class="text-[9px] text-emerald-600/70">{{ stats.accepted_pcs }} Pcs</span>
                 </div>
             </td>
             <td class="text-right px-2">
