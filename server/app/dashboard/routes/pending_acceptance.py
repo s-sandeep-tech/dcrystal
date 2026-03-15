@@ -6,6 +6,7 @@ from app.models.auth import User
 from app.extensions import db, redis_client
 from sqlalchemy import func, case
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import logging
 import json
 
@@ -205,7 +206,7 @@ def pending_acceptance():
     try:
         from app.models.core import Notification
         unread_count = Notification.query.filter_by(is_read=False).count()
-        sync_time = datetime.now().strftime("%H:%M")
+        sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
 
         has_any_data = db.session.query(PendingAcceptanceSnapshot.id).first()
         if not has_any_data:

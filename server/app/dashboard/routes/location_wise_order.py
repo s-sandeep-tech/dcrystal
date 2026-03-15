@@ -5,11 +5,12 @@ from app.models import Notification, LocationWiseOrderSnapshot
 from app.extensions import db
 from sqlalchemy import func
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 @dashboard_bp.route('/locationwiseorderstatus')
 def location_wise_order_status():
     unread_count = Notification.query.filter_by(is_read=False).count()
-    sync_time = datetime.now().strftime("%H:%M")
+    sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
 
     latest_date_query = db.session.query(func.max(LocationWiseOrderSnapshot.snapshot_date)).scalar()
     

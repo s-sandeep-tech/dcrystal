@@ -5,6 +5,7 @@ from app.models import Notification, OutstandingPurchaseOrderStatusSnapshot, Exp
 from app.extensions import db
 from sqlalchemy import func, cast, Numeric
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import logging
 from decimal import Decimal
 import json
@@ -46,7 +47,7 @@ def safe_float(val):
 def outstanding_purchase_order():
     try:
         unread_count = Notification.query.filter_by(is_read=False).count()
-        sync_time = datetime.now().strftime("%H:%M")
+        sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
 
         has_any_data = db.session.query(OutstandingPurchaseOrderStatusSnapshot.id).first()
         if not has_any_data:

@@ -5,11 +5,12 @@ from app.models import Notification, ShortStatusReportSnapshot
 from app.extensions import db
 from sqlalchemy import func
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 @dashboard_bp.route('/shortstatus')
 def short_status():
     unread_count = Notification.query.filter_by(is_read=False).count()
-    sync_time = datetime.now().strftime("%H:%M")
+    sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
 
     # Fetch latest snapshot date
     latest_date_query = db.session.query(func.max(ShortStatusReportSnapshot.snapshot_date)).scalar()
@@ -25,7 +26,7 @@ def short_status():
 
     return render_template('short_status.html',
                          unread_count=unread_count,
-                         sync_time=sync_time,
+                         sync_time=datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p"),
                          stats={}, 
                          rows=[],
                          pagination=None,

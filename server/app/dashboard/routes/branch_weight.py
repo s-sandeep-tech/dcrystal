@@ -5,6 +5,7 @@ from app.models import Notification, LocationWiseStockSnapshot, AllocatedBarcode
 from app.extensions import db
 from sqlalchemy import func, cast, Numeric
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import logging
 from decimal import Decimal
 import json
@@ -50,7 +51,7 @@ def safe_float(val):
 def branch_weight_allocation():
     try:
         unread_count = Notification.query.filter_by(is_read=False).count()
-        sync_time = datetime.now().strftime("%H:%M")
+        sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
 
         # Fetch latest snapshot date (select only one column to avoid type errors on other columns)
         has_any_data = db.session.query(LocationWiseStockSnapshot.location).first()

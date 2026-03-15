@@ -2,6 +2,7 @@ from flask import render_template, session, redirect, url_for, current_app
 from app.dashboard import dashboard_bp
 from app.models import Notification
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 @dashboard_bp.route('/admin/roles')
 def admin_roles():
@@ -10,7 +11,7 @@ def admin_roles():
         return redirect(url_for('dashboard.login'))
         
     unread_count = Notification.query.filter_by(is_read=False).count()
-    sync_time = datetime.now().strftime("%H:%M")
+    sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
     
     return render_template('admin/roles.html',
                          unread_count=unread_count,
@@ -23,7 +24,7 @@ def admin_menus():
         return redirect(url_for('dashboard.login'))
         
     unread_count = Notification.query.filter_by(is_read=False).count()
-    sync_time = datetime.now().strftime("%H:%M")
+    sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
     
     return render_template('admin/menus.html',
                          unread_count=unread_count,
@@ -36,7 +37,7 @@ def admin_mappings():
         return redirect(url_for('dashboard.login'))
         
     unread_count = Notification.query.filter_by(is_read=False).count()
-    sync_time = datetime.now().strftime("%H:%M")
+    sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
     
     return render_template('admin/mappings.html',
                          unread_count=unread_count,

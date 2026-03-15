@@ -3,6 +3,7 @@ from app.dashboard import dashboard_bp
 from app.models import Order, DashboardStats, Notification, User
 from app.extensions import db
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from app.utils.decorators import require_perm
 
 @dashboard_bp.route('/myaccount')
@@ -16,7 +17,7 @@ def my_account():
         return redirect(url_for('dashboard.login'))
         
     unread_count = Notification.query.filter_by(is_read=False).count()
-    sync_time = datetime.now().strftime("%I:%M %p")
+    sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
     
     return render_template('my_account.html', 
                          user=user,
@@ -37,7 +38,7 @@ def settings():
         redis_status = False
         
     unread_count = Notification.query.filter_by(is_read=False).count()
-    sync_time = datetime.now().strftime("%H:%M")
+    sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
     
     return render_template('settings.html',
                          redis_status=redis_status,
@@ -340,7 +341,7 @@ def index():
         db.session.commit()
 
     unread_count = Notification.query.filter_by(is_read=False).count()
-    sync_time = datetime.now().strftime("%H:%M")
+    sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
 
     return render_template('index.html', 
                          stats=stats, 
@@ -390,7 +391,7 @@ def inventory():
 
     from app.models import Notification
     unread_count = Notification.query.filter_by(is_read=False).count()
-    sync_time = datetime.now().strftime("%H:%M")
+    sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
     return render_template('inventory.html', 
                          unread_count=unread_count,
                          sync_time=sync_time,

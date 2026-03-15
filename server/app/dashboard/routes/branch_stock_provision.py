@@ -5,11 +5,12 @@ from app.models import Notification, LocationWiseStockSnapshot
 from app.extensions import db
 from sqlalchemy import func
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 @dashboard_bp.route('/branchstockprovision')
 def branch_stock_provision():
     unread_count = Notification.query.filter_by(is_read=False).count()
-    sync_time = datetime.now().strftime("%H:%M")
+    sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
 
     return render_template('branch_stock_provision.html', 
                          unread_count=unread_count, 

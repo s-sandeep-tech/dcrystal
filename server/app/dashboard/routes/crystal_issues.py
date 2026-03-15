@@ -4,6 +4,7 @@ from app.models import Notification, TicketLogSnapshot
 from app.extensions import db
 from sqlalchemy import func
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import logging
 
 logger = logging.getLogger(__name__)
@@ -125,7 +126,7 @@ class CrystalIssuesReport:
 @dashboard_bp.route('/crystal_issues')
 def crystal_issues():
     unread_count = Notification.query.filter_by(is_read=False).count()
-    sync_time = datetime.now().strftime("%H:%M")
+    sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
     
     per_page = request.args.get('per_page', 50, type=int)
     pagination = {'per_page': per_page, 'page': 1, 'total': 0, 'has_prev': False, 'has_next': False}

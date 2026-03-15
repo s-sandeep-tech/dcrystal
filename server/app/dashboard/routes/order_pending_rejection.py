@@ -6,6 +6,7 @@ from app.extensions import db
 from sqlalchemy import func
 from sqlalchemy.sql import literal_column
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 def order_pending_rejection_summary():
     try:
         unread_count = Notification.query.filter_by(is_read=False).count()
-        sync_time = datetime.now().strftime("%H:%M")
+        sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
 
         # Fetch Filter Options
         def get_distinct(column):

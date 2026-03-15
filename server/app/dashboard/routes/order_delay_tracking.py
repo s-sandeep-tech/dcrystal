@@ -6,6 +6,7 @@ from app.models.snapshots import OrderDelayTrackingSnapshot
 from app.extensions import db
 from sqlalchemy import func, cast, Numeric
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import logging
 import json
 from app.extensions import redis_client
@@ -36,7 +37,7 @@ def generate_cache_key(prefix, snapshot_date=None, **kwargs):
 def order_delay_tracking():
     try:
         unread_count = Notification.query.filter_by(is_read=False).count()
-        sync_time = datetime.now().strftime("%H:%M")
+        sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
 
         empty_totals = {
             'delay_1_2_days': 0, 'delay_3_4_days': 0,

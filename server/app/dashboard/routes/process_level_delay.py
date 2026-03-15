@@ -5,6 +5,7 @@ from app.models import Notification, PartyProcessAgeingSnapshot
 from app.extensions import db
 from sqlalchemy import func
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import logging
 
 logger = logging.getLogger(__name__)
@@ -74,7 +75,7 @@ def _get_process_delay_data():
 def process_level_delay():
     try:
         unread_count = Notification.query.filter_by(is_read=False).count()
-        sync_time = datetime.now().strftime("%H:%M")
+        sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
 
         data = _get_process_delay_data()
 
