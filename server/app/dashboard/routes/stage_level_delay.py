@@ -6,6 +6,7 @@ from app.extensions import db
 from sqlalchemy import func, cast, Numeric
 from datetime import datetime
 import logging
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 def stage_level_delay():
     try:
         unread_count = Notification.query.filter_by(is_read=False).count()
-        sync_time = datetime.now().strftime("%I:%M %p")
+        sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
 
         # Fetch latest snapshot date
         latest_date_query = db.session.query(func.max(StageLevelDelaySnapshot.snapshot_date)).scalar()
