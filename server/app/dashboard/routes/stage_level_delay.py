@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 def stage_level_delay():
     try:
         unread_count = Notification.query.filter_by(is_read=False).count()
-        sync_time = datetime.now().strftime("%H:%M")
+        sync_time = datetime.now().strftime("%I:%M %p")
 
         # Fetch latest snapshot date
         latest_date_query = db.session.query(func.max(StageLevelDelaySnapshot.snapshot_date)).scalar()
