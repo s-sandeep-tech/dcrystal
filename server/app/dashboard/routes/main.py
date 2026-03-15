@@ -16,7 +16,7 @@ def my_account():
         return redirect(url_for('dashboard.login'))
         
     unread_count = Notification.query.filter_by(is_read=False).count()
-    sync_time = datetime.now().strftime("%H:%M")
+    sync_time = datetime.now().strftime("%I:%M %p")
     
     return render_template('my_account.html', 
                          user=user,
