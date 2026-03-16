@@ -237,7 +237,7 @@ function applyGlobalFilters() {
         'filter-classification', 'filter-make', 'filter-collection',
         'filter-supplier', 'filter-order-ro', 'filter-batch',
         'filter-order-type', 'filter-order-request-type',
-        'filter-division', 'filter-group', 'filter-purity'
+        'filter-division', 'filter-group', 'filter-purity', 'filter-branch-provision-type'
     ];
 
     filterIds.forEach(id => {
@@ -287,7 +287,7 @@ function resetGlobalFilters() {
         'filter-classification', 'filter-make', 'filter-collection',
         'filter-supplier', 'filter-order-ro', 'filter-batch',
         'filter-order-type', 'filter-order-request-type', 'hierarchy-search',
-        'filter-division', 'filter-group', 'filter-purity'
+        'filter-division', 'filter-group', 'filter-purity', 'filter-branch-provision-type'
     ];
 
     filterIds.forEach(id => {
@@ -373,7 +373,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'filter-classification-owner', 'filter-make-owner', 'filter-collection-owner',
         'filter-classification', 'filter-make', 'filter-collection',
         'filter-supplier', 'filter-order-ro', 'filter-batch',
-        'filter-order-type', 'filter-order-request-type', 'hierarchy-search'
+        'filter-order-type', 'filter-order-request-type', 'hierarchy-search',
+        'filter-branch-provision-type'
     ];
     filterIds.forEach(id => {
         const paramKey = id.replace('filter-', '').replace('hierarchy-', '').replace(/-/g, '_');

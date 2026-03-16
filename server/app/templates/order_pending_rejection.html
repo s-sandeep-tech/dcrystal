@@ -500,6 +500,17 @@
                 </select>
             </div>
 
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Branch Provision Type</label>
+                <select id="filter-branch-provision-type"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Branch Provision Types</option>
+                    {% for opt in filter_options.branch_provision_types %}
+                    <option value="{{ opt }}">{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <div class="h-px bg-gray-100 dark:bg-gray-800 my-4"></div>
 
             <!-- Order Status Filters -->

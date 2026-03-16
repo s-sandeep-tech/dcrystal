@@ -36,6 +36,7 @@ def order_pending_rejection_summary():
             'batches': get_distinct(OwnerWiseOrderSummarySnapshot.batch),
             'order_types': get_distinct(OwnerWiseOrderSummarySnapshot.order_type),
             'order_request_types': get_distinct(OwnerWiseOrderSummarySnapshot.order_request_type),
+            'branch_provision_types': get_distinct(OwnerWiseOrderSummarySnapshot.branch_provision_type),
         }
 
         return render_template('order_pending_rejection.html', 
@@ -70,6 +71,7 @@ def get_order_pending_rejection_partial():
         order_request_type = request.args.get('order_request_type', '')
         order_type = request.args.get('order_type', '')
         batch = request.args.get('batch', '')
+        branch_provision_type = request.args.get('branch_provision_type', '')
         days = request.args.get('days', type=int) if request.args.get('days') else None
         status_filter = request.args.get('status_filter', '')
         use_date_range = request.args.get('use_date_range') == 'true'
@@ -127,6 +129,8 @@ def get_order_pending_rejection_partial():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
             if batch:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.batch == batch)
+            if branch_provision_type:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.branch_provision_type == branch_provision_type)
             if use_date_range:
                 if date_from:
                     query = query.filter(OwnerWiseOrderSummarySnapshot.order_date >= date_from)
