@@ -12,6 +12,7 @@ from app.utils.sync_tasks import (
     sync_order_delay_tracking_data_task,
     sync_pending_acceptance_data_task,
     sync_rejected_weight_data_task,
+    sync_provision_allocation_summary_task,
     emit_sync_update
 )
 
@@ -51,6 +52,8 @@ def process_sync_queue():
                     sync_pending_acceptance_data_task()
                 elif task_type == 'rejected_weight':
                     sync_rejected_weight_data_task()
+                elif task_type == 'provision_allocation':
+                    sync_provision_allocation_summary_task()
                 else:
                     logger.error(f"Unknown sync task type: {task_type}")
                     emit_sync_update('error', f'Unknown task type: {task_type}')

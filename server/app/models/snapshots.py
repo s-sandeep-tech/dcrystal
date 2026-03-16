@@ -600,3 +600,31 @@ class PendingAcceptanceFeedback(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
+class ProvisionAllocationSummarySnapshot(db.Model):
+    __tablename__ = 'provision_allocation_summary_snapshot'
+
+    id = db.Column(db.Integer, primary_key=True)
+    location = db.Column(db.Text)
+    report_section = db.Column(db.Text)
+    report_label = db.Column(db.Text)
+    pcs = db.Column(db.Numeric(18, 3))
+    grossweight = db.Column(db.Numeric(18, 3))
+    percent = db.Column(db.Numeric(18, 2))
+    sort_order = db.Column(db.Integer)
+    snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'location': self.location,
+            'report_section': self.report_section,
+            'report_label': self.report_label,
+            'pcs': float(self.pcs or 0),
+            'grossweight': float(self.grossweight or 0),
+            'percent': float(self.percent or 0),
+            'sort_order': self.sort_order,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
+        }
+
+

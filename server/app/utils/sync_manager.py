@@ -35,3 +35,6 @@ def sync_pending_acceptance_feedback_data():
 
 def sync_rejected_weight_data():
     return enqueue_sync_task('rejected_weight')
+
+def sync_provision_allocation_data():
+    return enqueue_sync_task('provision_allocation')

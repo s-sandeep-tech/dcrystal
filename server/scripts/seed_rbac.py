@@ -62,6 +62,7 @@ def seed_rbac():
             {"title": "Pending Acceptance Report", "url": "/pending-acceptance-feedback", "icon": "assignment_turned_in", "order": 72},
             {"title": "Outstanding PO Status", "url": "/outstanding_purchase_orders", "icon": "receipt_long", "order": 75},
             {"title": "Crystal General Issues", "url": "/crystal_issues", "icon": "report_problem", "order": 80},
+            {"title": "Provision Allocation Summary", "url": "/provision-allocation-summary", "icon": "summarize", "order": 85},
             {"title": "Quality Control", "url": "#", "icon": "fact_check", "order": 90},
             {"title": "Dispatch", "url": "#", "icon": "local_shipping", "order": 100}
         ]

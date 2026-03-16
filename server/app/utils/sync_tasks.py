@@ -8,7 +8,9 @@ from app.models.snapshots import (
     StageLevelDelaySnapshot,
     OrderDelayTrackingSnapshot,
     PendingAcceptanceSnapshot,
-    RejectedWeightSnapshot
+    PendingAcceptanceSnapshot,
+    RejectedWeightSnapshot,
+    ProvisionAllocationSummarySnapshot
 )
 from flask import current_app
 import os
@@ -788,6 +790,239 @@ FROM current_stage;
         error_msg = str(e)
         logger.error(f"StageLevelDelay Sync error: {error_msg}")
         emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'stage_delay')
+        return {"status": "error", "message": error_msg}
+    finally:
+        if conn: conn.close()
+
+def sync_provision_allocation_summary_task():
+    """Sync Provision Allocation Summary data using the provided analytical query."""
+    conn = None
+    try:
+        emit_sync_update('processing', 'Starting Provision Allocation Summary Sync...', 5, 'provision_allocation')
+        conn = get_external_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        emit_sync_update('processing', 'Fetching data from Azure...', 20, 'provision_allocation')
+        
+        query = """
+WITH base AS (
+    SELECT *
+    FROM ext_view.vw_prov_and_stock_size_level 
+),
+total AS (
+    SELECT
+        location,
+        COALESCE(SUM(prov_gr_wt), 0) AS total_prov_wt
+    FROM base
+    GROUP BY location
+),
+location_summary AS (
+    SELECT
+        location,
+        'Location Summary' AS report_section,
+        location::text AS report_label,
+        SUM(prov_pieces) AS pcs,
+        SUM(prov_gr_wt) AS gr_wt,
+        100.00::numeric AS percent,
+        0 AS sort_order
+    FROM base
+    GROUP BY location
+),
+purity_wise AS (
+    SELECT
+        b.location,
+        'Purity Wise' AS report_section,
+        b.purity::text AS report_label,
+        NULL::numeric AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN t.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / t.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        1 AS sort_order
+    FROM base b
+    JOIN total t
+      ON b.location = t.location
+    GROUP BY b.location, b.purity, t.total_prov_wt
+),
+classification_wise AS (
+    SELECT
+        b.location,
+        'Classification Wise' AS report_section,
+        b.classification::text AS report_label,
+        NULL::numeric AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN t.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / t.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        2 AS sort_order
+    FROM base b
+    JOIN total t
+      ON b.location = t.location
+    GROUP BY b.location, b.classification, t.total_prov_wt
+),
+make_wise AS (
+    SELECT
+        b.location,
+        'Make Wise' AS report_section,
+        b.make::text AS report_label,
+        NULL::numeric AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN t.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / t.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        3 AS sort_order
+    FROM base b
+    JOIN total t
+      ON b.location = t.location
+    GROUP BY b.location, b.make, t.total_prov_wt
+),
+prov_type_wise AS (
+    SELECT
+        b.location,
+        'Provision Type Wise' AS report_section,
+        b.prov_type::text AS report_label,
+        NULL::numeric AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN t.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / t.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        4 AS sort_order
+    FROM base b
+    JOIN total t
+      ON b.location = t.location
+    GROUP BY b.location, b.prov_type, t.total_prov_wt
+),
+section_wise AS (
+    SELECT
+        b.location,
+        'Section Wise' AS report_section,
+        b.section::text AS report_label,
+        SUM(b.prov_pieces) AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN t.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / t.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        5 AS sort_order
+    FROM base b
+    JOIN total t
+      ON b.location = t.location
+    GROUP BY b.location, b.section, t.total_prov_wt
+),
+provision_mode_wise AS (
+    SELECT
+        b.location,
+        'Provision Mode Wise' AS report_section,
+        b.provision_mode_filter::text AS report_label,
+        NULL::numeric AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN t.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / t.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        6 AS sort_order
+    FROM base b
+    JOIN total t
+      ON b.location = t.location
+    GROUP BY b.location, b.provision_mode_filter, t.total_prov_wt
+),
+provision_mode_count AS (
+    SELECT
+        b.location,
+        'Provision Mode Count' AS report_section,
+        b.provision_mode_filter::text AS report_label,
+        COUNT(*)::numeric AS pcs,
+        NULL::numeric AS gr_wt,
+        NULL::numeric AS percent,
+        7 AS sort_order
+    FROM base b
+    GROUP BY b.location, b.provision_mode_filter
+)
+SELECT
+    location,
+    report_section,
+    report_label,
+    pcs,
+    gr_wt,
+    percent,
+    sort_order
+FROM (
+    SELECT * FROM location_summary
+    UNION ALL
+    SELECT * FROM purity_wise
+    UNION ALL
+    SELECT * FROM classification_wise
+    UNION ALL
+    SELECT * FROM make_wise
+    UNION ALL
+    SELECT * FROM prov_type_wise
+    UNION ALL
+    SELECT * FROM section_wise
+    UNION ALL
+    SELECT * FROM provision_mode_wise
+    UNION ALL
+    SELECT * FROM provision_mode_count
+) AS combined_report
+        """
+        
+        start_time = time.time()
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        duration = time.time() - start_time
+        
+        logger.info(f"ProvisionAllocationSummary query took {duration:.2f} seconds.")
+        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, 'provision_allocation')
+        
+        # Clear existing
+        db.session.query(ProvisionAllocationSummarySnapshot).delete()
+        
+        new_records = []
+        for row in rows:
+            record = ProvisionAllocationSummarySnapshot(
+                location=row.get('location'),
+                report_section=row.get('report_section'),
+                report_label=row.get('report_label'),
+                pcs=row.get('pcs'),
+                grossweight=row.get('gr_wt'),
+                percent=row.get('percent'),
+                sort_order=row.get('sort_order'),
+                snapshot_date=db.func.current_date()
+            )
+            new_records.append(record)
+        
+        db.session.add_all(new_records)
+        db.session.commit()
+        
+        emit_sync_update('success', f'Provision Allocation Summary Sync completed! {len(rows)} records updated.', 100, 'provision_allocation')
+        return {"status": "success", "count": len(rows)}
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        logger.error(f"ProvisionAllocationSummary Sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'provision_allocation')
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()

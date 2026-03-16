@@ -1,0 +1,263 @@
+{# Macro Definitions #}
+
+{% macro render_row(label, weight, percent, is_grand_total=false, is_category=false, indent=false) %}
+<tr class="{% if is_grand_total %}bg-[#d6d6d6] dark:bg-gray-700 font-bold{% elif is_category %}bg-[#e3f2fd] dark:bg-blue-900/30 font-bold{% else %}bg-white dark:bg-gray-800{% endif %}">
+    <td class="px-2 py-0.5 border border-gray-300 text-left {% if indent %}pl-4{% endif %}">{{ label or '-' }}</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.0f}".format(weight) if weight is not none else '0' }}</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right relative min-w-[50px]">
+        {% if percent is not none and not is_grand_total %}
+        <div class="absolute top-0 left-0 h-full bg-blue-100 dark:bg-blue-900/20 opacity-60" style="width: {{ percent }}%;"></div>
+        {% endif %}
+        <span class="relative z-10">{{ "{:,.0f}%".format(percent) if percent is not none else '0%' }}</span>
+    </td>
+</tr>
+{% endmacro %}
+
+{% macro render_std_table(title, rows, category_labels=none) %}
+<div class="overflow-x-auto">
+    <table class="w-full text-[10px] border-collapse border border-gray-300">
+        <thead>
+            <tr class="bg-[#fce4ec] dark:bg-pink-900/30">
+                <th class="px-2 py-1 border border-gray-300 text-left font-bold text-gray-700">{{ title }}</th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">Gr.Wt</th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">%</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set totals = {'wt': 0, 'pct': 0, 'has_grand': false} %}
+            
+            {# Detect if we should use category summing or total summing #}
+            {% set use_cats = false %}
+            {% if category_labels is not none %}
+                {% for row in rows %}
+                    {% if row.report_label in category_labels %}{% set use_cats = true %}{% endif %}
+                {% endfor %}
+            {% endif %}
+
+            {% for row in rows %}
+                {% set is_gt = row.report_label == 'Grand Total' %}
+                {% set is_cat = category_labels is not none and row.report_label in category_labels %}
+                
+                {% if is_gt %}
+                    {% if totals.update({'has_grand': true}) %}{% endif %}
+                    {{ render_row(row.report_label, row.grossweight, row.percent, is_grand_total=true) }}
+                {% else %}
+                    {% if use_cats %}
+                        {% if is_cat %}
+                            {% if totals.update({'wt': totals.wt + (row.grossweight or 0), 'pct': totals.pct + (row.percent or 0)}) %}{% endif %}
+                        {% endif %}
+                    {% else %}
+                        {% if totals.update({'wt': totals.wt + (row.grossweight or 0), 'pct': totals.pct + (row.percent or 0)}) %}{% endif %}
+                    {% endif %}
+                    {{ render_row(row.report_label, row.grossweight, row.percent, is_category=is_cat, indent=(use_cats and not is_cat)) }}
+                {% endif %}
+            {% endfor %}
+            {% if not totals.has_grand and rows|length > 0 %}
+                {{ render_row('Grand Total', totals.wt, 100, is_grand_total=true) }}
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+{% macro render_classification_table(title, rows) %}
+    {# Classification always has specific categories #}
+    {{ render_std_table(title, rows, category_labels=['BRAND', 'GENERIC', 'LIFE STYLE']) }}
+{% endmacro %}
+
+{% macro render_section_wise(rows) %}
+<div class="overflow-x-auto">
+    <table class="w-full text-[10px] border-collapse border border-gray-300">
+        <thead>
+            <tr class="bg-[#fce4ec] dark:bg-pink-900/30">
+                <th class="px-2 py-1 border border-gray-300 text-left font-bold text-gray-700">Section</th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">Pcs</th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">Gr.Wt</th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">%</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set totals = {'pcs': 0, 'wt': 0, 'has_grand': false} %}
+            {% for row in rows %}
+                {% set is_gt = row.report_label == 'Grand Total' %}
+                {% if is_gt %}{% if totals.update({'has_grand': true}) %}{% endif %}{% endif %}
+                {% if not is_gt %}
+                    {% if totals.update({'pcs': totals.pcs + (row.pcs or 0), 'wt': totals.wt + (row.grossweight or 0)}) %}{% endif %}
+                {% endif %}
+                <tr class="{% if is_gt %}bg-[#d6d6d6] dark:bg-gray-700 font-bold{% else %}bg-white dark:bg-gray-800{% endif %}">
+                    <td class="px-2 py-0.5 border border-gray-300 text-left">{{ row.report_label or '-' }}</td>
+                    <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.0f}".format(row.pcs) if row.pcs is not none else '0' }}</td>
+                    <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.0f}".format(row.grossweight) if row.grossweight is not none else '0' }}</td>
+                    <td class="px-2 py-0.5 border border-gray-300 text-right relative min-w-[50px]">
+                        {% if row.percent is not none and not is_gt %}
+                        <div class="absolute top-0 left-0 h-full bg-pink-100 dark:bg-pink-900/20 opacity-60" style="width: {{ row.percent }}%;"></div>
+                        {% endif %}
+                        <span class="relative z-10">{{ "{:,.0f}%".format(row.percent) if row.percent is not none else ('100%' if is_gt else '0%') }}</span>
+                    </td>
+                </tr>
+            {% endfor %}
+            {% if not totals.has_grand and rows|length > 0 %}
+                <tr class="bg-[#d6d6d6] dark:bg-gray-700 font-bold">
+                    <td class="px-2 py-0.5 border border-gray-300 text-left">Grand Total</td>
+                    <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.0f}".format(totals.pcs) }}</td>
+                    <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.0f}".format(totals.wt) }}</td>
+                    <td class="px-2 py-0.5 border border-gray-300 text-right relative overflow-hidden">
+                        <div class="absolute top-0 left-0 h-full w-full bg-pink-200 dark:bg-pink-900/40 opacity-30"></div>
+                        <span class="relative z-10">100%</span>
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+{% macro render_provision_mode_count(rows) %}
+<div class="overflow-x-auto">
+    <table class="w-full text-[10px] border-collapse border border-gray-300">
+        <thead>
+            <tr class="bg-white border-b border-gray-400">
+                <th class="px-2 py-1 text-left font-bold text-gray-700">Provision Mode</th>
+                <th class="px-2 py-1 text-right font-bold text-gray-700">Count</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set totals = {'pcs': 0, 'has_grand': false} %}
+            {% set category_labels = ['BRIDAL SET', 'COMBO SET', 'GeneralProvision', 'ManagerProvision', 'SetProvision'] %}
+            
+            {# Detect if we should use category summing or total summing #}
+            {% set use_cats = false %}
+            {% for row in rows %}
+                {% if row.report_label in category_labels %}{% set use_cats = true %}{% endif %}
+            {% endfor %}
+
+            {% for row in rows %}
+                {% set is_gt = row.report_label == 'Grand Total' %}
+                {% set is_cat = row.report_label in category_labels %}
+                {% if is_gt %}{% if totals.update({'has_grand': true}) %}{% endif %}{% endif %}
+                
+                {% if not is_gt %}
+                    {% if use_cats %}
+                        {% if is_cat %}
+                            {% if totals.update({'pcs': totals.pcs + (row.pcs or 0)}) %}{% endif %}
+                        {% endif %}
+                    {% else %}
+                        {% if totals.update({'pcs': totals.pcs + (row.pcs or 0)}) %}{% endif %}
+                    {% endif %}
+                {% endif %}
+                
+                <tr class="{% if is_gt %}bg-[#d6d6d6] dark:bg-gray-700 font-bold{% elif is_cat %}bg-[#e3f2fd] dark:bg-blue-900/30 font-bold{% else %}bg-white dark:bg-gray-800{% endif %}">
+                    <td class="px-2 py-0.5 border border-gray-200 text-left {% if not (is_cat or is_gt) and use_cats %}pl-6{% endif %}">{{ row.report_label or '-' }}</td>
+                    <td class="px-2 py-0.5 border border-gray-200 text-right px-4">{{ "{:,.0f}".format(row.pcs) if row.pcs is not none else '0' }}</td>
+                </tr>
+            {% endfor %}
+            {% if not totals.has_grand and rows|length > 0 %}
+                <tr class="bg-[#d6d6d6] dark:bg-gray-700 font-bold">
+                    <td class="px-2 py-0.5 border border-gray-200 text-left">Grand Total</td>
+                    <td class="px-2 py-0.5 border border-gray-200 text-right px-4">{{ "{:,.0f}".format(totals.pcs) }}</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+{# Group rows by report_section #}
+{% set segments = {} %}
+{% for row in rows %}
+    {% set section = row.report_section %}
+    {% if section not in segments %}
+        {% set _ = segments.update({section: []}) %}
+    {% endif %}
+    {% set _ = segments[section].append(row) %}
+{% endfor %}
+
+<div class="w-full bg-white dark:bg-gray-900 p-4 min-h-screen">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-6">
+        
+        {# Column 1 #}
+        <div class="flex flex-col gap-6">
+            {# Location Summary #}
+            {% if 'Location Summary' in segments %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-[10px] border-collapse border-b border-gray-300">
+                    <tbody>
+                        {% for row in segments['Location Summary'] %}
+                        <tr class="border-t border-gray-300">
+                            <th class="px-2 py-1.5 text-left font-bold text-gray-700 w-24">Location</th>
+                            <td class="px-2 py-1.5 text-left font-bold text-gray-900 bg-blue-50/50 dark:bg-blue-900/10 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-xs text-primary">location_on</span>
+                                <span class="uppercase tracking-wide">{{ row.location or '-' }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {# Purity Wise #}
+            {% if 'Purity Wise' in segments %}
+            {{ render_std_table('Purity', segments['Purity Wise']) }}
+            {% endif %}
+
+            {# Classification Wise #}
+            {% if 'Classification Wise' in segments %}
+            {{ render_classification_table('Classification', segments['Classification Wise']) }}
+            {% endif %}
+        </div>
+
+        {# Column 2 #}
+        <div class="flex flex-col gap-6">
+            {# Make Wise #}
+            {% if 'Make Wise' in segments %}
+            {{ render_std_table('Make', segments['Make Wise']) }}
+            {% endif %}
+        </div>
+
+        {# Column 3 #}
+        <div class="flex flex-col gap-6">
+            {# Provision Type Wise #}
+            {% if 'Provision Type Wise' in segments %}
+            {{ render_std_table('Provision Type', segments['Provision Type Wise'], category_labels=['GeneralProvision', 'ManagerProvision', 'SetProvision']) }}
+            {% endif %}
+
+            {# Provision Mode Wise #}
+            {% if 'Provision Mode Wise' in segments %}
+            {{ render_std_table('Provision Mode', segments['Provision Mode Wise'], category_labels=['MatchingSet', 'Set']) }}
+            {% endif %}
+        </div>
+
+        {# Column 4 #}
+        <div class="flex flex-col gap-6">
+            {# Section Wise #}
+            {% if 'Section Wise' in segments %}
+                {{ render_section_wise(segments['Section Wise']) }}
+            {% endif %}
+
+            {# Provision Mode Count #}
+            {% if 'Provision Mode Count' in segments %}
+                {{ render_provision_mode_count(segments['Provision Mode Count']) }}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    {% if pagination %}
+    // The redesign is a complex summary dashboard, pagination might be less relevant here 
+    // but keeping the elements for compatibility if the backend still sends it.
+    const pagInfo = document.getElementById('pagination-info');
+    if (pagInfo) {
+        pagInfo.textContent = '{{ (pagination.page - 1) * pagination.per_page + 1 }}-{{ (pagination.page - 1) * pagination.per_page + rows|length }} of {{ pagination.total }}';
+    }
+    const btnPrev = document.getElementById('btn-prev');
+    if (btnPrev) btnPrev.disabled = {{ 'false' if pagination.has_prev else 'true' }};
+    const btnNext = document.getElementById('btn-next');
+    if (btnNext) btnNext.disabled = {{ 'false' if pagination.has_next else 'true' }};
+    {% endif %}
+</script>
+
+
+
+
