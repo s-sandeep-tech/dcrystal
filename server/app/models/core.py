@@ -43,7 +43,6 @@ class Notification(db.Model):
     __tablename__ = 'notifications'
 
     id = db.Column(db.Integer, primary_key=True)
-    related_order_id = db.Column(db.String(50), db.ForeignKey('orders.order_id'), nullable=True)
     user_id = db.Column(db.String(50), nullable=True) # If null, broadcast to all
     title = db.Column(db.String(200), nullable=False)
     message = db.Column(db.String(500), nullable=False)
@@ -54,13 +53,9 @@ class Notification(db.Model):
     action_url = db.Column(db.String(500), nullable=True)  # Optional download/action link
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationship to Order
-    order = db.relationship('Order', backref='notifications', foreign_keys=[related_order_id])
-
     def to_dict(self):
         return {
             'id': self.id,
-            'related_order_id': self.related_order_id,
             'user_id': self.user_id,
             'title': self.title,
             'message': self.message,
