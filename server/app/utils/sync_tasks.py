@@ -119,6 +119,7 @@ def sync_owner_wise_data_task():
                 order_date=row.get('order_date'),
                 order_ro=row.get('order_ro'),
                 provision_type=row.get('provision_type'),
+                branch_provision_type=row.get('branch_provision_type'),
                 classification_owner=row.get('classification_owner'),
                 collection_owner=row.get('collection_owner'),
                 make_owner=row.get('make_owner'),
