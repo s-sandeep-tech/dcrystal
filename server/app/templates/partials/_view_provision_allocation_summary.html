@@ -165,11 +165,19 @@
 {# Group rows by report_section #}
 {% set segments = {} %}
 {% for row in rows %}
-    {% set section = row.report_section %}
-    {% if section not in segments %}
-        {% set _ = segments.update({section: []}) %}
+    {% if row.report_label != 'Grand Total' %}
+        {% set section = row.report_section %}
+        {% if section not in segments %}
+            {% set _ = segments.update({section: []}) %}
+        {% endif %}
+        {% set _ = segments[section].append(row) %}
     {% endif %}
-    {% set _ = segments[section].append(row) %}
+{% endfor %}
+
+{# Sort each segment by percent descending #}
+{% for section, items in segments.items() %}
+    {% set sorted_items = items | sort(attribute='percent', reverse=True) %}
+    {% set _ = segments.update({section: sorted_items}) %}
 {% endfor %}
 
 <div class="w-full bg-white dark:bg-gray-900 p-4 min-h-screen">
