@@ -62,7 +62,13 @@
                     {% elif r.level == 'make_owner' %}
                     {{ r.make_owner }}
                     {% else %}
-                    {{ r.collection_owner }}
+                    <div class="flex items-center gap-1.5">
+                        <span>{{ r.collection_owner }}</span>
+                        <button onclick="showDetails('{{ r.branch_head }}', '{{ r.classification_owner }}', '{{ r.make_owner }}', '{{ r.collection_owner }}')" 
+                                class="text-primary hover:text-primary/80 flex items-center justify-center p-0.5" title="View Details">
+                            <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+                        </button>
+                    </div>
                     {% endif %}
                 </div>
             </td>
@@ -75,11 +81,7 @@
             <td class="text-right col-wt">{{ "%.3f"|format(r.invoiced_wt) }}</td>
             <td class="text-right col-wt text-emerald-600 font-bold">{{ "%.3f"|format(r.delivered_wt) }}</td>
             <td class="text-right col-wt">
-                <a href="javascript:void(0)"
-                    onclick="showDetails('{{ r.branch_head }}', '{{ r.classification_owner }}', '{{ r.make_owner }}', '{{ r.collection_owner }}')"
-                    class="text-primary hover:underline font-bold">
-                    {{ "%.3f"|format(r.pending_to_deliver_wt) }}
-                </a>
+                {{ "%.3f"|format(r.pending_to_deliver_wt) }}
             </td>
         </tr>
         {% endfor %}
