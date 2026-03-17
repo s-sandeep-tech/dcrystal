@@ -37,30 +37,37 @@ async function loadViewData() {
             throw new Error(`Failed to fetch view: ${errorText}`);
         }
         const html = await response.text();
-
         activeView.innerHTML = html;
 
-        // Parse stats
-        const statsScript = activeView.querySelector('#stats-metadata');
-        if (statsScript) {
-            try {
-                const stats = JSON.parse(statsScript.textContent);
-                updateDashboardStats(stats);
-            } catch (e) {
-                console.error('Error parsing stats metadata:', e);
-            }
-        }
-
-        // Parse pagination & Level
-        const metaDiv = activeView.querySelector('.pagination-meta');
-        if (metaDiv) {
-            updatePaginationControls(metaDiv.dataset);
-            updateLevelBadge(metaDiv.dataset.level);
-        }
+        // Initialize from the new content
+        initializeViewFromDOM(activeView);
 
     } catch (error) {
         console.error('Error loading view:', error);
         activeView.innerHTML = `<div class="p-8 text-center text-red-500">Error loading data.</div>`;
+    }
+}
+
+function initializeViewFromDOM(activeView) {
+    if (!activeView) activeView = document.getElementById('view-showroom');
+    if (!activeView) return;
+
+    // Parse stats
+    const statsScript = activeView.querySelector('#stats-metadata');
+    if (statsScript) {
+        try {
+            const stats = JSON.parse(statsScript.textContent);
+            updateDashboardStats(stats);
+        } catch (e) {
+            console.error('Error parsing stats metadata:', e);
+        }
+    }
+
+    // Parse pagination & Level
+    const metaDiv = activeView.querySelector('.pagination-meta');
+    if (metaDiv) {
+        updatePaginationControls(metaDiv.dataset);
+        updateLevelBadge(metaDiv.dataset.level);
     }
 }
 
@@ -506,6 +513,16 @@ async function toggleModalRow(btn, currentLevel, value) {
 document.addEventListener('DOMContentLoaded', () => {
     const tableArea = document.getElementById('table-area');
     if (tableArea) tableArea.style.zoom = currentZoom;
-    loadViewData();
+    
+    const activeView = document.getElementById('view-showroom');
+    if (activeView && activeView.querySelector('.enterprise-grid')) {
+        // Content already present from server-side render, just initialize
+        console.log('Initializing from server-rendered content');
+        initializeViewFromDOM(activeView);
+    } else {
+        // No content, fetch it
+        loadViewData();
+    }
+    
     loadFilterOptions();
 });
