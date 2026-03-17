@@ -87,9 +87,14 @@ function updateDashboardStats(stats) {
     }
 }
 
-async function toggleRow(btn, level, value) {
+async function toggleRow(btn) {
     const tr = btn.closest('tr');
     if (!tr) return;
+
+    const level = tr.dataset.level;
+    const branchHead = tr.dataset.branchHead;
+    const classificationOwner = tr.dataset.classificationOwner;
+    const makeOwner = tr.dataset.makeOwner;
 
     const icon = btn.querySelector('.material-symbols-outlined');
     const isExpanded = icon.textContent === 'remove_circle';
@@ -114,8 +119,19 @@ async function toggleRow(btn, level, value) {
         try {
             const urlParams = new URLSearchParams(window.location.search);
             const params = new URLSearchParams(urlParams);
+            
+            // Set expansion context
             params.set('parent_level', level);
-            params.set('parent_value', value);
+            if (branchHead) params.set('branch_head', branchHead);
+            if (classificationOwner) params.set('classification_owner', classificationOwner);
+            if (makeOwner) params.set('make_owner', makeOwner);
+
+            // Determine which value to identify the expansion target to the backend
+            let parentValue = '';
+            if (level === 'branch_head') parentValue = branchHead;
+            else if (level === 'classification_owner') parentValue = classificationOwner;
+            else if (level === 'make_owner') parentValue = makeOwner;
+            params.set('parent_value', parentValue);
 
             const response = await fetch(`/partial/showroom?${params.toString()}`, {
                 headers: {

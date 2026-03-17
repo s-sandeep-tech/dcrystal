@@ -33,11 +33,15 @@
         {% endif %}
 
         {% for r in rows %}
-        <tr class="parent-row hover:bg-blue-50/30 group animate-fade-in" data-level="{{ r.level }}">
+        <tr class="parent-row hover:bg-blue-50/30 group animate-fade-in" 
+            data-level="{{ r.level }}"
+            data-branch-head="{{ r.branch_head }}"
+            data-classification-owner="{{ r.classification_owner }}"
+            data-make-owner="{{ r.make_owner }}">
             <td class="text-center px-0">
                 {% if r.level != 'collection_owner' %}
                 <button
-                    onclick="toggleRow(this, '{{ r.level }}', '{{ (r.level == 'branch_head' and r.branch_head) or (r.level == 'classification_owner' and r.classification_owner) or (r.level == 'make_owner' and r.make_owner) }}')"
+                    onclick="toggleRow(this)"
                     class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
                     <span class="material-symbols-outlined text-[16px]">add_circle</span>
                 </button>

@@ -375,11 +375,19 @@ def get_showroom_partial():
         elif parent_level == 'classification_owner':
             group_cols = [ShowroomWiseOrderSummarySnapshot.branch_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner]
             level = 'make_owner'
+            # Must filter by branch_head if provided to maintain context
             base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(ShowroomWiseOrderSummarySnapshot.classification_owner == parent_value)
+            if branch_head:
+                base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.branch_head == branch_head)
         elif parent_level == 'make_owner':
             group_cols = [ShowroomWiseOrderSummarySnapshot.branch_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner, ShowroomWiseOrderSummarySnapshot.collection_owner]
             level = 'collection_owner'
+            # Must filter by branch_head and classification_owner if provided
             base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(ShowroomWiseOrderSummarySnapshot.make_owner == parent_value)
+            if branch_head:
+                base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.branch_head == branch_head)
+            if classification_owner:
+                base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.classification_owner == classification_owner)
         else:
             base_query = db.session.query(ShowroomWiseOrderSummarySnapshot)
             if not classification_owner:
