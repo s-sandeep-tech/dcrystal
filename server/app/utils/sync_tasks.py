@@ -10,7 +10,8 @@ from app.models.snapshots import (
     PendingAcceptanceSnapshot,
     PendingAcceptanceSnapshot,
     RejectedWeightSnapshot,
-    ProvisionAllocationSummarySnapshot
+    ProvisionAllocationSummarySnapshot,
+    ShowroomWiseOrderSummarySnapshot
 )
 from flask import current_app
 import os
@@ -1398,6 +1399,190 @@ def sync_rejected_weight_data_task():
         error_msg = str(e)
         logger.error(f"RejectedWeight Sync error: {error_msg}")
         emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'rejected_weight')
+        return {"status": "error", "message": error_msg}
+    finally:
+        if conn: conn.close()
+
+def sync_showroom_wise_order_summary_task():
+    """Sync Showroom Wise Order Summary data using the provided analytical query."""
+    conn = None
+    try:
+        emit_sync_update('processing', 'Starting Showroom Wise Order Summary Sync...', 5, 'showroom_wise_order')
+        conn = get_external_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        emit_sync_update('processing', 'Fetching data from Azure...', 15, 'showroom_wise_order')
+        query = """
+SELECT
+    od.branch_head,
+    ownershippo.supplier AS party,
+    ownershippo.order_branch AS location,
+    ownershippo.order_ro AS purchase_ro,
+    ownershippo.order_type,
+    ownershippo.order_request_type,
+    ownershippo.batch AS provision_type,
+    ownershippo.batch AS branch_provision_type,
+
+    ownershippo.classification_owner,
+    ownershippo.make_owner,
+    ownershippo.collection_owner,
+
+    ownershippo.supplier,
+    ownershippo.po_number,
+    ownershippo.po_id,
+    ownershippo.order_date,
+    ownershippo.order_ro,
+    ownershippo.batch,
+    ownershippo.division,
+    ownershippo."group",
+    ownershippo.purity,
+    ownershippo.classification,
+    ownershippo.make,
+    ownershippo.collection,
+
+    ownershippo.order_qty,
+    ownershippo.order_wt,
+
+    ownershippo.cancelled_pcs,
+    ownershippo.cancelled_wt,
+
+    ownershippo.accepted_pcs,
+    ownershippo.accepted_wt,
+
+    ownershippo.pending_to_accepted_pcs,
+    ownershippo.pending_to_accepted_wt,
+
+    ownershippo.rejected_pcs,
+    ownershippo.rejected_wt,
+
+    ownershippo.barcoded_pcs,
+    ownershippo.barcoded_wt,
+
+    ownershippo.not_barcoded_pcs,
+    ownershippo.not_barcoded_wt,
+
+    ownershippo.hm_processed_pcs,
+    ownershippo.hm_passed_pcs,
+    ownershippo.hm_passed_wt,
+    ownershippo.hm_failed_pcs,
+    ownershippo.hm_failed_wt,
+    ownershippo.hm_testcut_pcs,
+    ownershippo.hm_testcut_wt,
+
+    ownershippo.qc_processed_pcs,
+    ownershippo.qc_pending_pcs,
+    ownershippo.qc_pending_wt,
+    ownershippo.qc_reject_pcs,
+    ownershippo.qc_reject_wt,
+    ownershippo.qc_passed_pcs,
+    ownershippo.qc_passed_wt,
+
+    ownershippo.invoice_pcs,
+    ownershippo.invoiced_wt,
+
+    ownershippo.delivered_pcs,
+    ownershippo.delivered_wt,
+
+    ownershippo.pending_to_deliver_pcs,
+    ownershippo.pending_to_deliver_wt
+
+FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS ownershippo
+LEFT JOIN (
+    SELECT
+        po_id,
+        MAX(business_head_name) AS branch_head
+    FROM ext_view.vw_order_details
+    GROUP BY po_id
+) od
+    ON od.po_id = ownershippo.po_id;
+        """
+        
+        start_time = time.time()
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        duration = time.time() - start_time
+        
+        logger.info(f"ShowroomWiseOrderSummary query took {duration:.2f} seconds. Rows: {len(rows)}")
+        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, 'showroom_wise_order')
+        
+        # Clear existing
+        db.session.query(ShowroomWiseOrderSummarySnapshot).delete()
+        
+        new_records = []
+        for row in rows:
+            record = ShowroomWiseOrderSummarySnapshot(
+                branch_head=row.get('branch_head'),
+                party=row.get('party'),
+                location=row.get('location'),
+                purchase_ro=row.get('purchase_ro'),
+                order_type=row.get('order_type'),
+                order_request_type=row.get('order_request_type'),
+                provision_type=row.get('provision_type'),
+                branch_provision_type=row.get('branch_provision_type'),
+                classification_owner=row.get('classification_owner'),
+                make_owner=row.get('make_owner'),
+                collection_owner=row.get('collection_owner'),
+                supplier=row.get('supplier'),
+                po_number=row.get('po_number'),
+                po_id=row.get('po_id'),
+                order_date=row.get('order_date'),
+                order_ro=row.get('order_ro'),
+                batch=row.get('batch'),
+                division=row.get('division'),
+                group_name=row.get('group'),
+                purity=row.get('purity'),
+                classification=row.get('classification'),
+                make=row.get('make'),
+                collection=row.get('collection'),
+                order_qty=row.get('order_qty'),
+                order_wt=row.get('order_wt'),
+                cancelled_pcs=row.get('cancelled_pcs'),
+                cancelled_wt=row.get('cancelled_wt'),
+                accepted_pcs=row.get('accepted_pcs'),
+                accepted_wt=row.get('accepted_wt'),
+                pending_to_accepted_pcs=row.get('pending_to_accepted_pcs'),
+                pending_to_accepted_wt=row.get('pending_to_accepted_wt'),
+                rejected_pcs=row.get('rejected_pcs'),
+                rejected_wt=row.get('rejected_wt'),
+                barcoded_pcs=row.get('barcoded_pcs'),
+                barcoded_wt=row.get('barcoded_wt'),
+                not_barcoded_pcs=row.get('not_barcoded_pcs'),
+                not_barcoded_wt=row.get('not_barcoded_wt'),
+                hm_processed_pcs=row.get('hm_processed_pcs'),
+                hm_passed_pcs=row.get('hm_passed_pcs'),
+                hm_passed_wt=row.get('hm_passed_wt'),
+                hm_failed_pcs=row.get('hm_failed_pcs'),
+                hm_failed_wt=row.get('hm_failed_wt'),
+                hm_testcut_pcs=row.get('hm_testcut_pcs'),
+                hm_testcut_wt=row.get('hm_testcut_wt'),
+                qc_processed_pcs=row.get('qc_processed_pcs'),
+                qc_pending_pcs=row.get('qc_pending_pcs'),
+                qc_pending_wt=row.get('qc_pending_wt'),
+                qc_reject_pcs=row.get('qc_reject_pcs'),
+                qc_reject_wt=row.get('qc_reject_wt'),
+                qc_passed_pcs=row.get('qc_passed_pcs'),
+                qc_passed_wt=row.get('qc_passed_wt'),
+                invoice_pcs=row.get('invoice_pcs'),
+                invoiced_wt=row.get('invoiced_wt'),
+                delivered_pcs=row.get('delivered_pcs'),
+                delivered_wt=row.get('delivered_wt'),
+                pending_to_deliver_pcs=row.get('pending_to_deliver_pcs'),
+                pending_to_deliver_wt=row.get('pending_to_deliver_wt'),
+                snapshot_date=db.func.current_date()
+            )
+            new_records.append(record)
+        
+        db.session.add_all(new_records)
+        db.session.commit()
+        
+        emit_sync_update('success', f'Showroom Wise Order Summary Sync completed! {len(rows)} records updated.', 100, 'showroom_wise_order')
+        return {"status": "success", "count": len(rows)}
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        logger.error(f"ShowroomWiseOrderSummary Sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'showroom_wise_order')
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()

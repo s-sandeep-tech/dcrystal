@@ -133,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncPendingAcceptanceBtn = document.getElementById('sync-pending-acceptance-btn');
     const syncRejectedWeightBtn = document.getElementById('sync-rejected-weight-btn');
     const syncProvisionAllocationBtn = document.getElementById('sync-provision-allocation-btn');
+    const syncShowroomBtn = document.getElementById('sync-showroom-wise-order-btn');
     const syncAllBtn = document.getElementById('sync-all-btn');
 
     async function triggerSync(btn, url, label, type) {
@@ -181,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncPendingAcceptanceBtn) syncPendingAcceptanceBtn.addEventListener('click', () => triggerSync(syncPendingAcceptanceBtn, window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, 'Pending Acceptance Sync', 'pending_acceptance'));
     if (syncRejectedWeightBtn) syncRejectedWeightBtn.addEventListener('click', () => triggerSync(syncRejectedWeightBtn, window.SETTINGS_CONFIG.syncRejectedWeightUrl, 'Rejected Weight Sync', 'rejected_weight'));
     if (syncProvisionAllocationBtn) syncProvisionAllocationBtn.addEventListener('click', () => triggerSync(syncProvisionAllocationBtn, window.SETTINGS_CONFIG.syncProvisionAllocationUrl, 'Provision Allocation Sync', 'provision_allocation'));
+    if (syncShowroomBtn) syncShowroomBtn.addEventListener('click', () => triggerSync(syncShowroomBtn, window.SETTINGS_CONFIG.syncShowroomWiseOrderUrl, 'Showroom Wise Order Summary Sync', 'showroom_wise_order'));
 
     function showConfirmModal(title, message) {
         return new Promise((resolve) => {
@@ -237,7 +239,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 { url: window.SETTINGS_CONFIG.syncOrderDelayUrl, label: 'Order Delay', type: 'order_delay_tracking' },
                 { url: window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, label: 'Pending Acceptance', type: 'pending_acceptance' },
                 { url: window.SETTINGS_CONFIG.syncRejectedWeightUrl, label: 'Rejected Weight', type: 'rejected_weight' },
-                { url: window.SETTINGS_CONFIG.syncProvisionAllocationUrl, label: 'Provision Allocation', type: 'provision_allocation' }
+                { url: window.SETTINGS_CONFIG.syncProvisionAllocationUrl, label: 'Provision Allocation', type: 'provision_allocation' },
+                { url: window.SETTINGS_CONFIG.syncShowroomWiseOrderUrl, label: 'Showroom Wise Order Summary', type: 'showroom_wise_order' }
             ];
 
             setSyncLoading(syncAllBtn, 'Processing');

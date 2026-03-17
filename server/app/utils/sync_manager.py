@@ -38,3 +38,6 @@ def sync_rejected_weight_data():
 
 def sync_provision_allocation_data():
     return enqueue_sync_task('provision_allocation')
+
+def sync_showroom_wise_order_summary_data():
+    return enqueue_sync_task('showroom_wise_order')

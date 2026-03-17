@@ -1,0 +1,87 @@
+{% macro render_row(d) %}
+    {% set hierarchy = ['location', 'division', 'group_name', 'purity', 'classification', 'make', 'collection', 'party', 'orders'] %}
+    {% set curr_idx = hierarchy.index(d.level) if d.level in hierarchy else 0 %}
+    <tr class="modal-child-row animate-fade-in hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+        data-modal-level="{{ d.level }}"
+        data-location="{{ d.location | default('') }}"
+        data-division="{{ d.division | default('') }}"
+        data-group_name="{{ d.group_name | default('') }}"
+        data-purity="{{ d.purity | default('') }}"
+        data-classification="{{ d.classification | default('') }}"
+        data-make="{{ d.make | default('') }}"
+        data-collection="{{ d.collection | default('') }}"
+        data-party="{{ d.party | default('') }}">
+        
+        <td class="px-4 py-3">
+            <div class="flex items-center" style="padding-left: {{ curr_idx * 16 }}px;">
+                {% if not d.is_leaf %}
+                    {% set current_val = d.get(d.level) %}
+                    {% set display_val = current_val if current_val else ('Unknown ' ~ d.level | replace('_', ' ') | title) %}
+                    <button onclick='toggleModalRow(this, "{{ d.level }}", {{ display_val | tojson | safe }})' class="flex items-center text-primary font-bold whitespace-nowrap group focus:outline-none">
+                        <span class="material-symbols-outlined text-[14px] mr-1 group-hover:text-blue-600 transition-colors">add_circle</span> 
+                        <span class="group-hover:underline">{{ display_val }}</span>
+                    </button>
+                {% else %}
+                    <span class="material-symbols-outlined text-[8px] text-gray-300 mr-2 ml-1">fiber_manual_record</span>
+                    <span class="text-gray-500 font-medium italic">Order details</span>
+                {% endif %}
+            </div>
+        </td>
+
+        <td class="px-4 py-2 font-mono text-primary">{{ d.po_number if d.is_leaf else '-' }}</td>
+        <td class="px-4 py-2 whitespace-nowrap">{{ d.order_date.strftime('%d-%m-%Y') if d.order_date else '-' }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.order_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.accepted_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium text-red-500">{{ "%.3f"|format(d.rejected_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.barcoded_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.hm_passed_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.qc_passed_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.invoiced_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium text-emerald-600">{{ "%.3f"|format(d.delivered_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.pending_to_deliver_wt|float) }}</td>
+    </tr>
+{% endmacro %}
+
+{% if is_modal_child %}
+    {% for d in details %}
+        {{ render_row(d) }}
+    {% endfor %}
+{% else %}
+<div class="flex-1 overflow-auto modal-context"
+     data-branch-head="{{ request.args.get('branch_head', '') }}"
+     data-classification-owner="{{ request.args.get('classification_owner', '') }}"
+     data-make-owner="{{ request.args.get('make_owner', '') }}"
+     data-collection-owner="{{ request.args.get('collection_owner', '') }}">
+    <table class="w-full text-[11px] border-collapse bg-white dark:bg-gray-900">
+        <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800">
+            <tr class="text-gray-500 uppercase font-bold text-[9px] tracking-wider">
+                <th class="text-left px-4 py-2 min-w-[200px] leading-snug">
+                    <div class="whitespace-nowrap text-gray-500 uppercase font-bold text-[9px] tracking-wider">Location &gt; Division &gt; Group &gt; Purity</div>
+                    <div class="whitespace-nowrap text-gray-400 font-bold text-[8px] tracking-widest">&gt; Classification &gt; Make &gt; Collection &gt; Party</div>
+                </th>
+                <th class="text-left px-4 py-3">Order Number</th>
+                <th class="text-left px-4 py-3">Order Date</th>
+                <th class="text-right px-4 py-3">Order WT</th>
+                <th class="text-right px-4 py-3">Accepted WT</th>
+                <th class="text-right px-4 py-3">Rejected WT</th>
+                <th class="text-right px-4 py-3">Barcoded WT</th>
+                <th class="text-right px-4 py-3">HM Passed WT</th>
+                <th class="text-right px-4 py-3">QC Passed WT</th>
+                <th class="text-right px-4 py-3">Invoiced WT</th>
+                <th class="text-right px-4 py-3">Delivered WT</th>
+                <th class="text-right px-4 py-3">Pending Delivery</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            {% for d in details %}
+                {{ render_row(d) }}
+            {% endfor %}
+            {% if not details %}
+            <tr>
+                <td colspan="12" class="p-8 text-center text-gray-400 italic">No details available.</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endif %}

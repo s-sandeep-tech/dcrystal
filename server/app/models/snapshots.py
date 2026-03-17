@@ -629,3 +629,76 @@ class ProvisionAllocationSummarySnapshot(db.Model):
         }
 
 
+
+class ShowroomWiseOrderSummarySnapshot(db.Model):
+    __tablename__ = 'showroom_wise_order_summary_snapshot'
+
+    # Primary Key
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+
+    # Columns (Previously Composite Keys)
+    po_id = db.Column(db.BigInteger)
+    location = db.Column(db.Text)
+    supplier = db.Column(db.Text)
+    order_type = db.Column(db.Text)
+    order_request_type = db.Column(db.Text)
+    order_date = db.Column(db.Date)
+    po_number = db.Column(db.Text)
+    division = db.Column(db.Text)
+    group_name = db.Column('group', db.Text)
+    purity = db.Column(db.Text)
+    classification = db.Column(db.Text)
+    make = db.Column(db.Text)
+    collection = db.Column(db.Text)
+
+    branch_head = db.Column(db.Text)
+    party = db.Column(db.Text)
+    purchase_ro = db.Column(db.Text)
+    provision_type = db.Column(db.Text)
+    branch_provision_type = db.Column(db.Text)
+    classification_owner = db.Column(db.Text)
+    make_owner = db.Column(db.Text)
+    collection_owner = db.Column(db.Text)
+    order_ro = db.Column(db.Text)
+    batch = db.Column(db.Text)
+
+    order_qty = db.Column(db.Numeric(18, 3))
+    order_wt = db.Column(db.Numeric(18, 3))
+    cancelled_pcs = db.Column(db.Numeric(18, 3))
+    cancelled_wt = db.Column(db.Numeric(18, 3))
+    accepted_pcs = db.Column(db.Numeric(18, 3))
+    accepted_wt = db.Column(db.Numeric(18, 3))
+    pending_to_accepted_pcs = db.Column(db.Numeric(18, 3))
+    pending_to_accepted_wt = db.Column(db.Numeric(18, 3))
+    rejected_pcs = db.Column(db.Numeric(18, 3))
+    rejected_wt = db.Column(db.Numeric(18, 3))
+    barcoded_pcs = db.Column(db.Numeric(18, 3))
+    barcoded_wt = db.Column(db.Numeric(18, 3))
+    not_barcoded_pcs = db.Column(db.Numeric(18, 3))
+    not_barcoded_wt = db.Column(db.Numeric(18, 3))
+
+    hm_processed_pcs = db.Column(db.Numeric(18, 3))
+    hm_passed_pcs = db.Column(db.Numeric(18, 3))
+    hm_passed_wt = db.Column(db.Numeric(18, 3))
+    hm_failed_pcs = db.Column(db.Numeric(18, 3))
+    hm_failed_wt = db.Column(db.Numeric(18, 3))
+    hm_testcut_pcs = db.Column(db.Numeric(18, 3))
+    hm_testcut_wt = db.Column(db.Numeric(18, 3))
+
+    qc_processed_pcs = db.Column(db.Numeric(18, 3))
+    qc_pending_pcs = db.Column(db.Numeric(18, 3))
+    qc_pending_wt = db.Column(db.Numeric(18, 3))
+    qc_reject_pcs = db.Column(db.Numeric(18, 3))
+    qc_reject_wt = db.Column(db.Numeric(18, 3))
+    qc_passed_pcs = db.Column(db.Numeric(18, 3))
+    qc_passed_wt = db.Column(db.Numeric(18, 3))
+
+    invoice_pcs = db.Column(db.Numeric(18, 3))
+    invoiced_wt = db.Column(db.Numeric(18, 3))
+    delivered_pcs = db.Column(db.Numeric(18, 3))
+    delivered_wt = db.Column(db.Numeric(18, 3))
+    pending_to_deliver_pcs = db.Column(db.Numeric(18, 3))
+    pending_to_deliver_wt = db.Column(db.Numeric(18, 3))
+
+    snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
