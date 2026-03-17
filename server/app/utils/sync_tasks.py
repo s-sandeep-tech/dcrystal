@@ -1494,7 +1494,7 @@ LEFT JOIN (
     FROM ext_view.vw_order_details
     GROUP BY po_id
 ) od
-    ON od.po_id = ownershippo.po_id;
+    ON od.po_id = ownershippo.po_id where ownershippo.order_qty <> ownershippo.cancelled_pcs;
         """
         
         start_time = time.time()
