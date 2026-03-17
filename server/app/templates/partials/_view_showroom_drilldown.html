@@ -82,6 +82,22 @@
             </tr>
             {% endif %}
         </tbody>
+        {% if modal_totals %}
+        <tfoot class="sticky bottom-0 z-10 bg-gray-100 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700">
+            <tr class="text-gray-900 dark:text-white uppercase text-[9px] font-bold">
+                <td class="px-4 py-3" colspan="3">Grand Total</td>
+                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.order_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.accepted_wt) }}</td>
+                <td class="px-4 py-3 text-right text-red-500">{{ "%.3f"|format(modal_totals.rejected_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.barcoded_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.hm_passed_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.qc_passed_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.invoiced_wt) }}</td>
+                <td class="px-4 py-3 text-right text-emerald-600">{{ "%.3f"|format(modal_totals.delivered_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.pending_to_deliver_wt) }}</td>
+            </tr>
+        </tfoot>
+        {% endif %}
     </table>
 </div>
 {% endif %}

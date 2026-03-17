@@ -594,10 +594,28 @@ def get_showroom_details():
                     
                 processed_rows.append(DotDict(row_dict))
                 
+        # Calculate Grand Totals for modal (only for top level modal call)
+        modal_totals = {}
+        if not is_modal_child:
+            modal_agg_query = query.with_entities(*agg_cols)
+            modal_aggs = modal_agg_query.first()
+            modal_totals = {
+                'order_wt': safe_float(modal_aggs.order_wt),
+                'accepted_wt': safe_float(modal_aggs.accepted_wt),
+                'rejected_wt': safe_float(modal_aggs.rejected_wt),
+                'barcoded_wt': safe_float(modal_aggs.barcoded_wt),
+                'hm_passed_wt': safe_float(modal_aggs.hm_passed_wt),
+                'qc_passed_wt': safe_float(modal_aggs.qc_passed_wt),
+                'invoiced_wt': safe_float(modal_aggs.invoiced_wt),
+                'delivered_wt': safe_float(modal_aggs.delivered_wt),
+                'pending_to_deliver_wt': safe_float(modal_aggs.pending_to_deliver_wt)
+            }
+
         return render_template('partials/_view_showroom_drilldown.html', 
                              details=processed_rows, 
                              is_modal_child=is_modal_child,
-                             modal_level=modal_level)
+                             modal_level=modal_level,
+                             modal_totals=modal_totals)
     except Exception as e:
         import traceback
         with open('/tmp/modal_error.log', 'w') as f:
