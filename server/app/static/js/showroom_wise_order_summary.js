@@ -326,6 +326,17 @@ function showDetails(branch_head, classification_owner, make_owner, collection_o
 
     if (!modal || !content) return;
 
+    // Update Modal Subtitle with Parent Context
+    const subtitle = document.getElementById('detailsModalSubtitle');
+    if (subtitle) {
+        const parts = [];
+        if (branch_head && branch_head !== 'Unknown') parts.push(`BRANCH HEAD = ${branch_head}`);
+        if (classification_owner) parts.push(`OWNER = ${classification_owner}`);
+        if (make_owner) parts.push(`MAKE = ${make_owner}`);
+        if (collection_owner) parts.push(`COLLECTION = ${collection_owner}`);
+        subtitle.textContent = parts.join(' | ');
+    }
+
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 

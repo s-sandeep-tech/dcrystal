@@ -88,7 +88,10 @@
         <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onclick="closeDetailsModal()"></div>
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-none bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col h-[85vh] overflow-hidden">
             <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
-                <h2 class="text-sm font-bold text-gray-800 dark:text-white uppercase tracking-tight">Order Details</h2>
+                <h2 class="text-sm font-bold text-gray-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                    Order Details
+                    <span id="detailsModalSubtitle" class="text-[10px] font-normal text-gray-400 normal-case border-l border-gray-200 dark:border-gray-800 pl-2"></span>
+                </h2>
                 <button onclick="closeDetailsModal()" class="size-8 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
                     <span class="material-symbols-outlined text-xl">close</span>
                 </button>
