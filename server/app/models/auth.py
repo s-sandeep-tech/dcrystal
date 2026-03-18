@@ -19,6 +19,7 @@ class User(db.Model):
     lockout_until = db.Column(db.DateTime, nullable=True)
     last_login_at = db.Column(db.DateTime, nullable=True)
     last_login_ip = db.Column(db.String(45), nullable=True) # 45 for IPv6 support
+    session_version = db.Column(db.Integer, default=0, nullable=False)
     # Relationships
     roles = db.relationship('Role', secondary='user_role', backref=db.backref('users', lazy='dynamic'))
 

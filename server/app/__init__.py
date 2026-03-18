@@ -38,6 +38,22 @@ def create_app():
     limiter.init_app(app)
     socketio.init_app(app)
     jwt.init_app(app)
+    
+    @jwt.token_in_blocklist_loader
+    def check_if_token_revoked(jwt_header, jwt_payload):
+        user_id = jwt_payload['sub']
+        token_version = jwt_payload.get('session_version')
+        
+        user = User.query.get(user_id)
+        if not user:
+            return True
+            
+        # If token doesn't have a version (old token), or version doesn't match, revoke it
+        if token_version is None or user.session_version != token_version:
+            return True
+            
+        return False
+
     # Ensure all tables are created (including Notification)
     with app.app_context():
         # db.create_all() # Handled by migrations
@@ -72,14 +88,20 @@ def create_app():
                     from flask_jwt_extended import decode_token
                     decoded = decode_token(token)
                     user_primary_id = decoded['sub']
+                    token_version = decoded.get('session_version')
                     
                     user = User.query.get(user_primary_id)
                     if user:
-                        session['user_id'] = user.user_id
-                        session['username'] = user.username
-                        session['is_admin'] = user.is_admin
-                        session['roles'] = [r.name for r in user.roles]
-                        app.logger.info(f"Restored session for {user.username} from JWT cookie")
+                        # Validate session version for restored sessions too
+                        if token_version is not None and user.session_version == token_version:
+                            session['user_id'] = user.user_id
+                            session['username'] = user.username
+                            session['is_admin'] = user.is_admin
+                            session['roles'] = [r.name for r in user.roles]
+                            app.logger.info(f"Restored session for {user.username} from JWT cookie")
+                        else:
+                            g.clear_token_cookie = True
+                            app.logger.warning(f"Session version mismatch for {user.username}. Clearing cookie.")
             except Exception as e:
                 # If token is invalid or expired, flag it for removal to prevent redundant attempts
                 g.clear_token_cookie = True

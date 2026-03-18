@@ -35,7 +35,7 @@
         {% for r in rows %}
         <tr class="parent-row hover:bg-blue-50/30 group animate-fade-in" 
             data-level="{{ r.level }}"
-            data-branch-head="{{ r.branch_head }}"
+            data-business-head="{{ r.business_head }}"
             data-classification-owner="{{ r.classification_owner }}"
             data-make-owner="{{ r.make_owner }}">
             <td class="text-center px-0">
@@ -51,12 +51,12 @@
             </td>
             <td class="px-4 font-bold">
                 <div class="flex items-center gap-2"
-                    style="padding-left: {{ '0px' if r.level == 'branch_head' else ('20px' if r.level == 'classification_owner' else ('40px' if r.level == 'make_owner' else '60px')) }}">
+                    style="padding-left: {{ '0px' if r.level == 'business_head' else ('20px' if r.level == 'classification_owner' else ('40px' if r.level == 'make_owner' else '60px')) }}">
                     <span class="material-symbols-outlined text-[14px] text-gray-300">
-                        {{ 'person' if r.level == 'branch_head' else 'category' }}
+                        {{ 'person' if r.level == 'business_head' else 'category' }}
                     </span>
-                    {% if r.level == 'branch_head' %}
-                    {{ r.branch_head }}
+                    {% if r.level == 'business_head' %}
+                    {{ r.business_head }}
                     {% elif r.level == 'classification_owner' %}
                     {{ r.classification_owner }}
                     {% elif r.level == 'make_owner' %}
@@ -64,7 +64,7 @@
                     {% else %}
                     <div class="flex items-center gap-1.5">
                         <span>{{ r.collection_owner }}</span>
-                        <button onclick="showDetails('{{ r.branch_head }}', '{{ r.classification_owner }}', '{{ r.make_owner }}', '{{ r.collection_owner }}')" 
+                        <button onclick="showDetails('{{ r.business_head }}', '{{ r.classification_owner }}', '{{ r.make_owner }}', '{{ r.collection_owner }}')" 
                                 class="text-primary hover:text-primary/80 flex items-center justify-center p-0.5" title="View Details">
                             <span class="material-symbols-outlined text-[14px]">open_in_new</span>
                         </button>

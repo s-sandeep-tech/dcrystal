@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Showroom Wise Order Summary{% endblock %}
+{% block title %}Business Head Wise Order Summary{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
@@ -11,7 +11,7 @@
     <!-- Header -->
     <div class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
         <div class="flex items-center gap-4">
-            <h2 class="text-sm font-bold tracking-tight">Showroom Wise Order Summary</h2>
+            <h2 class="text-sm font-bold tracking-tight">Business Head Wise Order Summary</h2>
         </div>
         <div class="flex items-center gap-3">
             <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
@@ -120,7 +120,7 @@
     <div class="p-4 flex-1 overflow-y-auto no-scrollbar">
         <div class="space-y-4">
             {% set filter_list = [
-                ('branch_head', 'Branch Head'),
+                ('business_head', 'Business Head'),
                 ('classification_owner', 'Classification Owner'),
                 ('make_owner', 'Make Owner'),
                 ('collection_owner', 'Collection Owner'),

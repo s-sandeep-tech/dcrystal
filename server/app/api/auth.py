@@ -37,7 +37,11 @@ def login():
         
         auth_service.handle_successful_login(user, request.remote_addr)
         
-        access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(days=7))
+        access_token = create_access_token(
+            identity=str(user.id), 
+            expires_delta=timedelta(days=7),
+            additional_claims={'session_version': user.session_version}
+        )
         
         response = jsonify(access_token=access_token, user=user.to_dict())
         # Set cookie for session recovery (standard GET requests)
@@ -120,6 +124,7 @@ def update_password():
         return jsonify({"msg": "Incorrect current password"}), 401
         
     user.set_password(new_password)
+    user.session_version += 1
     
     # Log history
     history = UserPasswordHistory(

@@ -48,7 +48,7 @@
     {% endfor %}
 {% else %}
 <div class="flex-1 overflow-auto modal-context"
-     data-branch-head="{{ request.args.get('branch_head', '') }}"
+     data-business-head="{{ request.args.get('branch_head', '') }}"
      data-classification-owner="{{ request.args.get('classification_owner', '') }}"
      data-make-owner="{{ request.args.get('make_owner', '') }}"
      data-collection-owner="{{ request.args.get('collection_owner', '') }}">

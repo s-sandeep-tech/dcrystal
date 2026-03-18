@@ -38,7 +38,7 @@ def safe_float(val):
     except:
         return 0.0
 
-def get_showroom_aggs(latest_date_query, search=None, branch_head=None, classification_owner=None, 
+def get_showroom_aggs(latest_date_query, search=None, business_head=None, classification_owner=None, 
                     make_owner=None, collection_owner=None, party=None, location=None, 
                     purchase_ro=None, order_type=None, order_request_type=None, 
                     provision_type=None, branch_provision_type=None,
@@ -47,10 +47,10 @@ def get_showroom_aggs(latest_date_query, search=None, branch_head=None, classifi
     
     def apply_filters(query):
         if search:
-            query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_head.ilike(f"%{search}%") | 
+            query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head.ilike(f"%{search}%") | 
                                  ShowroomWiseOrderSummarySnapshot.party.ilike(f"%{search}%") |
                                  ShowroomWiseOrderSummarySnapshot.location.ilike(f"%{search}%"))
-        if branch_head: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_head == branch_head)
+        if business_head: query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
         if classification_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification_owner == classification_owner)
         if make_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.make_owner == make_owner)
         if collection_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection_owner == collection_owner)
@@ -111,7 +111,7 @@ def showroom_wise_order_summary():
         
         # Filters
         search = request.args.get('search', '').strip()
-        branch_head = request.args.get('branch_head', '')
+        business_head = request.args.get('business_head', '')
         classification_owner = request.args.get('classification_owner', '')
         make_owner = request.args.get('make_owner', '')
         collection_owner = request.args.get('collection_owner', '')
@@ -134,7 +134,7 @@ def showroom_wise_order_summary():
 
         # Cache Key
         cache_key = generate_cache_key('showroom_main', latest_date_query, 
-                                     search=search, branch_head=branch_head, 
+                                     search=search, branch_head=business_head, 
                                      classification_owner=classification_owner, make_owner=make_owner,
                                      collection_owner=collection_owner, party=party, location=location,
                                      purchase_ro=purchase_ro, order_type=order_type,
@@ -158,25 +158,25 @@ def showroom_wise_order_summary():
                                  current_level=data['current_level'])
 
         # Aggregations
-        stats = get_showroom_aggs(latest_date_query, search, branch_head, classification_owner, 
+        stats = get_showroom_aggs(latest_date_query, search, business_head, classification_owner, 
                                  make_owner, collection_owner, party, location, 
                                  purchase_ro, order_type, order_request_type, 
                                  provision_type, branch_provision_type,
                                  division, group_name, purity, classification, make, collection)
         footer_totals = stats
 
-        # Drill-down level (Branch Head -> Classification Owner -> Make Owner -> Collection Owner)
+        # Drill-down level (Business Head -> Classification Owner -> Make Owner -> Collection Owner)
         if not classification_owner:
-            group_cols = [ShowroomWiseOrderSummarySnapshot.branch_head]
-            level = 'branch_head'
+            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head]
+            level = 'business_head'
         elif classification_owner and not make_owner:
-            group_cols = [ShowroomWiseOrderSummarySnapshot.branch_head, ShowroomWiseOrderSummarySnapshot.classification_owner]
+            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner]
             level = 'classification_owner'
         elif make_owner and not collection_owner:
-            group_cols = [ShowroomWiseOrderSummarySnapshot.branch_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner]
+            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner]
             level = 'make_owner'
         else:
-            group_cols = [ShowroomWiseOrderSummarySnapshot.branch_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner, ShowroomWiseOrderSummarySnapshot.collection_owner]
+            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner, ShowroomWiseOrderSummarySnapshot.collection_owner]
             level = 'collection_owner'
 
         main_q = db.session.query(*(group_cols + [
@@ -194,10 +194,10 @@ def showroom_wise_order_summary():
         # Define local filter function for main query
         def apply_main_filters(query):
             if search:
-                query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_head.ilike(f"%{search}%") | 
+                query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head.ilike(f"%{search}%") | 
                                      ShowroomWiseOrderSummarySnapshot.party.ilike(f"%{search}%") |
                                      ShowroomWiseOrderSummarySnapshot.location.ilike(f"%{search}%"))
-            if branch_head: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_head == branch_head)
+            if business_head: query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
             if classification_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification_owner == classification_owner)
             if make_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.make_owner == make_owner)
             if collection_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection_owner == collection_owner)
@@ -226,7 +226,7 @@ def showroom_wise_order_summary():
         processed_rows = []
         for r in pagination.items:
             row_dict = {
-                'branch_head': r[0] or 'Unknown',
+                'business_head': r[0] or 'Unknown',
                 'classification_owner': r[1] if level in ['classification_owner', 'make_owner', 'collection_owner'] else '',
                 'make_owner': r[2] if level in ['make_owner', 'collection_owner'] else '',
                 'collection_owner': r[3] if level == 'collection_owner' else '',
@@ -274,7 +274,7 @@ def sync_showroom_wise_order_summary():
 def showroom_options():
     try:
         options = {
-            'branch_heads': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.branch_head.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.branch_head).all() if r[0]],
+            'business_heads': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.business_head.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.business_head).all() if r[0]],
             'classification_owners': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.classification_owner.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.classification_owner).all() if r[0]],
             'make_owners': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.make_owner.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.make_owner).all() if r[0]],
             'collection_owners': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.collection_owner.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.collection_owner).all() if r[0]],
@@ -303,7 +303,7 @@ def get_showroom_partial():
         latest_date_query = db.session.query(func.max(ShowroomWiseOrderSummarySnapshot.snapshot_date)).scalar()
         
         search = request.args.get('search', '').strip()
-        branch_head = request.args.get('branch_head', '')
+        business_head = request.args.get('business_head', '')
         classification_owner = request.args.get('classification_owner', '')
         make_owner = request.args.get('make_owner', '')
         collection_owner = request.args.get('collection_owner', '')
@@ -331,10 +331,10 @@ def get_showroom_partial():
         
         def apply_filters(query):
             if search:
-                query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_head.ilike(f"%{search}%") | 
+                query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head.ilike(f"%{search}%") | 
                                      ShowroomWiseOrderSummarySnapshot.party.ilike(f"%{search}%") |
                                      ShowroomWiseOrderSummarySnapshot.location.ilike(f"%{search}%"))
-            if branch_head: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_head == branch_head)
+            if business_head: query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
             if classification_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification_owner == classification_owner)
             if make_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.make_owner == make_owner)
             if collection_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection_owner == collection_owner)
@@ -367,37 +367,37 @@ def get_showroom_partial():
             func.sum(cast(ShowroomWiseOrderSummarySnapshot.delivered_wt, Numeric)).label('delivered_wt'),
             func.sum(cast(ShowroomWiseOrderSummarySnapshot.pending_to_deliver_wt, Numeric)).label('pending_to_deliver_wt')
         ]
-
-        if parent_level == 'branch_head':
-            group_cols = [ShowroomWiseOrderSummarySnapshot.branch_head, ShowroomWiseOrderSummarySnapshot.classification_owner]
+        
+        if parent_level == 'business_head':
+            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner]
             level = 'classification_owner'
-            base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(ShowroomWiseOrderSummarySnapshot.branch_head == parent_value)
+            base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(ShowroomWiseOrderSummarySnapshot.business_head == parent_value)
         elif parent_level == 'classification_owner':
-            group_cols = [ShowroomWiseOrderSummarySnapshot.branch_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner]
+            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner]
             level = 'make_owner'
-            # Must filter by branch_head if provided to maintain context
+            # Must filter by business_head if provided to maintain context
             base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(ShowroomWiseOrderSummarySnapshot.classification_owner == parent_value)
-            if branch_head:
-                base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.branch_head == branch_head)
+            if business_head:
+                base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
         elif parent_level == 'make_owner':
-            group_cols = [ShowroomWiseOrderSummarySnapshot.branch_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner, ShowroomWiseOrderSummarySnapshot.collection_owner]
+            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner, ShowroomWiseOrderSummarySnapshot.collection_owner]
             level = 'collection_owner'
-            # Must filter by branch_head and classification_owner if provided
+            # Must filter by business_head and classification_owner if provided
             base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(ShowroomWiseOrderSummarySnapshot.make_owner == parent_value)
-            if branch_head:
-                base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.branch_head == branch_head)
+            if business_head:
+                base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
             if classification_owner:
                 base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.classification_owner == classification_owner)
         else:
             base_query = db.session.query(ShowroomWiseOrderSummarySnapshot)
             if not classification_owner:
-                group_cols = [ShowroomWiseOrderSummarySnapshot.branch_head]
-                level = 'branch_head'
+                group_cols = [ShowroomWiseOrderSummarySnapshot.business_head]
+                level = 'business_head'
             elif classification_owner and not make_owner:
-                group_cols = [ShowroomWiseOrderSummarySnapshot.branch_head, ShowroomWiseOrderSummarySnapshot.classification_owner]
+                group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner]
                 level = 'classification_owner'
             else:
-                group_cols = [ShowroomWiseOrderSummarySnapshot.branch_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner]
+                group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner]
                 level = 'make_owner'
 
         main_q = base_query.with_entities(*(group_cols + agg_cols))
@@ -409,7 +409,7 @@ def get_showroom_partial():
         processed_rows = []
         for r in pagination.items:
             row_dict = {
-                'branch_head': r[0] or 'Unknown',
+                'business_head': r[0] or 'Unknown',
                 'classification_owner': r[1] if level in ['classification_owner', 'make_owner', 'collection_owner'] else '',
                 'make_owner': r[2] if level in ['make_owner', 'collection_owner'] else '',
                 'collection_owner': r[3] if level == 'collection_owner' else '',
@@ -430,7 +430,7 @@ def get_showroom_partial():
         stats = {}
         footer_totals = {}
         if not is_child_rows:
-            stats = get_showroom_aggs(latest_date_query, search, branch_head, classification_owner, 
+            stats = get_showroom_aggs(latest_date_query, search, business_head, classification_owner, 
                                     make_owner, collection_owner, party, location, 
                                     purchase_ro, order_type, order_request_type, 
                                     provision_type, branch_provision_type,
@@ -455,7 +455,7 @@ def get_showroom_partial():
 def get_showroom_details():
     try:
         # Hierarchy constraints to inherit from main page view
-        branch_head = request.args.get('branch_head')
+        business_head = request.args.get('business_head')
         classification_owner = request.args.get('classification_owner')
         make_owner = request.args.get('make_owner')
         collection_owner = request.args.get('collection_owner')
@@ -487,14 +487,14 @@ def get_showroom_details():
         query = ShowroomWiseOrderSummarySnapshot.query
         
         # Apply hierarchy filters
-        if branch_head: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_head == branch_head)
+        if business_head: query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
         if classification_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification_owner == classification_owner)
         if make_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.make_owner == make_owner)
         if collection_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection_owner == collection_owner)
         
         # Apply global filters
         if search:
-            query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_head.ilike(f"%{search}%") | 
+            query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head.ilike(f"%{search}%") | 
                                  ShowroomWiseOrderSummarySnapshot.party.ilike(f"%{search}%") |
                                  ShowroomWiseOrderSummarySnapshot.location.ilike(f"%{search}%"))
         

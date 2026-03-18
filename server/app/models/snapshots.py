@@ -651,7 +651,7 @@ class ShowroomWiseOrderSummarySnapshot(db.Model):
     make = db.Column(db.Text)
     collection = db.Column(db.Text)
 
-    branch_head = db.Column(db.Text)
+    business_head = db.Column(db.Text)
     party = db.Column(db.Text)
     purchase_ro = db.Column(db.Text)
     provision_type = db.Column(db.Text)

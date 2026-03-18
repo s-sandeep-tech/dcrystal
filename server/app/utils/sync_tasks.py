@@ -1414,7 +1414,7 @@ def sync_showroom_wise_order_summary_task():
         emit_sync_update('processing', 'Fetching data from Azure...', 15, 'showroom_wise_order')
         query = """
 SELECT
-    od.branch_head,
+    business_head_name as business_head,
     ownershippo.supplier AS party,
     ownershippo.order_branch AS location,
     ownershippo.order_ro AS purchase_ro,
@@ -1486,15 +1486,7 @@ SELECT
     ownershippo.pending_to_deliver_pcs,
     ownershippo.pending_to_deliver_wt
 
-FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS ownershippo
-LEFT JOIN (
-    SELECT
-        po_id,
-        MAX(business_head_name) AS branch_head
-    FROM ext_view.vw_order_details
-    GROUP BY po_id
-) od
-    ON od.po_id = ownershippo.po_id ;
+FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS ownershippo;
         """
         
         start_time = time.time()
@@ -1512,7 +1504,7 @@ LEFT JOIN (
         new_records = []
         for row in rows:
             record = ShowroomWiseOrderSummarySnapshot(
-                branch_head=row.get('branch_head'),
+                business_head=row.get('business_head'),
                 party=row.get('party'),
                 location=row.get('location'),
                 purchase_ro=row.get('purchase_ro'),

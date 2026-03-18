@@ -74,7 +74,7 @@ function initializeViewFromDOM(activeView) {
 function updateLevelBadge(level) {
     const badge = document.getElementById('current-level-badge');
     if (badge) {
-        badge.textContent = level?.toUpperCase().replace('_', ' ') || 'BRANCH HEAD';
+        badge.textContent = level?.toUpperCase().replace('_', ' ') || 'BUSINESS HEAD';
     }
 }
 
@@ -99,7 +99,7 @@ async function toggleRow(btn) {
     if (!tr) return;
 
     const level = tr.dataset.level;
-    const branchHead = tr.dataset.branchHead;
+    const businessHead = tr.dataset.businessHead;
     const classificationOwner = tr.dataset.classificationOwner;
     const makeOwner = tr.dataset.makeOwner;
 
@@ -110,9 +110,9 @@ async function toggleRow(btn) {
         let nextTr = tr.nextElementSibling;
         while (nextTr) {
             const nextLevel = nextTr.dataset.level;
-            if (level === 'branch_head' && nextLevel === 'branch_head') break;
-            if (level === 'classification_owner' && (nextLevel === 'classification_owner' || nextLevel === 'branch_head')) break;
-            if (level === 'make_owner' && (nextLevel === 'make_owner' || nextLevel === 'classification_owner' || nextLevel === 'branch_head')) break;
+            if (level === 'business_head' && nextLevel === 'business_head') break;
+            if (level === 'classification_owner' && (nextLevel === 'classification_owner' || nextLevel === 'business_head')) break;
+            if (level === 'make_owner' && (nextLevel === 'make_owner' || nextLevel === 'classification_owner' || nextLevel === 'business_head')) break;
 
             const toRemove = nextTr;
             nextTr = nextTr.nextElementSibling;
@@ -129,13 +129,13 @@ async function toggleRow(btn) {
             
             // Set expansion context
             params.set('parent_level', level);
-            if (branchHead) params.set('branch_head', branchHead);
+            if (businessHead) params.set('business_head', businessHead);
             if (classificationOwner) params.set('classification_owner', classificationOwner);
             if (makeOwner) params.set('make_owner', makeOwner);
 
             // Determine which value to identify the expansion target to the backend
             let parentValue = '';
-            if (level === 'branch_head') parentValue = branchHead;
+            if (level === 'business_head') parentValue = businessHead;
             else if (level === 'classification_owner') parentValue = classificationOwner;
             else if (level === 'make_owner') parentValue = makeOwner;
             params.set('parent_value', parentValue);
@@ -185,7 +185,7 @@ function applyGlobalFilters() {
     urlParams.delete('parent_value');
     
     const filterIds = [
-        'branch_head', 'classification_owner', 'make_owner', 'collection_owner',
+        'business_head', 'classification_owner', 'make_owner', 'collection_owner',
         'division', 'group_name', 'purity', 'classification', 'make', 'collection',
         'party', 'location', 'purchase_ro', 'order_type', 'order_request_type',
         'provision_type', 'branch_provision_type'
@@ -207,7 +207,7 @@ function applyGlobalFilters() {
 
 function resetGlobalFilters() {
     const filterIds = [
-        'branch_head', 'classification_owner', 'make_owner', 'collection_owner',
+        'business_head', 'classification_owner', 'make_owner', 'collection_owner',
         'division', 'group_name', 'purity', 'classification', 'make', 'collection',
         'party', 'location', 'purchase_ro', 'order_type', 'order_request_type',
         'provision_type', 'branch_provision_type'
@@ -289,7 +289,7 @@ async function loadFilterOptions() {
         const urlParams = new URLSearchParams(window.location.search);
 
         const mappings = [
-            { id: 'filter-branch_head', list: options.branch_heads, label: 'Branch Head' },
+            { id: 'filter-business_head', list: options.business_heads, label: 'Business Head' },
             { id: 'filter-classification_owner', list: options.classification_owners, label: 'Classification Owner' },
             { id: 'filter-make_owner', list: options.make_owners, label: 'Make Owner' },
             { id: 'filter-collection_owner', list: options.collection_owners, label: 'Collection Owner' },
@@ -327,7 +327,7 @@ function populateSelect(id, list, placeholder, selectedValue) {
     el.innerHTML = html;
 }
 
-function showDetails(branch_head, classification_owner, make_owner, collection_owner) {
+function showDetails(business_head, classification_owner, make_owner, collection_owner) {
     const modal = document.getElementById('detailsModal');
     const content = document.getElementById('detailsModalContent');
 
@@ -337,7 +337,7 @@ function showDetails(branch_head, classification_owner, make_owner, collection_o
     const subtitle = document.getElementById('detailsModalSubtitle');
     if (subtitle) {
         const parts = [];
-        if (branch_head && branch_head !== 'Unknown') parts.push(`BRANCH HEAD = ${branch_head}`);
+        if (business_head && business_head !== 'Unknown') parts.push(`BUSINESS HEAD = ${business_head}`);
         if (classification_owner) parts.push(`OWNER = ${classification_owner}`);
         if (make_owner) parts.push(`MAKE = ${make_owner}`);
         if (collection_owner) parts.push(`COLLECTION = ${collection_owner}`);
@@ -358,7 +358,7 @@ function showDetails(branch_head, classification_owner, make_owner, collection_o
     const params = new URLSearchParams(window.location.search);
     
     // Apply specific hierarchy constraints
-    if (branch_head && branch_head !== 'Unknown') params.set('branch_head', branch_head);
+    if (business_head && business_head !== 'Unknown') params.set('business_head', business_head);
     if (classification_owner && classification_owner !== '') params.set('classification_owner', classification_owner);
     if (make_owner && make_owner !== '') params.set('make_owner', make_owner);
     if (collection_owner && collection_owner !== '') params.set('collection_owner', collection_owner);
@@ -465,7 +465,7 @@ async function toggleModalRow(btn, currentLevel, value) {
             const modalContext = document.querySelector('.modal-context');
             if (modalContext) {
                 const ds = modalContext.dataset;
-                if (ds.branchHead) urlParams.set('branch_head', ds.branchHead);
+                if (ds.businessHead) urlParams.set('business_head', ds.businessHead);
                 if (ds.classificationOwner) urlParams.set('classification_owner', ds.classificationOwner);
                 if (ds.makeOwner) urlParams.set('make_owner', ds.makeOwner);
                 if (ds.collectionOwner) urlParams.set('collection_owner', ds.collectionOwner);

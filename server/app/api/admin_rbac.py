@@ -221,6 +221,7 @@ def update_delete_user(id):
                 return jsonify({"msg": "Administrator passwords cannot be reset through the user management interface."}), 403
             
             user.set_password(data.get('password'))
+            user.session_version += 1
             # Log history
             history = UserPasswordHistory(
                 target_user_id=id,
@@ -250,6 +251,7 @@ def change_user_password(user_id):
         
     # Update password
     user.set_password(new_password)
+    user.session_version += 1
     
     # Log history
     history = UserPasswordHistory(
