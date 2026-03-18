@@ -195,7 +195,7 @@ def sync_owner_wise_data_task(task_type_override=None, progress_range=(0, 100), 
     finally:
         if conn: conn.close()
 
-def sync_process_level_delay_data_task():
+def sync_process_level_delay_data_task() -> Dict[str, Any]:
     conn = None
     try:
         emit_sync_update('processing', 'Starting Process Level Delay Sync...', 5, 'process_delay')
@@ -423,7 +423,7 @@ def sync_process_level_delay_data_task():
     finally:
         if conn: conn.close()
 
-def sync_outstanding_purchase_order_data_task():
+def sync_outstanding_purchase_order_data_task() -> Dict[str, Any]:
     conn = None
     try:
         emit_sync_update('processing', 'Starting Outstanding PO Sync...', 5, 'outstanding_po')
@@ -524,7 +524,7 @@ def sync_outstanding_purchase_order_data_task():
     finally:
         if conn: conn.close()
 
-def sync_stage_level_delay_data_task():
+def sync_stage_level_delay_data_task() -> Dict[str, Any]:
     """Sync StageLevel Delay data using the provided analytical query."""
     conn = None
     try:
@@ -816,7 +816,7 @@ FROM current_stage;
     finally:
         if conn: conn.close()
 
-def sync_provision_allocation_summary_task():
+def sync_provision_allocation_summary_task() -> Dict[str, Any]:
     """Sync Provision Allocation Summary data using the provided analytical query."""
     conn = None
     try:
@@ -1049,7 +1049,7 @@ FROM (
     finally:
         if conn: conn.close()
 
-def sync_order_delay_tracking_data_task():
+def sync_order_delay_tracking_data_task() -> Dict[str, Any]:
     """Sync Order Delay Tracking data using the provided analytical query."""
     conn = None
     try:
@@ -1260,7 +1260,7 @@ WHERE pb.order_id IS NOT NULL
     finally:
         if conn: conn.close()
 
-def sync_pending_acceptance_data_task():
+def sync_pending_acceptance_data_task() -> Dict[str, Any]:
     """Sync Pending Acceptance data using the provided analytical query."""
     conn = None
     try:
@@ -1343,7 +1343,7 @@ def sync_pending_acceptance_data_task():
     finally:
         if conn: conn.close()
 
-def sync_rejected_weight_data_task():
+def sync_rejected_weight_data_task() -> Dict[str, Any]:
     """Sync Rejected Weight data using the provided analytical query."""
     conn = None
     try:
