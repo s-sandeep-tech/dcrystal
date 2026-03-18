@@ -83,7 +83,16 @@ function updateDashboardStats(stats) {
 
     const mappings = {
         'stat-total-order-wt': stats.total_order_wt,
-        'stat-delivered-wt': stats.delivered_wt
+        'stat-accepted-wt': stats.accepted_wt,
+        'stat-rejected-wt': stats.rejected_wt,
+        'stat-cancelled-wt': stats.cancelled_wt,
+        'stat-pending-to-accept-wt': stats.pending_to_accepted_wt,
+        'stat-barcoded-wt': stats.barcoded_wt,
+        'stat-hallmarked-wt': stats.hm_passed_wt,
+        'stat-qc-passed-wt': stats.qc_passed_wt,
+        'stat-invoiced-wt': stats.invoiced_wt,
+        'stat-delivered-wt': stats.delivered_wt,
+        'stat-pending-to-deliver-wt': stats.pending_to_deliver_wt
     };
 
     for (const [id, value] of Object.entries(mappings)) {

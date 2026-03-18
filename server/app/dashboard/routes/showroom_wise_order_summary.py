@@ -81,7 +81,9 @@ def get_showroom_aggs(latest_date_query, search=None, business_head=None, classi
         func.sum(cast(ShowroomWiseOrderSummarySnapshot.qc_passed_wt, Numeric)).label('qc_passed_wt'),
         func.sum(cast(ShowroomWiseOrderSummarySnapshot.invoiced_wt, Numeric)).label('invoiced_wt'),
         func.sum(cast(ShowroomWiseOrderSummarySnapshot.delivered_wt, Numeric)).label('delivered_wt'),
-        func.sum(cast(ShowroomWiseOrderSummarySnapshot.pending_to_deliver_wt, Numeric)).label('pending_to_deliver_wt')
+        func.sum(cast(ShowroomWiseOrderSummarySnapshot.pending_to_deliver_wt, Numeric)).label('pending_to_deliver_wt'),
+        func.sum(cast(ShowroomWiseOrderSummarySnapshot.cancelled_wt, Numeric)).label('cancelled_wt'),
+        func.sum(cast(ShowroomWiseOrderSummarySnapshot.pending_to_accepted_wt, Numeric)).label('pending_to_accepted_wt')
     ]
     
     agg_q = db.session.query(*agg_cols)
@@ -97,7 +99,9 @@ def get_showroom_aggs(latest_date_query, search=None, business_head=None, classi
         'qc_passed_wt': safe_float(aggs.qc_passed_wt),
         'invoiced_wt': safe_float(aggs.invoiced_wt),
         'delivered_wt': safe_float(aggs.delivered_wt),
-        'pending_to_deliver_wt': safe_float(aggs.pending_to_deliver_wt)
+        'pending_to_deliver_wt': safe_float(aggs.pending_to_deliver_wt),
+        'cancelled_wt': safe_float(aggs.cancelled_wt),
+        'pending_to_accepted_wt': safe_float(aggs.pending_to_accepted_wt)
     }
 
 @dashboard_bp.route('/showroom_wise_order_summary')
@@ -188,7 +192,9 @@ def showroom_wise_order_summary():
             func.sum(cast(ShowroomWiseOrderSummarySnapshot.qc_passed_wt, Numeric)).label('qc_passed_wt'),
             func.sum(cast(ShowroomWiseOrderSummarySnapshot.invoiced_wt, Numeric)).label('invoiced_wt'),
             func.sum(cast(ShowroomWiseOrderSummarySnapshot.delivered_wt, Numeric)).label('delivered_wt'),
-            func.sum(cast(ShowroomWiseOrderSummarySnapshot.pending_to_deliver_wt, Numeric)).label('pending_to_deliver_wt')
+            func.sum(cast(ShowroomWiseOrderSummarySnapshot.pending_to_deliver_wt, Numeric)).label('pending_to_deliver_wt'),
+            func.sum(cast(ShowroomWiseOrderSummarySnapshot.cancelled_wt, Numeric)).label('cancelled_wt'),
+            func.sum(cast(ShowroomWiseOrderSummarySnapshot.pending_to_accepted_wt, Numeric)).label('pending_to_accepted_wt')
         ]))
         
         # Define local filter function for main query
@@ -239,6 +245,8 @@ def showroom_wise_order_summary():
                 'invoiced_wt': safe_float(r.invoiced_wt),
                 'delivered_wt': safe_float(r.delivered_wt),
                 'pending_to_deliver_wt': safe_float(r.pending_to_deliver_wt),
+                'cancelled_wt': safe_float(r.cancelled_wt),
+                'pending_to_accepted_wt': safe_float(r.pending_to_accepted_wt),
                 'level': level
             }
             processed_rows.append(row_dict)
@@ -365,7 +373,9 @@ def get_showroom_partial():
             func.sum(cast(ShowroomWiseOrderSummarySnapshot.qc_passed_wt, Numeric)).label('qc_passed_wt'),
             func.sum(cast(ShowroomWiseOrderSummarySnapshot.invoiced_wt, Numeric)).label('invoiced_wt'),
             func.sum(cast(ShowroomWiseOrderSummarySnapshot.delivered_wt, Numeric)).label('delivered_wt'),
-            func.sum(cast(ShowroomWiseOrderSummarySnapshot.pending_to_deliver_wt, Numeric)).label('pending_to_deliver_wt')
+            func.sum(cast(ShowroomWiseOrderSummarySnapshot.pending_to_deliver_wt, Numeric)).label('pending_to_deliver_wt'),
+            func.sum(cast(ShowroomWiseOrderSummarySnapshot.cancelled_wt, Numeric)).label('cancelled_wt'),
+            func.sum(cast(ShowroomWiseOrderSummarySnapshot.pending_to_accepted_wt, Numeric)).label('pending_to_accepted_wt')
         ]
         
         if parent_level == 'business_head':
@@ -422,6 +432,8 @@ def get_showroom_partial():
                 'invoiced_wt': safe_float(r.invoiced_wt),
                 'delivered_wt': safe_float(r.delivered_wt),
                 'pending_to_deliver_wt': safe_float(r.pending_to_deliver_wt),
+                'cancelled_wt': safe_float(r.cancelled_wt),
+                'pending_to_accepted_wt': safe_float(r.pending_to_accepted_wt),
                 'level': level
             }
             processed_rows.append(row_dict)
@@ -577,6 +589,8 @@ def get_showroom_details():
                     'invoiced_wt': safe_float(r.invoiced_wt),
                     'delivered_wt': safe_float(r.delivered_wt),
                     'pending_to_deliver_wt': safe_float(r.pending_to_deliver_wt),
+                    'cancelled_wt': safe_float(r.cancelled_wt),
+                    'pending_to_accepted_wt': safe_float(r.pending_to_accepted_wt),
                     'po_number': '-',
                     'order_date': None
                 }
@@ -608,7 +622,9 @@ def get_showroom_details():
                 'qc_passed_wt': safe_float(modal_aggs.qc_passed_wt),
                 'invoiced_wt': safe_float(modal_aggs.invoiced_wt),
                 'delivered_wt': safe_float(modal_aggs.delivered_wt),
-                'pending_to_deliver_wt': safe_float(modal_aggs.pending_to_deliver_wt)
+                'pending_to_deliver_wt': safe_float(modal_aggs.pending_to_deliver_wt),
+                'cancelled_wt': safe_float(modal_aggs.cancelled_wt),
+                'pending_to_accepted_wt': safe_float(modal_aggs.pending_to_accepted_wt)
             }
 
         return render_template('partials/_view_showroom_drilldown.html', 

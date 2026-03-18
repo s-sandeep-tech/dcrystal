@@ -32,7 +32,9 @@
         <td class="px-4 py-2 whitespace-nowrap">{{ d.order_date.strftime('%d-%m-%Y') if d.order_date else '-' }}</td>
         <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.order_wt|float) }}</td>
         <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.accepted_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.pending_to_accepted_wt|float) }}</td>
         <td class="px-4 py-2 text-right font-medium text-red-500">{{ "%.3f"|format(d.rejected_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.cancelled_wt|float) }}</td>
         <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.barcoded_wt|float) }}</td>
         <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.hm_passed_wt|float) }}</td>
         <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.qc_passed_wt|float) }}</td>
@@ -63,7 +65,9 @@
                 <th class="text-left px-4 py-3">Order Date</th>
                 <th class="text-right px-4 py-3">Order WT</th>
                 <th class="text-right px-4 py-3">Accepted WT</th>
+                <th class="text-right px-4 py-3">Pending Accept</th>
                 <th class="text-right px-4 py-3">Rejected WT</th>
+                <th class="text-right px-4 py-3">Cancelled WT</th>
                 <th class="text-right px-4 py-3">Barcoded WT</th>
                 <th class="text-right px-4 py-3">HM Passed WT</th>
                 <th class="text-right px-4 py-3">QC Passed WT</th>
@@ -78,7 +82,7 @@
             {% endfor %}
             {% if not details %}
             <tr>
-                <td colspan="12" class="p-8 text-center text-gray-400 italic">No details available.</td>
+                <td colspan="14" class="p-8 text-center text-gray-400 italic">No details available.</td>
             </tr>
             {% endif %}
         </tbody>
@@ -88,7 +92,9 @@
                 <td class="px-4 py-3" colspan="3">Grand Total</td>
                 <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.order_wt) }}</td>
                 <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.accepted_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.pending_to_accepted_wt) }}</td>
                 <td class="px-4 py-3 text-right text-red-500">{{ "%.3f"|format(modal_totals.rejected_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.cancelled_wt) }}</td>
                 <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.barcoded_wt) }}</td>
                 <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.hm_passed_wt) }}</td>
                 <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.qc_passed_wt) }}</td>
