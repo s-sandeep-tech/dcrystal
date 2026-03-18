@@ -570,6 +570,9 @@ def get_showroom_details():
             func.sum(cast(ShowroomWiseOrderSummarySnapshot.pending_to_deliver_wt, Numeric)).label('pending_to_deliver_wt')
         ]
 
+        def safe_float(val):
+            return float(val) if val is not None else 0.0
+
         if modal_level == 'orders':
             # Base leaf view - show actual order rows
             processed_rows = query.limit(1000).all()
@@ -590,9 +593,6 @@ def get_showroom_details():
             raw_rows = agg_query.all()
             print(f"DEBUG modal API: agg_query returned {len(raw_rows)} rows. SQL: {agg_query.statement.compile(compile_kwargs={'literal_binds': True})}")
             processed_rows = []
-            
-            def safe_float(val):
-                return float(val) if val is not None else 0.0
 
             for r in raw_rows:
                 # Create a dict-like object (or dictionary) that template can use
