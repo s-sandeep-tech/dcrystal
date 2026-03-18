@@ -169,18 +169,22 @@ def showroom_wise_order_summary():
                                  division, group_name, purity, classification, make, collection)
         footer_totals = stats
 
-        # Drill-down level (Business Head -> Classification Owner -> Make Owner -> Collection Owner)
-        if not classification_owner:
-            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head]
-            level = 'business_head'
-        elif classification_owner and not make_owner:
-            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner]
+        # Drill-down level (Business Head -> Location -> Classification Owner -> Make Owner -> Collection Owner)
+        if not location:
+            if not business_head:
+                group_cols = [ShowroomWiseOrderSummarySnapshot.business_head]
+                level = 'business_head'
+            else:
+                group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location]
+                level = 'location'
+        elif location and not classification_owner:
+            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location, ShowroomWiseOrderSummarySnapshot.classification_owner]
             level = 'classification_owner'
-        elif make_owner and not collection_owner:
-            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner]
+        elif classification_owner and not make_owner:
+            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner]
             level = 'make_owner'
         else:
-            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner, ShowroomWiseOrderSummarySnapshot.collection_owner]
+            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner, ShowroomWiseOrderSummarySnapshot.collection_owner]
             level = 'collection_owner'
 
         main_q = db.session.query(*(group_cols + [
@@ -233,9 +237,10 @@ def showroom_wise_order_summary():
         for r in pagination.items:
             row_dict = {
                 'business_head': r[0] or 'Unknown',
-                'classification_owner': r[1] if level in ['classification_owner', 'make_owner', 'collection_owner'] else '',
-                'make_owner': r[2] if level in ['make_owner', 'collection_owner'] else '',
-                'collection_owner': r[3] if level == 'collection_owner' else '',
+                'location': r[1] if level in ['location', 'classification_owner', 'make_owner', 'collection_owner'] else '',
+                'classification_owner': r[2] if level in ['classification_owner', 'make_owner', 'collection_owner'] else '',
+                'make_owner': r[3] if level in ['make_owner', 'collection_owner'] else '',
+                'collection_owner': r[4] if level == 'collection_owner' else '',
                 'total_order_wt': safe_float(r.total_order_wt),
                 'accepted_wt': safe_float(r.accepted_wt),
                 'rejected_wt': safe_float(r.rejected_wt),
@@ -379,35 +384,47 @@ def get_showroom_partial():
         ]
         
         if parent_level == 'business_head':
-            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner]
-            level = 'classification_owner'
+            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location]
+            level = 'location'
             base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(ShowroomWiseOrderSummarySnapshot.business_head == parent_value)
+        elif parent_level == 'location':
+            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location, ShowroomWiseOrderSummarySnapshot.classification_owner]
+            level = 'classification_owner'
+            base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(ShowroomWiseOrderSummarySnapshot.location == parent_value)
+            if business_head:
+                base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
         elif parent_level == 'classification_owner':
-            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner]
+            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner]
             level = 'make_owner'
-            # Must filter by business_head if provided to maintain context
             base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(ShowroomWiseOrderSummarySnapshot.classification_owner == parent_value)
             if business_head:
                 base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
+            if location:
+                base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.location == location)
         elif parent_level == 'make_owner':
-            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner, ShowroomWiseOrderSummarySnapshot.collection_owner]
+            group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner, ShowroomWiseOrderSummarySnapshot.collection_owner]
             level = 'collection_owner'
-            # Must filter by business_head and classification_owner if provided
             base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(ShowroomWiseOrderSummarySnapshot.make_owner == parent_value)
             if business_head:
                 base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
+            if location:
+                base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.location == location)
             if classification_owner:
                 base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.classification_owner == classification_owner)
         else:
             base_query = db.session.query(ShowroomWiseOrderSummarySnapshot)
-            if not classification_owner:
-                group_cols = [ShowroomWiseOrderSummarySnapshot.business_head]
-                level = 'business_head'
-            elif classification_owner and not make_owner:
-                group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner]
+            if not location:
+                if not business_head:
+                    group_cols = [ShowroomWiseOrderSummarySnapshot.business_head]
+                    level = 'business_head'
+                else:
+                    group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location]
+                    level = 'location'
+            elif location and not classification_owner:
+                group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location, ShowroomWiseOrderSummarySnapshot.classification_owner]
                 level = 'classification_owner'
             else:
-                group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner]
+                group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner]
                 level = 'make_owner'
 
         main_q = base_query.with_entities(*(group_cols + agg_cols))
@@ -420,9 +437,10 @@ def get_showroom_partial():
         for r in pagination.items:
             row_dict = {
                 'business_head': r[0] or 'Unknown',
-                'classification_owner': r[1] if level in ['classification_owner', 'make_owner', 'collection_owner'] else '',
-                'make_owner': r[2] if level in ['make_owner', 'collection_owner'] else '',
-                'collection_owner': r[3] if level == 'collection_owner' else '',
+                'location': r[1] if level in ['location', 'classification_owner', 'make_owner', 'collection_owner'] else '',
+                'classification_owner': r[2] if level in ['classification_owner', 'make_owner', 'collection_owner'] else '',
+                'make_owner': r[3] if level in ['make_owner', 'collection_owner'] else '',
+                'collection_owner': r[4] if level == 'collection_owner' else '',
                 'total_order_wt': safe_float(r.total_order_wt),
                 'accepted_wt': safe_float(r.accepted_wt),
                 'rejected_wt': safe_float(r.rejected_wt),
@@ -631,7 +649,8 @@ def get_showroom_details():
                              details=processed_rows, 
                              is_modal_child=is_modal_child,
                              modal_level=modal_level,
-                             modal_totals=modal_totals)
+                             modal_totals=modal_totals,
+                             location_name=location_filter)
     except Exception as e:
         import traceback
         with open('/tmp/modal_error.log', 'w') as f:

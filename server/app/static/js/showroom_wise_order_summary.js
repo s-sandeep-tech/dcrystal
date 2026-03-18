@@ -111,6 +111,7 @@ async function toggleRow(btn) {
 
     const level = tr.dataset.level;
     const businessHead = tr.dataset.businessHead;
+    const location = tr.dataset.location;
     const classificationOwner = tr.dataset.classificationOwner;
     const makeOwner = tr.dataset.makeOwner;
 
@@ -122,8 +123,9 @@ async function toggleRow(btn) {
         while (nextTr) {
             const nextLevel = nextTr.dataset.level;
             if (level === 'business_head' && nextLevel === 'business_head') break;
-            if (level === 'classification_owner' && (nextLevel === 'classification_owner' || nextLevel === 'business_head')) break;
-            if (level === 'make_owner' && (nextLevel === 'make_owner' || nextLevel === 'classification_owner' || nextLevel === 'business_head')) break;
+            if (level === 'location' && (nextLevel === 'location' || nextLevel === 'business_head')) break;
+            if (level === 'classification_owner' && (nextLevel === 'classification_owner' || nextLevel === 'location' || nextLevel === 'business_head')) break;
+            if (level === 'make_owner' && (nextLevel === 'make_owner' || nextLevel === 'classification_owner' || nextLevel === 'location' || nextLevel === 'business_head')) break;
 
             const toRemove = nextTr;
             nextTr = nextTr.nextElementSibling;
@@ -141,12 +143,14 @@ async function toggleRow(btn) {
             // Set expansion context
             params.set('parent_level', level);
             if (businessHead) params.set('business_head', businessHead);
+            if (location) params.set('location', location);
             if (classificationOwner) params.set('classification_owner', classificationOwner);
             if (makeOwner) params.set('make_owner', makeOwner);
 
             // Determine which value to identify the expansion target to the backend
             let parentValue = '';
             if (level === 'business_head') parentValue = businessHead;
+            else if (level === 'location') parentValue = location;
             else if (level === 'classification_owner') parentValue = classificationOwner;
             else if (level === 'make_owner') parentValue = makeOwner;
             params.set('parent_value', parentValue);
@@ -338,7 +342,7 @@ function populateSelect(id, list, placeholder, selectedValue) {
     el.innerHTML = html;
 }
 
-function showDetails(business_head, classification_owner, make_owner, collection_owner) {
+function showDetails(business_head, classification_owner, make_owner, collection_owner, location, modal_level) {
     const modal = document.getElementById('detailsModal');
     const content = document.getElementById('detailsModalContent');
 
@@ -349,6 +353,7 @@ function showDetails(business_head, classification_owner, make_owner, collection
     if (subtitle) {
         const parts = [];
         if (business_head && business_head !== 'Unknown') parts.push(`BUSINESS HEAD = ${business_head}`);
+        if (location) parts.push(`LOCATION = ${location}`);
         if (classification_owner) parts.push(`OWNER = ${classification_owner}`);
         if (make_owner) parts.push(`MAKE = ${make_owner}`);
         if (collection_owner) parts.push(`COLLECTION = ${collection_owner}`);
@@ -370,9 +375,11 @@ function showDetails(business_head, classification_owner, make_owner, collection
     
     // Apply specific hierarchy constraints
     if (business_head && business_head !== 'Unknown') params.set('business_head', business_head);
+    if (location && location !== '') params.set('location', location);
     if (classification_owner && classification_owner !== '') params.set('classification_owner', classification_owner);
     if (make_owner && make_owner !== '') params.set('make_owner', make_owner);
     if (collection_owner && collection_owner !== '') params.set('collection_owner', collection_owner);
+    if (modal_level) params.set('modal_level', modal_level);
 
     // Remove tree pagination params
     params.delete('page');
