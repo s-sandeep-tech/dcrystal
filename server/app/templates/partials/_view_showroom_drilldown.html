@@ -30,17 +30,17 @@
 
         <td class="px-4 py-2 font-mono text-primary">{{ d.po_number if d.is_leaf else '-' }}</td>
         <td class="px-4 py-2 whitespace-nowrap">{{ d.order_date.strftime('%d-%m-%Y') if d.order_date else '-' }}</td>
-        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.order_wt|float) }}</td>
-        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.accepted_wt|float) }}</td>
-        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.pending_to_accepted_wt|float) }}</td>
-        <td class="px-4 py-2 text-right font-medium text-red-500">{{ "%.3f"|format(d.rejected_wt|float) }}</td>
-        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.cancelled_wt|float) }}</td>
-        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.barcoded_wt|float) }}</td>
-        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.hm_passed_wt|float) }}</td>
-        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.qc_passed_wt|float) }}</td>
-        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.invoiced_wt|float) }}</td>
-        <td class="px-4 py-2 text-right font-medium text-emerald-600">{{ "%.3f"|format(d.delivered_wt|float) }}</td>
-        <td class="px-4 py-2 text-right font-medium">{{ "%.3f"|format(d.pending_to_deliver_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.order_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.accepted_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.pending_to_accepted_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium text-red-500">{{ "{:,.3f}".format(d.rejected_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.cancelled_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.barcoded_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.hm_passed_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.qc_passed_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.invoiced_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium text-emerald-600">{{ "{:,.3f}".format(d.delivered_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.pending_to_deliver_wt|float) }}</td>
     </tr>
 {% endmacro %}
 
@@ -90,17 +90,17 @@
         <tfoot class="sticky bottom-0 z-10 bg-gray-100 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700">
             <tr class="text-gray-900 dark:text-white uppercase text-[9px] font-bold">
                 <td class="px-4 py-3" colspan="3">Grand Total</td>
-                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.order_wt) }}</td>
-                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.accepted_wt) }}</td>
-                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.pending_to_accepted_wt) }}</td>
-                <td class="px-4 py-3 text-right text-red-500">{{ "%.3f"|format(modal_totals.rejected_wt) }}</td>
-                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.cancelled_wt) }}</td>
-                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.barcoded_wt) }}</td>
-                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.hm_passed_wt) }}</td>
-                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.qc_passed_wt) }}</td>
-                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.invoiced_wt) }}</td>
-                <td class="px-4 py-3 text-right text-emerald-600">{{ "%.3f"|format(modal_totals.delivered_wt) }}</td>
-                <td class="px-4 py-3 text-right">{{ "%.3f"|format(modal_totals.pending_to_deliver_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.order_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.accepted_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.pending_to_accepted_wt) }}</td>
+                <td class="px-4 py-3 text-right text-red-500">{{ "{:,.3f}".format(modal_totals.rejected_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.cancelled_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.barcoded_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.hm_passed_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.qc_passed_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.invoiced_wt) }}</td>
+                <td class="px-4 py-3 text-right text-emerald-600">{{ "{:,.3f}".format(modal_totals.delivered_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.pending_to_deliver_wt) }}</td>
             </tr>
         </tfoot>
         {% endif %}

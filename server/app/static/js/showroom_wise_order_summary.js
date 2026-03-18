@@ -98,7 +98,9 @@ function updateDashboardStats(stats) {
     for (const [id, value] of Object.entries(mappings)) {
         const el = document.getElementById(id);
         if (el) {
-            el.textContent = value !== undefined ? parseFloat(value).toFixed(3) : '0.000';
+            el.textContent = value !== undefined 
+                ? parseFloat(value).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 }) 
+                : '0.000';
         }
     }
 }
