@@ -99,14 +99,14 @@
             {% endfor %}
             {% if not details %}
             <tr>
-                <td colspan="17" class="p-8 text-center text-gray-400 italic">No details available.</td>
+                <td colspan="{{ 16 if modal_type == 'flat' else 17 }}" class="p-8 text-center text-gray-400 italic">No details available.</td>
             </tr>
             {% endif %}
         </tbody>
         {% if modal_totals %}
         <tfoot class="sticky bottom-0 z-10 bg-gray-100 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700">
             <tr class="text-gray-900 dark:text-white uppercase text-[9px] font-bold">
-                <td class="px-4 py-3" colspan="{{ 6 if modal_type == 'flat' else 7 }}">Grand Total</td>
+                <td class="px-4 py-3" colspan="{{ 5 if modal_type == 'flat' else 6 }}">Grand Total</td>
                 <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.order_wt) }}</td>
                 <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.accepted_wt) }}</td>
                 <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.pending_to_accepted_wt) }}</td>
