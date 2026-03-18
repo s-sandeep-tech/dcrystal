@@ -74,17 +74,17 @@
                     {% endif %}
                 </div>
             </td>
-            <td class="text-right col-wt">{{ "%.3f"|format(r.total_order_wt) }}</td>
-            <td class="text-right col-wt">{{ "%.3f"|format(r.accepted_wt) }}</td>
-            <td class="text-right col-wt">{{ "%.3f"|format(r.pending_to_accepted_wt) }}</td>
-            <td class="text-right col-wt text-red-500">{{ "%.3f"|format(r.rejected_wt) }}</td>
-            <td class="text-right col-wt">{{ "%.3f"|format(r.cancelled_wt) }}</td>
-            <td class="text-right col-wt">{{ "%.3f"|format(r.barcoded_wt) }}</td>
-            <td class="text-right col-wt">{{ "%.3f"|format(r.hm_passed_wt) }}</td>
-            <td class="text-right col-wt">{{ "%.3f"|format(r.qc_passed_wt) }}</td>
-            <td class="text-right col-wt">{{ "%.3f"|format(r.invoiced_wt) }}</td>
-            <td class="text-right col-wt text-emerald-600 font-bold">{{ "%.3f"|format(r.delivered_wt) }}</td>
-            <td class="text-right col-wt">{{ "%.3f"|format(r.pending_to_deliver_wt) }}</td>
+            <td class="text-right col-wt">{{ "{:,.3f}".format(r.total_order_wt|float) }}</td>
+            <td class="text-right col-wt">{{ "{:,.3f}".format(r.accepted_wt|float) }}</td>
+            <td class="text-right col-wt">{{ "{:,.3f}".format(r.pending_to_accepted_wt|float) }}</td>
+            <td class="text-right col-wt text-red-500">{{ "{:,.3f}".format(r.rejected_wt|float) }}</td>
+            <td class="text-right col-wt">{{ "{:,.3f}".format(r.cancelled_wt|float) }}</td>
+            <td class="text-right col-wt">{{ "{:,.3f}".format(r.barcoded_wt|float) }}</td>
+            <td class="text-right col-wt">{{ "{:,.3f}".format(r.hm_passed_wt|float) }}</td>
+            <td class="text-right col-wt">{{ "{:,.3f}".format(r.qc_passed_wt|float) }}</td>
+            <td class="text-right col-wt">{{ "{:,.3f}".format(r.invoiced_wt|float) }}</td>
+            <td class="text-right col-wt text-emerald-600 font-bold">{{ "{:,.3f}".format(r.delivered_wt|float) }}</td>
+            <td class="text-right col-wt">{{ "{:,.3f}".format(r.pending_to_deliver_wt|float) }}</td>
         </tr>
         {% endfor %}
 
@@ -99,17 +99,17 @@
     <tfoot class="sticky-footer">
         <tr class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white uppercase text-[9px] font-bold">
             <td class="p-2 text-right" colspan="2">Grand Total</td>
-            <td class="text-right px-2 col-wt">{{ "%.3f"|format(footer_totals.total_order_wt|float) if stats else '0.000' }}</td>
-            <td class="text-right px-2 col-wt">{{ "%.3f"|format(footer_totals.accepted_wt|float) if stats else '0.000' }}</td>
-            <td class="text-right px-2 col-wt">{{ "%.3f"|format(footer_totals.pending_to_accepted_wt|float) if stats else '0.000' }}</td>
-            <td class="text-right px-2 text-red-500 col-wt">{{ "%.3f"|format(footer_totals.rejected_wt|float) if stats else '0.000' }}</td>
-            <td class="text-right px-2 col-wt">{{ "%.3f"|format(footer_totals.cancelled_wt|float) if stats else '0.000' }}</td>
-            <td class="text-right px-2 col-wt">{{ "%.3f"|format(footer_totals.barcoded_wt|float) if stats else '0.000' }}</td>
-            <td class="text-right px-2 col-wt">{{ "%.3f"|format(footer_totals.hm_passed_wt|float) if stats else '0.000' }}</td>
-            <td class="text-right px-2 col-wt">{{ "%.3f"|format(footer_totals.qc_passed_wt|float) if stats else '0.000' }}</td>
-            <td class="text-right px-2 col-wt">{{ "%.3f"|format(footer_totals.invoiced_wt|float) if stats else '0.000' }}</td>
-            <td class="text-right px-2 text-emerald-600 col-wt">{{ "%.3f"|format(footer_totals.delivered_wt|float) if stats else '0.000' }}</td>
-            <td class="text-right px-2 col-wt">{{ "%.3f"|format(footer_totals.pending_to_deliver_wt|float) if stats else '0.000' }}</td>
+            <td class="text-right px-2 col-wt">{{ "{:,.3f}".format(footer_totals.total_order_wt|float) if stats else '0.000' }}</td>
+            <td class="text-right px-2 col-wt">{{ "{:,.3f}".format(footer_totals.accepted_wt|float) if stats else '0.000' }}</td>
+            <td class="text-right px-2 col-wt">{{ "{:,.3f}".format(footer_totals.pending_to_accepted_wt|float) if stats else '0.000' }}</td>
+            <td class="text-right px-2 text-red-500 col-wt">{{ "{:,.3f}".format(footer_totals.rejected_wt|float) if stats else '0.000' }}</td>
+            <td class="text-right px-2 col-wt">{{ "{:,.3f}".format(footer_totals.cancelled_wt|float) if stats else '0.000' }}</td>
+            <td class="text-right px-2 col-wt">{{ "{:,.3f}".format(footer_totals.barcoded_wt|float) if stats else '0.000' }}</td>
+            <td class="text-right px-2 col-wt">{{ "{:,.3f}".format(footer_totals.hm_passed_wt|float) if stats else '0.000' }}</td>
+            <td class="text-right px-2 col-wt">{{ "{:,.3f}".format(footer_totals.qc_passed_wt|float) if stats else '0.000' }}</td>
+            <td class="text-right px-2 col-wt">{{ "{:,.3f}".format(footer_totals.invoiced_wt|float) if stats else '0.000' }}</td>
+            <td class="text-right px-2 text-emerald-600 col-wt">{{ "{:,.3f}".format(footer_totals.delivered_wt|float) if stats else '0.000' }}</td>
+            <td class="text-right px-2 col-wt">{{ "{:,.3f}".format(footer_totals.pending_to_deliver_wt|float) if stats else '0.000' }}</td>
         </tr>
     </tfoot>
 </table>

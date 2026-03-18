@@ -38,13 +38,12 @@
 
     <!-- Stats Grid -->
     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 gap-px p-1 bg-gray-200 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800 shrink-0">
-        <!-- Ordered Weight -->
         <div class="p-2 bg-white dark:bg-gray-900 text-center flex flex-col items-center justify-center min-h-[50px]">
             <p class="text-[8px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1 leading-none">
                 <span class="material-symbols-outlined text-[12px] text-primary">shopping_cart</span> Ordered
             </p>
             <p id="stat-total-order-wt" class="text-[11px] font-bold text-gray-900 dark:text-white mt-1 leading-none">
-                {{ "%.3f"|format(stats.total_order_wt|float) if stats else '0.000' }}
+                {{ "{:,.3f}".format(stats.total_order_wt|float) if stats else '0.000' }}
             </p>
         </div>
         <!-- Accepted Weight -->
@@ -53,7 +52,7 @@
                 <span class="material-symbols-outlined text-[12px] text-blue-500">check_circle</span> Accepted
             </p>
             <p id="stat-accepted-wt" class="text-[11px] font-bold text-gray-900 dark:text-white mt-1 leading-none">
-                {{ "%.3f"|format(stats.accepted_wt|float) if stats else '0.000' }}
+                {{ "{:,.3f}".format(stats.accepted_wt|float) if stats else '0.000' }}
             </p>
         </div>
         <!-- Rejected Weight -->
@@ -62,7 +61,7 @@
                 <span class="material-symbols-outlined text-[12px] text-red-500">cancel</span> Rejected
             </p>
             <p id="stat-rejected-wt" class="text-[11px] font-bold text-red-500 mt-1 leading-none">
-                {{ "%.3f"|format(stats.rejected_wt|float) if stats else '0.000' }}
+                {{ "{:,.3f}".format(stats.rejected_wt|float) if stats else '0.000' }}
             </p>
         </div>
         <!-- Cancelled Weight -->
@@ -71,7 +70,7 @@
                 <span class="material-symbols-outlined text-[12px] text-orange-500">close</span> Cancelled
             </p>
             <p id="stat-cancelled-wt" class="text-[11px] font-bold text-gray-900 dark:text-white mt-1 leading-none">
-                {{ "%.3f"|format(stats.cancelled_wt|float) if stats else '0.000' }}
+                {{ "{:,.3f}".format(stats.cancelled_wt|float) if stats else '0.000' }}
             </p>
         </div>
         <!-- Pending to Accept -->
@@ -80,7 +79,7 @@
                 <span class="material-symbols-outlined text-[12px] text-amber-500">hourglass_top</span> Pending Accept
             </p>
             <p id="stat-pending-to-accept-wt" class="text-[11px] font-bold text-gray-900 dark:text-white mt-1 leading-none">
-                {{ "%.3f"|format(stats.pending_to_accepted_wt|float) if stats else '0.000' }}
+                {{ "{:,.3f}".format(stats.pending_to_accepted_wt|float) if stats else '0.000' }}
             </p>
         </div>
         <!-- Barcoded Weight -->
@@ -89,7 +88,7 @@
                 <span class="material-symbols-outlined text-[12px] text-indigo-500">qr_code_2</span> Barcoded
             </p>
             <p id="stat-barcoded-wt" class="text-[11px] font-bold text-gray-900 dark:text-white mt-1 leading-none">
-                {{ "%.3f"|format(stats.barcoded_wt|float) if stats else '0.000' }}
+                {{ "{:,.3f}".format(stats.barcoded_wt|float) if stats else '0.000' }}
             </p>
         </div>
         <!-- Hallmarked Weight -->
@@ -98,7 +97,7 @@
                 <span class="material-symbols-outlined text-[12px] text-purple-500">workspace_premium</span> Hallmarked
             </p>
             <p id="stat-hallmarked-wt" class="text-[11px] font-bold text-gray-900 dark:text-white mt-1 leading-none">
-                {{ "%.3f"|format(stats.hm_passed_wt|float) if stats else '0.000' }}
+                {{ "{:,.3f}".format(stats.hm_passed_wt|float) if stats else '0.000' }}
             </p>
         </div>
         <!-- QC Passed Weight -->
@@ -107,7 +106,7 @@
                 <span class="material-symbols-outlined text-[12px] text-teal-500">task_alt</span> QC Passed
             </p>
             <p id="stat-qc-passed-wt" class="text-[11px] font-bold text-gray-900 dark:text-white mt-1 leading-none">
-                {{ "%.3f"|format(stats.qc_passed_wt|float) if stats else '0.000' }}
+                {{ "{:,.3f}".format(stats.qc_passed_wt|float) if stats else '0.000' }}
             </p>
         </div>
         <!-- Invoiced Weight -->
@@ -116,7 +115,7 @@
                 <span class="material-symbols-outlined text-[12px] text-cyan-500">receipt</span> Invoiced
             </p>
             <p id="stat-invoiced-wt" class="text-[11px] font-bold text-gray-900 dark:text-white mt-1 leading-none">
-                {{ "%.3f"|format(stats.invoiced_wt|float) if stats else '0.000' }}
+                {{ "{:,.3f}".format(stats.invoiced_wt|float) if stats else '0.000' }}
             </p>
         </div>
         <!-- Delivered Weight -->
@@ -125,7 +124,7 @@
                 <span class="material-symbols-outlined text-[12px] text-emerald-600">local_shipping</span> Delivered
             </p>
             <p id="stat-delivered-wt" class="text-[11px] font-bold text-emerald-600 mt-1 leading-none">
-                {{ "%.3f"|format(stats.delivered_wt|float) if stats else '0.000' }}
+                {{ "{:,.3f}".format(stats.delivered_wt|float) if stats else '0.000' }}
             </p>
         </div>
         <!-- Pending to Delivered -->
@@ -134,7 +133,7 @@
                 <span class="material-symbols-outlined text-[12px] text-rose-500">schedule</span> Pending Delv.
             </p>
             <p id="stat-pending-to-deliver-wt" class="text-[11px] font-bold text-gray-900 dark:text-white mt-1 leading-none">
-                {{ "%.3f"|format(stats.pending_to_deliver_wt|float) if stats else '0.000' }}
+                {{ "{:,.3f}".format(stats.pending_to_deliver_wt|float) if stats else '0.000' }}
             </p>
         </div>
     </div>
