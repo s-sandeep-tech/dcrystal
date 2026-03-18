@@ -50,6 +50,21 @@ def emit_sync_update(status, message, progress=0, data_type=None):
     except Exception as e:
         logger.error(f"Failed to publish sync update to Redis: {e}")
 
+def emit_combined_sync_update(status, message, progress, task_type, progress_range=(0, 100), is_subtask=False):
+    """
+    Helper to emit updates for sub-tasks within a combined task.
+    If is_subtask is True, it converts 'success' status to 'processing' and scales progress.
+    """
+    # Scale progress
+    scaled_progress = progress_range[0] + (progress * (progress_range[1] - progress_range[0]) / 100)
+    
+    # Override status if it's a sub-task and it's 'success'
+    effective_status = status
+    if is_subtask and status == 'success':
+        effective_status = 'processing'
+        
+    emit_sync_update(effective_status, message, int(scaled_progress), task_type)
+
 def get_external_db_connection():
     """Establishes a connection to the external Azure PostgreSQL database."""
     host = "kj-az1-prod1-crystal-psql-db2.postgres.database.azure.com"
@@ -80,15 +95,19 @@ def get_external_db_connection():
         logger.error(f"Failed to connect to external DB: {str(e)}")
         raise e
 
-def sync_owner_wise_data_task(task_type_override=None):
+def sync_owner_wise_data_task(task_type_override=None, progress_range=(0, 100), is_subtask=False):
     conn = None
     TASK_TYPE = task_type_override or 'owner_wise'
+    
+    def emit(status, message, progress):
+        emit_combined_sync_update(status, message, progress, TASK_TYPE, progress_range, is_subtask)
+
     try:
-        emit_sync_update('processing', 'Starting Owner Wise Order Summary Sync...', 5, TASK_TYPE)
+        emit('processing', 'Starting Owner Wise Order Summary Sync...', 5)
         conn = get_external_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
-        emit_sync_update('processing', 'Fetching data from Azure PostgreSQL...', 20, 'owner_wise')
+        emit('processing', 'Fetching data from Azure PostgreSQL...', 20)
         query = "SELECT * FROM ext_view.vw_ownership_wise_order_summary_with_order_type_provision_type"
         
         start_time = time.time()
@@ -99,7 +118,7 @@ def sync_owner_wise_data_task(task_type_override=None):
         duration = time.time() - start_time
         
         logger.info(f"OwnerWise query took {duration:.2f} seconds.")
-        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local database...', 50, 'owner_wise')
+        emit('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local database...', 50)
         
         # Clear existing
         db.session.query(OwnerWiseOrderSummarySnapshot).delete()
@@ -165,13 +184,13 @@ def sync_owner_wise_data_task(task_type_override=None):
         db.session.add_all(new_records)
         db.session.commit()
         
-        emit_sync_update('success', f'Sync completed! {len(rows)} records updated.', 100, TASK_TYPE)
+        emit('success', f'Sync completed! {len(rows)} records updated.', 100)
         return {"status": "success", "count": len(rows)}
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
         logger.error(f"OwnerWise Sync error: {error_msg}")
-        emit_sync_update('error', f'Sync failed: {error_msg}', 0, TASK_TYPE)
+        emit('error', f'Sync failed: {error_msg}', 0)
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
@@ -1404,11 +1423,15 @@ def sync_rejected_weight_data_task():
     finally:
         if conn: conn.close()
 
-def sync_showroom_wise_order_summary_task(task_type_override=None):
+def sync_showroom_wise_order_summary_task(task_type_override=None, progress_range=(0, 100), is_subtask=False):
     conn = None
     TASK_TYPE = task_type_override or 'showroom_wise_order'
+    
+    def emit(status, message, progress):
+        emit_combined_sync_update(status, message, progress, TASK_TYPE, progress_range, is_subtask)
+
     try:
-        emit_sync_update('processing', 'Starting Showroom Wise Order Summary Sync...', 5, TASK_TYPE)
+        emit('processing', 'Starting Showroom Wise Order Summary Sync...', 5)
         conn = get_external_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
@@ -1569,13 +1592,13 @@ FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS
         db.session.add_all(new_records)
         db.session.commit()
         
-        emit_sync_update('success', f'Showroom Wise Order Summary Sync completed! {len(rows)} records updated.', 100, TASK_TYPE)
+        emit('success', f'Showroom Wise Order Summary Sync completed! {len(rows)} records updated.', 100)
         return {"status": "success", "count": len(rows)}
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
         logger.error(f"ShowroomWiseOrderSummary Sync error: {error_msg}")
-        emit_sync_update('error', f'Sync failed: {error_msg}', 0, TASK_TYPE)
+        emit('error', f'Sync failed: {error_msg}', 0)
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
@@ -1588,15 +1611,13 @@ def sync_owner_and_showroom_wise_task():
 
         # ── Step 1: Owner Wise ────────────────────────────────────────────
         emit_sync_update('processing', '[1/2] Syncing Owner Wise Order Summary...', 5, TASK_TYPE)
-        # We pass TASK_TYPE but we don't want it to emit progress=100 because we are only halfway.
-        # However, the current functions are simple. Let's just call them and then "re-anchor" progress.
-        result_owner = sync_owner_wise_data_task(task_type_override=TASK_TYPE)
+        result_owner = sync_owner_wise_data_task(task_type_override=TASK_TYPE, progress_range=(5, 45), is_subtask=True)
         if result_owner.get('status') == 'error':
             raise Exception(f"Owner Wise sync failed: {result_owner.get('message')}")
 
         # ── Step 2: Showroom Wise ─────────────────────────────────────────
-        emit_sync_update('processing', '[2/2] Syncing Showroom Wise Order Summary...', 50, TASK_TYPE)
-        result_showroom = sync_showroom_wise_order_summary_task(task_type_override=TASK_TYPE)
+        emit_sync_update('processing', '[2/2] Syncing Showroom Wise Order Summary...', 45, TASK_TYPE)
+        result_showroom = sync_showroom_wise_order_summary_task(task_type_override=TASK_TYPE, progress_range=(45, 90), is_subtask=True)
         if result_showroom.get('status') == 'error':
             raise Exception(f"Showroom Wise sync failed: {result_showroom.get('message')}")
 
