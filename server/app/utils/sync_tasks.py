@@ -80,10 +80,11 @@ def get_external_db_connection():
         logger.error(f"Failed to connect to external DB: {str(e)}")
         raise e
 
-def sync_owner_wise_data_task():
+def sync_owner_wise_data_task(task_type_override=None):
     conn = None
+    TASK_TYPE = task_type_override or 'owner_wise'
     try:
-        emit_sync_update('processing', 'Starting Owner Wise Order Summary Sync...', 5, 'owner_wise')
+        emit_sync_update('processing', 'Starting Owner Wise Order Summary Sync...', 5, TASK_TYPE)
         conn = get_external_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
@@ -164,13 +165,13 @@ def sync_owner_wise_data_task():
         db.session.add_all(new_records)
         db.session.commit()
         
-        emit_sync_update('success', f'Sync completed! {len(rows)} records updated.', 100, 'owner_wise')
+        emit_sync_update('success', f'Sync completed! {len(rows)} records updated.', 100, TASK_TYPE)
         return {"status": "success", "count": len(rows)}
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
         logger.error(f"OwnerWise Sync error: {error_msg}")
-        emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'owner_wise')
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, TASK_TYPE)
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
@@ -1403,11 +1404,11 @@ def sync_rejected_weight_data_task():
     finally:
         if conn: conn.close()
 
-def sync_showroom_wise_order_summary_task():
-    """Sync Showroom Wise Order Summary data using the provided analytical query."""
+def sync_showroom_wise_order_summary_task(task_type_override=None):
     conn = None
+    TASK_TYPE = task_type_override or 'showroom_wise_order'
     try:
-        emit_sync_update('processing', 'Starting Showroom Wise Order Summary Sync...', 5, 'showroom_wise_order')
+        emit_sync_update('processing', 'Starting Showroom Wise Order Summary Sync...', 5, TASK_TYPE)
         conn = get_external_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
@@ -1568,13 +1569,13 @@ FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS
         db.session.add_all(new_records)
         db.session.commit()
         
-        emit_sync_update('success', f'Showroom Wise Order Summary Sync completed! {len(rows)} records updated.', 100, 'showroom_wise_order')
+        emit_sync_update('success', f'Showroom Wise Order Summary Sync completed! {len(rows)} records updated.', 100, TASK_TYPE)
         return {"status": "success", "count": len(rows)}
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
         logger.error(f"ShowroomWiseOrderSummary Sync error: {error_msg}")
-        emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'showroom_wise_order')
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, TASK_TYPE)
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
@@ -1586,22 +1587,33 @@ def sync_owner_and_showroom_wise_task():
         emit_sync_update('processing', 'Starting combined Owner Wise & Showroom Wise Order Summary Sync...', 2, TASK_TYPE)
 
         # ── Step 1: Owner Wise ────────────────────────────────────────────
-        emit_sync_update('processing', '[1/2] Syncing Owner Wise Order Summary...', 10, TASK_TYPE)
-        result_owner = sync_owner_wise_data_task()
+        emit_sync_update('processing', '[1/2] Syncing Owner Wise Order Summary...', 5, TASK_TYPE)
+        # We pass TASK_TYPE but we don't want it to emit progress=100 because we are only halfway.
+        # However, the current functions are simple. Let's just call them and then "re-anchor" progress.
+        result_owner = sync_owner_wise_data_task(task_type_override=TASK_TYPE)
         if result_owner.get('status') == 'error':
             raise Exception(f"Owner Wise sync failed: {result_owner.get('message')}")
 
         # ── Step 2: Showroom Wise ─────────────────────────────────────────
-        emit_sync_update('processing', '[2/2] Syncing Showroom Wise Order Summary...', 55, TASK_TYPE)
-        result_showroom = sync_showroom_wise_order_summary_task()
+        emit_sync_update('processing', '[2/2] Syncing Showroom Wise Order Summary...', 50, TASK_TYPE)
+        result_showroom = sync_showroom_wise_order_summary_task(task_type_override=TASK_TYPE)
         if result_showroom.get('status') == 'error':
             raise Exception(f"Showroom Wise sync failed: {result_showroom.get('message')}")
+
+        # ── Step 3: Clear Cache ───────────────────────────────────────────
+        emit_sync_update('processing', 'Clearing application cache...', 95, TASK_TYPE)
+        try:
+            redis_client.flushdb()
+            cache_msg = "Application cache cleared."
+        except Exception as ce:
+            logger.error(f"Failed to clear cache during combined sync: {ce}")
+            cache_msg = "Cache clear failed (sync succeeded)."
 
         owner_count = result_owner.get('count', 0)
         showroom_count = result_showroom.get('count', 0)
         emit_sync_update(
             'success',
-            f'Combined sync completed! Owner Wise: {owner_count} records, Showroom Wise: {showroom_count} records.',
+            f'Combined sync completed! {cache_msg} (Owner: {owner_count}, Showroom: {showroom_count})',
             100, TASK_TYPE
         )
         return {"status": "success", "owner_count": owner_count, "showroom_count": showroom_count}
