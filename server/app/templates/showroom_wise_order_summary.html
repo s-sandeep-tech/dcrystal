@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Business Head Wise Order Summary{% endblock %}
+{% block title %}Showroom Wise Order Summary{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
@@ -9,47 +9,63 @@
 {% block content %}
 <main id="showroom-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
     <!-- Header -->
-    <div class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
+    <div
+        class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
         <div class="flex items-center gap-4">
-            <h2 class="text-sm font-bold tracking-tight">Business Head Wise Order Summary</h2>
+            <h2 class="text-sm font-bold tracking-tight">Showroom Wise Order Summary</h2>
         </div>
         <div class="flex items-center gap-3">
             <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
-                <button onclick="adjustZoom(-0.1)" class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors" title="Zoom Out">-</button>
-                <button id="zoom-level" onclick="adjustZoom(0, true)" class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700" title="Reset Zoom">100%</button>
-                <button onclick="adjustZoom(0.1)" class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors" title="Zoom In">+</button>
+                <button onclick="adjustZoom(-0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom Out">-</button>
+                <button id="zoom-level" onclick="adjustZoom(0, true)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700"
+                    title="Reset Zoom">100%</button>
+                <button onclick="adjustZoom(0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom In">+</button>
             </div>
-            <div class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
+            <div
+                class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
                 <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
-                <input id="hierarchy-search" class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0" placeholder="Search..." type="text" oninput="onSearchInput(this.value)" />
+                <input id="hierarchy-search"
+                    class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0"
+                    placeholder="Search..." type="text" oninput="onSearchInput(this.value)" />
             </div>
         </div>
     </div>
 
     <!-- Stats Grid -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
+    <div
+        class="grid grid-cols-2 lg:grid-cols-5 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center flex flex-col items-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-[12px]">scale</span> Total Order Weight
             </p>
-            <p id="stat-total-order-wt" class="text-sm font-bold text-primary mt-1">{{ "%.3f"|format(stats.total_order_wt|float) if stats else '0.000' }}</p>
+            <p id="stat-total-order-wt" class="text-sm font-bold text-primary mt-1">{{
+                "%.3f"|format(stats.total_order_wt|float) if stats else '0.000' }}</p>
         </div>
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center flex flex-col items-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-[12px]">local_shipping</span> Delivered Weight
             </p>
-            <p id="stat-delivered-wt" class="text-sm font-bold text-emerald-600 mt-1">{{ "%.3f"|format(stats.delivered_wt|float) if stats else '0.000' }}</p>
+            <p id="stat-delivered-wt" class="text-sm font-bold text-emerald-600 mt-1">{{
+                "%.3f"|format(stats.delivered_wt|float) if stats else '0.000' }}</p>
         </div>
         <div class="p-2 lg:col-span-3 text-center flex flex-col justify-center">
             <div class="flex items-center justify-center gap-1.5">
                 <span class="text-[9px] font-bold text-gray-400 uppercase">Drill-down Level:</span>
-                <span id="current-level-badge" class="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-bold rounded uppercase">{{ current_level }}</span>
+                <span id="current-level-badge"
+                    class="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-bold rounded uppercase">{{
+                    current_level }}</span>
             </div>
         </div>
     </div>
 
     <!-- Pagination Strip -->
-    <div class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+    <div
+        class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
             <span class="material-symbols-outlined text-[14px]">info</span>
             <span>Showing {{ current_level }} summaries. Use sidebar filters to explore deeper.</span>
@@ -58,7 +74,8 @@
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
             <div class="flex items-center gap-2">
                 <span class="text-gray-400">Rows:</span>
-                <select id="per-page-select" onchange="changePerPage(this.value)" class="bg-transparent border-none text-[10px] font-bold focus:ring-0 p-0 cursor-pointer">
+                <select id="per-page-select" onchange="changePerPage(this.value)"
+                    class="bg-transparent border-none text-[10px] font-bold focus:ring-0 p-0 cursor-pointer">
                     <option value="50">50</option>
                     <option value="100">100</option>
                 </select>
@@ -86,13 +103,18 @@
     <!-- Details Modal -->
     <div id="detailsModal" class="fixed inset-0 z-[100] hidden">
         <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onclick="closeDetailsModal()"></div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-none bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col h-[85vh] overflow-hidden">
-            <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
-                <h2 class="text-sm font-bold text-gray-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-none bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col h-[85vh] overflow-hidden">
+            <div
+                class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
+                <h2
+                    class="text-sm font-bold text-gray-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
                     Order Details
-                    <span id="detailsModalSubtitle" class="text-[10px] font-normal text-gray-400 normal-case border-l border-gray-200 dark:border-gray-800 pl-2"></span>
+                    <span id="detailsModalSubtitle"
+                        class="text-[10px] font-normal text-gray-400 normal-case border-l border-gray-200 dark:border-gray-800 pl-2"></span>
                 </h2>
-                <button onclick="closeDetailsModal()" class="size-8 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                <button onclick="closeDetailsModal()"
+                    class="size-8 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
                     <span class="material-symbols-outlined text-xl">close</span>
                 </button>
             </div>
@@ -105,14 +127,16 @@
 {% endblock %}
 
 {% block sidebar %}
-<aside class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+<aside
+    class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
     <!-- Sidebar Header -->
     <div class="p-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
         <div class="flex items-center justify-between">
             <h2 class="text-xs font-bold flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> FILTERS
             </h2>
-            <button onclick="resetGlobalFilters()" class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+            <button onclick="resetGlobalFilters()"
+                class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
         </div>
     </div>
 
@@ -120,28 +144,29 @@
     <div class="p-4 flex-1 overflow-y-auto no-scrollbar">
         <div class="space-y-4">
             {% set filter_list = [
-                ('business_head', 'Business Head'),
-                ('classification_owner', 'Classification Owner'),
-                ('make_owner', 'Make Owner'),
-                ('collection_owner', 'Collection Owner'),
-                ('division', 'Division'),
-                ('group_name', 'Group'),
-                ('purity', 'Purity'),
-                ('classification', 'Classification'),
-                ('make', 'Make'),
-                ('collection', 'Collection'),
-                ('party', 'Party'),
-                ('location', 'Location'),
-                ('purchase_ro', 'Purchase RO'),
-                ('order_type', 'Order Type'),
-                ('order_request_type', 'Order Request Type'),
-                ('provision_type', 'Provision Type'),
-                ('branch_provision_type', 'Branch Provision Type')
+            ('business_head', 'Business Head'),
+            ('classification_owner', 'Classification Owner'),
+            ('make_owner', 'Make Owner'),
+            ('collection_owner', 'Collection Owner'),
+            ('division', 'Division'),
+            ('group_name', 'Group'),
+            ('purity', 'Purity'),
+            ('classification', 'Classification'),
+            ('make', 'Make'),
+            ('collection', 'Collection'),
+            ('party', 'Party'),
+            ('location', 'Location'),
+            ('purchase_ro', 'Purchase RO'),
+            ('order_type', 'Order Type'),
+            ('order_request_type', 'Order Request Type'),
+            ('provision_type', 'Provision Type'),
+            ('branch_provision_type', 'Branch Provision Type')
             ] %}
             {% for id, label in filter_list %}
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{{ label }}</label>
-                <select id="filter-{{ id }}" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                <select id="filter-{{ id }}"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All {{ label }}s</option>
                 </select>
             </div>
@@ -151,7 +176,8 @@
 
     <!-- Sidebar Footer (Fixed Action Button) -->
     <div class="p-4 border-t border-gray-200 dark:border-gray-800 shrink-0 bg-white dark:bg-background-dark">
-        <button onclick="applyGlobalFilters()" class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2 transition-all">
+        <button onclick="applyGlobalFilters()"
+            class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2 transition-all">
             <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
         </button>
     </div>
