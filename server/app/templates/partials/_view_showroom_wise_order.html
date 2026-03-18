@@ -63,7 +63,7 @@
                     {% elif r.level == 'location' %}
                     <div class="flex items-center gap-1.5">
                         <span>{{ r.location }}</span>
-                        <button onclick="showDetails('{{ r.business_head }}', '', '', '', '{{ r.location }}', 'orders')" 
+                        <button onclick="showDetails('{{ r.business_head }}', '', '', '', '{{ r.location }}', 'orders', 'flat')" 
                                 class="text-primary hover:text-primary/80 flex items-center justify-center p-0.5" title="View Details">
                             <span class="material-symbols-outlined text-[14px]">open_in_new</span>
                         </button>
@@ -75,7 +75,7 @@
                     {% else %}
                     <div class="flex items-center gap-1.5">
                         <span>{{ r.collection_owner }}</span>
-                        <button onclick="showDetails('{{ r.business_head }}', '{{ r.classification_owner }}', '{{ r.make_owner }}', '{{ r.collection_owner }}', '{{ r.location }}', 'orders')" 
+                        <button onclick="showDetails('{{ r.business_head }}', '{{ r.classification_owner }}', '{{ r.make_owner }}', '{{ r.collection_owner }}', '{{ r.location }}', 'location', 'drilldown')" 
                                 class="text-primary hover:text-primary/80 flex items-center justify-center p-0.5" title="View Details">
                             <span class="material-symbols-outlined text-[14px]">open_in_new</span>
                         </button>

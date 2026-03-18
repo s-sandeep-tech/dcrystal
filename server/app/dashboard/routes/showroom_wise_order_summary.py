@@ -512,6 +512,7 @@ def get_showroom_details():
 
         # Modal specific logic for nested tree
         modal_level = request.args.get('modal_level', 'location')
+        modal_type = request.args.get('modal_type', 'drilldown')
         is_modal_child = request.args.get('is_modal_child') == 'true'
 
         query = ShowroomWiseOrderSummarySnapshot.query
@@ -649,6 +650,7 @@ def get_showroom_details():
                              details=processed_rows, 
                              is_modal_child=is_modal_child,
                              modal_level=modal_level,
+                             modal_type=modal_type,
                              modal_totals=modal_totals,
                              location_name=location_filter)
     except Exception as e:

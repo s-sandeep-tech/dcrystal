@@ -342,7 +342,7 @@ function populateSelect(id, list, placeholder, selectedValue) {
     el.innerHTML = html;
 }
 
-function showDetails(business_head, classification_owner, make_owner, collection_owner, location, modal_level) {
+function showDetails(business_head, classification_owner, make_owner, collection_owner, location, modal_level, modal_type) {
     const modal = document.getElementById('detailsModal');
     const content = document.getElementById('detailsModalContent');
 
@@ -380,6 +380,7 @@ function showDetails(business_head, classification_owner, make_owner, collection
     if (make_owner && make_owner !== '') params.set('make_owner', make_owner);
     if (collection_owner && collection_owner !== '') params.set('collection_owner', collection_owner);
     if (modal_level) params.set('modal_level', modal_level);
+    if (modal_type) params.set('modal_type', modal_type);
 
     // Remove tree pagination params
     params.delete('page');
@@ -487,6 +488,7 @@ async function toggleModalRow(btn, currentLevel, value) {
                 if (ds.classificationOwner) urlParams.set('classification_owner', ds.classificationOwner);
                 if (ds.makeOwner) urlParams.set('make_owner', ds.makeOwner);
                 if (ds.collectionOwner) urlParams.set('collection_owner', ds.collectionOwner);
+                if (ds.modalType) urlParams.set('modal_type', ds.modalType);
             }
             
             // Append all dataset attributes from current row as filters
