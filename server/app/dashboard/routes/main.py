@@ -56,6 +56,17 @@ def sync_data():
     result = sync_owner_wise_data()
     return result, 200 if result.get('status') == 'success' else 500
 
+@dashboard_bp.route('/settings/sync-owner-showroom', methods=['POST'])
+def sync_owner_and_showroom_wise():
+    """Enqueues the combined Owner Wise + Showroom Wise Order Summary sync task."""
+    if not session.get('user_id') or (not session.get('is_admin') and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
+
+    from app.utils.sync_manager import sync_owner_and_showroom_wise_data
+    result = sync_owner_and_showroom_wise_data()
+    return result, 200 if result.get('status') == 'success' else 500
+
+
 @dashboard_bp.route('/settings/sync-process-delay', methods=['POST'])
 def sync_process_delay():
     if not session.get('user_id') or (not session.get('is_admin') and 'DATA_SYNC_USER' not in session.get('roles', [])):

@@ -1578,3 +1578,35 @@ FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
+
+def sync_owner_and_showroom_wise_task():
+    """Combined sync: runs Owner Wise Order Summary then Showroom Wise Order Summary in sequence."""
+    TASK_TYPE = 'owner_showroom_combined'
+    try:
+        emit_sync_update('processing', 'Starting combined Owner Wise & Showroom Wise Order Summary Sync...', 2, TASK_TYPE)
+
+        # ── Step 1: Owner Wise ────────────────────────────────────────────
+        emit_sync_update('processing', '[1/2] Syncing Owner Wise Order Summary...', 10, TASK_TYPE)
+        result_owner = sync_owner_wise_data_task()
+        if result_owner.get('status') == 'error':
+            raise Exception(f"Owner Wise sync failed: {result_owner.get('message')}")
+
+        # ── Step 2: Showroom Wise ─────────────────────────────────────────
+        emit_sync_update('processing', '[2/2] Syncing Showroom Wise Order Summary...', 55, TASK_TYPE)
+        result_showroom = sync_showroom_wise_order_summary_task()
+        if result_showroom.get('status') == 'error':
+            raise Exception(f"Showroom Wise sync failed: {result_showroom.get('message')}")
+
+        owner_count = result_owner.get('count', 0)
+        showroom_count = result_showroom.get('count', 0)
+        emit_sync_update(
+            'success',
+            f'Combined sync completed! Owner Wise: {owner_count} records, Showroom Wise: {showroom_count} records.',
+            100, TASK_TYPE
+        )
+        return {"status": "success", "owner_count": owner_count, "showroom_count": showroom_count}
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"Combined OwnerWise+ShowroomWise Sync error: {error_msg}")
+        emit_sync_update('error', f'Combined sync failed: {error_msg}', 0, TASK_TYPE)
+        return {"status": "error", "message": error_msg}

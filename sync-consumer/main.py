@@ -14,6 +14,7 @@ from app.utils.sync_tasks import (
     sync_rejected_weight_data_task,
     sync_provision_allocation_summary_task,
     sync_showroom_wise_order_summary_task,
+    sync_owner_and_showroom_wise_task,
     emit_sync_update
 )
 
@@ -57,6 +58,8 @@ def process_sync_queue():
                     sync_provision_allocation_summary_task()
                 elif task_type == 'showroom_wise_order':
                     sync_showroom_wise_order_summary_task()
+                elif task_type == 'owner_showroom_combined':
+                    sync_owner_and_showroom_wise_task()
                 else:
                     logger.error(f"Unknown sync task type: {task_type}")
                     emit_sync_update('error', f'Unknown task type: {task_type}')

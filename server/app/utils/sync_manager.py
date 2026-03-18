@@ -41,3 +41,7 @@ def sync_provision_allocation_data():
 
 def sync_showroom_wise_order_summary_data():
     return enqueue_sync_task('showroom_wise_order')
+
+def sync_owner_and_showroom_wise_data():
+    """Enqueues the combined Owner Wise + Showroom Wise sync task."""
+    return enqueue_sync_task('owner_showroom_combined')
