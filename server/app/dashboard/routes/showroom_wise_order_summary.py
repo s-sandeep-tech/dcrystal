@@ -567,7 +567,9 @@ def get_showroom_details():
             func.sum(cast(ShowroomWiseOrderSummarySnapshot.qc_passed_wt, Numeric)).label('qc_passed_wt'),
             func.sum(cast(ShowroomWiseOrderSummarySnapshot.invoiced_wt, Numeric)).label('invoiced_wt'),
             func.sum(cast(ShowroomWiseOrderSummarySnapshot.delivered_wt, Numeric)).label('delivered_wt'),
-            func.sum(cast(ShowroomWiseOrderSummarySnapshot.pending_to_deliver_wt, Numeric)).label('pending_to_deliver_wt')
+            func.sum(cast(ShowroomWiseOrderSummarySnapshot.pending_to_deliver_wt, Numeric)).label('pending_to_deliver_wt'),
+            func.sum(cast(ShowroomWiseOrderSummarySnapshot.cancelled_wt, Numeric)).label('cancelled_wt'),
+            func.sum(cast(ShowroomWiseOrderSummarySnapshot.pending_to_accepted_wt, Numeric)).label('pending_to_accepted_wt')
         ]
 
         def safe_float(val):
