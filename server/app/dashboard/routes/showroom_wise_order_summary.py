@@ -413,19 +413,21 @@ def get_showroom_partial():
                 base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.classification_owner == classification_owner)
         else:
             base_query = db.session.query(ShowroomWiseOrderSummarySnapshot)
-            if not location:
-                if not business_head:
-                    group_cols = [ShowroomWiseOrderSummarySnapshot.business_head]
-                    level = 'business_head'
-                else:
-                    group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location]
-                    level = 'location'
-            elif location and not classification_owner:
+            if not business_head:
+                group_cols = [ShowroomWiseOrderSummarySnapshot.business_head]
+                level = 'business_head'
+            elif not location:
+                group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location]
+                level = 'location'
+            elif not classification_owner:
                 group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location, ShowroomWiseOrderSummarySnapshot.classification_owner]
                 level = 'classification_owner'
-            else:
+            elif not make_owner:
                 group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner]
                 level = 'make_owner'
+            else:
+                group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner, ShowroomWiseOrderSummarySnapshot.collection_owner]
+                level = 'collection_owner'
 
         main_q = base_query.with_entities(*(group_cols + agg_cols))
         main_q = apply_filters(main_q)
