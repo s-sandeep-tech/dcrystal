@@ -1,5 +1,6 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from typing import Dict, Any
 from app.extensions import db, socketio, redis_client
 from app.models.snapshots import (
     OwnerWiseOrderSummarySnapshot, 
@@ -7,7 +8,6 @@ from app.models.snapshots import (
     OutstandingPurchaseOrderStatusSnapshot,
     StageLevelDelaySnapshot,
     OrderDelayTrackingSnapshot,
-    PendingAcceptanceSnapshot,
     PendingAcceptanceSnapshot,
     RejectedWeightSnapshot,
     ProvisionAllocationSummarySnapshot,
@@ -95,7 +95,7 @@ def get_external_db_connection():
         logger.error(f"Failed to connect to external DB: {str(e)}")
         raise e
 
-def sync_owner_wise_data_task(task_type_override=None, progress_range=(0, 100), is_subtask=False):
+def sync_owner_wise_data_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
     conn = None
     TASK_TYPE = task_type_override or 'owner_wise'
     
@@ -1423,7 +1423,7 @@ def sync_rejected_weight_data_task():
     finally:
         if conn: conn.close()
 
-def sync_showroom_wise_order_summary_task(task_type_override=None, progress_range=(0, 100), is_subtask=False):
+def sync_showroom_wise_order_summary_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
     conn = None
     TASK_TYPE = task_type_override or 'showroom_wise_order'
     
@@ -1603,23 +1603,28 @@ FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS
     finally:
         if conn: conn.close()
 
-def sync_owner_and_showroom_wise_task():
+def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
     """Combined sync: runs Owner Wise Order Summary then Showroom Wise Order Summary in sequence."""
     TASK_TYPE = 'owner_showroom_combined'
+    result_owner: Dict[str, Any] = {}
+    result_showroom: Dict[str, Any] = {}
+    
     try:
         emit_sync_update('processing', 'Starting combined Owner Wise & Showroom Wise Order Summary Sync...', 2, TASK_TYPE)
 
         # ── Step 1: Owner Wise ────────────────────────────────────────────
         emit_sync_update('processing', '[1/2] Syncing Owner Wise Order Summary...', 5, TASK_TYPE)
         result_owner = sync_owner_wise_data_task(task_type_override=TASK_TYPE, progress_range=(5, 45), is_subtask=True)
-        if result_owner.get('status') == 'error':
-            raise Exception(f"Owner Wise sync failed: {result_owner.get('message')}")
+        if not result_owner or result_owner.get('status') == 'error':
+            error_msg = result_owner.get('message') if result_owner else "Unknown error (result is None)"
+            raise Exception(f"Owner Wise sync failed: {error_msg}")
 
         # ── Step 2: Showroom Wise ─────────────────────────────────────────
         emit_sync_update('processing', '[2/2] Syncing Showroom Wise Order Summary...', 45, TASK_TYPE)
         result_showroom = sync_showroom_wise_order_summary_task(task_type_override=TASK_TYPE, progress_range=(45, 90), is_subtask=True)
-        if result_showroom.get('status') == 'error':
-            raise Exception(f"Showroom Wise sync failed: {result_showroom.get('message')}")
+        if not result_showroom or result_showroom.get('status') == 'error':
+            error_msg = result_showroom.get('message') if result_showroom else "Unknown error (result is None)"
+            raise Exception(f"Showroom Wise sync failed: {error_msg}")
 
         # ── Step 3: Clear Cache ───────────────────────────────────────────
         emit_sync_update('processing', 'Clearing application cache...', 95, TASK_TYPE)
