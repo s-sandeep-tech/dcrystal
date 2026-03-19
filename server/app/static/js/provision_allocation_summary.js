@@ -1,5 +1,5 @@
 let currentPage = 1;
-let perPage = 50;
+let perPage = 2000;
 let currentSearch = '';
 let currentLocation = '';
 

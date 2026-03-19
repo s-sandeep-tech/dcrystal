@@ -58,7 +58,7 @@ def get_provision_allocation_partial():
         search = request.args.get('search', '').strip()
         location = request.args.get('location', '')
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 50, type=int)
+        per_page = request.args.get('per_page', 2000, type=int)
 
         cache_key = generate_cache_key('prov_alloc_partial', latest_date, 
                                      search=search, location=location, 
