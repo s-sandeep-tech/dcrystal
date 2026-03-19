@@ -193,7 +193,15 @@ def get_showroom_partial():
                 query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head.ilike(f"%{search}%") | 
                                      ShowroomWiseOrderSummarySnapshot.party.ilike(f"%{search}%") |
                                      ShowroomWiseOrderSummarySnapshot.location.ilike(f"%{search}%"))
-            if business_head: query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
+            if business_head:
+                if business_head == 'Unknown':
+                    query = query.filter(
+                        (ShowroomWiseOrderSummarySnapshot.business_head == None) |
+                        (ShowroomWiseOrderSummarySnapshot.business_head == '') |
+                        (ShowroomWiseOrderSummarySnapshot.business_head == 'NULL')
+                    )
+                else:
+                    query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
             if classification_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification_owner == classification_owner)
             if make_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.make_owner == make_owner)
             if collection_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection_owner == collection_owner)
@@ -232,19 +240,42 @@ def get_showroom_partial():
         if parent_level == 'business_head':
             group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location]
             level = 'location'
-            base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(ShowroomWiseOrderSummarySnapshot.business_head == parent_value)
+            if parent_level and parent_value:
+                if parent_value == 'Unknown':
+                    # Handle all cases that result in 'Unknown' as the parent value
+                    base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(
+                        (ShowroomWiseOrderSummarySnapshot.business_head == None) |
+                        (ShowroomWiseOrderSummarySnapshot.business_head == '') |
+                        (ShowroomWiseOrderSummarySnapshot.business_head == 'NULL')
+                    )
+                else:
+                    base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(ShowroomWiseOrderSummarySnapshot.business_head == parent_value)
         elif parent_level == 'location':
             group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location, ShowroomWiseOrderSummarySnapshot.classification_owner]
             level = 'classification_owner'
             base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(ShowroomWiseOrderSummarySnapshot.location == parent_value)
             if business_head:
-                base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
+                if business_head == 'Unknown':
+                    base_query = base_query.filter(
+                        (ShowroomWiseOrderSummarySnapshot.business_head == None) |
+                        (ShowroomWiseOrderSummarySnapshot.business_head == '') |
+                        (ShowroomWiseOrderSummarySnapshot.business_head == 'NULL')
+                    )
+                else:
+                    base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
         elif parent_level == 'classification_owner':
             group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner]
             level = 'make_owner'
             base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(ShowroomWiseOrderSummarySnapshot.classification_owner == parent_value)
             if business_head:
-                base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
+                if business_head == 'Unknown':
+                    base_query = base_query.filter(
+                        (ShowroomWiseOrderSummarySnapshot.business_head == None) |
+                        (ShowroomWiseOrderSummarySnapshot.business_head == '') |
+                        (ShowroomWiseOrderSummarySnapshot.business_head == 'NULL')
+                    )
+                else:
+                    base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
             if location:
                 base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.location == location)
         elif parent_level == 'make_owner':
@@ -252,7 +283,14 @@ def get_showroom_partial():
             level = 'collection_owner'
             base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(ShowroomWiseOrderSummarySnapshot.make_owner == parent_value)
             if business_head:
-                base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
+                if business_head == 'Unknown':
+                    base_query = base_query.filter(
+                        (ShowroomWiseOrderSummarySnapshot.business_head == None) |
+                        (ShowroomWiseOrderSummarySnapshot.business_head == '') |
+                        (ShowroomWiseOrderSummarySnapshot.business_head == 'NULL')
+                    )
+                else:
+                    base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
             if location:
                 base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.location == location)
             if classification_owner:
@@ -284,7 +322,7 @@ def get_showroom_partial():
         processed_rows = []
         for r in pagination.items:
             row_dict = {
-                'business_head': r[0] or 'Unknown',
+                'business_head': r[0] if (r[0] and r[0] != 'NULL') else 'Unknown',
                 'location': r[1] if level in ['location', 'classification_owner', 'make_owner', 'collection_owner'] else '',
                 'classification_owner': r[2] if level in ['classification_owner', 'make_owner', 'collection_owner'] else '',
                 'make_owner': r[3] if level in ['make_owner', 'collection_owner'] else '',

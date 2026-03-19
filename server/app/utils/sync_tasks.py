@@ -1527,8 +1527,11 @@ FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS
         
         new_records = []
         for row in rows:
+            bh = row.get('business_head')
+            if bh == 'NULL':
+                bh = None
             record = ShowroomWiseOrderSummarySnapshot(
-                business_head=row.get('business_head'),
+                business_head=bh,
                 party=row.get('party'),
                 location=row.get('location'),
                 purchase_ro=row.get('purchase_ro'),
