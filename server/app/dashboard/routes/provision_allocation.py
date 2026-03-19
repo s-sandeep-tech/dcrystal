@@ -4,7 +4,7 @@ from app.dashboard import dashboard_bp
 from app.models.snapshots import ProvisionAllocationSummarySnapshot
 from app.extensions import db, redis_client
 from app.utils.sync_manager import sync_provision_allocation_data
-from sqlalchemy import func
+from sqlalchemy import func, case
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import logging
@@ -60,7 +60,7 @@ def get_provision_allocation_partial():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 2000, type=int)
 
-        cache_key = generate_cache_key('prov_alloc_partial', latest_date, 
+        cache_key = generate_cache_key('prov_alloc_partial_v3', latest_date, 
                                      search=search, location=location, 
                                      page=page, per_page=per_page)
         
@@ -71,6 +71,87 @@ def get_provision_allocation_partial():
             return render_template('partials/_view_provision_allocation_summary.html', 
                                  rows=data['rows'], pagination=pagination)
 
+        if not location:
+            # Aggregate across all locations in Python for reliability
+            all_rows = db.session.query(
+                ProvisionAllocationSummarySnapshot
+            ).filter(ProvisionAllocationSummarySnapshot.snapshot_date == latest_date).all()
+            
+            if search:
+                s = search.lower()
+                all_rows = [r for r in all_rows if (s in (r.report_label or '').lower() or s in (r.report_section or '').lower())]
+            
+            # Aggregate rows
+            aggr = {} # key: (section_normalized, label_normalized)
+            for r in all_rows:
+                # Robust normalization
+                section_raw = (r.report_section or "").strip()
+                label_raw = (r.report_label or "").strip()
+                
+                if section_raw.lower() == 'location summary':
+                    section = 'Location Summary'
+                    label = 'ALL'
+                else:
+                    section = section_raw
+                    label = label_raw
+                
+                key = (section, label)
+                
+                if key not in aggr:
+                    aggr[key] = {
+                        'location': 'ALL',
+                        'report_section': section,
+                        'report_label': label,
+                        'pcs': 0.0,
+                        'grossweight': 0.0,
+                        'sort_order': r.sort_order if r.sort_order is not None else 999
+                    }
+                
+                aggr[key]['pcs'] += float(r.pcs or 0)
+                aggr[key]['grossweight'] += float(r.grossweight or 0)
+                # Keep the minimum sort order for the group
+                if r.sort_order is not None and r.sort_order < aggr[key]['sort_order']:
+                    aggr[key]['sort_order'] = r.sort_order
+            
+            # Calculate section totals for percent calculation
+            # We must group by section ONLY for the denominator
+            section_totals = {}
+            for key, val in aggr.items():
+                sec = val['report_section']
+                if sec not in section_totals:
+                    section_totals[sec] = 0.0
+                section_totals[sec] += val['grossweight']
+            
+            # Final list and recalculate percent
+            final_rows = []
+            for key, val in aggr.items():
+                sec = val['report_section']
+                total_wt = section_totals.get(sec, 0.0)
+                
+                if sec == 'Location Summary':
+                    val['percent'] = 100.0
+                elif sec == 'Provision Mode Count':
+                    val['percent'] = 0.0
+                else:
+                    val['percent'] = round((val['grossweight'] * 100.0 / total_wt), 2) if total_wt > 0 else 0.0
+                
+                final_rows.append(val)
+            
+            # Sort by sort_order
+            final_rows.sort(key=lambda x: (x['sort_order'], x['report_label']))
+            
+            pagination = CachedPagination(final_rows, 1, per_page, len(final_rows))
+            
+            cache_payload = {
+                'rows': final_rows,
+                'total': len(final_rows)
+            }
+            redis_client.setex(cache_key, 3600, json.dumps(cache_payload))
+
+            return render_template('partials/_view_provision_allocation_summary.html', 
+                                 rows=final_rows, pagination=pagination)
+
+        # Non-aggregated (Single Location) logic
         query = db.session.query(ProvisionAllocationSummarySnapshot)
         
         if latest_date:
