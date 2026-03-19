@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.extensions import db
 from app.models.auth import User
+from app.models.core import ExportDownloadLog
 from app.models.rbac import Role, Menu, UserRole, RoleMenu, Permission, RolePermission, AuditLog, UserPasswordHistory
 from app.utils.decorators import require_role, require_perm
 from app.utils.rbac_cache import increment_rbac_version, invalidate_user_cache
@@ -427,6 +428,24 @@ def get_audit_logs():
         "details": l.details,
         "created_at": l.created_at.isoformat()
     } for l in logs])
+
+@admin_rbac_bp.route('/download-logs', methods=['GET'])
+@jwt_required()
+@require_role('ADMIN')
+def get_download_logs():
+    """Get paginated document download logs (Admin only)"""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    
+    query = ExportDownloadLog.query.order_by(ExportDownloadLog.downloaded_at.desc())
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    return jsonify({
+        "logs": [log.to_dict() for log in pagination.items],
+        "total": pagination.total,
+        "pages": pagination.pages,
+        "current_page": pagination.page
+    }), 200
 
 @admin_rbac_bp.route('/users/batch', methods=['POST'])
 @jwt_required()

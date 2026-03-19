@@ -49,6 +49,11 @@
                             <span class="material-symbols-outlined text-sm">history</span>
                             Login Attempt Logs
                         </a>
+                        <a href="#" id="nav-download-logs"
+                            class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
+                            <span class="material-symbols-outlined text-sm">download</span>
+                            Document Download Logs
+                        </a>
                         <!-- RBAC Management Links -->
                         <div class="pt-2 pb-1">
                             <h4 class="px-4 text-[9px] font-bold uppercase tracking-widest text-gray-400">Security &
@@ -493,6 +498,52 @@
                         </div>
                     </div>
                 </div> <!-- End Tab Pane Login Logs -->
+
+                <!-- Tab Pane: Document Download Logs -->
+                <div id="tab-download-logs" class="tab-pane hidden space-y-6">
+                    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex flex-col h-full">
+                        <div
+                            class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 flex items-center justify-between">
+                            <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Document Download Logs
+                            </h3>
+                            <div class="flex items-center gap-2">
+                                <span id="download-logs-pagination-info" class="text-[10px] text-gray-400"></span>
+                                <button id="refresh-download-logs-btn"
+                                    class="text-gray-400 hover:text-primary transition-colors focus:outline-none">
+                                    <span class="material-symbols-outlined text-sm">refresh</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-0 overflow-x-auto">
+                            <table
+                                class="w-full text-left text-[11px] text-gray-500 dark:text-gray-400 border-collapse">
+                                <thead
+                                    class="text-[10px] text-gray-400 uppercase bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-3 font-semibold">Timestamp</th>
+                                        <th scope="col" class="px-4 py-3 font-semibold">User Code</th>
+                                        <th scope="col" class="px-4 py-3 font-semibold">User Name</th>
+                                        <th scope="col" class="px-4 py-3 font-semibold">Filename</th>
+                                        <th scope="col" class="px-4 py-3 font-semibold">IP Address</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="download-logs-tbody" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                    <tr>
+                                        <td colspan="5" class="px-4 py-8 text-center text-gray-400">
+                                            Loading download logs...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div
+                            class="p-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/30 dark:bg-gray-800/20">
+                            <div class="flex gap-2" id="download-logs-pagination-buttons">
+                                <!-- Pagination buttons will be injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- End Tab Pane Download Logs -->
 
                 <!-- Tab Pane: Manage Roles -->
                 <div id="tab-roles" class="tab-pane hidden space-y-6 h-full flex flex-col">

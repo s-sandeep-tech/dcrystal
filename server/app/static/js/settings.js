@@ -1172,6 +1172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'notifications': { nav: document.getElementById('nav-notifications'), pane: null },
         'sessions': { nav: document.getElementById('nav-sessions'), pane: document.getElementById('tab-sessions') },
         'login-logs': { nav: document.getElementById('nav-login-logs'), pane: document.getElementById('tab-login-logs') },
+        'download-logs': { nav: document.getElementById('nav-download-logs'), pane: document.getElementById('tab-download-logs') },
         'roles': { nav: document.getElementById('nav-roles'), pane: document.getElementById('tab-roles') },
         'menus': { nav: document.getElementById('nav-menus'), pane: document.getElementById('tab-menus') },
         'mappings': { nav: document.getElementById('nav-mappings'), pane: document.getElementById('tab-mappings') },
@@ -1205,6 +1206,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'login-logs':
                 fetchLoginLogs(1);
+                break;
+            case 'download-logs':
+                fetchDownloadLogs(1);
                 break;
             case 'roles':
                 fetchRoles();
@@ -1681,9 +1685,99 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshLoginLogsBtn.onclick = () => fetchLoginLogs(loginLogsCurrentPage);
     }
 
-    // Initial fetch if we are on login-logs tab
+    // === DOWNLOAD LOGS LOGIC ===
+    let downloadLogsCurrentPage = 1;
+
+    async function fetchDownloadLogs(page = 1) {
+        const tbody = document.getElementById('download-logs-tbody');
+        if (!tbody) return;
+
+        try {
+            const res = await fetch(`/api/admin/download-logs?page=${page}&per_page=10`, {
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                renderDownloadLogsTable(data.logs);
+                renderDownloadLogsPagination(data);
+                downloadLogsCurrentPage = data.current_page;
+            } else {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">Error loading logs (${res.status})</td></tr>`;
+            }
+        } catch (e) {
+            console.error('fetchDownloadLogs error:', e);
+            tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">Network error loading logs</td></tr>`;
+        }
+    }
+
+    function renderDownloadLogsTable(logs) {
+        const tbody = document.getElementById('download-logs-tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">No download logs found.</td></tr>';
+            return;
+        }
+
+        logs.forEach(log => {
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors border-b border-gray-100 dark:border-gray-800";
+
+            const istOptions = {
+                timeZone: 'Asia/Kolkata',
+                year: 'numeric', month: 'numeric', day: 'numeric',
+                hour: 'numeric', minute: 'numeric', second: 'numeric',
+                hour12: true
+            };
+            const localTime = log.downloaded_at ? new Date(log.downloaded_at).toLocaleString('en-IN', istOptions) : 'N/A';
+
+            tr.innerHTML = `
+                <td class="px-4 py-3 text-gray-500 font-mono">${localTime}</td>
+                <td class="px-4 py-3 font-mono text-primary font-bold">${log.user_id || '---'}</td>
+                <td class="px-4 py-3 font-bold text-gray-900 dark:text-white">${log.username || '-'}</td>
+                <td class="px-4 py-3 font-mono text-xs truncate max-w-[200px]" title="${log.filename}">${log.filename}</td>
+                <td class="px-4 py-3 font-mono">${log.ip_address}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderDownloadLogsPagination(data) {
+        const info = document.getElementById('download-logs-pagination-info');
+        if (info) {
+            const start = data.total > 0 ? (data.current_page - 1) * 10 + 1 : 0;
+            const end = Math.min(data.current_page * 10, data.total);
+            info.innerText = `Showing ${start}-${end} of ${data.total}`;
+        }
+
+        const buttons = document.getElementById('download-logs-pagination-buttons');
+        if (!buttons) return;
+        buttons.innerHTML = '';
+
+        const prev = document.createElement('button');
+        prev.className = `p-1.5 rounded border transition-all ${data.current_page > 1 ? 'border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800' : 'opacity-30 cursor-not-allowed border-gray-100 dark:border-gray-800'}`;
+        prev.innerHTML = '<span class="material-symbols-outlined text-sm block">chevron_left</span>';
+        if (data.current_page > 1) prev.onclick = () => fetchDownloadLogs(data.current_page - 1);
+        buttons.appendChild(prev);
+
+        const next = document.createElement('button');
+        next.className = `p-1.5 rounded border transition-all ${data.current_page < data.pages ? 'border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800' : 'opacity-30 cursor-not-allowed border-gray-100 dark:border-gray-800'}`;
+        next.innerHTML = '<span class="material-symbols-outlined text-sm block">chevron_right</span>';
+        if (data.current_page < data.pages) next.onclick = () => fetchDownloadLogs(data.current_page + 1);
+        buttons.appendChild(next);
+    }
+
+    const refreshDownloadLogsBtn = document.getElementById('refresh-download-logs-btn');
+    if (refreshDownloadLogsBtn) {
+        refreshDownloadLogsBtn.onclick = () => fetchDownloadLogs(downloadLogsCurrentPage);
+    }
+
+    // Initial fetch if we are on login-logs or download-logs tab
     if (activeTab === 'login-logs') {
         fetchLoginLogs(1);
+    } else if (activeTab === 'download-logs') {
+        fetchDownloadLogs(1);
     }
 });
 
