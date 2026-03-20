@@ -202,8 +202,7 @@ function applyGlobalFilters() {
     const filterIds = [
         'business_head', 'classification_owner', 'make_owner', 'collection_owner',
         'division', 'group_name', 'purity', 'classification', 'make', 'collection',
-        'party', 'location', 'purchase_ro', 'order_type', 'order_request_type',
-        'provision_type', 'branch_provision_type'
+        'party', 'location', 'purchase_ro', 'order_type', 'order_request_type'
     ];
     
     filterIds.forEach(id => {
@@ -224,8 +223,7 @@ function resetGlobalFilters() {
     const filterIds = [
         'business_head', 'classification_owner', 'make_owner', 'collection_owner',
         'division', 'group_name', 'purity', 'classification', 'make', 'collection',
-        'party', 'location', 'purchase_ro', 'order_type', 'order_request_type',
-        'provision_type', 'branch_provision_type'
+        'party', 'location', 'purchase_ro', 'order_type', 'order_request_type'
     ];
     
     filterIds.forEach(id => {
@@ -318,9 +316,7 @@ async function loadFilterOptions() {
             { id: 'filter-location', list: options.locations, label: 'Location' },
             { id: 'filter-purchase_ro', list: options.purchase_ros, label: 'Purchase RO' },
             { id: 'filter-order_type', list: options.order_types, label: 'Order Type' },
-            { id: 'filter-order_request_type', list: options.order_request_types, label: 'Order Request Type' },
-            { id: 'filter-provision_type', list: options.provision_types, label: 'Provision Type' },
-            { id: 'filter-branch_provision_type', list: options.branch_provision_types, label: 'Branch Provision Type' }
+            { id: 'filter-order_request_type', list: options.order_request_types, label: 'Order Request Type' }
         ];
 
         mappings.forEach(m => {

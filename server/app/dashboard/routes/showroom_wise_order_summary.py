@@ -41,7 +41,6 @@ def safe_float(val):
 def get_showroom_aggs(latest_date_query, search=None, business_head=None, classification_owner=None, 
                     make_owner=None, collection_owner=None, party=None, location=None, 
                     purchase_ro=None, order_type=None, order_request_type=None, 
-                    provision_type=None, branch_provision_type=None,
                     division=None, group_name=None, purity=None, classification=None,
                     make=None, collection=None):
     
@@ -59,8 +58,6 @@ def get_showroom_aggs(latest_date_query, search=None, business_head=None, classi
         if purchase_ro: query = query.filter(ShowroomWiseOrderSummarySnapshot.purchase_ro == purchase_ro)
         if order_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_type == order_type)
         if order_request_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_request_type == order_request_type)
-        if provision_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.provision_type == provision_type)
-        if branch_provision_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_provision_type == branch_provision_type)
         if division: query = query.filter(ShowroomWiseOrderSummarySnapshot.division == division)
         if group_name: query = query.filter(ShowroomWiseOrderSummarySnapshot.group_name == group_name)
         if purity: query = query.filter(ShowroomWiseOrderSummarySnapshot.purity == purity)
@@ -171,8 +168,6 @@ def showroom_options():
             'purchase_ros': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.purchase_ro.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.purchase_ro).all() if r[0]],
             'order_types': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.order_type.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.order_type).all() if r[0]],
             'order_request_types': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.order_request_type.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.order_request_type).all() if r[0]],
-            'provision_types': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.provision_type.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.provision_type).all() if r[0]],
-            'branch_provision_types': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.branch_provision_type.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.branch_provision_type).all() if r[0]],
             'divisions': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.division.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.division).all() if r[0]],
             'groups': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.group_name.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.group_name).all() if r[0]],
             'purities': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.purity.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.purity).all() if r[0]],
@@ -200,8 +195,6 @@ def get_showroom_partial():
         purchase_ro = request.args.get('purchase_ro', '')
         order_type = request.args.get('order_type', '')
         order_request_type = request.args.get('order_request_type', '')
-        provision_type = request.args.get('provision_type', '')
-        branch_provision_type = request.args.get('branch_provision_type', '')
         division = request.args.get('division', '')
         group_name = request.args.get('group_name', '')
         purity = request.args.get('purity', '')
@@ -239,8 +232,6 @@ def get_showroom_partial():
             if purchase_ro: query = query.filter(ShowroomWiseOrderSummarySnapshot.purchase_ro == purchase_ro)
             if order_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_type == order_type)
             if order_request_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_request_type == order_request_type)
-            if provision_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.provision_type == provision_type)
-            if branch_provision_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_provision_type == branch_provision_type)
             if division: query = query.filter(ShowroomWiseOrderSummarySnapshot.division == division)
             if group_name: query = query.filter(ShowroomWiseOrderSummarySnapshot.group_name == group_name)
             if purity: query = query.filter(ShowroomWiseOrderSummarySnapshot.purity == purity)
@@ -392,7 +383,6 @@ def get_showroom_partial():
             stats = get_showroom_aggs(latest_date_query, search, business_head, classification_owner, 
                                     make_owner, collection_owner, party, location, 
                                     purchase_ro, order_type, order_request_type, 
-                                    provision_type, branch_provision_type,
                                     division, group_name, purity, classification, make, collection)
             footer_totals = stats
 
@@ -428,8 +418,7 @@ def get_showroom_details():
         purchase_ro = request.args.get('purchase_ro', '')
         order_type = request.args.get('order_type', '')
         order_request_type = request.args.get('order_request_type', '')
-        provision_type = request.args.get('provision_type', '')
-        branch_provision_type = request.args.get('branch_provision_type', '')
+        
         division = request.args.get('division', '')
         group_name = request.args.get('group_name', '')
         purity = request.args.get('purity', '')
@@ -463,8 +452,6 @@ def get_showroom_details():
         if purchase_ro: query = query.filter(ShowroomWiseOrderSummarySnapshot.purchase_ro == purchase_ro)
         if order_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_type == order_type)
         if order_request_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_request_type == order_request_type)
-        if provision_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.provision_type == provision_type)
-        if branch_provision_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_provision_type == branch_provision_type)
         if division: query = query.filter(ShowroomWiseOrderSummarySnapshot.division == division)
         if group_name: query = query.filter(ShowroomWiseOrderSummarySnapshot.group_name == group_name)
         if purity: query = query.filter(ShowroomWiseOrderSummarySnapshot.purity == purity)
