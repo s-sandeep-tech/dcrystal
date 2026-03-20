@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
 from app.models import Notification
@@ -61,13 +61,28 @@ def order_delay_tracking():
 @jwt_required()
 def order_delay_tracking_options():
     try:
+        is_admin = session.get('is_admin', False)
+        username = session.get('username')
+        
+        def apply_options_filter(q):
+            roles = [r.upper() for r in session.get('roles', [])]
+            is_manager_2 = 'MANAGER_2' in roles
+            if not is_admin and not is_manager_2 and username:
+                u = username.strip().lower()
+                return q.filter(
+                    (func.lower(func.trim(OrderDelayTrackingSnapshot.make_owner)) == u) |
+                    (func.lower(func.trim(OrderDelayTrackingSnapshot.collection_owner)) == u) |
+                    (func.lower(func.trim(OrderDelayTrackingSnapshot.classification_owner)) == u)
+                )
+            return q
+
         options = {
-            'suppliers': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.supplier.distinct()).order_by(OrderDelayTrackingSnapshot.supplier).all() if r[0]],
-            'classification_owners': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.classification_owner.distinct()).order_by(OrderDelayTrackingSnapshot.classification_owner).all() if r[0]],
-            'make_owners': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.make_owner.distinct()).order_by(OrderDelayTrackingSnapshot.make_owner).all() if r[0]],
-            'collection_owners': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.collection_owner.distinct()).order_by(OrderDelayTrackingSnapshot.collection_owner).all() if r[0]],
-            'makes': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.make.distinct()).order_by(OrderDelayTrackingSnapshot.make).all() if r[0]],
-            'collections': [r[0] for r in db.session.query(OrderDelayTrackingSnapshot.collection.distinct()).order_by(OrderDelayTrackingSnapshot.collection).all() if r[0]]
+            'suppliers': [r[0] for r in apply_options_filter(db.session.query(OrderDelayTrackingSnapshot.supplier.distinct())).order_by(OrderDelayTrackingSnapshot.supplier).all() if r[0]],
+            'classification_owners': [r[0] for r in apply_options_filter(db.session.query(OrderDelayTrackingSnapshot.classification_owner.distinct())).order_by(OrderDelayTrackingSnapshot.classification_owner).all() if r[0]],
+            'make_owners': [r[0] for r in apply_options_filter(db.session.query(OrderDelayTrackingSnapshot.make_owner.distinct())).order_by(OrderDelayTrackingSnapshot.make_owner).all() if r[0]],
+            'collection_owners': [r[0] for r in apply_options_filter(db.session.query(OrderDelayTrackingSnapshot.collection_owner.distinct())).order_by(OrderDelayTrackingSnapshot.collection_owner).all() if r[0]],
+            'makes': [r[0] for r in apply_options_filter(db.session.query(OrderDelayTrackingSnapshot.make.distinct())).order_by(OrderDelayTrackingSnapshot.make).all() if r[0]],
+            'collections': [r[0] for r in apply_options_filter(db.session.query(OrderDelayTrackingSnapshot.collection.distinct())).order_by(OrderDelayTrackingSnapshot.collection).all() if r[0]]
         }
         return jsonify(options)
     except Exception as e:
@@ -119,6 +134,19 @@ def get_order_delay_tracking_partial():
                     OrderDelayTrackingSnapshot.collection.ilike(f"%{f_search}%")
                 )
             
+            # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
+            is_admin = session.get('is_admin', False)
+            username = session.get('username')
+            roles = [r.upper() for r in session.get('roles', [])]
+            is_manager_2 = 'MANAGER_2' in roles
+            if not is_admin and not is_manager_2 and username:
+                u = username.strip().lower()
+                query = query.filter(
+                    (func.lower(func.trim(OrderDelayTrackingSnapshot.make_owner)) == u) |
+                    (func.lower(func.trim(OrderDelayTrackingSnapshot.collection_owner)) == u) |
+                    (func.lower(func.trim(OrderDelayTrackingSnapshot.classification_owner)) == u)
+                )
+
             if latest_date_query:
                 query = query.filter(OrderDelayTrackingSnapshot.snapshot_date == latest_date_query)
             return query
@@ -278,14 +306,25 @@ def get_order_delay_tracking_details():
             base_filters.append(OrderDelayTrackingSnapshot.collection == collection_filter)
         if search:
             base_filters.append(
-                db.or_(
-                    OrderDelayTrackingSnapshot.classification_owner.ilike(f"%{search}%"),
-                    OrderDelayTrackingSnapshot.make_owner.ilike(f"%{search}%"),
-                    OrderDelayTrackingSnapshot.collection_owner.ilike(f"%{search}%"),
-                    OrderDelayTrackingSnapshot.supplier.ilike(f"%{search}%"),
-                    OrderDelayTrackingSnapshot.make.ilike(f"%{search}%"),
-                    OrderDelayTrackingSnapshot.collection.ilike(f"%{search}%")
-                )
+                OrderDelayTrackingSnapshot.classification_owner.ilike(f"%{search}%") |
+                OrderDelayTrackingSnapshot.make_owner.ilike(f"%{search}%") |
+                OrderDelayTrackingSnapshot.collection_owner.ilike(f"%{search}%") |
+                OrderDelayTrackingSnapshot.supplier.ilike(f"%{search}%") |
+                OrderDelayTrackingSnapshot.make.ilike(f"%{search}%") |
+                OrderDelayTrackingSnapshot.collection.ilike(f"%{search}%")
+            )
+
+        # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
+        is_admin = session.get('is_admin', False)
+        username = session.get('username')
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_manager_2 = 'MANAGER_2' in roles
+        if not is_admin and not is_manager_2 and username:
+            u = username.strip().lower()
+            base_filters.append(
+                (func.lower(func.trim(OrderDelayTrackingSnapshot.make_owner)) == u) |
+                (func.lower(func.trim(OrderDelayTrackingSnapshot.collection_owner)) == u) |
+                (func.lower(func.trim(OrderDelayTrackingSnapshot.classification_owner)) == u)
             )
 
         # Determine current modal level
