@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
 from app.models import Notification, ShowroomWiseOrderSummarySnapshot
@@ -70,6 +70,20 @@ def get_showroom_aggs(latest_date_query, search=None, business_head=None, classi
         
         if latest_date_query:
             query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
+
+        # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
+        is_admin = session.get('is_admin', False)
+        username = session.get('username')
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_manager_2 = 'MANAGER_2' in roles
+        if not is_admin and not is_manager_2 and username:
+            u = username.strip().lower()
+            query = query.filter(
+                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.make_owner)) == u) |
+                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.collection_owner)) == u) |
+                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.classification_owner)) == u)
+            )
+
         return query
 
     agg_cols = [
@@ -132,24 +146,39 @@ def sync_showroom_wise_order_summary():
 @jwt_required()
 def showroom_options():
     try:
+        is_admin = session.get('is_admin', False)
+        username = session.get('username')
+        
+        def apply_options_filter(q):
+            roles = [r.upper() for r in session.get('roles', [])]
+            is_manager_2 = 'MANAGER_2' in roles
+            if not is_admin and not is_manager_2 and username:
+                u = username.strip().lower()
+                return q.filter(
+                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.make_owner)) == u) |
+                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.collection_owner)) == u) |
+                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.classification_owner)) == u)
+                )
+            return q
+
         options = {
-            'business_heads': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.business_head.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.business_head).all() if r[0]],
-            'classification_owners': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.classification_owner.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.classification_owner).all() if r[0]],
-            'make_owners': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.make_owner.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.make_owner).all() if r[0]],
-            'collection_owners': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.collection_owner.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.collection_owner).all() if r[0]],
-            'parties': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.party.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.party).all() if r[0]],
-            'locations': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.location.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.location).all() if r[0]],
-            'purchase_ros': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.purchase_ro.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.purchase_ro).all() if r[0]],
-            'order_types': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.order_type.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.order_type).all() if r[0]],
-            'order_request_types': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.order_request_type.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.order_request_type).all() if r[0]],
-            'provision_types': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.provision_type.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.provision_type).all() if r[0]],
-            'branch_provision_types': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.branch_provision_type.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.branch_provision_type).all() if r[0]],
-            'divisions': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.division.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.division).all() if r[0]],
-            'groups': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.group_name.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.group_name).all() if r[0]],
-            'purities': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.purity.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.purity).all() if r[0]],
-            'classifications': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.classification.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.classification).all() if r[0]],
-            'makes': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.make.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.make).all() if r[0]],
-            'collections': [r[0] for r in db.session.query(ShowroomWiseOrderSummarySnapshot.collection.distinct()).order_by(ShowroomWiseOrderSummarySnapshot.collection).all() if r[0]]
+            'business_heads': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.business_head.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.business_head).all() if r[0]],
+            'classification_owners': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.classification_owner.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.classification_owner).all() if r[0]],
+            'make_owners': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.make_owner.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.make_owner).all() if r[0]],
+            'collection_owners': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.collection_owner.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.collection_owner).all() if r[0]],
+            'parties': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.party.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.party).all() if r[0]],
+            'locations': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.location.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.location).all() if r[0]],
+            'purchase_ros': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.purchase_ro.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.purchase_ro).all() if r[0]],
+            'order_types': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.order_type.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.order_type).all() if r[0]],
+            'order_request_types': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.order_request_type.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.order_request_type).all() if r[0]],
+            'provision_types': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.provision_type.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.provision_type).all() if r[0]],
+            'branch_provision_types': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.branch_provision_type.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.branch_provision_type).all() if r[0]],
+            'divisions': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.division.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.division).all() if r[0]],
+            'groups': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.group_name.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.group_name).all() if r[0]],
+            'purities': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.purity.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.purity).all() if r[0]],
+            'classifications': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.classification.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.classification).all() if r[0]],
+            'makes': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.make.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.make).all() if r[0]],
+            'collections': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.collection.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.collection).all() if r[0]]
         }
         return jsonify(options)
     except Exception as e:
@@ -221,6 +250,20 @@ def get_showroom_partial():
             
             if latest_date_query:
                 query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
+
+            # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
+            is_admin = session.get('is_admin', False)
+            username = session.get('username')
+            roles = [r.upper() for r in session.get('roles', [])]
+            is_manager_2 = 'MANAGER_2' in roles
+            if not is_admin and not is_manager_2 and username:
+                u = username.strip().lower()
+                query = query.filter(
+                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.make_owner)) == u) |
+                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.collection_owner)) == u) |
+                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.classification_owner)) == u)
+                )
+
             return query
 
         agg_cols = [
@@ -431,6 +474,19 @@ def get_showroom_details():
 
         if latest_date_query:
             query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
+
+        # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
+        is_admin = session.get('is_admin', False)
+        username = session.get('username')
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_manager_2 = 'MANAGER_2' in roles
+        if not is_admin and not is_manager_2 and username:
+            u = username.strip().lower()
+            query = query.filter(
+                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.make_owner)) == u) |
+                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.collection_owner)) == u) |
+                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.classification_owner)) == u)
+            )
         
         hierarchy = ['location', 'division', 'group_name', 'purity', 'classification', 'make', 'collection', 'party']
         col_map = {
