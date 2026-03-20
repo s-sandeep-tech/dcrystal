@@ -10,6 +10,7 @@ import logging
 from decimal import Decimal
 import json
 from app.extensions import redis_client
+from app.utils.decorators import require_perm
 
 logger = logging.getLogger(__name__)
 
@@ -568,6 +569,7 @@ def get_outstanding_orders_details():
 
 @dashboard_bp.route('/api/outstanding_orders/export', methods=['POST'])
 @jwt_required()
+@require_perm('report.export')
 def queue_outstanding_orders_export():
     """Enqueue a background Excel export job for the current filter state."""
     try:

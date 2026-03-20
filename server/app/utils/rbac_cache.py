@@ -42,9 +42,16 @@ def get_user_permissions(user_id):
 
     # DB Fallback
     try:
-        u_id_int = int(user_id)
-        user = db.session.get(User, u_id_int)
-    except (ValueError, TypeError):
+        user = None
+        # Try as primary key first if it's numeric
+        if str(user_id).isdigit():
+            user = db.session.get(User, int(user_id))
+        
+        # If not found by PK, try by user_id string
+        if not user:
+            user = User.query.filter_by(user_id=str(user_id)).first()
+    except Exception as e:
+        logger.error(f"Error querying user {user_id}: {e}")
         return set()
 
     if not user:
@@ -89,9 +96,16 @@ def build_menu_tree(user_id):
     is_admin = 'ADMIN' in perms
     
     try:
-        u_id_int = int(user_id)
-        role_ids = [r.role_id for r in UserRole.query.filter_by(user_id=u_id_int).all()]
-    except (ValueError, TypeError):
+        user = None
+        if str(user_id).isdigit():
+            user = db.session.get(User, int(user_id))
+            
+        if not user:
+            user = User.query.filter_by(user_id=str(user_id)).first()
+            
+        role_ids = [r.role_id for r in UserRole.query.filter_by(user_id=user.id).all()] if user else []
+    except Exception as e:
+        logger.error(f"Error getting role IDs for {user_id}: {e}")
         role_ids = []
     
     if is_admin:

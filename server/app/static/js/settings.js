@@ -735,7 +735,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="p-3 text-[11px] font-bold"><span class="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-800 uppercase tracking-widest">${r.name}</span></td>
                 <td class="p-3 text-[11px] text-gray-600 dark:text-gray-400">${r.description || '-'}</td>
                 <td class="p-3 text-right">
-                    <button onclick="openRoleMenuModal(${r.id})" class="text-gray-400 hover:text-primary transition-colors p-1" title="Assign Menus"><span class="material-symbols-outlined text-[16px]">account_tree</span></button>
+                    <button onclick="openRolePermissionModal(${r.id})" class="text-gray-400 hover:text-primary transition-colors p-1" title="Manage Permissions"><span class="material-symbols-outlined text-[16px]">security</span></button>
+                    <button onclick="openRoleMenuModal(${r.id})" class="text-gray-400 hover:text-primary transition-colors p-1 ml-1" title="Assign Menus"><span class="material-symbols-outlined text-[16px]">account_tree</span></button>
                     <button onclick="editRole(${r.id})" class="text-gray-400 hover:text-primary transition-colors p-1 ml-1" title="Edit Role"><span class="material-symbols-outlined text-[16px]">edit</span></button>
                     ${r.name !== 'ADMIN' ? `<button onclick="deleteRole(${r.id})" class="text-gray-400 hover:text-red-500 transition-colors p-1 ml-1" title="Delete"><span class="material-symbols-outlined text-[16px]">delete</span></button>` : ''}
                 </td>
@@ -1431,6 +1432,113 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Network error', 'error');
         }
     };
+
+    // --- ROLE-PERMISSION MAPPING LOGIC ---
+    let currentMappingRolePermId = null;
+    let gAllPermissions = [];
+
+    window.openRolePermissionModal = async function (roleId) {
+        const role = gRoles.find(r => r.id === roleId);
+        if (!role) return;
+
+        currentMappingRolePermId = roleId;
+        document.getElementById('permMappingRoleName').innerText = `ROLE: ${role.name}`;
+
+        // Fetch all permissions if not already loaded (or refresh)
+        try {
+            const res = await fetch('/api/admin/permissions?per_page=100', {
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                gAllPermissions = data.permissions;
+            }
+        } catch (e) {
+            console.error('Failed to fetch permissions', e);
+        }
+
+        renderPermissionMappingGrid();
+
+        // Show modal
+        const modal = document.getElementById('rolePermissionModal');
+        const content = document.getElementById('rolePermissionModalContent');
+        if (modal && content) {
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+        }
+
+        // Fetch assigned permissions
+        try {
+            const res = await fetch(`/api/admin/roles/${roleId}/permissions`, {
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            if (res.ok) {
+                const assignedPermIds = await res.json();
+                document.querySelectorAll('.role-perm-checkbox').forEach(cb => {
+                    cb.checked = assignedPermIds.includes(parseInt(cb.value));
+                });
+            }
+        } catch (e) {
+            console.error('Failed to fetch assigned permissions', e);
+        }
+    };
+
+    function renderPermissionMappingGrid() {
+        const grid = document.getElementById('permissionMappingGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        gAllPermissions.forEach(p => {
+            const div = document.createElement('div');
+            div.className = "flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded border border-gray-100 dark:border-gray-800 text-[10px]";
+            div.innerHTML = `
+                <input type="checkbox" value="${p.id}" class="role-perm-checkbox size-3 rounded border-gray-300 dark:border-gray-700 text-primary focus:ring-primary">
+                <div class="flex flex-col">
+                    <span class="font-bold text-gray-700 dark:text-gray-200">${p.name}</span>
+                    <span class="text-[9px] text-gray-400">${p.description || 'No description'}</span>
+                </div>
+            `;
+            grid.appendChild(div);
+        });
+    }
+
+    window.closeRolePermissionModal = function () {
+        const modal = document.getElementById('rolePermissionModal');
+        const content = document.getElementById('rolePermissionModalContent');
+        if (modal && content) {
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+    };
+
+    const saveRolePermissionsBtn = document.getElementById('saveRolePermissionsBtn');
+    if (saveRolePermissionsBtn) {
+        saveRolePermissionsBtn.addEventListener('click', async () => {
+            if (!currentMappingRolePermId) return;
+
+            const selectedPermIds = Array.from(document.querySelectorAll('.role-perm-checkbox:checked')).map(cb => parseInt(cb.value));
+
+            try {
+                const res = await fetch(`/api/admin/roles/${currentMappingRolePermId}/permissions`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.jwtToken}` },
+                    body: JSON.stringify({ permission_ids: selectedPermIds })
+                });
+
+                if (res.ok) {
+                    showToast('Role permissions updated', 'success');
+                    window.closeRolePermissionModal();
+                } else {
+                    const data = await res.json();
+                    showToast(data.msg || 'Error updating mappings', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Network error', 'error');
+            }
+        });
+    }
 
     // Active Users Fetch Logic
     const refreshUsersBtn = document.getElementById('refresh-users-btn');

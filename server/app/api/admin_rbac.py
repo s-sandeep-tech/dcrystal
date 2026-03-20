@@ -334,21 +334,27 @@ def get_role_menus(role_id):
     role = Role.query.get_or_404(role_id)
     return jsonify([m.id for m in role.menus])
 
-@admin_rbac_bp.route('/roles/<int:role_id>/permissions', methods=['PUT'])
+@admin_rbac_bp.route('/roles/<int:role_id>/permissions', methods=['GET', 'PUT'])
 @jwt_required()
 @require_role('ADMIN')
 def manage_role_permissions(role_id):
-    data = request.json
-    perm_ids = data.get('permission_ids', [])
+    role = Role.query.get_or_404(role_id)
     
-    RolePermission.query.filter_by(role_id=role_id).delete()
-    for pid in perm_ids:
-        db.session.add(RolePermission(role_id=role_id, permission_id=pid))
-    db.session.commit()
-    increment_rbac_version()
-    log_audit(get_jwt_identity(), "UPDATE_ROLE_PERMS", "ROLE", role_id, {"permissions": perm_ids})
-    db.session.commit()
-    return jsonify({"msg": "Role permissions updated"})
+    if request.method == 'GET':
+        return jsonify([p.id for p in role.permissions])
+        
+    if request.method == 'PUT':
+        data = request.json
+        perm_ids = data.get('permission_ids', [])
+        
+        RolePermission.query.filter_by(role_id=role_id).delete()
+        for pid in perm_ids:
+            db.session.add(RolePermission(role_id=role_id, permission_id=pid))
+        db.session.commit()
+        increment_rbac_version()
+        log_audit(get_jwt_identity(), "UPDATE_ROLE_PERMS", "ROLE", role_id, {"permissions": perm_ids})
+        db.session.commit()
+        return jsonify({"msg": "Role permissions updated"})
 
 @admin_rbac_bp.route('/permissions', methods=['GET', 'POST'])
 @jwt_required()

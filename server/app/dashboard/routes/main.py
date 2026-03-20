@@ -410,3 +410,6 @@ def inventory():
                          rows=[],
                          pagination=None,
                          footer_totals={})
+@dashboard_bp.route('/logout-success')
+def logout_success():
+    return render_template('logout_success.html')

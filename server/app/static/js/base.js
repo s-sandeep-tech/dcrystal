@@ -11,7 +11,7 @@ async function handleLogout() {
     localStorage.removeItem('user');
     localStorage.removeItem('rbac_menus');
     localStorage.removeItem('rbac_perms');
-    window.location.href = '/login';
+    window.location.href = '/logout-success';
 }
 
 document.addEventListener('DOMContentLoaded', () => {

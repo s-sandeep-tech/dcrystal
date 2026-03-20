@@ -130,17 +130,22 @@ def create_app():
     def inject_global_vars():
         from flask import session
         from app.models import Notification
+        from app.utils.rbac_cache import get_user_permissions
         from sqlalchemy import or_
         
         user_id = session.get('user_id')
         unread_count = 0
+        permissions = set()
+        
         if user_id:
             unread_count = Notification.query.filter(
                 Notification.is_read == False,
                 or_(Notification.user_id == user_id, Notification.user_id == None)
             ).count()
+            # Fetch permissions for the logged-in user
+            permissions = get_user_permissions(user_id)
         
-        return dict(unread_count=unread_count)
+        return dict(unread_count=unread_count, permissions=permissions)
 
     # Register Error Handlers
     @app.errorhandler(404)

@@ -15,6 +15,7 @@
             <h2 class="text-sm font-bold tracking-tight">Outstanding Purchase Order Status Report</h2>
         </div>
         <div class="flex items-center gap-3">
+            {% if 'report.export' in permissions or 'ADMIN' in permissions %}
             <!-- Export Button -->
             <button id="btn-export-excel" onclick="exportToExcel()"
                 title="Export all filtered data to Excel"
@@ -22,6 +23,7 @@
                 <span id="export-btn-icon" class="material-symbols-outlined text-[14px]">download</span>
                 <span id="export-btn-label">Export Excel</span>
             </button>
+            {% endif %}
             <!-- Zoom Controls -->
             <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
                 <button onclick="adjustZoom(-0.1)"
