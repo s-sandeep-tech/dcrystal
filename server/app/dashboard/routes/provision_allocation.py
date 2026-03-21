@@ -82,45 +82,64 @@ def get_provision_allocation_partial():
                 all_rows = [r for r in all_rows if (s in (r.report_label or '').lower() or s in (r.report_section or '').lower())]
             
             # Aggregate rows
-            aggr = {} # key: (section_normalized, label_normalized)
+            aggr = {} # key: (section, label, classification, sub_classification, is_parent, section_sort)
             for r in all_rows:
                 # Robust normalization
-                section_raw = (r.report_section or "").strip()
-                label_raw = (r.report_label or "").strip()
+                section = (r.report_section or "").strip()
+                label = (r.report_label or "").strip()
                 
-                if section_raw.lower() == 'location summary':
-                    section = 'Location Summary'
+                # Skip invalid empty rows
+                if not label or label.lower() == 'null':
+                    if float(r.grossweight or 0) == 0 and float(r.pcs or 0) == 0:
+                        continue
+                
+                if section.lower() == 'location summary':
                     label = 'ALL'
-                else:
-                    section = section_raw
-                    label = label_raw
                 
-                key = (section, label)
+                # For classification wise, ensure we have a fallback if classification is NULL
+                classification_val = r.classification
+                if section == 'Classification Wise' and not classification_val:
+                    # If it's a child but classification is NULL, it's invalid data, but we can try to guess or skip
+                    if r.is_parent == 0:
+                        continue
+                    classification_val = label # Use the label as classification for parent
+                
+                # Use a tuple for the key to include all structural columns (EXCLUDING row_sort to allow merging)
+                key = (section, label, classification_val, r.sub_classification, r.is_parent)
                 
                 if key not in aggr:
                     aggr[key] = {
                         'location': 'ALL',
                         'report_section': section,
                         'report_label': label,
+                        'classification': classification_val,
+                        'sub_classification': r.sub_classification,
+                        'is_parent': r.is_parent,
                         'pcs': 0.0,
                         'grossweight': 0.0,
-                        'sort_order': r.sort_order if r.sort_order is not None else 999
+                        'section_sort': r.section_sort if r.section_sort is not None else 999,
+                        'row_sort': r.row_sort if r.row_sort is not None else 999,
+                        'sort_order': r.section_sort if r.section_sort is not None else 999 # legacy
                     }
                 
                 aggr[key]['pcs'] += float(r.pcs or 0)
                 aggr[key]['grossweight'] += float(r.grossweight or 0)
-                # Keep the minimum sort order for the group
-                if r.sort_order is not None and r.sort_order < aggr[key]['sort_order']:
-                    aggr[key]['sort_order'] = r.sort_order
+                # Keep the minimum sort order for the group to maintain hierarchy
+                if r.section_sort is not None and r.section_sort < aggr[key]['section_sort']:
+                    aggr[key]['section_sort'] = r.section_sort
+                if r.row_sort is not None and r.row_sort < aggr[key]['row_sort']:
+                    aggr[key]['row_sort'] = r.row_sort
             
             # Calculate section totals for percent calculation
             # We must group by section ONLY for the denominator
             section_totals = {}
             for key, val in aggr.items():
                 sec = val['report_section']
-                if sec not in section_totals:
-                    section_totals[sec] = 0.0
-                section_totals[sec] += val['grossweight']
+                # Only aggregate top-level rows (is_parent=1) for section total to avoid double counting
+                if val['is_parent'] == 1:
+                    if sec not in section_totals:
+                        section_totals[sec] = 0.0
+                    section_totals[sec] += val['grossweight']
             
             # Final list and recalculate percent
             final_rows = []
@@ -137,8 +156,18 @@ def get_provision_allocation_partial():
                 
                 final_rows.append(val)
             
-            # Sort by sort_order
-            final_rows.sort(key=lambda x: (x['sort_order'], x['report_label']))
+            # Sort by section_sort, then classification hierarchy, then row_sort
+            # 1. section_sort (Overall report order)
+            # 2. classification (Grouping by category like BRAND, GENERIC) - fallback to label if NULL
+            # 3. is_parent (Parent row first)
+            # 4. row_sort / report_label (Relative order within category)
+            final_rows.sort(key=lambda x: (
+                x['section_sort'],
+                x['classification'] if x['classification'] is not None else (x['report_label'] if x['report_section'] == 'Classification Wise' else ''),
+                0 if x['is_parent'] == 1 else 1,
+                x['row_sort'],
+                x['report_label']
+            ))
             
             pagination = CachedPagination(final_rows, 1, per_page, len(final_rows))
             
@@ -164,7 +193,7 @@ def get_provision_allocation_partial():
         if location:
             query = query.filter(ProvisionAllocationSummarySnapshot.location == location)
             
-        query = query.order_by(ProvisionAllocationSummarySnapshot.location, ProvisionAllocationSummarySnapshot.sort_order, ProvisionAllocationSummarySnapshot.report_label)
+        query = query.order_by(ProvisionAllocationSummarySnapshot.section_sort, ProvisionAllocationSummarySnapshot.row_sort)
         
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         
@@ -178,6 +207,7 @@ def get_provision_allocation_partial():
 
         return render_template('partials/_view_provision_allocation_summary.html', 
                              rows=rows, pagination=pagination)
+
     except Exception as e:
         logger.error(f"Error in get_provision_allocation_partial: {str(e)}")
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200

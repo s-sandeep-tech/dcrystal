@@ -829,7 +829,7 @@ def sync_provision_allocation_summary_task() -> Dict[str, Any]:
         query = """
 WITH base AS (
     SELECT *
-    FROM ext_view.vw_prov_and_stock_size_level 
+    FROM ext_view.vw_prov_and_stock_size_level
 ),
 total AS (
     SELECT
@@ -838,23 +838,32 @@ total AS (
     FROM base
     GROUP BY location
 ),
+
 location_summary AS (
     SELECT
         location,
-        'Location Summary' AS report_section,
+        'Location Summary'::text AS report_section,
         location::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
         SUM(prov_pieces) AS pcs,
         SUM(prov_gr_wt) AS gr_wt,
         100.00::numeric AS percent,
-        0 AS sort_order
+        1 AS section_sort,
+        1 AS row_sort
     FROM base
     GROUP BY location
 ),
+
 purity_wise AS (
     SELECT
         b.location,
-        'Purity Wise' AS report_section,
+        'Purity Wise'::text AS report_section,
         b.purity::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
         NULL::numeric AS pcs,
         SUM(b.prov_gr_wt) AS gr_wt,
         ROUND(
@@ -864,37 +873,93 @@ purity_wise AS (
             END,
             2
         ) AS percent,
-        1 AS sort_order
+        2 AS section_sort,
+        ROW_NUMBER() OVER (
+            PARTITION BY b.location
+            ORDER BY b.purity
+        ) AS row_sort
     FROM base b
     JOIN total t
       ON b.location = t.location
     GROUP BY b.location, b.purity, t.total_prov_wt
 ),
+
 classification_wise AS (
     SELECT
-        b.location,
-        'Classification Wise' AS report_section,
-        b.classification::text AS report_label,
-        NULL::numeric AS pcs,
-        SUM(b.prov_gr_wt) AS gr_wt,
-        ROUND(
-            CASE
-                WHEN t.total_prov_wt = 0 THEN 0
-                ELSE SUM(b.prov_gr_wt) * 100.0 / t.total_prov_wt
-            END,
-            2
-        ) AS percent,
-        2 AS sort_order
-    FROM base b
-    JOIN total t
-      ON b.location = t.location
-    GROUP BY b.location, b.classification, t.total_prov_wt
+        x.location,
+        x.report_section,
+        x.report_label,
+        x.classification,
+        x.sub_classification,
+        x.is_parent,
+        x.pcs,
+        x.gr_wt,
+        x.percent,
+        3 AS section_sort,
+        ROW_NUMBER() OVER (
+            PARTITION BY x.location
+            ORDER BY
+                x.classification,
+                x.level_order,
+                x.sub_classification NULLS FIRST
+        ) AS row_sort
+    FROM (
+        SELECT
+            b.location,
+            'Classification Wise'::text AS report_section,
+            b.classification::text AS report_label,
+            b.classification::text AS classification,
+            NULL::text AS sub_classification,
+            1 AS is_parent,
+            NULL::numeric AS pcs,
+            SUM(b.prov_gr_wt) AS gr_wt,
+            ROUND(
+                CASE
+                    WHEN t.total_prov_wt = 0 THEN 0
+                    ELSE SUM(b.prov_gr_wt) * 100.0 / t.total_prov_wt
+                END,
+                2
+            ) AS percent,
+            0 AS level_order
+        FROM base b
+        JOIN total t
+          ON b.location = t.location
+        GROUP BY b.location, b.classification, t.total_prov_wt
+
+        UNION ALL
+
+        SELECT
+            b.location,
+            'Classification Wise'::text AS report_section,
+            '   ' || COALESCE(b.sub_classification::text, 'Unknown') AS report_label,
+            b.classification::text AS classification,
+            COALESCE(b.sub_classification::text, 'Unknown') AS sub_classification,
+            0 AS is_parent,
+            NULL::numeric AS pcs,
+            SUM(b.prov_gr_wt) AS gr_wt,
+            ROUND(
+                CASE
+                    WHEN t.total_prov_wt = 0 THEN 0
+                    ELSE SUM(b.prov_gr_wt) * 100.0 / t.total_prov_wt
+                END,
+                2
+            ) AS percent,
+            1 AS level_order
+        FROM base b
+        JOIN total t
+          ON b.location = t.location
+        GROUP BY b.location, b.classification, b.sub_classification, t.total_prov_wt
+    ) x
 ),
+
 make_wise AS (
     SELECT
         b.location,
-        'Make Wise' AS report_section,
+        'Make Wise'::text AS report_section,
         b.make::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
         NULL::numeric AS pcs,
         SUM(b.prov_gr_wt) AS gr_wt,
         ROUND(
@@ -904,17 +969,25 @@ make_wise AS (
             END,
             2
         ) AS percent,
-        3 AS sort_order
+        4 AS section_sort,
+        ROW_NUMBER() OVER (
+            PARTITION BY b.location
+            ORDER BY b.make
+        ) AS row_sort
     FROM base b
     JOIN total t
       ON b.location = t.location
     GROUP BY b.location, b.make, t.total_prov_wt
 ),
+
 prov_type_wise AS (
     SELECT
         b.location,
-        'Provision Type Wise' AS report_section,
+        'Provision Type Wise'::text AS report_section,
         b.prov_type::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
         NULL::numeric AS pcs,
         SUM(b.prov_gr_wt) AS gr_wt,
         ROUND(
@@ -924,17 +997,25 @@ prov_type_wise AS (
             END,
             2
         ) AS percent,
-        4 AS sort_order
+        5 AS section_sort,
+        ROW_NUMBER() OVER (
+            PARTITION BY b.location
+            ORDER BY b.prov_type
+        ) AS row_sort
     FROM base b
     JOIN total t
       ON b.location = t.location
     GROUP BY b.location, b.prov_type, t.total_prov_wt
 ),
+
 section_wise AS (
     SELECT
         b.location,
-        'Section Wise' AS report_section,
+        'Section Wise'::text AS report_section,
         b.section::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
         SUM(b.prov_pieces) AS pcs,
         SUM(b.prov_gr_wt) AS gr_wt,
         ROUND(
@@ -944,17 +1025,25 @@ section_wise AS (
             END,
             2
         ) AS percent,
-        5 AS sort_order
+        6 AS section_sort,
+        ROW_NUMBER() OVER (
+            PARTITION BY b.location
+            ORDER BY b.section
+        ) AS row_sort
     FROM base b
     JOIN total t
       ON b.location = t.location
     GROUP BY b.location, b.section, t.total_prov_wt
 ),
+
 provision_mode_wise AS (
     SELECT
         b.location,
-        'Provision Mode Wise' AS report_section,
+        'Provision Mode Wise'::text AS report_section,
         b.provision_mode_filter::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
         NULL::numeric AS pcs,
         SUM(b.prov_gr_wt) AS gr_wt,
         ROUND(
@@ -964,33 +1053,38 @@ provision_mode_wise AS (
             END,
             2
         ) AS percent,
-        6 AS sort_order
+        7 AS section_sort,
+        ROW_NUMBER() OVER (
+            PARTITION BY b.location
+            ORDER BY b.provision_mode_filter
+        ) AS row_sort
     FROM base b
     JOIN total t
       ON b.location = t.location
     GROUP BY b.location, b.provision_mode_filter, t.total_prov_wt
 ),
+
 provision_mode_count AS (
     SELECT
         b.location,
-        'Provision Mode Count' AS report_section,
+        'Provision Mode Count'::text AS report_section,
         b.provision_mode_filter::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
         COUNT(*)::numeric AS pcs,
         NULL::numeric AS gr_wt,
         NULL::numeric AS percent,
-        7 AS sort_order
+        8 AS section_sort,
+        ROW_NUMBER() OVER (
+            PARTITION BY b.location
+            ORDER BY b.provision_mode_filter
+        ) AS row_sort
     FROM base b
     GROUP BY b.location, b.provision_mode_filter
-)
-SELECT
-    location,
-    report_section,
-    report_label,
-    pcs,
-    gr_wt,
-    percent,
-    sort_order
-FROM (
+),
+
+combined_report AS (
     SELECT * FROM location_summary
     UNION ALL
     SELECT * FROM purity_wise
@@ -1006,7 +1100,25 @@ FROM (
     SELECT * FROM provision_mode_wise
     UNION ALL
     SELECT * FROM provision_mode_count
-) AS combined_report
+)
+
+SELECT
+    location,
+    report_section,
+    report_label,
+    classification,
+    sub_classification,
+    is_parent,
+    pcs,
+    gr_wt,
+    percent,
+    section_sort,
+    row_sort
+FROM combined_report
+ORDER BY
+    location,
+    section_sort,
+    row_sort
         """
         
         start_time = time.time()
@@ -1027,10 +1139,15 @@ FROM (
                 location=row.get('location'),
                 report_section=row.get('report_section'),
                 report_label=row.get('report_label'),
+                classification=row.get('classification'),
+                sub_classification=row.get('sub_classification'),
+                is_parent=row.get('is_parent'),
                 pcs=row.get('pcs'),
                 grossweight=row.get('gr_wt'),
                 percent=row.get('percent'),
-                sort_order=row.get('sort_order'),
+                section_sort=row.get('section_sort'),
+                row_sort=row.get('row_sort'),
+                sort_order=row.get('section_sort'), # backward compatibility
                 snapshot_date=db.func.current_date()
             )
             new_records.append(record)
@@ -1040,6 +1157,7 @@ FROM (
         
         emit_sync_update('success', f'Provision Allocation Summary Sync completed! {len(rows)} records updated.', 100, 'provision_allocation')
         return {"status": "success", "count": len(rows)}
+
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)

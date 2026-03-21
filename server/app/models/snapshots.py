@@ -608,10 +608,15 @@ class ProvisionAllocationSummarySnapshot(db.Model):
     location = db.Column(db.Text)
     report_section = db.Column(db.Text)
     report_label = db.Column(db.Text)
+    classification = db.Column(db.Text)
+    sub_classification = db.Column(db.Text)
+    is_parent = db.Column(db.Integer)
     pcs = db.Column(db.Numeric(18, 3))
     grossweight = db.Column(db.Numeric(18, 3))
     percent = db.Column(db.Numeric(18, 2))
     sort_order = db.Column(db.Integer)
+    section_sort = db.Column(db.Integer)
+    row_sort = db.Column(db.Integer)
     snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
@@ -621,12 +626,18 @@ class ProvisionAllocationSummarySnapshot(db.Model):
             'location': self.location,
             'report_section': self.report_section,
             'report_label': self.report_label,
+            'classification': self.classification,
+            'sub_classification': self.sub_classification,
+            'is_parent': self.is_parent,
             'pcs': float(self.pcs or 0),
             'grossweight': float(self.grossweight or 0),
             'percent': float(self.percent or 0),
             'sort_order': self.sort_order,
+            'section_sort': self.section_sort,
+            'row_sort': self.row_sort,
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
         }
+
 
 
 

@@ -1,8 +1,20 @@
 {# Macro Definitions #}
 
-{% macro render_row(label, weight, percent, is_grand_total=false, is_category=false, indent=false) %}
-<tr class="{% if is_grand_total %}bg-[#d6d6d6] dark:bg-gray-700 font-bold{% elif is_category %}bg-[#e3f2fd] dark:bg-blue-900/30 font-bold{% else %}bg-white dark:bg-gray-800{% endif %}">
-    <td class="px-2 py-0.5 border border-gray-300 text-left {% if indent %}pl-4{% endif %}">{{ label or '-' }}</td>
+{% macro render_row(label, weight, percent, is_grand_total=false, is_category=false, indent=false, is_parent=1, classification=none) %}
+<tr class="{% if is_grand_total %}bg-[#d6d6d6] dark:bg-gray-700 font-bold{% elif is_category %}bg-[#e3f2fd] dark:bg-blue-900/30 font-bold{% else %}bg-white dark:bg-gray-800{% endif %} {% if is_parent == 1 and classification %}cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 parent-row{% elif is_parent == 0 %}child-row hidden{% endif %}"
+    {% if classification %}data-classification="{{ classification }}"{% endif %}
+    {% if is_parent == 1 and classification %}onclick="toggleClassification('{{ classification }}')"{% endif %}>
+    <td class="px-2 py-0.5 border border-gray-300 text-left {% if indent %}pl-4{% endif %} h-6">
+        <div class="flex items-center gap-1 h-full">
+            {% if is_parent == 1 and classification %}
+                <span class="inline-flex items-center justify-center w-4 transition-transform duration-200 toggle-arrow cursor-pointer" id="arrow-{{ classification }}">▶</span>
+            {% endif %}
+            {% if is_parent == 0 %}
+                <span class="inline-flex items-center justify-center text-gray-400 w-4">→</span>
+            {% endif %}
+            <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ label or '-' }}</span>
+        </div>
+    </td>
     <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.0f}".format(weight) if weight is not none else '0' }}</td>
     <td class="px-2 py-0.5 border border-gray-300 text-right relative min-w-[50px]">
         {% if percent is not none and not is_grand_total %}
@@ -47,9 +59,17 @@
                             {% if totals.update({'wt': totals.wt + (row.grossweight or 0), 'pct': totals.pct + (row.percent or 0)}) %}{% endif %}
                         {% endif %}
                     {% else %}
-                        {% if totals.update({'wt': totals.wt + (row.grossweight or 0), 'pct': totals.pct + (row.percent or 0)}) %}{% endif %}
+                        {# Only include parents in totals if it's a hierarchical section to avoid double counting #}
+                        {% if row.is_parent != 0 %}
+                            {% if totals.update({'wt': totals.wt + (row.grossweight or 0), 'pct': totals.pct + (row.percent or 0)}) %}{% endif %}
+                        {% endif %}
                     {% endif %}
-                    {{ render_row(row.report_label, row.grossweight, row.percent, is_category=is_cat, indent=(use_cats and not is_cat)) }}
+                    
+                    {{ render_row(row.report_label, row.grossweight, row.percent, 
+                                 is_category=is_cat, 
+                                 indent=(use_cats and not is_cat),
+                                 is_parent=(row.is_parent if row.is_parent is not none else 1),
+                                 classification=row.classification) }}
                 {% endif %}
             {% endfor %}
             {% if not totals.has_grand and rows|length > 0 %}
@@ -174,10 +194,12 @@
     {% endif %}
 {% endfor %}
 
-{# Sort each segment by percent descending #}
+{# Sort each segment by percent descending, EXCEPT Classification Wise which depends on row_sort hierarchy #}
 {% for section, items in segments.items() %}
-    {% set sorted_items = items | sort(attribute='percent', reverse=True) %}
-    {% set _ = segments.update({section: sorted_items}) %}
+    {% if section != 'Classification Wise' %}
+        {% set sorted_items = items | sort(attribute='percent', reverse=True) %}
+        {% set _ = segments.update({section: sorted_items}) %}
+    {% endif %}
 {% endfor %}
 
 <div class="w-full bg-white dark:bg-gray-900 p-4 min-h-screen">
@@ -253,8 +275,6 @@
 
 <script>
     {% if pagination %}
-    // The redesign is a complex summary dashboard, pagination might be less relevant here 
-    // but keeping the elements for compatibility if the backend still sends it.
     const pagInfo = document.getElementById('pagination-info');
     if (pagInfo) {
         pagInfo.textContent = '{{ (pagination.page - 1) * pagination.per_page + 1 }}-{{ (pagination.page - 1) * pagination.per_page + rows|length }} of {{ pagination.total }}';
@@ -264,6 +284,23 @@
     const btnNext = document.getElementById('btn-next');
     if (btnNext) btnNext.disabled = {{ 'false' if pagination.has_next else 'true' }};
     {% endif %}
+
+    function toggleClassification(classification) {
+        const rows = document.querySelectorAll(`tr[data-classification="${classification}"].child-row`);
+        const arrow = document.getElementById(`arrow-${classification}`);
+        
+        rows.forEach(row => {
+            row.classList.toggle('hidden');
+        });
+
+        if (arrow) {
+            if (rows[0] && !rows[0].classList.contains('hidden')) {
+                arrow.style.transform = 'rotate(90deg)';
+            } else {
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
 </script>
 
 
