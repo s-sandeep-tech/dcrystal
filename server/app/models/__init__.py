@@ -12,7 +12,7 @@ from .snapshots import (
     OutstandingPurchaseOrderStatusSnapshot,
     StageLevelDelaySnapshot,
     PendingAcceptanceSnapshot,
-    PendingAcceptanceFeedback,
+    ReportFeedback,
     ShowroomWiseOrderSummarySnapshot
 )
 from .rbac import Role, Permission, Menu, RoleMenu, RolePermission, UserRole, AuditLog, UserPasswordHistory
@@ -44,6 +44,6 @@ __all__ = [
     'OutstandingPurchaseOrderStatusSnapshot',
     'StageLevelDelaySnapshot',
     'PendingAcceptanceSnapshot',
-    'PendingAcceptanceFeedback',
+    'ReportFeedback',
     'ShowroomWiseOrderSummarySnapshot'
 ]

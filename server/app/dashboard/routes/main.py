@@ -108,8 +108,8 @@ def sync_pending_acceptance():
     if not session.get('user_id') or (not session.get('is_admin') and 'DATA_SYNC_USER' not in session.get('roles', [])):
         return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
         
-    from app.utils.sync_manager import sync_pending_acceptance_feedback_data
-    result = sync_pending_acceptance_feedback_data()
+    from app.utils.sync_manager import sync_pending_acceptance_data
+    result = sync_pending_acceptance_data()
     return result, 200 if result.get('status') == 'success' else 500
 
 @dashboard_bp.route('/settings/sync-rejected-weight', methods=['POST'])

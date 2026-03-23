@@ -1,7 +1,7 @@
 from flask import render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.dashboard import dashboard_bp
-from app.models.snapshots import RejectedWeightSnapshot, PendingAcceptanceFeedback
+from app.models.snapshots import RejectedWeightSnapshot, ReportFeedback
 from app.models.auth import User
 from app.extensions import db, redis_client
 from sqlalchemy import func, case
@@ -33,28 +33,28 @@ def generate_cache_key(prefix, snapshot_date=None, **kwargs):
 def get_latest_feedback_subquery():
     # Subquery for latest feedback for Rejected Weight ('RW')
     subq = db.session.query(
-        PendingAcceptanceFeedback.collection_owner,
-        PendingAcceptanceFeedback.make_owner,
-        PendingAcceptanceFeedback.supplier,
-        PendingAcceptanceFeedback.collection,
-        func.max(PendingAcceptanceFeedback.created_at).label('max_date')
-    ).filter(PendingAcceptanceFeedback.page_code == 'RW').group_by(
-        PendingAcceptanceFeedback.collection_owner,
-        PendingAcceptanceFeedback.make_owner,
-        PendingAcceptanceFeedback.supplier,
-        PendingAcceptanceFeedback.collection
+        ReportFeedback.collection_owner,
+        ReportFeedback.make_owner,
+        ReportFeedback.supplier,
+        ReportFeedback.collection,
+        func.max(ReportFeedback.created_at).label('max_date')
+    ).filter(ReportFeedback.page_code == 'RW').group_by(
+        ReportFeedback.collection_owner,
+        ReportFeedback.make_owner,
+        ReportFeedback.supplier,
+        ReportFeedback.collection
     ).subquery()
     
-    return db.session.query(PendingAcceptanceFeedback).join(
+    return db.session.query(ReportFeedback).join(
         subq,
         db.and_(
-            func.coalesce(PendingAcceptanceFeedback.collection_owner, '') == func.coalesce(subq.c.collection_owner, ''),
-            func.coalesce(PendingAcceptanceFeedback.make_owner, '') == func.coalesce(subq.c.make_owner, ''),
-            func.coalesce(PendingAcceptanceFeedback.supplier, '') == func.coalesce(subq.c.supplier, ''),
-            func.coalesce(PendingAcceptanceFeedback.collection, '') == func.coalesce(subq.c.collection, ''),
-            PendingAcceptanceFeedback.created_at == subq.c.max_date
+            func.coalesce(ReportFeedback.collection_owner, '') == func.coalesce(subq.c.collection_owner, ''),
+            func.coalesce(ReportFeedback.make_owner, '') == func.coalesce(subq.c.make_owner, ''),
+            func.coalesce(ReportFeedback.supplier, '') == func.coalesce(subq.c.supplier, ''),
+            func.coalesce(ReportFeedback.collection, '') == func.coalesce(subq.c.collection, ''),
+            ReportFeedback.created_at == subq.c.max_date
         )
-    ).filter(PendingAcceptanceFeedback.page_code == 'RW').subquery()
+    ).filter(ReportFeedback.page_code == 'RW').subquery()
 
 def apply_filters(query, search, latest_date_query, collection_owner=None, make_owner=None, 
                 supplier=None, collection=None, feedback_status=None,
@@ -519,7 +519,7 @@ def save_rejected_weight_feedback():
                 "message": f"Unauthorized. Only {owners_str} can save feedback for this record."
             }), 403
             
-        new_feedback = PendingAcceptanceFeedback(
+        new_feedback = ReportFeedback(
             collection_owner=collection_owner,
             make_owner=make_owner,
             supplier=supplier,

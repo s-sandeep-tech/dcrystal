@@ -574,8 +574,8 @@ class RejectedWeightSnapshot(db.Model):
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
         }
 
-class PendingAcceptanceFeedback(db.Model):
-    __tablename__ = 'pending_acceptance_feedback'
+class ReportFeedback(db.Model):
+    __tablename__ = 'report_feedback'
 
     id = db.Column(db.Integer, primary_key=True)
     collection_owner = db.Column(db.Text)
