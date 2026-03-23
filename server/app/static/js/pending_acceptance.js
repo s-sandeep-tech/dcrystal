@@ -1,3 +1,5 @@
+let currentStatusFilter = 'pending_to_accept';
+
 async function loadViewData() {
     const activeView = document.getElementById('view-pending-acceptance');
     if (!activeView) return;
@@ -24,6 +26,23 @@ async function loadViewData() {
     }
 }
 
+function setStatusFilter(filter) {
+    currentStatusFilter = filter;
+    
+    // Update button UI
+    document.querySelectorAll('.status-filter-btn').forEach(btn => btn.classList.remove('active'));
+    if (filter === 'pending_to_accept') {
+        const btn = document.getElementById('btn-status-accept');
+        if (btn) btn.classList.add('active');
+    } else {
+        const btn = document.getElementById('btn-status-deliver');
+        if (btn) btn.classList.add('active');
+    }
+    
+    // Apply filters
+    applyGlobalFilters();
+}
+
 function updateUrlAndLoad(params) {
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
@@ -36,6 +55,9 @@ function applyGlobalFilters() {
     const searchVal = document.getElementById('hierarchy-search')?.value;
     if (searchVal) urlParams.set('search', searchVal);
     else urlParams.delete('search');
+
+    if (currentStatusFilter) urlParams.set('status_filter', currentStatusFilter);
+    else urlParams.delete('status_filter');
 
     const feedbackStatus = document.getElementById('filter-feedback-status')?.value;
     if (feedbackStatus) urlParams.set('feedback_status', feedbackStatus);
@@ -154,6 +176,11 @@ function resetGlobalFilters() {
     const feedbackToDate = document.getElementById('filter-feedback-to-date');
     if (feedbackToDate) feedbackToDate.value = '';
     toggleFeedbackDateInputs();
+
+    currentStatusFilter = 'pending_to_accept';
+    document.querySelectorAll('.status-filter-btn').forEach(btn => btn.classList.remove('active'));
+    const btnAccept = document.getElementById('btn-status-accept');
+    if (btnAccept) btnAccept.classList.add('active');
 
     updateUrlAndLoad(urlParams);
 }
@@ -274,6 +301,18 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleFeedbackDateInputs();
     }
 
+    if (urlParams.get('status_filter')) {
+        currentStatusFilter = urlParams.get('status_filter');
+        document.querySelectorAll('.status-filter-btn').forEach(btn => btn.classList.remove('active'));
+        if (currentStatusFilter === 'pending_to_accept') {
+            const btn = document.getElementById('btn-status-accept');
+            if (btn) btn.classList.add('active');
+        } else {
+            const btn = document.getElementById('btn-status-deliver');
+            if (btn) btn.classList.add('active');
+        }
+    }
+
     const metaDiv = document.querySelector('.pagination-meta');
     if (metaDiv) {
         updatePaginationControls(metaDiv.dataset);
@@ -345,7 +384,8 @@ async function saveFeedback() {
         supplier: document.getElementById('fb_supplier').value,
         collection: document.getElementById('fb_collection').value,
         feedback_text: document.getElementById('feedbackText').value,
-        feedback_category: document.getElementById('feedbackCategory').value
+        feedback_category: document.getElementById('feedbackCategory').value,
+        status_filter: currentStatusFilter
     };
 
     if (!payload.feedback_text.trim()) {
@@ -381,7 +421,7 @@ async function saveFeedback() {
 }
 
 // PO Details Modal
-async function showPODetailsModal(collectionOwner, makeOwner, supplier, collection) {
+async function showPODetailsModal(collectionOwner, makeOwner, supplier, collection, statusFilter) {
     console.log('Opening PO Details for:', { collectionOwner, makeOwner, supplier, collection });
     document.getElementById('poOwnerText').textContent = collectionOwner || 'N/A';
     document.getElementById('poMakeText').textContent = makeOwner || 'N/A';
@@ -404,6 +444,7 @@ async function showPODetailsModal(collectionOwner, makeOwner, supplier, collecti
     urlParams.set('make_owner', makeOwner);
     urlParams.set('supplier', supplier);
     urlParams.set('collection', collection);
+    if (statusFilter) urlParams.set('status_filter', statusFilter);
 
     try {
         const response = await fetch(`/api/pending-acceptance-feedback/po-details?${urlParams.toString()}`, {

@@ -507,6 +507,8 @@ class PendingAcceptanceSnapshot(db.Model):
     order_wt = db.Column(db.Numeric(18, 3))
     accepted_wt = db.Column(db.Numeric(18, 3))
     pending_to_accepted_wt = db.Column(db.Numeric(18, 3))
+    pending_to_deliver_pcs = db.Column(db.Numeric(18, 3))
+    pending_to_deliver_wt = db.Column(db.Numeric(18, 3))
     order_type = db.Column(db.Text)
     order_request_type = db.Column(db.Text)
     order_date = db.Column(db.Date)
@@ -527,6 +529,8 @@ class PendingAcceptanceSnapshot(db.Model):
             'order_wt': float(self.order_wt or 0),
             'accepted_wt': float(self.accepted_wt or 0),
             'pending_to_accepted_wt': float(self.pending_to_accepted_wt or 0),
+            'pending_to_deliver_pcs': float(self.pending_to_deliver_pcs or 0),
+            'pending_to_deliver_wt': float(self.pending_to_deliver_wt or 0),
             'order_type': self.order_type or '',
             'order_request_type': self.order_request_type or '',
             'order_date': self.order_date.isoformat() if self.order_date else '',

@@ -1,15 +1,17 @@
-<table class="enterprise-grid w-full text-[11px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+<table class="enterprise-grid w-full text-[11px] border-collapse bg-white dark:bg-gray-900 sticky-header" style="table-layout: fixed;">
     <thead>
         <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
-            <th class="text-left px-4 pl-6 text-gray-800 dark:text-gray-200">Make Owner</th>
-            <th class="text-left">Collection Owner</th>
-            <th class="text-left">Supplier</th>
-            <th class="text-left">Collection</th>
-            <th class="text-right">Order Wt</th>
-            <th class="text-right text-emerald-600">Accepted Wt</th>
-            <th class="text-right text-red-600">Pending to Accepted Wt</th>
-            <th class="text-left pl-4 max-w-xs">Feedback</th>
-            <th class="text-center w-24">Action</th>
+            <th class="text-left px-4 pl-6 py-2 text-gray-800 dark:text-gray-200" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Make Owner</th>
+            <th class="text-left px-2 py-2" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Collection Owner</th>
+            <th class="text-left px-2 py-2" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Supplier</th>
+            <th class="text-left px-2 py-2" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Collection</th>
+            <th class="text-right px-2 py-2" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Order Wt</th>
+            <th class="text-right px-2 py-2 text-emerald-600" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Accepted Wt</th>
+            <th class="text-right px-2 py-2 text-red-600 {% if status_filter == 'pending_to_deliver' %}hidden{% endif %}" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Pending to<br>Accepted Wt</th>
+            <th class="text-right px-2 py-2 text-blue-600 {% if status_filter != 'pending_to_deliver' %}hidden{% endif %}" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Pending to<br>Deliver Pcs</th>
+            <th class="text-right px-2 py-2 text-indigo-600 {% if status_filter != 'pending_to_deliver' %}hidden{% endif %}" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Pending to<br>Deliver Wt</th>
+            <th class="text-left px-4 py-2 max-w-xs" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Feedback</th>
+            <th class="text-center px-2 py-2 w-24" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Action</th>
         </tr>
     </thead>
     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -21,13 +23,15 @@
             <td class="text-gray-600 dark:text-gray-400 py-1.5">{{ r.collection }}</td>
             <td class="text-right font-medium text-gray-700 dark:text-gray-300 py-1.5">
                 <a href="javascript:void(0)"
-                    onclick="showPODetailsModal('{{ (r.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (r.make_owner or '') | replace('\'', '\\\'') }}', '{{ (r.supplier or '') | replace('\'', '\\\'') }}', '{{ (r.collection or '') | replace('\'', '\\\'') }}')"
+                    onclick="showPODetailsModal('{{ (r.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (r.make_owner or '') | replace('\'', '\\\'') }}', '{{ (r.supplier or '') | replace('\'', '\\\'') }}', '{{ (r.collection or '') | replace('\'', '\\\'') }}', '{{ status_filter }}')"
                     class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 decoration-blue-200 dark:decoration-blue-800 hover:decoration-blue-600 dark:hover:decoration-blue-400 transition-all font-bold group-hover:scale-105 inline-block text-[10px]">
                     {{ "%.3f"|format(r.order_wt) }}
                 </a>
             </td>
             <td class="text-right font-bold text-emerald-600 py-1.5 text-[10px]">{{ "%.3f"|format(r.accepted_wt) }}</td>
-            <td class="text-right font-bold text-red-600 py-1.5 text-[10px]">{{ "%.3f"|format(r.pending_to_accepted_wt) }}</td>
+            <td class="text-right font-bold text-red-600 py-1.5 text-[10px] {% if status_filter == 'pending_to_deliver' %}hidden{% endif %}">{{ "%.3f"|format(r.pending_to_accepted_wt) }}</td>
+            <td class="text-right font-bold text-blue-600 py-1.5 text-[10px] {% if status_filter != 'pending_to_deliver' %}hidden{% endif %}">{{ "%.0f"|format(r.pending_to_deliver_pcs) }}</td>
+            <td class="text-right font-bold text-indigo-600 py-1.5 text-[10px] {% if status_filter != 'pending_to_deliver' %}hidden{% endif %}">{{ "%.3f"|format(r.pending_to_deliver_wt) }}</td>
             <td class="text-left pl-4 py-1.5 max-w-xs !overflow-visible">
                 <div class="flex items-center gap-2">
                     {% if r.feedback_text %}
@@ -63,7 +67,7 @@
             <td class="px-4 py-1.5 whitespace-nowrap text-center">
                 <div class="inline-flex items-center gap-1.5">
                     <!-- View PO Details -->
-                    <button onclick="showPODetailsModal('{{ (r.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (r.make_owner or '') | replace('\'', '\\\'') }}', '{{ (r.supplier or '') | replace('\'', '\\\'') }}', '{{ (r.collection or '') | replace('\'', '\\\'') }}')"
+                    <button onclick="showPODetailsModal('{{ (r.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (r.make_owner or '') | replace('\'', '\\\'') }}', '{{ (r.supplier or '') | replace('\'', '\\\'') }}', '{{ (r.collection or '') | replace('\'', '\\\'') }}', '{{ status_filter }}')"
                             class="size-6.5 flex items-center justify-center rounded bg-gray-50 dark:bg-gray-800 text-gray-500 border border-gray-200 dark:border-gray-700 hover:text-indigo-600 hover:border-indigo-300 transition-all shadow-sm"
                             title="View PO Details">
                         <span class="material-symbols-outlined text-[14px]">visibility</span>
@@ -85,7 +89,7 @@
 
         {% if not rows %}
         <tr>
-            <td colspan="9" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
+            <td colspan="11" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
         </tr>
         {% endif %}
     </tbody>

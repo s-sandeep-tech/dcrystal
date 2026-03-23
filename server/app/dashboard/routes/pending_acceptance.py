@@ -30,7 +30,7 @@ def generate_cache_key(prefix, snapshot_date=None, **kwargs):
     date_str = snapshot_date.strftime("%Y%m%d%H%M%S") if snapshot_date else "latest"
     return f"{prefix}:{date_str}:{args_str}"
 
-def get_latest_feedback_subquery():
+def get_latest_feedback_subquery(page_code='PA'):
     # Subquery for latest feedback
     subq = db.session.query(
         ReportFeedback.collection_owner,
@@ -38,7 +38,7 @@ def get_latest_feedback_subquery():
         ReportFeedback.supplier,
         ReportFeedback.collection,
         func.max(ReportFeedback.created_at).label('max_date')
-    ).filter(ReportFeedback.page_code == 'PA').group_by(
+    ).filter(ReportFeedback.page_code == page_code).group_by(
         ReportFeedback.collection_owner,
         ReportFeedback.make_owner,
         ReportFeedback.supplier,
@@ -54,7 +54,7 @@ def get_latest_feedback_subquery():
             func.coalesce(ReportFeedback.collection, '') == func.coalesce(subq.c.collection, ''),
             ReportFeedback.created_at == subq.c.max_date
         )
-    ).filter(ReportFeedback.page_code == 'PA').subquery()
+    ).filter(ReportFeedback.page_code == page_code).subquery()
 
 def apply_filters(query, search, latest_date_query, collection_owner=None, make_owner=None, 
                 supplier=None, collection=None, classification=None, feedback_status=None,
@@ -106,8 +106,9 @@ def apply_filters(query, search, latest_date_query, collection_owner=None, make_
 
 def get_base_query(query_filter_func=None, feedback_status=None, 
                    feedback_from_date=None, feedback_to_date=None, 
-                   enable_feedback_date_filter=False):
-    latest_feedback = get_latest_feedback_subquery()
+                   enable_feedback_date_filter=False, status_filter='pending_to_accept'):
+    p_code = 'PD' if status_filter == 'pending_to_deliver' else 'PA'
+    latest_feedback = get_latest_feedback_subquery(page_code=p_code)
     
     # Base query for aggregation
     q = db.session.query(
@@ -117,12 +118,21 @@ def get_base_query(query_filter_func=None, feedback_status=None,
         PendingAcceptanceSnapshot.collection,
         func.sum(PendingAcceptanceSnapshot.order_wt).label('sum_order_wt'),
         func.sum(PendingAcceptanceSnapshot.accepted_wt).label('sum_accepted_wt'),
-        func.sum(PendingAcceptanceSnapshot.pending_to_accepted_wt).label('sum_pending_to_accepted_wt')
+        func.sum(PendingAcceptanceSnapshot.pending_to_accepted_wt).label('sum_pending_to_accepted_wt'),
+        func.sum(PendingAcceptanceSnapshot.pending_to_deliver_pcs).label('sum_pending_to_deliver_pcs'),
+        func.sum(PendingAcceptanceSnapshot.pending_to_deliver_wt).label('sum_pending_to_deliver_wt')
     )
     
     if query_filter_func:
         q = query_filter_func(q)
         
+    # Apply status filter
+    if status_filter == 'pending_to_deliver':
+        q = q.filter(PendingAcceptanceSnapshot.pending_to_deliver_pcs > 0)
+    else:
+        # Default to pending_to_accept
+        q = q.filter(PendingAcceptanceSnapshot.pending_to_accepted_wt > 0)
+
     q = q.group_by(
         PendingAcceptanceSnapshot.collection_owner,
         PendingAcceptanceSnapshot.make_owner,
@@ -139,6 +149,8 @@ def get_base_query(query_filter_func=None, feedback_status=None,
         q.c.sum_order_wt,
         q.c.sum_accepted_wt,
         q.c.sum_pending_to_accepted_wt,
+        q.c.sum_pending_to_deliver_pcs,
+        q.c.sum_pending_to_deliver_wt,
         latest_feedback.c.feedback_text,
         latest_feedback.c.feedback_category,
         latest_feedback.c.username,
@@ -172,13 +184,18 @@ def get_base_query(query_filter_func=None, feedback_status=None,
     query = query.order_by(q.c.sum_accepted_wt.desc(), q.c.sum_pending_to_accepted_wt.desc())
     return query
 
-def calculate_stats(query):
+def calculate_stats(query, status_filter='pending_to_accept'):
     try:
         s = query.order_by(None).subquery()
+        if status_filter == 'pending_to_deliver':
+            pending_val_field = s.c.sum_pending_to_deliver_wt
+        else:
+            pending_val_field = s.c.sum_pending_to_accepted_wt
+
         res = db.session.query(
             func.sum(s.c.sum_order_wt),
             func.sum(s.c.sum_accepted_wt),
-            func.sum(s.c.sum_pending_to_accepted_wt),
+            func.sum(pending_val_field),
             func.count(case((s.c.feedback_text != None, 1))),
             func.count(case((s.c.feedback_text == None, 1)))
         ).first()
@@ -307,6 +324,7 @@ def get_pending_acceptance_partial():
     try:
         latest_date_query = db.session.query(func.max(PendingAcceptanceSnapshot.snapshot_date)).scalar()
         
+        status_filter = request.args.get('status_filter', 'pending_to_accept')
         search = request.args.get('search', '').strip()
         f_collection_owner = request.args.get('collection_owner', '')
         f_make_owner = request.args.get('make_owner', '')
@@ -354,6 +372,7 @@ def get_pending_acceptance_partial():
                                      feedback_from_date=f_feedback_from_date,
                                      feedback_to_date=f_feedback_to_date,
                                      enable_feedback_date_filter=f_enable_feedback_date_filter,
+                                     status_filter=status_filter,
                                      page=page, per_page=per_page)
         
         cached_data = redis_client.get(cache_key)
@@ -364,6 +383,7 @@ def get_pending_acceptance_partial():
                                  rows=data['rows'], 
                                  pagination=pagination,
                                  stats=data.get('stats', {}),
+                                 status_filter=status_filter,
                                  current_username=current_username)
 
         # 3. Filter function to apply to base snapshot query before aggregation
@@ -393,10 +413,11 @@ def get_pending_acceptance_partial():
         query = get_base_query(query_filter_func=filter_func, feedback_status=f_feedback_status,
                                feedback_from_date=f_feedback_from_date,
                                feedback_to_date=f_feedback_to_date,
-                               enable_feedback_date_filter=f_enable_feedback_date_filter)
+                               enable_feedback_date_filter=f_enable_feedback_date_filter,
+                               status_filter=status_filter)
         
         # Calculate Stats (now passing the formulated query)
-        stats = calculate_stats(query)
+        stats = calculate_stats(query, status_filter=status_filter)
         
         
 
@@ -415,6 +436,8 @@ def get_pending_acceptance_partial():
                 'order_wt': float(r.sum_order_wt or 0),
                 'accepted_wt': float(r.sum_accepted_wt or 0),
                 'pending_to_accepted_wt': float(r.sum_pending_to_accepted_wt or 0),
+                'pending_to_deliver_pcs': float(r.sum_pending_to_deliver_pcs or 0),
+                'pending_to_deliver_wt': float(r.sum_pending_to_deliver_wt or 0),
                 'feedback_text': r.feedback_text or '',
                 'feedback_category': r.feedback_category or '',
                 'feedback_username': r.username or '',
@@ -433,6 +456,7 @@ def get_pending_acceptance_partial():
                              rows=processed_rows, 
                              pagination=pagination,
                              stats=stats,
+                             status_filter=status_filter,
                              current_username=current_username)
                              
     except Exception as e:
@@ -457,6 +481,10 @@ def get_pending_acceptance_po_details():
         f_order_type = request.args.get('order_type', '')
         f_order_request_type = request.args.get('order_request_type', '')
         f_delay = request.args.get('delay')
+        f_from_date = request.args.get('from_date')
+        f_to_date = request.args.get('to_date')
+        f_enable_date_filter = request.args.get('enable_date_filter') == 'true'
+        status_filter = request.args.get('status_filter', 'pending_to_accept')
         
         query = db.session.query(
             PendingAcceptanceSnapshot.po_number,
@@ -465,7 +493,9 @@ def get_pending_acceptance_po_details():
             PendingAcceptanceSnapshot.order_piece,
             func.sum(PendingAcceptanceSnapshot.order_wt).label('sum_order_wt'),
             func.sum(PendingAcceptanceSnapshot.accepted_wt).label('sum_accepted_wt'),
-            func.sum(PendingAcceptanceSnapshot.pending_to_accepted_wt).label('sum_pending_to_accepted_wt')
+            func.sum(PendingAcceptanceSnapshot.pending_to_accepted_wt).label('sum_pending_to_accepted_wt'),
+            func.sum(PendingAcceptanceSnapshot.pending_to_deliver_pcs).label('sum_pending_to_deliver_pcs'),
+            func.sum(PendingAcceptanceSnapshot.pending_to_deliver_wt).label('sum_pending_to_deliver_wt')
         ).filter(
             PendingAcceptanceSnapshot.snapshot_date == latest_date_query,
             func.coalesce(PendingAcceptanceSnapshot.collection_owner, '') == collection_owner,
@@ -479,6 +509,9 @@ def get_pending_acceptance_po_details():
                                  PendingAcceptanceSnapshot.collection_owner.ilike(f"%{search}%") |
                                  PendingAcceptanceSnapshot.make_owner.ilike(f"%{search}%") |
                                  PendingAcceptanceSnapshot.collection.ilike(f"%{search}%"))
+                                 
+        if f_classification:
+            query = query.filter(PendingAcceptanceSnapshot.classification == f_classification)
         
         if f_order_type:
             query = query.filter(PendingAcceptanceSnapshot.order_type == f_order_type)
@@ -492,6 +525,21 @@ def get_pending_acceptance_po_details():
             except (ValueError, TypeError):
                 pass
                 
+        if f_enable_date_filter and f_from_date and f_to_date:
+            try:
+                from datetime import datetime
+                fd = datetime.strptime(f_from_date, '%Y-%m-%d').date()
+                td = datetime.strptime(f_to_date, '%Y-%m-%d').date()
+                query = query.filter(PendingAcceptanceSnapshot.order_date.between(fd, td))
+            except ValueError:
+                pass
+                
+        # Apply status filter
+        if status_filter == 'pending_to_deliver':
+            query = query.filter(PendingAcceptanceSnapshot.pending_to_deliver_pcs > 0)
+        else:
+            query = query.filter(PendingAcceptanceSnapshot.pending_to_accepted_wt > 0)
+
         query = query.group_by(
             PendingAcceptanceSnapshot.po_number,
             PendingAcceptanceSnapshot.po_date,
@@ -502,7 +550,16 @@ def get_pending_acceptance_po_details():
         records = query.all()
         
         details = []
-        totals = {'po_pieces': 0, 'po_weight': 0, 'order_wt': 0, 'accepted_wt': 0, 'pending_to_accepted_wt': 0}
+        status_filter = request.args.get('status_filter', 'pending_to_accept')
+        totals = {
+            'po_pieces': 0, 
+            'po_weight': 0, 
+            'order_wt': 0, 
+            'accepted_wt': 0, 
+            'pending_to_accepted_wt': 0,
+            'pending_to_deliver_pcs': 0,
+            'pending_to_deliver_wt': 0
+        }
         
         for r in records:
             po_w = float(r.total_weight or 0)
@@ -510,12 +567,16 @@ def get_pending_acceptance_po_details():
             o_w = float(r.sum_order_wt or 0)
             a_w = float(r.sum_accepted_wt or 0)
             p_a_w = float(r.sum_pending_to_accepted_wt or 0)
+            p_d_p = float(r.sum_pending_to_deliver_pcs or 0)
+            p_d_w = float(r.sum_pending_to_deliver_wt or 0)
             
             totals['po_pieces'] += po_p
             totals['po_weight'] += po_w
             totals['order_wt'] += o_w
             totals['accepted_wt'] += a_w
             totals['pending_to_accepted_wt'] += p_a_w
+            totals['pending_to_deliver_pcs'] += p_d_p
+            totals['pending_to_deliver_wt'] += p_d_w
             
             details.append({
                 'po_number': r.po_number or 'N/A',
@@ -524,10 +585,12 @@ def get_pending_acceptance_po_details():
                 'order_piece': po_p,
                 'order_wt': o_w,
                 'accepted_wt': a_w,
-                'pending_to_accepted_wt': p_a_w
+                'pending_to_accepted_wt': p_a_w,
+                'pending_to_deliver_pcs': p_d_p,
+                'pending_to_deliver_wt': p_d_w
             })
             
-        return render_template('partials/_po_details_modal.html', details=details, totals=totals)
+        return render_template('partials/_po_details_modal_generic.html', details=details, totals=totals, report_type='PA', status_filter=status_filter)
     except Exception as e:
         logger.error(f"Error in PO details load: {str(e)}")
         return f'<div class="p-8 text-center text-red-500 font-bold">Error loading PO Details: {str(e)}</div>', 200
@@ -570,6 +633,9 @@ def save_pending_acceptance_feedback():
                 "message": f"Unauthorized. Only {owners_str} can save feedback for this record."
             }), 403
             
+        status_f = data.get('status_filter', 'pending_to_accept')
+        p_code = 'PD' if status_f == 'pending_to_deliver' else 'PA'
+        
         new_feedback = ReportFeedback(
             collection_owner=collection_owner,
             make_owner=make_owner,
@@ -578,7 +644,7 @@ def save_pending_acceptance_feedback():
             feedback_text=feedback_text,
             feedback_category=feedback_category,
             username=current_username,
-            page_code='PA',
+            page_code=p_code,
             created_at=datetime.utcnow()
         )
         db.session.add(new_feedback)

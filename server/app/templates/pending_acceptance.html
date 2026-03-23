@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %} Pending Accept and Feedback Report {% endblock %}
+{% block title %} Feedback Report {% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
@@ -10,6 +10,10 @@
         background: #fff;
         border-bottom: 1px solid #e2e8f0;
         overflow-x: auto;
+    }
+
+    .hidden {
+        display: none !important;
     }
 
     .stat-card {
@@ -87,6 +91,30 @@
     .dark .stat-card {
         border-right: 1px solid #1f2937;
     }
+
+    .status-filter-btn {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .status-filter-btn.active {
+        border-color: #2563eb !important;
+        background: #eff6ff !important;
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1), 0 2px 4px -1px rgba(37, 99, 235, 0.06) !important;
+    }
+
+    .dark .status-filter-btn.active {
+        background: #1e3a8a !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    .status-filter-btn.active .text-gray-700 {
+        color: #1e40af !important;
+    }
+
+    .dark .status-filter-btn.active .dark\:text-gray-200 {
+        color: #dbeafe !important;
+    }
 </style>
 {% endblock %}
 
@@ -96,7 +124,7 @@
     <div
         class="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
         <div class="flex items-center gap-4">
-            <h2 class="text-sm font-bold tracking-tight">Pending Accept and Feedback Report </h2>
+            <h2 class="text-sm font-bold tracking-tight">Feedback Report </h2>
         </div>
         <div class="flex items-center gap-3">
             <div
@@ -244,7 +272,7 @@
     <div id="poDetailsModal" class="fixed inset-0 z-[100] hidden">
         <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onclick="closePODetailsModal()"></div>
         <div
-            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden max-h-[85vh]">
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-6xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden max-h-[85vh]">
             <div
                 class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-2">
@@ -295,14 +323,34 @@
 <aside
     class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
     <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xs font-bold flex items-center gap-2">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="text-[10px] font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> ADDITIONAL FILTERS
             </h2>
             <button onclick="resetGlobalFilters()"
                 class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
         </div>
         <div class="space-y-4">
+            <!-- Status Filter -->
+            <div class="space-y-2 mb-4">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[14px]">checklist</span> STATUS FILTER
+                </label>
+                <div class="flex flex-col gap-2">
+                    <button onclick="setStatusFilter('pending_to_accept')" id="btn-status-accept"
+                        class="status-filter-btn active flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group">
+                        <span
+                            class="material-symbols-outlined text-amber-500 group-hover:scale-110 transition-transform">pending_actions</span>
+                        <span class="text-xs font-bold text-gray-700 dark:text-gray-200">Pending To Accept</span>
+                    </button>
+                    <button onclick="setStatusFilter('pending_to_deliver')" id="btn-status-deliver"
+                        class="status-filter-btn flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group">
+                        <span
+                            class="material-symbols-outlined text-blue-500 group-hover:scale-110 transition-transform">local_shipping</span>
+                        <span class="text-xs font-bold text-gray-700 dark:text-gray-200">Pending To Deliver</span>
+                    </button>
+                </div>
+            </div>
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Feedback Status</label>
                 <select id="filter-feedback-status"
@@ -397,21 +445,27 @@
                 </select>
             </div>
             <!-- Custom Order Date Range Section -->
-            <div class="p-3 bg-gray-50/50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-800/50 transition-all duration-300">
+            <div
+                class="p-3 bg-gray-50/50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-800/50 transition-all duration-300">
                 <div class="flex items-center justify-between mb-3">
                     <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                         <span class="material-symbols-outlined text-[14px]">calendar_month</span>
                         Custom Order Date Range
                     </label>
                     <label class="relative inline-flex items-center cursor-pointer group">
-                        <input type="checkbox" id="enable-date-filter" onclick="toggleDateInputs()" class="sr-only peer">
-                        <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none dark:bg-gray-700 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
+                        <input type="checkbox" id="enable-date-filter" onclick="toggleDateInputs()"
+                            class="sr-only peer">
+                        <div
+                            class="w-7 h-4 bg-gray-200 peer-focus:outline-none dark:bg-gray-700 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary">
+                        </div>
                     </label>
                 </div>
-                <div id="date-inputs" class="space-y-3 opacity-40 pointer-events-none transition-all duration-300 origin-top">
+                <div id="date-inputs"
+                    class="space-y-3 opacity-40 pointer-events-none transition-all duration-300 origin-top">
                     <div class="grid grid-cols-2 gap-2">
                         <div class="space-y-1">
-                            <label class="text-[8px] font-bold text-gray-400 uppercase tracking-widest px-1">From</label>
+                            <label
+                                class="text-[8px] font-bold text-gray-400 uppercase tracking-widest px-1">From</label>
                             <input type="date" id="filter-from-date"
                                 class="w-full bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-lg text-[10px] focus:ring-1 focus:ring-primary/20 focus:border-primary p-2 transition-all">
                         </div>
@@ -425,21 +479,27 @@
             </div>
 
             <!-- Feedback Date Range Section -->
-            <div class="p-3 bg-gray-50/50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-800/50 transition-all duration-300">
+            <div
+                class="p-3 bg-gray-50/50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-800/50 transition-all duration-300">
                 <div class="flex items-center justify-between mb-3">
                     <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                         <span class="material-symbols-outlined text-[14px]">comment_bank</span>
                         Feedback Date Range
                     </label>
                     <label class="relative inline-flex items-center cursor-pointer group">
-                        <input type="checkbox" id="enable-feedback-date-filter" onclick="toggleFeedbackDateInputs()" class="sr-only peer">
-                        <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none dark:bg-gray-700 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
+                        <input type="checkbox" id="enable-feedback-date-filter" onclick="toggleFeedbackDateInputs()"
+                            class="sr-only peer">
+                        <div
+                            class="w-7 h-4 bg-gray-200 peer-focus:outline-none dark:bg-gray-700 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary">
+                        </div>
                     </label>
                 </div>
-                <div id="feedback-date-inputs" class="space-y-3 opacity-40 pointer-events-none transition-all duration-300 origin-top">
+                <div id="feedback-date-inputs"
+                    class="space-y-3 opacity-40 pointer-events-none transition-all duration-300 origin-top">
                     <div class="grid grid-cols-2 gap-2">
                         <div class="space-y-1">
-                            <label class="text-[8px] font-bold text-gray-400 uppercase tracking-widest px-1">From</label>
+                            <label
+                                class="text-[8px] font-bold text-gray-400 uppercase tracking-widest px-1">From</label>
                             <input type="date" id="filter-feedback-from-date"
                                 class="w-full bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-lg text-[10px] focus:ring-1 focus:ring-primary/20 focus:border-primary p-2 transition-all">
                         </div>
