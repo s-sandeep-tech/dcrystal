@@ -69,10 +69,10 @@ def get_showroom_aggs(latest_date_query, search=None, business_head=None, classi
             query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
 
         # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
-        is_admin = session.get('is_admin', False)
-        username = session.get('username')
         roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
         is_manager_2 = 'MANAGER_2' in roles
+        username = session.get('username')
         if not is_admin and not is_manager_2 and username:
             u = username.strip().lower()
             query = query.filter(
@@ -143,12 +143,12 @@ def sync_showroom_wise_order_summary():
 @jwt_required()
 def showroom_options():
     try:
-        is_admin = session.get('is_admin', False)
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_manager_2 = 'MANAGER_2' in roles
+        is_admin = 'ADMIN' in roles
         username = session.get('username')
         
         def apply_options_filter(q):
-            roles = [r.upper() for r in session.get('roles', [])]
-            is_manager_2 = 'MANAGER_2' in roles
             if not is_admin and not is_manager_2 and username:
                 u = username.strip().lower()
                 return q.filter(
@@ -243,10 +243,10 @@ def get_showroom_partial():
                 query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
 
             # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
-            is_admin = session.get('is_admin', False)
-            username = session.get('username')
             roles = [r.upper() for r in session.get('roles', [])]
             is_manager_2 = 'MANAGER_2' in roles
+            is_admin = 'ADMIN' in roles
+            username = session.get('username')
             if not is_admin and not is_manager_2 and username:
                 u = username.strip().lower()
                 query = query.filter(
@@ -463,10 +463,10 @@ def get_showroom_details():
             query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
 
         # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
-        is_admin = session.get('is_admin', False)
-        username = session.get('username')
         roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
         is_manager_2 = 'MANAGER_2' in roles
+        username = session.get('username')
         if not is_admin and not is_manager_2 and username:
             u = username.strip().lower()
             query = query.filter(
