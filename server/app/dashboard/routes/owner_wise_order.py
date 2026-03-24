@@ -91,8 +91,9 @@ def owner_wise_order_summary():
             
             # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
             roles = [r.upper() for r in session.get('roles', [])]
+            is_admin = 'ADMIN' in roles
             is_manager_2 = 'MANAGER_2' in roles
-            if not session.get('is_admin', False) and not is_manager_2 and session.get('username'):
+            if not is_admin and not is_manager_2 and session.get('username'):
                 u = session.get('username').strip().lower()
                 query = query.filter(
                     (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
@@ -105,7 +106,7 @@ def owner_wise_order_summary():
         # Fetch filter options - Restricted for non-admins/non-managers
         def apply_options_filter(q):
             roles = [r.upper() for r in session.get('roles', [])]
-            if not session.get('is_admin', False) and 'MANAGER_2' not in roles and session.get('username'):
+            if 'ADMIN' not in roles and 'MANAGER_2' not in roles and session.get('username'):
                 u = session.get('username').strip().lower()
                 return q.filter(
                     (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
@@ -332,8 +333,9 @@ def get_owner_wise_partial():
             
             # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
             roles = [r.upper() for r in session.get('roles', [])]
+            is_admin = 'ADMIN' in roles
             is_manager_2 = 'MANAGER_2' in roles
-            if not session.get('is_admin', False) and not is_manager_2 and session.get('username'):
+            if not is_admin and not is_manager_2 and session.get('username'):
                 u = session.get('username').strip().lower()
                 query = query.filter(
                     (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
@@ -540,8 +542,9 @@ def get_leaf_detail():
 
         # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
         roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
         is_manager_2 = 'MANAGER_2' in roles
-        if not session.get('is_admin', False) and not is_manager_2 and session.get('username'):
+        if not is_admin and not is_manager_2 and session.get('username'):
             u = session.get('username').strip().lower()
             query = query.filter(
                 (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
