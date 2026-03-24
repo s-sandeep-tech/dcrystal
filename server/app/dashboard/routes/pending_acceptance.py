@@ -181,7 +181,13 @@ def get_base_query(query_filter_func=None, feedback_status=None,
         elif feedback_status == 'without':
             query = query.filter(latest_feedback.c.feedback_text == None)
             
-    query = query.order_by((q.c.sum_order_wt - q.c.sum_accepted_wt).asc())
+    if status_filter == 'pending_to_deliver':
+        query = query.order_by(
+            q.c.sum_pending_to_deliver_pcs.desc(), 
+            (q.c.sum_order_wt - q.c.sum_accepted_wt).asc()
+        )
+    else:
+        query = query.order_by(q.c.sum_accepted_wt.desc(), q.c.sum_pending_to_accepted_wt.desc())
     return query
 
 def calculate_stats(query, status_filter='pending_to_accept'):
