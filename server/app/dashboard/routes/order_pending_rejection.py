@@ -150,7 +150,7 @@ def get_order_pending_rejection_partial():
                 )
             
             roles = [r.upper() for r in session.get('roles', [])]
-            if not session.get('is_admin', False) and 'MANAGER_2' not in roles and session.get('username'):
+            if 'ADMIN' not in roles and 'MANAGER_2' not in roles and session.get('username'):
                 u = session.get('username').strip().lower()
                 query = query.filter(
                     (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |

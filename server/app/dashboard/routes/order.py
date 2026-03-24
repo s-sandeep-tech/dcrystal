@@ -27,7 +27,8 @@ def order_status():
 @dashboard_bp.route('/api/orderstatus/options')
 @jwt_required()
 def order_status_options():
-    is_admin = session.get('is_admin', False)
+    roles = [r.upper() for r in session.get('roles', [])]
+    is_admin = 'ADMIN' in roles
     username = session.get('username')
     
     def apply_options_filter(q):
@@ -103,9 +104,9 @@ def get_dashboard_partial(view_type):
             query = query.filter(OwnerWiseOrderSummarySnapshot.supplier == party)
 
         # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
-        is_admin = session.get('is_admin', False)
         username = session.get('username')
         roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
         is_manager_2 = 'MANAGER_2' in roles
         from flask import current_app
         if not is_admin and not is_manager_2 and username:

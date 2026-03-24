@@ -61,13 +61,10 @@ def order_delay_tracking():
 @jwt_required()
 def order_delay_tracking_options():
     try:
-        is_admin = session.get('is_admin', False)
-        username = session.get('username')
-        
-        def apply_options_filter(q):
-            roles = [r.upper() for r in session.get('roles', [])]
-            is_manager_2 = 'MANAGER_2' in roles
-            if not is_admin and not is_manager_2 and username:
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_manager_2 = 'MANAGER_2' in roles
+        is_admin = 'ADMIN' in roles
+        if not is_admin and not is_manager_2 and username:
                 u = username.strip().lower()
                 return q.filter(
                     (func.lower(func.trim(OrderDelayTrackingSnapshot.make_owner)) == u) |
@@ -135,9 +132,8 @@ def get_order_delay_tracking_partial():
                 )
             
             # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
-            is_admin = session.get('is_admin', False)
-            username = session.get('username')
             roles = [r.upper() for r in session.get('roles', [])]
+            is_admin = 'ADMIN' in roles
             is_manager_2 = 'MANAGER_2' in roles
             if not is_admin and not is_manager_2 and username:
                 u = username.strip().lower()
@@ -315,9 +311,8 @@ def get_order_delay_tracking_details():
             )
 
         # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
-        is_admin = session.get('is_admin', False)
-        username = session.get('username')
         roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
         is_manager_2 = 'MANAGER_2' in roles
         if not is_admin and not is_manager_2 and username:
             u = username.strip().lower()

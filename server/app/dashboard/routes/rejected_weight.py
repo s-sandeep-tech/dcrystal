@@ -218,7 +218,7 @@ def rejected_weight():
         
         roles = [r.upper() for r in session.get('roles', [])]
         is_manager_2 = 'MANAGER_2' in roles
-        is_admin = session.get('is_admin', False)
+        is_admin = 'ADMIN' in roles
         current_username = session.get('username', '').strip()
         
         restrict_to_user = not is_admin and not is_manager_2 and current_username
@@ -283,7 +283,7 @@ def get_rejected_weight_partial():
         
         roles = [r.upper() for r in session.get('roles', [])]
         is_manager_2 = 'MANAGER_2' in roles
-        is_admin = session.get('is_admin', False)
+        is_admin = 'ADMIN' in roles
         current_username = session.get('username', '').strip()
         restrict_to_user = not is_admin and not is_manager_2 and current_username
         
