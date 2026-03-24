@@ -64,7 +64,10 @@ def order_delay_tracking_options():
         roles = [r.upper() for r in session.get('roles', [])]
         is_manager_2 = 'MANAGER_2' in roles
         is_admin = 'ADMIN' in roles
-        if not is_admin and not is_manager_2 and username:
+        username = session.get('username')
+        
+        def apply_options_filter(q):
+            if not is_admin and not is_manager_2 and username:
                 u = username.strip().lower()
                 return q.filter(
                     (func.lower(func.trim(OrderDelayTrackingSnapshot.make_owner)) == u) |
