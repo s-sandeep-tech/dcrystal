@@ -2,7 +2,10 @@ let currentStatusFilter = 'pending_to_accept';
 
 async function loadViewData() {
     const activeView = document.getElementById('view-pending-acceptance');
+    const loader = document.getElementById('loader-overlay');
     if (!activeView) return;
+
+    if (loader) loader.classList.remove('hidden');
 
     const urlParams = new URLSearchParams(window.location.search);
     try {
@@ -23,6 +26,13 @@ async function loadViewData() {
     } catch (error) {
         console.error('Error loading view:', error);
         activeView.innerHTML = `<div class="p-8 text-center text-red-500">Error loading data.</div>`;
+    } finally {
+        if (loader) {
+            // Small delay for smooth transition if data loads too fast
+            setTimeout(() => {
+                loader.classList.add('hidden');
+            }, 300);
+        }
     }
 }
 
