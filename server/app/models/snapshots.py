@@ -509,9 +509,12 @@ class PendingAcceptanceSnapshot(db.Model):
     pending_to_accepted_wt = db.Column(db.Numeric(18, 3))
     pending_to_deliver_pcs = db.Column(db.Numeric(18, 3))
     pending_to_deliver_wt = db.Column(db.Numeric(18, 3))
+    not_barcoded_pcs = db.Column(db.Numeric(18, 3))
+    not_barcoded_wt = db.Column(db.Numeric(18, 3))
     order_type = db.Column(db.Text)
     order_request_type = db.Column(db.Text)
     order_date = db.Column(db.Date)
+    delivery_target_date = db.Column(db.Date)
     snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
@@ -531,9 +534,12 @@ class PendingAcceptanceSnapshot(db.Model):
             'pending_to_accepted_wt': float(self.pending_to_accepted_wt or 0),
             'pending_to_deliver_pcs': float(self.pending_to_deliver_pcs or 0),
             'pending_to_deliver_wt': float(self.pending_to_deliver_wt or 0),
+            'not_barcoded_pcs': float(self.not_barcoded_pcs or 0),
+            'not_barcoded_wt': float(self.not_barcoded_wt or 0),
             'order_type': self.order_type or '',
             'order_request_type': self.order_request_type or '',
             'order_date': self.order_date.isoformat() if self.order_date else '',
+            'delivery_target_date': self.delivery_target_date.isoformat() if self.delivery_target_date else '',
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
         }
 

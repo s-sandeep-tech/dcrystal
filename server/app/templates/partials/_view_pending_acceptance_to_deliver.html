@@ -7,7 +7,8 @@
             <th class="text-left px-2 py-2" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Collection</th>
             <th class="text-right px-2 py-2" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Order Wt</th>
             <th class="text-right px-2 py-2 text-emerald-600" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Accepted Wt</th>
-            <th class="text-right px-2 py-2 text-red-600" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Pending to<br>Accepted Wt</th>
+            <th class="text-right px-2 py-2 text-blue-600" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Pending to<br>Deliver Pcs</th>
+            <th class="text-right px-2 py-2 text-indigo-600" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Pending to<br>Deliver Wt</th>
             <th class="text-left px-4 py-2 max-w-xs" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Feedback</th>
             <th class="text-center px-2 py-2 w-24" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Action</th>
         </tr>
@@ -27,7 +28,8 @@
                 </a>
             </td>
             <td class="text-right font-bold text-emerald-600 py-1.5 text-[10px]">{{ "%.3f"|format(r.accepted_wt) }}</td>
-            <td class="text-right font-bold text-red-600 py-1.5 text-[10px]">{{ "%.3f"|format(r.pending_to_accepted_wt) }}</td>
+            <td class="text-right font-bold text-blue-600 py-1.5 text-[10px]">{{ "%.0f"|format(r.pending_to_deliver_pcs) }}</td>
+            <td class="text-right font-bold text-indigo-600 py-1.5 text-[10px]">{{ "%.3f"|format(r.pending_to_deliver_wt) }}</td>
             <td class="text-left pl-4 py-1.5 max-w-xs !overflow-visible">
                 <div class="flex items-center gap-2">
                     {% if r.feedback_text %}
@@ -85,7 +87,7 @@
 
         {% if not rows %}
         <tr>
-            <td colspan="8" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
+            <td colspan="10" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
         </tr>
         {% endif %}
     </tbody>

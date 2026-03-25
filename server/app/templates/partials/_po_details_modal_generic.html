@@ -13,8 +13,11 @@
                 {% elif status_filter == 'pending_to_deliver' %}
                 <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right">Pending Deliver Pcs</th>
                 <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right">Pending Deliver Wt</th>
+                {% elif status_filter == 'pending_to_deliver_not_barcoded' %}
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right text-cyan-600">Not Barcoded Pcs</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right text-orange-600">Not Barcoded Wt</th>
                 {% else %}
-                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right">Pending Wt</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right text-red-600">Pending Wt</th>
                 {% endif %}
             </tr>
         </thead>
@@ -32,6 +35,9 @@
                 {% elif status_filter == 'pending_to_deliver' %}
                 <td class="px-4 py-3 text-[11px] text-right font-mono text-blue-600">{{ r.pending_to_deliver_pcs | int }}</td>
                 <td class="px-4 py-3 text-[11px] text-right font-mono text-indigo-600">{{ "{:,.3f}".format(r.pending_to_deliver_wt) }}</td>
+                {% elif status_filter == 'pending_to_deliver_not_barcoded' %}
+                <td class="px-4 py-3 text-[11px] text-right font-mono text-cyan-600">{{ r.not_barcoded_pcs | int }}</td>
+                <td class="px-4 py-3 text-[11px] text-right font-mono text-orange-600">{{ "{:,.3f}".format(r.not_barcoded_wt) }}</td>
                 {% else %}
                 <td class="px-4 py-3 text-[11px] text-right font-mono text-red-600">{{ "{:,.3f}".format(r.pending_to_accepted_wt) }}</td>
                 {% endif %}
@@ -49,6 +55,9 @@
                 {% elif status_filter == 'pending_to_deliver' %}
                 <td class="px-4 py-3 text-[11px] text-right font-mono text-blue-600">{{ totals.pending_to_deliver_pcs | int }}</td>
                 <td class="px-4 py-3 text-[11px] text-right font-mono text-indigo-600">{{ "{:,.3f}".format(totals.pending_to_deliver_wt) }}</td>
+                {% elif status_filter == 'pending_to_deliver_not_barcoded' %}
+                <td class="px-4 py-3 text-[11px] text-right font-mono text-cyan-600">{{ totals.not_barcoded_pcs | int }}</td>
+                <td class="px-4 py-3 text-[11px] text-right font-mono text-orange-600">{{ "{:,.3f}".format(totals.not_barcoded_wt) }}</td>
                 {% else %}
                 <td class="px-4 py-3 text-[11px] text-right font-mono text-red-600">{{ "{:,.3f}".format(totals.pending_to_accepted_wt) }}</td>
                 {% endif %}

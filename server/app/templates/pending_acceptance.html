@@ -185,22 +185,50 @@
                 if stats else '0.000' }}</p>
         </div>
         <div class="stat-card">
-            <p class="stat-label"><span
-                    class="material-symbols-outlined text-orange-premium">pending_actions</span>Pending Wt</p>
-            <p id="stat-pending-wt" class="stat-val text-orange-premium">{{ "{:,.3f}".format(stats.total_pending_wt) if
-                stats else '0.000' }}</p>
+            <p class="stat-label">
+                {% if status_filter == 'pending_to_deliver' %}
+                <span class="material-symbols-outlined text-indigo-600">local_shipping</span>Pending Deliver Wt
+                {% elif status_filter == 'pending_to_deliver_not_barcoded' %}
+                <span class="material-symbols-outlined text-orange-600">barcode_scanner</span>Not Barcoded Wt
+                {% else %}
+                <span class="material-symbols-outlined text-orange-600">pending_actions</span>Pending Wt
+                {% endif %}
+            </p>
+            <p id="stat-pending-wt" class="stat-val text-orange-600">
+                {% if status_filter == 'pending_to_deliver' %}
+                    {{ "{:,.3f}".format(stats.total_pending_to_deliver_wt) if stats else '0.000' }}
+                {% elif status_filter == 'pending_to_deliver_not_barcoded' %}
+                    {{ "{:,.3f}".format(stats.total_not_barcoded_wt) if stats else '0.000' }}
+                {% else %}
+                    {{ "{:,.3f}".format(stats.total_pending_to_accepted_wt) if stats else '0.000' }}
+                {% endif %}
+            </p>
+        </div>
+        <div class="stat-card">
+            <p class="stat-label">
+                {% if status_filter == 'pending_to_deliver' %}
+                <span class="material-symbols-outlined text-blue-600">inventory_2</span>Pending Deliver Pcs
+                {% elif status_filter == 'pending_to_deliver_not_barcoded' %}
+                <span class="material-symbols-outlined text-cyan-600">pin</span>Not Barcoded Pcs
+                {% else %}
+                <span class="material-symbols-outlined text-red-600">chat_error</span>Without Feedback
+                {% endif %}
+            </p>
+            <p id="stat-contextual-metric" class="stat-val">
+                {% if status_filter == 'pending_to_deliver' %}
+                    {{ stats.total_pending_to_deliver_pcs | int if stats else '0' }}
+                {% elif status_filter == 'pending_to_deliver_not_barcoded' %}
+                    {{ stats.total_not_barcoded_pcs | int if stats else '0' }}
+                {% else %}
+                    {{ stats.without_feedback if stats else '0' }}
+                {% endif %}
+            </p>
         </div>
         <div class="stat-card">
             <p class="stat-label"><span class="material-symbols-outlined text-emerald-premium">chat_bubble</span>With
                 Feedback</p>
             <p id="stat-with-feedback" class="stat-val text-emerald-premium">{{ stats.with_feedback if stats else '0' }}
             </p>
-        </div>
-        <div class="stat-card">
-            <p class="stat-label"><span class="material-symbols-outlined text-red-premium">chat_error</span>Without
-                Feedback</p>
-            <p id="stat-without-feedback" class="stat-val text-red-premium">{{ stats.without_feedback if stats else '0'
-                }}</p>
         </div>
     </div>
 
@@ -348,6 +376,12 @@
                         <span
                             class="material-symbols-outlined text-blue-500 group-hover:scale-110 transition-transform">local_shipping</span>
                         <span class="text-xs font-bold text-gray-700 dark:text-gray-200">Pending To Deliver</span>
+                    </button>
+                    <button onclick="setStatusFilter('pending_to_deliver_not_barcoded')" id="btn-status-not-barcoded"
+                        class="status-filter-btn flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group">
+                        <span
+                            class="material-symbols-outlined text-cyan-500 group-hover:scale-110 transition-transform">barcode_scanner</span>
+                        <span class="text-xs font-bold text-gray-700 dark:text-gray-200">Pending To Deliver (Not Barcoded)</span>
                     </button>
                 </div>
             </div>

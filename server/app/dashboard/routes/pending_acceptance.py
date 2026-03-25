@@ -66,9 +66,8 @@ def apply_filters(query, search, latest_date_query, collection_owner=None, make_
     if delay is not None:
         try:
             delay_val = int(delay)
-            # Safer comparison: order_date <= current_date - delay_days
-            # This ensures items are at least N days old
-            query = query.filter(PendingAcceptanceSnapshot.order_date <= func.current_date() - delay_val)
+            # (delivery_target_date - current_date) >= delay_val
+            query = query.filter(PendingAcceptanceSnapshot.delivery_target_date - func.current_date() >= delay_val)
         except (ValueError, TypeError):
             pass
 
@@ -107,7 +106,12 @@ def apply_filters(query, search, latest_date_query, collection_owner=None, make_
 def get_base_query(query_filter_func=None, feedback_status=None, 
                    feedback_from_date=None, feedback_to_date=None, 
                    enable_feedback_date_filter=False, status_filter='pending_to_accept'):
-    p_code = 'PD' if status_filter == 'pending_to_deliver' else 'PA'
+    p_code = 'PA'
+    if status_filter == 'pending_to_deliver':
+        p_code = 'PD'
+    elif status_filter == 'pending_to_deliver_not_barcoded':
+        p_code = 'PNB'
+    
     latest_feedback = get_latest_feedback_subquery(page_code=p_code)
     
     # Base query for aggregation
@@ -120,7 +124,9 @@ def get_base_query(query_filter_func=None, feedback_status=None,
         func.sum(PendingAcceptanceSnapshot.accepted_wt).label('sum_accepted_wt'),
         func.sum(PendingAcceptanceSnapshot.pending_to_accepted_wt).label('sum_pending_to_accepted_wt'),
         func.sum(PendingAcceptanceSnapshot.pending_to_deliver_pcs).label('sum_pending_to_deliver_pcs'),
-        func.sum(PendingAcceptanceSnapshot.pending_to_deliver_wt).label('sum_pending_to_deliver_wt')
+        func.sum(PendingAcceptanceSnapshot.pending_to_deliver_wt).label('sum_pending_to_deliver_wt'),
+        func.sum(PendingAcceptanceSnapshot.not_barcoded_pcs).label('sum_not_barcoded_pcs'),
+        func.sum(PendingAcceptanceSnapshot.not_barcoded_wt).label('sum_not_barcoded_wt')
     )
     
     if query_filter_func:
@@ -129,6 +135,8 @@ def get_base_query(query_filter_func=None, feedback_status=None,
     # Apply status filter
     if status_filter == 'pending_to_deliver':
         q = q.filter(PendingAcceptanceSnapshot.pending_to_deliver_pcs > 0)
+    elif status_filter == 'pending_to_deliver_not_barcoded':
+        q = q.filter(PendingAcceptanceSnapshot.not_barcoded_pcs > 0)
     else:
         # Default to pending_to_accept
         q = q.filter(PendingAcceptanceSnapshot.pending_to_accepted_wt > 0)
@@ -151,6 +159,8 @@ def get_base_query(query_filter_func=None, feedback_status=None,
         q.c.sum_pending_to_accepted_wt,
         q.c.sum_pending_to_deliver_pcs,
         q.c.sum_pending_to_deliver_wt,
+        q.c.sum_not_barcoded_pcs,
+        q.c.sum_not_barcoded_wt,
         latest_feedback.c.feedback_text,
         latest_feedback.c.feedback_category,
         latest_feedback.c.username,
@@ -186,6 +196,11 @@ def get_base_query(query_filter_func=None, feedback_status=None,
             q.c.sum_pending_to_deliver_pcs.desc(), 
             (q.c.sum_order_wt - q.c.sum_accepted_wt).asc()
         )
+    elif status_filter == 'pending_to_deliver_not_barcoded':
+        query = query.order_by(
+            q.c.sum_not_barcoded_pcs.desc(), 
+            (q.c.sum_order_wt - q.c.sum_accepted_wt).asc()
+        )
     else:
         query = query.order_by(q.c.sum_accepted_wt.desc(), q.c.sum_pending_to_accepted_wt.desc())
     return query
@@ -193,15 +208,14 @@ def get_base_query(query_filter_func=None, feedback_status=None,
 def calculate_stats(query, status_filter='pending_to_accept'):
     try:
         s = query.order_by(None).subquery()
-        if status_filter == 'pending_to_deliver':
-            pending_val_field = s.c.sum_pending_to_deliver_wt
-        else:
-            pending_val_field = s.c.sum_pending_to_accepted_wt
-
         res = db.session.query(
             func.sum(s.c.sum_order_wt),
             func.sum(s.c.sum_accepted_wt),
-            func.sum(pending_val_field),
+            func.sum(s.c.sum_pending_to_accepted_wt),
+            func.sum(s.c.sum_pending_to_deliver_pcs),
+            func.sum(s.c.sum_pending_to_deliver_wt),
+            func.sum(s.c.sum_not_barcoded_pcs),
+            func.sum(s.c.sum_not_barcoded_wt),
             func.count(case((s.c.feedback_text != None, 1))),
             func.count(case((s.c.feedback_text == None, 1)))
         ).first()
@@ -209,16 +223,25 @@ def calculate_stats(query, status_filter='pending_to_accept'):
         return {
             'total_order_wt': float(res[0] or 0),
             'total_accepted_wt': float(res[1] or 0),
-            'total_pending_wt': float(res[2] or 0),
-            'with_feedback': int(res[3] or 0),
-            'without_feedback': int(res[4] or 0)
+            'total_pending_to_accepted_wt': float(res[2] or 0),
+            'total_pending_to_deliver_pcs': float(res[3] or 0),
+            'total_pending_to_deliver_wt': float(res[4] or 0),
+            'total_not_barcoded_pcs': float(res[5] or 0),
+            'total_not_barcoded_wt': float(res[6] or 0),
+            'with_feedback': int(res[7] or 0),
+            'without_feedback': int(res[8] or 0)
         }
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error calculating stats: {str(e)}")
         return {
             'total_order_wt': 0,
-            'total_pending_wt': 0,
+            'total_accepted_wt': 0,
+            'total_pending_to_accepted_wt': 0,
+            'total_pending_to_deliver_pcs': 0,
+            'total_pending_to_deliver_wt': 0,
+            'total_not_barcoded_pcs': 0,
+            'total_not_barcoded_wt': 0,
             'with_feedback': 0,
             'without_feedback': 0
         }
@@ -324,6 +347,77 @@ def pending_acceptance():
         logger.error(f"Error in pending_acceptance: {str(e)}")
         return f"Error: {str(e)}", 500
 
+def get_hierarchical_rows(flat_rows):
+    """Transform flat rows into a hierarchical structure for drill-down."""
+    import hashlib
+    def get_id(*args):
+        return hashlib.md5((":".join(map(str, args))).encode()).hexdigest()[:8]
+
+    hierarchy = {}
+    for r in flat_rows:
+        m = r.get('make_owner') or 'Unknown'
+        c = r.get('collection_owner') or 'Unknown'
+        col = r.get('collection') or 'Unknown'
+        s = r.get('supplier') or 'Unknown'
+        
+        if m not in hierarchy:
+            hierarchy[m] = {'pcs': 0, 'wt': 0, 'order_wt': 0, 'accepted_wt': 0, 'children': {}}
+        if c not in hierarchy[m]['children']:
+            hierarchy[m]['children'][c] = {'pcs': 0, 'wt': 0, 'order_wt': 0, 'accepted_wt': 0, 'children': {}}
+        if col not in hierarchy[m]['children'][c]['children']:
+            hierarchy[m]['children'][c]['children'][col] = {'pcs': 0, 'wt': 0, 'order_wt': 0, 'accepted_wt': 0, 'children': []}
+            
+        hierarchy[m]['pcs'] += r.get('not_barcoded_pcs', 0)
+        hierarchy[m]['wt'] += r.get('not_barcoded_wt', 0)
+        hierarchy[m]['order_wt'] += r.get('order_wt', 0)
+        hierarchy[m]['accepted_wt'] += r.get('accepted_wt', 0)
+        
+        hierarchy[m]['children'][c]['pcs'] += r.get('not_barcoded_pcs', 0)
+        hierarchy[m]['children'][c]['wt'] += r.get('not_barcoded_wt', 0)
+        hierarchy[m]['children'][c]['order_wt'] += r.get('order_wt', 0)
+        hierarchy[m]['children'][c]['accepted_wt'] += r.get('accepted_wt', 0)
+        
+        hierarchy[m]['children'][c]['children'][col]['pcs'] += r.get('not_barcoded_pcs', 0)
+        hierarchy[m]['children'][c]['children'][col]['wt'] += r.get('not_barcoded_wt', 0)
+        hierarchy[m]['children'][c]['children'][col]['order_wt'] += r.get('order_wt', 0)
+        hierarchy[m]['children'][c]['children'][col]['accepted_wt'] += r.get('accepted_wt', 0)
+        
+        hierarchy[m]['children'][c]['children'][col]['children'].append(r)
+
+    result = []
+    for m, m_data in sorted(hierarchy.items()):
+        m_id = f"m_{get_id(m)}"
+        result.append({
+            'level': 1, 'id': m_id, 'parent_id': None, 'label': m,
+            'not_barcoded_pcs': m_data['pcs'], 'not_barcoded_wt': m_data['wt'],
+            'order_wt': m_data['order_wt'], 'accepted_wt': m_data['accepted_wt'],
+            'is_leaf': False
+        })
+        for c, c_data in sorted(m_data['children'].items()):
+            c_id = f"c_{get_id(m, c)}"
+            result.append({
+                'level': 2, 'id': c_id, 'parent_id': m_id, 'label': c,
+                'not_barcoded_pcs': c_data['pcs'], 'not_barcoded_wt': c_data['wt'],
+                'order_wt': c_data['order_wt'], 'accepted_wt': c_data['accepted_wt'],
+                'is_leaf': False
+            })
+            for col, col_data in sorted(c_data['children'].items()):
+                col_id = f"col_{get_id(m, c, col)}"
+                result.append({
+                    'level': 3, 'id': col_id, 'parent_id': c_id, 'label': col,
+                    'not_barcoded_pcs': col_data['pcs'], 'not_barcoded_wt': col_data['wt'],
+                    'order_wt': col_data['order_wt'], 'accepted_wt': col_data['accepted_wt'],
+                    'is_leaf': False
+                })
+                for r in sorted(col_data['children'], key=lambda x: x.get('not_barcoded_wt', 0), reverse=True):
+                    r_id = f"r_{get_id(m, c, col, r.get('supplier'))}"
+                    r.update({
+                        'level': 4, 'id': r_id, 'parent_id': col_id, 'label': r.get('supplier') or 'Unknown',
+                        'is_leaf': True
+                    })
+                    result.append(r)
+    return result
+
 @dashboard_bp.route('/partial/pending-acceptance-feedback')
 @jwt_required()
 def get_pending_acceptance_partial():
@@ -385,7 +479,13 @@ def get_pending_acceptance_partial():
         if cached_data:
             data = json.loads(cached_data)
             pagination = CachedPagination(data['rows'], page, per_page, data['total'])
-            return render_template('partials/_view_pending_acceptance.html', 
+            template_name = 'partials/_view_pending_acceptance.html'
+            if status_filter == 'pending_to_deliver':
+                template_name = 'partials/_view_pending_acceptance_to_deliver.html'
+            elif status_filter == 'pending_to_deliver_not_barcoded':
+                template_name = 'partials/_view_pending_acceptance_not_barcoded.html'
+
+            return render_template(template_name, 
                                  rows=data['rows'], 
                                  pagination=pagination,
                                  stats=data.get('stats', {}),
@@ -427,6 +527,10 @@ def get_pending_acceptance_partial():
         
         
 
+        # For hierarchical view, we fetch all relevant records to build the tree
+        if status_filter == 'pending_to_deliver_not_barcoded':
+            per_page = 2000
+            
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         
         processed_rows = []
@@ -444,12 +548,19 @@ def get_pending_acceptance_partial():
                 'pending_to_accepted_wt': float(r.sum_pending_to_accepted_wt or 0),
                 'pending_to_deliver_pcs': float(r.sum_pending_to_deliver_pcs or 0),
                 'pending_to_deliver_wt': float(r.sum_pending_to_deliver_wt or 0),
+                'not_barcoded_pcs': float(r.sum_not_barcoded_pcs or 0),
+                'not_barcoded_wt': float(r.sum_not_barcoded_wt or 0),
                 'feedback_text': r.feedback_text or '',
                 'feedback_category': r.feedback_category or '',
                 'feedback_username': r.username or '',
                 'feedback_date': (r.created_at + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M') if r.created_at else ''
             }
             processed_rows.append(row_dict)
+        
+        if status_filter == 'pending_to_deliver_not_barcoded':
+            processed_rows = get_hierarchical_rows(processed_rows)
+            # Update pagination total to reflect tree rows
+            pagination.total = len(processed_rows)
             
         cache_payload = {
             'rows': processed_rows,
@@ -458,7 +569,13 @@ def get_pending_acceptance_partial():
         }
         redis_client.setex(cache_key, 3600, json.dumps(cache_payload))
         
-        return render_template('partials/_view_pending_acceptance.html', 
+        template_name = 'partials/_view_pending_acceptance.html'
+        if status_filter == 'pending_to_deliver':
+            template_name = 'partials/_view_pending_acceptance_to_deliver.html'
+        elif status_filter == 'pending_to_deliver_not_barcoded':
+            template_name = 'partials/_view_pending_acceptance_not_barcoded.html'
+
+        return render_template(template_name, 
                              rows=processed_rows, 
                              pagination=pagination,
                              stats=stats,
@@ -501,7 +618,9 @@ def get_pending_acceptance_po_details():
             func.sum(PendingAcceptanceSnapshot.accepted_wt).label('sum_accepted_wt'),
             func.sum(PendingAcceptanceSnapshot.pending_to_accepted_wt).label('sum_pending_to_accepted_wt'),
             func.sum(PendingAcceptanceSnapshot.pending_to_deliver_pcs).label('sum_pending_to_deliver_pcs'),
-            func.sum(PendingAcceptanceSnapshot.pending_to_deliver_wt).label('sum_pending_to_deliver_wt')
+            func.sum(PendingAcceptanceSnapshot.pending_to_deliver_wt).label('sum_pending_to_deliver_wt'),
+            func.sum(PendingAcceptanceSnapshot.not_barcoded_pcs).label('sum_not_barcoded_pcs'),
+            func.sum(PendingAcceptanceSnapshot.not_barcoded_wt).label('sum_not_barcoded_wt')
         ).filter(
             PendingAcceptanceSnapshot.snapshot_date == latest_date_query,
             func.coalesce(PendingAcceptanceSnapshot.collection_owner, '') == collection_owner,
@@ -527,7 +646,7 @@ def get_pending_acceptance_po_details():
         if f_delay is not None:
             try:
                 delay_val = int(f_delay)
-                query = query.filter(PendingAcceptanceSnapshot.order_date <= func.current_date() - delay_val)
+                query = query.filter(PendingAcceptanceSnapshot.delivery_target_date - func.current_date() >= delay_val)
             except (ValueError, TypeError):
                 pass
                 
@@ -543,6 +662,8 @@ def get_pending_acceptance_po_details():
         # Apply status filter
         if status_filter == 'pending_to_deliver':
             query = query.filter(PendingAcceptanceSnapshot.pending_to_deliver_pcs > 0)
+        elif status_filter == 'pending_to_deliver_not_barcoded':
+            query = query.filter(PendingAcceptanceSnapshot.not_barcoded_pcs > 0)
         else:
             query = query.filter(PendingAcceptanceSnapshot.pending_to_accepted_wt > 0)
 
@@ -564,7 +685,9 @@ def get_pending_acceptance_po_details():
             'accepted_wt': 0, 
             'pending_to_accepted_wt': 0,
             'pending_to_deliver_pcs': 0,
-            'pending_to_deliver_wt': 0
+            'pending_to_deliver_wt': 0,
+            'not_barcoded_pcs': 0,
+            'not_barcoded_wt': 0
         }
         
         for r in records:
@@ -575,6 +698,8 @@ def get_pending_acceptance_po_details():
             p_a_w = float(r.sum_pending_to_accepted_wt or 0)
             p_d_p = float(r.sum_pending_to_deliver_pcs or 0)
             p_d_w = float(r.sum_pending_to_deliver_wt or 0)
+            n_b_p = float(r.sum_not_barcoded_pcs or 0)
+            n_b_w = float(r.sum_not_barcoded_wt or 0)
             
             totals['po_pieces'] += po_p
             totals['po_weight'] += po_w
@@ -583,6 +708,8 @@ def get_pending_acceptance_po_details():
             totals['pending_to_accepted_wt'] += p_a_w
             totals['pending_to_deliver_pcs'] += p_d_p
             totals['pending_to_deliver_wt'] += p_d_w
+            totals['not_barcoded_pcs'] += n_b_p
+            totals['not_barcoded_wt'] += n_b_w
             
             details.append({
                 'po_number': r.po_number or 'N/A',
@@ -593,7 +720,9 @@ def get_pending_acceptance_po_details():
                 'accepted_wt': a_w,
                 'pending_to_accepted_wt': p_a_w,
                 'pending_to_deliver_pcs': p_d_p,
-                'pending_to_deliver_wt': p_d_w
+                'pending_to_deliver_wt': p_d_w,
+                'not_barcoded_pcs': n_b_p,
+                'not_barcoded_wt': n_b_w
             })
             
         return render_template('partials/_po_details_modal_generic.html', details=details, totals=totals, report_type='PA', status_filter=status_filter)
@@ -640,7 +769,11 @@ def save_pending_acceptance_feedback():
             }), 403
             
         status_f = data.get('status_filter', 'pending_to_accept')
-        p_code = 'PD' if status_f == 'pending_to_deliver' else 'PA'
+        p_code = 'PA'
+        if status_f == 'pending_to_deliver':
+            p_code = 'PD'
+        elif status_f == 'pending_to_deliver_not_barcoded':
+            p_code = 'PNB'
         
         new_feedback = ReportFeedback(
             collection_owner=collection_owner,

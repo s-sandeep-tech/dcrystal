@@ -1403,13 +1403,16 @@ def sync_pending_acceptance_data_task() -> Dict[str, Any]:
                 a.pending_to_accepted_wt,
                 a.pending_to_deliver_pcs,
                 a.pending_to_deliver_wt,
+                a.not_barcoded_pcs,
+                a.not_barcoded_wt,
                 a.order_type,
                 a.order_request_type,
-                a.order_date
+                a.order_date,
+                po.delivery_target_date
             FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b a
             LEFT JOIN ext_view.vw_purchase_order po
                 ON po.po_number = a.po_number
-            WHERE (a.pending_to_accepted_wt > 0 OR a.pending_to_deliver_pcs > 0) 
+            WHERE (a.pending_to_accepted_wt > 0 OR a.pending_to_deliver_pcs > 0 OR a.not_barcoded_pcs > 0) 
             AND a.order_qty <> a.cancelled_pcs
             ORDER BY 
                 a.accepted_wt DESC,
@@ -1445,9 +1448,12 @@ def sync_pending_acceptance_data_task() -> Dict[str, Any]:
                 pending_to_accepted_wt=row.get('pending_to_accepted_wt'),
                 pending_to_deliver_pcs=row.get('pending_to_deliver_pcs'),
                 pending_to_deliver_wt=row.get('pending_to_deliver_wt'),
+                not_barcoded_pcs=row.get('not_barcoded_pcs'),
+                not_barcoded_wt=row.get('not_barcoded_wt'),
                 order_type=row.get('order_type'),
                 order_request_type=row.get('order_request_type'),
                 order_date=row.get('order_date'),
+                delivery_target_date=row.get('delivery_target_date'),
                 snapshot_date=db.func.current_date()
             )
             new_records.append(record)

@@ -34,8 +34,11 @@ function setStatusFilter(filter) {
     if (filter === 'pending_to_accept') {
         const btn = document.getElementById('btn-status-accept');
         if (btn) btn.classList.add('active');
-    } else {
+    } else if (filter === 'pending_to_deliver') {
         const btn = document.getElementById('btn-status-deliver');
+        if (btn) btn.classList.add('active');
+    } else if (filter === 'pending_to_deliver_not_barcoded') {
+        const btn = document.getElementById('btn-status-not-barcoded');
         if (btn) btn.classList.add('active');
     }
     
@@ -307,8 +310,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentStatusFilter === 'pending_to_accept') {
             const btn = document.getElementById('btn-status-accept');
             if (btn) btn.classList.add('active');
-        } else {
+        } else if (currentStatusFilter === 'pending_to_deliver') {
             const btn = document.getElementById('btn-status-deliver');
+            if (btn) btn.classList.add('active');
+        } else if (currentStatusFilter === 'pending_to_deliver_not_barcoded') {
+            const btn = document.getElementById('btn-status-not-barcoded');
             if (btn) btn.classList.add('active');
         }
     }
@@ -497,4 +503,37 @@ function toggleFeedbackDateInputs() {
             container.classList.add('opacity-40', 'pointer-events-none');
         }
     }
+}
+
+function toggleDrilldown(id) {
+    const rows = document.querySelectorAll(`tr[data-parent="${id}"]`);
+    const btn = document.getElementById(`btn-${id}`);
+    const icon = btn ? btn.querySelector('span') : null;
+    
+    // Check if we are opening or closing
+    const isOpening = rows.length > 0 && rows[0].classList.contains('hidden');
+    
+    if (isOpening) {
+        // Open immediate children
+        rows.forEach(row => {
+            row.classList.remove('hidden');
+        });
+        if (icon) icon.style.transform = 'rotate(90deg)';
+    } else {
+        // Close all descendants recursively
+        closeDescendants(id);
+        if (icon) icon.style.transform = 'rotate(0deg)';
+    }
+}
+
+function closeDescendants(parentId) {
+    const children = document.querySelectorAll(`tr[data-parent="${parentId}"]`);
+    children.forEach(child => {
+        child.classList.add('hidden');
+        const childId = child.getAttribute('data-id');
+        const btn = document.getElementById(`btn-${childId}`);
+        const icon = btn ? btn.querySelector('span') : null;
+        if (icon) icon.style.transform = 'rotate(0deg)';
+        closeDescendants(childId);
+    });
 }
