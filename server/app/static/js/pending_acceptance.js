@@ -334,26 +334,54 @@ document.addEventListener('DOMContentLoaded', () => {
 function updateStatsCards(stats) {
     const orderWt = parseFloat(stats.totalOrderWt || 0);
     const acceptedWt = parseFloat(stats.totalAcceptedWt || 0);
-    const pendingWt = parseFloat(stats.totalPendingWt || 0);
     const withFeedback = parseInt(stats.withFeedback || 0);
-    const withoutFeedback = parseInt(stats.withoutFeedback || 0);
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const statusFilter = urlParams.get('status_filter') || 'pending_to_accept';
 
     const fmt = (v) => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 3, maximumFractionDigits: 3 }).format(v);
 
-    const elOrder = document.getElementById('stat-order-wt');
-    if (elOrder) elOrder.textContent = fmt(orderWt);
+    document.getElementById('stat-order-wt').textContent = fmt(orderWt);
+    document.getElementById('stat-accepted-wt').textContent = fmt(acceptedWt);
+    document.getElementById('stat-with-feedback').textContent = withFeedback.toLocaleString();
 
-    const elAccepted = document.getElementById('stat-accepted-wt');
-    if (elAccepted) elAccepted.textContent = fmt(acceptedWt);
+    const card3 = document.getElementById('stat-pending-wt').parentElement;
+    const card4 = document.getElementById('stat-contextual-metric').parentElement;
 
-    const elPending = document.getElementById('stat-pending-wt');
-    if (elPending) elPending.textContent = fmt(pendingWt);
-
-    const elWith = document.getElementById('stat-with-feedback');
-    if (elWith) elWith.textContent = withFeedback.toLocaleString();
-
-    const elWithout = document.getElementById('stat-without-feedback');
-    if (elWithout) elWithout.textContent = withoutFeedback.toLocaleString();
+    if (statusFilter === 'pending_to_deliver') {
+        const wt = parseFloat(stats.totalPendingToDeliverWt || 0);
+        const pcs = parseInt(stats.totalPendingToDeliverPcs || 0);
+        
+        card3.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-indigo-600">local_shipping</span>Pending Deliver Wt`;
+        document.getElementById('stat-pending-wt').textContent = fmt(wt);
+        document.getElementById('stat-pending-wt').className = 'stat-val text-orange-600';
+        
+        card4.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-blue-600">inventory_2</span>Pending Deliver Pcs`;
+        document.getElementById('stat-contextual-metric').textContent = pcs.toLocaleString();
+        document.getElementById('stat-contextual-metric').className = 'stat-val';
+    } else if (statusFilter === 'pending_to_deliver_not_barcoded') {
+        const wt = parseFloat(stats.totalNotBarcodedWt || 0);
+        const pcs = parseInt(stats.totalNotBarcodedPcs || 0);
+        
+        card3.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-orange-600">barcode_scanner</span>Not Barcoded Wt`;
+        document.getElementById('stat-pending-wt').textContent = fmt(wt);
+        document.getElementById('stat-pending-wt').className = 'stat-val text-orange-600';
+        
+        card4.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-cyan-600">pin</span>Not Barcoded Pcs`;
+        document.getElementById('stat-contextual-metric').textContent = pcs.toLocaleString();
+        document.getElementById('stat-contextual-metric').className = 'stat-val';
+    } else {
+        const pendingWt = parseFloat(stats.totalPendingToAcceptedWt || 0);
+        const withoutFeedback = parseInt(stats.withoutFeedback || 0);
+        
+        card3.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-orange-premium">pending_actions</span>Pending Wt`;
+        document.getElementById('stat-pending-wt').textContent = fmt(pendingWt);
+        document.getElementById('stat-pending-wt').className = 'stat-val text-orange-premium';
+        
+        card4.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-red-600">chat_error</span>Without Feedback`;
+        document.getElementById('stat-contextual-metric').textContent = withoutFeedback.toLocaleString();
+        document.getElementById('stat-contextual-metric').className = 'stat-val';
+    }
 }
 
 // Modal stuff

@@ -93,9 +93,14 @@
     </tbody>
 </table>
 
-<div class="stats-meta hidden" data-total-order-wt="{{ stats.total_order_wt if stats else 0 }}"
+<div class="stats-meta hidden" 
+    data-total-order-wt="{{ stats.total_order_wt if stats else 0 }}"
     data-total-accepted-wt="{{ stats.total_accepted_wt if stats else 0 }}"
-    data-total-pending-wt="{{ stats.total_pending_wt if stats else 0 }}"
+    data-total-pending-to-accepted-wt="{{ stats.total_pending_to_accepted_wt if stats else 0 }}"
+    data-total-pending-to-deliver-pcs="{{ stats.total_pending_to_deliver_pcs if stats else 0 }}"
+    data-total-pending-to-deliver-wt="{{ stats.total_pending_to_deliver_wt if stats else 0 }}"
+    data-total-not-barcoded-pcs="{{ stats.total_not_barcoded_pcs if stats else 0 }}"
+    data-total-not-barcoded-wt="{{ stats.total_not_barcoded_wt if stats else 0 }}"
     data-with-feedback="{{ stats.with_feedback if stats else 0 }}"
     data-without-feedback="{{ stats.without_feedback if stats else 0 }}">
 </div>
