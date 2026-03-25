@@ -1177,150 +1177,150 @@ def sync_order_delay_tracking_data_task() -> Dict[str, Any]:
         
         emit_sync_update('processing', 'Fetching data from Azure...', 20, 'order_delay_tracking')
         query = """
-WITH production_orders AS MATERIALIZED (
-    SELECT DISTINCT order_id
-    FROM ext_view.vw_order_status_process
-    WHERE status IN ('Process Pending', 'Barcode Pending')
-),
-qc_orders AS MATERIALIZED (
-    SELECT DISTINCT order_id
-    FROM ext_view.vw_order_status_process
-    WHERE process = 'Final QC'
-),
-base_orders AS MATERIALIZED (
-    SELECT
-        od.order_id,
-        od.po_id, 
-        od.cancelled_on 
-    FROM ext_view.vw_order_details od
-),
+            WITH production_orders AS MATERIALIZED (
+                SELECT DISTINCT order_id
+                FROM ext_view.vw_order_status_process
+                WHERE status IN ('Process Pending', 'Barcode Pending')
+            ),
+            qc_orders AS MATERIALIZED (
+                SELECT DISTINCT order_id
+                FROM ext_view.vw_order_status_process
+                WHERE process = 'Final QC'
+            ),
+            base_orders AS MATERIALIZED (
+                SELECT
+                    od.order_id,
+                    od.po_id, 
+                    od.cancelled_on 
+                FROM ext_view.vw_order_details od
+            ),
 
-prod_bucket AS (
-    SELECT
-        bo.order_id,
-        CASE
-            WHEN po.delivery_target_date IS NULL THEN NULL
-            WHEN CURRENT_DATE > po.delivery_target_date
-                THEN CURRENT_DATE - po.delivery_target_date
-            ELSE 0
-        END AS production_delay_days,
+            prod_bucket AS (
+                SELECT
+                    bo.order_id,
+                    CASE
+                        WHEN po.delivery_target_date IS NULL THEN NULL
+                        WHEN CURRENT_DATE > po.delivery_target_date
+                            THEN CURRENT_DATE - po.delivery_target_date
+                        ELSE 0
+                    END AS production_delay_days,
 
-        CASE
-            WHEN po.delivery_target_date IS NULL THEN NULL
-            WHEN CURRENT_DATE > po.delivery_target_date
-                 AND (CURRENT_DATE - po.delivery_target_date) BETWEEN 1 AND 2
-            THEN 1 ELSE 0
-        END AS production_1_2_delay,
+                    CASE
+                        WHEN po.delivery_target_date IS NULL THEN NULL
+                        WHEN CURRENT_DATE > po.delivery_target_date
+                            AND (CURRENT_DATE - po.delivery_target_date) BETWEEN 1 AND 2
+                        THEN 1 ELSE 0
+                    END AS production_1_2_delay,
 
-        CASE
-            WHEN po.delivery_target_date IS NULL THEN NULL
-            WHEN CURRENT_DATE > po.delivery_target_date
-                 AND (CURRENT_DATE - po.delivery_target_date) BETWEEN 3 AND 4
-            THEN 1 ELSE 0
-        END AS production_3_4_delay,
+                    CASE
+                        WHEN po.delivery_target_date IS NULL THEN NULL
+                        WHEN CURRENT_DATE > po.delivery_target_date
+                            AND (CURRENT_DATE - po.delivery_target_date) BETWEEN 3 AND 4
+                        THEN 1 ELSE 0
+                    END AS production_3_4_delay,
 
-        CASE
-            WHEN po.delivery_target_date IS NULL THEN NULL
-            WHEN CURRENT_DATE > po.delivery_target_date
-                 AND (CURRENT_DATE - po.delivery_target_date) BETWEEN 5 AND 10
-            THEN 1 ELSE 0
-        END AS production_5_10_delay,
+                    CASE
+                        WHEN po.delivery_target_date IS NULL THEN NULL
+                        WHEN CURRENT_DATE > po.delivery_target_date
+                            AND (CURRENT_DATE - po.delivery_target_date) BETWEEN 5 AND 10
+                        THEN 1 ELSE 0
+                    END AS production_5_10_delay,
 
-        CASE
-            WHEN po.delivery_target_date IS NULL THEN NULL
-            WHEN CURRENT_DATE > po.delivery_target_date
-                 AND (CURRENT_DATE - po.delivery_target_date) > 10
-            THEN 1 ELSE 0
-        END AS production_gt_10_delay
-    FROM base_orders bo
-    INNER JOIN production_orders pr
-        ON pr.order_id = bo.order_id
-    INNER JOIN ext_view.vw_purchase_order po
-        ON po.po_id = bo.po_id
-    WHERE bo.cancelled_on is null
-),
+                    CASE
+                        WHEN po.delivery_target_date IS NULL THEN NULL
+                        WHEN CURRENT_DATE > po.delivery_target_date
+                            AND (CURRENT_DATE - po.delivery_target_date) > 10
+                        THEN 1 ELSE 0
+                    END AS production_gt_10_delay
+                FROM base_orders bo
+                INNER JOIN production_orders pr
+                    ON pr.order_id = bo.order_id
+                INNER JOIN ext_view.vw_purchase_order po
+                    ON po.po_id = bo.po_id
+                WHERE bo.cancelled_on is null
+            ),
 
-qc_bucket AS (
-    SELECT
-        bo.order_id,
-        CASE
-            WHEN po.qc_target_date IS NULL THEN NULL
-            WHEN CURRENT_DATE > po.qc_target_date
-                THEN CURRENT_DATE - po.qc_target_date
-            ELSE 0
-        END AS qc_delay_days,
+            qc_bucket AS (
+                SELECT
+                    bo.order_id,
+                    CASE
+                        WHEN po.qc_target_date IS NULL THEN NULL
+                        WHEN CURRENT_DATE > po.qc_target_date
+                            THEN CURRENT_DATE - po.qc_target_date
+                        ELSE 0
+                    END AS qc_delay_days,
 
-        CASE
-            WHEN po.qc_target_date IS NULL THEN NULL
-            WHEN CURRENT_DATE > po.qc_target_date
-                 AND (CURRENT_DATE - po.qc_target_date) BETWEEN 1 AND 2
-            THEN 1 ELSE 0
-        END AS qc_1_2_delay,
+                    CASE
+                        WHEN po.qc_target_date IS NULL THEN NULL
+                        WHEN CURRENT_DATE > po.qc_target_date
+                            AND (CURRENT_DATE - po.qc_target_date) BETWEEN 1 AND 2
+                        THEN 1 ELSE 0
+                    END AS qc_1_2_delay,
 
-        CASE
-            WHEN po.qc_target_date IS NULL THEN NULL
-            WHEN CURRENT_DATE > po.qc_target_date
-                 AND (CURRENT_DATE - po.qc_target_date) BETWEEN 3 AND 4
-            THEN 1 ELSE 0
-        END AS qc_3_4_delay,
+                    CASE
+                        WHEN po.qc_target_date IS NULL THEN NULL
+                        WHEN CURRENT_DATE > po.qc_target_date
+                            AND (CURRENT_DATE - po.qc_target_date) BETWEEN 3 AND 4
+                        THEN 1 ELSE 0
+                    END AS qc_3_4_delay,
 
-        CASE
-            WHEN po.qc_target_date IS NULL THEN NULL
-            WHEN CURRENT_DATE > po.qc_target_date
-                 AND (CURRENT_DATE - po.qc_target_date) BETWEEN 5 AND 10
-            THEN 1 ELSE 0
-        END AS qc_5_10_delay,
+                    CASE
+                        WHEN po.qc_target_date IS NULL THEN NULL
+                        WHEN CURRENT_DATE > po.qc_target_date
+                            AND (CURRENT_DATE - po.qc_target_date) BETWEEN 5 AND 10
+                        THEN 1 ELSE 0
+                    END AS qc_5_10_delay,
 
-        CASE
-            WHEN po.qc_target_date IS NULL THEN NULL
-            WHEN CURRENT_DATE > po.qc_target_date
-                 AND (CURRENT_DATE - po.qc_target_date) > 10
-            THEN 1 ELSE 0
-        END AS qc_gt_10_delay
-    FROM base_orders bo
-    INNER JOIN qc_orders q
-        ON q.order_id = bo.order_id
-    INNER JOIN ext_view.vw_purchase_order po
-        ON po.po_id = bo.po_id
-)
+                    CASE
+                        WHEN po.qc_target_date IS NULL THEN NULL
+                        WHEN CURRENT_DATE > po.qc_target_date
+                            AND (CURRENT_DATE - po.qc_target_date) > 10
+                        THEN 1 ELSE 0
+                    END AS qc_gt_10_delay
+                FROM base_orders bo
+                INNER JOIN qc_orders q
+                    ON q.order_id = bo.order_id
+                INNER JOIN ext_view.vw_purchase_order po
+                    ON po.po_id = bo.po_id
+            )
 
-SELECT
-    po.po_id,
-    bo.order_id,
-    p.classification_owner,
-    p.make_owner,
-    p.collection_owner,
-    p.make,
-    p.collection,
-    po.supplier,
-    po.po_number,
-    po.po_date,
-    po.delivery_target_date,
-    po.qc_target_date,
+            SELECT
+                po.po_id,
+                bo.order_id,
+                p.classification_owner,
+                p.make_owner,
+                p.collection_owner,
+                p.make,
+                p.collection,
+                po.supplier,
+                po.po_number,
+                po.po_date,
+                po.delivery_target_date,
+                po.qc_target_date,
 
-    pb.production_delay_days,
-    pb.production_1_2_delay,
-    pb.production_3_4_delay,
-    pb.production_5_10_delay,
-    pb.production_gt_10_delay,
+                pb.production_delay_days,
+                pb.production_1_2_delay,
+                pb.production_3_4_delay,
+                pb.production_5_10_delay,
+                pb.production_gt_10_delay,
 
-    qb.qc_delay_days,
-    qb.qc_1_2_delay,
-    qb.qc_3_4_delay,
-    qb.qc_5_10_delay,
-    qb.qc_gt_10_delay
+                qb.qc_delay_days,
+                qb.qc_1_2_delay,
+                qb.qc_3_4_delay,
+                qb.qc_5_10_delay,
+                qb.qc_gt_10_delay
 
-FROM base_orders bo
-INNER JOIN ext_view.vw_purchase_order po
-    ON po.po_id = bo.po_id
-INNER JOIN ext_view.vw_order_product_details p
-    ON p.order_id = bo.order_id
-LEFT JOIN prod_bucket pb
-    ON pb.order_id = bo.order_id
-LEFT JOIN qc_bucket qb
-    ON qb.order_id = bo.order_id
-WHERE pb.order_id IS NOT NULL
-   OR qb.order_id IS NOT NULL;
+            FROM base_orders bo
+            INNER JOIN ext_view.vw_purchase_order po
+                ON po.po_id = bo.po_id
+            INNER JOIN ext_view.vw_order_product_details p
+                ON p.order_id = bo.order_id
+            LEFT JOIN prod_bucket pb
+                ON pb.order_id = bo.order_id
+            LEFT JOIN qc_bucket qb
+                ON qb.order_id = bo.order_id
+            WHERE pb.order_id IS NOT NULL
+            OR qb.order_id IS NOT NULL;
         """
         
         start_time = time.time()
@@ -1388,32 +1388,32 @@ def sync_pending_acceptance_data_task() -> Dict[str, Any]:
         
         emit_sync_update('processing', 'Fetching data from Azure...', 20, 'pending_acceptance')
         query = """
-        SELECT 
-            a.collection_owner,
-            a.make_owner,
-            po.supplier,
-            a.collection,
-            a.classification,
-            po.po_number,
-            po.po_date,
-            po.total_weight,
-            po.total_quantity AS order_piece,
-            a.order_wt,
-            a.accepted_wt,
-            a.pending_to_accepted_wt,
-            a.pending_to_deliver_pcs,
-            a.pending_to_deliver_wt,
-            a.order_type,
-            a.order_request_type,
-            a.order_date
-        FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b a
-        LEFT JOIN ext_view.vw_purchase_order po
-            ON po.po_number = a.po_number
-        WHERE (a.pending_to_accepted_wt > 0 OR a.pending_to_deliver_pcs > 0) 
-          AND a.order_qty <> a.cancelled_pcs
-        ORDER BY 
-            a.accepted_wt DESC,
-            a.pending_to_accepted_wt DESC;
+            SELECT 
+                a.collection_owner,
+                a.make_owner,
+                po.supplier,
+                a.collection,
+                a.classification,
+                po.po_number,
+                po.po_date,
+                po.total_weight,
+                po.total_quantity AS order_piece,
+                a.order_wt,
+                a.accepted_wt,
+                a.pending_to_accepted_wt,
+                a.pending_to_deliver_pcs,
+                a.pending_to_deliver_wt,
+                a.order_type,
+                a.order_request_type,
+                a.order_date
+            FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b a
+            LEFT JOIN ext_view.vw_purchase_order po
+                ON po.po_number = a.po_number
+            WHERE (a.pending_to_accepted_wt > 0 OR a.pending_to_deliver_pcs > 0) 
+            AND a.order_qty <> a.cancelled_pcs
+            ORDER BY 
+                a.accepted_wt DESC,
+                a.pending_to_accepted_wt DESC;
         """
         
         start_time = time.time()
