@@ -515,6 +515,7 @@ class PendingAcceptanceSnapshot(db.Model):
     order_request_type = db.Column(db.Text)
     order_date = db.Column(db.Date)
     delivery_target_date = db.Column(db.Date)
+    branch_type = db.Column(db.Text)
     snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
@@ -540,6 +541,7 @@ class PendingAcceptanceSnapshot(db.Model):
             'order_request_type': self.order_request_type or '',
             'order_date': self.order_date.isoformat() if self.order_date else '',
             'delivery_target_date': self.delivery_target_date.isoformat() if self.delivery_target_date else '',
+            'branch_type': self.branch_type or '',
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
         }
 

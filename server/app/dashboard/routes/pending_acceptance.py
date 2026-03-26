@@ -87,6 +87,7 @@ def get_latest_wizard_action_subquery(status_filter='pending_to_deliver_not_barc
 def apply_filters(query, search, latest_date_query, collection_owner=None, make_owner=None, 
                 supplier=None, collection=None, classification=None, feedback_status=None,
                 order_type=None, order_request_type=None, delay=None,
+                branch_type=None,
                 from_date=None, to_date=None, enable_date_filter=False):
     # Enforce latest snapshot date
     query = query.filter(PendingAcceptanceSnapshot.snapshot_date == latest_date_query)
@@ -119,6 +120,8 @@ def apply_filters(query, search, latest_date_query, collection_owner=None, make_
         query = query.filter(PendingAcceptanceSnapshot.order_type == order_type)
     if order_request_type:
         query = query.filter(PendingAcceptanceSnapshot.order_request_type == order_request_type)
+    if branch_type:
+        query = query.filter(PendingAcceptanceSnapshot.branch_type == branch_type)
         
     if enable_date_filter and from_date and to_date:
         try:
@@ -330,6 +333,7 @@ def pending_acceptance():
         f_order_request_type = request.args.get('order_request_type', '')
         f_classification = request.args.get('classification', '')
         f_feedback_status = request.args.get('feedback_status', '')
+        f_branch_type = request.args.get('branch_type', '')
         f_delay = request.args.get('delay')
         f_delay_enabled = request.args.get('delay_enabled', 'false') == 'true'
         
@@ -371,6 +375,7 @@ def pending_acceptance():
                                      classification=f_classification,
                                      order_type=f_order_type,
                                      order_request_type=f_order_request_type,
+                                     branch_type=f_branch_type,
                                      delay=f_delay,
                                      from_date=f_from_date,
                                      to_date=f_to_date,
@@ -397,6 +402,7 @@ def pending_acceptance():
                 'classifications': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.classification).distinct().order_by(PendingAcceptanceSnapshot.classification).all()],
                 'order_types': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.order_type).distinct().order_by(PendingAcceptanceSnapshot.order_type).all()],
                 'order_request_types': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.order_request_type).distinct().order_by(PendingAcceptanceSnapshot.order_request_type).all()],
+                'branch_types': [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.branch_type).distinct().order_by(PendingAcceptanceSnapshot.branch_type).all()],
             }
 
         filter_options = fetch_filter_options()
@@ -499,6 +505,7 @@ def get_pending_acceptance_partial():
         f_classification = request.args.get('classification', '')
         f_order_type = request.args.get('order_type', '')
         f_order_request_type = request.args.get('order_request_type', '')
+        f_branch_type = request.args.get('branch_type', '')
         f_feedback_status = request.args.get('feedback_status', '')
         f_delay = request.args.get('delay')
         f_delay_enabled = request.args.get('delay_enabled', 'false') == 'true'
@@ -541,6 +548,7 @@ def get_pending_acceptance_partial():
                                      classification=f_classification,
                                      order_type=f_order_type,
                                      order_request_type=f_order_request_type,
+                                     branch_type=f_branch_type,
                                      delay=f_delay,
                                      from_date=f_from_date,
                                      to_date=f_to_date,
@@ -586,6 +594,7 @@ def get_pending_acceptance_partial():
                 classification=f_classification,
                 order_type=f_order_type, 
                 order_request_type=f_order_request_type,
+                branch_type=f_branch_type,
                 delay=f_delay,
                 from_date=f_from_date,
                 to_date=f_to_date,
@@ -655,6 +664,7 @@ def get_pending_acceptance_partial():
                 'make_owner': r.make_owner or '',
                 'supplier': r.supplier or '',
                 'collection': r.collection or '',
+                'branch_type': getattr(r, 'branch_type', ''),
                 'order_type': '', 
                 'order_request_type': '',
                 'order_wt': float(r.sum_order_wt or 0),

@@ -1408,7 +1408,8 @@ def sync_pending_acceptance_data_task() -> Dict[str, Any]:
                 a.order_type,
                 a.order_request_type,
                 a.order_date,
-                po.delivery_target_date
+                po.delivery_target_date,
+                a.branch_type AS branch_type
             FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b a
             LEFT JOIN ext_view.vw_purchase_order po
                 ON po.po_number = a.po_number
@@ -1454,6 +1455,7 @@ def sync_pending_acceptance_data_task() -> Dict[str, Any]:
                 order_request_type=row.get('order_request_type'),
                 order_date=row.get('order_date'),
                 delivery_target_date=row.get('delivery_target_date'),
+                branch_type=row.get('branch_type'),
                 snapshot_date=db.func.current_date()
             )
             new_records.append(record)

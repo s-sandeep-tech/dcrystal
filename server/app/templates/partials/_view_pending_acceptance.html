@@ -5,6 +5,7 @@
             <th class="text-left px-2 py-2" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Collection Owner</th>
             <th class="text-left px-2 py-2" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Supplier</th>
             <th class="text-left px-2 py-2" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Collection</th>
+            <th class="text-left px-2 py-2" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Branch Type</th>
             <th class="text-right px-2 py-2" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Order Wt</th>
             <th class="text-right px-2 py-2 text-emerald-600" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Accepted Wt</th>
             <th class="text-right px-2 py-2 text-red-600" style="white-space: normal !important; word-wrap: break-word; line-height: 1.2;">Pending to<br>Accepted Wt</th>
@@ -19,6 +20,7 @@
             <td class="text-gray-600 dark:text-gray-400 px-4 py-1.5">{{ r.collection_owner }}</td>
             <td class="text-gray-600 dark:text-gray-400 py-1.5">{{ r.supplier }}</td>
             <td class="text-gray-600 dark:text-gray-400 py-1.5">{{ r.collection }}</td>
+            <td class="text-gray-600 dark:text-gray-400 py-1.5">{{ r.branch_type }}</td>
             <td class="text-right font-medium text-gray-700 dark:text-gray-300 py-1.5">
                 <a href="javascript:void(0)"
                     onclick="showPODetailsModal('{{ (r.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (r.make_owner or '') | replace('\'', '\\\'') }}', '{{ (r.supplier or '') | replace('\'', '\\\'') }}', '{{ (r.collection or '') | replace('\'', '\\\'') }}', '{{ status_filter }}')"

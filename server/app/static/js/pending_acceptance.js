@@ -114,6 +114,10 @@ function applyGlobalFilters() {
     if (classification) urlParams.set('classification', classification);
     else urlParams.delete('classification');
 
+    const branchType = document.getElementById('filter-branch-type')?.value;
+    if (branchType) urlParams.set('branch_type', branchType);
+    else urlParams.delete('branch_type');
+
     const collection = document.getElementById('filter-collection')?.value;
     if (collection) urlParams.set('collection', collection);
     else urlParams.delete('collection');
@@ -183,6 +187,9 @@ function clearFilterInputs() {
 
     const classification = document.getElementById('filter-classification');
     if (classification) classification.value = '';
+
+    const branchType = document.getElementById('filter-branch-type');
+    if (branchType) branchType.value = '';
 
     const collection = document.getElementById('filter-collection');
     if (collection) collection.value = '';
@@ -300,6 +307,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (urlParams.get('classification')) {
         const sel = document.getElementById('filter-classification');
         if (sel) sel.value = urlParams.get('classification');
+    }
+    if (urlParams.get('branch_type')) {
+        const sel = document.getElementById('filter-branch-type');
+        if (sel) sel.value = urlParams.get('branch_type');
     }
     if (urlParams.get('collection')) {
         const sel = document.getElementById('filter-collection');
