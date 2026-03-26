@@ -38,60 +38,72 @@ def safe_float(val):
     except:
         return 0.0
 
+def apply_showroom_filters(query, latest_date_query=None, search=None, business_head=None, classification_owner=None, 
+                         make_owner=None, collection_owner=None, party=None, location=None, 
+                         purchase_ro=None, order_type=None, order_request_type=None, 
+                         division=None, group_name=None, purity=None, classification=None,
+                         make=None, collection=None, branch_type=None):
+    if search:
+        query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head.ilike(f"%{search}%") | 
+                             ShowroomWiseOrderSummarySnapshot.party.ilike(f"%{search}%") |
+                             ShowroomWiseOrderSummarySnapshot.location.ilike(f"%{search}%"))
+    if business_head: 
+        if business_head == 'Unknown':
+            query = query.filter(
+                (ShowroomWiseOrderSummarySnapshot.business_head == None) |
+                (ShowroomWiseOrderSummarySnapshot.business_head == '') |
+                (ShowroomWiseOrderSummarySnapshot.business_head == 'NULL')
+            )
+        else:
+            query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
+    if classification_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification_owner == classification_owner)
+    if make_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.make_owner == make_owner)
+    if collection_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection_owner == collection_owner)
+    if party: query = query.filter(ShowroomWiseOrderSummarySnapshot.party == party)
+    if location: query = query.filter(ShowroomWiseOrderSummarySnapshot.location == location)
+    if purchase_ro: query = query.filter(ShowroomWiseOrderSummarySnapshot.purchase_ro == purchase_ro)
+    if order_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_type == order_type)
+    if order_request_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_request_type == order_request_type)
+    if division: query = query.filter(ShowroomWiseOrderSummarySnapshot.division == division)
+    if group_name: query = query.filter(ShowroomWiseOrderSummarySnapshot.group_name == group_name)
+    if purity: query = query.filter(ShowroomWiseOrderSummarySnapshot.purity == purity)
+    if classification: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification == classification)
+    if make: query = query.filter(ShowroomWiseOrderSummarySnapshot.make == make)
+    if collection: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection == collection)
+    if branch_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_type == branch_type)
+    
+    if latest_date_query:
+        query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
+
+    # User-based filtering: 
+    # 1. BUSINESS_HEAD: Restrict to bh_emp_code = user_id
+    # 2. Others (not admin/manager): Restrict to owners (make, collection, classification)
+    roles = [r.upper() for r in session.get('roles', [])]
+    is_admin = 'ADMIN' in roles
+    is_manager_2 = 'MANAGER_2' in roles
+    is_business_head = 'BUSINESS_HEAD' in roles
+    user_id = session.get('user_id')
+    username = session.get('username')
+    
+    if not is_admin and not is_manager_2:
+        if is_business_head and user_id:
+            query = query.filter(ShowroomWiseOrderSummarySnapshot.bh_emp_code == user_id)
+        elif username:
+            u = (username or '').strip().lower()
+            query = query.filter(
+                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.make_owner)) == u) |
+                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.collection_owner)) == u) |
+                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.classification_owner)) == u)
+            )
+
+    return query
+
 def get_showroom_aggs(latest_date_query, search=None, business_head=None, classification_owner=None, 
                     make_owner=None, collection_owner=None, party=None, location=None, 
                     purchase_ro=None, order_type=None, order_request_type=None, 
                     division=None, group_name=None, purity=None, classification=None,
                     make=None, collection=None, branch_type=None):
     
-    def apply_filters(query):
-        if search:
-            query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head.ilike(f"%{search}%") | 
-                                 ShowroomWiseOrderSummarySnapshot.party.ilike(f"%{search}%") |
-                                 ShowroomWiseOrderSummarySnapshot.location.ilike(f"%{search}%"))
-        if business_head: query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
-        if classification_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification_owner == classification_owner)
-        if make_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.make_owner == make_owner)
-        if collection_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection_owner == collection_owner)
-        if party: query = query.filter(ShowroomWiseOrderSummarySnapshot.party == party)
-        if location: query = query.filter(ShowroomWiseOrderSummarySnapshot.location == location)
-        if purchase_ro: query = query.filter(ShowroomWiseOrderSummarySnapshot.purchase_ro == purchase_ro)
-        if order_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_type == order_type)
-        if order_request_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_request_type == order_request_type)
-        if division: query = query.filter(ShowroomWiseOrderSummarySnapshot.division == division)
-        if group_name: query = query.filter(ShowroomWiseOrderSummarySnapshot.group_name == group_name)
-        if purity: query = query.filter(ShowroomWiseOrderSummarySnapshot.purity == purity)
-        if classification: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification == classification)
-        if make: query = query.filter(ShowroomWiseOrderSummarySnapshot.make == make)
-        if collection: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection == collection)
-        if branch_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_type == branch_type)
-        
-        if latest_date_query:
-            query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
-
-        # User-based filtering: 
-        # 1. BRANCH_HEAD: Restrict to bh_emp_code = user_id
-        # 2. Others (not admin/manager): Restrict to owners (make, collection, classification)
-        roles = [r.upper() for r in session.get('roles', [])]
-        is_admin = 'ADMIN' in roles
-        is_manager_2 = 'MANAGER_2' in roles
-        is_business_head = 'BUSINESS_HEAD' in roles
-        user_id = session.get('user_id')
-        username = session.get('username')
-        
-        if not is_admin and not is_manager_2:
-            if is_business_head and user_id:
-                query = query.filter(ShowroomWiseOrderSummarySnapshot.bh_emp_code == user_id)
-            elif username:
-                u = (username or '').strip().lower()
-                query = query.filter(
-                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.make_owner)) == u) |
-                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.collection_owner)) == u) |
-                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.classification_owner)) == u)
-                )
-
-        return query
-
     agg_cols = [
         func.sum(cast(ShowroomWiseOrderSummarySnapshot.order_wt, Numeric)).label('total_order_wt'),
         func.sum(cast(ShowroomWiseOrderSummarySnapshot.accepted_wt, Numeric)).label('accepted_wt'),
@@ -107,7 +119,10 @@ def get_showroom_aggs(latest_date_query, search=None, business_head=None, classi
     ]
     
     agg_q = db.session.query(*agg_cols)
-    agg_q = apply_filters(agg_q)
+    agg_q = apply_showroom_filters(agg_q, latest_date_query, search, business_head, classification_owner, 
+                                 make_owner, collection_owner, party, location, 
+                                 purchase_ro, order_type, order_request_type, 
+                                 division, group_name, purity, classification, make, collection, branch_type)
     aggs = agg_q.first()
 
     return {
@@ -158,14 +173,7 @@ def showroom_options():
         username = session.get('username')
         
         def apply_options_filter(q):
-            if not is_admin and not is_manager_2 and username:
-                u = username.strip().lower()
-                return q.filter(
-                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.make_owner)) == u) |
-                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.collection_owner)) == u) |
-                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.classification_owner)) == u)
-                )
-            return q
+            return apply_showroom_filters(q)
 
         options = {
             'business_heads': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.business_head.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.business_head).all() if r[0]],
@@ -221,54 +229,6 @@ def get_showroom_partial():
         
         is_child_rows = bool(parent_level)
         
-        def apply_filters(query):
-            if search:
-                query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head.ilike(f"%{search}%") | 
-                                     ShowroomWiseOrderSummarySnapshot.party.ilike(f"%{search}%") |
-                                     ShowroomWiseOrderSummarySnapshot.location.ilike(f"%{search}%"))
-            if business_head:
-                if business_head == 'Unknown':
-                    query = query.filter(
-                        (ShowroomWiseOrderSummarySnapshot.business_head == None) |
-                        (ShowroomWiseOrderSummarySnapshot.business_head == '') |
-                        (ShowroomWiseOrderSummarySnapshot.business_head == 'NULL')
-                    )
-                else:
-                    query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
-            if classification_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification_owner == classification_owner)
-            if make_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.make_owner == make_owner)
-            if collection_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection_owner == collection_owner)
-            if party: query = query.filter(ShowroomWiseOrderSummarySnapshot.party == party)
-            if location: query = query.filter(ShowroomWiseOrderSummarySnapshot.location == location)
-            if purchase_ro: query = query.filter(ShowroomWiseOrderSummarySnapshot.purchase_ro == purchase_ro)
-            if order_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_type == order_type)
-            if order_request_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_request_type == order_request_type)
-            if division: query = query.filter(ShowroomWiseOrderSummarySnapshot.division == division)
-            if group_name: query = query.filter(ShowroomWiseOrderSummarySnapshot.group_name == group_name)
-            if purity: query = query.filter(ShowroomWiseOrderSummarySnapshot.purity == purity)
-            if classification: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification == classification)
-            if make: query = query.filter(ShowroomWiseOrderSummarySnapshot.make == make)
-            if collection: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection == collection)
-            if branch_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_type == branch_type)
-            
-            if latest_date_query:
-                query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
-
-            # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
-            roles = [r.upper() for r in session.get('roles', [])]
-            is_manager_2 = 'MANAGER_2' in roles
-            is_admin = 'ADMIN' in roles
-            username = session.get('username')
-            if not is_admin and not is_manager_2 and username:
-                u = username.strip().lower()
-                query = query.filter(
-                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.make_owner)) == u) |
-                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.collection_owner)) == u) |
-                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.classification_owner)) == u)
-                )
-
-            return query
-
         agg_cols = [
             func.sum(cast(ShowroomWiseOrderSummarySnapshot.order_wt, Numeric)).label('total_order_wt'),
             func.sum(cast(ShowroomWiseOrderSummarySnapshot.accepted_wt, Numeric)).label('accepted_wt'),
@@ -288,7 +248,6 @@ def get_showroom_partial():
             level = 'location'
             if parent_level and parent_value:
                 if parent_value == 'Unknown':
-                    # Handle all cases that result in 'Unknown' as the parent value
                     base_query = db.session.query(ShowroomWiseOrderSummarySnapshot).filter(
                         (ShowroomWiseOrderSummarySnapshot.business_head == None) |
                         (ShowroomWiseOrderSummarySnapshot.business_head == '') |
@@ -360,7 +319,10 @@ def get_showroom_partial():
                 level = 'collection_owner'
 
         main_q = base_query.with_entities(*(group_cols + agg_cols))
-        main_q = apply_filters(main_q)
+        main_q = apply_showroom_filters(main_q, latest_date_query, search, business_head, classification_owner, 
+                                    make_owner, collection_owner, party, location, 
+                                    purchase_ro, order_type, order_request_type, 
+                                    division, group_name, purity, classification, make, collection, branch_type)
         main_q = main_q.group_by(*group_cols).order_by(*group_cols)
         
         pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
@@ -448,46 +410,10 @@ def get_showroom_details():
 
         query = ShowroomWiseOrderSummarySnapshot.query
         
-        # Apply hierarchy filters
-        if business_head: query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
-        if classification_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification_owner == classification_owner)
-        if make_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.make_owner == make_owner)
-        if collection_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection_owner == collection_owner)
-        
-        # Apply global filters
-        if search:
-            query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head.ilike(f"%{search}%") | 
-                                 ShowroomWiseOrderSummarySnapshot.party.ilike(f"%{search}%") |
-                                 ShowroomWiseOrderSummarySnapshot.location.ilike(f"%{search}%"))
-        
-        if party_filter: query = query.filter(ShowroomWiseOrderSummarySnapshot.party == party_filter)
-        if location_filter: query = query.filter(ShowroomWiseOrderSummarySnapshot.location == location_filter)
-        if purchase_ro: query = query.filter(ShowroomWiseOrderSummarySnapshot.purchase_ro == purchase_ro)
-        if order_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_type == order_type)
-        if order_request_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_request_type == order_request_type)
-        if division: query = query.filter(ShowroomWiseOrderSummarySnapshot.division == division)
-        if group_name: query = query.filter(ShowroomWiseOrderSummarySnapshot.group_name == group_name)
-        if purity: query = query.filter(ShowroomWiseOrderSummarySnapshot.purity == purity)
-        if classification: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification == classification)
-        if make: query = query.filter(ShowroomWiseOrderSummarySnapshot.make == make)
-        if collection: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection == collection)
-        if branch_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_type == branch_type)
-
-        if latest_date_query:
-            query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
-
-        # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
-        roles = [r.upper() for r in session.get('roles', [])]
-        is_admin = 'ADMIN' in roles
-        is_manager_2 = 'MANAGER_2' in roles
-        username = session.get('username')
-        if not is_admin and not is_manager_2 and username:
-            u = username.strip().lower()
-            query = query.filter(
-                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.make_owner)) == u) |
-                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.collection_owner)) == u) |
-                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.classification_owner)) == u)
-            )
+        query = apply_showroom_filters(query, latest_date_query, search, business_head, classification_owner, 
+                                     make_owner, collection_owner, party_filter, location_filter, 
+                                     purchase_ro, order_type, order_request_type, 
+                                     division, group_name, purity, classification, make, collection, branch_type)
         
         hierarchy = ['location', 'division', 'group_name', 'purity', 'classification', 'make', 'collection', 'party']
         col_map = {
