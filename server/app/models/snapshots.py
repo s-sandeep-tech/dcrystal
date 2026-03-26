@@ -715,6 +715,7 @@ class ShowroomWiseOrderSummarySnapshot(db.Model):
     order_ro = db.Column(db.Text)
     batch = db.Column(db.Text)
     branch_type = db.Column(db.Text)
+    bh_emp_code = db.Column(db.Text)
 
     order_qty = db.Column(db.Numeric(18, 3))
     order_wt = db.Column(db.Numeric(18, 3))
@@ -784,6 +785,7 @@ class ShowroomWiseOrderSummarySnapshot(db.Model):
             'order_ro': self.order_ro,
             'batch': self.batch,
             'branch_type': self.branch_type or '',
+            'bh_emp_code': self.bh_emp_code or '',
             'order_qty': float(self.order_qty or 0),
             'order_wt': float(self.order_wt or 0),
             'cancelled_pcs': float(self.cancelled_pcs or 0),

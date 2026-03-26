@@ -69,18 +69,26 @@ def get_showroom_aggs(latest_date_query, search=None, business_head=None, classi
         if latest_date_query:
             query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
 
-        # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
+        # User-based filtering: 
+        # 1. BRANCH_HEAD: Restrict to bh_emp_code = user_id
+        # 2. Others (not admin/manager): Restrict to owners (make, collection, classification)
         roles = [r.upper() for r in session.get('roles', [])]
         is_admin = 'ADMIN' in roles
         is_manager_2 = 'MANAGER_2' in roles
+        is_business_head = 'BUSINESS_HEAD' in roles
+        user_id = session.get('user_id')
         username = session.get('username')
-        if not is_admin and not is_manager_2 and username:
-            u = username.strip().lower()
-            query = query.filter(
-                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.make_owner)) == u) |
-                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.collection_owner)) == u) |
-                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.classification_owner)) == u)
-            )
+        
+        if not is_admin and not is_manager_2:
+            if is_business_head and user_id:
+                query = query.filter(ShowroomWiseOrderSummarySnapshot.bh_emp_code == user_id)
+            elif username:
+                u = (username or '').strip().lower()
+                query = query.filter(
+                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.make_owner)) == u) |
+                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.collection_owner)) == u) |
+                    (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.classification_owner)) == u)
+                )
 
         return query
 
