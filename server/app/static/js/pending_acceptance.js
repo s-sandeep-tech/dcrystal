@@ -117,8 +117,14 @@ function applyGlobalFilters() {
 
     const delayEnable = document.getElementById('filter-delay-enable')?.checked;
     const delay = document.getElementById('filter-delay')?.value;
-    if (delayEnable && delay !== '') urlParams.set('delay', delay);
-    else urlParams.delete('delay');
+    if (delayEnable) {
+        urlParams.set('delay_enabled', 'true');
+        if (delay !== '') urlParams.set('delay', delay);
+        else urlParams.delete('delay');
+    } else {
+        urlParams.set('delay_enabled', 'false');
+        urlParams.delete('delay');
+    }
 
     const dateEnable = document.getElementById('enable-date-filter')?.checked;
     const fromDate = document.getElementById('filter-from-date')?.value;
@@ -507,6 +513,15 @@ async function showPODetailsModal(collectionOwner, makeOwner, supplier, collecti
     urlParams.set('supplier', supplier);
     urlParams.set('collection', collection);
     if (statusFilter) urlParams.set('status_filter', statusFilter);
+    
+    const delayEnable = document.getElementById('filter-delay-enable')?.checked;
+    const delay = document.getElementById('filter-delay')?.value;
+    if (delayEnable) {
+        urlParams.set('delay_enabled', 'true');
+        if (delay !== '') urlParams.set('delay', delay);
+    } else {
+        urlParams.set('delay_enabled', 'false');
+    }
 
     try {
         const response = await fetch(`/api/pending-acceptance-feedback/po-details?${urlParams.toString()}`, {
@@ -791,17 +806,37 @@ function renderWizardData() {
 
 function updateContinueTotal() {
     const inputs = document.querySelectorAll('.wizard-edit-weight');
-    let total = 0;
+    let continueTotal = 0;
     inputs.forEach(input => {
-        total += parseFloat(input.value || 0);
+        continueTotal += parseFloat(input.value || 0);
     });
     const totalEl = document.getElementById('wizard-continue-total');
-    if (totalEl) totalEl.textContent = total.toFixed(3);
+    if (totalEl) totalEl.textContent = continueTotal.toFixed(3);
+    
+    // Determine overall and cancel components for balance
+    let overallWeight = 0;
+    if (wizardData) {
+        wizardData.forEach(item => {
+            overallWeight += parseFloat(item.total_weight || 0);
+        });
+    }
+    
+    let cancelTotal = 0;
+    document.querySelectorAll('.wizard-po-checkbox').forEach(cb => {
+        if (cb.checked) {
+            const idx = parseInt(cb.dataset.idx);
+            cancelTotal += parseFloat(wizardData[idx].total_weight || 0);
+        }
+    });
+    
+    const balanceWeight = Math.max(0, overallWeight - cancelTotal - continueTotal);
+    const balanceElFiltered = document.getElementById('wizard-continue-balance');
+    if (balanceElFiltered) balanceElFiltered.textContent = balanceWeight.toFixed(3);
 }
 
 function updateCancelTotal() {
     const checkboxes = document.querySelectorAll('.wizard-po-checkbox');
-    let totalWeight = 0;
+    let totalWeight = 0; // Current selection in this tab
     let count = 0;
     let overallWeight = 0;
     
@@ -818,8 +853,14 @@ function updateCancelTotal() {
             count++;
         }
     });
+
+    // Also factor in current Continue inputs for balance
+    let continueTotal = 0;
+    document.querySelectorAll('.wizard-edit-weight').forEach(input => {
+        continueTotal += parseFloat(input.value || 0);
+    });
     
-    const balanceWeight = Math.max(0, overallWeight - totalWeight);
+    const balanceWeight = Math.max(0, overallWeight - totalWeight - continueTotal);
     
     document.getElementById('wizard-cancel-total').textContent = totalWeight.toFixed(3);
     

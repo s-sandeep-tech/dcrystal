@@ -94,8 +94,8 @@ def apply_filters(query, search, latest_date_query, collection_owner=None, make_
     if delay is not None:
         try:
             delay_val = int(delay)
-            # (delivery_target_date - current_date) >= delay_val
-            query = query.filter(PendingAcceptanceSnapshot.delivery_target_date - func.current_date() >= delay_val)
+            # (current_date - delivery_target_date) >= delay_val (Overdue)
+            query = query.filter(func.current_date() - PendingAcceptanceSnapshot.delivery_target_date >= delay_val)
         except (ValueError, TypeError):
             pass
 
@@ -331,9 +331,17 @@ def pending_acceptance():
         f_classification = request.args.get('classification', '')
         f_feedback_status = request.args.get('feedback_status', '')
         f_delay = request.args.get('delay')
-        # Default to 5 days if status is pending_to_deliver_not_barcoded and no delay provided
-        if f_delay is None and status_filter == 'pending_to_deliver_not_barcoded':
+        f_delay_enabled = request.args.get('delay_enabled', 'false') == 'true'
+        
+        # Default to 5 days if status is pending_to_deliver_not_barcoded and NOT explicitly disabled
+        # This handles the initial load where delay might not be in URL yet
+        if f_delay is None and status_filter == 'pending_to_deliver_not_barcoded' and request.args.get('delay_enabled') is None:
             f_delay = '5'
+            f_delay_enabled = True
+            
+        if not f_delay_enabled:
+            f_delay = None
+
         f_from_date = request.args.get('from_date', '')
         f_to_date = request.args.get('to_date', '')
         f_enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
@@ -493,9 +501,16 @@ def get_pending_acceptance_partial():
         f_order_request_type = request.args.get('order_request_type', '')
         f_feedback_status = request.args.get('feedback_status', '')
         f_delay = request.args.get('delay')
-        # Default to 5 days if status is pending_to_deliver_not_barcoded and no delay provided
-        if f_delay is None and status_filter == 'pending_to_deliver_not_barcoded':
+        f_delay_enabled = request.args.get('delay_enabled', 'false') == 'true'
+
+        # Default to 5 days if status is pending_to_deliver_not_barcoded and NOT explicitly disabled
+        if f_delay is None and status_filter == 'pending_to_deliver_not_barcoded' and request.args.get('delay_enabled') is None:
             f_delay = '5'
+            f_delay_enabled = True
+
+        if not f_delay_enabled:
+            f_delay = None
+
         f_from_date = request.args.get('from_date', '')
         f_to_date = request.args.get('to_date', '')
         f_enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
@@ -714,6 +729,10 @@ def get_pending_acceptance_po_details():
         f_order_type = request.args.get('order_type', '')
         f_order_request_type = request.args.get('order_request_type', '')
         f_delay = request.args.get('delay')
+        f_delay_enabled = request.args.get('delay_enabled', 'false') == 'true'
+        if not f_delay_enabled:
+            f_delay = None
+            
         f_from_date = request.args.get('from_date')
         f_to_date = request.args.get('to_date')
         f_enable_date_filter = request.args.get('enable_date_filter') == 'true'
@@ -758,7 +777,8 @@ def get_pending_acceptance_po_details():
         if f_delay is not None:
             try:
                 delay_val = int(f_delay)
-                query = query.filter(PendingAcceptanceSnapshot.delivery_target_date - func.current_date() >= delay_val)
+                # (current_date - delivery_target_date) >= delay_val (Overdue)
+                query = query.filter(func.current_date() - PendingAcceptanceSnapshot.delivery_target_date >= delay_val)
             except (ValueError, TypeError):
                 pass
                 
