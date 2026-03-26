@@ -611,6 +611,36 @@ class ReportFeedback(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
+class PendingAcceptanceAction(db.Model):
+    __tablename__ = 'pending_acceptance_action'
+
+    id = db.Column(db.Integer, primary_key=True)
+    collection_owner = db.Column(db.Text)
+    make_owner = db.Column(db.Text)
+    supplier = db.Column(db.Text)
+    collection = db.Column(db.Text)
+    status_filter = db.Column(db.String(50))
+    action_type = db.Column(db.String(20)) # 'CONTINUE' or 'CANCEL'
+    reason = db.Column(db.Text)
+    action_data = db.Column(db.JSON) # Array of {po, weight, delivery_date} for continue or array of POs for cancel
+    username = db.Column(db.String(80))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'collection_owner': self.collection_owner,
+            'make_owner': self.make_owner,
+            'supplier': self.supplier,
+            'collection': self.collection,
+            'status_filter': self.status_filter,
+            'action_type': self.action_type,
+            'reason': self.reason,
+            'action_data': self.action_data,
+            'username': self.username,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
 class ProvisionAllocationSummarySnapshot(db.Model):
     __tablename__ = 'provision_allocation_summary_snapshot'
 

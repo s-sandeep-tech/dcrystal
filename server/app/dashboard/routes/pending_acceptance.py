@@ -1,7 +1,7 @@
 from flask import render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.dashboard import dashboard_bp
-from app.models.snapshots import PendingAcceptanceSnapshot, ReportFeedback
+from app.models.snapshots import PendingAcceptanceSnapshot, ReportFeedback, PendingAcceptanceAction
 from app.models.auth import User
 from app.extensions import db, redis_client
 from sqlalchemy import func, case
@@ -52,9 +52,37 @@ def get_latest_feedback_subquery(page_code='PA'):
             func.coalesce(ReportFeedback.make_owner, '') == func.coalesce(subq.c.make_owner, ''),
             func.coalesce(ReportFeedback.supplier, '') == func.coalesce(subq.c.supplier, ''),
             func.coalesce(ReportFeedback.collection, '') == func.coalesce(subq.c.collection, ''),
-            ReportFeedback.created_at == subq.c.max_date
         )
     ).filter(ReportFeedback.page_code == page_code).subquery()
+
+def get_latest_wizard_action_subquery(status_filter='pending_to_deliver_not_barcoded', action_type=None):
+    base_filter = PendingAcceptanceAction.status_filter == status_filter
+    if action_type:
+        base_filter = db.and_(base_filter, PendingAcceptanceAction.action_type == action_type)
+        
+    subq = db.session.query(
+        PendingAcceptanceAction.collection_owner,
+        PendingAcceptanceAction.make_owner,
+        PendingAcceptanceAction.supplier,
+        PendingAcceptanceAction.collection,
+        func.max(PendingAcceptanceAction.created_at).label('max_date')
+    ).filter(base_filter).group_by(
+        PendingAcceptanceAction.collection_owner,
+        PendingAcceptanceAction.make_owner,
+        PendingAcceptanceAction.supplier,
+        PendingAcceptanceAction.collection
+    ).subquery()
+    
+    return db.session.query(PendingAcceptanceAction).join(
+        subq,
+        db.and_(
+            func.coalesce(PendingAcceptanceAction.collection_owner, '') == func.coalesce(subq.c.collection_owner, ''),
+            func.coalesce(PendingAcceptanceAction.make_owner, '') == func.coalesce(subq.c.make_owner, ''),
+            func.coalesce(PendingAcceptanceAction.supplier, '') == func.coalesce(subq.c.supplier, ''),
+            func.coalesce(PendingAcceptanceAction.collection, '') == func.coalesce(subq.c.collection, ''),
+            PendingAcceptanceAction.created_at == subq.c.max_date
+        )
+    ).filter(base_filter).subquery()
 
 def apply_filters(query, search, latest_date_query, collection_owner=None, make_owner=None, 
                 supplier=None, collection=None, classification=None, feedback_status=None,
@@ -113,6 +141,8 @@ def get_base_query(query_filter_func=None, feedback_status=None,
         p_code = 'PNB'
     
     latest_feedback = get_latest_feedback_subquery(page_code=p_code)
+    latest_continue = get_latest_wizard_action_subquery(status_filter=status_filter, action_type='CONTINUE')
+    latest_cancel = get_latest_wizard_action_subquery(status_filter=status_filter, action_type='CANCEL')
     
     # Base query for aggregation
     q = db.session.query(
@@ -164,7 +194,15 @@ def get_base_query(query_filter_func=None, feedback_status=None,
         latest_feedback.c.feedback_text,
         latest_feedback.c.feedback_category,
         latest_feedback.c.username,
-        latest_feedback.c.created_at
+        latest_feedback.c.created_at,
+        latest_continue.c.reason.label('continue_reason'),
+        latest_continue.c.action_data.label('continue_data'),
+        latest_continue.c.username.label('continue_username'),
+        latest_continue.c.created_at.label('continue_created_at'),
+        latest_cancel.c.reason.label('cancel_reason'),
+        latest_cancel.c.action_data.label('cancel_data'),
+        latest_cancel.c.username.label('cancel_username'),
+        latest_cancel.c.created_at.label('cancel_created_at')
     ).outerjoin(
         latest_feedback,
         db.and_(
@@ -172,6 +210,22 @@ def get_base_query(query_filter_func=None, feedback_status=None,
             func.coalesce(q.c.make_owner, '') == func.coalesce(latest_feedback.c.make_owner, ''),
             func.coalesce(q.c.supplier, '') == func.coalesce(latest_feedback.c.supplier, ''),
             func.coalesce(q.c.collection, '') == func.coalesce(latest_feedback.c.collection, '')
+        )
+    ).outerjoin(
+        latest_continue,
+        db.and_(
+            func.coalesce(q.c.collection_owner, '') == func.coalesce(latest_continue.c.collection_owner, ''),
+            func.coalesce(q.c.make_owner, '') == func.coalesce(latest_continue.c.make_owner, ''),
+            func.coalesce(q.c.supplier, '') == func.coalesce(latest_continue.c.supplier, ''),
+            func.coalesce(q.c.collection, '') == func.coalesce(latest_continue.c.collection, '')
+        )
+    ).outerjoin(
+        latest_cancel,
+        db.and_(
+            func.coalesce(q.c.collection_owner, '') == func.coalesce(latest_cancel.c.collection_owner, ''),
+            func.coalesce(q.c.make_owner, '') == func.coalesce(latest_cancel.c.make_owner, ''),
+            func.coalesce(q.c.supplier, '') == func.coalesce(latest_cancel.c.supplier, ''),
+            func.coalesce(q.c.collection, '') == func.coalesce(latest_cancel.c.collection, '')
         )
     )
 
@@ -266,6 +320,7 @@ def pending_acceptance():
 
         latest_date_query = db.session.query(func.max(PendingAcceptanceSnapshot.snapshot_date)).scalar()
         
+        status_filter = request.args.get('status_filter', 'pending_to_accept')
         search = request.args.get('search', '').strip()
         f_collection_owner = request.args.get('collection_owner', '')
         f_make_owner = request.args.get('make_owner', '')
@@ -276,6 +331,9 @@ def pending_acceptance():
         f_classification = request.args.get('classification', '')
         f_feedback_status = request.args.get('feedback_status', '')
         f_delay = request.args.get('delay')
+        # Default to 5 days if status is pending_to_deliver_not_barcoded and no delay provided
+        if f_delay is None and status_filter == 'pending_to_deliver_not_barcoded':
+            f_delay = '5'
         f_from_date = request.args.get('from_date', '')
         f_to_date = request.args.get('to_date', '')
         f_enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
@@ -435,6 +493,9 @@ def get_pending_acceptance_partial():
         f_order_request_type = request.args.get('order_request_type', '')
         f_feedback_status = request.args.get('feedback_status', '')
         f_delay = request.args.get('delay')
+        # Default to 5 days if status is pending_to_deliver_not_barcoded and no delay provided
+        if f_delay is None and status_filter == 'pending_to_deliver_not_barcoded':
+            f_delay = '5'
         f_from_date = request.args.get('from_date', '')
         f_to_date = request.args.get('to_date', '')
         f_enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
@@ -535,6 +596,44 @@ def get_pending_acceptance_partial():
         
         processed_rows = []
         for r in pagination.items:
+            continue_data_formatted = ""
+            cancel_data_formatted = ""
+            has_action = False
+            
+            if getattr(r, 'continue_data', None):
+                has_action = True
+                try:
+                    table_html = [
+                        '<table class="w-full text-left text-[9px] text-gray-300">',
+                        '<thead class="text-[8px] uppercase text-gray-500 border-b border-gray-700/50">',
+                        '<tr><th class="pb-1 font-bold">Weight</th><th class="pb-1 font-bold text-right">Delivery Date</th></tr>',
+                        '</thead><tbody class="divide-y divide-gray-800/50">'
+                    ]
+                    for d in r.continue_data:
+                        val = float(d.get('weight') or 0)
+                        table_html.append(f'<tr><td class="py-1">{val:.3f} gms</td><td class="py-1 text-right">{d.get("delivery_date")}</td></tr>')
+                    table_html.append('</tbody></table>')
+                    continue_data_formatted = "".join(table_html)
+                except Exception:
+                    pass
+
+            if getattr(r, 'cancel_data', None):
+                has_action = True
+                try:
+                    table_html = [
+                        '<table class="w-full text-left text-[9px] text-gray-300">',
+                        '<thead class="text-[8px] uppercase text-gray-500 border-b border-gray-700/50">',
+                        '<tr><th class="pb-1 font-bold">PO Number</th><th class="pb-1 font-bold text-right">Weight</th></tr>',
+                        '</thead><tbody class="divide-y divide-gray-800/50">'
+                    ]
+                    for d in r.cancel_data:
+                        val = float(d.get('total_weight') or 0)
+                        table_html.append(f'<tr><td class="py-1 font-bold">{d.get("po_number")}</td><td class="py-1 text-right">{val:.3f} gms</td></tr>')
+                    table_html.append('</tbody></table>')
+                    cancel_data_formatted = "".join(table_html)
+                except Exception:
+                    pass
+
             row_dict = {
                 'id': f"{r.collection_owner}_{r.make_owner}_{r.supplier}_{r.collection}",
                 'collection_owner': r.collection_owner or '',
@@ -553,7 +652,18 @@ def get_pending_acceptance_partial():
                 'feedback_text': r.feedback_text or '',
                 'feedback_category': r.feedback_category or '',
                 'feedback_username': r.username or '',
-                'feedback_date': (r.created_at + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M') if r.created_at else ''
+                'feedback_date': (r.created_at + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M') if r.created_at else '',
+                
+                'has_action': has_action,
+                'continue_reason': getattr(r, 'continue_reason', ''),
+                'continue_username': getattr(r, 'continue_username', ''),
+                'continue_date': (r.continue_created_at + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M') if getattr(r, 'continue_created_at', None) else '',
+                'continue_data_formatted': continue_data_formatted,
+                
+                'cancel_reason': getattr(r, 'cancel_reason', ''),
+                'cancel_username': getattr(r, 'cancel_username', ''),
+                'cancel_date': (r.cancel_created_at + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M') if getattr(r, 'cancel_created_at', None) else '',
+                'cancel_data_formatted': cancel_data_formatted
             }
             processed_rows.append(row_dict)
         
@@ -614,6 +724,8 @@ def get_pending_acceptance_po_details():
             PendingAcceptanceSnapshot.po_date,
             PendingAcceptanceSnapshot.total_weight,
             PendingAcceptanceSnapshot.order_piece,
+            PendingAcceptanceSnapshot.delivery_target_date,
+            PendingAcceptanceSnapshot.supplier,
             func.sum(PendingAcceptanceSnapshot.order_wt).label('sum_order_wt'),
             func.sum(PendingAcceptanceSnapshot.accepted_wt).label('sum_accepted_wt'),
             func.sum(PendingAcceptanceSnapshot.pending_to_accepted_wt).label('sum_pending_to_accepted_wt'),
@@ -671,7 +783,9 @@ def get_pending_acceptance_po_details():
             PendingAcceptanceSnapshot.po_number,
             PendingAcceptanceSnapshot.po_date,
             PendingAcceptanceSnapshot.total_weight,
-            PendingAcceptanceSnapshot.order_piece
+            PendingAcceptanceSnapshot.order_piece,
+            PendingAcceptanceSnapshot.delivery_target_date,
+            PendingAcceptanceSnapshot.supplier
         )
         
         records = query.all()
@@ -722,8 +836,32 @@ def get_pending_acceptance_po_details():
                 'pending_to_deliver_pcs': p_d_p,
                 'pending_to_deliver_wt': p_d_w,
                 'not_barcoded_pcs': n_b_p,
-                'not_barcoded_wt': n_b_w
+                'not_barcoded_wt': n_b_w,
+                'delivery_target_date': r.delivery_target_date.strftime('%Y-%m-%d') if r.delivery_target_date else '',
+                'vendor': r.supplier or 'N/A'
             })
+            
+        if request.headers.get('Accept') == 'application/json':
+            existing_actions = {}
+            try:
+                actions = db.session.query(PendingAcceptanceAction).filter(
+                    func.coalesce(PendingAcceptanceAction.collection_owner, '') == func.coalesce(collection_owner, ''),
+                    func.coalesce(PendingAcceptanceAction.make_owner, '') == func.coalesce(make_owner, ''),
+                    func.coalesce(PendingAcceptanceAction.supplier, '') == func.coalesce(supplier, ''),
+                    func.coalesce(PendingAcceptanceAction.collection, '') == func.coalesce(collection, ''),
+                    PendingAcceptanceAction.status_filter == status_filter
+                ).order_by(PendingAcceptanceAction.created_at.desc()).all()
+                for action in actions:
+                    if action.action_type not in existing_actions:
+                        existing_actions[action.action_type] = {
+                            'action_type': action.action_type,
+                            'reason': action.reason,
+                            'action_data': action.action_data
+                        }
+            except Exception as ex:
+                logger.error(f"Error fetching existing wizard action: {str(ex)}")
+
+            return jsonify({'details': details, 'totals': totals, 'existing_actions': existing_actions})
             
         return render_template('partials/_po_details_modal_generic.html', details=details, totals=totals, report_type='PA', status_filter=status_filter)
     except Exception as e:
@@ -800,4 +938,72 @@ def save_pending_acceptance_feedback():
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error saving feedback: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@dashboard_bp.route('/api/pending-acceptance-feedback/wizard-action', methods=['POST'])
+@jwt_required()
+def save_pending_acceptance_wizard_action():
+    try:
+        data = request.json
+        current_username = session.get('username', '').strip()
+        
+        collection_owner = data.get('collection_owner', '').strip()
+        make_owner = data.get('make_owner')
+        supplier = data.get('supplier')
+        collection = data.get('collection')
+        status_filter = data.get('status_filter')
+        action_type = data.get('action_type')
+        reason = data.get('reason')
+        action_data = data.get('action_data')
+        
+        if not current_username:
+            return jsonify({"status": "error", "message": "User session expired. Please login again."}), 401
+
+        if not collection_owner or not action_type:
+            return jsonify({"status": "error", "message": "Missing required fields"}), 400
+
+        # Check: either the collector owner or the make owner can save feedback
+        is_authorized = False
+        allowed_owners = []
+        if collection_owner:
+            allowed_owners.append(collection_owner.strip().lower())
+        if make_owner:
+            allowed_owners.append(make_owner.strip().lower())
+            
+        if current_username.lower() in allowed_owners:
+            is_authorized = True
+
+        if not is_authorized:
+            owners_str = " or ".join(filter(None, [collection_owner, make_owner]))
+            return jsonify({
+                "status": "error", 
+                "message": f"Unauthorized. Only {owners_str} can perform this action."
+            }), 403
+            
+        new_action = PendingAcceptanceAction(
+            collection_owner=collection_owner,
+            make_owner=make_owner,
+            supplier=supplier,
+            collection=collection,
+            status_filter=status_filter,
+            action_type=action_type,
+            reason=reason,
+            action_data=action_data,
+            username=current_username,
+            created_at=datetime.utcnow()
+        )
+        db.session.add(new_action)
+        db.session.commit()
+        
+        # Clear cache for this route
+        try:
+            for key in redis_client.scan_iter("pending_acc_*"):
+                redis_client.delete(key)
+        except Exception as e:
+            logger.error(f"Error clearing cache: {str(e)}")
+            
+        return jsonify({"status": "success", "message": "Fulfillment action saved successfully"})
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error saving wizard action: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500

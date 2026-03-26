@@ -52,7 +52,18 @@ function setStatusFilter(filter) {
         if (btn) btn.classList.add('active');
     }
     
-    // Apply filters
+    // Apply filters. If status is pending_to_deliver_not_barcoded, ensure delay is enabled.
+    if (filter === 'pending_to_deliver_not_barcoded') {
+        const delayEnable = document.getElementById('filter-delay-enable');
+        if (delayEnable && !delayEnable.checked) {
+            delayEnable.checked = true;
+            const delayInput = document.getElementById('filter-delay');
+            if (delayInput && (delayInput.value === '' || delayInput.value === '0')) {
+                delayInput.value = '5';
+            }
+        }
+    }
+    
     applyGlobalFilters();
 }
 
@@ -282,11 +293,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const sel = document.getElementById('filter-collection');
         if (sel) sel.value = urlParams.get('collection');
     }
+    const statusFilterArg = urlParams.get('status_filter') || 'pending_to_accept';
     if (urlParams.get('delay')) {
         const sel = document.getElementById('filter-delay');
         if (sel) sel.value = urlParams.get('delay');
         const enable = document.getElementById('filter-delay-enable');
         if (enable) enable.checked = true;
+    } else if (statusFilterArg === 'pending_to_deliver_not_barcoded') {
+        // Default to enabled with 5 days for this status if not in URL
+        const enable = document.getElementById('filter-delay-enable');
+        if (enable) enable.checked = true;
+        const sel = document.getElementById('filter-delay');
+        if (sel) sel.value = '5';
     } else {
         const enable = document.getElementById('filter-delay-enable');
         if (enable) enable.checked = false;
@@ -574,4 +592,371 @@ function closeDescendants(parentId) {
         if (icon) icon.style.transform = 'rotate(0deg)';
         closeDescendants(childId);
     });
+}
+
+// Expired Order Wizard Logic
+let wizardData = null;
+let currentWizardStep = 1;
+let currentContext = null;
+let existingWizardAction = null;
+
+async function openExpiredOrderWizard(co, mo, s, c, sf) {
+    const loader = document.getElementById('loader-overlay');
+    if (loader) loader.classList.remove('hidden');
+
+    try {
+        currentContext = {
+            collection_owner: co,
+            make_owner: mo,
+            supplier: s,
+            collection: c,
+            status_filter: sf || 'pending_to_deliver_not_barcoded'
+        };
+
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('collection_owner', co);
+        urlParams.set('make_owner', mo);
+        urlParams.set('supplier', s);
+        urlParams.set('collection', c);
+        urlParams.set('status_filter', sf || 'pending_to_deliver_not_barcoded');
+        
+        const response = await fetch(`/api/pending-acceptance-feedback/po-details?${urlParams.toString()}`, {
+            headers: { 
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch PO details');
+        const result = await response.json();
+        
+        wizardData = result.details || [];
+        existingWizardAction = result.existing_actions || {};
+        
+        // Reset and show wizard
+        currentWizardStep = 1;
+        renderWizardData();
+        goToWizardStep(1);
+        document.getElementById('expiredOrderWizard').classList.remove('hidden');
+        
+    } catch (e) {
+        console.error('Wizard initialization failed:', e);
+        showToast('Could not load expired order details.', 'error');
+        closeExpiredOrderWizard();
+    } finally {
+        if (loader) loader.classList.add('hidden');
+    }
+}
+
+function closeExpiredOrderWizard() {
+    document.getElementById('expiredOrderWizard').classList.add('hidden');
+    wizardData = null;
+    currentWizardStep = 1;
+}
+
+function goToWizardStep(step) {
+    currentWizardStep = step;
+    
+    // Hide all steps
+    document.getElementById('wizard-step-1').classList.add('hidden');
+    document.getElementById('wizard-step-2').classList.add('hidden');
+    document.getElementById('wizard-step-3').classList.add('hidden');
+    
+    // Header updates
+    const title = document.getElementById('wizard-title');
+    const subtitle = document.getElementById('wizard-subtitle');
+    
+    // Footer updates
+    const backBtn = document.getElementById('wizard-back-btn');
+    const subBtn = document.getElementById('wizard-sub-btn');
+    const cancelBtn = document.getElementById('wizard-cancel-btn');
+    
+    backBtn.classList.add('hidden');
+    subBtn.classList.add('hidden');
+    subBtn.disabled = false;
+    subBtn.textContent = 'Proceed with Fulfillment';
+    cancelBtn.classList.add('hidden');
+    cancelBtn.disabled = false;
+    cancelBtn.textContent = 'Cancel Order';
+
+    if (step === 1) {
+        document.getElementById('wizard-step-1').classList.remove('hidden');
+        title.textContent = 'Expired Order Management';
+        subtitle.textContent = 'Address orders that have passed their scheduled delivery date.';
+    } else if (step === 2) {
+        document.getElementById('wizard-step-2').classList.remove('hidden');
+        title.textContent = 'Review & Action';
+        subtitle.textContent = 'Step 2 of 2: Finalize management action for expired items.';
+        backBtn.classList.remove('hidden');
+        subBtn.classList.remove('hidden');
+        subBtn.textContent = 'Proceed with Fulfillment';
+    } else if (step === 3) {
+        document.getElementById('wizard-step-3').classList.remove('hidden');
+        title.textContent = 'Expired Order';
+        subtitle.textContent = 'Step 3 of 3: Confirm cancellation operation';
+        backBtn.classList.remove('hidden');
+        cancelBtn.classList.remove('hidden');
+    }
+}
+
+function goBackWizard() {
+    goToWizardStep(1);
+}
+
+function renderWizardData() {
+    if (!wizardData) return;
+    
+    // Step 2: Continue Items - Now 4 Blank Rows for Manual Entry
+    const continueBody = document.getElementById('wizard-continue-items');
+    
+    let prefillContinue = null;
+    let prefillCancel = null;
+    
+    if (existingWizardAction['CONTINUE']) {
+        prefillContinue = existingWizardAction['CONTINUE'].action_data || [];
+        const rCont = document.getElementById('continue-reason');
+        if(rCont) rCont.value = existingWizardAction['CONTINUE'].reason || '';
+    } else {
+        const rCont = document.getElementById('continue-reason');
+        if(rCont) rCont.value = '';
+    }
+    if (existingWizardAction['CANCEL']) {
+        prefillCancel = existingWizardAction['CANCEL'].action_data || [];
+        const rCanc = document.getElementById('cancel-reason');
+        if(rCanc) rCanc.value = existingWizardAction['CANCEL'].reason || '';
+    } else {
+        const rCanc = document.getElementById('cancel-reason');
+        if(rCanc) rCanc.value = '';
+    }
+
+    const masterCb = document.querySelector('input[onclick="toggleAllWizardPOs(this)"]');
+    if (masterCb) masterCb.checked = false;
+
+    const blankRows = [1, 2, 3, 4];
+    continueBody.innerHTML = blankRows.map((num, i) => {
+        let wVal = '';
+        let dVal = '';
+        if (prefillContinue && prefillContinue[i]) {
+            wVal = prefillContinue[i].weight || '';
+            dVal = prefillContinue[i].delivery_date || '';
+            if (dVal && !dVal.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                const parsedDate = new Date(dVal);
+                if (!isNaN(parsedDate.getTime())) {
+                    const y = parsedDate.getFullYear();
+                    const m = String(parsedDate.getMonth() + 1).padStart(2, '0');
+                    const d = String(parsedDate.getDate()).padStart(2, '0');
+                    dVal = `${y}-${m}-${d}`;
+                }
+            }
+        }
+        return `
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+            <td class="px-4 py-2 font-bold text-gray-400">${num.toString().padStart(2, '0')}</td>
+            <td class="px-4 py-2">
+                <input type="number" step="0.001" value="${wVal}" placeholder="0.000"
+                    oninput="updateContinueTotal()" class="wizard-edit-weight w-full bg-transparent border-b border-gray-100 dark:border-gray-700 focus:border-blue-500 focus:ring-0 text-right font-black text-blue-900 dark:text-blue-100 p-0 transition-all">
+            </td>
+            <td class="px-4 py-2">
+                <input type="date" value="${dVal}" 
+                    class="wizard-edit-date w-full bg-transparent border-b border-gray-100 dark:border-gray-700 focus:border-blue-500 focus:ring-0 font-bold text-gray-700 dark:text-gray-300 p-0 transition-all text-xs">
+            </td>
+            <td class="px-4 py-2 text-center text-[10px] font-black text-amber-500 uppercase tracking-tighter">
+                Pending
+            </td>
+        </tr>
+    `}).join('');
+
+    // Step 3: Cancel Items
+    const cancelBody = document.getElementById('wizard-cancel-items');
+    cancelBody.innerHTML = wizardData.map((item, idx) => {
+        let isChecked = false;
+        if (prefillCancel) {
+            isChecked = prefillCancel.some(pc => pc.po_number === item.po_number);
+        }
+        return `
+        <tr class="hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors cursor-pointer" onclick="const cb = this.querySelector('.wizard-po-checkbox'); cb.checked = !cb.checked; updateCancelTotal();">
+            <td class="px-4 py-3" onclick="event.stopPropagation()">
+                <input type="checkbox" class="wizard-po-checkbox w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500" data-idx="${idx}" onchange="updateCancelTotal()" ${isChecked ? 'checked' : ''}>
+            </td>
+            <td class="px-4 py-2 font-black text-gray-800 dark:text-gray-200 tracking-tighter">${item.po_number || 'N/A'}</td>
+            <td class="px-4 py-2 font-bold text-gray-500 uppercase">${item.po_date || 'N/A'}</td>
+            <td class="px-4 py-2 text-right font-bold text-gray-700 dark:text-gray-300">${parseFloat(item.order_piece || 0).toLocaleString()}</td>
+            <td class="px-4 py-3 font-medium text-gray-900 dark:text-white" onclick="event.stopPropagation()">${parseFloat(item.total_weight || 0).toFixed(3)}</td>
+        </tr>
+    `}).join('');
+    
+    updateContinueTotal();
+    updateCancelTotal();
+}
+
+function updateContinueTotal() {
+    const inputs = document.querySelectorAll('.wizard-edit-weight');
+    let total = 0;
+    inputs.forEach(input => {
+        total += parseFloat(input.value || 0);
+    });
+    const totalEl = document.getElementById('wizard-continue-total');
+    if (totalEl) totalEl.textContent = total.toFixed(3);
+}
+
+function updateCancelTotal() {
+    const checkboxes = document.querySelectorAll('.wizard-po-checkbox');
+    let totalWeight = 0;
+    let count = 0;
+    let overallWeight = 0;
+    
+    if (wizardData) {
+        wizardData.forEach(item => {
+            overallWeight += parseFloat(item.total_weight || 0);
+        });
+    }
+    
+    checkboxes.forEach(cb => {
+        if (cb.checked) {
+            const idx = parseInt(cb.dataset.idx);
+            totalWeight += parseFloat(wizardData[idx].total_weight || 0);
+            count++;
+        }
+    });
+    
+    const balanceWeight = Math.max(0, overallWeight - totalWeight);
+    
+    document.getElementById('wizard-cancel-total').textContent = totalWeight.toFixed(3);
+    
+    const balanceEl = document.getElementById('wizard-cancel-balance');
+    if (balanceEl) balanceEl.textContent = balanceWeight.toFixed(3);
+    
+    const countEl = document.getElementById('wizard-cancel-po-count');
+    if (countEl) countEl.textContent = `Selected Purchase Orders (${count})`;
+}
+
+function toggleAllWizardPOs(master) {
+    document.querySelectorAll('.wizard-po-checkbox').forEach(cb => cb.checked = master.checked);
+    updateCancelTotal();
+}
+
+async function submitWizardAction(clickedType) {
+    const continueReasonEl = document.getElementById('continue-reason');
+    const cancelReasonEl = document.getElementById('cancel-reason');
+    
+    const continueReason = continueReasonEl ? continueReasonEl.value.trim() : '';
+    const cancelReason = cancelReasonEl ? cancelReasonEl.value.trim() : '';
+    
+    let continueData = [];
+    let cancelData = [];
+    
+    // Parse Continue forms
+    let proposedContinueTotal = 0;
+    document.querySelectorAll('.wizard-edit-weight').forEach((el, index) => {
+        const weightValue = parseFloat(el.value);
+        const dateEl = document.querySelectorAll('.wizard-edit-date')[index];
+        const dateValue = dateEl ? dateEl.value : '';
+        
+        if (!isNaN(weightValue) && weightValue > 0) {
+            proposedContinueTotal += weightValue;
+            continueData.push({
+                weight: weightValue,
+                delivery_date: dateValue
+            });
+        }
+    });
+
+    // Parse Cancel forms
+    let cancelTotal = 0;
+    document.querySelectorAll('.wizard-po-checkbox').forEach(cb => {
+        if (cb.checked) {
+            const idx = parseInt(cb.dataset.idx);
+            cancelData.push(wizardData[idx]);
+            cancelTotal += parseFloat(wizardData[idx].total_weight || 0);
+        }
+    });
+
+    if (continueData.length === 0 && cancelData.length === 0) {
+        showToast('Please enter weight details or select POs to cancel.', 'warning');
+        return;
+    }
+
+    if (continueData.length > 0 && !continueReason) {
+        showToast('Please provide a reason for the rescheduled order before proceeding.', 'warning');
+        return;
+    }
+    
+    if (cancelData.length > 0 && !cancelReason) {
+        showToast('Please provide a reason for the cancelled order before proceeding.', 'warning');
+        return;
+    }
+    
+    // Validation: Total Continue <= Overall - Total Cancel
+    let overallWeight = 0;
+    if (wizardData) {
+        wizardData.forEach(item => {
+            overallWeight += parseFloat(item.total_weight || 0);
+        });
+    }
+    let maxAllowed = overallWeight - cancelTotal;
+    if (proposedContinueTotal > maxAllowed + 0.001) {
+        showToast(`Total rescheduled weight (${proposedContinueTotal.toFixed(3)}) cannot exceed the balance weight (${maxAllowed.toFixed(3)}).`, 'error');
+        return;
+    }
+    
+    // Disable buttons
+    const submitBtn = clickedType === 'continue' ? document.getElementById('wizard-sub-btn') : document.getElementById('wizard-cancel-btn');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<span class="material-symbols-outlined text-sm align-middle animate-spin">refresh</span> Processing...';
+    submitBtn.disabled = true;
+
+    try {
+        let promises = [];
+        const token = localStorage.getItem('access_token');
+        
+        if (continueData.length > 0 || (existingWizardAction && existingWizardAction['CONTINUE'])) {
+            const payload = {
+                ...currentContext,
+                action_type: 'CONTINUE',
+                reason: continueReason || 'Cleared',
+                action_data: continueData
+            };
+            promises.push(
+                fetch('/api/pending-acceptance-feedback/wizard-action', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                }).then(async r => { if (!r.ok) throw new Error(await r.text()); })
+            );
+        }
+        
+        if (cancelData.length > 0 || (existingWizardAction && existingWizardAction['CANCEL'])) {
+            const payload = {
+                ...currentContext,
+                action_type: 'CANCEL',
+                reason: cancelReason || 'Cleared',
+                action_data: cancelData
+            };
+            promises.push(
+                fetch('/api/pending-acceptance-feedback/wizard-action', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                }).then(async r => { if (!r.ok) throw new Error(await r.text()); })
+            );
+        }
+        
+        await Promise.all(promises);
+
+        showToast('Action(s) saved successfully!', 'success');
+        closeExpiredOrderWizard();
+        loadViewData(currentStatusFilter); // Refresh data
+        
+    } catch (error) {
+        console.error('Wizard save error:', error);
+        showToast('An error occurred while saving. Please try again.', 'error');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
 }
