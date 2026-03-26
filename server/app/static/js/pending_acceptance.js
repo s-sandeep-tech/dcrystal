@@ -37,6 +37,9 @@ async function loadViewData() {
 }
 
 function setStatusFilter(filter) {
+    // Perform reset filter while switching status filters
+    clearFilterInputs();
+    
     currentStatusFilter = filter;
     
     // Update button UI
@@ -55,7 +58,7 @@ function setStatusFilter(filter) {
     // Apply filters. If status is pending_to_deliver_not_barcoded, ensure delay is enabled.
     if (filter === 'pending_to_deliver_not_barcoded') {
         const delayEnable = document.getElementById('filter-delay-enable');
-        if (delayEnable && !delayEnable.checked) {
+        if (delayEnable) {
             delayEnable.checked = true;
             const delayInput = document.getElementById('filter-delay');
             if (delayInput && (delayInput.value === '' || delayInput.value === '0')) {
@@ -156,9 +159,7 @@ function applyGlobalFilters() {
     updateUrlAndLoad(urlParams);
 }
 
-function resetGlobalFilters() {
-    const urlParams = new URLSearchParams();
-
+function clearFilterInputs() {
     const searchInput = document.getElementById('hierarchy-search');
     if (searchInput) searchInput.value = '';
 
@@ -206,6 +207,11 @@ function resetGlobalFilters() {
     const feedbackToDate = document.getElementById('filter-feedback-to-date');
     if (feedbackToDate) feedbackToDate.value = '';
     toggleFeedbackDateInputs();
+}
+
+function resetGlobalFilters() {
+    const urlParams = new URLSearchParams();
+    clearFilterInputs();
 
     currentStatusFilter = 'pending_to_accept';
     document.querySelectorAll('.status-filter-btn').forEach(btn => btn.classList.remove('active'));
@@ -300,22 +306,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sel) sel.value = urlParams.get('collection');
     }
     const statusFilterArg = urlParams.get('status_filter') || 'pending_to_accept';
+    const delayEnabledArg = urlParams.get('delay_enabled');
     if (urlParams.get('delay')) {
         const sel = document.getElementById('filter-delay');
         if (sel) sel.value = urlParams.get('delay');
         const enable = document.getElementById('filter-delay-enable');
-        if (enable) enable.checked = true;
-    } else if (statusFilterArg === 'pending_to_deliver_not_barcoded') {
-        // Default to enabled with 5 days for this status if not in URL
+        if (enable) enable.checked = (delayEnabledArg !== 'false');
+    } else if (statusFilterArg === 'pending_to_deliver_not_barcoded' && delayEnabledArg !== 'false') {
         const enable = document.getElementById('filter-delay-enable');
         if (enable) enable.checked = true;
         const sel = document.getElementById('filter-delay');
         if (sel) sel.value = '5';
     } else {
         const enable = document.getElementById('filter-delay-enable');
-        if (enable) enable.checked = false;
+        if (enable) enable.checked = (delayEnabledArg === 'true');
         const sel = document.getElementById('filter-delay');
-        if (sel) sel.value = '5';
+        if (sel) sel.value = urlParams.get('delay') || '5';
     }
 
     if (urlParams.get('enable_date_filter') === 'true') {
