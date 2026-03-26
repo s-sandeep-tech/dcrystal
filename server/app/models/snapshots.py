@@ -714,6 +714,7 @@ class ShowroomWiseOrderSummarySnapshot(db.Model):
     collection_owner = db.Column(db.Text)
     order_ro = db.Column(db.Text)
     batch = db.Column(db.Text)
+    branch_type = db.Column(db.Text)
 
     order_qty = db.Column(db.Numeric(18, 3))
     order_wt = db.Column(db.Numeric(18, 3))
@@ -755,3 +756,67 @@ class ShowroomWiseOrderSummarySnapshot(db.Model):
 
     snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'po_id': self.po_id,
+            'location': self.location,
+            'supplier': self.supplier,
+            'order_type': self.order_type,
+            'order_request_type': self.order_request_type,
+            'order_date': self.order_date.isoformat() if self.order_date else '',
+            'po_number': self.po_number,
+            'division': self.division,
+            'group_name': self.group_name,
+            'purity': self.purity,
+            'classification': self.classification,
+            'make': self.make,
+            'collection': self.collection,
+            'business_head': self.business_head,
+            'party': self.party,
+            'purchase_ro': self.purchase_ro,
+            'provision_type': self.provision_type,
+            'branch_provision_type': self.branch_provision_type,
+            'classification_owner': self.classification_owner,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'order_ro': self.order_ro,
+            'batch': self.batch,
+            'branch_type': self.branch_type or '',
+            'order_qty': float(self.order_qty or 0),
+            'order_wt': float(self.order_wt or 0),
+            'cancelled_pcs': float(self.cancelled_pcs or 0),
+            'cancelled_wt': float(self.cancelled_wt or 0),
+            'accepted_pcs': float(self.accepted_pcs or 0),
+            'accepted_wt': float(self.accepted_wt or 0),
+            'pending_to_accepted_pcs': float(self.pending_to_accepted_pcs or 0),
+            'pending_to_accepted_wt': float(self.pending_to_accepted_wt or 0),
+            'rejected_pcs': float(self.rejected_pcs or 0),
+            'rejected_wt': float(self.rejected_wt or 0),
+            'barcoded_pcs': float(self.barcoded_pcs or 0),
+            'barcoded_wt': float(self.barcoded_wt or 0),
+            'not_barcoded_pcs': float(self.not_barcoded_pcs or 0),
+            'not_barcoded_wt': float(self.not_barcoded_wt or 0),
+            'hm_processed_pcs': float(self.hm_processed_pcs or 0),
+            'hm_passed_pcs': float(self.hm_passed_pcs or 0),
+            'hm_passed_wt': float(self.hm_passed_wt or 0),
+            'hm_failed_pcs': float(self.hm_failed_pcs or 0),
+            'hm_failed_wt': float(self.hm_failed_wt or 0),
+            'hm_testcut_pcs': float(self.hm_testcut_pcs or 0),
+            'hm_testcut_wt': float(self.hm_testcut_wt or 0),
+            'qc_processed_pcs': float(self.qc_processed_pcs or 0),
+            'qc_pending_pcs': float(self.qc_pending_pcs or 0),
+            'qc_pending_wt': float(self.qc_pending_wt or 0),
+            'qc_reject_pcs': float(self.qc_reject_pcs or 0),
+            'qc_reject_wt': float(self.qc_reject_wt or 0),
+            'qc_passed_pcs': float(self.qc_passed_pcs or 0),
+            'qc_passed_wt': float(self.qc_passed_wt or 0),
+            'invoice_pcs': float(self.invoice_pcs or 0),
+            'invoiced_wt': float(self.invoiced_wt or 0),
+            'delivered_pcs': float(self.delivered_pcs or 0),
+            'delivered_wt': float(self.delivered_wt or 0),
+            'pending_to_deliver_pcs': float(self.pending_to_deliver_pcs or 0),
+            'pending_to_deliver_wt': float(self.pending_to_deliver_wt or 0),
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
+        }

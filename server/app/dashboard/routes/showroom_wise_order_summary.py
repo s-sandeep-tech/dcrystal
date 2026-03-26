@@ -42,7 +42,7 @@ def get_showroom_aggs(latest_date_query, search=None, business_head=None, classi
                     make_owner=None, collection_owner=None, party=None, location=None, 
                     purchase_ro=None, order_type=None, order_request_type=None, 
                     division=None, group_name=None, purity=None, classification=None,
-                    make=None, collection=None):
+                    make=None, collection=None, branch_type=None):
     
     def apply_filters(query):
         if search:
@@ -64,6 +64,7 @@ def get_showroom_aggs(latest_date_query, search=None, business_head=None, classi
         if classification: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification == classification)
         if make: query = query.filter(ShowroomWiseOrderSummarySnapshot.make == make)
         if collection: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection == collection)
+        if branch_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_type == branch_type)
         
         if latest_date_query:
             query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
@@ -173,7 +174,8 @@ def showroom_options():
             'purities': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.purity.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.purity).all() if r[0]],
             'classifications': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.classification.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.classification).all() if r[0]],
             'makes': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.make.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.make).all() if r[0]],
-            'collections': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.collection.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.collection).all() if r[0]]
+            'collections': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.collection.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.collection).all() if r[0]],
+            'branch_types': [r[0] for r in apply_options_filter(db.session.query(ShowroomWiseOrderSummarySnapshot.branch_type.distinct())).order_by(ShowroomWiseOrderSummarySnapshot.branch_type).all() if r[0]]
         }
         return jsonify(options)
     except Exception as e:
@@ -201,6 +203,7 @@ def get_showroom_partial():
         classification = request.args.get('classification', '')
         make = request.args.get('make', '')
         collection = request.args.get('collection', '')
+        branch_type = request.args.get('branch_type', '')
 
         parent_level = request.args.get('parent_level')
         parent_value = request.args.get('parent_value')
@@ -238,6 +241,7 @@ def get_showroom_partial():
             if classification: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification == classification)
             if make: query = query.filter(ShowroomWiseOrderSummarySnapshot.make == make)
             if collection: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection == collection)
+            if branch_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_type == branch_type)
             
             if latest_date_query:
                 query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
@@ -383,7 +387,7 @@ def get_showroom_partial():
             stats = get_showroom_aggs(latest_date_query, search, business_head, classification_owner, 
                                     make_owner, collection_owner, party, location, 
                                     purchase_ro, order_type, order_request_type, 
-                                    division, group_name, purity, classification, make, collection)
+                                    division, group_name, purity, classification, make, collection, branch_type)
             footer_totals = stats
 
         return render_template('partials/_view_showroom_wise_order.html', 
@@ -425,6 +429,7 @@ def get_showroom_details():
         classification = request.args.get('classification', '')
         make = request.args.get('make', '')
         collection = request.args.get('collection', '')
+        branch_type = request.args.get('branch_type', '')
 
         print(f"DEBUG modal API: level={request.args.get('modal_level')}, is_child={request.args.get('is_modal_child')}, location={location_filter}")
 
@@ -458,6 +463,7 @@ def get_showroom_details():
         if classification: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification == classification)
         if make: query = query.filter(ShowroomWiseOrderSummarySnapshot.make == make)
         if collection: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection == collection)
+        if branch_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_type == branch_type)
 
         if latest_date_query:
             query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
