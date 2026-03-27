@@ -164,9 +164,9 @@
                             </div>
 
                             <div class="p-2 border-t border-gray-100 dark:border-gray-800 text-center">
-                                <button
-                                    class="text-[10px] font-bold text-gray-500 hover:text-primary transition-colors">View
-                                    All Notifications</button>
+                                <a href="{{ url_for('dashboard.settings') }}?tab=notifications"
+                                    class="text-[10px] font-bold text-gray-500 hover:text-primary transition-colors block">View
+                                    All Notifications</a>
                             </div>
                         </div>
                     </div>

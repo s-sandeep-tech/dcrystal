@@ -144,6 +144,34 @@ def clear_cache():
         current_app.logger.error(f"Failed to clear cache: {e}")
         return {"status": "error", "message": str(e)}, 500
 
+@dashboard_bp.route('/settings/notifications')
+def get_settings_notifications():
+    user_id = session.get('user_id')
+    if not user_id:
+        return {"status": "error", "message": "Unauthorized"}, 401
+    
+    # Notifications can be user-specific or global (user_id is NULL)
+    notifications = Notification.query.filter(
+        (Notification.user_id == user_id) | (Notification.user_id == None)
+    ).order_by(Notification.created_at.desc()).all()
+    
+    return {
+        "status": "success",
+        "notifications": [{
+            'id': n.id,
+            'title': n.title,
+            'message': n.message,
+            'notification_type': n.notification_type,
+            'icon': n.icon,
+            'priority': n.priority,
+            'is_read': n.is_read,
+            'action_url': n.action_url,
+            'created_at': n.created_at.isoformat(),
+            'time_ago': n.get_time_ago()
+        } for n in notifications]
+    }
+
+
 @dashboard_bp.route('/')
 @require_perm('dashboard.view')
 def index():

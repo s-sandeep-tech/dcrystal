@@ -383,6 +383,32 @@
                     </div>
                 </div> <!-- End Tab Pane Status -->
 
+                <!-- Tab Pane: Notifications -->
+                <div id="tab-notifications" class="tab-pane hidden space-y-6">
+                    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex flex-col h-full">
+                        <div class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-primary text-sm">notifications</span>
+                                <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">System Notifications</h3>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span id="notifications-count-info" class="text-[10px] text-gray-400"></span>
+                                <button id="refresh-notifications-btn" class="text-gray-400 hover:text-primary transition-colors focus:outline-none">
+                                    <span class="material-symbols-outlined text-sm">refresh</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-0 overflow-y-auto max-h-[600px] min-h-[400px]">
+                            <div id="notifications-list" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                <div class="p-8 text-center text-gray-400">
+                                    <span class="material-symbols-outlined block text-2xl mb-2 animate-spin">sync</span>
+                                    Loading notifications...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {% if session.get('is_admin') or 'ADMIN' in session.get('roles', []) %}
                 <!-- Tab Pane: Active Sessions (WebSocket) -->
                 <div id="tab-sessions" class="tab-pane hidden space-y-6">
@@ -759,7 +785,8 @@
             syncRejectedWeightUrl: "{{ url_for('dashboard.sync_rejected_weight') }}",
             syncProvisionAllocationUrl: "{{ url_for('dashboard.sync_provision_allocation') }}",
             syncOwnerShowroomUrl: "{{ url_for('dashboard.sync_owner_and_showroom_wise') }}",
-            clearCacheUrl: "{{ url_for('dashboard.clear_cache') }}"
+            clearCacheUrl: "{{ url_for('dashboard.clear_cache') }}",
+            notificationsUrl: "{{ url_for('dashboard.get_settings_notifications') }}"
         };
     </script>
     <script src="{{ url_for('static', filename='js/settings.js') }}"></script>

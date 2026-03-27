@@ -1213,7 +1213,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const allTabs = {
         'status': { nav: document.getElementById('nav-status'), pane: document.getElementById('tab-status') },
         'general': { nav: document.getElementById('nav-general'), pane: null },
-        'notifications': { nav: document.getElementById('nav-notifications'), pane: null },
+        'notifications': { nav: document.getElementById('nav-notifications'), pane: document.getElementById('tab-notifications') },
         'sessions': { nav: document.getElementById('nav-sessions'), pane: document.getElementById('tab-sessions') },
         'login-logs': { nav: document.getElementById('nav-login-logs'), pane: document.getElementById('tab-login-logs') },
         'download-logs': { nav: document.getElementById('nav-download-logs'), pane: document.getElementById('tab-download-logs') },
@@ -1247,6 +1247,9 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (tabId) {
             case 'sessions':
                 fetchActiveUsers();
+                break;
+            case 'notifications':
+                fetchUserNotifications();
                 break;
             case 'login-logs':
                 fetchLoginLogs(1);
@@ -1929,6 +1932,96 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchLoginLogs(1);
     } else if (activeTab === 'download-logs') {
         fetchDownloadLogs(1);
+    } else if (activeTab === 'notifications') {
+        fetchUserNotifications();
+    }
+
+    // === NOTIFICATIONS LOGIC ===
+    async function fetchUserNotifications() {
+        const notificationsList = document.getElementById('notifications-list');
+        const notificationsCountInfo = document.getElementById('notifications-count-info');
+        if (!notificationsList) return;
+
+        notificationsList.innerHTML = `
+            <div class="p-8 text-center text-gray-400">
+                <span class="material-symbols-outlined block text-2xl mb-2 animate-spin">sync</span>
+                Refreshing notifications...
+            </div>
+        `;
+
+        try {
+            const url = window.SETTINGS_CONFIG ? window.SETTINGS_CONFIG.notificationsUrl : '/settings/notifications';
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                renderNotifications(data.notifications);
+                if (notificationsCountInfo) {
+                    notificationsCountInfo.innerText = `${data.notifications.length} total notifications`;
+                }
+            } else {
+                notificationsList.innerHTML = `<div class="p-8 text-center text-red-500 font-medium whitespace-nowrap">Error loading notifications (${response.status})</div>`;
+            }
+        } catch (e) {
+            console.error('fetchUserNotifications error:', e);
+            notificationsList.innerHTML = `<div class="p-8 text-center text-red-500 font-medium whitespace-nowrap">Network error loading notifications</div>`;
+        }
+    }
+
+    function renderNotifications(notifications) {
+        const list = document.getElementById('notifications-list');
+        if (!list) return;
+        list.innerHTML = '';
+
+        if (notifications.length === 0) {
+            list.innerHTML = `
+                <div class="p-12 text-center text-gray-400">
+                    <span class="material-symbols-outlined block text-4xl mb-3 opacity-20">notifications_off</span>
+                    <p class="text-sm font-medium">No system notifications found.</p>
+                </div>
+            `;
+            return;
+        }
+
+        notifications.forEach(n => {
+            const div = document.createElement('div');
+            div.className = `p-4 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-all ${n.is_read ? 'opacity-80' : 'border-l-4 border-l-primary bg-primary/[0.02]'}`;
+            
+            const typeColors = {
+                success: 'text-green-500 bg-green-50 dark:bg-green-900/20',
+                warning: 'text-amber-500 bg-amber-50 dark:bg-amber-900/20',
+                error: 'text-red-500 bg-red-50 dark:bg-red-900/20',
+                info: 'text-blue-500 bg-blue-50 dark:bg-blue-900/20',
+                alert: 'text-purple-500 bg-purple-50 dark:bg-purple-900/20'
+            };
+            
+            const colorClass = typeColors[n.notification_type] || 'text-gray-500 bg-gray-50';
+
+            div.innerHTML = `
+                <div class="flex items-start gap-4">
+                    <div class="size-10 rounded-xl flex items-center justify-center shrink-0 ${colorClass}">
+                        <span class="material-symbols-outlined text-xl">${n.icon || 'notifications'}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-1">
+                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white truncate">${n.title}</h4>
+                            <span class="text-[10px] font-medium text-gray-400 whitespace-nowrap">${n.time_ago}</span>
+                        </div>
+                        <p class="text-[12px] text-gray-500 dark:text-gray-400 leading-relaxed mb-2">${n.message}</p>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[9px] font-black uppercase tracking-widest ${colorClass.split(' ')[0]}">${n.notification_type}</span>
+                            ${n.priority === 'high' ? '<span class="text-[9px] font-black uppercase tracking-widest text-red-500 bg-red-50 dark:bg-red-900/20 px-1.5 rounded">High Priority</span>' : ''}
+                            ${n.action_url ? `<a href="${n.action_url}" target="_blank" class="text-[9px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">open_in_new</span> View Details</a>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    const refreshNotificationsBtn = document.getElementById('refresh-notifications-btn');
+    if (refreshNotificationsBtn) {
+        refreshNotificationsBtn.onclick = () => fetchUserNotifications();
     }
 });
 
