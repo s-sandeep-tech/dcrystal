@@ -438,11 +438,13 @@ def generate_pending_acceptance_export(filters: dict) -> str:
         if not data:
             continue
             
+        items_to_process = []
+        schedules_str = ""
+        
         if isinstance(data, list):
             # Old format or simple CANCEL action
             if action.action_type == 'CONTINUE':
                 # Legacy CONTINUE format was a list of schedules WITHOUT PO metadata
-                items_to_process = []
                 schedules_str = ", ".join([f"{s.get('weight')} ({s.get('delivery_date')})" for s in data])
             else:
                 items_to_process = data
