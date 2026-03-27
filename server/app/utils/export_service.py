@@ -431,30 +431,52 @@ def generate_pending_acceptance_export(filters: dict) -> str:
     actions = q.order_by(PendingAcceptanceAction.created_at.desc()).all()
 
     # ── 2. Explode Data ───────────────────────────────────────────────────────
-    # We want "Supplier, order date, order number, order piece, order weight"
-    # These are found in action_data for CANCEL actions.
+    # We flatten the action_data (JSON) into individual rows per PO
     po_rows = []
     for action in actions:
         data = action.action_data
-        if not data or not isinstance(data, list):
+        if not data:
             continue
             
-        for item in data:
+        items_to_process = []
+        schedules_str = ""
+        
+        if isinstance(data, list):
+            # Old format or simple CANCEL action
+            items_to_process = data
+        elif isinstance(data, dict):
+            # New structure with schedules and unselected_pos for CONTINUE
+            if action.action_type == 'CONTINUE':
+                items_to_process = data.get('unselected_pos', [])
+                schedules = data.get('schedules', [])
+                # Format: "Weight (Date), Weight (Date)..."
+                schedules_str = ", ".join([f"{s.get('weight')} ({s.get('delivery_date')})" for s in schedules])
+            elif action.action_type == 'CANCEL':
+                # Handle possible future object-based CANCEL
+                items_to_process = data.get('selected', []) + data.get('unselected', [])
+
+        for item in items_to_process:
             # item is a dict like {'po_number': '...', 'po_date': '...', 'total_weight': ..., 'order_piece': ..., 'vendor': '...'}
-            # We filter for items that actually have the PO details
             po_num = item.get('po_number') or item.get('order_number')
             if not po_num:
                 continue
                 
             po_rows.append({
-                'supplier': item.get('vendor') or action.supplier or '',
-                'order_date': item.get('po_date') or item.get('order_date') or '',
-                'order_number': po_num,
-                'order_piece': item.get('order_piece') or 0,
-                'order_weight': item.get('total_weight') or item.get('order_weight') or 0.0,
+                'action_id': action.id,
                 'action_type': action.action_type,
-                'reason': action.reason,
-                'action_date': action.created_at.strftime('%Y-%m-%d %H:%M') if action.created_at else ''
+                'action_date': action.created_at.strftime('%Y-%m-%d %H:%M') if action.created_at else '',
+                'username': action.username or '',
+                'reason': action.reason or '',
+                'collection_owner': action.collection_owner or '',
+                'make_owner': action.make_owner or '',
+                'supplier': action.supplier or '',
+                'collection': action.collection or '',
+                'status_filter': action.status_filter or '',
+                'po_number': po_num,
+                'po_date': item.get('po_date') or item.get('order_date') or '',
+                'order_weight': item.get('total_weight') or item.get('order_weight') or 0.0,
+                'order_piece': item.get('order_piece') or 0,
+                'schedules': schedules_str
             })
 
     # ── 3. Create Workbook ────────────────────────────────────────────────────
@@ -479,21 +501,27 @@ def generate_pending_acceptance_export(filters: dict) -> str:
     )
 
     COLUMNS = [
-        ('Supplier',     25, 'left'),
-        ('Order Date',   15, 'center'),
-        ('Order Number', 20, 'left'),
-        ('Order Piece',  12, 'right'),
-        ('Order Weight', 14, 'right'),
+        ('Action ID',    10, 'center'),
         ('Action Type',  12, 'center'),
+        ('Action Date',  18, 'center'),
+        ('Username',     18, 'left'),
         ('Reason',       30, 'left'),
-        ('Action Date',  18, 'center')
+        ('Coll. Owner',  20, 'left'),
+        ('Make Owner',   20, 'left'),
+        ('Supplier',     25, 'left'),
+        ('Collection',   20, 'left'),
+        ('PO Number',    18, 'left'),
+        ('PO Date',      15, 'center'),
+        ('PO Weight',    14, 'right'),
+        ('PO Pieces',    12, 'right'),
+        ('Schedules (Fulfillment)', 40, 'left')
     ]
 
     TOTAL_COLS = len(COLUMNS)
 
     # Title
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=TOTAL_COLS)
-    title_cell = ws.cell(row=1, column=1, value='Pending Acceptance Feedback Export')
+    title_cell = ws.cell(row=1, column=1, value='Pending Acceptance Feedback Action Details Export')
     title_cell.font = TITLE_FONT
     title_cell.fill = PRIMARY_FILL
     title_cell.alignment = Alignment(horizontal='center', vertical='center')
@@ -512,14 +540,20 @@ def generate_pending_acceptance_export(filters: dict) -> str:
     # Data
     for row_idx, row_data in enumerate(po_rows, start=3):
         values = [
-            row_data['supplier'],
-            row_data['order_date'],
-            row_data['order_number'],
-            row_data['order_piece'],
-            row_data['order_weight'],
+            row_data['action_id'],
             row_data['action_type'],
+            row_data['action_date'],
+            row_data['username'],
             row_data['reason'],
-            row_data['action_date']
+            row_data['collection_owner'],
+            row_data['make_owner'],
+            row_data['supplier'],
+            row_data['collection'],
+            row_data['po_number'],
+            row_data['po_date'],
+            row_data['order_weight'],
+            row_data['order_piece'],
+            row_data['schedules']
         ]
         alt = (row_idx % 2 == 0)
         for col_idx, val in enumerate(values, start=1):
@@ -531,10 +565,10 @@ def generate_pending_acceptance_export(filters: dict) -> str:
                 cell.fill = ALT_FILL
             
             # Number formatting
-            if col_idx == 4: # Piece
-                cell.number_format = '#,##0'
-            elif col_idx == 5: # Weight
+            if col_idx == 12: # Weight
                 cell.number_format = '#,##0.000'
+            elif col_idx == 13: # Piece
+                cell.number_format = '#,##0'
 
     # Save
     now_ist = datetime.now(IST)

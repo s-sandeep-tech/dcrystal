@@ -642,16 +642,29 @@ def get_pending_acceptance_partial():
             if getattr(r, 'continue_data', None):
                 has_action = True
                 try:
+                    c_data = r.continue_data
+                    # Handle new structure {schedules: [...], unselected_pos: [...]}
+                    if isinstance(c_data, dict) and 'schedules' in c_data:
+                        schedules = c_data['schedules']
+                    else:
+                        schedules = c_data if isinstance(c_data, list) else []
+
                     table_html = [
                         '<table class="w-full text-left text-[9px] text-gray-300">',
                         '<thead class="text-[8px] uppercase text-gray-500 border-b border-gray-700/50">',
                         '<tr><th class="pb-1 font-bold">Weight</th><th class="pb-1 font-bold text-right">Delivery Date</th></tr>',
                         '</thead><tbody class="divide-y divide-gray-800/50">'
                     ]
-                    for d in r.continue_data:
+                    for d in schedules:
                         val = float(d.get('weight') or 0)
                         table_html.append(f'<tr><td class="py-1">{val:.3f} gms</td><td class="py-1 text-right">{d.get("delivery_date")}</td></tr>')
                     table_html.append('</tbody></table>')
+                    
+                    if isinstance(c_data, dict) and 'unselected_pos' in c_data:
+                        unselected_count = len(c_data['unselected_pos'])
+                        if unselected_count > 0:
+                            table_html.append(f'<div class="mt-2 text-[8px] text-gray-400 uppercase font-black tracking-tighter border-t border-gray-700/50 pt-1">Unselected: {unselected_count} items</div>')
+                    
                     continue_data_formatted = "".join(table_html)
                 except Exception:
                     pass

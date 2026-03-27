@@ -773,7 +773,12 @@ function renderWizardData() {
     let prefillCancel = null;
     
     if (existingWizardAction['CONTINUE']) {
-        prefillContinue = existingWizardAction['CONTINUE'].action_data || [];
+        const actionData = existingWizardAction['CONTINUE'].action_data;
+        if (actionData && !Array.isArray(actionData) && actionData.schedules) {
+            prefillContinue = actionData.schedules;
+        } else {
+            prefillContinue = actionData || [];
+        }
         const rCont = document.getElementById('continue-reason');
         if(rCont) rCont.value = existingWizardAction['CONTINUE'].reason || '';
     } else {
@@ -949,11 +954,14 @@ async function submitWizardAction(clickedType) {
 
     // Parse Cancel forms
     let cancelTotal = 0;
+    let unselectedData = [];
     document.querySelectorAll('.wizard-po-checkbox').forEach(cb => {
+        const idx = parseInt(cb.dataset.idx);
         if (cb.checked) {
-            const idx = parseInt(cb.dataset.idx);
             cancelData.push(wizardData[idx]);
             cancelTotal += parseFloat(wizardData[idx].total_weight || 0);
+        } else {
+            unselectedData.push(wizardData[idx]);
         }
     });
 
@@ -995,12 +1003,15 @@ async function submitWizardAction(clickedType) {
         let promises = [];
         const token = localStorage.getItem('access_token');
         
-        if (continueData.length > 0 || (existingWizardAction && existingWizardAction['CONTINUE'])) {
+        if (clickedType === 'continue' && (continueData.length > 0 || (existingWizardAction && existingWizardAction['CONTINUE']))) {
             const payload = {
                 ...currentContext,
                 action_type: 'CONTINUE',
                 reason: continueReason || 'Cleared',
-                action_data: continueData
+                action_data: {
+                    schedules: continueData,
+                    unselected_pos: unselectedData
+                }
             };
             promises.push(
                 fetch('/api/pending-acceptance-feedback/wizard-action', {
@@ -1014,7 +1025,7 @@ async function submitWizardAction(clickedType) {
             );
         }
         
-        if (cancelData.length > 0 || (existingWizardAction && existingWizardAction['CANCEL'])) {
+        if (clickedType === 'cancel' && (cancelData.length > 0 || (existingWizardAction && existingWizardAction['CANCEL']))) {
             const payload = {
                 ...currentContext,
                 action_type: 'CANCEL',
