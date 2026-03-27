@@ -199,10 +199,12 @@ def get_base_query(query_filter_func=None, feedback_status=None,
         latest_feedback.c.feedback_category,
         latest_feedback.c.username,
         latest_feedback.c.created_at,
+        latest_continue.c.id.label('continue_id'),
         latest_continue.c.reason.label('continue_reason'),
         latest_continue.c.action_data.label('continue_data'),
         latest_continue.c.username.label('continue_username'),
         latest_continue.c.created_at.label('continue_created_at'),
+        latest_cancel.c.id.label('cancel_id'),
         latest_cancel.c.reason.label('cancel_reason'),
         latest_cancel.c.action_data.label('cancel_data'),
         latest_cancel.c.username.label('cancel_username'),
@@ -244,10 +246,16 @@ def get_base_query(query_filter_func=None, feedback_status=None,
             pass
 
     if feedback_status:
-        if feedback_status == 'with':
-            query = query.filter(latest_feedback.c.feedback_text != None)
-        elif feedback_status == 'without':
-            query = query.filter(latest_feedback.c.feedback_text == None)
+        if status_filter == 'pending_to_deliver_not_barcoded':
+            if feedback_status == 'with':
+                query = query.filter(db.or_(latest_continue.c.id != None, latest_cancel.c.id != None))
+            elif feedback_status == 'without':
+                query = query.filter(db.and_(latest_continue.c.id == None, latest_cancel.c.id == None))
+        else:
+            if feedback_status == 'with':
+                query = query.filter(latest_feedback.c.feedback_text != None)
+            elif feedback_status == 'without':
+                query = query.filter(latest_feedback.c.feedback_text == None)
             
     if status_filter == 'pending_to_deliver':
         query = query.order_by(
@@ -274,8 +282,14 @@ def calculate_stats(query, status_filter='pending_to_accept'):
             func.sum(s.c.sum_pending_to_deliver_wt),
             func.sum(s.c.sum_not_barcoded_pcs),
             func.sum(s.c.sum_not_barcoded_wt),
-            func.count(case((s.c.feedback_text != None, 1))),
-            func.count(case((s.c.feedback_text == None, 1)))
+            func.count(case((
+                (s.c.continue_id != None) | (s.c.cancel_id != None) if status_filter == 'pending_to_deliver_not_barcoded' else (s.c.feedback_text != None), 
+                1
+            ))),
+            func.count(case((
+                (s.c.continue_id == None) & (s.c.cancel_id == None) if status_filter == 'pending_to_deliver_not_barcoded' else (s.c.feedback_text == None), 
+                1
+            )))
         ).first()
         
         return {

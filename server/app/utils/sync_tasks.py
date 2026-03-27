@@ -1577,7 +1577,7 @@ SELECT
     ownershippo.order_request_type,
     ownershippo.batch AS provision_type,
     ownershippo.batch AS branch_provision_type,
-    ownershippo.batch AS branch_type,
+    ownershippo.branch_type AS branch_type,
     ownershippo.bh_emp_code,
 
     ownershippo.classification_owner,
