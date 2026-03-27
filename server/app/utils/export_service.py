@@ -385,3 +385,163 @@ def generate_outstanding_po_export(filters: dict) -> str:
 
     logger.info(f'Export saved: {filepath}  ({len(rows)} records)')
     return filename
+
+
+def generate_pending_acceptance_export(filters: dict) -> str:
+    """
+    Query PendingAcceptanceAction with filters, explode action_data (specifically CANCEL actions),
+    and write to an .xlsx file.
+    """
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+    except ImportError as e:
+        raise RuntimeError(f"openpyxl not installed: {e}")
+
+    from app.extensions import db
+    from app.models.snapshots import PendingAcceptanceAction
+    from sqlalchemy import func
+
+    _ensure_exports_dir()
+
+    # ── 1. Build Query ────────────────────────────────────────────────────────
+    status_filter = filters.get('status_filter', 'pending_to_deliver_not_barcoded')
+    collection_owner = filters.get('collection_owner', '')
+    make_owner = filters.get('make_owner', '')
+    supplier = filters.get('supplier', '')
+    collection = filters.get('collection', '')
+    action_type = filters.get('action_action_type', '')  # Optional: filter by action type (e.g. CANCEL)
+
+    q = db.session.query(PendingAcceptanceAction)
+    
+    if status_filter:
+        q = q.filter(PendingAcceptanceAction.status_filter == status_filter)
+    if collection_owner:
+        q = q.filter(PendingAcceptanceAction.collection_owner == collection_owner)
+    if make_owner:
+        q = q.filter(PendingAcceptanceAction.make_owner == make_owner)
+    if supplier:
+        q = q.filter(PendingAcceptanceAction.supplier == supplier)
+    if collection:
+        q = q.filter(PendingAcceptanceAction.collection == collection)
+    if action_type:
+        q = q.filter(PendingAcceptanceAction.action_type == action_type)
+
+    actions = q.order_by(PendingAcceptanceAction.created_at.desc()).all()
+
+    # ── 2. Explode Data ───────────────────────────────────────────────────────
+    # We want "Supplier, order date, order number, order piece, order weight"
+    # These are found in action_data for CANCEL actions.
+    po_rows = []
+    for action in actions:
+        data = action.action_data
+        if not data or not isinstance(data, list):
+            continue
+            
+        for item in data:
+            # item is a dict like {'po_number': '...', 'po_date': '...', 'total_weight': ..., 'order_piece': ..., 'vendor': '...'}
+            # We filter for items that actually have the PO details
+            po_num = item.get('po_number') or item.get('order_number')
+            if not po_num:
+                continue
+                
+            po_rows.append({
+                'supplier': item.get('vendor') or action.supplier or '',
+                'order_date': item.get('po_date') or item.get('order_date') or '',
+                'order_number': po_num,
+                'order_piece': item.get('order_piece') or 0,
+                'order_weight': item.get('total_weight') or item.get('order_weight') or 0.0,
+                'action_type': action.action_type,
+                'reason': action.reason,
+                'action_date': action.created_at.strftime('%Y-%m-%d %H:%M') if action.created_at else ''
+            })
+
+    # ── 3. Create Workbook ────────────────────────────────────────────────────
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Pending Acceptance Actions'
+
+    # Styles
+    PRIMARY_FILL = PatternFill('solid', fgColor='1E3A5F')
+    HEADER_FILL = PatternFill('solid', fgColor='2563EB')
+    ALT_FILL = PatternFill('solid', fgColor='F8FAFC')
+    
+    TITLE_FONT = Font(name='Calibri', bold=True, size=14, color='FFFFFF')
+    HEADER_FONT = Font(name='Calibri', bold=True, size=9, color='FFFFFF')
+    DATA_FONT = Font(name='Calibri', size=9, color='1E293B')
+    
+    THIN_BORDER = Border(
+        left=Side(style='thin', color='E2E8F0'),
+        right=Side(style='thin', color='E2E8F0'),
+        top=Side(style='thin', color='E2E8F0'),
+        bottom=Side(style='thin', color='E2E8F0')
+    )
+
+    COLUMNS = [
+        ('Supplier',     25, 'left'),
+        ('Order Date',   15, 'center'),
+        ('Order Number', 20, 'left'),
+        ('Order Piece',  12, 'right'),
+        ('Order Weight', 14, 'right'),
+        ('Action Type',  12, 'center'),
+        ('Reason',       30, 'left'),
+        ('Action Date',  18, 'center')
+    ]
+
+    TOTAL_COLS = len(COLUMNS)
+
+    # Title
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=TOTAL_COLS)
+    title_cell = ws.cell(row=1, column=1, value='Pending Acceptance Feedback Export')
+    title_cell.font = TITLE_FONT
+    title_cell.fill = PRIMARY_FILL
+    title_cell.alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[1].height = 30
+
+    # Headers
+    for col_idx, (label, width, align) in enumerate(COLUMNS, start=1):
+        cell = ws.cell(row=2, column=col_idx, value=label)
+        cell.font = HEADER_FONT
+        cell.fill = HEADER_FILL
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border = THIN_BORDER
+        ws.column_dimensions[get_column_letter(col_idx)].width = width
+    ws.row_dimensions[2].height = 20
+
+    # Data
+    for row_idx, row_data in enumerate(po_rows, start=3):
+        values = [
+            row_data['supplier'],
+            row_data['order_date'],
+            row_data['order_number'],
+            row_data['order_piece'],
+            row_data['order_weight'],
+            row_data['action_type'],
+            row_data['reason'],
+            row_data['action_date']
+        ]
+        alt = (row_idx % 2 == 0)
+        for col_idx, val in enumerate(values, start=1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.font = DATA_FONT
+            cell.alignment = Alignment(horizontal=COLUMNS[col_idx-1][2], vertical='center')
+            cell.border = THIN_BORDER
+            if alt:
+                cell.fill = ALT_FILL
+            
+            # Number formatting
+            if col_idx == 4: # Piece
+                cell.number_format = '#,##0'
+            elif col_idx == 5: # Weight
+                cell.number_format = '#,##0.000'
+
+    # Save
+    now_ist = datetime.now(IST)
+    timestamp = now_ist.strftime('%Y%m%d_%H%M%S')
+    filename = f'pending_acceptance_export_{timestamp}.xlsx'
+    filepath = os.path.join(EXPORTS_DIR, filename)
+    wb.save(filepath)
+
+    logger.info(f'Export saved: {filepath} ({len(po_rows)} records)')
+    return filename

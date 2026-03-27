@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import logging
 import json
+from app.utils.decorators import require_perm
 
 logger = logging.getLogger(__name__)
 
@@ -1037,3 +1038,31 @@ def save_pending_acceptance_wizard_action():
         db.session.rollback()
         logger.error(f"Error saving wizard action: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@dashboard_bp.route('/api/pending-acceptance-feedback/export', methods=['POST'])
+@jwt_required()
+@require_perm('report.export')
+def queue_pending_acceptance_export():
+    """Enqueue a background Excel export job for the pending acceptance report."""
+    try:
+        data = request.get_json(force=True) or {}
+        filters = data.get('filters', {})
+        socket_id = data.get('socket_id')
+        user_id = get_jwt_identity()
+
+        job_payload = json.dumps({
+            'type': 'export_pending_acceptance',
+            'filters': filters,
+            'socket_id': socket_id,
+            'user_id': user_id
+        })
+        redis_client.rpush('export_queue', job_payload)
+
+        logger.info(f"Queued export_pending_acceptance job with filters: {filters}")
+        return jsonify({
+            'status': 'queued',
+            'message': 'Export job enqueued. You will be notified when the file is ready.'
+        }), 202
+    except Exception as e:
+        logger.error(f"Error queuing pending acceptance export: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500

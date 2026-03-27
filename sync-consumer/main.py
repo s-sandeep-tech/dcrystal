@@ -89,6 +89,8 @@ def process_export_queue():
             with app.app_context():
                 if task_type == 'export_opo':
                     _handle_export_opo(task_data)
+                elif task_type == 'export_pending_acceptance':
+                    _handle_export_pending_acceptance(task_data)
                 else:
                     logger.error(f"Unknown export task type: {task_type}")
 
@@ -164,6 +166,94 @@ def _handle_export_opo(task_data: dict):
                     icon='error',
                     priority='high',
                     related_order_id=None,
+                    user_id=task_data.get('user_id'),
+                    created_at=datetime.utcnow(),
+                    is_read=False
+                )
+                db.session.add(notification)
+                db.session.commit()
+                
+                err_payload = {
+                    'id': notification.id,
+                    'title': notification.title,
+                    'message': notification.message,
+                    'type': 'error',
+                    'icon': 'error',
+                    'priority': 'high',
+                    'time': 'Just now',
+                    'action_url': None,
+                    'socket_id': task_data.get('socket_id')
+                }
+                
+                socketio.emit('new_notification', err_payload)
+                redis_client.publish('global_notifications', json.dumps(err_payload))
+        except Exception as inner_e:
+            logger.error(f"Failed to send error notification: {inner_e}")
+
+
+def _handle_export_pending_acceptance(task_data: dict):
+    """Generate Pending Acceptance Excel export and push a download notification."""
+    from datetime import datetime, timezone, timedelta
+    from app.models import Notification
+    from app.extensions import db, socketio
+    from app.utils.export_service import generate_pending_acceptance_export
+
+    filters = task_data.get('filters', {})
+
+    try:
+        filename = generate_pending_acceptance_export(filters)
+        download_url = f'/exports/download/{filename}'
+
+        notification = Notification(
+            title='Export Ready — Pending Acceptance Feedback',
+            message='Success! Your Pending Acceptance Feedback Excel file is ready. Open the notification window and click Download to download your file.',
+            notification_type='success',
+            icon='download',
+            priority='high',
+            user_id=task_data.get('user_id'),
+            created_at=datetime.utcnow(),
+            is_read=False,
+            action_url=download_url
+        )
+        db.session.add(notification)
+        db.session.commit()
+
+        IST = timezone(timedelta(hours=5, minutes=30))
+        time_ago = notification.get_time_ago()
+
+        socket_id = task_data.get('socket_id')
+        socketio_payload = {
+            'id': notification.id,
+            'title': notification.title,
+            'message': notification.message,
+            'type': notification.notification_type,
+            'icon': notification.icon,
+            'priority': notification.priority,
+            'time': time_ago,
+            'related_order_id': None,
+            'action_url': download_url,
+            'socket_id': socket_id,
+            'user_id': task_data.get('user_id')
+        }
+        
+        # 1. Internal SocketIO emit
+        socketio.emit('new_notification', socketio_payload)
+
+        # 2. Bridge to Node.js socket server via Redis
+        redis_client.publish('global_notifications', json.dumps(socketio_payload))
+
+        logger.info(f"Export notification sent for file: {filename}")
+
+    except Exception as e:
+        logger.error(f"Pending Acceptance export failed: {str(e)}")
+        try:
+            with app.app_context():
+                notification = Notification(
+                    title='Export Failed — Pending Acceptance',
+                    message=f'Pending Acceptance export could not be generated. Please try again.',
+                    notification_type='error',
+                    icon='error',
+                    priority='high',
                     user_id=task_data.get('user_id'),
                     created_at=datetime.utcnow(),
                     is_read=False

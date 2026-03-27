@@ -1,4 +1,24 @@
 let currentStatusFilter = 'pending_to_accept';
+let currentZoom = parseFloat(localStorage.getItem('pending-acceptance-zoom')) || 1.0;
+
+function adjustZoom(delta, reset = false) {
+    const tableArea = document.getElementById('table-area');
+    if (!tableArea) return;
+
+    if (reset) {
+        currentZoom = 1.0;
+    } else {
+        currentZoom = Math.min(Math.max(currentZoom + delta, 0.7), 1.5);
+    }
+
+    tableArea.style.zoom = currentZoom;
+    localStorage.setItem('pending-acceptance-zoom', currentZoom);
+
+    const zoomLevel = document.getElementById('zoom-level');
+    if (zoomLevel) {
+        zoomLevel.textContent = Math.round(currentZoom * 100) + '%';
+    }
+}
 
 async function loadViewData() {
     const activeView = document.getElementById('view-pending-acceptance');
@@ -274,6 +294,14 @@ function changePerPage(perPage) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const tableArea = document.getElementById('table-area');
+    if (tableArea) tableArea.style.zoom = currentZoom;
+    
+    const zoomLevel = document.getElementById('zoom-level');
+    if (zoomLevel) {
+        zoomLevel.textContent = Math.round(currentZoom * 100) + '%';
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('search')) {
         const input = document.getElementById('hierarchy-search');
@@ -1016,5 +1044,72 @@ async function submitWizardAction(clickedType) {
         showToast('An error occurred while saving. Please try again.', 'error');
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
+    }
+}
+
+async function exportToExcel() {
+    const btn = document.getElementById('btn-export-excel');
+    const icon = document.getElementById('export-btn-icon');
+    const label = document.getElementById('export-btn-label');
+    const originalIcon = icon.innerText;
+    const originalLabel = label.innerText;
+
+    try {
+        // Disable button and show loading state
+        btn.disabled = true;
+        icon.innerText = 'sync';
+        icon.classList.add('animate-spin');
+        label.innerText = 'Queuing...';
+
+        const filters = {
+            search: document.getElementById('hierarchy-search')?.value || '',
+            status_filter: currentStatusFilter,
+            feedback_status: document.getElementById('filter-feedback-status')?.value || '',
+            collection_owner: document.getElementById('filter-collection-owner')?.value || '',
+            make_owner: document.getElementById('filter-make-owner')?.value || '',
+            supplier: document.getElementById('filter-supplier')?.value || '',
+            collection: document.getElementById('filter-collection')?.value || '',
+            classification: document.getElementById('filter-classification')?.value || '',
+            order_type: document.getElementById('filter-order-type')?.value || '',
+            order_request_type: document.getElementById('filter-order-request-type')?.value || '',
+            branch_type: document.getElementById('filter-branch-type')?.value || '',
+            delay: document.getElementById('filter-delay')?.value || '',
+            delay_enabled: document.getElementById('filter-delay-enable')?.checked || false,
+            from_date: document.getElementById('filter-from-date')?.value || '',
+            to_date: document.getElementById('filter-to-date')?.value || '',
+            enable_date_filter: document.getElementById('filter-date-enable')?.checked || false,
+            feedback_from_date: document.getElementById('filter-feedback-from-date')?.value || '',
+            feedback_to_date: document.getElementById('filter-feedback-to-date')?.value || '',
+            enable_feedback_date_filter: document.getElementById('filter-feedback-date-enable')?.checked || false
+        };
+
+        const response = await fetch('/api/pending-acceptance-feedback/export', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            },
+            body: JSON.stringify({
+                filters: filters,
+                socket_id: window.socket?.id
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.message || 'Failed to queue export');
+        }
+
+        showToast('Export job enqueued. You will be notified when the file is ready.', 'success');
+
+    } catch (error) {
+        console.error('Export error:', error);
+        showToast(error.message || 'Failed to trigger export', 'error');
+    } finally {
+        // Restore button state
+        btn.disabled = false;
+        icon.innerText = originalIcon;
+        icon.classList.remove('animate-spin');
+        label.innerText = originalLabel;
     }
 }
