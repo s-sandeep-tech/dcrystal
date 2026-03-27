@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 from app.extensions import db, socketio, jwt, migrate, limiter
 import os
@@ -53,6 +53,27 @@ def create_app():
             return True
             
         return False
+        
+    @jwt.unauthorized_loader
+    def custom_unauthorized_response(callback):
+        if request.path.startswith('/api/'):
+            return jsonify({"msg": "Missing JWT in headers or cookies (Missing Authorization Header; Missing cookie \"access_token\")"}), 401
+        
+        # Check if request prefers HTML
+        if 'text/html' in request.headers.get('Accept', ''):
+            return render_template('errors/401.html'), 401
+            
+        return jsonify({"msg": "Missing JWT in headers or cookies (Missing Authorization Header; Missing cookie \"access_token\")"}), 401
+
+    @jwt.expired_token_loader
+    def custom_expired_token_response(jwt_header, jwt_payload):
+        if request.path.startswith('/api/'):
+            return jsonify({"msg": "Token has expired"}), 401
+            
+        if 'text/html' in request.headers.get('Accept', ''):
+            return render_template('errors/401.html'), 401
+            
+        return jsonify({"msg": "Token has expired"}), 401
 
     # Ensure all tables are created (including Notification)
     with app.app_context():
