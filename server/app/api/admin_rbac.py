@@ -160,7 +160,11 @@ def manage_users():
         
         query = User.query
         if search:
-            query = query.filter((User.username.ilike(f'%{search}%')) | (User.email.ilike(f'%{search}%')))
+            query = query.filter(
+                (User.username.ilike(f'%{search}%')) | 
+                (User.email.ilike(f'%{search}%')) |
+                (User.user_id.ilike(f'%{search}%'))
+            )
             
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         users = pagination.items
@@ -284,6 +288,32 @@ def clear_user_lockout(user_id):
     db.session.commit()
     return jsonify({"msg": f"Lockout cleared for user {user.username}"}), 200
 
+@admin_rbac_bp.route('/users/<int:user_id>/toggle-status', methods=['POST'])
+@jwt_required()
+@require_role('ADMIN')
+def toggle_user_status(user_id):
+    user = User.query.get_or_404(user_id)
+    current_user_id = int(get_jwt_identity())
+    
+    # Prevent self-disabling
+    if user.id == current_user_id:
+        return jsonify({"msg": "You cannot disable your own account."}), 400
+        
+    user.is_active = not user.is_active
+    action = "ENABLE" if user.is_active else "DISABLE"
+    
+    # Force session invalidation on disable
+    if not user.is_active:
+        user.session_version += 1
+    
+    log_audit(current_user_id, action, "USER", user_id, {"username": user.username, "new_status": user.is_active})
+    
+    db.session.commit()
+    return jsonify({
+        "msg": f"User {user.username} has been {'enabled' if user.is_active else 'disabled'}",
+        "is_active": user.is_active
+    }), 200
+
 @admin_rbac_bp.route('/users/search', methods=['GET'])
 @jwt_required()
 @require_role('ADMIN')
@@ -294,7 +324,8 @@ def search_users():
     
     users = User.query.filter(
         (User.username.ilike(f'%{query}%')) | 
-        (User.email.ilike(f'%{query}%'))
+        (User.email.ilike(f'%{query}%')) |
+        (User.user_id.ilike(f'%{query}%'))
     ).limit(10).all()
     
     return jsonify([{

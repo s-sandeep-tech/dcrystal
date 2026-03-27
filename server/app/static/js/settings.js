@@ -474,7 +474,14 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors border-b border-gray-100 dark:border-gray-800";
             tr.innerHTML = `
                 <td class="px-4 py-3 font-mono font-bold text-primary uppercase tracking-wider">#${u.user_id}</td>
-                <td class="px-4 py-3 font-bold text-gray-900 dark:text-white">${u.username}</td>
+                <td class="px-4 py-3 font-bold text-gray-900 dark:text-white">
+                    <div class="flex items-center gap-2">
+                        ${u.username}
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider ${u.is_active ? 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 border border-green-100 dark:border-green-800/30' : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-800/30'}">
+                            ${u.is_active ? 'Active' : 'Disabled'}
+                        </span>
+                    </div>
+                </td>
                 <td class="px-4 py-3">${u.email}</td>
                 <td class="px-4 py-3 flex flex-wrap gap-1 justify-center">
                     ${(u.roles || []).map(r => `
@@ -493,6 +500,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${u.is_admin ? '<span class="text-gray-300 p-1 opacity-20" title="Admin password cannot be reset through user management"><span class="material-symbols-outlined text-[16px]">lock</span></span>' : `<button onclick="openChangePasswordModal(${u.id})" class="text-gray-400 hover:text-amber-500 transition-colors p-1" title="Change Password"><span class="material-symbols-outlined text-[16px]">key</span></button>`}
                     ${(u.failed_attempt_count > 0 || u.lockout_until) ? `<button onclick="clearUserLockout(${u.id})" class="text-gray-400 hover:text-green-500 transition-colors p-1 ml-1" title="Clear Lockout"><span class="material-symbols-outlined text-[16px]">restart_alt</span></button>` : ''}
                     <button onclick="editUser(${u.id})" class="text-gray-400 hover:text-primary transition-colors p-1 ml-1" title="Edit User"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+                    <button onclick="toggleUserStatus(${u.id}, ${u.is_active})" class="text-gray-400 ${u.is_active ? 'hover:text-red-500' : 'hover:text-green-500'} transition-colors p-1 ml-1" title="${u.is_active ? 'Disable User' : 'Enable User'}">
+                        <span class="material-symbols-outlined text-[16px]">${u.is_active ? 'person_off' : 'person_check'}</span>
+                    </button>
                     <button onclick="deleteUser(${u.id})" class="text-gray-400 hover:text-red-500 transition-colors p-1 ml-1" title="Delete User"><span class="material-symbols-outlined text-[16px]">delete</span></button>
                 </td>
             `;
@@ -602,6 +612,39 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { console.error(e); }
     }
     window.deleteUser = deleteUser;
+    
+    async function toggleUserStatus(id, currentlyActive) {
+        const user = gManagedUsers.find(u => u.id === id);
+        if (!user) return;
+        
+        const action = currentlyActive ? 'disable' : 'enable';
+        const confirmed = await showConfirmModal(
+            `${action.charAt(0).toUpperCase() + action.slice(1)} User`,
+            `Are you sure you want to ${action} user "${user.username}"? ${currentlyActive ? 'They will no longer be able to log in to the system.' : 'They will regain access to the system.'}`
+        );
+        
+        if (!confirmed) return;
+        
+        try {
+            const res = await fetch(`/api/admin/users/${id}/toggle-status`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                showToast(data.msg, 'success');
+                fetchUsers(userCurrentPage);
+            } else {
+                showToast(data.msg || `Error ${action}ing user`, 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Network error', 'error');
+        }
+    }
+    window.toggleUserStatus = toggleUserStatus;
 
     window.openChangePasswordModal = function (id) {
         const user = gManagedUsers.find(u => u.id === id);

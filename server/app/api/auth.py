@@ -28,6 +28,10 @@ def login():
         auth_service.log_attempt(user_id, user_id=user.user_id, status='failure', failure_reason='locked_out')
         return jsonify({"msg": "Account is temporarily locked. Please try again later."}), 423
 
+    if user and not user.is_active:
+        auth_service.log_attempt(user_id, user_id=user.user_id, status='failure', failure_reason='account_disabled')
+        return jsonify({"msg": "This account has been disabled. Please contact your administrator."}), 403
+
     if user and user.check_password(password):
         # Store in session for server-side auth checks (e.g. data filtering)
         session['user_id'] = user.user_id

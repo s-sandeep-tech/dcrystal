@@ -11,6 +11,7 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Security fields
@@ -36,6 +37,7 @@ class User(db.Model):
             'username': self.username,
             'is_admin': self.is_admin,
             'email': self.email,
+            'is_active': self.is_active,
             'created_at': self.created_at.isoformat(),
             'roles': [r.name for r in self.roles],
             'failed_attempt_count': self.failed_attempt_count,
