@@ -206,9 +206,9 @@ class OwnerWiseOrderSummarySnapshot(db.Model):
     provision_type = db.Column('provision_type', db.Text, primary_key=True)
     branch_provision_type = db.Column('branch_provision_type', db.Text, primary_key=True)
     
-    classification_owner = db.Column('Classification Owner', db.Text)
-    collection_owner = db.Column('Collection Owner', db.Text)
-    make_owner = db.Column('Make Owner', db.Text)
+    classification_owner = db.Column('Classification Owner', db.Text, primary_key=True)
+    collection_owner = db.Column('Collection Owner', db.Text, primary_key=True)
+    make_owner = db.Column('Make Owner', db.Text, primary_key=True)
     
     ordered_pcs = db.Column('Ordered Pcs', db.Numeric(18, 3))
     ordered_wt = db.Column('Ordered Wt', db.Numeric(18, 3))
