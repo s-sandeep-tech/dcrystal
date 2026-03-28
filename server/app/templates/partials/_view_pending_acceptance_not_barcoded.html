@@ -155,12 +155,20 @@
                     </button>
                     {% set u = current_username | trim | lower %}
                     {% if (r.collection_owner | trim | lower) == u or (r.make_owner | trim | lower) == u %}
+                    {% if r.has_action %}
+                    <button disabled
+                        class="size-6.5 flex items-center justify-center rounded bg-gray-100 dark:bg-gray-800/50 text-gray-400 border border-gray-200 dark:border-gray-700 cursor-not-allowed shadow-sm"
+                        title="Action already taken">
+                        <span class="material-symbols-outlined text-[14px]">settings_applications</span>
+                    </button>
+                    {% else %}
                     <button
                         onclick="openExpiredOrderWizard('{{ (r.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (r.make_owner or '') | replace('\'', '\\\'') }}', '{{ (r.supplier or '') | replace('\'', '\\\'') }}', '{{ (r.collection or '') | replace('\'', '\\\'') }}', '{{ status_filter }}')"
                         class="size-6.5 flex items-center justify-center rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 border border-blue-100 dark:border-blue-800 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
                         title="Manage Expired Orders">
                         <span class="material-symbols-outlined text-[14px]">settings_applications</span>
                     </button>
+                    {% endif %}
                     {% endif %}
                 </div>
                 {% endif %}

@@ -1038,6 +1038,17 @@ def save_pending_acceptance_wizard_action():
                 "message": f"Unauthorized. Only {owners_str} can perform this action."
             }), 403
             
+        existing_action = PendingAcceptanceAction.query.filter(
+            func.coalesce(PendingAcceptanceAction.collection_owner, '') == func.coalesce(collection_owner, ''),
+            func.coalesce(PendingAcceptanceAction.make_owner, '') == func.coalesce(make_owner, ''),
+            func.coalesce(PendingAcceptanceAction.supplier, '') == func.coalesce(supplier, ''),
+            func.coalesce(PendingAcceptanceAction.collection, '') == func.coalesce(collection, ''),
+            PendingAcceptanceAction.status_filter == status_filter
+        ).first()
+
+        if existing_action:
+            return jsonify({"status": "error", "message": "Feedback action already exists and cannot be modified."}), 400
+            
         new_action = PendingAcceptanceAction(
             collection_owner=collection_owner,
             make_owner=make_owner,
