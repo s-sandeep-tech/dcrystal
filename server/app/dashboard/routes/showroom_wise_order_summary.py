@@ -82,12 +82,18 @@ def apply_showroom_filters(query, latest_date_query=None, search=None, business_
     is_admin = 'ADMIN' in roles
     is_manager_2 = 'MANAGER_2' in roles
     is_business_head = 'BUSINESS_HEAD' in roles
+    is_manager_kmu = 'MANAGER_KMU' in roles
     user_id = session.get('user_id')
     username = session.get('username')
     
     if not is_admin and not is_manager_2:
         if is_business_head and user_id:
             query = query.filter(ShowroomWiseOrderSummarySnapshot.bh_emp_code == user_id)
+        elif is_manager_kmu:
+            query = query.filter(ShowroomWiseOrderSummarySnapshot.make.in_([
+                'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
+                'KMU MH', 'KMU-COIN', 'KMU-TN'
+            ]))
         elif username:
             u = (username or '').strip().lower()
             query = query.filter(
@@ -95,6 +101,7 @@ def apply_showroom_filters(query, latest_date_query=None, search=None, business_
                 (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.collection_owner)) == u) |
                 (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.classification_owner)) == u)
             )
+
 
     return query
 
