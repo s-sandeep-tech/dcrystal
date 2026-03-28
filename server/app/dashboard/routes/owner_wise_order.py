@@ -114,7 +114,16 @@ def owner_wise_order_summary():
         # Fetch filter options - Restricted for non-admins/non-managers
         def apply_options_filter(q):
             roles = [r.upper() for r in session.get('roles', [])]
-            if 'ADMIN' not in roles and 'MANAGER_2' not in roles and session.get('username'):
+            if 'ADMIN' in roles or 'MANAGER_2' in roles:
+                return q
+            
+            if 'MANAGER_KMU' in roles:
+                return q.filter(OwnerWiseOrderSummarySnapshot.make.in_([
+                    'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
+                    'KMU MH', 'KMU-COIN', 'KMU-TN'
+                ]))
+            
+            if session.get('username'):
                 u = session.get('username').strip().lower()
                 return q.filter(
                     (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
