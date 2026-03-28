@@ -93,13 +93,21 @@ def owner_wise_order_summary():
             roles = [r.upper() for r in session.get('roles', [])]
             is_admin = 'ADMIN' in roles
             is_manager_2 = 'MANAGER_2' in roles
-            if not is_admin and not is_manager_2 and session.get('username'):
-                u = session.get('username').strip().lower()
-                query = query.filter(
-                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
-                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
-                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
-                )
+            
+            if not is_admin and not is_manager_2:
+                if 'MANAGER_KMU' in roles:
+                    query = query.filter(OwnerWiseOrderSummarySnapshot.make.in_([
+                        'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
+                        'KMU MH', 'KMU-COIN', 'KMU-TN'
+                    ]))
+                elif session.get('username'):
+                    u = session.get('username').strip().lower()
+                    query = query.filter(
+                        (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
+                        (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
+                        (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
+                    )
+
                 
             return query
 
@@ -335,13 +343,21 @@ def get_owner_wise_partial():
             roles = [r.upper() for r in session.get('roles', [])]
             is_admin = 'ADMIN' in roles
             is_manager_2 = 'MANAGER_2' in roles
-            if not is_admin and not is_manager_2 and session.get('username'):
-                u = session.get('username').strip().lower()
-                query = query.filter(
-                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
-                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
-                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
-                )
+            
+            if not is_admin and not is_manager_2:
+                if 'MANAGER_KMU' in roles:
+                    query = query.filter(OwnerWiseOrderSummarySnapshot.make.in_([
+                        'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
+                        'KMU MH', 'KMU-COIN', 'KMU-TN'
+                    ]))
+                elif session.get('username'):
+                    u = session.get('username').strip().lower()
+                    query = query.filter(
+                        (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
+                        (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
+                        (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
+                    )
+
                 
             return query
 
@@ -544,13 +560,21 @@ def get_leaf_detail():
         roles = [r.upper() for r in session.get('roles', [])]
         is_admin = 'ADMIN' in roles
         is_manager_2 = 'MANAGER_2' in roles
-        if not is_admin and not is_manager_2 and session.get('username'):
-            u = session.get('username').strip().lower()
-            query = query.filter(
-                (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
-                (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
-                (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
-            )
+        
+        if not is_admin and not is_manager_2:
+            if 'MANAGER_KMU' in roles:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.make.in_([
+                    'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
+                    'KMU MH', 'KMU-COIN', 'KMU-TN'
+                ]))
+            elif session.get('username'):
+                u = session.get('username').strip().lower()
+                query = query.filter(
+                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
+                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
+                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
+                )
+
             
         results = query.all()
         
