@@ -21,6 +21,10 @@ class User(db.Model):
     last_login_at = db.Column(db.DateTime, nullable=True)
     last_login_ip = db.Column(db.String(45), nullable=True) # 45 for IPv6 support
     session_version = db.Column(db.Integer, default=0, nullable=False)
+    
+    # Password reset fields
+    must_reset_password = db.Column(db.Boolean, default=False)
+    last_reset_initiated_at = db.Column(db.DateTime, nullable=True)
     # Relationships
     roles = db.relationship('Role', secondary='user_role', backref=db.backref('users', lazy='dynamic'))
 
@@ -41,7 +45,9 @@ class User(db.Model):
             'created_at': self.created_at.isoformat(),
             'roles': [r.name for r in self.roles],
             'failed_attempt_count': self.failed_attempt_count,
-            'lockout_until': self.lockout_until.isoformat() if self.lockout_until else None
+            'lockout_until': self.lockout_until.isoformat() if self.lockout_until else None,
+            'must_reset_password': self.must_reset_password,
+            'last_reset_initiated_at': self.last_reset_initiated_at.isoformat() if self.last_reset_initiated_at else None
         }
 
 class LoginAttemptLog(db.Model):

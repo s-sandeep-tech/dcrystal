@@ -24,6 +24,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
         updatePasswordBtn.addEventListener('click', openPasswordModal);
 
+        // Auto-open if redirected from login with force_reset flag
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('force_reset') === '1') {
+            openPasswordModal();
+            if (window.showToast) {
+                window.showToast('Reset Required', 'A password reset has been forced for your account. Please update your password to continue.', 'warning', 60000);
+            }
+        }
+
         passwordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 

@@ -4,7 +4,7 @@
  */
 
 (function () {
-    window.showToast = function (title, message, type = 'info') {
+    window.showToast = function (title, message, type = 'info', duration = 5000) {
         const container = document.getElementById('toast-container');
         if (!container) {
             console.error('Toast container not found in DOM (#toast-container)');
@@ -99,9 +99,11 @@
 
         toast.querySelector('.close-btn').addEventListener('click', dismiss);
 
-        // Auto close after 5 seconds
-        setTimeout(() => {
-            dismiss();
-        }, 5000);
+        // Auto close after specified duration
+        if (duration > 0) {
+            setTimeout(() => {
+                dismiss();
+            }, duration);
+        }
     };
 })();

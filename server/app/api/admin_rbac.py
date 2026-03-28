@@ -314,6 +314,46 @@ def toggle_user_status(user_id):
         "is_active": user.is_active
     }), 200
 
+@admin_rbac_bp.route('/users/<int:user_id>/force-password-reset', methods=['POST'])
+@jwt_required()
+@require_role('ADMIN')
+def force_password_reset(user_id):
+    user = User.query.get_or_404(user_id)
+    data = request.json or {}
+    invalidate_sessions = data.get('invalidate_sessions', False)
+    
+    # Security: Admins cannot reset other ADMIN passwords through this interface
+    if user.is_admin:
+        return jsonify({"msg": "Administrator characters cannot be forced to reset through this interface."}), 403
+        
+    # Check "once per day" constraint
+    if user.last_reset_initiated_at:
+        time_diff = datetime.utcnow() - user.last_reset_initiated_at
+        if time_diff.total_seconds() < 86400: # 24 hours
+            return jsonify({"msg": "A password reset can only be initiated once every 24 hours for this user."}), 429
+            
+    user.must_reset_password = True
+    user.last_reset_initiated_at = datetime.utcnow()
+    
+    if invalidate_sessions:
+        user.session_version += 1
+        
+    # Audit log
+    log_audit(
+        get_jwt_identity(), 
+        "FORCE_PASSWORD_RESET", 
+        "USER", 
+        user_id, 
+        {"username": user.username, "invalidate_sessions": invalidate_sessions}
+    )
+    
+    db.session.commit()
+    return jsonify({
+        "msg": f"Password reset forced for user {user.username}. They will be prompted on next login.",
+        "must_reset_password": user.must_reset_password,
+        "last_reset_initiated_at": user.last_reset_initiated_at.isoformat()
+    }), 200
+
 @admin_rbac_bp.route('/users/search', methods=['GET'])
 @jwt_required()
 @require_role('ADMIN')

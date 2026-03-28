@@ -149,7 +149,11 @@
                 if (response.ok) {
                     localStorage.setItem('access_token', data.access_token);
                     localStorage.setItem('user', JSON.stringify(data.user));
-                    window.location.href = '/';
+                    if (data.force_reset) {
+                        window.location.href = '/my_account?force_reset=1';
+                    } else {
+                        window.location.href = '/';
+                    }
                 } else {
                     errorText.textContent = data.msg || 'Authentication failed';
                     errorMsg.classList.remove('hidden');

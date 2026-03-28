@@ -784,6 +784,39 @@
             </div>
         </div>
     </div>
+
+    <!-- Force Password Reset Modal -->
+    <div id="forceResetModal"
+        class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center hidden opacity-0 transition-opacity">
+        <div class="bg-white dark:bg-gray-900 rounded-xl w-full max-w-sm p-6 shadow-2xl transform scale-95 transition-transform"
+            id="forceResetModalContent">
+            <div class="flex flex-col items-center text-center">
+                <div class="size-12 bg-orange-50 dark:bg-orange-900/30 rounded-full flex items-center justify-center mb-4">
+                    <span class="material-symbols-outlined text-orange-500 text-2xl">lock_reset</span>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Force Password Reset</h3>
+                <p id="forceResetModalMessage" class="text-sm text-gray-500 dark:text-gray-400 mb-4 text-left">
+                    Are you sure you want to force a password reset for this user? They will be prompted to change it on their next login.
+                </p>
+                
+                <div class="w-full flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700 mb-6 group cursor-pointer" onclick="document.getElementById('invalidateSessions').click()">
+                    <input type="checkbox" id="invalidateSessions" class="size-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer" onclick="event.stopPropagation()">
+                    <label for="invalidateSessions" class="text-xs font-bold text-gray-700 dark:text-gray-300 cursor-pointer">Invalidate existing sessions</label>
+                </div>
+
+                <div class="flex gap-3 w-full">
+                    <button onclick="closeForceResetModal()"
+                        class="flex-1 px-4 py-2.5 text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button id="confirmForceResetBtn"
+                        class="flex-1 px-4 py-2.5 text-sm font-bold bg-orange-500 text-white rounded-lg hover:bg-orange-600 shadow-lg shadow-orange-500/20 transition-all active:scale-95">
+                        Confirm Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     {% endblock %}
 
     {% block extra_scripts %}

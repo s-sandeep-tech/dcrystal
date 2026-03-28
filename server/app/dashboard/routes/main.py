@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from app.utils.decorators import require_perm
 
-@dashboard_bp.route('/myaccount')
+@dashboard_bp.route('/my_account')
 def my_account():
     user_id = session.get('user_id')
     if not user_id:

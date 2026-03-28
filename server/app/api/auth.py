@@ -47,7 +47,11 @@ def login():
             additional_claims={'session_version': user.session_version}
         )
         
-        response = jsonify(access_token=access_token, user=user.to_dict())
+        response = jsonify(
+            access_token=access_token, 
+            user=user.to_dict(),
+            force_reset=user.must_reset_password
+        )
         # Set cookie for session recovery (standard GET requests)
         response.set_cookie('access_token', access_token, 
                             httponly=True, 
@@ -129,6 +133,7 @@ def update_password():
         
     user.set_password(new_password)
     user.session_version += 1
+    user.must_reset_password = False
     
     # Log history
     history = UserPasswordHistory(

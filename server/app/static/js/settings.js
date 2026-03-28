@@ -497,7 +497,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
                 <td class="px-4 py-3 text-gray-400 whitespace-nowrap">${new Date(u.created_at).toLocaleDateString()}</td>
                 <td class="px-4 py-3 text-right whitespace-nowrap">
-                    ${u.is_admin ? '<span class="text-gray-300 p-1 opacity-20" title="Admin password cannot be reset through user management"><span class="material-symbols-outlined text-[16px]">lock</span></span>' : `<button onclick="openChangePasswordModal(${u.id})" class="text-gray-400 hover:text-amber-500 transition-colors p-1" title="Change Password"><span class="material-symbols-outlined text-[16px]">key</span></button>`}
+                    ${u.is_admin ? '<span class="text-gray-300 p-1 opacity-20" title="Admin password cannot be reset through user management"><span class="material-symbols-outlined text-[16px]">lock</span></span>' : `
+                        <button onclick="openChangePasswordModal(${u.id})" class="text-gray-400 hover:text-amber-500 transition-colors p-1" title="Change Password"><span class="material-symbols-outlined text-[16px]">key</span></button>
+                        <button onclick="openForceResetModal(${u.id})" class="text-gray-400 hover:text-orange-500 transition-colors p-1 ml-1" title="Force Password Reset"><span class="material-symbols-outlined text-[16px]">lock_reset</span></button>
+                    `}
                     ${(u.failed_attempt_count > 0 || u.lockout_until) ? `<button onclick="clearUserLockout(${u.id})" class="text-gray-400 hover:text-green-500 transition-colors p-1 ml-1" title="Clear Lockout"><span class="material-symbols-outlined text-[16px]">restart_alt</span></button>` : ''}
                     <button onclick="editUser(${u.id})" class="text-gray-400 hover:text-primary transition-colors p-1 ml-1" title="Edit User"><span class="material-symbols-outlined text-[16px]">edit</span></button>
                     <button onclick="toggleUserStatus(${u.id}, ${u.is_active})" class="text-gray-400 ${u.is_active ? 'hover:text-red-500' : 'hover:text-green-500'} transition-colors p-1 ml-1" title="${u.is_active ? 'Disable User' : 'Enable User'}">
@@ -722,6 +725,72 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Network error', 'error');
         }
     };
+
+    window.openForceResetModal = function(id) {
+        const user = gManagedUsers.find(u => u.id === id);
+        if (!user) return;
+
+        const modal = document.getElementById('forceResetModal');
+        const content = document.getElementById('forceResetModalContent');
+        const proceedBtn = document.getElementById('confirmForceResetBtn');
+        const msg = document.getElementById('forceResetModalMessage');
+        const checkbox = document.getElementById('invalidateSessions');
+
+        msg.innerHTML = `Are you sure you want to force a password reset for user <strong>${user.username}</strong> (#${user.user_id})? They will be prompted to change it on their next login.`;
+        checkbox.checked = false; // Default unchecked
+
+        const onConfirm = () => {
+            forcePasswordReset(id, checkbox.checked);
+            closeForceResetModal();
+            proceedBtn.removeEventListener('click', onConfirm);
+        };
+
+        // Remove existing listener if any (from previous opens)
+        const newBtn = proceedBtn.cloneNode(true);
+        proceedBtn.parentNode.replaceChild(newBtn, proceedBtn);
+        newBtn.addEventListener('click', onConfirm);
+
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+        }, 10);
+    };
+
+    window.closeForceResetModal = function() {
+        const modal = document.getElementById('forceResetModal');
+        const content = document.getElementById('forceResetModalContent');
+        if (modal && content) {
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+    };
+
+    async function forcePasswordReset(id, invalidateSessions) {
+        try {
+            const res = await fetch(`/api/admin/users/${id}/force-password-reset`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${window.jwtToken}` 
+                },
+                body: JSON.stringify({ invalidate_sessions: invalidateSessions })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                showToast('Success', data.msg, 'success');
+                fetchUsers(userCurrentPage);
+            } else {
+                showToast('Error', data.msg || 'Failed to force password reset', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Network Error', 'Failed to connect to the server', 'error');
+        }
+    }
 
     // Generic Toast Function (if not defined globally in base.html)
     function showToast(message, type = 'info') {
