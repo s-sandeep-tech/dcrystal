@@ -502,7 +502,7 @@ async function saveFeedback() {
     };
 
     if (!payload.feedback_text.trim()) {
-        alert("Feedback cannot be empty");
+        showToast('Required', "Feedback cannot be empty", 'warning');
         return;
     }
 
@@ -525,7 +525,7 @@ async function saveFeedback() {
         closeFeedbackModal();
         loadViewData();
     } catch (err) {
-        alert(err.message);
+        showToast('Error', err.message || "Failed to save feedback", 'error');
     } finally {
         btnText.textContent = 'Save';
         btnIcon.textContent = 'save';
@@ -701,7 +701,7 @@ async function openExpiredOrderWizard(co, mo, s, c, sf) {
         
     } catch (e) {
         console.error('Wizard initialization failed:', e);
-        showToast('Could not load expired order details.', 'error');
+        showToast('Error', 'Could not load expired order details.', 'error');
         closeExpiredOrderWizard();
     } finally {
         if (loader) loader.classList.add('hidden');
@@ -966,17 +966,17 @@ async function submitWizardAction(clickedType) {
     });
 
     if (continueData.length === 0 && cancelData.length === 0) {
-        showToast('Please enter weight details or select POs to cancel.', 'warning');
+        showToast('Warning', 'Please enter weight details or select POs to cancel.', 'warning');
         return;
     }
 
     if (continueData.length > 0 && !continueReason) {
-        showToast('Please provide a reason for the rescheduled order before proceeding.', 'warning');
+        showToast('Warning', 'Please provide a reason for the rescheduled order before proceeding.', 'warning');
         return;
     }
     
     if (cancelData.length > 0 && !cancelReason) {
-        showToast('Please provide a reason for the cancelled order before proceeding.', 'warning');
+        showToast('Warning', 'Please provide a reason for the cancelled order before proceeding.', 'warning');
         return;
     }
     
@@ -989,7 +989,7 @@ async function submitWizardAction(clickedType) {
     }
     let maxAllowed = overallWeight - cancelTotal;
     if (proposedContinueTotal > maxAllowed + 0.001) {
-        showToast(`Total rescheduled weight (${proposedContinueTotal.toFixed(3)}) cannot exceed the balance weight (${maxAllowed.toFixed(3)}).`, 'error');
+        showToast('Error', `Total rescheduled weight (${proposedContinueTotal.toFixed(3)}) cannot exceed the balance weight (${maxAllowed.toFixed(3)}).`, 'error');
         return;
     }
     
@@ -1046,13 +1046,25 @@ async function submitWizardAction(clickedType) {
         
         await Promise.all(promises);
 
-        showToast('Action(s) saved successfully!', 'success');
+        showToast('Success', 'Action(s) saved successfully!', 'success');
         closeExpiredOrderWizard();
         loadViewData(currentStatusFilter); // Refresh data
         
     } catch (error) {
         console.error('Wizard save error:', error);
-        showToast('An error occurred while saving. Please try again.', 'error');
+        let errorMsg = 'An error occurred while saving. Please try again.';
+        try {
+            const parsed = JSON.parse(error.message);
+            if (parsed && parsed.message) {
+                errorMsg = parsed.message;
+            }
+        } catch (e) {
+            // Fallback: If not JSON, use the raw error message if it's brief
+            if (error.message && error.message.length < 200) {
+                errorMsg = error.message;
+            }
+        }
+        showToast('Save Error', errorMsg, 'error');
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
     }
@@ -1111,11 +1123,11 @@ async function exportToExcel() {
             throw new Error(err.message || 'Failed to queue export');
         }
 
-        showToast('Export job enqueued. You will be notified when the file is ready.', 'success');
+        showToast('Success', 'Export job enqueued. You will be notified when the file is ready.', 'success');
 
     } catch (error) {
         console.error('Export error:', error);
-        showToast(error.message || 'Failed to trigger export', 'error');
+        showToast('Error', error.message || 'Failed to trigger export', 'error');
     } finally {
         // Restore button state
         btn.disabled = false;
