@@ -2120,18 +2120,38 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.openSyncLogsModal = async function() {
+    let syncLogsCurrentPage = 1;
+
+    window.openSyncLogsModal = function() {
         if (!syncLogsModal) return;
         syncLogsModal.classList.remove('hidden');
         setTimeout(() => syncLogsModal.classList.remove('opacity-0'), 10);
         
+        syncLogsCurrentPage = 1;
+        fetchSyncLogsData(syncLogsCurrentPage);
+    }
+
+    window.fetchSyncLogsPage = function(delta) {
+        syncLogsCurrentPage += delta;
+        fetchSyncLogsData(syncLogsCurrentPage);
+    }
+
+    async function fetchSyncLogsData(page) {
         syncLogsTableBody.innerHTML = '';
         syncLogsEmpty.classList.add('hidden');
         syncLogsLoading.classList.remove('hidden');
         syncLogsMetrics.textContent = 'Loading metrics...';
         
+        const prevBtn = document.getElementById('syncLogsPrevBtn');
+        const nextBtn = document.getElementById('syncLogsNextBtn');
+        const pageInfo = document.getElementById('syncLogsPageInfo');
+        
+        if (prevBtn) prevBtn.disabled = true;
+        if (nextBtn) nextBtn.disabled = true;
+        
         try {
-            const res = await fetch(window.SETTINGS_CONFIG.syncLogsUrl);
+            const url = `${window.SETTINGS_CONFIG.syncLogsUrl}?page=${page}&per_page=20`;
+            const res = await fetch(url);
             const data = await res.json();
             
             syncLogsLoading.classList.add('hidden');
@@ -2165,9 +2185,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 syncLogsMetrics.textContent = `Total tasks: ${data.total} • Combined duration (visible): ${formatDuration(totalSeconds)}`;
+                
+                if (pageInfo) pageInfo.textContent = `Page ${data.current_page} of ${data.pages}`;
+                if (prevBtn) prevBtn.disabled = data.current_page <= 1;
+                if (nextBtn) nextBtn.disabled = data.current_page >= data.pages;
             } else {
                 syncLogsEmpty.classList.remove('hidden');
                 syncLogsMetrics.textContent = 'No records found';
+                if (pageInfo) pageInfo.textContent = `Page 1 of 1`;
             }
         } catch (e) {
             console.error('Failed to fetch sync logs', e);
