@@ -105,3 +105,29 @@ class ExportDownloadLog(db.Model):
             'user_agent': self.user_agent,
             'downloaded_at': self.downloaded_at.isoformat()
         }
+
+class SyncLog(db.Model):
+    __tablename__ = 'sync_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.String(50), nullable=True, index=True)
+    task_name = db.Column(db.String(100), nullable=False)
+    status = db.Column(db.String(50), nullable=False) # processing, success, error
+    start_time = db.Column(db.DateTime, default=datetime.utcnow)
+    end_time = db.Column(db.DateTime, nullable=True)
+    duration = db.Column(db.Float, nullable=True) # in seconds
+    initiated_by = db.Column(db.String(50), nullable=True) # User ID who initiated
+    details = db.Column(db.JSON, nullable=True) # For row counts or error messages
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'job_id': self.job_id,
+            'task_name': self.task_name,
+            'status': self.status,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'end_time': self.end_time.isoformat() if self.end_time else None,
+            'duration': self.duration,
+            'initiated_by': self.initiated_by,
+            'details': self.details
+        }

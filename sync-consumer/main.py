@@ -36,33 +36,74 @@ def process_sync_queue():
 
             task_data = json.loads(task_data_json)
             task_type = task_data.get('type')
+            user_id = task_data.get('user_id')
 
             logger.info(f"[sync_queue] Processing task: {task_type}")
 
             with app.app_context():
-                if task_type == 'owner_wise':
-                    sync_owner_wise_data_task()
-                elif task_type == 'process_delay':
-                    sync_process_level_delay_data_task()
-                elif task_type == 'outstanding_po':
-                    sync_outstanding_purchase_order_data_task()
-                elif task_type == 'stage_delay':
-                    sync_stage_level_delay_data_task()
-                elif task_type == 'order_delay_tracking':
-                    sync_order_delay_tracking_data_task()
-                elif task_type == 'pending_acceptance':
-                    sync_pending_acceptance_data_task()
-                elif task_type == 'rejected_weight':
-                    sync_rejected_weight_data_task()
-                elif task_type == 'provision_allocation':
-                    sync_provision_allocation_summary_task()
-                elif task_type == 'showroom_wise_order':
-                    sync_showroom_wise_order_summary_task()
-                elif task_type == 'owner_showroom_combined':
-                    sync_owner_and_showroom_wise_task()
-                else:
-                    logger.error(f"Unknown sync task type: {task_type}")
-                    emit_sync_update('error', f'Unknown task type: {task_type}')
+                from app.models.core import SyncLog
+                from app.extensions import db
+                from datetime import datetime
+                import time
+                
+                sync_log = SyncLog(
+                    task_name=task_type,
+                    status='processing',
+                    start_time=datetime.utcnow(),
+                    initiated_by=str(user_id) if user_id else None
+                )
+                db.session.add(sync_log)
+                db.session.commit()
+                
+                start_t = time.time()
+                res = None
+                try:
+                    if task_type == 'owner_wise':
+                        res = sync_owner_wise_data_task()
+                    elif task_type == 'process_delay':
+                        res = sync_process_level_delay_data_task()
+                    elif task_type == 'outstanding_po':
+                        res = sync_outstanding_purchase_order_data_task()
+                    elif task_type == 'stage_delay':
+                        res = sync_stage_level_delay_data_task()
+                    elif task_type == 'order_delay_tracking':
+                        res = sync_order_delay_tracking_data_task()
+                    elif task_type == 'pending_acceptance':
+                        res = sync_pending_acceptance_data_task()
+                    elif task_type == 'rejected_weight':
+                        res = sync_rejected_weight_data_task()
+                    elif task_type == 'provision_allocation':
+                        res = sync_provision_allocation_summary_task()
+                    elif task_type == 'showroom_wise_order':
+                        res = sync_showroom_wise_order_summary_task()
+                    elif task_type == 'owner_showroom_combined':
+                        res = sync_owner_and_showroom_wise_task()
+                    else:
+                        logger.error(f"Unknown sync task type: {task_type}")
+                        emit_sync_update('error', f'Unknown task type: {task_type}')
+                        res = {"status": "error", "message": f"Unknown task type: {task_type}"}
+                        
+                    sync_log.end_time = datetime.utcnow()
+                    sync_log.duration = time.time() - start_t
+                    if res and res.get('status') == 'success':
+                        sync_log.status = 'success'
+                        # Handle combined task response with multiple counts
+                        if task_type == 'owner_showroom_combined':
+                            sync_log.details = {"owner_count": res.get("owner_count"), "showroom_count": res.get("showroom_count")}
+                        else:
+                            sync_log.details = {"count": res.get("count")}
+                    else:
+                        sync_log.status = 'error'
+                        sync_log.details = {"error": res.get("message") if res else "Unknown error"}
+                        
+                    db.session.commit()
+                except Exception as e:
+                    sync_log.end_time = datetime.utcnow()
+                    sync_log.duration = time.time() - start_t
+                    sync_log.status = 'error'
+                    sync_log.details = {"error": str(e)}
+                    db.session.commit()
+                    raise e
 
             logger.info(f"[sync_queue] Task {task_type} completed.")
 

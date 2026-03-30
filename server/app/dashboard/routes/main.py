@@ -53,7 +53,7 @@ def sync_data():
         return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
         
     from app.utils.sync_manager import sync_owner_wise_data
-    result = sync_owner_wise_data()
+    result = sync_owner_wise_data(session.get('user_id'))
     return result, 200 if result.get('status') == 'success' else 500
 
 @dashboard_bp.route('/settings/sync-owner-showroom', methods=['POST'])
@@ -63,9 +63,8 @@ def sync_owner_and_showroom_wise():
         return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
 
     from app.utils.sync_manager import sync_owner_and_showroom_wise_data
-    result = sync_owner_and_showroom_wise_data()
+    result = sync_owner_and_showroom_wise_data(session.get('user_id'))
     return result, 200 if result.get('status') == 'success' else 500
-
 
 @dashboard_bp.route('/settings/sync-process-delay', methods=['POST'])
 def sync_process_delay():
@@ -73,7 +72,7 @@ def sync_process_delay():
         return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
         
     from app.utils.sync_manager import sync_process_level_delay_data
-    result = sync_process_level_delay_data()
+    result = sync_process_level_delay_data(session.get('user_id'))
     return result, 200 if result.get('status') == 'success' else 500
 
 @dashboard_bp.route('/settings/sync-outstanding-po', methods=['POST'])
@@ -82,7 +81,7 @@ def sync_outstanding_po():
         return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
         
     from app.utils.sync_manager import sync_outstanding_purchase_order_data
-    result = sync_outstanding_purchase_order_data()
+    result = sync_outstanding_purchase_order_data(session.get('user_id'))
     return result, 200 if result.get('status') == 'success' else 500
 
 @dashboard_bp.route('/settings/sync-stage-delay', methods=['POST'])
@@ -91,7 +90,7 @@ def sync_stage_delay():
         return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
         
     from app.utils.sync_manager import sync_stage_level_delay_data
-    result = sync_stage_level_delay_data()
+    result = sync_stage_level_delay_data(session.get('user_id'))
     return result, 200 if result.get('status') == 'success' else 500
 
 @dashboard_bp.route('/settings/sync-order-delay', methods=['POST'])
@@ -100,7 +99,7 @@ def sync_order_delay():
         return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
         
     from app.utils.sync_manager import sync_order_delay_tracking_data
-    result = sync_order_delay_tracking_data()
+    result = sync_order_delay_tracking_data(session.get('user_id'))
     return result, 200 if result.get('status') == 'success' else 500
 
 @dashboard_bp.route('/settings/sync-pending-acceptance', methods=['POST'])
@@ -109,7 +108,7 @@ def sync_pending_acceptance():
         return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
         
     from app.utils.sync_manager import sync_pending_acceptance_data
-    result = sync_pending_acceptance_data()
+    result = sync_pending_acceptance_data(session.get('user_id'))
     return result, 200 if result.get('status') == 'success' else 500
 
 @dashboard_bp.route('/settings/sync-rejected-weight', methods=['POST'])
@@ -118,8 +117,18 @@ def sync_rejected_weight():
         return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
         
     from app.utils.sync_manager import sync_rejected_weight_data
-    result = sync_rejected_weight_data()
+    result = sync_rejected_weight_data(session.get('user_id'))
     return result, 200 if result.get('status') == 'success' else 500
+
+@dashboard_bp.route('/settings/sync-provision-allocation', methods=['POST'])
+def settings_sync_provision_allocation():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
+        
+    from app.utils.sync_manager import sync_provision_allocation_data
+    result = sync_provision_allocation_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500
+
 
 @dashboard_bp.route('/settings/clear-cache', methods=['POST'])
 def clear_cache():
@@ -171,6 +180,25 @@ def get_settings_notifications():
         } for n in notifications]
     }
 
+
+@dashboard_bp.route('/settings/sync-logs')
+def get_sync_logs():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized"}, 401
+    
+    from app.models.core import SyncLog
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    
+    pagination = SyncLog.query.order_by(SyncLog.start_time.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    
+    return {
+        "status": "success",
+        "logs": [log.to_dict() for log in pagination.items],
+        "total": pagination.total,
+        "pages": pagination.pages,
+        "current_page": pagination.page
+    }
 
 @dashboard_bp.route('/')
 @require_perm('dashboard.view')

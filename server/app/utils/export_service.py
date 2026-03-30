@@ -445,7 +445,26 @@ def generate_pending_acceptance_export(filters: dict) -> str:
             # Old format or simple CANCEL action
             if action.action_type == 'CONTINUE':
                 # Legacy CONTINUE format was a list of schedules WITHOUT PO metadata
-                schedules_str = ", ".join([f"{s.get('weight')} ({s.get('delivery_date')})" for s in data])
+                schedules_str = ", ".join([f"{s.get('weight')} ({s.get('delivery_date')})" if s.get('delivery_date') else str(s.get('weight')) for s in data])
+                total_wt = sum([float(s.get('weight') or 0) for s in data])
+                # Add a summary row for legacy data
+                po_rows.append({
+                    'action_id': action.id,
+                    'action_type': action.action_type,
+                    'action_date': action.created_at.strftime('%Y-%m-%d %H:%M') if action.created_at else '',
+                    'username': action.username or '',
+                    'reason': action.reason or '',
+                    'collection_owner': action.collection_owner or '',
+                    'make_owner': action.make_owner or '',
+                    'supplier': action.supplier or '',
+                    'collection': action.collection or '',
+                    'status_filter': action.status_filter or '',
+                    'po_number': 'GROUP_RESCHEDULE',
+                    'po_date': 'N/A',
+                    'order_weight': total_wt,
+                    'order_piece': 0,
+                    'schedules': schedules_str
+                })
             else:
                 items_to_process = data
         elif isinstance(data, dict):
@@ -454,30 +473,30 @@ def generate_pending_acceptance_export(filters: dict) -> str:
                 items_to_process = data.get('unselected_pos', [])
                 schedules = data.get('schedules', [])
                 # Format: "Weight (Date), Weight (Date)..."
-                schedules_str = ", ".join([f"{s.get('weight')} ({s.get('delivery_date')})" for s in schedules])
+                schedules_str = ", ".join([f"{s.get('weight')} ({s.get('delivery_date')})" if s.get('delivery_date') else str(s.get('weight')) for s in schedules])
+                
+                if schedules:
+                    total_wt = sum([float(s.get('weight') or 0) for s in schedules])
+                    # Add a summary row for the rescheduled items
+                    po_rows.append({
+                        'action_id': action.id,
+                        'action_type': 'CONTINUE (GROUP_RESCHEDULE)',
+                        'action_date': action.created_at.strftime('%Y-%m-%d %H:%M') if action.created_at else '',
+                        'username': action.username or '',
+                        'reason': action.reason or '',
+                        'collection_owner': action.collection_owner or '',
+                        'make_owner': action.make_owner or '',
+                        'supplier': action.supplier or '',
+                        'collection': action.collection or '',
+                        'status_filter': action.status_filter or '',
+                        'po_number': 'GROUP_RESCHEDULE',
+                        'po_date': 'N/A',
+                        'order_weight': total_wt,
+                        'order_piece': 0,
+                        'schedules': schedules_str
+                    })
             elif action.action_type == 'CANCEL':
-                # Handle possible future object-based CANCEL
                 items_to_process = data.get('selected', []) + data.get('unselected', [])
-
-        if not items_to_process and action.action_type == 'CONTINUE':
-            # Add a summary row for legacy data
-            po_rows.append({
-                'action_id': action.id,
-                'action_type': action.action_type,
-                'action_date': action.created_at.strftime('%Y-%m-%d %H:%M') if action.created_at else '',
-                'username': action.username or '',
-                'reason': action.reason or '',
-                'collection_owner': action.collection_owner or '',
-                'make_owner': action.make_owner or '',
-                'supplier': action.supplier or '',
-                'collection': action.collection or '',
-                'status_filter': action.status_filter or '',
-                'po_number': 'GROUP_RESCHEDULE',
-                'po_date': '',
-                'order_weight': 0.0,
-                'order_piece': 0,
-                'schedules': schedules_str
-            })
 
         for item in items_to_process:
             # item is a dict like {'po_number': '...', 'po_date': '...', 'total_weight': ..., 'order_piece': ..., 'vendor': '...'}

@@ -2092,5 +2092,96 @@ document.addEventListener('DOMContentLoaded', () => {
     if (refreshNotificationsBtn) {
         refreshNotificationsBtn.onclick = () => fetchUserNotifications();
     }
+
+    // --- Sync Logs Modal Logic
+    const syncLogsBtn = document.getElementById('sync-logs-btn');
+    const syncLogsModal = document.getElementById('syncLogsModal');
+    const syncLogsTableBody = document.getElementById('syncLogsTableBody');
+    const syncLogsEmpty = document.getElementById('syncLogsEmpty');
+    const syncLogsLoading = document.getElementById('syncLogsLoading');
+    const syncLogsMetrics = document.getElementById('syncLogsMetrics');
+
+    if (syncLogsBtn) {
+        syncLogsBtn.onclick = () => openSyncLogsModal();
+    }
+
+    function formatDuration(seconds) {
+        if (!seconds || isNaN(seconds)) return '0s';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        if (mins > 0) return `${mins}m ${secs}s`;
+        return `${secs}s`;
+    }
+
+    function formatDate(isoString) {
+        if (!isoString) return '-';
+        return new Date(isoString).toLocaleString('en-US', {
+            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+    }
+
+    window.openSyncLogsModal = async function() {
+        if (!syncLogsModal) return;
+        syncLogsModal.classList.remove('hidden');
+        setTimeout(() => syncLogsModal.classList.remove('opacity-0'), 10);
+        
+        syncLogsTableBody.innerHTML = '';
+        syncLogsEmpty.classList.add('hidden');
+        syncLogsLoading.classList.remove('hidden');
+        syncLogsMetrics.textContent = 'Loading metrics...';
+        
+        try {
+            const res = await fetch(window.SETTINGS_CONFIG.syncLogsUrl);
+            const data = await res.json();
+            
+            syncLogsLoading.classList.add('hidden');
+            
+            if (data.status === 'success' && data.logs && data.logs.length > 0) {
+                let totalSeconds = 0;
+                
+                data.logs.forEach(log => {
+                    totalSeconds += (log.duration || 0);
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors group';
+                    
+                    const statusColors = {
+                        'success': 'text-green-500 bg-green-50 dark:bg-green-900/20',
+                        'error': 'text-red-500 bg-red-50 dark:bg-red-900/20',
+                        'processing': 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    };
+                    const colorClass = statusColors[log.status] || 'text-gray-500 bg-gray-50';
+                    
+                    tr.innerHTML = `
+                        <td class="p-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest whitespace-nowrap">${(log.task_name || '').replace(/_/g, ' ')}</td>
+                        <td class="p-3 text-center">
+                            <span class="inline-block px-2 py-1 text-[9px] font-black uppercase tracking-widest rounded ${colorClass}">${log.status}</span>
+                        </td>
+                        <td class="p-3 text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">${formatDate(log.start_time)}</td>
+                        <td class="p-3 text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">${formatDate(log.end_time)}</td>
+                        <td class="p-3 text-xs font-bold text-gray-900 dark:text-gray-100 text-right whitespace-nowrap">${formatDuration(log.duration)}</td>
+                        <td class="p-3 text-xs text-gray-500 dark:text-gray-400 font-medium text-right">${log.initiated_by || 'System'}</td>
+                    `;
+                    syncLogsTableBody.appendChild(tr);
+                });
+                
+                syncLogsMetrics.textContent = `Total tasks: ${data.total} • Combined duration (visible): ${formatDuration(totalSeconds)}`;
+            } else {
+                syncLogsEmpty.classList.remove('hidden');
+                syncLogsMetrics.textContent = 'No records found';
+            }
+        } catch (e) {
+            console.error('Failed to fetch sync logs', e);
+            syncLogsLoading.classList.add('hidden');
+            syncLogsEmpty.classList.remove('hidden');
+            syncLogsEmpty.innerHTML = '<p class="text-sm text-red-500">Failed to load logs</p>';
+            syncLogsMetrics.textContent = 'Error loading logs';
+        }
+    }
+
+    window.closeSyncLogsModal = function() {
+        if (!syncLogsModal) return;
+        syncLogsModal.classList.add('opacity-0');
+        setTimeout(() => syncLogsModal.classList.add('hidden'), 300);
+    }
 });
 
