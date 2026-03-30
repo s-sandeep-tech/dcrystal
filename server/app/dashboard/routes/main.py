@@ -187,14 +187,28 @@ def get_sync_logs():
         return {"status": "error", "message": "Unauthorized"}, 401
     
     from app.models.core import SyncLog
+    from app.models.auth import User
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
     
     pagination = SyncLog.query.order_by(SyncLog.start_time.desc()).paginate(page=page, per_page=per_page, error_out=False)
     
+    user_ids = [log.initiated_by for log in pagination.items if log.initiated_by]
+    users_dict = {}
+    if user_ids:
+        users = User.query.filter(User.user_id.in_(user_ids)).all()
+        users_dict = {u.user_id: u.username for u in users}
+        
+    logs_data = []
+    for log in pagination.items:
+        log_dict = log.to_dict()
+        if log.initiated_by and log.initiated_by in users_dict:
+            log_dict['initiated_by'] = f"{users_dict[log.initiated_by]} ({log.initiated_by})"
+        logs_data.append(log_dict)
+    
     return {
         "status": "success",
-        "logs": [log.to_dict() for log in pagination.items],
+        "logs": logs_data,
         "total": pagination.total,
         "pages": pagination.pages,
         "current_page": pagination.page
