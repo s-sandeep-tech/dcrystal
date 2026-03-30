@@ -127,6 +127,9 @@ def update_password():
     if new_password != confirm_password:
         return jsonify({"msg": "New passwords do not match"}), 400
         
+    if current_password == new_password:
+        return jsonify({"msg": "New password cannot be the same as current password"}), 400
+        
     user = User.query.filter_by(user_id=session['user_id']).first()
     if not user or not user.check_password(current_password):
         return jsonify({"msg": "Incorrect current password"}), 401

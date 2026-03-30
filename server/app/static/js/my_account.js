@@ -40,6 +40,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const newPassword = document.getElementById('new_password').value;
             const confirmPassword = document.getElementById('confirm_password').value;
 
+            if (newPassword === currentPassword) {
+                if (window.showToast) window.showToast('Error', 'New password cannot be the same as current password', 'error');
+                else alert('New password cannot be the same as current password');
+                return;
+            }
+
             if (newPassword !== confirmPassword) {
                 if (window.showToast) window.showToast('Error', 'New passwords do not match', 'error');
                 else alert('New passwords do not match');
