@@ -103,7 +103,7 @@ class ExportDownloadLog(db.Model):
             'user_id': self.user_id,
             'ip_address': self.ip_address,
             'user_agent': self.user_agent,
-            'downloaded_at': self.downloaded_at.isoformat()
+            'downloaded_at': self.downloaded_at.isoformat() + 'Z' if self.downloaded_at else None
         }
 
 class SyncLog(db.Model):
@@ -125,8 +125,8 @@ class SyncLog(db.Model):
             'job_id': self.job_id,
             'task_name': self.task_name,
             'status': self.status,
-            'start_time': self.start_time.isoformat() if self.start_time else None,
-            'end_time': self.end_time.isoformat() if self.end_time else None,
+            'start_time': self.start_time.isoformat() + 'Z' if self.start_time else None,
+            'end_time': self.end_time.isoformat() + 'Z' if self.end_time else None,
             'duration': self.duration,
             'initiated_by': self.initiated_by,
             'details': self.details

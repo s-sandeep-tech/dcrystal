@@ -175,7 +175,7 @@ def get_settings_notifications():
             'priority': n.priority,
             'is_read': n.is_read,
             'action_url': n.action_url,
-            'created_at': n.created_at.isoformat(),
+            'created_at': n.created_at.isoformat() + 'Z',
             'time_ago': n.get_time_ago()
         } for n in notifications]
     }

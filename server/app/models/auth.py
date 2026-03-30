@@ -42,12 +42,12 @@ class User(db.Model):
             'is_admin': self.is_admin,
             'email': self.email,
             'is_active': self.is_active,
-            'created_at': self.created_at.isoformat(),
+            'created_at': self.created_at.isoformat() + 'Z',
             'roles': [r.name for r in self.roles],
             'failed_attempt_count': self.failed_attempt_count,
-            'lockout_until': self.lockout_until.isoformat() if self.lockout_until else None,
+            'lockout_until': self.lockout_until.isoformat() + 'Z' if self.lockout_until else None,
             'must_reset_password': self.must_reset_password,
-            'last_reset_initiated_at': self.last_reset_initiated_at.isoformat() if self.last_reset_initiated_at else None
+            'last_reset_initiated_at': self.last_reset_initiated_at.isoformat() + 'Z' if self.last_reset_initiated_at else None
         }
 
 class LoginAttemptLog(db.Model):
@@ -71,5 +71,5 @@ class LoginAttemptLog(db.Model):
             'user_agent': self.user_agent,
             'status': self.status,
             'failure_reason': self.failure_reason,
-            'timestamp': self.timestamp.isoformat()
+            'timestamp': self.timestamp.isoformat() + 'Z'
         }

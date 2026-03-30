@@ -351,7 +351,7 @@ def force_password_reset(user_id):
     return jsonify({
         "msg": f"Password reset forced for user {user.username}. They will be prompted on next login.",
         "must_reset_password": user.must_reset_password,
-        "last_reset_initiated_at": user.last_reset_initiated_at.isoformat()
+        "last_reset_initiated_at": user.last_reset_initiated_at.isoformat() + 'Z'
     }), 200
 
 @admin_rbac_bp.route('/users/search', methods=['GET'])
@@ -503,7 +503,7 @@ def get_audit_logs():
         "target_type": l.target_type,
         "target_id": l.target_id,
         "details": l.details,
-        "created_at": l.created_at.isoformat()
+        "created_at": l.created_at.isoformat() + 'Z'
     } for l in logs])
 
 @admin_rbac_bp.route('/download-logs', methods=['GET'])
