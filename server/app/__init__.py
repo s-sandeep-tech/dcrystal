@@ -54,6 +54,30 @@ def create_app():
             
         return False
         
+    @jwt.revoked_token_loader
+    def custom_revoked_token_response(jwt_header, jwt_payload):
+        msg = """
+        <div class="flex flex-col sm:flex-row items-center justify-between p-4 mb-4 text-sm text-red-800 border border-red-300 rounded-xl bg-red-50 dark:bg-gray-800 dark:text-red-400 dark:border-red-800 shadow-sm" role="alert">
+            <div class="flex items-center mb-3 sm:mb-0">
+                <span class="material-symbols-outlined mr-3 text-2xl text-red-500">lock_circle</span>
+                <div>
+                    <span class="font-bold block text-base text-red-900 dark:text-red-300">Session Revoked</span>
+                    <span class="text-red-700 dark:text-red-400">Your security token has been invalidated.</span>
+                </div>
+            </div>
+            <a href='/login' class="flex items-center justify-center text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-red-600 dark:hover:bg-red-700 transition-all shadow-md w-full sm:w-auto">
+                <span class="material-symbols-outlined mr-2 text-sm">login</span> Login again
+            </a>
+        </div>
+        """
+        if request.path.startswith('/api/'):
+            return jsonify({"msg": msg}), 401
+            
+        if 'text/html' in request.headers.get('Accept', ''):
+            return render_template('errors/401.html'), 401
+            
+        return jsonify({"msg": msg}), 401
+
     @jwt.unauthorized_loader
     def custom_unauthorized_response(callback):
         if request.path.startswith('/api/'):
@@ -67,13 +91,27 @@ def create_app():
 
     @jwt.expired_token_loader
     def custom_expired_token_response(jwt_header, jwt_payload):
+        msg = """
+        <div class="flex flex-col sm:flex-row items-center justify-between p-4 mb-4 text-sm border rounded-xl shadow-sm bg-amber-50 border-amber-300 text-amber-800 dark:bg-gray-800 dark:border-amber-800 dark:text-amber-400" role="alert">
+            <div class="flex items-center mb-3 sm:mb-0">
+                <span class="material-symbols-outlined mr-3 text-2xl text-amber-500">timer</span>
+                <div>
+                    <span class="font-bold block text-base text-amber-900 dark:text-amber-300">Session Expired</span>
+                    <span class="text-amber-700 dark:text-amber-400">Your secure session has timed out due to inactivity.</span>
+                </div>
+            </div>
+            <a href='/login' class="flex items-center justify-center text-white bg-amber-600 hover:bg-amber-700 focus:ring-4 focus:outline-none focus:ring-amber-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-amber-600 dark:hover:bg-amber-700 transition-all shadow-md w-full sm:w-auto">
+                <span class="material-symbols-outlined mr-2 text-sm">login</span> Login again
+            </a>
+        </div>
+        """
         if request.path.startswith('/api/'):
-            return jsonify({"msg": "Token has expired"}), 401
+            return jsonify({"msg": msg}), 401
             
         if 'text/html' in request.headers.get('Accept', ''):
             return render_template('errors/401.html'), 401
             
-        return jsonify({"msg": "Token has expired"}), 401
+        return jsonify({"msg": msg}), 401
 
     # Ensure all tables are created (including Notification)
     with app.app_context():
