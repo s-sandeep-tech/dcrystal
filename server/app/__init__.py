@@ -10,7 +10,8 @@ def create_app():
     from app.models import (
         User, Notification, Order, DashboardStats, ExportDownloadLog,
         OrderStatusReportSnapshot, ShortStatusReportSnapshot, OrderProvisionSummaryReport,
-        LocationWiseOrderSnapshot, AllocatedBarcodesSnapshot, OwnerWiseOrderSummarySnapshot
+        LocationWiseOrderSnapshot, AllocatedBarcodesSnapshot, OwnerWiseOrderSummarySnapshot,
+        ProvisionStockRawSnapshot
     )
 
     # Database Configuration

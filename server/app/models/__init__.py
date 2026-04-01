@@ -14,7 +14,8 @@ from .snapshots import (
     PendingAcceptanceSnapshot,
     ReportFeedback,
     ShowroomWiseOrderSummarySnapshot,
-    PendingAcceptanceAction
+    PendingAcceptanceAction,
+    ProvisionStockRawSnapshot
 )
 from .rbac import Role, Permission, Menu, RoleMenu, RolePermission, UserRole, AuditLog, UserPasswordHistory
 
@@ -47,5 +48,6 @@ __all__ = [
     'PendingAcceptanceSnapshot',
     'ReportFeedback',
     'ShowroomWiseOrderSummarySnapshot',
-    'PendingAcceptanceAction'
+    'PendingAcceptanceAction',
+    'ProvisionStockRawSnapshot'
 ]

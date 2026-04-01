@@ -45,3 +45,6 @@ def sync_showroom_wise_order_summary_data(user_id=None):
 def sync_owner_and_showroom_wise_data(user_id=None):
     """Enqueues the combined Owner Wise + Showroom Wise sync task."""
     return enqueue_sync_task('owner_showroom_combined', user_id)
+
+def sync_provision_stock_status_data(user_id=None):
+    return enqueue_sync_task('provision_stock_status', user_id)

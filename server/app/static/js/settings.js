@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Reset all sync buttons IF NOT in Sync All mode
                     if (!window.isSyncAllActive) {
-                        [syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, syncProvisionAllocationBtn].forEach(btn => {
+                        [syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, syncProvisionAllocationBtn, syncProvisionStatusBtn].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
                         });
                     }
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Reset all sync buttons
                     if (!window.isSyncAllActive) {
-                        [syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, syncProvisionAllocationBtn].forEach(btn => {
+                        [syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, syncProvisionAllocationBtn, syncProvisionStatusBtn].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
                         });
                     }
@@ -133,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncPendingAcceptanceBtn = document.getElementById('sync-pending-acceptance-btn');
     const syncRejectedWeightBtn = document.getElementById('sync-rejected-weight-btn');
     const syncProvisionAllocationBtn = document.getElementById('sync-provision-allocation-btn');
+    const syncProvisionStatusBtn = document.getElementById('sync-provision-status-btn');
     const syncAllBtn = document.getElementById('sync-all-btn');
 
     async function triggerSync(btn, url, label, type) {
@@ -181,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncPendingAcceptanceBtn) syncPendingAcceptanceBtn.addEventListener('click', () => triggerSync(syncPendingAcceptanceBtn, window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, 'Pending Acceptance Sync', 'pending_acceptance'));
     if (syncRejectedWeightBtn) syncRejectedWeightBtn.addEventListener('click', () => triggerSync(syncRejectedWeightBtn, window.SETTINGS_CONFIG.syncRejectedWeightUrl, 'Rejected Weight Sync', 'rejected_weight'));
     if (syncProvisionAllocationBtn) syncProvisionAllocationBtn.addEventListener('click', () => triggerSync(syncProvisionAllocationBtn, window.SETTINGS_CONFIG.syncProvisionAllocationUrl, 'Provision Allocation Sync', 'provision_allocation'));
+    if (syncProvisionStatusBtn) syncProvisionStatusBtn.addEventListener('click', () => triggerSync(syncProvisionStatusBtn, window.SETTINGS_CONFIG ? window.SETTINGS_CONFIG.syncProvisionStatusUrl : '/api/sync/provision_stock_status', 'Provision & Stock Status Sync', 'provision_stock_status'));
 
     function showConfirmModal(title, message) {
         return new Promise((resolve) => {
@@ -238,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { url: window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, label: 'Pending Acceptance', type: 'pending_acceptance' },
                 { url: window.SETTINGS_CONFIG.syncRejectedWeightUrl, label: 'Rejected Weight', type: 'rejected_weight' },
                 { url: window.SETTINGS_CONFIG.syncProvisionAllocationUrl, label: 'Provision Allocation', type: 'provision_allocation' },
+                { url: window.SETTINGS_CONFIG ? window.SETTINGS_CONFIG.syncProvisionStatusUrl : '/api/sync/provision_stock_status', label: 'Provision & Stock Status', type: 'provision_stock_status' },
             ];
 
             setSyncLoading(syncAllBtn, 'Processing');
