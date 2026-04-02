@@ -1607,7 +1607,7 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
     This avoids SSL connection timeouts by keeping the connection active during inserts.
     """
     conn = None
-    BATCH_SIZE = 200  # Reduced to 200 for maximum frequency of UI updates
+    BATCH_SIZE = 10000  # High-performance batch size for optimal throughput
     DATA_TYPE = 'provision_stock_status'
     
     try:
@@ -1627,7 +1627,7 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
         
         # 3. Setup Named Cursor
         cur = conn.cursor(name='provision_stock_sync_cursor', cursor_factory=RealDictCursor)
-        cur.itersize = 5000  # Smaller itersize for steady streaming
+        cur.itersize = 2000  # Optimal itersize for SSL stability and streaming
         
         # Set timeout on session before main query
         with conn.cursor() as s_cur:
@@ -1651,7 +1651,7 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
         # Initial query call moved inside producer for resumability
         
         # 4. Initialize Threads and Queue
-        data_queue = queue.Queue(maxsize=3) 
+        data_queue = queue.Queue(maxsize=5) # Pre-load 5 batches ahead for zero-wait inserting
         stop_event = threading.Event()
         shared_state = {'records_committed': 0}
         app = current_app._get_current_object()
