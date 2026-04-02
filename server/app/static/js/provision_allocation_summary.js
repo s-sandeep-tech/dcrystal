@@ -1,7 +1,20 @@
 let currentPage = 1;
 let perPage = 2000;
 let currentSearch = '';
-let currentLocation = '';
+
+// Filter variables
+let filters = {
+    location: '',
+    branch_type: '',
+    business_head: '',
+    purity: '',
+    classification: '',
+    make: '',
+    collection: '',
+    section: '',
+    prov_type: '',
+    provision_mode: ''
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     loadOptions();
@@ -28,13 +41,32 @@ async function loadOptions() {
         });
         const data = await response.json();
 
-        const locationSelect = document.getElementById('filter-location');
-        data.locations.forEach(loc => {
-            const opt = document.createElement('option');
-            opt.value = loc;
-            opt.textContent = loc;
-            locationSelect.appendChild(opt);
-        });
+        const populateSelect = (id, options) => {
+            const select = document.getElementById(id);
+            if (!select) return;
+            // Clear existing options except the first one
+            while (select.options.length > 1) {
+                select.remove(1);
+            }
+            options.forEach(optVal => {
+                const opt = document.createElement('option');
+                opt.value = optVal;
+                opt.textContent = optVal;
+                select.appendChild(opt);
+            });
+        };
+
+        populateSelect('filter-location', data.locations);
+        populateSelect('filter-branch-type', data.branch_types);
+        populateSelect('filter-business-head', data.business_heads);
+        populateSelect('filter-purity', data.purities);
+        populateSelect('filter-classification', data.classifications);
+        populateSelect('filter-make', data.makes);
+        populateSelect('filter-collection', data.collections);
+        populateSelect('filter-section', data.sections);
+        populateSelect('filter-prov-type', data.prov_types);
+        populateSelect('filter-provision-mode', data.provision_modes);
+
     } catch (err) {
         console.error('Failed to load filter options:', err);
     }
@@ -42,14 +74,17 @@ async function loadOptions() {
 
 async function loadReport() {
     const tableArea = document.getElementById('view-provision-allocation');
+    const loader = document.getElementById('report-loader');
+    
     tableArea.classList.add('opacity-50', 'pointer-events-none');
+    if (loader) loader.classList.remove('hidden');
 
     try {
         const params = new URLSearchParams({
             page: currentPage,
             per_page: perPage,
             search: currentSearch,
-            location: currentLocation
+            ...filters
         });
 
         const response = await fetch(`/partial/provision-allocation?${params}`, {
@@ -68,27 +103,42 @@ async function loadReport() {
         tableArea.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Failed to load data.</div>`;
     } finally {
         tableArea.classList.remove('opacity-50', 'pointer-events-none');
+        if (loader) loader.classList.add('hidden');
     }
 }
 
 function onSearchInput(val) {
     currentSearch = val;
     currentPage = 1;
-    // Debounce search?
+    // Debounce search
     clearTimeout(window.searchTimeout);
     window.searchTimeout = setTimeout(() => loadReport(), 300);
 }
 
 function applyFilters() {
-    currentLocation = document.getElementById('filter-location').value;
+    filters.location = document.getElementById('filter-location').value;
+    filters.branch_type = document.getElementById('filter-branch-type').value;
+    filters.business_head = document.getElementById('filter-business-head').value;
+    filters.purity = document.getElementById('filter-purity').value;
+    filters.classification = document.getElementById('filter-classification').value;
+    filters.make = document.getElementById('filter-make').value;
+    filters.collection = document.getElementById('filter-collection').value;
+    filters.section = document.getElementById('filter-section').value;
+    filters.prov_type = document.getElementById('filter-prov-type').value;
+    filters.provision_mode = document.getElementById('filter-provision-mode').value;
+    
     currentPage = 1;
     loadReport();
 }
 
 function resetFilters() {
-    document.getElementById('filter-location').value = '';
+    Object.keys(filters).forEach(key => {
+        filters[key] = '';
+        const el = document.getElementById(`filter-${key.replace('_', '-')}`);
+        if (el) el.value = '';
+    });
+    
     document.getElementById('report-search').value = '';
-    currentLocation = '';
     currentSearch = '';
     currentPage = 1;
     loadReport();

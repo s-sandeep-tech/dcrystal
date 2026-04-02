@@ -1,10 +1,10 @@
 from flask import render_template, request, jsonify
 from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
-from app.models.snapshots import ProvisionAllocationSummarySnapshot
+from app.models.snapshots import ProvisionAllocationSummarySnapshot, ProvisionStockRawSnapshot
 from app.extensions import db, redis_client
 from app.utils.sync_manager import sync_provision_allocation_data
-from sqlalchemy import func, case
+from sqlalchemy import func, case, text
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import logging
@@ -44,8 +44,43 @@ def provision_allocation_summary():
 @jwt_required()
 def provision_allocation_options():
     try:
-        locations = [r[0] for r in db.session.query(ProvisionAllocationSummarySnapshot.location.distinct()).order_by(ProvisionAllocationSummarySnapshot.location).all() if r[0]]
-        return jsonify({'locations': locations})
+        # Check cache first
+        snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
+        date_str = snapshot_date.strftime("%Y%m%d%H%M%S") if snapshot_date else "latest"
+        cache_key = f"prov_alloc_options:{date_str}"
+        
+        cached_data = redis_client.get(cache_key)
+        if cached_data:
+            return jsonify(json.loads(cached_data))
+
+        locations = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.location.distinct()).order_by(ProvisionStockRawSnapshot.location).all() if r[0]]
+        purities = [float(r[0]) for r in db.session.query(ProvisionStockRawSnapshot.purity.distinct()).order_by(ProvisionStockRawSnapshot.purity).all() if r[0]]
+        classifications = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.classification.distinct()).order_by(ProvisionStockRawSnapshot.classification).all() if r[0]]
+        makes = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.make.distinct()).order_by(ProvisionStockRawSnapshot.make).all() if r[0]]
+        collections = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.collection.distinct()).order_by(ProvisionStockRawSnapshot.collection).all() if r[0]]
+        sections = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.section.distinct()).order_by(ProvisionStockRawSnapshot.section).all() if r[0]]
+        prov_types = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.prov_type.distinct()).order_by(ProvisionStockRawSnapshot.prov_type).all() if r[0]]
+        provision_modes = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.provision_mode_filter.distinct()).order_by(ProvisionStockRawSnapshot.provision_mode_filter).all() if r[0]]
+        branch_types = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.branch_type.distinct()).order_by(ProvisionStockRawSnapshot.branch_type).all() if r[0]]
+        business_heads = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.business_head_name.distinct()).order_by(ProvisionStockRawSnapshot.business_head_name).all() if r[0]]
+
+        data = {
+            'locations': locations,
+            'purities': purities,
+            'classifications': classifications,
+            'makes': makes,
+            'collections': collections,
+            'sections': sections,
+            'prov_types': prov_types,
+            'provision_modes': provision_modes,
+            'branch_types': branch_types,
+            'business_heads': business_heads
+        }
+        
+        # Cache for 1 hour
+        redis_client.setex(cache_key, 3600, json.dumps(data))
+
+        return jsonify(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -53,161 +88,339 @@ def provision_allocation_options():
 @jwt_required()
 def get_provision_allocation_partial():
     try:
-        latest_date = db.session.query(func.max(ProvisionAllocationSummarySnapshot.snapshot_date)).scalar()
-        
+        # Read filters from request
         search = request.args.get('search', '').strip()
         location = request.args.get('location', '')
+        purity = request.args.get('purity', '')
+        classification = request.args.get('classification', '')
+        make = request.args.get('make', '')
+        collection = request.args.get('collection', '')
+        section = request.args.get('section', '')
+        prov_type = request.args.get('prov_type', '')
+        provision_mode = request.args.get('provision_mode', '')
+        branch_type = request.args.get('branch_type', '')
+        business_head = request.args.get('business_head', '')
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 2000, type=int)
 
-        cache_key = generate_cache_key('prov_alloc_partial_v3', latest_date, 
-                                     search=search, location=location, 
-                                     page=page, per_page=per_page)
-        
-        cached_data = redis_client.get(cache_key)
-        if cached_data:
-            data = json.loads(cached_data)
-            pagination = CachedPagination(data['rows'], page, per_page, data['total'])
-            return render_template('partials/_view_provision_allocation_summary.html', 
-                                 rows=data['rows'], pagination=pagination)
-
-        if not location:
-            # Aggregate across all locations in Python for reliability
-            all_rows = db.session.query(
-                ProvisionAllocationSummarySnapshot
-            ).filter(ProvisionAllocationSummarySnapshot.snapshot_date == latest_date).all()
-            
-            if search:
-                s = search.lower()
-                all_rows = [r for r in all_rows if (s in (r.report_label or '').lower() or s in (r.report_section or '').lower())]
-            
-            # Aggregate rows
-            aggr = {} # key: (section, label, classification, sub_classification, is_parent, section_sort)
-            for r in all_rows:
-                # Robust normalization
-                section = (r.report_section or "").strip()
-                label = (r.report_label or "").strip()
-                
-                # Skip invalid empty rows
-                if not label or label.lower() == 'null':
-                    if float(r.grossweight or 0) == 0 and float(r.pcs or 0) == 0:
-                        continue
-                
-                if section.lower() == 'location summary':
-                    label = 'ALL'
-                
-                # For classification wise, ensure we have a fallback if classification is NULL
-                classification_val = r.classification
-                if section == 'Classification Wise' and not classification_val:
-                    # If it's a child but classification is NULL, it's invalid data, but we can try to guess or skip
-                    if r.is_parent == 0:
-                        continue
-                    classification_val = label # Use the label as classification for parent
-                
-                # Use a tuple for the key to include all structural columns (EXCLUDING row_sort to allow merging)
-                key = (section, label, classification_val, r.sub_classification, r.is_parent)
-                
-                if key not in aggr:
-                    aggr[key] = {
-                        'location': 'ALL',
-                        'report_section': section,
-                        'report_label': label,
-                        'classification': classification_val,
-                        'sub_classification': r.sub_classification,
-                        'is_parent': r.is_parent,
-                        'pcs': 0.0,
-                        'grossweight': 0.0,
-                        'section_sort': r.section_sort if r.section_sort is not None else 999,
-                        'row_sort': r.row_sort if r.row_sort is not None else 999,
-                        'sort_order': r.section_sort if r.section_sort is not None else 999 # legacy
-                    }
-                
-                aggr[key]['pcs'] += float(r.pcs or 0)
-                aggr[key]['grossweight'] += float(r.grossweight or 0)
-                # Keep the minimum sort order for the group to maintain hierarchy
-                if r.section_sort is not None and r.section_sort < aggr[key]['section_sort']:
-                    aggr[key]['section_sort'] = r.section_sort
-                if r.row_sort is not None and r.row_sort < aggr[key]['row_sort']:
-                    aggr[key]['row_sort'] = r.row_sort
-            
-            # Calculate section totals for percent calculation
-            # We must group by section ONLY for the denominator
-            section_totals = {}
-            for key, val in aggr.items():
-                sec = val['report_section']
-                # Only aggregate top-level rows (is_parent=1) for section total to avoid double counting
-                if val['is_parent'] == 1:
-                    if sec not in section_totals:
-                        section_totals[sec] = 0.0
-                    section_totals[sec] += val['grossweight']
-            
-            # Final list and recalculate percent
-            final_rows = []
-            for key, val in aggr.items():
-                sec = val['report_section']
-                total_wt = section_totals.get(sec, 0.0)
-                
-                if sec == 'Location Summary':
-                    val['percent'] = 100.0
-                elif sec == 'Provision Mode Count':
-                    val['percent'] = 0.0
-                else:
-                    val['percent'] = round((val['grossweight'] * 100.0 / total_wt), 2) if total_wt > 0 else 0.0
-                
-                final_rows.append(val)
-            
-            # Sort by section_sort, then classification hierarchy, then row_sort
-            # 1. section_sort (Overall report order)
-            # 2. classification (Grouping by category like BRAND, GENERIC) - fallback to label if NULL
-            # 3. is_parent (Parent row first)
-            # 4. row_sort / report_label (Relative order within category)
-            final_rows.sort(key=lambda x: (
-                x['section_sort'],
-                x['classification'] if x['classification'] is not None else (x['report_label'] if x['report_section'] == 'Classification Wise' else ''),
-                0 if x['is_parent'] == 1 else 1,
-                x['row_sort'],
-                x['report_label']
-            ))
-            
-            pagination = CachedPagination(final_rows, 1, per_page, len(final_rows))
-            
-            cache_payload = {
-                'rows': final_rows,
-                'total': len(final_rows)
-            }
-            redis_client.setex(cache_key, 3600, json.dumps(cache_payload))
-
-            return render_template('partials/_view_provision_allocation_summary.html', 
-                                 rows=final_rows, pagination=pagination)
-
-        # Non-aggregated (Single Location) logic
-        query = db.session.query(ProvisionAllocationSummarySnapshot)
-        
-        if latest_date:
-            query = query.filter(ProvisionAllocationSummarySnapshot.snapshot_date == latest_date)
-        
-        if search:
-            query = query.filter(ProvisionAllocationSummarySnapshot.location.ilike(f"%{search}%") | 
-                                 ProvisionAllocationSummarySnapshot.report_label.ilike(f"%{search}%"))
-        
-        if location:
-            query = query.filter(ProvisionAllocationSummarySnapshot.location == location)
-            
-        query = query.order_by(ProvisionAllocationSummarySnapshot.section_sort, ProvisionAllocationSummarySnapshot.row_sort)
-        
-        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-        
-        rows = [r.to_dict() for r in pagination.items]
-        
-        cache_payload = {
-            'rows': rows,
-            'total': pagination.total
+        params = {
+            'location': location if location else None,
+            'purity': float(purity) if purity else None,
+            'classification': classification if classification else None,
+            'make': make if make else None,
+            'collection': collection if collection else None,
+            'section': section if section else None,
+            'prov_type': prov_type if prov_type else None,
+            'provision_mode': provision_mode if provision_mode else None,
+            'branch_type': branch_type if branch_type else None,
+            'business_head': business_head if business_head else None
         }
-        redis_client.setex(cache_key, 3600, json.dumps(cache_payload))
 
-        return render_template('partials/_view_provision_allocation_summary.html', 
-                             rows=rows, pagination=pagination)
+        # Redis Caching Logic
+        snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
+        cache_key = generate_cache_key("prov_alloc_partial", snapshot_date, **params, search=search, page=page)
+        
+        cached_html = redis_client.get(cache_key)
+        if cached_html:
+            return cached_html
 
+        query = """
+WITH base AS (
+    SELECT *
+    FROM provision_stock_raw_snapshot
+    WHERE 
+        (:location IS NULL OR location = :location)
+        AND (:purity IS NULL OR purity = :purity)
+        AND (:classification IS NULL OR classification = :classification)
+        AND (:make IS NULL OR make = :make)
+        AND (:collection IS NULL OR collection = :collection)
+        AND (:section IS NULL OR section = :section)
+        AND (:prov_type IS NULL OR prov_type = :prov_type)
+        AND (:provision_mode IS NULL OR provision_mode_filter = :provision_mode)
+        AND (:branch_type IS NULL OR branch_type = :branch_type)
+        AND (:business_head IS NULL OR business_head_name = :business_head)
+),
+global_total AS (
+    SELECT
+        COALESCE(SUM(prov_gr_wt), 0) AS total_prov_wt
+    FROM base
+),
+
+location_summary AS (
+    SELECT
+        CASE 
+            WHEN COUNT(DISTINCT location) > 4 THEN COUNT(DISTINCT location)::text || '+ Location'
+            ELSE (SELECT STRING_AGG(loc, ', ') FROM (SELECT DISTINCT location AS loc FROM base ORDER BY loc) s)
+        END::text AS location,
+        'Location Summary'::text AS report_section,
+        CASE 
+            WHEN COUNT(DISTINCT location) > 4 THEN COUNT(DISTINCT location)::text || '+ Location'
+            ELSE (SELECT STRING_AGG(loc, ', ') FROM (SELECT DISTINCT location AS loc FROM base ORDER BY loc) s)
+        END::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
+        SUM(prov_pieces) AS pcs,
+        SUM(prov_gr_wt) AS gr_wt,
+        100.00::numeric AS percent,
+        1 AS section_sort,
+        1 AS row_sort
+    FROM base
+),
+
+purity_wise AS (
+    SELECT
+        'ALL'::text AS location,
+        'Purity Wise'::text AS report_section,
+        COALESCE(b.purity::text, 'Unknown') AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
+        NULL::numeric AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN gt.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / gt.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        2 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY b.purity) AS row_sort
+    FROM base b
+    CROSS JOIN global_total gt
+    GROUP BY b.purity, gt.total_prov_wt
+),
+
+classification_wise AS (
+    SELECT
+        'ALL'::text AS location,
+        x.report_section,
+        x.report_label,
+        x.classification,
+        x.sub_classification,
+        x.is_parent,
+        x.pcs,
+        x.gr_wt,
+        x.percent,
+        3 AS section_sort,
+        ROW_NUMBER() OVER (
+            ORDER BY
+                x.classification,
+                x.level_order,
+                x.sub_classification NULLS FIRST
+        ) AS row_sort
+    FROM (
+        SELECT
+            'Classification Wise'::text AS report_section,
+            COALESCE(b.classification::text, 'Unknown') AS report_label,
+            b.classification::text AS classification,
+            NULL::text AS sub_classification,
+            1 AS is_parent,
+            NULL::numeric AS pcs,
+            SUM(b.prov_gr_wt) AS gr_wt,
+            ROUND(
+                CASE
+                    WHEN gt.total_prov_wt = 0 THEN 0
+                    ELSE SUM(b.prov_gr_wt) * 100.0 / gt.total_prov_wt
+                END,
+                2
+            ) AS percent,
+            0 AS level_order
+        FROM base b
+        CROSS JOIN global_total gt
+        GROUP BY b.classification, gt.total_prov_wt
+
+        UNION ALL
+
+        SELECT
+            'Classification Wise'::text AS report_section,
+            '   ' || COALESCE(b.sub_classification::text, 'Unknown') AS report_label,
+            b.classification::text AS classification,
+            COALESCE(b.sub_classification::text, 'Unknown') AS sub_classification,
+            0 AS is_parent,
+            NULL::numeric AS pcs,
+            SUM(b.prov_gr_wt) AS gr_wt,
+            ROUND(
+                CASE
+                    WHEN gt.total_prov_wt = 0 THEN 0
+                    ELSE SUM(b.prov_gr_wt) * 100.0 / gt.total_prov_wt
+                END,
+                2
+            ) AS percent,
+            1 AS level_order
+        FROM base b
+        CROSS JOIN global_total gt
+        GROUP BY b.classification, b.sub_classification, gt.total_prov_wt
+    ) x
+),
+
+make_wise AS (
+    SELECT
+        'ALL'::text AS location,
+        'Make Wise'::text AS report_section,
+        COALESCE(b.make::text, 'Unknown') AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
+        NULL::numeric AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN gt.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / gt.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        4 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY b.make) AS row_sort
+    FROM base b
+    CROSS JOIN global_total gt
+    GROUP BY b.make, gt.total_prov_wt
+),
+
+prov_type_wise AS (
+    SELECT
+        'ALL'::text AS location,
+        'Provision Type Wise'::text AS report_section,
+        COALESCE(b.prov_type::text, 'Unknown') AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
+        NULL::numeric AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN gt.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / gt.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        5 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY b.prov_type) AS row_sort
+    FROM base b
+    CROSS JOIN global_total gt
+    GROUP BY b.prov_type, gt.total_prov_wt
+),
+
+section_wise AS (
+    SELECT
+        'ALL'::text AS location,
+        'Section Wise'::text AS report_section,
+        COALESCE(b.section::text, 'Unknown') AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
+        SUM(b.prov_pieces) AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN gt.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / gt.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        6 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY b.section) AS row_sort
+    FROM base b
+    CROSS JOIN global_total gt
+    GROUP BY b.section, gt.total_prov_wt
+),
+
+provision_mode_wise AS (
+    SELECT
+        'ALL'::text AS location,
+        'Provision Mode Wise'::text AS report_section,
+        COALESCE(b.provision_mode_filter::text, 'Unknown') AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
+        NULL::numeric AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN gt.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / gt.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        7 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY b.provision_mode_filter) AS row_sort
+    FROM base b
+    CROSS JOIN global_total gt
+    GROUP BY b.provision_mode_filter, gt.total_prov_wt
+),
+
+provision_mode_count AS (
+    SELECT
+        'ALL'::text AS location,
+        'Provision Mode Count'::text AS report_section,
+        COALESCE(b.provision_mode_filter::text, 'Unknown') AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
+        SUM(b.prov_pieces) AS pcs,
+        NULL::numeric AS gr_wt,
+        NULL::numeric AS percent,
+        8 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY b.provision_mode_filter) AS row_sort
+    FROM base b
+    GROUP BY b.provision_mode_filter
+),
+
+combined_report AS (
+    SELECT * FROM location_summary
+    UNION ALL
+    SELECT * FROM purity_wise
+    UNION ALL
+    SELECT * FROM classification_wise
+    UNION ALL
+    SELECT * FROM make_wise
+    UNION ALL
+    SELECT * FROM prov_type_wise
+    UNION ALL
+    SELECT * FROM section_wise
+    UNION ALL
+    SELECT * FROM provision_mode_wise
+    UNION ALL
+    SELECT * FROM provision_mode_count
+)
+
+SELECT
+    location,
+    report_section,
+    report_label,
+    classification,
+    sub_classification,
+    is_parent,
+    pcs,
+    gr_wt AS grossweight,
+    percent,
+    section_sort,
+    row_sort
+FROM combined_report
+ORDER BY
+    location,
+    section_sort,
+    row_sort
+        """
+        
+        result = db.session.execute(text(query), params)
+        all_rows = [dict(r._mapping) for r in result]
+
+        if search:
+            s_lower = search.lower()
+            all_rows = [r for r in all_rows if (s_lower in (r.get('report_label') or '').lower() or s_lower in (r.get('report_section') or '').lower())]
+
+        pagination = CachedPagination(all_rows, 1, per_page, len(all_rows))
+        
+        rendered_html = render_template('partials/_view_provision_allocation_summary.html', 
+                             rows=all_rows, pagination=pagination)
+        
+        # Cache the result for 1 hour
+        redis_client.setex(cache_key, 3600, rendered_html)
+        
+        return rendered_html
     except Exception as e:
         logger.error(f"Error in get_provision_allocation_partial: {str(e)}")
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200

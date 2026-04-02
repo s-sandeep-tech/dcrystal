@@ -58,6 +58,12 @@
 
     <!-- Table Container -->
     <div id="table-area" class="flex-1 overflow-auto relative">
+        <div id="report-loader" class="hidden absolute inset-0 bg-white/60 dark:bg-gray-900/60 z-50 flex items-center justify-center backdrop-blur-[1px]">
+            <div class="flex flex-col items-center gap-3">
+                <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <span class="text-[10px] font-bold text-primary uppercase tracking-widest animate-pulse">Loading Report...</span>
+            </div>
+        </div>
         <div id="view-provision-allocation" class="dashboard-view">
             {% include 'partials/_view_provision_allocation_summary.html' %}
         </div>
@@ -75,14 +81,81 @@
             <button onclick="resetFilters()" class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
         </div>
         <div class="space-y-4">
+            <!-- Location -->
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Location</label>
                 <select id="filter-location" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Locations</option>
                 </select>
             </div>
+            <!-- Branch Type -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Branch Type</label>
+                <select id="filter-branch-type" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Branch Types</option>
+                </select>
+            </div>
+            <!-- Business Head -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Business Head</label>
+                <select id="filter-business-head" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Business Heads</option>
+                </select>
+            </div>
+            <!-- Purity -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Purity</label>
+                <select id="filter-purity" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Purities</option>
+                </select>
+            </div>
+            <!-- Classification -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification</label>
+                <select id="filter-classification" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Classifications</option>
+                </select>
+            </div>
+            <!-- Make -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make</label>
+                <select id="filter-make" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Makes</option>
+                </select>
+            </div>
+            <!-- Collection -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection</label>
+                <select id="filter-collection" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Collections</option>
+                </select>
+            </div>
+            <!-- Section -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Section</label>
+                <select id="filter-section" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Sections</option>
+                </select>
+            </div>
+            <!-- Provision Type -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Provision Type</label>
+                <select id="filter-prov-type" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Types</option>
+                </select>
+            </div>
+            <!-- Provision Mode Filter -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Branch Provision type</label>
+                <select id="filter-provision-mode" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Modes</option>
+                </select>
+            </div>
         </div>
-        <button onclick="applyFilters()" class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm mt-6 flex items-center justify-center gap-2">
+    </div>
+    <!-- Fixed Footer for Apply Button -->
+    <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark shrink-0">
+        <button onclick="applyFilters()" class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2 transition-all">
             <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
         </button>
     </div>
