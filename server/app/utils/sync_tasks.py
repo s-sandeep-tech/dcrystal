@@ -1441,39 +1441,78 @@ def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
         emit_sync_update('error', f'Combined sync failed: {error_msg}', 0, TASK_TYPE)
         return {"status": "error", "message": error_msg}
 
-def _provision_sync_producer(cursor, data_queue, stop_event, batch_size):
-    """Producer thread: Fetches data batches from Azure PostgreSQL."""
-    try:
-        while not stop_event.is_set():
-            rows = cursor.fetchmany(batch_size)
-            if not rows:
-                try:
-                    data_queue.put(None, timeout=1)  # EOF signal
-                except queue.Full:
-                    pass
-                break
-            
-            put_success = False
-            while not put_success and not stop_event.is_set():
-                try:
-                    data_queue.put(rows, timeout=1)
-                    put_success = True
-                except queue.Full:
-                    continue
-    except Exception as e:
-        logger.error(f"Provision Sync Producer Error: {e}")
-        stop_event.set()
-        try:
-            data_queue.put(None, timeout=1)
-        except queue.Full:
-            pass
-        raise e
+def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, shared_state):
+    """Producer thread: Fetches data batches from Azure, with auto-resume support."""
+    conn = None
+    max_retries = 5
+    retry_count = 0
+    
+    query_template = """
+        SELECT "division","group","location","provision_mode","provision_mode_filter",
+               "purity","classification","sub_classification","section","type","make","collection",
+               "master_collection","sub_section","gender","wide_range","range_weight","size",
+               "screw_type","prov_pieces","prov_gr_wt","prov_amount","stock_qty","stock_gr_wt",
+               "stock_amount","in_shop_pcs","in_shop_wt","in_shop_amt","not_in_shop","in_transit",
+               "order_only","req_only","in_transit_wt","order_only_wt","not_in_shop_wt","refill_from_qty",
+               "refill_to_qty","refill_from_wt","refill_to_wt","prov_type_filter","short_pcs",
+               "short_gr_wt","short_amt","short_percent","excess_pcs","excess_gr_weight","excess_amt",
+               "not_in_prov_pcs","not_in_prov_gr_weight","not_in_prov_amt","prov_type",
+               "branch_type","business_head_name"
+        FROM  ext_view.vw_prov_and_stock_size_level
+        OFFSET %s;
+    """
 
-def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_type):
-    """Consumer thread: Processes and inserts data into the local database."""
+    while retry_count < max_retries and not stop_event.is_set():
+        try:
+            offset = shared_state.get('records_committed', 0)
+            if retry_count > 0:
+                logger.info(f"Retrying Provision Sync (Attempt {retry_count})... Resuming from offset {offset}")
+                time.sleep(5)  # Wait for connection to stabilize
+            
+            # 1. Re-establish connection
+            conn = get_external_db_connection()
+            with conn.cursor() as s_cur:
+                 s_cur.execute("SET statement_timeout = 0")
+            
+            cur = conn.cursor(name=f'provision_stock_resumable_{retry_count}', cursor_factory=RealDictCursor)
+            cur.itersize = 5000
+            
+            # 2. Re-issue query with OFFSET
+            cur.execute(query_template, (offset,))
+            
+            # 3. Resume streaming
+            while not stop_event.is_set():
+                rows = cur.fetchmany(batch_size)
+                if not rows:
+                    data_queue.put(None, timeout=1) # Signal completion
+                    return # SUCCESSFUL PRODUCER EXIT
+                
+                put_success = False
+                while not put_success and not stop_event.is_set():
+                    try:
+                        data_queue.put(rows, timeout=1)
+                        put_success = True
+                    except queue.Full:
+                        continue
+            
+        except Exception as e:
+            retry_count += 1
+            logger.error(f"Provision Sync Error (Attempt {retry_count}): {e}")
+            if conn: 
+                try: conn.close()
+                except: pass
+            
+            if retry_count >= max_retries:
+                logger.error("Provision Sync: Max retries exceeded.")
+                stop_event.set()
+                try: data_queue.put(None, timeout=1)
+                except: pass
+                raise e
+
+def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_type, shared_state):
+    """Consumer thread: Processes rows and updates shared progress for resume capability."""
     try:
         with app.app_context():
-            total_records = 0
             today = date.today()
             while True:
                 try:
@@ -1484,7 +1523,7 @@ def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_ty
                     continue
                 
                 if rows is None:
-                    break
+                    break # EOF
                 
                 if stop_event.is_set():
                     break
@@ -1551,12 +1590,11 @@ def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_ty
                 db.session.bulk_insert_mappings(ProvisionStockRawSnapshot, batch_data)
                 db.session.commit()
                 
-                total_records += len(rows)
-                # Calculate dynamic progress (scaled between 15% and 95%)
-                progress = 15 + int((total_records / total_to_sync) * 80)
-                emit_sync_update('processing', f'Syncing... {total_records:,} / {total_to_sync:,} records...', progress, data_type)
+                shared_state['records_committed'] += len(rows)
+                progress = 15 + int((shared_state['records_committed'] / total_to_sync) * 80)
+                emit_sync_update('processing', f'Syncing... {shared_state["records_committed"]:,} / {total_to_sync:,} records...', progress, data_type)
             
-            return total_records
+            return shared_state['records_committed']
     except Exception as e:
         logger.error(f"Provision Sync Consumer Error: {e}")
         stop_event.set()
@@ -1609,34 +1647,25 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
         """
         
         start_time = time.time()
-        cur.execute(query)
+        # Initial query call moved inside producer for resumability
         
         # 4. Initialize Threads and Queue
-        data_queue = queue.Queue(maxsize=3) # Limit memory usage by buffering only 3 batches
+        data_queue = queue.Queue(maxsize=3) 
         stop_event = threading.Event()
-        # Get actual app object for thread context
+        shared_state = {'records_committed': 0}
         app = current_app._get_current_object()
-        
-        # Start Consumer first (waiting for queue)
-        # Note: We don't use a thread for consumer because we want the main sync task 
-        # to block on the consumer's completion, but we want the PRODUCER to be async.
-        # However, to be truly parallel, both must be threads.
         
         from concurrent.futures import ThreadPoolExecutor
         with ThreadPoolExecutor(max_workers=2) as executor:
-            # Start Producer
-            producer_future = executor.submit(_provision_sync_producer, cur, data_queue, stop_event, BATCH_SIZE)
-            # Start Consumer
-            consumer_future = executor.submit(_provision_sync_consumer, app, data_queue, stop_event, total_to_sync, DATA_TYPE)
+            # Note: Producer now handles its own connection and cursor for resumability
+            producer_future = executor.submit(_provision_sync_producer, None, data_queue, stop_event, BATCH_SIZE, shared_state)
+            consumer_future = executor.submit(_provision_sync_consumer, app, data_queue, stop_event, total_to_sync, DATA_TYPE, shared_state)
             
-            # Wait for consumer to finish (it will finish when queue gets None from producer)
             total_records = consumer_future.result()
-            
-            # Ensure producer also finished cleanly
             producer_future.result()
 
         duration = time.time() - start_time
-        logger.info(f"ProvisionStockStatus Async Sync took {duration:.2f} seconds for {total_records} records.")
+        logger.info(f"ProvisionStockStatus Async Sync (Resumable) took {duration:.2f} seconds for {total_records} records.")
         emit_sync_update('success', f'Sync completed! {total_records:,} records updated in {int(duration)}s.', 100, DATA_TYPE)
         
         return {"status": "success", "count": total_records}
