@@ -1568,7 +1568,7 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
     This avoids SSL connection timeouts by keeping the connection active during inserts.
     """
     conn = None
-    BATCH_SIZE = 100000  # Increased to 1 Lakh for higher throughput
+    BATCH_SIZE = 25000  # Reduced for more frequent interaction and memory safety
     DATA_TYPE = 'provision_stock_status'
     
     try:
@@ -1588,7 +1588,7 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
         
         # 3. Setup Named Cursor
         cur = conn.cursor(name='provision_stock_sync_cursor', cursor_factory=RealDictCursor)
-        cur.itersize = BATCH_SIZE
+        cur.itersize = 5000  # Smaller itersize for steady streaming
         
         # Set timeout on session before main query
         with conn.cursor() as s_cur:
