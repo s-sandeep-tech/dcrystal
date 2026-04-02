@@ -1454,6 +1454,7 @@ def _provision_sync_producer(cursor, data_queue, stop_event, batch_size):
         logger.error(f"Provision Sync Producer Error: {e}")
         stop_event.set()
         data_queue.put(None)
+        raise e
 
 def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_type):
     """Consumer thread: Processes and inserts data into the local database."""
