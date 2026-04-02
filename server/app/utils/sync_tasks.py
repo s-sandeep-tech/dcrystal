@@ -1440,12 +1440,29 @@ def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
 
 def sync_provision_stock_status_data_task() -> Dict[str, Any]:
     conn = None
+    BATCH_SIZE = 5000
     try:
-        emit_sync_update('processing', 'Starting Provision & Stock Status Sync...', 5, 'provision_stock_status')
+        emit_sync_update('processing', 'Starting Provision & Stock Status Sync (Batch Mode)...', 5, 'provision_stock_status')
         conn = get_external_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
         
-        emit_sync_update('processing', 'Fetching data from Azure...', 20, 'provision_stock_status')
+        # 1. First Clear existing data to avoid mixing old and new
+        emit_sync_update('processing', 'Clearing existing local data...', 10, 'provision_stock_status')
+        db.session.query(ProvisionStockRawSnapshot).delete()
+        db.session.commit()
+
+        # 2. Get total count for progress calculation
+        emit_sync_update('processing', 'Calculating total records...', 12, 'provision_stock_status')
+        count_cur = conn.cursor()
+        count_cur.execute('SELECT COUNT(*) FROM ext_view.vw_prov_and_stock_size_level')
+        total_to_sync = count_cur.fetchone()[0]
+        count_cur.close()
+        
+        # 3. Use a named cursor for server-side streaming
+        # This prevents loading 500k+ records into memory at once
+        cur = conn.cursor(name='provision_stock_sync_cursor', cursor_factory=RealDictCursor)
+        cur.itersize = BATCH_SIZE
+        
+        emit_sync_update('processing', f'Fetching {total_to_sync:,} records from Azure (Streaming)...', 15, 'provision_stock_status')
         query = """
             SELECT "division","group","location","provision_mode","provision_mode_filter",
                    "purity","classification","sub_classification","section","type","make","collection",
@@ -1463,87 +1480,96 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
         start_time = time.time()
         cur.execute("SET statement_timeout = 0")
         cur.execute(query)
-        rows = cur.fetchall()
+        
+        total_records = 0
+        from datetime import date
+        today = date.today()
+
+        while True:
+            rows = cur.fetchmany(BATCH_SIZE)
+            if not rows:
+                break
+            
+            batch_data = []
+            for row in rows:
+                batch_data.append({
+                    'division': row.get('division'),
+                    'group_name': row.get('group'),
+                    'location': row.get('location'),
+                    'branch_type': row.get('branch_type'),
+                    'business_head_name': row.get('business_head_name'),
+                    'provision_mode': row.get('provision_mode'),
+                    'provision_mode_filter': row.get('provision_mode_filter'),
+                    'purity': row.get('purity'),
+                    'classification': row.get('classification'),
+                    'sub_classification': row.get('sub_classification'),
+                    'section': row.get('section'),
+                    'type': row.get('type'),
+                    'make': row.get('make'),
+                    'collection': row.get('collection'),
+                    'master_collection': row.get('master_collection'),
+                    'sub_section': row.get('sub_section'),
+                    'gender': row.get('gender'),
+                    'wide_range': row.get('wide_range'),
+                    'range_weight': row.get('range_weight'),
+                    'size': row.get('size'),
+                    'screw_type': row.get('screw_type'),
+                    'prov_pieces': row.get('prov_pieces'),
+                    'prov_gr_wt': row.get('prov_gr_wt'),
+                    'prov_amount': row.get('prov_amount'),
+                    'stock_qty': row.get('stock_qty'),
+                    'stock_gr_wt': row.get('stock_gr_wt'),
+                    'stock_amount': row.get('stock_amount'),
+                    'in_shop_pcs': row.get('in_shop_pcs'),
+                    'in_shop_wt': row.get('in_shop_wt'),
+                    'in_shop_amt': row.get('in_shop_amt'),
+                    'not_in_shop': row.get('not_in_shop'),
+                    'in_transit': row.get('in_transit'),
+                    'order_only': row.get('order_only'),
+                    'req_only': row.get('req_only'),
+                    'in_transit_wt': row.get('in_transit_wt'),
+                    'order_only_wt': row.get('order_only_wt'),
+                    'not_in_shop_wt': row.get('not_in_shop_wt'),
+                    'refill_from_qty': row.get('refill_from_qty'),
+                    'refill_to_qty': row.get('refill_to_qty'),
+                    'refill_from_wt': row.get('refill_from_wt'),
+                    'refill_to_wt': row.get('refill_to_wt'),
+                    'prov_type_filter': row.get('prov_type_filter'),
+                    'short_pcs': row.get('short_pcs'),
+                    'short_gr_wt': row.get('short_gr_wt'),
+                    'short_amt': row.get('short_amt'),
+                    'short_percent': row.get('short_percent'),
+                    'excess_pcs': row.get('excess_pcs'),
+                    'excess_gr_weight': row.get('excess_gr_weight'),
+                    'excess_amt': row.get('excess_amt'),
+                    'not_in_prov_pcs': row.get('not_in_prov_pcs'),
+                    'not_in_prov_gr_weight': row.get('not_in_prov_gr_weight'),
+                    'not_in_prov_amt': row.get('not_in_prov_amt'),
+                    'prov_type': row.get('prov_type'),
+                    'snapshot_date': today
+                })
+            
+            # Optimized bulk insert for the batch
+            db.session.bulk_insert_mappings(ProvisionStockRawSnapshot, batch_data)
+            db.session.commit()
+            
+            total_records += len(rows)
+            # Calculate dynamic progress (scaled between 15% and 95%)
+            progress = 15 + int((total_records / total_to_sync) * 80)
+            emit_sync_update('processing', f'Syncing... {total_records:,} / {total_to_sync:,} records...', progress, 'provision_stock_status')
+
         duration = time.time() - start_time
+        logger.info(f"ProvisionStockStatus Batch Sync took {duration:.2f} seconds for {total_records} records.")
+        emit_sync_update('success', f'Sync completed! {total_records:,} records updated in {int(duration)}s.', 100, 'provision_stock_status')
         
-        logger.info(f"ProvisionStockStatus query took {duration:.2f} seconds.")
-        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, 'provision_stock_status')
-        
-        # Clear existing
-        db.session.query(ProvisionStockRawSnapshot).delete()
-        
-        # Bulk Insert
-        new_records = []
-        for row in rows:
-            record = ProvisionStockRawSnapshot(
-                division=row.get('division'),
-                group_name=row.get('group'),
-                location=row.get('location'),
-                branch_type=row.get('branch_type'),
-                business_head_name=row.get('business_head_name'),
-                provision_mode=row.get('provision_mode'),
-                provision_mode_filter=row.get('provision_mode_filter'),
-                purity=row.get('purity'),
-                classification=row.get('classification'),
-                sub_classification=row.get('sub_classification'),
-                section=row.get('section'),
-                type=row.get('type'),
-                make=row.get('make'),
-                collection=row.get('collection'),
-                master_collection=row.get('master_collection'),
-                sub_section=row.get('sub_section'),
-                gender=row.get('gender'),
-                wide_range=row.get('wide_range'),
-                range_weight=row.get('range_weight'),
-                size=row.get('size'),
-                screw_type=row.get('screw_type'),
-                prov_pieces=row.get('prov_pieces'),
-                prov_gr_wt=row.get('prov_gr_wt'),
-                prov_amount=row.get('prov_amount'),
-                stock_qty=row.get('stock_qty'),
-                stock_gr_wt=row.get('stock_gr_wt'),
-                stock_amount=row.get('stock_amount'),
-                in_shop_pcs=row.get('in_shop_pcs'),
-                in_shop_wt=row.get('in_shop_wt'),
-                in_shop_amt=row.get('in_shop_amt'),
-                not_in_shop=row.get('not_in_shop'),
-                in_transit=row.get('in_transit'),
-                order_only=row.get('order_only'),
-                req_only=row.get('req_only'),
-                in_transit_wt=row.get('in_transit_wt'),
-                order_only_wt=row.get('order_only_wt'),
-                not_in_shop_wt=row.get('not_in_shop_wt'),
-                refill_from_qty=row.get('refill_from_qty'),
-                refill_to_qty=row.get('refill_to_qty'),
-                refill_from_wt=row.get('refill_from_wt'),
-                refill_to_wt=row.get('refill_to_wt'),
-                prov_type_filter=row.get('prov_type_filter'),
-                short_pcs=row.get('short_pcs'),
-                short_gr_wt=row.get('short_gr_wt'),
-                short_amt=row.get('short_amt'),
-                short_percent=row.get('short_percent'),
-                excess_pcs=row.get('excess_pcs'),
-                excess_gr_weight=row.get('excess_gr_weight'),
-                excess_amt=row.get('excess_amt'),
-                not_in_prov_pcs=row.get('not_in_prov_pcs'),
-                not_in_prov_gr_weight=row.get('not_in_prov_gr_weight'),
-                not_in_prov_amt=row.get('not_in_prov_amt'),
-                prov_type=row.get('prov_type'),
-                snapshot_date=db.func.current_date()
-            )
-            new_records.append(record)
-        
-        db.session.add_all(new_records)
-        db.session.commit()
-        
-        emit_sync_update('success', f'Provision & Stock Status Sync completed! {len(rows)} records updated.', 100, 'provision_stock_status')
-        return {"status": "success", "count": len(rows)}
+        return {"status": "success", "count": total_records}
 
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
-        logger.error(f"ProvisionStockStatus Sync error: {error_msg}")
+        logger.error(f"ProvisionStockStatus Batch Sync error: {error_msg}")
         emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'provision_stock_status')
         return {"status": "error", "message": error_msg}
+
     finally:
         if conn: conn.close()

@@ -2,6 +2,7 @@ from flask import render_template, request, jsonify
 from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
 from app.models.snapshots import ProvisionStockRawSnapshot
+from app.extensions import db, redis_client
 from sqlalchemy import func, case, text
 from datetime import datetime
 from zoneinfo import ZoneInfo
