@@ -36,8 +36,6 @@ def sync_pending_acceptance_data(user_id=None):
 def sync_rejected_weight_data(user_id=None):
     return enqueue_sync_task('rejected_weight', user_id)
 
-def sync_provision_allocation_data(user_id=None):
-    return enqueue_sync_task('provision_allocation', user_id)
 
 def sync_showroom_wise_order_summary_data(user_id=None):
     return enqueue_sync_task('showroom_wise_order', user_id)

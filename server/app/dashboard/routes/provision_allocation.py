@@ -1,9 +1,7 @@
 from flask import render_template, request, jsonify
 from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
-from app.models.snapshots import ProvisionAllocationSummarySnapshot, ProvisionStockRawSnapshot
-from app.extensions import db, redis_client
-from app.utils.sync_manager import sync_provision_allocation_data
+from app.models.snapshots import ProvisionStockRawSnapshot
 from sqlalchemy import func, case, text
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -425,7 +423,3 @@ ORDER BY
         logger.error(f"Error in get_provision_allocation_partial: {str(e)}")
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
 
-@dashboard_bp.route('/api/sync/provision_allocation', methods=['POST'])
-@jwt_required()
-def sync_provision_allocation():
-    return jsonify(sync_provision_allocation_data())
