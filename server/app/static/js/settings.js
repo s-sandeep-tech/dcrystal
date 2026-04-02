@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncPendingAcceptanceBtn) syncPendingAcceptanceBtn.addEventListener('click', () => triggerSync(syncPendingAcceptanceBtn, window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, 'Pending Acceptance Sync', 'pending_acceptance'));
     if (syncRejectedWeightBtn) syncRejectedWeightBtn.addEventListener('click', () => triggerSync(syncRejectedWeightBtn, window.SETTINGS_CONFIG.syncRejectedWeightUrl, 'Rejected Weight Sync', 'rejected_weight'));
     if (syncProvisionAllocationBtn) syncProvisionAllocationBtn.addEventListener('click', () => triggerSync(syncProvisionAllocationBtn, window.SETTINGS_CONFIG.syncProvisionAllocationUrl, 'Provision Allocation Sync', 'provision_allocation'));
-    if (syncProvisionStatusBtn) syncProvisionStatusBtn.addEventListener('click', () => triggerSync(syncProvisionStatusBtn, window.SETTINGS_CONFIG ? window.SETTINGS_CONFIG.syncProvisionStatusUrl : '/api/sync/provision_stock_status', 'Provision & Stock Status Sync', 'provision_stock_status'));
+    if (syncProvisionStatusBtn) syncProvisionStatusBtn.addEventListener('click', () => triggerSync(syncProvisionStatusBtn, window.SETTINGS_CONFIG.syncProvisionStatusUrl, 'Provision & Stock Status Sync', 'provision_stock_status'));
 
     function showConfirmModal(title, message) {
         return new Promise((resolve) => {
@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { url: window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, label: 'Pending Acceptance', type: 'pending_acceptance' },
                 { url: window.SETTINGS_CONFIG.syncRejectedWeightUrl, label: 'Rejected Weight', type: 'rejected_weight' },
                 { url: window.SETTINGS_CONFIG.syncProvisionAllocationUrl, label: 'Provision Allocation', type: 'provision_allocation' },
-                { url: window.SETTINGS_CONFIG ? window.SETTINGS_CONFIG.syncProvisionStatusUrl : '/api/sync/provision_stock_status', label: 'Provision & Stock Status', type: 'provision_stock_status' },
+                { url: window.SETTINGS_CONFIG.syncProvisionStatusUrl, label: 'Provision & Stock Status', type: 'provision_stock_status' },
             ];
 
             setSyncLoading(syncAllBtn, 'Processing');
