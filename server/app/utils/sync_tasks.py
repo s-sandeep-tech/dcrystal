@@ -1447,13 +1447,26 @@ def _provision_sync_producer(cursor, data_queue, stop_event, batch_size):
         while not stop_event.is_set():
             rows = cursor.fetchmany(batch_size)
             if not rows:
-                data_queue.put(None)  # EOF signal
+                try:
+                    data_queue.put(None, timeout=1)  # EOF signal
+                except queue.Full:
+                    pass
                 break
-            data_queue.put(rows)
+            
+            put_success = False
+            while not put_success and not stop_event.is_set():
+                try:
+                    data_queue.put(rows, timeout=1)
+                    put_success = True
+                except queue.Full:
+                    continue
     except Exception as e:
         logger.error(f"Provision Sync Producer Error: {e}")
         stop_event.set()
-        data_queue.put(None)
+        try:
+            data_queue.put(None, timeout=1)
+        except queue.Full:
+            pass
         raise e
 
 def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_type):
@@ -1462,9 +1475,18 @@ def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_ty
         with app.app_context():
             total_records = 0
             today = date.today()
-            while not stop_event.is_set():
-                rows = data_queue.get()
+            while True:
+                try:
+                    rows = data_queue.get(timeout=1)
+                except queue.Empty:
+                    if stop_event.is_set():
+                        break
+                    continue
+                
                 if rows is None:
+                    break
+                
+                if stop_event.is_set():
                     break
                 
                 batch_data = []
