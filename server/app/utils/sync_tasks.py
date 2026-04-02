@@ -1478,7 +1478,10 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
         """
         
         start_time = time.time()
-        cur.execute("SET statement_timeout = 0")
+        # Set timeout on session using an unnamed cursor before using named cursor
+        with conn.cursor() as s_cur:
+            s_cur.execute("SET statement_timeout = 0")
+        
         cur.execute(query)
         
         total_records = 0
