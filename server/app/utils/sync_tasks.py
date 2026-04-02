@@ -1440,7 +1440,7 @@ def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
 
 def sync_provision_stock_status_data_task() -> Dict[str, Any]:
     conn = None
-    BATCH_SIZE = 5000
+    BATCH_SIZE = 10000
     try:
         emit_sync_update('processing', 'Starting Provision & Stock Status Sync (Batch Mode)...', 5, 'provision_stock_status')
         conn = get_external_db_connection()
