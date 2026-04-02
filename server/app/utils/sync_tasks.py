@@ -1442,10 +1442,11 @@ def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
         return {"status": "error", "message": error_msg}
 
 def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, shared_state):
-    """Producer thread: Fetches data batches from Azure, with auto-resume support."""
+    """Producer thread: Fetches data batches from Azure, with auto-resume support (duplication-safe)."""
     conn = None
     max_retries = 5
     retry_count = 0
+    producer_offset = 0 # Track records successfully put into the queue
     
     query_template = """
         SELECT "division","group","location","provision_mode","provision_mode_filter",
@@ -1464,9 +1465,8 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, sh
 
     while retry_count < max_retries and not stop_event.is_set():
         try:
-            offset = shared_state.get('records_committed', 0)
             if retry_count > 0:
-                logger.info(f"Retrying Provision Sync (Attempt {retry_count})... Resuming from offset {offset}")
+                logger.info(f"Retrying Provision Sync (Attempt {retry_count})... Resuming from PRODUCER offset {producer_offset}")
                 time.sleep(5)  # Wait for connection to stabilize
             
             # 1. Re-establish connection
@@ -1477,8 +1477,8 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, sh
             cur = conn.cursor(name=f'provision_stock_resumable_{retry_count}', cursor_factory=RealDictCursor)
             cur.itersize = 5000
             
-            # 2. Re-issue query with OFFSET
-            cur.execute(query_template, (offset,))
+            # 2. Re-issue query with PRODUCER offset (avoids duplicates in queue)
+            cur.execute(query_template, (producer_offset,))
             
             # 3. Resume streaming
             while not stop_event.is_set():
@@ -1491,6 +1491,7 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, sh
                 while not put_success and not stop_event.is_set():
                     try:
                         data_queue.put(rows, timeout=1)
+                        producer_offset += len(rows) # Correctly update only after successful put
                         put_success = True
                     except queue.Full:
                         continue
