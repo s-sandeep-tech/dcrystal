@@ -35,6 +35,7 @@ def provision_stock_status_options():
         
         cached_data = redis_client.get(cache_key)
         if cached_data:
+            redis_client.expire(cache_key, 18000)  # Sliding expiry
             return jsonify(json.loads(cached_data))
 
         # Query distinct values for filters from the local raw snapshot
@@ -104,6 +105,7 @@ def get_provision_stock_status_partial():
         
         cached_html = redis_client.get(cache_key)
         if cached_html:
+            redis_client.expire(cache_key, 18000)  # Sliding expiry
             return cached_html
 
         # Dynamic Pivot Query
