@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
 from app.models.snapshots import ProvisionStockRawSnapshot
 from app.extensions import db, redis_client
+from app.utils.cache_utils import generate_cache_key
 from sqlalchemy import func, case, text
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -23,11 +24,6 @@ class CachedPagination:
         self.next_num = page + 1
         self.pages = (total + per_page - 1) // per_page if per_page else 0
 
-def generate_cache_key(prefix, snapshot_date=None, **kwargs):
-    sorted_kwargs = dict(sorted(kwargs.items()))
-    args_str = ":".join(f"{k}={v}" for k, v in sorted_kwargs.items() if v)
-    date_str = snapshot_date.strftime("%Y%m%d%H%M%S") if snapshot_date else "latest"
-    return f"{prefix}:{date_str}:{args_str}"
 
 @dashboard_bp.route('/provision-allocation-summary')
 @jwt_required()
@@ -50,6 +46,7 @@ def provision_allocation_options():
         
         cached_data = redis_client.get(cache_key)
         if cached_data:
+            redis_client.expire(cache_key, 18000)  # Sliding expiry
             return jsonify(json.loads(cached_data))
 
         locations = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.location.distinct()).order_by(ProvisionStockRawSnapshot.location).all() if r[0]]
@@ -76,8 +73,8 @@ def provision_allocation_options():
             'business_heads': business_heads
         }
         
-        # Cache for 1 hour
-        redis_client.setex(cache_key, 3600, json.dumps(data))
+        # Cache for 5 hours
+        redis_client.setex(cache_key, 18000, json.dumps(data))
 
         return jsonify(data)
     except Exception as e:
@@ -121,6 +118,7 @@ def get_provision_allocation_partial():
         
         cached_html = redis_client.get(cache_key)
         if cached_html:
+            redis_client.expire(cache_key, 18000)  # Sliding expiry
             return cached_html
 
         query = """
@@ -416,8 +414,8 @@ ORDER BY
         rendered_html = render_template('partials/_view_provision_allocation_summary.html', 
                              rows=all_rows, pagination=pagination)
         
-        # Cache the result for 1 hour
-        redis_client.setex(cache_key, 3600, rendered_html)
+        # Cache the result for 5 hours
+        redis_client.setex(cache_key, 18000, rendered_html)
         
         return rendered_html
     except Exception as e:
