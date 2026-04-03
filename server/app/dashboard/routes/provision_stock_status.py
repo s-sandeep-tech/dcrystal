@@ -4,6 +4,7 @@ from app.dashboard import dashboard_bp
 from app.models.snapshots import ProvisionStockRawSnapshot
 from app.extensions import db, redis_client
 from app.utils.sync_manager import sync_provision_stock_status_data
+from app.utils.cache_utils import generate_cache_key
 from sqlalchemy import func, text
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -11,6 +12,7 @@ import logging
 import json
 
 logger = logging.getLogger(__name__)
+
 
 @dashboard_bp.route('/provision-stock-status')
 @jwt_required()
@@ -26,6 +28,15 @@ def provision_stock_status():
 @jwt_required()
 def provision_stock_status_options():
     try:
+        # Check cache first
+        snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
+        date_str = snapshot_date.strftime("%Y%m%d%H%M%S") if snapshot_date else "latest"
+        cache_key = f"prov_stock_status_options:{date_str}"
+        
+        cached_data = redis_client.get(cache_key)
+        if cached_data:
+            return jsonify(json.loads(cached_data))
+
         # Query distinct values for filters from the local raw snapshot
         locations = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.location.distinct()).order_by(ProvisionStockRawSnapshot.location).all() if r[0]]
         purities = [float(r[0]) for r in db.session.query(ProvisionStockRawSnapshot.purity.distinct()).order_by(ProvisionStockRawSnapshot.purity).all() if r[0]]
@@ -38,7 +49,7 @@ def provision_stock_status_options():
         branch_types = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.branch_type.distinct()).order_by(ProvisionStockRawSnapshot.branch_type).all() if r[0]]
         business_heads = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.business_head_name.distinct()).order_by(ProvisionStockRawSnapshot.business_head_name).all() if r[0]]
 
-        return jsonify({
+        data = {
             'locations': locations,
             'purities': purities,
             'classifications': classifications,
@@ -49,7 +60,12 @@ def provision_stock_status_options():
             'provision_modes': provision_modes,
             'branch_types': branch_types,
             'business_heads': business_heads
-        })
+        }
+        
+        # Cache for 5 hours as requested
+        redis_client.setex(cache_key, 18000, json.dumps(data))
+
+        return jsonify(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -81,6 +97,14 @@ def get_provision_stock_status_partial():
             'branch_type': branch_type if branch_type else None,
             'business_head': business_head if business_head else None
         }
+
+        # Redis Caching Logic
+        snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
+        cache_key = generate_cache_key("prov_stock_status_partial", snapshot_date, **params)
+        
+        cached_html = redis_client.get(cache_key)
+        if cached_html:
+            return cached_html
 
         # Dynamic Pivot Query
         query = """
@@ -342,7 +366,12 @@ ORDER BY
         result = db.session.execute(text(query), params)
         rows = [dict(r._mapping) for r in result]
         
-        return render_template('partials/_view_provision_stock_status.html', rows=rows)
+        rendered_html = render_template('partials/_view_provision_stock_status.html', rows=rows)
+        
+        # Cache for 5 hours as requested
+        redis_client.setex(cache_key, 18000, rendered_html)
+        
+        return rendered_html
 
     except Exception as e:
         logger.error(f"Error in get_provision_stock_status_partial: {str(e)}")
