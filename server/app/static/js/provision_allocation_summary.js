@@ -56,7 +56,6 @@ async function loadOptions() {
             });
         };
 
-        populateSelect('filter-location', data.locations);
         populateSelect('filter-branch-type', data.branch_types);
         populateSelect('filter-business-head', data.business_heads);
         populateSelect('filter-purity', data.purities);
@@ -66,6 +65,30 @@ async function loadOptions() {
         populateSelect('filter-section', data.sections);
         populateSelect('filter-prov-type', data.prov_types);
         populateSelect('filter-provision-mode', data.provision_modes);
+
+        // Populate Custom Location Dropdown
+        const locContainer = document.getElementById('filter-location-options');
+        if (locContainer) {
+            locContainer.innerHTML = '';
+            data.locations.forEach(optVal => {
+                const label = document.createElement('label');
+                label.className = 'flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-sm location-option';
+                
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.value = optVal;
+                cb.className = 'location-checkbox rounded border-gray-300 text-primary focus:ring-primary w-3 h-3';
+                cb.addEventListener('change', updateLocationTriggerText);
+                
+                const span = document.createElement('span');
+                span.className = 'text-[11px] text-gray-700 dark:text-gray-300 select-none location-text';
+                span.textContent = optVal;
+                
+                label.appendChild(cb);
+                label.appendChild(span);
+                locContainer.appendChild(label);
+            });
+        }
 
     } catch (err) {
         console.error('Failed to load filter options:', err);
@@ -116,7 +139,10 @@ function onSearchInput(val) {
 }
 
 function applyFilters() {
-    filters.location = document.getElementById('filter-location').value;
+    const locCheckboxes = document.querySelectorAll('.location-checkbox:checked');
+    const selectedLocations = Array.from(locCheckboxes).map(cb => cb.value);
+    filters.location = selectedLocations.join(',');
+    
     filters.branch_type = document.getElementById('filter-branch-type').value;
     filters.business_head = document.getElementById('filter-business-head').value;
     filters.purity = document.getElementById('filter-purity').value;
@@ -133,10 +159,15 @@ function applyFilters() {
 
 function resetFilters() {
     Object.keys(filters).forEach(key => {
+        if (key === 'location') return; // Skip location, handled separately
         filters[key] = '';
         const el = document.getElementById(`filter-${key.replace('_', '-')}`);
         if (el) el.value = '';
     });
+    
+    filters.location = '';
+    document.querySelectorAll('.location-checkbox').forEach(cb => cb.checked = false);
+    updateLocationTriggerText();
     
     document.getElementById('report-search').value = '';
     currentSearch = '';
@@ -162,3 +193,60 @@ function adjustZoom(delta, reset = false) {
     main.setAttribute('data-zoom', currentZoom);
     document.getElementById('zoom-level').textContent = `${Math.round(currentZoom * 100)}%`;
 }
+
+// Custom Location Dropdown Actions
+function toggleLocationDropdown() {
+    const dropdown = document.getElementById('filter-location-dropdown');
+    const icon = document.getElementById('filter-location-icon');
+    if (dropdown.classList.contains('hidden')) {
+        dropdown.classList.remove('hidden');
+        if(icon) icon.style.transform = 'rotate(180deg)';
+        const searchInput = document.getElementById('filter-location-search');
+        if(searchInput) searchInput.focus();
+    } else {
+        dropdown.classList.add('hidden');
+        if(icon) icon.style.transform = 'rotate(0deg)';
+    }
+}
+
+function filterLocationOptions() {
+    const searchInput = document.getElementById('filter-location-search');
+    if(!searchInput) return;
+    const searchValue = searchInput.value.toLowerCase();
+    const options = document.querySelectorAll('.location-option');
+    options.forEach(opt => {
+        const textNode = opt.querySelector('.location-text');
+        if(!textNode) return;
+        const text = textNode.textContent.toLowerCase();
+        if (text.includes(searchValue)) {
+            opt.style.display = 'flex';
+        } else {
+            opt.style.display = 'none';
+        }
+    });
+}
+
+function updateLocationTriggerText() {
+    const checked = document.querySelectorAll('.location-checkbox:checked');
+    const textEl = document.getElementById('filter-location-text');
+    if(!textEl) return;
+    
+    if (checked.length === 0) {
+        textEl.textContent = 'All Locations';
+    } else if (checked.length === 1) {
+        textEl.textContent = checked[0].value;
+    } else {
+        textEl.textContent = `${checked.length} Selected`;
+    }
+}
+
+document.addEventListener('click', (e) => {
+    const container = document.getElementById('location-dropdown-container');
+    const dropdown = document.getElementById('filter-location-dropdown');
+    const icon = document.getElementById('filter-location-icon');
+    
+    if (container && dropdown && !container.contains(e.target)) {
+        dropdown.classList.add('hidden');
+        if(icon) icon.style.transform = 'rotate(0deg)';
+    }
+});
