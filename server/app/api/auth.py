@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, session
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from app.models import User, UserPasswordHistory, LoginAttemptLog
+from app.models import User, UserPasswordHistory, LoginAttemptLog, AuditLog
 from app.extensions import db, limiter
 from datetime import timedelta
 from app.services.auth_service import auth_service
@@ -144,6 +144,15 @@ def update_password():
         changed_by_id=user.id # Self-update
     )
     db.session.add(history)
+    
+    # Audit log
+    db.session.add(AuditLog(
+        user_id=user.id,
+        action="UPDATE_PASSWORD",
+        target_type="USER",
+        target_id=str(user.id),
+        details={"method": "self-service"}
+    ))
     
     db.session.commit()
     
