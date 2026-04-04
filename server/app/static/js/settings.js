@@ -1286,6 +1286,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'sessions': { nav: document.getElementById('nav-sessions'), pane: document.getElementById('tab-sessions') },
         'login-logs': { nav: document.getElementById('nav-login-logs'), pane: document.getElementById('tab-login-logs') },
         'download-logs': { nav: document.getElementById('nav-download-logs'), pane: document.getElementById('tab-download-logs') },
+        'audit-logs': { nav: document.getElementById('nav-audit-logs'), pane: document.getElementById('tab-audit-logs') },
         'roles': { nav: document.getElementById('nav-roles'), pane: document.getElementById('tab-roles') },
         'menus': { nav: document.getElementById('nav-menus'), pane: document.getElementById('tab-menus') },
         'mappings': { nav: document.getElementById('nav-mappings'), pane: document.getElementById('tab-mappings') },
@@ -1325,6 +1326,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'download-logs':
                 fetchDownloadLogs(1);
+                break;
+            case 'audit-logs':
+                fetchAuditLogs(1);
                 break;
             case 'roles':
                 fetchRoles();
@@ -2001,6 +2005,8 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchLoginLogs(1);
     } else if (activeTab === 'download-logs') {
         fetchDownloadLogs(1);
+    } else if (activeTab === 'audit-logs') {
+        fetchAuditLogs(1);
     } else if (activeTab === 'notifications') {
         fetchUserNotifications();
     }
@@ -2207,6 +2213,114 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!syncLogsModal) return;
         syncLogsModal.classList.add('opacity-0');
         setTimeout(() => syncLogsModal.classList.add('hidden'), 300);
+    }
+
+    // === AUDIT LOGS LOGIC ===
+    let auditLogsCurrentPage = 1;
+
+    async function fetchAuditLogs(page = 1) {
+        const tbody = document.getElementById('audit-logs-tbody');
+        if (!tbody) return;
+
+        try {
+            const res = await fetch(`${window.SETTINGS_CONFIG.auditLogsUrl}?page=${page}&per_page=15`, {
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                renderAuditLogsTable(data.logs);
+                renderAuditLogsPagination(data);
+                auditLogsCurrentPage = data.current_page;
+            } else {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">Error loading audit logs (${res.status})</td></tr>`;
+            }
+        } catch (e) {
+            console.error('fetchAuditLogs error:', e);
+            tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">Network error loading logs</td></tr>`;
+        }
+    }
+
+    function renderAuditLogsTable(logs) {
+        const tbody = document.getElementById('audit-logs-tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">No audit logs found.</td></tr>';
+            return;
+        }
+
+        logs.forEach(log => {
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors border-b border-gray-100 dark:border-gray-800";
+
+            const istOptions = {
+                timeZone: 'Asia/Kolkata',
+                year: 'numeric', month: 'numeric', day: 'numeric',
+                hour: 'numeric', minute: 'numeric', second: 'numeric',
+                hour12: true
+            };
+            const localTime = log.created_at ? new Date(log.created_at).toLocaleString('en-IN', istOptions) : 'N/A';
+
+            // Action Badge color
+            let badgeClass = 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+            if (log.action === 'CREATE') badgeClass = 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+            else if (log.action === 'UPDATE' || log.action.includes('UPDATE')) badgeClass = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+            else if (log.action === 'DELETE') badgeClass = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+
+            const detailsStr = log.details ? JSON.stringify(log.details) : '{}';
+
+            tr.innerHTML = `
+                <td class="px-4 py-3 text-gray-500 font-mono text-[10px]">${localTime}</td>
+                <td class="px-4 py-3">
+                    <div class="flex flex-col">
+                        <span class="font-bold text-gray-900 dark:text-white">${log.username}</span>
+                        <span class="text-[9px] text-primary font-mono font-bold uppercase tracking-tighter">#${log.user_id}</span>
+                    </div>
+                </td>
+                <td class="px-4 py-3 text-center">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${badgeClass}">
+                        ${log.action}
+                    </span>
+                </td>
+                <td class="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">
+                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">${log.target_type}</span>
+                    <span class="font-mono text-[10px]">${log.target_id || '---'}</span>
+                </td>
+                <td class="px-4 py-3 font-mono text-[10px] text-gray-500/70 truncate max-w-[250px]" title="${detailsStr}">${detailsStr}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderAuditLogsPagination(data) {
+        const info = document.getElementById('audit-logs-pagination-info');
+        if (info) {
+            const start = data.total > 0 ? (data.current_page - 1) * 15 + 1 : 0;
+            const end = Math.min(data.current_page * 15, data.total);
+            info.innerText = `Showing ${start}-${end} of ${data.total}`;
+        }
+
+        const buttons = document.getElementById('audit-logs-pagination-buttons');
+        if (!buttons) return;
+        buttons.innerHTML = '';
+
+        const prev = document.createElement('button');
+        prev.className = `p-1.5 rounded border transition-all ${data.current_page > 1 ? 'border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800' : 'opacity-30 cursor-not-allowed border-gray-100 dark:border-gray-800'}`;
+        prev.innerHTML = '<span class="material-symbols-outlined text-sm block">chevron_left</span>';
+        if (data.current_page > 1) prev.onclick = () => fetchAuditLogs(data.current_page - 1);
+        buttons.appendChild(prev);
+
+        const next = document.createElement('button');
+        next.className = `p-1.5 rounded border transition-all ${data.current_page < data.pages ? 'border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800' : 'opacity-30 cursor-not-allowed border-gray-100 dark:border-gray-800'}`;
+        next.innerHTML = '<span class="material-symbols-outlined text-sm block">chevron_right</span>';
+        if (data.current_page < data.pages) next.onclick = () => fetchAuditLogs(data.current_page + 1);
+        buttons.appendChild(next);
+    }
+
+    const refreshAuditLogsBtn = document.getElementById('refresh-audit-logs-btn');
+    if (refreshAuditLogsBtn) {
+        refreshAuditLogsBtn.onclick = () => fetchAuditLogs(auditLogsCurrentPage);
     }
 });
 

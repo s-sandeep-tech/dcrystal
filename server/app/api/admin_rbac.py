@@ -491,20 +491,32 @@ def update_delete_permission(perm_id):
         db.session.commit()
         return jsonify({"msg": "Permission updated"})
 
-@admin_rbac_bp.route('/audit', methods=['GET'])
+@admin_rbac_bp.route('/audit-logs', methods=['GET'])
 @jwt_required()
 @require_role('ADMIN')
 def get_audit_logs():
-    logs = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(100).all()
-    return jsonify([{
-        "id": l.id,
-        "user_id": l.user_id,
-        "action": l.action,
-        "target_type": l.target_type,
-        "target_id": l.target_id,
-        "details": l.details,
-        "created_at": l.created_at.isoformat() + 'Z'
-    } for l in logs])
+    """Get paginated system audit logs (Admin only)"""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 15, type=int)
+    
+    query = db.session.query(AuditLog, User).outerjoin(User, AuditLog.user_id == User.id).order_by(AuditLog.created_at.desc())
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    return jsonify({
+        "logs": [{
+            "id": log.id,
+            "user_id": user.user_id if user else 'SYSTEM',
+            "username": user.username if user else 'System',
+            "action": log.action,
+            "target_type": log.target_type,
+            "target_id": log.target_id,
+            "details": log.details,
+            "created_at": log.created_at.isoformat() + 'Z'
+        } for log, user in pagination.items],
+        "total": pagination.total,
+        "pages": pagination.pages,
+        "current_page": pagination.page
+    }), 200
 
 @admin_rbac_bp.route('/download-logs', methods=['GET'])
 @jwt_required()
