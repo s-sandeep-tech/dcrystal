@@ -409,7 +409,8 @@ def pending_acceptance():
                 u = current_username.lower()
                 base_q = base_q.filter(
                     (func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u) | 
-                    (func.lower(func.trim(PendingAcceptanceSnapshot.make_owner)) == u)
+                    (func.lower(func.trim(PendingAcceptanceSnapshot.make_owner)) == u) |
+                    (func.lower(func.trim(PendingAcceptanceSnapshot.classification_owner)) == u)
                 )
 
             return {
