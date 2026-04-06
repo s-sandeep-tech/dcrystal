@@ -98,8 +98,8 @@ function updateDashboardStats(stats) {
     for (const [id, value] of Object.entries(mappings)) {
         const el = document.getElementById(id);
         if (el) {
-            el.textContent = value !== undefined 
-                ? parseFloat(value).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 }) 
+            el.textContent = value !== undefined
+                ? parseFloat(value).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })
                 : '0.000';
         }
     }
@@ -139,7 +139,7 @@ async function toggleRow(btn) {
         try {
             const urlParams = new URLSearchParams(window.location.search);
             const params = new URLSearchParams(urlParams);
-            
+
             // Set expansion context
             params.set('parent_level', level);
             if (businessHead) params.set('business_head', businessHead);
@@ -194,17 +194,17 @@ function updateUrlAndLoad(params) {
 
 function applyGlobalFilters() {
     const urlParams = new URLSearchParams(window.location.search);
-    
+
     // Clear expansion state when applying filters
     urlParams.delete('parent_level');
     urlParams.delete('parent_value');
-    
+
     const filterIds = [
         'business_head', 'classification_owner', 'make_owner', 'collection_owner',
         'division', 'group_name', 'purity', 'classification', 'make', 'collection',
         'party', 'location', 'purchase_ro', 'order_type', 'order_request_type', 'branch_type'
     ];
-    
+
     filterIds.forEach(id => {
         const val = document.getElementById(`filter-${id}`)?.value;
         if (val) urlParams.set(id, val);
@@ -225,7 +225,7 @@ function resetGlobalFilters() {
         'division', 'group_name', 'purity', 'classification', 'make', 'collection',
         'party', 'location', 'purchase_ro', 'order_type', 'order_request_type', 'branch_type'
     ];
-    
+
     filterIds.forEach(id => {
         const el = document.getElementById(`filter-${id}`);
         if (el) el.value = '';
@@ -351,9 +351,9 @@ function showDetails(business_head, classification_owner, make_owner, collection
         const parts = [];
         if (business_head && business_head !== 'Unknown') parts.push(`BUSINESS HEAD = ${business_head}`);
         if (location) parts.push(`LOCATION = ${location}`);
-        if (classification_owner) parts.push(`OWNER = ${classification_owner}`);
-        if (make_owner) parts.push(`MAKE = ${make_owner}`);
-        if (collection_owner) parts.push(`COLLECTION = ${collection_owner}`);
+        if (classification_owner) parts.push(`CLASSIFICATION OWNER = ${classification_owner}`);
+        if (make_owner) parts.push(`MAKE OWNER = ${make_owner}`);
+        if (collection_owner) parts.push(`COLLECTION OWNER = ${collection_owner}`);
         subtitle.textContent = parts.join(' | ');
     }
 
@@ -369,7 +369,7 @@ function showDetails(business_head, classification_owner, make_owner, collection
 
     // Inherit all current global filters
     const params = new URLSearchParams(window.location.search);
-    
+
     // Apply specific hierarchy constraints
     if (business_head && business_head !== 'Unknown') params.set('business_head', business_head);
     if (location && location !== '') params.set('location', location);
@@ -388,17 +388,17 @@ function showDetails(business_head, classification_owner, make_owner, collection
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
     })
-    .then(response => {
-        if (!response.ok) throw new Error('Failed to fetch details');
-        return response.text();
-    })
-    .then(html => {
-        content.innerHTML = html;
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        content.innerHTML = `<div class="p-12 text-center text-red-500">Error loading details.</div>`;
-    });
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to fetch details');
+            return response.text();
+        })
+        .then(html => {
+            content.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            content.innerHTML = `<div class="p-12 text-center text-red-500">Error loading details.</div>`;
+        });
 }
 
 function closeDetailsModal() {
@@ -414,10 +414,10 @@ function drillDownFromModal(filterId, value) {
     const el = document.getElementById(`filter-${filterId}`);
     if (el) {
         console.log('Found filter element:', el.id);
-        
+
         // Try exact match first
         el.value = value;
-        
+
         // If not found (value preserved if invalid in some browsers, but check), try trimming
         if (el.value !== value && value) {
             const trimmed = value.trim();
@@ -432,7 +432,7 @@ function drillDownFromModal(filterId, value) {
 
         closeDetailsModal();
         applyGlobalFilters();
-        
+
         // Scroll to sidebar and highlight the changed filter briefly
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         el.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
@@ -450,7 +450,7 @@ async function toggleModalRow(btn, currentLevel, value) {
 
     const icon = btn.querySelector('.material-symbols-outlined');
     const isExpanded = icon.textContent === 'remove_circle';
-    
+
     // Define hierarchy of the modal tree
     const hierarchy = ['location', 'division', 'group_name', 'purity', 'classification', 'make', 'collection', 'party', 'orders'];
     const currentIndex = hierarchy.indexOf(currentLevel);
@@ -462,7 +462,7 @@ async function toggleModalRow(btn, currentLevel, value) {
         while (nextTr && nextTr.classList.contains('modal-child-row')) {
             const nextLevelIdx = hierarchy.indexOf(nextTr.dataset.modalLevel);
             if (nextLevelIdx <= currentIndex) break;
-            
+
             const toRemove = nextTr;
             nextTr = nextTr.nextElementSibling;
             toRemove.remove();
@@ -472,11 +472,11 @@ async function toggleModalRow(btn, currentLevel, value) {
     } else {
         // Expand
         icon.textContent = 'hourglass_empty';
-        
+
         try {
             // Get global filters from window URL
             const urlParams = new URLSearchParams(window.location.search);
-            
+
             // Get context from modal wrapper
             const modalContext = document.querySelector('.modal-context');
             if (modalContext) {
@@ -487,7 +487,7 @@ async function toggleModalRow(btn, currentLevel, value) {
                 if (ds.collectionOwner) urlParams.set('collection_owner', ds.collectionOwner);
                 if (ds.modalType) urlParams.set('modal_type', ds.modalType);
             }
-            
+
             // Append all dataset attributes from current row as filters
             const dataset = tr.dataset;
             hierarchy.forEach(col => {
@@ -496,30 +496,30 @@ async function toggleModalRow(btn, currentLevel, value) {
                     urlParams.set(col, dataset[camelCol]);
                 }
             });
-            
+
             urlParams.set('modal_level', nextLevel);
             urlParams.set('is_modal_child', 'true');
-            
+
             const response = await fetch(`/api/showroom/details?${urlParams.toString()}`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
             });
-            
+
             if (!response.ok) throw new Error("Failed to load modal children");
             const html = await response.text();
-            
+
             const template = document.createElement('template');
             template.innerHTML = html;
             const newRows = template.content.querySelectorAll('tr');
-            
+
             let referenceNode = tr;
             newRows.forEach(newRow => {
                 referenceNode.parentNode.insertBefore(newRow, referenceNode.nextSibling);
                 referenceNode = newRow;
             });
-            
+
             icon.textContent = 'remove_circle';
             tr.classList.add('bg-blue-50/50');
-            
+
         } catch (e) {
             console.error(e);
             icon.textContent = 'error';
@@ -530,7 +530,7 @@ async function toggleModalRow(btn, currentLevel, value) {
 document.addEventListener('DOMContentLoaded', () => {
     const tableArea = document.getElementById('table-area');
     if (tableArea) tableArea.style.zoom = currentZoom;
-    
+
     const activeView = document.getElementById('view-showroom');
     if (activeView && activeView.querySelector('.enterprise-grid')) {
         // Content already present from server-side render, just initialize
@@ -540,6 +540,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // No content, fetch it
         loadViewData();
     }
-    
+
     loadFilterOptions();
 });
