@@ -167,13 +167,13 @@ location_summary AS (
         SUM(prov_pieces) AS prov_pcs,
         SUM(prov_gr_wt) AS prov_gr_wt,
         SUM(in_shop_wt) AS in_shop_wt,
-        SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
         SUM(in_transit_wt) AS in_transit_wt,
-        SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt) AS short_excess_wt,
+        SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
         ROUND(
             CASE
                 WHEN SUM(prov_gr_wt) = 0 THEN 0
-                ELSE (SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt)) * 100.0 / SUM(prov_gr_wt)
+                ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt)
             END,
             2
         ) AS percent,
@@ -193,13 +193,13 @@ purity_wise AS (
         NULL::numeric AS prov_pcs,
         SUM(prov_gr_wt) AS prov_gr_wt,
         SUM(in_shop_wt) AS in_shop_wt,
-        SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
         SUM(in_transit_wt) AS in_transit_wt,
-        SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt) AS short_excess_wt,
+        SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
         ROUND(
             CASE
                 WHEN SUM(prov_gr_wt) = 0 THEN 0
-                ELSE (SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt)) * 100.0 / SUM(prov_gr_wt)
+                ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt)
             END,
             2
         ) AS percent,
@@ -237,11 +237,11 @@ classification_wise AS (
             NULL::numeric AS prov_pcs,
             SUM(prov_gr_wt) AS prov_gr_wt,
             SUM(in_shop_wt) AS in_shop_wt,
-            SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
             SUM(in_transit_wt) AS in_transit_wt,
-            SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt) AS short_excess_wt,
+            SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
             ROUND(
-                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
             ) AS percent,
             0 AS level_order
         FROM base
@@ -258,11 +258,11 @@ classification_wise AS (
             NULL::numeric AS prov_pcs,
             SUM(prov_gr_wt) AS prov_gr_wt,
             SUM(in_shop_wt) AS in_shop_wt,
-            SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
             SUM(in_transit_wt) AS in_transit_wt,
-            SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt) AS short_excess_wt,
+            SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
             ROUND(
-                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
             ) AS percent,
             1 AS level_order
         FROM base
@@ -280,11 +280,11 @@ make_wise AS (
         NULL::numeric AS prov_pcs,
         SUM(prov_gr_wt) AS prov_gr_wt,
         SUM(in_shop_wt) AS in_shop_wt,
-        SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
         SUM(in_transit_wt) AS in_transit_wt,
-        SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt) AS short_excess_wt,
+        SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
         ROUND(
-            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
         ) AS percent,
         4 AS section_sort,
         ROW_NUMBER() OVER (ORDER BY make) AS row_sort
@@ -302,11 +302,11 @@ prov_type_wise AS (
         NULL::numeric AS prov_pcs,
         SUM(prov_gr_wt) AS prov_gr_wt,
         SUM(in_shop_wt) AS in_shop_wt,
-        SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
         SUM(in_transit_wt) AS in_transit_wt,
-        SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt) AS short_excess_wt,
+        SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
         ROUND(
-            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
         ) AS percent,
         5 AS section_sort,
         ROW_NUMBER() OVER (ORDER BY prov_type) AS row_sort
@@ -324,11 +324,11 @@ section_wise AS (
         SUM(prov_pieces) AS prov_pcs,
         SUM(prov_gr_wt) AS prov_gr_wt,
         SUM(in_shop_wt) AS in_shop_wt,
-        SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
         SUM(in_transit_wt) AS in_transit_wt,
-        SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt) AS short_excess_wt,
+        SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
         ROUND(
-            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
         ) AS percent,
         6 AS section_sort,
         ROW_NUMBER() OVER (ORDER BY section) AS row_sort
@@ -346,11 +346,11 @@ provision_mode_wise AS (
         NULL::numeric AS prov_pcs,
         SUM(prov_gr_wt) AS prov_gr_wt,
         SUM(in_shop_wt) AS in_shop_wt,
-        SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
         SUM(in_transit_wt) AS in_transit_wt,
-        SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt) AS short_excess_wt,
+        SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
         ROUND(
-            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(prov_gr_wt) - SUM(in_shop_wt) - SUM(COALESCE(order_only, 0) + COALESCE(req_only, 0)) - SUM(in_transit_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
         ) AS percent,
         7 AS section_sort,
         ROW_NUMBER() OVER (ORDER BY provision_mode_filter) AS row_sort
