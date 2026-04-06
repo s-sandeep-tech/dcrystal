@@ -1458,7 +1458,7 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, sh
                "refill_to_qty","refill_from_wt","refill_to_wt","prov_type_filter","short_pcs",
                "short_gr_wt","short_amt","short_percent","excess_pcs","excess_gr_weight","excess_amt",
                "not_in_prov_pcs","not_in_prov_gr_weight","not_in_prov_amt","prov_type",
-               "branch_type","business_head_name"
+               "branch_type","business_head_name","business_head_emp_code"
         FROM  ext_view.vw_prov_and_stock_size_level
         OFFSET %s;
     """
