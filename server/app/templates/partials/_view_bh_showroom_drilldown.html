@@ -1,0 +1,129 @@
+{% macro render_row(d, modal_type='drilldown') %}
+    {% set hierarchy = ['location', 'division', 'group_name', 'purity', 'classification', 'make', 'collection', 'orders'] %}
+    {% set curr_idx = hierarchy.index(d.level) if d.level in hierarchy else 0 %}
+    <tr class="modal-child-row animate-fade-in hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+        data-modal-level="{{ d.level }}"
+        data-location="{{ d.location | default('') }}"
+        data-division="{{ d.division | default('') }}"
+        data-group_name="{{ d.group_name | default('') }}"
+        data-purity="{{ d.purity | default('') }}"
+        data-classification="{{ d.classification | default('') }}"
+        data-make="{{ d.make | default('') }}"
+        data-collection="{{ d.collection | default('') }}">
+        
+        {% if modal_type == 'drilldown' %}
+        <td class="px-4 py-3">
+            <div class="flex items-center" style="padding-left: {{ curr_idx * 16 }}px;">
+                {% if not d.is_leaf %}
+                    {% set current_val = d.get(d.level) %}
+                    {% set display_val = current_val if current_val else ('Unknown ' ~ d.level | replace('_', ' ') | title) %}
+                    <button onclick='toggleModalRow(this, "{{ d.level }}", {{ display_val | tojson | safe }})' class="flex items-center text-primary font-bold whitespace-nowrap group focus:outline-none">
+                        <span class="material-symbols-outlined text-[14px] mr-1 group-hover:text-blue-600 transition-colors">add_circle</span> 
+                        <span class="group-hover:underline">{{ display_val }}</span>
+                    </button>
+                {% else %}
+                    <span class="material-symbols-outlined text-[8px] text-gray-300 mr-2 ml-1">fiber_manual_record</span>
+                    <span class="text-gray-500 font-medium italic">Order details</span>
+                {% endif %}
+            </div>
+        </td>
+        {% endif %}
+
+        <td class="px-4 py-2 font-mono text-primary">{{ d.po_number if d.is_leaf else '-' }}</td>
+        <td class="px-4 py-2 whitespace-nowrap">{{ d.branch_type if d.is_leaf else '-' }}</td>
+        <td class="px-4 py-2 whitespace-nowrap">{{ d.order_date.strftime('%d-%m-%Y') if d.order_date else '-' }}</td>
+        {% if modal_type == 'flat' %}
+        <td class="px-4 py-2 whitespace-nowrap">-</td>
+        <td class="px-4 py-2 whitespace-nowrap">-</td>
+        {% endif %}
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.order_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.accepted_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.pending_to_accepted_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium text-red-500">{{ "{:,.3f}".format(d.rejected_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.cancelled_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.barcoded_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.hm_passed_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.qc_passed_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.invoiced_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium text-emerald-600">{{ "{:,.3f}".format(d.delivered_wt|float) }}</td>
+        <td class="px-4 py-2 text-right font-medium">{{ "{:,.3f}".format(d.pending_to_deliver_wt|float) }}</td>
+    </tr>
+{% endmacro %}
+
+{% if is_modal_child %}
+    {% for d in details %}
+        {{ render_row(d, modal_type) }}
+    {% endfor %}
+{% else %}
+<div class="flex-1 overflow-auto modal-context"
+     data-business-head="{{ request.args.get('business_head', '') }}"
+     data-classification-owner="{{ request.args.get('classification_owner', '') }}"
+     data-make-owner="{{ request.args.get('make_owner', '') }}"
+     data-collection-owner="{{ request.args.get('collection_owner', '') }}"
+     data-modal-type="{{ modal_type }}">
+    {% if location_name %}
+    <div class="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/50">
+        <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Location:</span>
+        <span class="text-xs font-bold text-gray-800 dark:text-white ml-2">{{ location_name }}</span>
+    </div>
+    {% endif %}
+    <table class="w-full text-[11px] border-collapse bg-white dark:bg-gray-900">
+        <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800">
+            <tr class="text-gray-500 uppercase font-bold text-[9px] tracking-wider">
+                {% if modal_type == 'drilldown' %}
+                <th class="text-left px-4 py-2 min-w-[200px] leading-snug">
+                    <div class="whitespace-nowrap text-gray-500 uppercase font-bold text-[9px] tracking-wider">Location &gt; Division &gt; Group &gt; Purity</div>
+                    <div class="whitespace-nowrap text-gray-400 font-bold text-[8px] tracking-widest">&gt; Classification &gt; Make &gt; Collection</div>
+                </th>
+                {% endif %}
+                <th class="text-left px-4 py-3">Order Number</th>
+                <th class="text-left px-4 py-3">Branch Type</th>
+                <th class="text-left px-4 py-3">Order Date</th>
+                {% if modal_type == 'flat' %}
+                <th class="text-left px-4 py-3">Delivery Date</th>
+                <th class="text-left px-4 py-3">Due Date</th>
+                {% endif %}
+                <th class="text-right px-4 py-3">Order WT</th>
+                <th class="text-right px-4 py-3">Accepted WT</th>
+                <th class="text-right px-4 py-3">Pending Accept</th>
+                <th class="text-right px-4 py-3">Rejected WT</th>
+                <th class="text-right px-4 py-3">Cancelled WT</th>
+                <th class="text-right px-4 py-3">Barcoded WT</th>
+                <th class="text-right px-4 py-3">HM Passed WT</th>
+                <th class="text-right px-4 py-3">QC Passed WT</th>
+                <th class="text-right px-4 py-3">Invoiced WT</th>
+                <th class="text-right px-4 py-3">Delivered WT</th>
+                <th class="text-right px-4 py-3">Pending Delivery</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            {% for d in details %}
+                {{ render_row(d, modal_type) }}
+            {% endfor %}
+            {% if not details %}
+            <tr>
+                <td colspan="{{ 16 if modal_type == 'flat' else 15 }}" class="p-8 text-center text-gray-400 italic">No details available.</td>
+            </tr>
+            {% endif %}
+        </tbody>
+        {% if modal_totals %}
+        <tfoot class="sticky bottom-0 z-10 bg-gray-100 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700">
+            <tr class="text-gray-900 dark:text-white uppercase text-[9px] font-bold">
+                <td class="px-4 py-3" colspan="{{ 5 if modal_type == 'flat' else 4 }}">Grand Total</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.order_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.accepted_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.pending_to_accepted_wt) }}</td>
+                <td class="px-4 py-3 text-right text-red-500">{{ "{:,.3f}".format(modal_totals.rejected_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.cancelled_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.barcoded_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.hm_passed_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.qc_passed_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.invoiced_wt) }}</td>
+                <td class="px-4 py-3 text-right text-emerald-600">{{ "{:,.3f}".format(modal_totals.delivered_wt) }}</td>
+                <td class="px-4 py-3 text-right">{{ "{:,.3f}".format(modal_totals.pending_to_deliver_wt) }}</td>
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+</div>
+{% endif %}
