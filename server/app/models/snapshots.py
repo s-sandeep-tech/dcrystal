@@ -798,6 +798,8 @@ class ProvisionStockRawSnapshot(db.Model):
     location = db.Column(db.String(100))
     branch_type = db.Column(db.String(100))
     business_head_name = db.Column(db.String(100))
+    business_head_emp_code = db.Column(db.String(100))
+
     provision_mode = db.Column(db.Integer)
     provision_mode_filter = db.Column(db.Text)
     classification = db.Column(db.String(50))

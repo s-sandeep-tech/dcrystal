@@ -1537,6 +1537,7 @@ def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_ty
                         'location': row.get('location'),
                         'branch_type': row.get('branch_type'),
                         'business_head_name': row.get('business_head_name'),
+                        'business_head_emp_code': row.get('business_head_emp_code'),
                         'provision_mode': row.get('provision_mode'),
                         'provision_mode_filter': row.get('provision_mode_filter'),
                         'purity': row.get('purity'),
@@ -1643,7 +1644,7 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
                    "refill_to_qty","refill_from_wt","refill_to_wt","prov_type_filter","short_pcs",
                    "short_gr_wt","short_amt","short_percent","excess_pcs","excess_gr_weight","excess_amt",
                    "not_in_prov_pcs","not_in_prov_gr_weight","not_in_prov_amt","prov_type",
-                   "branch_type","business_head_name"
+                   "branch_type","business_head_name","business_head_emp_code"
             FROM  ext_view.vw_prov_and_stock_size_level;
         """
         

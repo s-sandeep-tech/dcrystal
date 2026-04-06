@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.dashboard import dashboard_bp
 from app.models.snapshots import ProvisionStockRawSnapshot
@@ -38,17 +38,29 @@ def provision_stock_status_options():
             redis_client.expire(cache_key, 18000)  # Sliding expiry
             return jsonify(json.loads(cached_data))
 
+        # Role-based filtering for Business Head
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager_2 = 'MANAGER_2' in roles
+        is_business_head = 'BUSINESS_HEAD' in roles
+        user_id = session.get('user_id')
+
+        base_q = db.session.query(ProvisionStockRawSnapshot)
+        if not is_admin and not is_manager_2:
+            if is_business_head and user_id:
+                base_q = base_q.filter(ProvisionStockRawSnapshot.business_head_emp_code == user_id)
+
         # Query distinct values for filters from the local raw snapshot
-        locations = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.location.distinct()).order_by(ProvisionStockRawSnapshot.location).all() if r[0]]
-        purities = [float(r[0]) for r in db.session.query(ProvisionStockRawSnapshot.purity.distinct()).order_by(ProvisionStockRawSnapshot.purity).all() if r[0]]
-        classifications = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.classification.distinct()).order_by(ProvisionStockRawSnapshot.classification).all() if r[0]]
-        makes = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.make.distinct()).order_by(ProvisionStockRawSnapshot.make).all() if r[0]]
-        collections = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.collection.distinct()).order_by(ProvisionStockRawSnapshot.collection).all() if r[0]]
-        sections = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.section.distinct()).order_by(ProvisionStockRawSnapshot.section).all() if r[0]]
-        prov_types = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.prov_type.distinct()).order_by(ProvisionStockRawSnapshot.prov_type).all() if r[0]]
-        provision_modes = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.provision_mode_filter.distinct()).order_by(ProvisionStockRawSnapshot.provision_mode_filter).all() if r[0]]
-        branch_types = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.branch_type.distinct()).order_by(ProvisionStockRawSnapshot.branch_type).all() if r[0]]
-        business_heads = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.business_head_name.distinct()).order_by(ProvisionStockRawSnapshot.business_head_name).all() if r[0]]
+        locations = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.location.distinct()).order_by(ProvisionStockRawSnapshot.location).all() if r[0]]
+        purities = [float(r[0]) for r in base_q.with_entities(ProvisionStockRawSnapshot.purity.distinct()).order_by(ProvisionStockRawSnapshot.purity).all() if r[0]]
+        classifications = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.classification.distinct()).order_by(ProvisionStockRawSnapshot.classification).all() if r[0]]
+        makes = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.make.distinct()).order_by(ProvisionStockRawSnapshot.make).all() if r[0]]
+        collections = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.collection.distinct()).order_by(ProvisionStockRawSnapshot.collection).all() if r[0]]
+        sections = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.section.distinct()).order_by(ProvisionStockRawSnapshot.section).all() if r[0]]
+        prov_types = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.prov_type.distinct()).order_by(ProvisionStockRawSnapshot.prov_type).all() if r[0]]
+        provision_modes = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.provision_mode_filter.distinct()).order_by(ProvisionStockRawSnapshot.provision_mode_filter).all() if r[0]]
+        branch_types = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.branch_type.distinct()).order_by(ProvisionStockRawSnapshot.branch_type).all() if r[0]]
+        business_heads = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.business_head_name.distinct()).order_by(ProvisionStockRawSnapshot.business_head_name).all() if r[0]]
 
         data = {
             'locations': locations,
@@ -96,8 +108,20 @@ def get_provision_stock_status_partial():
             'prov_type': prov_type if prov_type else None,
             'provision_mode': provision_mode if provision_mode else None,
             'branch_type': branch_type if branch_type else None,
-            'business_head': business_head if business_head else None
+            'business_head': business_head if business_head else None,
+            'bh_emp_code': None
         }
+
+        # Role-based filtering for Business Head
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager_2 = 'MANAGER_2' in roles
+        is_business_head = 'BUSINESS_HEAD' in roles
+        user_id = session.get('user_id')
+
+        if not is_admin and not is_manager_2:
+            if is_business_head and user_id:
+                params['bh_emp_code'] = user_id
 
         # Redis Caching Logic
         snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
@@ -124,6 +148,7 @@ WITH base AS (
         AND (:provision_mode IS NULL OR provision_mode_filter = :provision_mode)
         AND (:branch_type IS NULL OR branch_type = :branch_type)
         AND (:business_head IS NULL OR business_head_name = :business_head)
+        AND (:bh_emp_code IS NULL OR business_head_emp_code = :bh_emp_code)
 ),
 location_summary AS (
     SELECT
