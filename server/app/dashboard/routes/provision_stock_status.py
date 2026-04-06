@@ -28,22 +28,28 @@ def provision_stock_status():
 @jwt_required()
 def provision_stock_status_options():
     try:
-        # Check cache first
-        snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
-        date_str = snapshot_date.strftime("%Y%m%d%H%M%S") if snapshot_date else "latest"
-        cache_key = f"prov_stock_status_options:{date_str}"
-        
-        cached_data = redis_client.get(cache_key)
-        if cached_data:
-            redis_client.expire(cache_key, 18000)  # Sliding expiry
-            return jsonify(json.loads(cached_data))
-
         # Role-based filtering for Business Head
         roles = [r.upper() for r in session.get('roles', [])]
         is_admin = 'ADMIN' in roles
         is_manager_2 = 'MANAGER_2' in roles
         is_business_head = 'BUSINESS_HEAD' in roles
         user_id = session.get('user_id')
+
+        # Check cache first
+        snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
+        date_str = snapshot_date.strftime("%Y%m%d%H%M%S") if snapshot_date else "latest"
+        
+        # Role-aware cache key
+        cache_suffix = "all"
+        if not is_admin and not is_manager_2 and is_business_head and user_id:
+            cache_suffix = f"bh_{user_id}"
+            
+        cache_key = f"prov_stock_status_options:{date_str}:{cache_suffix}"
+        
+        cached_data = redis_client.get(cache_key)
+        if cached_data:
+            redis_client.expire(cache_key, 18000)  # Sliding expiry
+            return jsonify(json.loads(cached_data))
 
         base_q = db.session.query(ProvisionStockRawSnapshot)
         if not is_admin and not is_manager_2:

@@ -407,7 +407,11 @@ def pending_acceptance():
             )
             if restrict_to_user:
                 u = current_username.lower()
-                base_q = base_q.filter(func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u)
+                base_q = base_q.filter(
+                    (func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u) | 
+                    (func.lower(func.trim(PendingAcceptanceSnapshot.make_owner)) == u) |
+                    (func.lower(func.trim(PendingAcceptanceSnapshot.classification_owner)) == u)
+                )
 
             return {
                 'collection_owners': [current_username] if restrict_to_user else [r[0] for r in base_q.with_entities(PendingAcceptanceSnapshot.collection_owner).distinct().order_by(PendingAcceptanceSnapshot.collection_owner).all()],
@@ -595,8 +599,11 @@ def get_pending_acceptance_partial():
         def filter_func(q):
             if restrict_to_user:
                 u = current_username.lower()
-                q = q.filter((func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u) | 
-                             (func.lower(func.trim(PendingAcceptanceSnapshot.make_owner)) == u))
+                q = q.filter(
+                    (func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u) | 
+                    (func.lower(func.trim(PendingAcceptanceSnapshot.make_owner)) == u) |
+                    (func.lower(func.trim(PendingAcceptanceSnapshot.classification_owner)) == u)
+                )
             elif not is_admin and not is_manager_2 and not current_username:
                 q = q.filter(False)
             
