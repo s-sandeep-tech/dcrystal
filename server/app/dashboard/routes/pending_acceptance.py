@@ -600,8 +600,7 @@ def get_pending_acceptance_partial():
                 u = current_username.lower()
                 q = q.filter(
                     (func.lower(func.trim(PendingAcceptanceSnapshot.collection_owner)) == u) | 
-                    (func.lower(func.trim(PendingAcceptanceSnapshot.make_owner)) == u) |
-                    (func.lower(func.trim(PendingAcceptanceSnapshot.classification_owner)) == u)
+                    (func.lower(func.trim(PendingAcceptanceSnapshot.make_owner)) == u)
                 )
             elif not is_admin and not is_manager_2 and not current_username:
                 q = q.filter(False)
