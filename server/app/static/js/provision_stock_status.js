@@ -11,8 +11,16 @@ let filterValues = {
     branch_type: '',
     business_head: ''
 };
+let locationMultiSelect;
 
 document.addEventListener('DOMContentLoaded', () => {
+    locationMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-location-container',
+        label: 'Location',
+        defaultText: 'All Locations',
+        options: []
+    });
+    
     loadOptions();
     loadReport();
 });
@@ -25,7 +33,6 @@ async function loadOptions() {
         const data = await response.json();
 
         const config = [
-            { id: 'filter-location', data: data.locations },
             { id: 'filter-purity', data: data.purities },
             { id: 'filter-classification', data: data.classifications },
             { id: 'filter-make', data: data.makes },
@@ -36,6 +43,10 @@ async function loadOptions() {
             { id: 'filter-branch-type', data: data.branch_types },
             { id: 'filter-business-head', data: data.business_heads }
         ];
+
+        if (locationMultiSelect) {
+            locationMultiSelect.populateOptions(data.locations);
+        }
 
         config.forEach(item => {
             const select = document.getElementById(item.id);
@@ -97,7 +108,9 @@ function onSearchInput(val) {
 }
 
 function applyFilters() {
-    filterValues.location = document.getElementById('filter-location').value;
+    if (locationMultiSelect) {
+        filterValues.location = locationMultiSelect.getValues().join(',');
+    }
     filterValues.purity = document.getElementById('filter-purity').value;
     filterValues.classification = document.getElementById('filter-classification').value;
     filterValues.make = document.getElementById('filter-make').value;
@@ -118,7 +131,7 @@ function resetFilters() {
     
     // Reset UI elements
     const filterIds = [
-        'filter-location', 'filter-purity', 'filter-classification', 
+        'filter-purity', 'filter-classification', 
         'filter-make', 'filter-collection', 'filter-section', 
         'filter-prov-type', 'filter-provision-mode',
         'filter-branch-type', 'filter-business-head'
@@ -127,6 +140,10 @@ function resetFilters() {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
+
+    if (locationMultiSelect) {
+        locationMultiSelect.reset();
+    }
     
     const searchInput = document.getElementById('report-search');
     if (searchInput) searchInput.value = '';

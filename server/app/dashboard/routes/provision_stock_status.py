@@ -144,7 +144,7 @@ WITH base AS (
     SELECT *
     FROM provision_stock_raw_snapshot
     WHERE 
-        (:location IS NULL OR location = :location)
+        (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
         AND (:purity IS NULL OR purity = :purity)
         AND (:classification IS NULL OR classification = :classification)
         AND (:make IS NULL OR make = :make)
