@@ -58,6 +58,7 @@ def provision_allocation_options():
         prov_types = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.prov_type.distinct()).order_by(ProvisionStockRawSnapshot.prov_type).all() if r[0]]
         provision_modes = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.provision_mode_filter.distinct()).order_by(ProvisionStockRawSnapshot.provision_mode_filter).all() if r[0]]
         branch_types = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.branch_type.distinct()).order_by(ProvisionStockRawSnapshot.branch_type).all() if r[0]]
+        branch_statuses = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.branch_status.distinct()).order_by(ProvisionStockRawSnapshot.branch_status).all() if r[0]]
         business_heads = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.business_head_name.distinct()).order_by(ProvisionStockRawSnapshot.business_head_name).all() if r[0]]
 
         data = {
@@ -70,6 +71,7 @@ def provision_allocation_options():
             'prov_types': prov_types,
             'provision_modes': provision_modes,
             'branch_types': branch_types,
+            'branch_statuses': branch_statuses,
             'business_heads': business_heads
         }
         
@@ -95,6 +97,7 @@ def get_provision_allocation_partial():
         prov_type = request.args.get('prov_type', '')
         provision_mode = request.args.get('provision_mode', '')
         branch_type = request.args.get('branch_type', '')
+        branch_status = request.args.get('branch_status', '')
         business_head = request.args.get('business_head', '')
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 2000, type=int)
@@ -109,6 +112,7 @@ def get_provision_allocation_partial():
             'prov_type': prov_type if prov_type else None,
             'provision_mode': provision_mode if provision_mode else None,
             'branch_type': branch_type if branch_type else None,
+            'branch_status': branch_status if branch_status else None,
             'business_head': business_head if business_head else None
         }
 
@@ -135,6 +139,7 @@ WITH base AS (
         AND (:prov_type IS NULL OR prov_type = :prov_type)
         AND (:provision_mode IS NULL OR provision_mode_filter = :provision_mode)
         AND (:branch_type IS NULL OR branch_type = :branch_type)
+        AND (:branch_status IS NULL OR branch_status = :branch_status)
         AND (:business_head IS NULL OR business_head_name = :business_head)
 ),
 global_total AS (

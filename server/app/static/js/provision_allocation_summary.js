@@ -6,6 +6,7 @@ let currentSearch = '';
 let filters = {
     location: '',
     branch_type: '',
+    branch_status: '',
     business_head: '',
     purity: '',
     classification: '',
@@ -66,6 +67,7 @@ async function loadOptions() {
         };
 
         populateSelect('filter-branch-type', data.branch_types);
+        populateSelect('filter-branch-status', data.branch_statuses);
         populateSelect('filter-business-head', data.business_heads);
         populateSelect('filter-purity', data.purities);
         populateSelect('filter-classification', data.classifications);
@@ -133,6 +135,7 @@ function applyFilters() {
     }
     
     filters.branch_type = document.getElementById('filter-branch-type').value;
+    filters.branch_status = document.getElementById('filter-branch-status').value;
     filters.business_head = document.getElementById('filter-business-head').value;
     filters.purity = document.getElementById('filter-purity').value;
     filters.classification = document.getElementById('filter-classification').value;
