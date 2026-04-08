@@ -1234,7 +1234,8 @@ def sync_hallmarking_delayed_data_task() -> Dict[str, Any]:
             from ext_view.vw_order_hallmark_details hm
             inner join ext_view.vw_order_details vod on vod.order_id = hm.order_id
             inner join ext_view.vw_order_product_details vopd on vopd.order_id = hm.order_id
-            Where hm_status = 'Pending' and  CURRENT_DATE - agent_received_on > 2
+            Where hm.hm_status = 'Pending' and hm.agent_received_on IS NOT NULL 
+			    and CURRENT_DATE - hm.agent_received_on > 2
         """
         
         start_time = time.time()
