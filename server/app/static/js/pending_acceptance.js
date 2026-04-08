@@ -75,18 +75,34 @@ function setStatusFilter(filter) {
         if (btn) btn.classList.add('active');
     }
     
-    // Apply filters. If status is pending_to_deliver_not_barcoded, ensure delay is enabled.
+    // Apply filters. 
+    const delayEnable = document.getElementById('filter-delay-enable');
+    const delayInput = document.getElementById('filter-delay');
+
     if (filter === 'pending_to_deliver_not_barcoded') {
-        const delayEnable = document.getElementById('filter-delay-enable');
         if (delayEnable) {
             delayEnable.checked = true;
-            const delayInput = document.getElementById('filter-delay');
-            if (delayInput && (delayInput.value === '' || delayInput.value === '0')) {
-                delayInput.value = '5';
+            delayEnable.disabled = false;
+            if (delayInput) {
+                if (delayInput.value === '' || delayInput.value === '0') {
+                    delayInput.value = '5';
+                }
+                delayInput.disabled = false;
             }
         }
+    } else if (filter === 'hallmarking_delayed') {
+        if (delayEnable) {
+            delayEnable.checked = true;
+            delayEnable.disabled = true;
+        }
+        if (delayInput) {
+            delayInput.value = '2';
+            delayInput.disabled = true;
+        }
+    } else {
+        if (delayEnable) delayEnable.disabled = false;
+        if (delayInput) delayInput.disabled = false;
     }
-    
     
     // Toggle new filter visibility
     const officeContainer = document.getElementById('filter-container-office');
@@ -241,9 +257,15 @@ function clearFilterInputs() {
     if (hmAgent) hmAgent.value = '';
 
     const delay = document.getElementById('filter-delay');
-    if (delay) delay.value = '5';
+    if (delay) {
+        delay.value = '5';
+        delay.disabled = false;
+    }
     const delayEnable = document.getElementById('filter-delay-enable');
-    if (delayEnable) delayEnable.checked = false;
+    if (delayEnable) {
+        delayEnable.checked = false;
+        delayEnable.disabled = false;
+    }
 
     const dateEnable = document.getElementById('enable-date-filter');
     if (dateEnable) dateEnable.checked = false;
@@ -378,23 +400,55 @@ document.addEventListener('DOMContentLoaded', () => {
         const sel = document.getElementById('filter-hm-agent');
         if (sel) sel.value = urlParams.get('hm_agent');
     }
-    const statusFilterArg = urlParams.get('status_filter') || 'pending_to_accept';
+    const statusFilter = urlParams.get('status_filter') || 'pending_to_accept';
+    currentStatusFilter = statusFilter;
+
+    // Update button UI
+    document.querySelectorAll('.status-filter-btn').forEach(btn => btn.classList.remove('active'));
+    const btnMap = {
+        'pending_to_accept': 'btn-status-accept',
+        'pending_to_deliver': 'btn-status-deliver',
+        'pending_to_deliver_not_barcoded': 'btn-status-not-barcoded',
+        'hallmarking_delayed': 'btn-status-hallmarking-delayed'
+    };
+    const activeBtn = document.getElementById(btnMap[statusFilter]);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    // Handle Delay Filter state
+    const delayEnable = document.getElementById('filter-delay-enable');
+    const delayInput = document.getElementById('filter-delay');
     const delayEnabledArg = urlParams.get('delay_enabled');
-    if (urlParams.get('delay')) {
-        const sel = document.getElementById('filter-delay');
-        if (sel) sel.value = urlParams.get('delay');
-        const enable = document.getElementById('filter-delay-enable');
-        if (enable) enable.checked = (delayEnabledArg !== 'false');
-    } else if (statusFilterArg === 'pending_to_deliver_not_barcoded' && delayEnabledArg !== 'false') {
-        const enable = document.getElementById('filter-delay-enable');
-        if (enable) enable.checked = true;
-        const sel = document.getElementById('filter-delay');
-        if (sel) sel.value = '5';
+    const delayArg = urlParams.get('delay');
+
+    if (statusFilter === 'hallmarking_delayed') {
+        if (delayEnable) {
+            delayEnable.checked = true;
+            delayEnable.disabled = true;
+        }
+        if (delayInput) {
+            delayInput.value = '2';
+            delayInput.disabled = true;
+        }
+        // Visibility for HD specific filters
+        const officeContainer = document.getElementById('filter-container-office');
+        const hmAgentContainer = document.getElementById('filter-container-hm-agent');
+        if (officeContainer) officeContainer.style.display = 'block';
+        if (hmAgentContainer) hmAgentContainer.style.display = 'block';
     } else {
-        const enable = document.getElementById('filter-delay-enable');
-        if (enable) enable.checked = (delayEnabledArg === 'true');
-        const sel = document.getElementById('filter-delay');
-        if (sel) sel.value = urlParams.get('delay') || '5';
+        if (delayEnable) {
+            delayEnable.disabled = false;
+            if (delayArg) {
+                delayEnable.checked = (delayEnabledArg !== 'false');
+            } else if (statusFilter === 'pending_to_deliver_not_barcoded' && delayEnabledArg !== 'false') {
+                delayEnable.checked = true;
+            } else {
+                delayEnable.checked = (delayEnabledArg === 'true');
+            }
+        }
+        if (delayInput) {
+            delayInput.disabled = false;
+            delayInput.value = delayArg || (statusFilter === 'pending_to_deliver_not_barcoded' ? '5' : '5');
+        }
     }
 
     if (urlParams.get('enable_date_filter') === 'true') {
@@ -415,29 +469,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const to = document.getElementById('filter-feedback-to-date');
         if (to) to.value = urlParams.get('feedback_to_date') || '';
         toggleFeedbackDateInputs();
-    }
-
-    if (urlParams.get('status_filter')) {
-        currentStatusFilter = urlParams.get('status_filter');
-        document.querySelectorAll('.status-filter-btn').forEach(btn => btn.classList.remove('active'));
-        if (currentStatusFilter === 'pending_to_accept') {
-            const btn = document.getElementById('btn-status-accept');
-            if (btn) btn.classList.add('active');
-        } else if (currentStatusFilter === 'pending_to_deliver') {
-            const btn = document.getElementById('btn-status-deliver');
-            if (btn) btn.classList.add('active');
-        } else if (currentStatusFilter === 'pending_to_deliver_not_barcoded') {
-            const btn = document.getElementById('btn-status-not-barcoded');
-            if (btn) btn.classList.add('active');
-        } else if (currentStatusFilter === 'hallmarking_delayed') {
-            const btn = document.getElementById('btn-status-hallmarking-delayed');
-            if (btn) btn.classList.add('active');
-            
-            const officeContainer = document.getElementById('filter-container-office');
-            const hmAgentContainer = document.getElementById('filter-container-hm-agent');
-            if (officeContainer) officeContainer.style.display = 'block';
-            if (hmAgentContainer) hmAgentContainer.style.display = 'block';
-        }
     }
 
     const metaDiv = document.querySelector('.pagination-meta');
