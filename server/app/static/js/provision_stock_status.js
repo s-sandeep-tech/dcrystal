@@ -9,6 +9,7 @@ let filterValues = {
     prov_type: '',
     provision_mode: '',
     branch_type: '',
+    branch_status: '',
     business_head: ''
 };
 let locationMultiSelect;
@@ -41,6 +42,7 @@ async function loadOptions() {
             { id: 'filter-prov-type', data: data.prov_types },
             { id: 'filter-provision-mode', data: data.provision_modes },
             { id: 'filter-branch-type', data: data.branch_types },
+            { id: 'filter-branch-status', data: data.branch_statuses },
             { id: 'filter-business-head', data: data.business_heads }
         ];
 
@@ -119,6 +121,7 @@ function applyFilters() {
     filterValues.prov_type = document.getElementById('filter-prov-type').value;
     filterValues.provision_mode = document.getElementById('filter-provision-mode').value;
     filterValues.branch_type = document.getElementById('filter-branch-type').value;
+    filterValues.branch_status = document.getElementById('filter-branch-status').value;
     filterValues.business_head = document.getElementById('filter-business-head').value;
     
     loadReport();
@@ -134,7 +137,7 @@ function resetFilters() {
         'filter-purity', 'filter-classification', 
         'filter-make', 'filter-collection', 'filter-section', 
         'filter-prov-type', 'filter-provision-mode',
-        'filter-branch-type', 'filter-business-head'
+        'filter-branch-type', 'filter-branch-status', 'filter-business-head'
     ];
     filterIds.forEach(id => {
         const el = document.getElementById(id);

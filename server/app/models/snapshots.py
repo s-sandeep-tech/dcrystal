@@ -797,6 +797,7 @@ class ProvisionStockRawSnapshot(db.Model):
     group_name = db.Column('group', db.String(50))
     location = db.Column(db.String(100))
     branch_type = db.Column(db.String(100))
+    branch_status = db.Column(db.String(100))
     business_head_name = db.Column(db.String(100))
     business_head_emp_code = db.Column(db.String(100))
 
