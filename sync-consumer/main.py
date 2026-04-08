@@ -15,6 +15,7 @@ from app.utils.sync_tasks import (
     sync_showroom_wise_order_summary_task,
     sync_owner_and_showroom_wise_task,
     sync_provision_stock_status_data_task,
+    sync_hallmarking_delayed_data_task,
     emit_sync_update
 )
 
@@ -78,6 +79,8 @@ def process_sync_queue():
                         res = sync_owner_and_showroom_wise_task()
                     elif task_type == 'provision_stock_status':
                         res = sync_provision_stock_status_data_task()
+                    elif task_type == 'hallmarking_delayed':
+                        res = sync_hallmarking_delayed_data_task()
                     else:
                         logger.error(f"Unknown sync task type: {task_type}")
                         emit_sync_update('error', f'Unknown task type: {task_type}')
