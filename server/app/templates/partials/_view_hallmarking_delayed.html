@@ -1,0 +1,187 @@
+{% if rows %}
+<table class="enterprise-grid w-full text-[11px] border-collapse bg-white dark:bg-gray-900 sticky-header"
+    style="table-layout: fixed;">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
+            <th class="text-left px-4 pl-6 py-2 text-gray-800 dark:text-gray-200"
+                style="width: 30% !important; white-space: normal !important; word-wrap: break-word; line-height: 1.2;">
+                Hierarchy (Office > Make > Owner > Collection > Agency > Party)</th>
+            <th class="text-left px-2 py-2"
+                style="width: 10% !important; white-space: normal !important; word-wrap: break-word; line-height: 1.2;">
+                Challan Date</th>
+            <th class="text-left px-2 py-2"
+                style="width: 10% !important; white-space: normal !important; word-wrap: break-word; line-height: 1.2;">
+                Challan No</th>
+            <th class="text-right px-2 py-2"
+                style="width: 10% !important; white-space: normal !important; word-wrap: break-word; line-height: 1.2;">
+                Pieces</th>
+            <th class="text-right px-2 py-2 text-indigo-600 dark:text-indigo-400"
+                style="width: 10% !important; white-space: normal !important; word-wrap: break-word; line-height: 1.2;">
+                Weight</th>
+            <th class="text-center px-2 py-2"
+                style="width: 20% !important; white-space: normal !important; word-wrap: break-word; line-height: 1.2;">
+                Feedback</th>
+            <th class="text-center px-2 py-2 w-24"
+                style="width: 10% !important; white-space: normal !important; word-wrap: break-word; line-height: 1.2;">
+                Action</th>
+        </tr>
+    </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            {% for row in rows %}
+            <tr class="hover:bg-blue-50/30 group animate-fade-in transition-colors drilldown-row
+                       {% if row.level > 1 %}hidden{% endif %} 
+                       {% if row.level == 1 %}bg-gray-50/50 font-bold{% elif row.level == 2 %}bg-blue-50/20{% elif row.level == 3 %}bg-indigo-50/10 font-medium{% endif %}"
+                data-level="{{ row.level }}" data-id="{{ row.id }}" data-parent="{{ row.parent_id }}" {% if
+                row.is_leaf %} data-office="{{ row.office }}" data-make-owner="{{ row.make_owner }}"
+                data-collection-owner="{{ row.collection_owner }}" data-collection="{{ row.collection }}"
+                data-hm-agent="{{ row.hm_agent }}" data-supplier="{{ row.supplier }}" {% endif %}>
+
+                <td class="px-4 py-1.5 text-gray-800 dark:text-gray-200"
+                    style="padding-left: {{ (row.level - 1) * 20 + 24 }}px;">
+                    <div class="flex items-center gap-2">
+                        {% if not row.is_leaf %}
+                        <button class="size-5 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors toggle-btn"
+                            id="btn-{{ row.id }}" onclick="toggleDrilldown('{{ row.id }}')">
+                            <span class="material-symbols-outlined text-[16px] transition-transform duration-200 toggle-icon">chevron_right</span>
+                        </button>
+                        {% else %}
+                        <span class="size-5 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[12px] text-gray-400">subdirectory_arrow_right</span>
+                        </span>
+                        {% endif %}
+                        <span class="truncate">{{ row.label }}</span>
+                    </div>
+                </td>
+
+                <td class="text-left font-medium text-gray-600 dark:text-gray-400 py-1.5 px-2 text-[10px]">
+                    {% if row.is_leaf %}{{ row.challan_date or '' }}{% endif %}
+                </td>
+                <td class="text-left font-medium text-gray-600 dark:text-gray-400 py-1.5 px-2 text-[10px]">
+                    {% if row.is_leaf %}{{ row.requested_delivery_challan or '' }}{% endif %}
+                </td>
+                <td class="text-right font-medium text-gray-700 dark:text-gray-300 py-1.5 px-2">
+                    {{ "{:,.0f}".format(row.sum_pieces or 0) }}
+                </td>
+                <td class="text-right font-bold text-indigo-600 dark:text-indigo-400 py-1.5 text-[10px] px-2">
+                    {{ "{:,.3f}".format(row.sum_weight or 0) }}
+                </td>
+
+                <td class="text-left pl-4 py-1.5 max-w-xs !overflow-visible">
+                    {% if row.is_leaf %}
+                    <div class="flex items-center gap-2">
+                        {% if row.feedback_text %}
+                        <span class="truncate text-gray-800 dark:text-gray-200 max-w-[120px]">
+                            {{ row.feedback_category or 'Feedback' }}
+                        </span>
+                        <div class="relative group inline-flex items-center z-10 w-full pl-2">
+                            <span
+                                class="material-symbols-outlined text-[13px] text-indigo-400 cursor-help hover:text-primary transition-colors">info</span>
+                            <div
+                                class="absolute right-full -top-4 mr-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[9999] min-w-[280px] max-w-[320px] pointer-events-none">
+                                <div
+                                    class="bg-gray-800 dark:bg-gray-900 border border-gray-700 shadow-xl shadow-black/40 rounded-lg p-3 text-white relative">
+                                    <div
+                                        class="absolute left-full top-4 -ml-1 border-8 border-transparent border-l-gray-800 dark:border-l-gray-900">
+                                    </div>
+                                    <div class="text-[10px] space-y-3">
+                                        <div class="space-y-1.5">
+                                            <div class="flex items-center justify-between border-b border-gray-700/50 pb-1.5">
+                                                <div class="flex flex-col">
+                                                    <span class="font-bold text-blue-400 uppercase tracking-wider">{{ row.feedback_category or 'REASON' }}</span>
+                                                    <span class="text-[8px] text-amber-400 font-bold uppercase tracking-widest mt-0.5">COMMENT</span>
+                                                </div>
+                                                <span class="text-[9px] text-gray-400 italic">{{ row.feedback_username }}</span>
+                                            </div>
+                                            <p class="whitespace-normal leading-relaxed text-gray-200 italic">"{{ row.feedback_text }}"</p>
+                                            <div class="pt-1.5 border-t border-gray-700/50 text-[9px] text-gray-400 flex justify-end italic">{{ row.feedback_date }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <span class="text-gray-400 italic text-[10px]">No feedback</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </td>
+
+                <td class="px-4 py-1.5 whitespace-nowrap text-center">
+                    {% if row.is_leaf %}
+                    <div class="inline-flex items-center gap-1.5">
+                        {% set u = current_username | trim | lower %}
+                        {% if (row.collection_owner | trim | lower) == u or (row.make_owner | trim | lower) == u %}
+                        <button
+                            class="feedback-btn size-6.5 flex items-center justify-center rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 border border-blue-100 dark:border-blue-800 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                            title="Add Feedback" data-office="{{ row.office }}" data-make-owner="{{ row.make_owner }}"
+                            data-collection-owner="{{ row.collection_owner }}" data-collection="{{ row.collection }}"
+                            data-hm-agent="{{ row.hm_agent }}" data-supplier="{{ row.supplier }}"
+                            data-status-filter="hallmarking_delayed"
+                            onclick="openFeedbackModal('{{ (row.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (row.make_owner or '') | replace('\'', '\\\'') }}', '{{ (row.supplier or '') | replace('\'', '\\\'') }}', '{{ (row.collection or '') | replace('\'', '\\\'') }}', '{{ (row.feedback_text or '') | replace('\'', '\\\'') }}', '{{ (row.feedback_category or '') | replace('\'', '\\\'') }}')">
+                            <span class="material-symbols-outlined text-[14px]">chat</span>
+                        </button>
+                        {% endif %}
+                        <button
+                            class="size-6.5 flex items-center justify-center rounded bg-gray-50 dark:bg-gray-800 text-gray-500 border border-gray-200 dark:border-gray-700 hover:text-indigo-600 hover:border-indigo-300 transition-all shadow-sm"
+                            title="View Details"
+                            data-office="{{ row.office }}" data-make-owner="{{ row.make_owner }}"
+                            data-collection-owner="{{ row.collection_owner }}" data-collection="{{ row.collection }}"
+                            data-hm-agent="{{ row.hm_agent }}" data-supplier="{{ row.supplier }}"
+                            onclick="showPODetailsModal('{{ (row.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (row.make_owner or '') | replace('\'', '\\\'') }}', '{{ (row.supplier or '') | replace('\'', '\\\'') }}', '{{ (row.collection or '') | replace('\'', '\\\'') }}', 'hallmarking_delayed')">
+                            <span class="material-symbols-outlined text-[14px]">visibility</span>
+                        </button>
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+<div class="p-20 text-center">
+    <div class="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/5">
+        <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2 2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
+            </path>
+        </svg>
+    </div>
+    <div class="text-gray-400 font-medium">No hallmarking delayed items found</div>
+    <p class="text-gray-600 text-sm mt-1">Try adjusting your filters or search terms</p>
+</div>
+{% endif %}
+
+<div class="stats-meta hidden" data-total-pieces="{{ stats.total_pieces if stats else 0 }}"
+    data-total-weight="{{ stats.total_weight if stats else 0 }}"
+    data-with-feedback="{{ stats.with_feedback if stats else 0 }}"
+    data-without-feedback="{{ stats.without_feedback if stats else 0 }}">
+</div>
+
+<div class="pagination-meta hidden" data-page="{{ pagination.page if pagination else 1 }}"
+    data-per-page="{{ pagination.per_page if pagination else 50 }}"
+    data-total="{{ pagination.total if pagination else 0 }}"
+    data-prev-num="{{ pagination.prev_num if pagination and pagination.has_prev else '' }}"
+    data-next-num="{{ pagination.next_num if pagination and pagination.has_next else '' }}"
+    data-has-prev="{{ 'true' if pagination and pagination.has_prev else 'false' }}"
+    data-has-next="{{ 'true' if pagination and pagination.has_next else 'false' }}">
+</div>
+
+
+<style>
+    .drilldown-row.hidden {
+        display: none !important;
+    }
+
+    .toggle-btn .toggle-icon.rotated {
+        transform: rotate(90deg);
+    }
+
+    @keyframes wizard-zoom-in {
+        from { opacity: 0; transform: scale(0.95) translateY(10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .animate-fade-in {
+        animation: wizard-zoom-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+</style>

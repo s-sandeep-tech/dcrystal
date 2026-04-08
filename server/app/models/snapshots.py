@@ -597,7 +597,7 @@ class ReportFeedback(db.Model):
     feedback_text = db.Column(db.Text)
     feedback_category = db.Column(db.String(100))
     username = db.Column(db.String(80))
-    page_code = db.Column(db.String(20)) # 'PA' for Pending Acceptance, 'RW' for Rejected Weight
+    page_code = db.Column(db.String(20)) # 'PA', 'RW', 'HD'
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     def to_dict(self):
@@ -607,6 +607,36 @@ class ReportFeedback(db.Model):
             'make_owner': self.make_owner,
             'supplier': self.supplier,
             'collection': self.collection,
+            'feedback_text': self.feedback_text,
+            'feedback_category': self.feedback_category,
+            'username': self.username,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class HallmarkingDelayedFeedback(db.Model):
+    __tablename__ = 'hallmarking_delayed_feedback'
+
+    id = db.Column(db.Integer, primary_key=True)
+    collection_owner = db.Column(db.Text)
+    make_owner = db.Column(db.Text)
+    supplier = db.Column(db.Text)
+    collection = db.Column(db.Text)
+    office = db.Column(db.Text)
+    hm_agent = db.Column(db.Text)
+    feedback_text = db.Column(db.Text)
+    feedback_category = db.Column(db.String(100))
+    username = db.Column(db.String(80))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'collection_owner': self.collection_owner,
+            'make_owner': self.make_owner,
+            'supplier': self.supplier,
+            'collection': self.collection,
+            'office': self.office,
+            'hm_agent': self.hm_agent,
             'feedback_text': self.feedback_text,
             'feedback_category': self.feedback_category,
             'username': self.username,
@@ -857,3 +887,42 @@ class ProvisionStockRawSnapshot(db.Model):
     prov_type_filter = db.Column(db.Integer)
     
     snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
+
+class HallmarkingDelayedSnapshot(db.Model):
+    __tablename__ = 'hallmarking_delayed_snapshot'
+
+    id = db.Column(db.Integer, primary_key=True)
+    office = db.Column(db.Text) # hm_ro
+    make_owner = db.Column(db.Text)
+    collection_owner = db.Column(db.Text)
+    collection = db.Column(db.Text)
+    hm_agent = db.Column(db.Text)
+    supplier = db.Column(db.Text) # Supplier
+    challan_date = db.Column(db.Date) # hm.challan_date
+    challan_no = db.Column(db.Text) # hm.requested_delivery_challan
+    pieces = db.Column(db.Numeric(18, 3)) # 1 Pieces
+    weight = db.Column(db.Numeric(18, 3)) # weight
+    receipt_date = db.Column(db.Date) # hm.agent_received_on
+    receipt_no = db.Column(db.Text) # hm.receipt_no
+    hm_status = db.Column(db.Text)
+    snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'office': self.office,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'hm_agent': self.hm_agent,
+            'supplier': self.supplier,
+            'challan_date': self.challan_date.isoformat() if self.challan_date else '',
+            'challan_no': self.challan_no,
+            'pieces': float(self.pieces or 0),
+            'weight': float(self.weight or 0),
+            'receipt_date': self.receipt_date.isoformat() if self.receipt_date else '',
+            'receipt_no': self.receipt_no,
+            'hm_status': self.hm_status,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
+        }

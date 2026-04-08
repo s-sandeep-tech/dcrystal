@@ -111,6 +111,15 @@ def sync_pending_acceptance():
     result = sync_pending_acceptance_data(session.get('user_id'))
     return result, 200 if result.get('status') == 'success' else 500
 
+@dashboard_bp.route('/settings/sync-hallmarking-delayed', methods=['POST'])
+def sync_hallmarking_delayed():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
+        
+    from app.utils.sync_manager import sync_hallmarking_delayed_data
+    result = sync_hallmarking_delayed_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500
+
 @dashboard_bp.route('/settings/sync-rejected-weight', methods=['POST'])
 def sync_rejected_weight():
     if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):

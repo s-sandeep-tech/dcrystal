@@ -11,7 +11,8 @@ from app.models.snapshots import (
     PendingAcceptanceSnapshot,
     RejectedWeightSnapshot,
     ShowroomWiseOrderSummarySnapshot,
-    ProvisionStockRawSnapshot
+    ProvisionStockRawSnapshot,
+    HallmarkingDelayedSnapshot
 )
 from flask import current_app
 import os
@@ -1202,6 +1203,82 @@ def sync_rejected_weight_data_task() -> Dict[str, Any]:
         error_msg = str(e)
         logger.error(f"RejectedWeight Sync error: {error_msg}")
         emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'rejected_weight')
+        return {"status": "error", "message": error_msg}
+    finally:
+        if conn: conn.close()
+
+def sync_hallmarking_delayed_data_task() -> Dict[str, Any]:
+    """Sync Hallmarking Delayed data using the provided analytical query."""
+    conn = None
+    try:
+        emit_sync_update('processing', 'Starting Hallmarking Delayed Sync...', 5, 'hallmarking_delayed')
+        conn = get_external_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        emit_sync_update('processing', 'Fetching data from Azure...', 20, 'hallmarking_delayed')
+        query = """
+            select
+                hm_ro,
+                make_owner,
+                collection_owner,
+                collection,
+                hm_agent,
+                Supplier as supplier,
+                hm.challan_date,
+                hm.requested_delivery_challan as challan_no,
+                1 as pieces,
+                coalesce(vod.barcoded_weight, vod.required_weight) as weight,
+                hm.agent_received_on as receipt_date,
+                hm.receipt_no,
+                hm.hm_status
+            from ext_view.vw_order_hallmark_details hm
+            inner join ext_view.vw_order_details vod on vod.order_id = hm.order_id
+            inner join ext_view.vw_order_product_details vopd on vopd.order_id = hm.order_id
+            Where hm_status = 'Pending' and  CURRENT_DATE - agent_received_on > 2
+        """
+        
+        start_time = time.time()
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        duration = time.time() - start_time
+        
+        logger.info(f"HallmarkingDelayed query took {duration:.2f} seconds.")
+        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, 'hallmarking_delayed')
+        
+        # Clear existing
+        db.session.query(HallmarkingDelayedSnapshot).delete()
+        
+        new_records = []
+        for row in rows:
+            record = HallmarkingDelayedSnapshot(
+                office=row.get('hm_ro'),
+                make_owner=row.get('make_owner'),
+                collection_owner=row.get('collection_owner'),
+                collection=row.get('collection'),
+                hm_agent=row.get('hm_agent'),
+                supplier=row.get('supplier'),
+                challan_date=row.get('challan_date'),
+                challan_no=row.get('challan_no'),
+                pieces=row.get('pieces'),
+                weight=row.get('weight'),
+                receipt_date=row.get('receipt_date'),
+                receipt_no=row.get('receipt_no'),
+                hm_status=row.get('hm_status'),
+                snapshot_date=db.func.current_date()
+            )
+            new_records.append(record)
+        
+        db.session.add_all(new_records)
+        db.session.commit()
+        
+        emit_sync_update('success', f'Hallmarking Delayed Sync completed! {len(rows)} records updated.', 100, 'hallmarking_delayed')
+        return {"status": "success", "count": len(rows)}
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        logger.error(f"HallmarkingDelayed Sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, 'hallmarking_delayed')
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()

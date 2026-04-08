@@ -70,8 +70,8 @@ function setStatusFilter(filter) {
     } else if (filter === 'pending_to_deliver') {
         const btn = document.getElementById('btn-status-deliver');
         if (btn) btn.classList.add('active');
-    } else if (filter === 'pending_to_deliver_not_barcoded') {
-        const btn = document.getElementById('btn-status-not-barcoded');
+    } else if (filter === 'hallmarking_delayed') {
+        const btn = document.getElementById('btn-status-hallmarking-delayed');
         if (btn) btn.classList.add('active');
     }
     
@@ -85,6 +85,18 @@ function setStatusFilter(filter) {
                 delayInput.value = '5';
             }
         }
+    }
+    
+    
+    // Toggle new filter visibility
+    const officeContainer = document.getElementById('filter-container-office');
+    const hmAgentContainer = document.getElementById('filter-container-hm-agent');
+    if (filter === 'hallmarking_delayed') {
+        if (officeContainer) officeContainer.style.display = 'block';
+        if (hmAgentContainer) hmAgentContainer.style.display = 'block';
+    } else {
+        if (officeContainer) officeContainer.style.display = 'none';
+        if (hmAgentContainer) hmAgentContainer.style.display = 'none';
     }
     
     applyGlobalFilters();
@@ -141,6 +153,14 @@ function applyGlobalFilters() {
     const collection = document.getElementById('filter-collection')?.value;
     if (collection) urlParams.set('collection', collection);
     else urlParams.delete('collection');
+
+    const office = document.getElementById('filter-office')?.value;
+    if (office) urlParams.set('office', office);
+    else urlParams.delete('office');
+
+    const hmAgent = document.getElementById('filter-hm-agent')?.value;
+    if (hmAgent) urlParams.set('hm_agent', hmAgent);
+    else urlParams.delete('hm_agent');
 
     const delayEnable = document.getElementById('filter-delay-enable')?.checked;
     const delay = document.getElementById('filter-delay')?.value;
@@ -213,6 +233,12 @@ function clearFilterInputs() {
 
     const collection = document.getElementById('filter-collection');
     if (collection) collection.value = '';
+
+    const office = document.getElementById('filter-office');
+    if (office) office.value = '';
+
+    const hmAgent = document.getElementById('filter-hm-agent');
+    if (hmAgent) hmAgent.value = '';
 
     const delay = document.getElementById('filter-delay');
     if (delay) delay.value = '5';
@@ -344,6 +370,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const sel = document.getElementById('filter-collection');
         if (sel) sel.value = urlParams.get('collection');
     }
+    if (urlParams.get('office')) {
+        const sel = document.getElementById('filter-office');
+        if (sel) sel.value = urlParams.get('office');
+    }
+    if (urlParams.get('hm_agent')) {
+        const sel = document.getElementById('filter-hm-agent');
+        if (sel) sel.value = urlParams.get('hm_agent');
+    }
     const statusFilterArg = urlParams.get('status_filter') || 'pending_to_accept';
     const delayEnabledArg = urlParams.get('delay_enabled');
     if (urlParams.get('delay')) {
@@ -395,6 +429,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (currentStatusFilter === 'pending_to_deliver_not_barcoded') {
             const btn = document.getElementById('btn-status-not-barcoded');
             if (btn) btn.classList.add('active');
+        } else if (currentStatusFilter === 'hallmarking_delayed') {
+            const btn = document.getElementById('btn-status-hallmarking-delayed');
+            if (btn) btn.classList.add('active');
+            
+            const officeContainer = document.getElementById('filter-container-office');
+            const hmAgentContainer = document.getElementById('filter-container-hm-agent');
+            if (officeContainer) officeContainer.style.display = 'block';
+            if (hmAgentContainer) hmAgentContainer.style.display = 'block';
         }
     }
 
@@ -420,17 +462,22 @@ function updateStatsCards(stats) {
 
     const fmt = (v) => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 3, maximumFractionDigits: 3 }).format(v);
 
-    document.getElementById('stat-order-wt').textContent = fmt(orderWt);
-    document.getElementById('stat-accepted-wt').textContent = fmt(acceptedWt);
-    document.getElementById('stat-with-feedback').textContent = withFeedback.toLocaleString();
-
+    const card1 = document.getElementById('stat-order-wt').parentElement;
+    const card2 = document.getElementById('stat-accepted-wt').parentElement;
     const card3 = document.getElementById('stat-pending-wt').parentElement;
     const card4 = document.getElementById('stat-contextual-metric').parentElement;
+    const card5 = document.getElementById('card-with-feedback');
 
     if (statusFilter === 'pending_to_deliver') {
         const wt = parseFloat(stats.totalPendingToDeliverWt || 0);
         const pcs = parseInt(stats.totalPendingToDeliverPcs || 0);
         
+        card1.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-blue-premium">leaderboard</span>Total Order Wt`;
+        document.getElementById('stat-order-wt').textContent = fmt(orderWt);
+        
+        card2.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-emerald-premium">check_circle</span>Accepted Wt`;
+        document.getElementById('stat-accepted-wt').textContent = fmt(acceptedWt);
+
         card3.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-indigo-600">local_shipping</span>Pending Deliver Wt`;
         document.getElementById('stat-pending-wt').textContent = fmt(wt);
         document.getElementById('stat-pending-wt').className = 'stat-val text-orange-600';
@@ -438,10 +485,22 @@ function updateStatsCards(stats) {
         card4.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-blue-600">inventory_2</span>Pending Deliver Pcs`;
         document.getElementById('stat-contextual-metric').textContent = pcs.toLocaleString();
         document.getElementById('stat-contextual-metric').className = 'stat-val';
+
+        if (card5) {
+            card5.classList.remove('hidden');
+            const fbElem = document.getElementById('stat-with-feedback');
+            if (fbElem) fbElem.textContent = withFeedback.toLocaleString();
+        }
     } else if (statusFilter === 'pending_to_deliver_not_barcoded') {
         const wt = parseFloat(stats.totalNotBarcodedWt || 0);
         const pcs = parseInt(stats.totalNotBarcodedPcs || 0);
         
+        card1.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-blue-premium">leaderboard</span>Total Order Wt`;
+        document.getElementById('stat-order-wt').textContent = fmt(orderWt);
+        
+        card2.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-emerald-premium">check_circle</span>Accepted Wt`;
+        document.getElementById('stat-accepted-wt').textContent = fmt(acceptedWt);
+
         card3.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-orange-600">barcode_scanner</span>Not Barcoded Wt`;
         document.getElementById('stat-pending-wt').textContent = fmt(wt);
         document.getElementById('stat-pending-wt').className = 'stat-val text-orange-600';
@@ -449,10 +508,42 @@ function updateStatsCards(stats) {
         card4.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-cyan-600">pin</span>Not Barcoded Pcs`;
         document.getElementById('stat-contextual-metric').textContent = pcs.toLocaleString();
         document.getElementById('stat-contextual-metric').className = 'stat-val';
+
+        if (card5) {
+            card5.classList.remove('hidden');
+            const fbElem = document.getElementById('stat-with-feedback');
+            if (fbElem) fbElem.textContent = withFeedback.toLocaleString();
+        }
+    } else if (statusFilter === 'hallmarking_delayed') {
+        const pcs = parseInt(stats.totalPieces || 0);
+        const wt = parseFloat(stats.totalWeight || 0);
+        const withoutFeedback = parseInt(stats.withoutFeedback || 0);
+
+        card1.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-indigo-600">inventory_2</span>Total Pieces`;
+        document.getElementById('stat-order-wt').textContent = pcs.toLocaleString();
+
+        card2.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-emerald-premium">check_circle</span>Total Weight`;
+        document.getElementById('stat-accepted-wt').textContent = fmt(wt);
+
+        card3.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-red-600">chat_error</span>Without Feedback`;
+        document.getElementById('stat-pending-wt').textContent = withoutFeedback.toLocaleString();
+        document.getElementById('stat-pending-wt').className = 'stat-val';
+
+        card4.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-emerald-premium">chat_bubble</span>With Feedback`;
+        document.getElementById('stat-contextual-metric').textContent = withFeedback.toLocaleString();
+        document.getElementById('stat-contextual-metric').className = 'stat-val text-emerald-premium';
+
+        if (card5) card5.classList.add('hidden');
     } else {
         const pendingWt = parseFloat(stats.totalPendingToAcceptedWt || 0);
         const withoutFeedback = parseInt(stats.withoutFeedback || 0);
-        
+
+        card1.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-blue-premium">leaderboard</span>Total Order Wt`;
+        document.getElementById('stat-order-wt').textContent = fmt(orderWt);
+
+        card2.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-emerald-premium">check_circle</span>Accepted Wt`;
+        document.getElementById('stat-accepted-wt').textContent = fmt(acceptedWt);
+
         card3.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-orange-premium">pending_actions</span>Pending Wt`;
         document.getElementById('stat-pending-wt').textContent = fmt(pendingWt);
         document.getElementById('stat-pending-wt').className = 'stat-val text-orange-premium';
@@ -460,6 +551,12 @@ function updateStatsCards(stats) {
         card4.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-red-600">chat_error</span>Without Feedback`;
         document.getElementById('stat-contextual-metric').textContent = withoutFeedback.toLocaleString();
         document.getElementById('stat-contextual-metric').className = 'stat-val';
+
+        if (card5) {
+            card5.classList.remove('hidden');
+            const fbElem = document.getElementById('stat-with-feedback');
+            if (fbElem) fbElem.textContent = withFeedback.toLocaleString();
+        }
     }
 }
 
@@ -469,6 +566,19 @@ function openFeedbackModal(collectionOwner, makeOwner, supplier, collection, cur
     document.getElementById('fb_make_owner').value = makeOwner;
     document.getElementById('fb_supplier').value = supplier;
     document.getElementById('fb_collection').value = collection;
+    
+    // Hidden HD fields
+    if (!document.getElementById('fb_office')) {
+        const form = document.querySelector('#feedbackModal form') || document.getElementById('feedbackModal');
+        const h1 = document.createElement('input'); h1.type = 'hidden'; h1.id = 'fb_office'; h1.name = 'office';
+        const h2 = document.createElement('input'); h2.type = 'hidden'; h2.id = 'fb_hm_agent'; h2.name = 'hm_agent';
+        form.appendChild(h1);
+        form.appendChild(h2);
+    }
+    
+    const btn = event.currentTarget || {};
+    document.getElementById('fb_office').value = btn.dataset?.office || '';
+    document.getElementById('fb_hm_agent').value = btn.dataset?.hmAgent || '';
 
     document.getElementById('feedbackModalContext').textContent = `${collectionOwner} | ${makeOwner} | ${collection}`;
 
@@ -498,7 +608,9 @@ async function saveFeedback() {
         collection: document.getElementById('fb_collection').value,
         feedback_text: document.getElementById('feedbackText').value,
         feedback_category: document.getElementById('feedbackCategory').value,
-        status_filter: currentStatusFilter
+        status_filter: currentStatusFilter,
+        office: document.getElementById('fb_office')?.value || '',
+        hm_agent: document.getElementById('fb_hm_agent')?.value || ''
     };
 
     if (!payload.feedback_text.trim()) {
@@ -558,6 +670,15 @@ async function showPODetailsModal(collectionOwner, makeOwner, supplier, collecti
     urlParams.set('supplier', supplier);
     urlParams.set('collection', collection);
     if (statusFilter) urlParams.set('status_filter', statusFilter);
+    
+    // Add HD context if applicable
+    if (statusFilter === 'hallmarking_delayed') {
+        const btn = event.currentTarget; // Should be row or button
+        if (btn) {
+            urlParams.set('office', btn.dataset.office || '');
+            urlParams.set('hm_agent', btn.dataset.hmAgent || '');
+        }
+    }
     
     const delayEnable = document.getElementById('filter-delay-enable')?.checked;
     const delay = document.getElementById('filter-delay')?.value;
@@ -1103,7 +1224,9 @@ async function exportToExcel() {
             enable_date_filter: document.getElementById('filter-date-enable')?.checked || false,
             feedback_from_date: document.getElementById('filter-feedback-from-date')?.value || '',
             feedback_to_date: document.getElementById('filter-feedback-to-date')?.value || '',
-            enable_feedback_date_filter: document.getElementById('filter-feedback-date-enable')?.checked || false
+            enable_feedback_date_filter: document.getElementById('filter-feedback-date-enable')?.checked || false,
+            office: document.getElementById('filter-office')?.value || '',
+            hm_agent: document.getElementById('filter-hm-agent')?.value || ''
         };
 
         const response = await fetch('/api/pending-acceptance-feedback/export', {
