@@ -1,0 +1,209 @@
+{# Macro Definitions #}
+
+{% macro render_row(label, prov_gr_wt, in_shop_wt, ordered_wt, in_transit_wt, short_excess_wt, percent, prov_pcs=none, is_grand_total=false, is_category=false, indent=false, is_parent=1, classification=none, sr_no=none) %}
+<tr class="{% if is_grand_total %}bg-[#d6d6d6] dark:bg-gray-700 font-bold{% elif is_category %}bg-[#e3f2fd] dark:bg-blue-900/30 font-bold{% else %}bg-white dark:bg-gray-800{% endif %} {% if is_parent == 1 and classification %}cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 parent-row{% elif is_parent == 0 %}child-row hidden{% endif %}"
+    {% if classification %}data-classification="{{ classification }}"{% endif %}
+    {% if is_parent == 1 and classification %}onclick="toggleClassification('{{ classification }}')"{% endif %}>
+    {% if sr_no is not none %}
+    <td class="px-1 py-0.5 border border-gray-300 text-center w-6 text-gray-500 font-medium h-6">{{ sr_no if sr_no else '' }}</td>
+    {% endif %}
+    <td class="px-2 py-0.5 border border-gray-300 text-left {% if indent %}pl-4{% endif %} h-6">
+        <div class="flex items-center gap-1 h-full">
+            {% if is_parent == 1 and classification %}
+                <span class="inline-flex items-center justify-center w-4 transition-transform duration-200 toggle-arrow cursor-pointer" id="arrow-{{ classification }}">▶</span>
+            {% endif %}
+            {% if is_parent == 0 %}
+                <span class="inline-flex items-center justify-center text-gray-400 w-4">→</span>
+            {% endif %}
+            <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ label or '-' }}</span>
+        </div>
+    </td>
+    {% if prov_pcs is not none %}
+    <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.0f}".format(prov_pcs) }}</td>
+    {% endif %}
+    <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.3f}".format(prov_gr_wt) if prov_gr_wt is not none else '0' }}</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.3f}".format(in_shop_wt) if in_shop_wt is not none else '0' }}</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.3f}".format(in_transit_wt) if in_transit_wt is not none else '0' }}</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right {% if short_excess_wt < 0 %}text-red-500 font-bold{% elif short_excess_wt > 0 %}text-green-600{% endif %}">
+        {{ "{:,.3f}".format(short_excess_wt) if short_excess_wt is not none else '0' }}
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right relative min-w-[50px]">
+        {% if percent is not none and not is_grand_total %}
+        <div class="absolute top-0 left-0 h-full {% if percent < 0 %}bg-red-100 dark:bg-red-900/20{% else %}bg-blue-100 dark:bg-blue-900/20{% endif %} opacity-60" style="width: {{ percent|abs if percent|abs <= 100 else 100 }}%;"></div>
+        {% endif %}
+        <span class="relative z-10">{{ "{:,.1f}%".format(percent) if percent is not none else '0.0%' }}</span>
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.3f}".format(ordered_wt) if ordered_wt is not none else '0' }}</td>
+</tr>
+{% endmacro %}
+
+{% macro render_std_table(title, rows, category_labels=none, show_pcs=false, show_sr_no=false) %}
+<div class="overflow-x-auto shadow-sm">
+    <table class="w-full text-[10px] border-collapse border border-gray-300">
+        <thead>
+            <tr class="bg-[#fce4ec] dark:bg-pink-900/30">
+                {% if show_sr_no %}
+                <th class="px-1 py-1 border border-gray-300 text-center font-bold text-gray-700 w-6">#</th>
+                {% endif %}
+                <th class="px-2 py-1 border border-gray-300 text-left font-bold text-gray-700">{{ title }}</th>
+                {% if show_pcs %}
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">Prov Pcs</th>
+                {% endif %}
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">Prov Gr.Wt</th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">In Shop Wt</th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">Transit Wt</th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">Short/Excess</th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">%</th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">Ordered Wt</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set totals = {'pcs':0, 'prov_gr_wt': 0, 'in_shop_wt': 0, 'ordered_wt': 0, 'in_transit_wt': 0, 'short_excess_wt': 0, 'has_grand': false, 'sr': 0} %}
+            
+            {# Detect if we should use category summing #}
+            {% set use_cats = false %}
+            {% if category_labels is not none %}
+                {% for row in rows %}
+                    {% if row.report_label in category_labels %}{% set use_cats = true %}{% endif %}
+                {% endfor %}
+            {% endif %}
+
+            {% for row in rows %}
+                {% set is_gt = row.report_label == 'Grand Total' %}
+                {% set is_cat = category_labels is not none and row.report_label in category_labels %}
+                
+                {% if is_gt %}
+                    {% if totals.update({'has_grand': true}) %}{% endif %}
+                    {{ render_row(row.report_label, row.prov_gr_wt, row.in_shop_wt, row.ordered_wt, row.in_transit_wt, row.short_excess_wt, row.percent, prov_pcs=(row.prov_pcs if show_pcs else none), is_grand_total=true, sr_no=('' if show_sr_no else none)) }}
+                {% else %}
+                    {% if use_cats %}
+                        {% if is_cat %}
+                            {% if totals.update({
+                                'pcs': totals.pcs + (row.prov_pcs or 0),
+                                'prov_gr_wt': totals.prov_gr_wt + (row.prov_gr_wt or 0), 
+                                'in_shop_wt': totals.in_shop_wt + (row.in_shop_wt or 0),
+                                'ordered_wt': totals.ordered_wt + (row.ordered_wt or 0),
+                                'in_transit_wt': totals.in_transit_wt + (row.in_transit_wt or 0),
+                                'short_excess_wt': totals.short_excess_wt + (row.short_excess_wt or 0)
+                            }) %}{% endif %}
+                        {% endif %}
+                    {% else %}
+                        {% if row.is_parent != 0 %}
+                            {% if totals.update({
+                                'pcs': totals.pcs + (row.prov_pcs or 0),
+                                'prov_gr_wt': totals.prov_gr_wt + (row.prov_gr_wt or 0), 
+                                'in_shop_wt': totals.in_shop_wt + (row.in_shop_wt or 0),
+                                'ordered_wt': totals.ordered_wt + (row.ordered_wt or 0),
+                                'in_transit_wt': totals.in_transit_wt + (row.in_transit_wt or 0),
+                                'short_excess_wt': totals.short_excess_wt + (row.short_excess_wt or 0)
+                            }) %}{% endif %}
+                        {% endif %}
+                    {% endif %}
+                    
+                    {% if row.is_parent != 0 %}
+                        {% if totals.update({'sr': totals.sr + 1}) %}{% endif %}
+                    {% endif %}
+                    
+                    {{ render_row(row.report_label, row.prov_gr_wt, row.in_shop_wt, row.ordered_wt, row.in_transit_wt, row.short_excess_wt, row.percent, 
+                                 prov_pcs=(row.prov_pcs if show_pcs else none),
+                                 is_category=is_cat, 
+                                 indent=(use_cats and not is_cat),
+                                 is_parent=(row.is_parent if row.is_parent is not none else 1),
+                                 classification=row.classification,
+                                 sr_no=(totals.sr if show_sr_no else none)) }}
+                {% endif %}
+            {% endfor %}
+            {% if not totals.has_grand and rows|length > 0 %}
+                {% set gt_percent = (totals.short_excess_wt * 100 / totals.prov_gr_wt) if totals.prov_gr_wt != 0 else 0 %}
+                {{ render_row('Grand Total', totals.prov_gr_wt, totals.in_shop_wt, totals.ordered_wt, totals.in_transit_wt, totals.short_excess_wt, gt_percent, prov_pcs=(totals.pcs if show_pcs else none), is_grand_total=true, sr_no=('' if show_sr_no else none)) }}
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+{# Group rows by report_section #}
+{% set segments = {} %}
+{% for row in rows %}
+    {% if row.report_label != 'Grand Total' %}
+        {% set section = row.report_section %}
+        {% if section not in segments %}
+            {% set _ = segments.update({section: []}) %}
+        {% endif %}
+        {% set _ = segments[section].append(row) %}
+    {% endif %}
+{% endfor %}
+
+<div class="w-full bg-white dark:bg-gray-900 p-4 min-h-screen">
+    <div class="flex flex-col gap-8">
+        
+        {# Section 1: Location Summary #}
+        {% if 'Location Summary' in segments %}
+            {{ render_std_table('Location Summary', segments['Location Summary'], show_pcs=true, show_sr_no=true) }}
+        {% endif %}
+
+        <div class="columns-1 xl:columns-2 gap-8">
+            {# Purity Wise #}
+            {% if 'Purity Wise' in segments %}
+            <div class="break-inside-avoid mb-8 inline-block w-full">
+                {{ render_std_table('Purity Wise', segments['Purity Wise']) }}
+            </div>
+            {% endif %}
+
+            {# Make Wise #}
+            {% if 'Make Wise' in segments %}
+            <div class="break-inside-avoid mb-8 inline-block w-full">
+                {{ render_std_table('Make Wise', segments['Make Wise']) }}
+            </div>
+            {% endif %}
+
+             {# Classification Wise #}
+            {% if 'Classification Wise' in segments %}
+            <div class="break-inside-avoid mb-8 inline-block w-full">
+                {{ render_std_table('Classification Wise', segments['Classification Wise'], category_labels=['BRAND', 'GENERIC', 'LIFE STYLE']) }}
+            </div>
+            {% endif %}
+
+            {# Provision Type Wise #}
+            {% if 'Provision Type Wise' in segments %}
+            <div class="break-inside-avoid mb-8 inline-block w-full">
+                {{ render_std_table('Provision Type Wise', segments['Provision Type Wise']) }}
+            </div>
+            {% endif %}
+
+            {# Section Wise #}
+            {% if 'Section Wise' in segments %}
+            <div class="break-inside-avoid mb-8 inline-block w-full">
+                {{ render_std_table('Section Wise', segments['Section Wise'], show_pcs=true) }}
+            </div>
+            {% endif %}
+
+            {# Provision Mode Wise #}
+            {% if 'Provision Mode Wise' in segments %}
+            <div class="break-inside-avoid mb-8 inline-block w-full">
+                {{ render_std_table('Provision Mode Wise', segments['Provision Mode Wise']) }}
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function toggleClassification(classification) {
+        const rows = document.querySelectorAll(`tr[data-classification="${classification}"].child-row`);
+        const arrow = document.getElementById(`arrow-${classification}`);
+        
+        rows.forEach(row => {
+            row.classList.toggle('hidden');
+        });
+
+        if (arrow) {
+            if (rows[0] && !rows[0].classList.contains('hidden')) {
+                arrow.style.transform = 'rotate(90deg)';
+            } else {
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+</script>

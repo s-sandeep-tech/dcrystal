@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Provision and Stock – Location Physical Stock Status{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
+{% endblock %}
+
+{% block content %}
+<main id="location-physical-stock-status-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    <!-- Header -->
+    <div class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <h2 class="text-sm font-bold tracking-tight">Provision and Stock – Location Physical Stock Status <span class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded uppercase tracking-widest text-gray-500">v1.0</span></h2>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- Zoom Controls -->
+            <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
+                <button onclick="adjustZoom(-0.1)" class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors" title="Zoom Out">-</button>
+                <button id="zoom-level" onclick="adjustZoom(0, true)" class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700" title="Reset Zoom">100%</button>
+                <button onclick="adjustZoom(0.1)" class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors" title="Zoom In">+</button>
+            </div>
+            <div class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
+                <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
+                <input id="report-search" class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0" placeholder="Search..." type="text" oninput="onSearchInput(this.value)" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Strip -->
+    <div class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <span class="material-symbols-outlined text-[14px]">info</span>
+            <span>Showing Location Physical Stock Status summaries. Use sidebar filters to explore deeper.</span>
+        </div>
+
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
+            <span id="sync-time-info" class="flex items-center gap-1 font-medium uppercase tracking-wider">
+                <span class="material-symbols-outlined text-[14px]">schedule</span>
+                {{ sync_time }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Table Container -->
+    <div id="table-area" class="flex-1 overflow-auto relative">
+        <!-- Progress Bar -->
+        <div id="report-progress" class="absolute top-0 left-0 right-0 h-0.5 bg-primary/20 overflow-hidden hidden z-10">
+            <div class="h-full bg-primary w-1/3 animate-[progress_1s_ease-in-out_infinite]"></div>
+        </div>
+        <style>
+            @keyframes progress {
+                0% { left: -33%; }
+                100% { left: 100%; }
+            }
+            #report-progress div { position: absolute; }
+        </style>
+
+        <div id="view-location-physical-stock-status" class="dashboard-view">
+            {% include 'partials/_view_location_physical_stock_status.html' %}
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block sidebar %}
+<aside class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xs font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> FILTERS
+            </h2>
+            <button onclick="resetFilters()" class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+        </div>
+        <div class="space-y-4">
+            <!-- Location (Multi-select) -->
+            <div id="filter-location-container">
+                <div class="space-y-1.5 relative" id="filter-location-container-multiselect-container">
+                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Location</label>
+                    <div id="filter-location-container-trigger" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 border dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2 cursor-pointer flex justify-between items-center transition-colors hover:border-gray-300 dark:hover:border-gray-600">
+                        <span id="filter-location-container-text" class="truncate text-gray-700 dark:text-gray-300">All Locations</span>
+                        <span class="material-symbols-outlined text-[16px] text-gray-400 pointer-events-none transition-transform duration-200" id="filter-location-container-icon">expand_more</span>
+                    </div>
+                    
+                    <div id="filter-location-container-dropdown" class="hidden absolute left-0 right-0 top-[100%] mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50 flex flex-col max-h-96 overflow-hidden">
+                        <div class="p-2 border-b border-gray-100 dark:border-gray-700 shrink-0 bg-white dark:bg-gray-800 z-10 sticky top-0">
+                            <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1.5">
+                                <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
+                                <input type="text" id="filter-location-container-search" placeholder="Search..." class="w-full bg-transparent border-none text-[11px] p-0 focus:ring-0 placeholder:text-gray-400 text-gray-700 dark:text-gray-200" />
+                            </div>
+                        </div>
+                        <div id="filter-location-container-options-list" class="overflow-y-auto flex-1 p-1">
+                            <!-- Options dynamically loaded -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Branch Type -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Branch Type</label>
+                <select id="filter-branch-type" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Branch Types</option>
+                </select>
+            </div>
+            <!-- Branch Status -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Branch Status</label>
+                <select id="filter-branch-status" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Branch Statuses</option>
+                </select>
+            </div>
+            <!-- Business Head -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Business Head</label>
+                <select id="filter-business-head" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Business Heads</option>
+                </select>
+            </div>
+            <!-- Purity -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Purity</label>
+                <select id="filter-purity" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Purities</option>
+                </select>
+            </div>
+            <!-- Classification -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification</label>
+                <select id="filter-classification" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Classifications</option>
+                </select>
+            </div>
+            <!-- Make -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make</label>
+                <select id="filter-make" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Makes</option>
+                </select>
+            </div>
+            <!-- Collection -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection</label>
+                <select id="filter-collection" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Collections</option>
+                </select>
+            </div>
+            <!-- Section -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Section</label>
+                <select id="filter-section" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Sections</option>
+                </select>
+            </div>
+            <!-- Provision Type -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Provision Type</label>
+                <select id="filter-prov-type" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Types</option>
+                </select>
+            </div>
+            <!-- Provision Mode Filter -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Branch Provision type</label>
+                <select id="filter-provision-mode" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Modes</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <!-- Fixed Footer for Apply Button -->
+    <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark shrink-0">
+        <button onclick="applyFilters()" class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2 transition-all">
+            <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
+        </button>
+    </div>
+</aside>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
+<script src="{{ url_for('static', filename='js/location_physical_stock_status.js') }}"></script>
+{% endblock %}
