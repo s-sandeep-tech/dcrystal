@@ -52,7 +52,8 @@ def get_latest_feedback_subquery(page_code='PA'):
             func.coalesce(ReportFeedback.collection_owner, '') == func.coalesce(subq.c.collection_owner, ''),
             func.coalesce(ReportFeedback.make_owner, '') == func.coalesce(subq.c.make_owner, ''),
             func.coalesce(ReportFeedback.supplier, '') == func.coalesce(subq.c.supplier, ''),
-            func.coalesce(ReportFeedback.collection, '') == func.coalesce(subq.c.collection, '')
+            func.coalesce(ReportFeedback.collection, '') == func.coalesce(subq.c.collection, ''),
+            ReportFeedback.created_at == subq.c.max_date
         )
     ).filter(ReportFeedback.page_code == page_code).subquery()
 
@@ -80,7 +81,8 @@ def get_latest_hd_feedback_subquery():
             func.coalesce(HallmarkingDelayedFeedback.supplier, '') == func.coalesce(subq.c.supplier, ''),
             func.coalesce(HallmarkingDelayedFeedback.collection, '') == func.coalesce(subq.c.collection, ''),
             func.coalesce(HallmarkingDelayedFeedback.office, '') == func.coalesce(subq.c.office, ''),
-            func.coalesce(HallmarkingDelayedFeedback.hm_agent, '') == func.coalesce(subq.c.hm_agent, '')
+            func.coalesce(HallmarkingDelayedFeedback.hm_agent, '') == func.coalesce(subq.c.hm_agent, ''),
+            HallmarkingDelayedFeedback.created_at == subq.c.max_date
         )
     ).subquery()
 
