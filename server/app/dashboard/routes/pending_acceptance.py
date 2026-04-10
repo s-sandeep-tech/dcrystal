@@ -1003,14 +1003,23 @@ def get_pending_acceptance_partial():
                     'has_action': has_action,
                     'continue_reason': getattr(r, 'continue_reason', ''),
                     'continue_username': getattr(r, 'continue_username', ''),
-                    'continue_date': (r.continue_created_at + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M') if getattr(r, 'continue_created_at', None) else '',
+                    'continue_date': (getattr(r, 'continue_created_at', None) + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M') if getattr(r, 'continue_created_at', None) else '',
                     'continue_data_formatted': continue_data_formatted,
                     
                     'cancel_reason': getattr(r, 'cancel_reason', ''),
                     'cancel_username': getattr(r, 'cancel_username', ''),
-                    'cancel_date': (r.cancel_created_at + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M') if getattr(r, 'cancel_created_at', None) else '',
-                    'cancel_data_formatted': cancel_data_formatted
+                    'cancel_date': (getattr(r, 'cancel_created_at', None) + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M') if getattr(r, 'cancel_created_at', None) else '',
+                    'cancel_data_formatted': cancel_data_formatted,
+                    'has_feedback': bool(r.feedback_text)
                 }
+                
+                # For Pending to Accept, we don't send feedback text anymore to ensure dynamic loading
+                if status_filter == 'pending_to_accept':
+                    row_dict['feedback_text'] = ''
+                    row_dict['feedback_username'] = ''
+                    row_dict['feedback_date'] = ''
+                    row_dict['feedback_category'] = ''
+                
                 processed_rows.append(row_dict)
             
             if status_filter == 'pending_to_deliver_not_barcoded':
@@ -1383,12 +1392,62 @@ def save_pending_acceptance_feedback():
                 redis_client.delete(key)
         except Exception as e:
             logger.error(f"Error clearing cache: {str(e)}")
-            
         return jsonify({"status": "success", "message": "Feedback saved successfully"})
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error saving feedback: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@dashboard_bp.route('/api/pending-acceptance-feedback/get-details')
+@jwt_required()
+def get_pending_acceptance_feedback_details():
+    try:
+        collection_owner = request.args.get('collection_owner', '')
+        make_owner = request.args.get('make_owner', '')
+        supplier = request.args.get('supplier', '')
+        collection = request.args.get('collection', '')
+        status_filter = request.args.get('status_filter', 'pending_to_accept')
+
+        p_code = 'PA'
+        if status_filter == 'pending_to_deliver':
+            p_code = 'PD'
+        elif status_filter == 'pending_to_deliver_not_barcoded':
+            p_code = 'PNB'
+        elif status_filter == 'hallmarking_delayed':
+            p_code = 'HD'
+
+        if p_code == 'HD':
+            office = request.args.get('office', '')
+            hm_agent = request.args.get('hm_agent', '')
+            feedbacks = HallmarkingDelayedFeedback.query.filter(
+                func.coalesce(HallmarkingDelayedFeedback.collection_owner, '') == func.coalesce(collection_owner, ''),
+                func.coalesce(HallmarkingDelayedFeedback.make_owner, '') == func.coalesce(make_owner, ''),
+                func.coalesce(HallmarkingDelayedFeedback.supplier, '') == func.coalesce(supplier, ''),
+                func.coalesce(HallmarkingDelayedFeedback.collection, '') == func.coalesce(collection, ''),
+                func.coalesce(HallmarkingDelayedFeedback.office, '') == func.coalesce(office, ''),
+                func.coalesce(HallmarkingDelayedFeedback.hm_agent, '') == func.coalesce(hm_agent, '')
+            ).order_by(HallmarkingDelayedFeedback.created_at.desc()).limit(3).all()
+        else:
+            feedbacks = ReportFeedback.query.filter(
+                func.coalesce(ReportFeedback.collection_owner, '') == func.coalesce(collection_owner, ''),
+                func.coalesce(ReportFeedback.make_owner, '') == func.coalesce(make_owner, ''),
+                func.coalesce(ReportFeedback.supplier, '') == func.coalesce(supplier, ''),
+                func.coalesce(ReportFeedback.collection, '') == func.coalesce(collection, ''),
+                ReportFeedback.page_code == p_code
+            ).order_by(ReportFeedback.created_at.desc()).limit(3).all()
+
+        results = []
+        for fb in feedbacks:
+            results.append({
+                'text': fb.feedback_text,
+                'category': fb.feedback_category,
+                'username': fb.username,
+                'date': (fb.created_at + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M')
+            })
+        return jsonify(results)
+    except Exception as e:
+        logger.error(f"Error fetching feedback details: {str(e)}")
+        return jsonify([]), 500
 
 @dashboard_bp.route('/api/pending-acceptance-feedback/wizard-action', methods=['POST'])
 @jwt_required()

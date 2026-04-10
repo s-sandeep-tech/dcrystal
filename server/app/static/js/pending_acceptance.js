@@ -51,7 +51,10 @@ async function loadViewData() {
             // Small delay for smooth transition if data loads too fast
             setTimeout(() => {
                 loader.classList.add('hidden');
+                initFeedbackTooltips();
             }, 300);
+        } else {
+            initFeedbackTooltips();
         }
     }
 }
@@ -1290,3 +1293,95 @@ async function exportToExcel() {
         label.innerText = originalLabel;
     }
 }
+
+function initFeedbackTooltips() {
+    const triggers = document.querySelectorAll('.feedback-tooltip-trigger');
+    
+    triggers.forEach(trigger => {
+        // Remove existing listener if any (though they are new objects, good practice)
+        trigger.addEventListener('mouseenter', async function handleHover() {
+            if (this.dataset.loaded === 'true' || this.dataset.loading === 'true') return;
+
+            this.dataset.loading = 'true';
+            const contentArea = this.querySelector('.feedback-content-area');
+            
+            const params = new URLSearchParams({
+                collection_owner: this.dataset.collectionOwner || '',
+                make_owner: this.dataset.makeOwner || '',
+                supplier: this.dataset.supplier || '',
+                collection: this.dataset.collection || '',
+                status_filter: this.dataset.statusFilter || 'pending_to_accept'
+            });
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`/api/pending-acceptance-feedback/get-details?${params.toString()}`, {
+                    headers: { 
+                        'Authorization': token ? `Bearer ${token}` : '',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (!response.ok) throw new Error(`Server returned ${response.status}`);
+
+                const data = await response.json();
+
+                if (Array.isArray(data) && data.length > 0) {
+                    let html = '';
+                    data.forEach((fb, index) => {
+                        html += `
+                            <div class="feedback-entry ${index > 0 ? 'border-t border-gray-700/50 pt-3' : ''} space-y-2">
+                                <div class="flex items-center justify-between border-b border-gray-700/30 pb-1.5">
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-blue-400 uppercase tracking-wider">User Feedback</span>
+                                        ${fb.category ? `<span class="text-[8px] text-amber-400 font-bold uppercase tracking-widest mt-0.5">${fb.category}</span>` : ''}
+                                    </div>
+                                    <span class="text-[9px] text-gray-400 italic">${fb.username}</span>
+                                </div>
+                                <p class="whitespace-normal leading-normal text-gray-200 italic text-[10px]">"${fb.text}"</p>
+                                <div class="text-[9px] text-gray-400 flex justify-end italic mt-1 font-medium">${fb.date}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    // Update content and mark as loaded
+                    contentArea.innerHTML = html;
+                    this.dataset.loaded = 'true';
+                    
+                    // Slightly nudge the element to force a repaint if the browser is "stuck"
+                    this.style.transform = 'translateZ(0)';
+                } else {
+                    contentArea.innerHTML = '<div class="text-center text-gray-500 italic py-4">No feedback details found.</div>';
+                    this.dataset.loaded = 'true';
+                }
+            } catch (error) {
+                console.error('Error loading feedback:', error);
+                contentArea.innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="text-red-400 text-[9px] font-bold mb-1">Failed to load feedback</div>
+                        <button class="text-[8px] text-blue-400 hover:underline retry-feedback">Retry</button>
+                    </div>
+                `;
+                
+                const retryBtn = contentArea.querySelector('.retry-feedback');
+                if (retryBtn) {
+                    retryBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.dataset.loaded = 'false';
+                        this.dataset.loading = 'false';
+                        handleHover.call(this); // Manual retry
+                    });
+                }
+            } finally {
+                this.dataset.loading = 'false';
+            }
+        });
+    });
+}
+
+// Initialize on page load if needed
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('view-pending-acceptance')) {
+        // initFeedbackTooltips is called inside loadViewData
+    }
+});
