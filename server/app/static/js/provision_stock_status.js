@@ -13,6 +13,12 @@ let filterValues = {
     business_head: ''
 };
 let locationMultiSelect;
+let makeHeaderFilter;
+let sectionHeaderFilter;
+let purityHeaderFilter;
+
+
+
 
 document.addEventListener('DOMContentLoaded', () => {
     locationMultiSelect = new CustomMultiSelect({
@@ -22,9 +28,45 @@ document.addEventListener('DOMContentLoaded', () => {
         options: []
     });
     
+    makeHeaderFilter = new HeaderFilter({
+        id: 'make',
+        title: 'Make Wise',
+        onApply: (values) => {
+            applyFilters();
+        },
+        onClear: () => {
+            applyFilters();
+        }
+    });
+
+    sectionHeaderFilter = new HeaderFilter({
+        id: 'section',
+        title: 'Section Wise',
+        onApply: (values) => {
+            applyFilters();
+        },
+        onClear: () => {
+            applyFilters();
+        }
+    });
+
+    purityHeaderFilter = new HeaderFilter({
+        id: 'purity',
+        title: 'Purity Wise',
+        onApply: (values) => {
+            applyFilters();
+        },
+        onClear: () => {
+            applyFilters();
+        }
+    });
+
     loadOptions();
+
+
     loadReport();
 });
+
 
 async function loadOptions() {
     try {
@@ -49,6 +91,21 @@ async function loadOptions() {
         if (locationMultiSelect) {
             locationMultiSelect.populateOptions(data.locations);
         }
+
+        if (makeHeaderFilter) {
+            makeHeaderFilter.setOptions(data.makes);
+        }
+
+        if (sectionHeaderFilter) {
+            sectionHeaderFilter.setOptions(data.sections);
+        }
+
+        if (purityHeaderFilter) {
+            purityHeaderFilter.setOptions(data.purities);
+        }
+
+
+
 
         config.forEach(item => {
             const select = document.getElementById(item.id);
@@ -92,7 +149,25 @@ async function loadReport() {
         for (let i = 0; i < scripts.length; i++) {
             eval(scripts[i].innerText);
         }
+
+        // Apply filter highlight to header icons if filtered
+        if (makeHeaderFilter && makeHeaderFilter.selectedValues.length > 0) {
+            const icon = document.querySelector('.header-filter-container[data-id="make"]');
+            if (icon) icon.classList.add('filtered');
+        }
+
+        if (sectionHeaderFilter && sectionHeaderFilter.selectedValues.length > 0) {
+            const icon = document.querySelector('.header-filter-container[data-id="section"]');
+            if (icon) icon.classList.add('filtered');
+        }
+
+        if (purityHeaderFilter && purityHeaderFilter.selectedValues.length > 0) {
+            const icon = document.querySelector('.header-filter-container[data-id="purity"]');
+            if (icon) icon.classList.add('filtered');
+        }
     } catch (err) {
+
+
         console.error('Failed to load report:', err);
         tableArea.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Failed to load data: ${err.message}</div>`;
     } finally {
@@ -123,9 +198,33 @@ function applyFilters() {
     filterValues.branch_type = document.getElementById('filter-branch-type').value;
     filterValues.branch_status = document.getElementById('filter-branch-status').value;
     filterValues.business_head = document.getElementById('filter-business-head').value;
+
+    // Combine Sidebar Make and Header Filter Makes
+    let sidebarMake = document.getElementById('filter-make').value;
+    let headerMakes = makeHeaderFilter ? makeHeaderFilter.selectedValues : [];
+    let combinedMakes = new Set(headerMakes);
+    if (sidebarMake) combinedMakes.add(sidebarMake);
+    filterValues.make = Array.from(combinedMakes).join(',');
+
+    // Combine Sidebar Section and Header Filter Sections
+    let sidebarSection = document.getElementById('filter-section').value;
+    let headerSections = sectionHeaderFilter ? sectionHeaderFilter.selectedValues : [];
+    let combinedSections = new Set(headerSections);
+    if (sidebarSection) combinedSections.add(sidebarSection);
+    filterValues.section = Array.from(combinedSections).join(',');
+
+    // Combine Sidebar Purity and Header Filter Purities
+    let sidebarPurity = document.getElementById('filter-purity').value;
+    let headerPurities = purityHeaderFilter ? purityHeaderFilter.selectedValues : [];
+    let combinedPurities = new Set(headerPurities);
+    if (sidebarPurity) combinedPurities.add(sidebarPurity);
+    filterValues.purity = Array.from(combinedPurities).join(',');
     
     loadReport();
 }
+
+
+
 
 function resetFilters() {
     // Reset internal state
@@ -147,6 +246,21 @@ function resetFilters() {
     if (locationMultiSelect) {
         locationMultiSelect.reset();
     }
+
+    if (makeHeaderFilter) {
+        makeHeaderFilter.setSelectedValues([]);
+    }
+
+    if (sectionHeaderFilter) {
+        sectionHeaderFilter.setSelectedValues([]);
+    }
+
+    if (purityHeaderFilter) {
+        purityHeaderFilter.setSelectedValues([]);
+    }
+
+
+
     
     const searchInput = document.getElementById('report-search');
     if (searchInput) searchInput.value = '';
@@ -170,3 +284,43 @@ function adjustZoom(delta, reset = false) {
     const zoomText = document.getElementById('zoom-level');
     if (zoomText) zoomText.textContent = `${Math.round(currentZoom * 100)}%`;
 }
+
+// Global toggle for header filters
+function toggleHeaderFilter(event, id) {
+    event.stopPropagation();
+    const icon = event.currentTarget;
+    
+    if (id === 'make' && makeHeaderFilter) {
+        if (makeHeaderFilter.isOpen) {
+            makeHeaderFilter.close();
+            icon.classList.remove('active');
+        } else {
+            // Deactivate other filters if any (future proofing)
+            document.querySelectorAll('.header-filter-container').forEach(el => el.classList.remove('active'));
+            
+            icon.classList.add('active');
+            makeHeaderFilter.render(icon);
+        }
+    } else if (id === 'section' && sectionHeaderFilter) {
+        if (sectionHeaderFilter.isOpen) {
+            sectionHeaderFilter.close();
+            icon.classList.remove('active');
+        } else {
+            document.querySelectorAll('.header-filter-container').forEach(el => el.classList.remove('active'));
+            icon.classList.add('active');
+            sectionHeaderFilter.render(icon);
+        }
+    } else if (id === 'purity' && purityHeaderFilter) {
+        if (purityHeaderFilter.isOpen) {
+            purityHeaderFilter.close();
+            icon.classList.remove('active');
+        } else {
+            document.querySelectorAll('.header-filter-container').forEach(el => el.classList.remove('active'));
+            icon.classList.add('active');
+            purityHeaderFilter.render(icon);
+        }
+    }
+}
+
+
+

@@ -45,7 +45,17 @@
                 {% if show_sr_no %}
                 <th class="px-1 py-1 border border-gray-300 text-center font-bold text-gray-700 w-6">#</th>
                 {% endif %}
-                <th class="px-2 py-1 border border-gray-300 text-left font-bold text-gray-700">{{ title }}</th>
+                <th class="px-2 py-1 border border-gray-300 text-left font-bold text-gray-700">
+                    <div class="flex items-center justify-between gap-1">
+                        <span>{{ title }}</span>
+                        {% if title == 'Make Wise' or title == 'Section Wise' or title == 'Purity Wise' %}
+                        {% set filter_id = 'make' if title == 'Make Wise' else ('section' if title == 'Section Wise' else 'purity') %}
+                        <span class="header-filter-container material-symbols-outlined text-[14px] cursor-pointer hover:text-primary transition-colors" 
+                              data-id="{{ filter_id }}" 
+                              onclick="toggleHeaderFilter(event, '{{ filter_id }}')">filter_alt</span>
+                        {% endif %}
+                    </div>
+                </th>
                 {% if show_pcs %}
                 <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">Prov Pcs</th>
                 {% endif %}

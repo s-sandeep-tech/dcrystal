@@ -109,7 +109,7 @@ def get_provision_stock_status_partial():
 
         params = {
             'location': location if location else None,
-            'purity': float(purity) if purity else None,
+            'purity': purity if purity else None,
             'classification': classification if classification else None,
             'make': make if make else None,
             'collection': collection if collection else None,
@@ -149,11 +149,11 @@ WITH base AS (
     FROM provision_stock_raw_snapshot
     WHERE 
         (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
-        AND (:purity IS NULL OR purity = :purity)
+        AND (:purity IS NULL OR purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
         AND (:classification IS NULL OR classification = :classification)
-        AND (:make IS NULL OR make = :make)
+        AND (:make IS NULL OR make = ANY(string_to_array(CAST(:make AS text), ',')))
         AND (:collection IS NULL OR collection = :collection)
-        AND (:section IS NULL OR section = :section)
+        AND (:section IS NULL OR section = ANY(string_to_array(CAST(:section AS text), ',')))
         AND (:prov_type IS NULL OR prov_type = :prov_type)
         AND (:provision_mode IS NULL OR provision_mode_filter = :provision_mode)
         AND (:branch_type IS NULL OR branch_type = :branch_type)
