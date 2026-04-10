@@ -41,29 +41,20 @@ def get_latest_feedback_subquery(page_code='PA'):
     ]
     subq = db.session.query(
         *group_cols,
-        func.max(ReportFeedback.id).label('max_id')
+        func.max(ReportFeedback.created_at).label('max_date')
     ).filter(ReportFeedback.page_code == page_code).group_by(
         *group_cols
     ).subquery()
     
     return db.session.query(ReportFeedback).join(
         subq,
-        ReportFeedback.id == subq.c.max_id
-    ).subquery()
-
-def get_feedback_count_subquery(page_code='PA'):
-    group_cols = [
-        ReportFeedback.collection_owner,
-        ReportFeedback.make_owner,
-        ReportFeedback.supplier,
-        ReportFeedback.collection
-    ]
-    return db.session.query(
-        *group_cols,
-        func.count(ReportFeedback.id).label('fb_count')
-    ).filter(ReportFeedback.page_code == page_code).group_by(
-        *group_cols
-    ).subquery()
+        db.and_(
+            func.coalesce(ReportFeedback.collection_owner, '') == func.coalesce(subq.c.collection_owner, ''),
+            func.coalesce(ReportFeedback.make_owner, '') == func.coalesce(subq.c.make_owner, ''),
+            func.coalesce(ReportFeedback.supplier, '') == func.coalesce(subq.c.supplier, ''),
+            func.coalesce(ReportFeedback.collection, '') == func.coalesce(subq.c.collection, '')
+        )
+    ).filter(ReportFeedback.page_code == page_code).subquery()
 
 def get_latest_hd_feedback_subquery():
     group_cols = [
@@ -76,30 +67,21 @@ def get_latest_hd_feedback_subquery():
     ]
     subq = db.session.query(
         *group_cols,
-        func.max(HallmarkingDelayedFeedback.id).label('max_id')
+        func.max(HallmarkingDelayedFeedback.created_at).label('max_date')
     ).group_by(
         *group_cols
     ).subquery()
     
     return db.session.query(HallmarkingDelayedFeedback).join(
         subq,
-        HallmarkingDelayedFeedback.id == subq.c.max_id
-    ).subquery()
-
-def get_hd_feedback_count_subquery():
-    group_cols = [
-        HallmarkingDelayedFeedback.collection_owner,
-        HallmarkingDelayedFeedback.make_owner,
-        HallmarkingDelayedFeedback.supplier,
-        HallmarkingDelayedFeedback.collection,
-        HallmarkingDelayedFeedback.office,
-        HallmarkingDelayedFeedback.hm_agent
-    ]
-    return db.session.query(
-        *group_cols,
-        func.count(HallmarkingDelayedFeedback.id).label('fb_count')
-    ).group_by(
-        *group_cols
+        db.and_(
+            func.coalesce(HallmarkingDelayedFeedback.collection_owner, '') == func.coalesce(subq.c.collection_owner, ''),
+            func.coalesce(HallmarkingDelayedFeedback.make_owner, '') == func.coalesce(subq.c.make_owner, ''),
+            func.coalesce(HallmarkingDelayedFeedback.supplier, '') == func.coalesce(subq.c.supplier, ''),
+            func.coalesce(HallmarkingDelayedFeedback.collection, '') == func.coalesce(subq.c.collection, ''),
+            func.coalesce(HallmarkingDelayedFeedback.office, '') == func.coalesce(subq.c.office, ''),
+            func.coalesce(HallmarkingDelayedFeedback.hm_agent, '') == func.coalesce(subq.c.hm_agent, '')
+        )
     ).subquery()
 
 def get_latest_wizard_action_subquery(status_filter='pending_to_deliver_not_barcoded', action_type=None):
@@ -112,7 +94,7 @@ def get_latest_wizard_action_subquery(status_filter='pending_to_deliver_not_barc
         PendingAcceptanceAction.make_owner,
         PendingAcceptanceAction.supplier,
         PendingAcceptanceAction.collection,
-        func.max(PendingAcceptanceAction.id).label('max_id')
+        func.max(PendingAcceptanceAction.created_at).label('max_date')
     ).filter(base_filter).group_by(
         PendingAcceptanceAction.collection_owner,
         PendingAcceptanceAction.make_owner,
@@ -122,8 +104,14 @@ def get_latest_wizard_action_subquery(status_filter='pending_to_deliver_not_barc
     
     return db.session.query(PendingAcceptanceAction).join(
         subq,
-        PendingAcceptanceAction.id == subq.c.max_id
-    ).subquery()
+        db.and_(
+            func.coalesce(PendingAcceptanceAction.collection_owner, '') == func.coalesce(subq.c.collection_owner, ''),
+            func.coalesce(PendingAcceptanceAction.make_owner, '') == func.coalesce(subq.c.make_owner, ''),
+            func.coalesce(PendingAcceptanceAction.supplier, '') == func.coalesce(subq.c.supplier, ''),
+            func.coalesce(PendingAcceptanceAction.collection, '') == func.coalesce(subq.c.collection, ''),
+            PendingAcceptanceAction.created_at == subq.c.max_date
+        )
+    ).filter(base_filter).subquery()
 
 def apply_filters(query, search, latest_date_query, collection_owner=None, make_owner=None, 
                 supplier=None, collection=None, classification=None, feedback_status=None,
@@ -212,7 +200,6 @@ def get_base_query(query_filter_func=None, feedback_status=None,
         p_code = 'HD'
     
     latest_feedback = get_latest_hd_feedback_subquery() if status_filter == 'hallmarking_delayed' else get_latest_feedback_subquery(page_code=p_code)
-    feedback_count = get_hd_feedback_count_subquery() if status_filter == 'hallmarking_delayed' else get_feedback_count_subquery(page_code=p_code)
     latest_continue = get_latest_wizard_action_subquery(status_filter=status_filter, action_type='CONTINUE')
     latest_cancel = get_latest_wizard_action_subquery(status_filter=status_filter, action_type='CANCEL')
     
@@ -251,8 +238,7 @@ def get_base_query(query_filter_func=None, feedback_status=None,
             latest_feedback.c.feedback_text,
             latest_feedback.c.feedback_category,
             latest_feedback.c.username,
-            latest_feedback.c.created_at,
-            func.coalesce(feedback_count.c.fb_count, 0).label('fb_count')
+            latest_feedback.c.created_at
         ).outerjoin(
             latest_feedback,
             db.and_(
@@ -262,16 +248,6 @@ def get_base_query(query_filter_func=None, feedback_status=None,
                 func.coalesce(q.c.collection, '') == func.coalesce(latest_feedback.c.collection, ''),
                 func.coalesce(q.c.hm_agent, '') == func.coalesce(latest_feedback.c.hm_agent, ''),
                 func.coalesce(q.c.supplier, '') == func.coalesce(latest_feedback.c.supplier, '')
-            )
-        ).outerjoin(
-            feedback_count,
-            db.and_(
-                func.coalesce(q.c.office, '') == func.coalesce(feedback_count.c.office, ''),
-                func.coalesce(q.c.make_owner, '') == func.coalesce(feedback_count.c.make_owner, ''),
-                func.coalesce(q.c.collection_owner, '') == func.coalesce(feedback_count.c.collection_owner, ''),
-                func.coalesce(q.c.collection, '') == func.coalesce(feedback_count.c.collection, ''),
-                func.coalesce(q.c.hm_agent, '') == func.coalesce(feedback_count.c.hm_agent, ''),
-                func.coalesce(q.c.supplier, '') == func.coalesce(feedback_count.c.supplier, '')
             )
         )
     else:
@@ -335,8 +311,7 @@ def get_base_query(query_filter_func=None, feedback_status=None,
             latest_cancel.c.reason.label('cancel_reason'),
             latest_cancel.c.action_data.label('cancel_data'),
             latest_cancel.c.username.label('cancel_username'),
-            latest_cancel.c.created_at.label('cancel_created_at'),
-            func.coalesce(feedback_count.c.fb_count, 0).label('fb_count')
+            latest_cancel.c.created_at.label('cancel_created_at')
         ).outerjoin(
             latest_feedback,
             db.and_(
@@ -344,14 +319,6 @@ def get_base_query(query_filter_func=None, feedback_status=None,
                 func.coalesce(q.c.make_owner, '') == func.coalesce(latest_feedback.c.make_owner, ''),
                 func.coalesce(q.c.supplier, '') == func.coalesce(latest_feedback.c.supplier, ''),
                 func.coalesce(q.c.collection, '') == func.coalesce(latest_feedback.c.collection, '')
-            )
-        ).outerjoin(
-            feedback_count,
-            db.and_(
-                func.coalesce(q.c.collection_owner, '') == func.coalesce(feedback_count.c.collection_owner, ''),
-                func.coalesce(q.c.make_owner, '') == func.coalesce(feedback_count.c.make_owner, ''),
-                func.coalesce(q.c.supplier, '') == func.coalesce(feedback_count.c.supplier, ''),
-                func.coalesce(q.c.collection, '') == func.coalesce(feedback_count.c.collection, '')
             )
         ).outerjoin(
             latest_continue,
@@ -1036,24 +1003,14 @@ def get_pending_acceptance_partial():
                     'has_action': has_action,
                     'continue_reason': getattr(r, 'continue_reason', ''),
                     'continue_username': getattr(r, 'continue_username', ''),
-                    'continue_date': (getattr(r, 'continue_created_at', None) + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M') if getattr(r, 'continue_created_at', None) else '',
+                    'continue_date': (r.continue_created_at + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M') if getattr(r, 'continue_created_at', None) else '',
                     'continue_data_formatted': continue_data_formatted,
                     
                     'cancel_reason': getattr(r, 'cancel_reason', ''),
                     'cancel_username': getattr(r, 'cancel_username', ''),
-                    'cancel_date': (getattr(r, 'cancel_created_at', None) + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M') if getattr(r, 'cancel_created_at', None) else '',
-                    'cancel_data_formatted': cancel_data_formatted,
-                    'has_feedback': r.fb_count > 0,
-                    'fb_count': r.fb_count
+                    'cancel_date': (r.cancel_created_at + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M') if getattr(r, 'cancel_created_at', None) else '',
+                    'cancel_data_formatted': cancel_data_formatted
                 }
-                
-                # For Pending to Accept, we don't send feedback text anymore to ensure dynamic loading
-                if status_filter == 'pending_to_accept':
-                    row_dict['feedback_text'] = ''
-                    row_dict['feedback_username'] = ''
-                    row_dict['feedback_date'] = ''
-                    row_dict['feedback_category'] = ''
-                
                 processed_rows.append(row_dict)
             
             if status_filter == 'pending_to_deliver_not_barcoded':
@@ -1426,62 +1383,12 @@ def save_pending_acceptance_feedback():
                 redis_client.delete(key)
         except Exception as e:
             logger.error(f"Error clearing cache: {str(e)}")
+            
         return jsonify({"status": "success", "message": "Feedback saved successfully"})
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error saving feedback: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
-
-@dashboard_bp.route('/api/pending-acceptance-feedback/get-details')
-@jwt_required()
-def get_pending_acceptance_feedback_details():
-    try:
-        collection_owner = request.args.get('collection_owner', '')
-        make_owner = request.args.get('make_owner', '')
-        supplier = request.args.get('supplier', '')
-        collection = request.args.get('collection', '')
-        status_filter = request.args.get('status_filter', 'pending_to_accept')
-
-        p_code = 'PA'
-        if status_filter == 'pending_to_deliver':
-            p_code = 'PD'
-        elif status_filter == 'pending_to_deliver_not_barcoded':
-            p_code = 'PNB'
-        elif status_filter == 'hallmarking_delayed':
-            p_code = 'HD'
-
-        if p_code == 'HD':
-            office = request.args.get('office', '')
-            hm_agent = request.args.get('hm_agent', '')
-            feedbacks = HallmarkingDelayedFeedback.query.filter(
-                func.coalesce(HallmarkingDelayedFeedback.collection_owner, '') == func.coalesce(collection_owner, ''),
-                func.coalesce(HallmarkingDelayedFeedback.make_owner, '') == func.coalesce(make_owner, ''),
-                func.coalesce(HallmarkingDelayedFeedback.supplier, '') == func.coalesce(supplier, ''),
-                func.coalesce(HallmarkingDelayedFeedback.collection, '') == func.coalesce(collection, ''),
-                func.coalesce(HallmarkingDelayedFeedback.office, '') == func.coalesce(office, ''),
-                func.coalesce(HallmarkingDelayedFeedback.hm_agent, '') == func.coalesce(hm_agent, '')
-            ).order_by(HallmarkingDelayedFeedback.created_at.desc()).limit(3).all()
-        else:
-            feedbacks = ReportFeedback.query.filter(
-                func.coalesce(ReportFeedback.collection_owner, '') == func.coalesce(collection_owner, ''),
-                func.coalesce(ReportFeedback.make_owner, '') == func.coalesce(make_owner, ''),
-                func.coalesce(ReportFeedback.supplier, '') == func.coalesce(supplier, ''),
-                func.coalesce(ReportFeedback.collection, '') == func.coalesce(collection, ''),
-                ReportFeedback.page_code == p_code
-            ).order_by(ReportFeedback.created_at.desc()).limit(3).all()
-
-        results = []
-        for fb in feedbacks:
-            results.append({
-                'text': fb.feedback_text,
-                'category': fb.feedback_category,
-                'username': fb.username,
-                'date': (fb.created_at + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M')
-            })
-        return jsonify(results)
-    except Exception as e:
-        logger.error(f"Error fetching feedback details: {str(e)}")
-        return jsonify([]), 500
 
 @dashboard_bp.route('/api/pending-acceptance-feedback/wizard-action', methods=['POST'])
 @jwt_required()
