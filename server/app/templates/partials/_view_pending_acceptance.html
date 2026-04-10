@@ -40,6 +40,9 @@
                          data-collection="{{ (r.collection or '') | replace('\'', '\\\'') }}"
                          data-status-filter="{{ status_filter }}">
                         
+                        {% if r.fb_count > 1 %}
+                        <span class="text-[10px] font-bold text-indigo-500 mr-0.5">{{ r.fb_count }}</span>
+                        {% endif %}
                         <span class="material-symbols-outlined text-[13px] text-indigo-400 cursor-help hover:text-primary transition-colors">chat_bubble</span>
 
                         <!-- Tooltip Balloon (Right Pointing) -->
