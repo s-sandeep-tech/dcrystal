@@ -106,6 +106,8 @@ def get_provision_stock_status_partial():
         branch_type = request.args.get('branch_type', '')
         branch_status = request.args.get('branch_status', '')
         business_head = request.args.get('business_head', '')
+        sort_by = request.args.get('sort_by', '')
+        sort_order = request.args.get('sort_order', 'asc')
 
         params = {
             'location': location if location else None,
@@ -119,7 +121,9 @@ def get_provision_stock_status_partial():
             'branch_type': branch_type if branch_type else None,
             'branch_status': branch_status if branch_status else None,
             'business_head': business_head if business_head else None,
-            'bh_emp_code': None
+            'bh_emp_code': None,
+            'sort_by': sort_by if sort_by else None,
+            'sort_order': sort_order if sort_order else None
         }
 
         # Role-based filtering for Business Head
@@ -403,8 +407,23 @@ ORDER BY
         
         result = db.session.execute(text(query), params)
         rows = [dict(r._mapping) for r in result]
+
+        # In-memory sorting for Location Summary (All numeric columns)
+        numeric_cols = ['prov_pcs', 'prov_gr_wt', 'in_shop_wt', 'ordered_wt', 'in_transit_wt', 'short_excess_wt', 'percent']
+        if sort_by in numeric_cols:
+            loc_summary_rows = [r for r in rows if r['report_section'] == 'Location Summary']
+            other_rows = [r for r in rows if r['report_section'] != 'Location Summary']
+            
+            loc_summary_rows.sort(
+                key=lambda x: (float(x.get(sort_by)) if x.get(sort_by) is not None else 0.0),
+                reverse=(sort_order == 'desc')
+            )
+            rows = loc_summary_rows + other_rows
         
-        rendered_html = render_template('partials/_view_provision_stock_status.html', rows=rows)
+        rendered_html = render_template('partials/_view_provision_stock_status.html', 
+                                      rows=rows, 
+                                      sort_by=sort_by, 
+                                      sort_order=sort_order)
         
         # Cache for 5 hours as requested
         redis_client.setex(cache_key, 18000, rendered_html)

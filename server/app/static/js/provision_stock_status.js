@@ -10,7 +10,9 @@ let filterValues = {
     provision_mode: '',
     branch_type: '',
     branch_status: '',
-    business_head: ''
+    business_head: '',
+    sort_by: '',
+    sort_order: 'none'
 };
 let locationMultiSelect;
 let branchTypeMultiSelect;
@@ -160,6 +162,14 @@ async function loadReport() {
             ...filterValues
         });
 
+        // Optimization: Don't send sort_order if sort_by is empty
+        if (!filterValues.sort_by) {
+            params.delete('sort_order');
+        } else if (filterValues.sort_order === 'none') {
+            params.delete('sort_by');
+            params.delete('sort_order');
+        }
+
         const response = await fetch(`/partial/provision-stock-status?${params}`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
         });
@@ -299,12 +309,29 @@ function resetFilters() {
         purityHeaderFilter.setSelectedValues([]);
     }
 
+    filterValues.sort_by = '';
+    filterValues.sort_order = 'none';
 
-
-    
     const searchInput = document.getElementById('report-search');
     if (searchInput) searchInput.value = '';
     
+    loadReport();
+}
+
+function toggleLocationSort(column) {
+    if (filterValues.sort_by === column) {
+        if (filterValues.sort_order === 'asc') {
+            filterValues.sort_order = 'desc';
+        } else if (filterValues.sort_order === 'desc') {
+            filterValues.sort_order = 'none';
+            filterValues.sort_by = '';
+        } else {
+            filterValues.sort_order = 'asc';
+        }
+    } else {
+        filterValues.sort_by = column;
+        filterValues.sort_order = 'asc';
+    }
     loadReport();
 }
 

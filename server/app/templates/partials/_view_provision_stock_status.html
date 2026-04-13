@@ -65,14 +65,84 @@
                     </div>
                 </th>
                 {% if show_pcs %}
-                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">Prov Pcs</th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 {% if title == 'Location Summary' %}cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group{% endif %}"
+                    {% if title == 'Location Summary' %}onclick="toggleLocationSort('prov_pcs')"{% endif %}>
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Prov Pcs</span>
+                        {% if title == 'Location Summary' %}
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'prov_pcs' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'prov_pcs' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'prov_pcs' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </th>
                 {% endif %}
-                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">Prov Gr.Wt</th>
-                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">In Shop Wt</th>
-                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">Ordered Wt</th>
-                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">Transit Wt</th>
-                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">Short/Excess</th>
-                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700">%</th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 {% if title == 'Location Summary' %}cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group{% endif %}"
+                    {% if title == 'Location Summary' %}onclick="toggleLocationSort('prov_gr_wt')"{% endif %}>
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Prov Gr.Wt</span>
+                        {% if title == 'Location Summary' %}
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'prov_gr_wt' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'prov_gr_wt' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'prov_gr_wt' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 {% if title == 'Location Summary' %}cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group{% endif %}"
+                    {% if title == 'Location Summary' %}onclick="toggleLocationSort('in_shop_wt')"{% endif %}>
+                    <div class="flex items-center justify-end gap-1">
+                        <span>In Shop Wt</span>
+                        {% if title == 'Location Summary' %}
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'in_shop_wt' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'in_shop_wt' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'in_shop_wt' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 {% if title == 'Location Summary' %}cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group{% endif %}"
+                    {% if title == 'Location Summary' %}onclick="toggleLocationSort('ordered_wt')"{% endif %}>
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Ordered Wt</span>
+                        {% if title == 'Location Summary' %}
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'ordered_wt' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'ordered_wt' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'ordered_wt' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 {% if title == 'Location Summary' %}cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group{% endif %}"
+                    {% if title == 'Location Summary' %}onclick="toggleLocationSort('in_transit_wt')"{% endif %}>
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Transit Wt</span>
+                        {% if title == 'Location Summary' %}
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'in_transit_wt' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'in_transit_wt' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'in_transit_wt' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 {% if title == 'Location Summary' %}cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group{% endif %}"
+                    {% if title == 'Location Summary' %}onclick="toggleLocationSort('short_excess_wt')"{% endif %}>
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Short/Excess</span>
+                        {% if title == 'Location Summary' %}
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'short_excess_wt' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'short_excess_wt' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'short_excess_wt' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 {% if title == 'Location Summary' %}cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group{% endif %}"
+                    {% if title == 'Location Summary' %}onclick="toggleLocationSort('percent')"{% endif %}>
+                    <div class="flex items-center justify-end gap-1">
+                        <span>%</span>
+                        {% if title == 'Location Summary' %}
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'percent' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'percent' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'percent' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </th>
             </tr>
         </thead>
         <tbody>
