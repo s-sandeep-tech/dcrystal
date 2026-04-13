@@ -17,13 +17,27 @@ let filters = {
     provision_mode: ''
 };
 
-let locationMultiSelect;
+let locationMultiSelect, branchTypeMultiSelect, branchStatusMultiSelect;
 
 document.addEventListener('DOMContentLoaded', () => {
     locationMultiSelect = new CustomMultiSelect({
         containerId: 'filter-location-container',
         label: 'Location',
         defaultText: 'All Locations',
+        options: []
+    });
+
+    branchTypeMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-branch-type-container',
+        label: 'Branch Type',
+        defaultText: 'All Branch Types',
+        options: []
+    });
+
+    branchStatusMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-branch-status-container',
+        label: 'Branch Status',
+        defaultText: 'All Branch Statuses',
         options: []
     });
 
@@ -66,8 +80,15 @@ async function loadOptions() {
             });
         };
 
-        populateSelect('filter-branch-type', data.branch_types);
-        populateSelect('filter-branch-status', data.branch_statuses);
+        // populateSelect('filter-branch-type', data.branch_types);
+        // populateSelect('filter-branch-status', data.branch_statuses);
+        
+        if (branchTypeMultiSelect) {
+            branchTypeMultiSelect.populateOptions(data.branch_types);
+        }
+        if (branchStatusMultiSelect) {
+            branchStatusMultiSelect.populateOptions(data.branch_statuses);
+        }
         populateSelect('filter-business-head', data.business_heads);
         populateSelect('filter-purity', data.purities);
         populateSelect('filter-classification', data.classifications);
@@ -134,8 +155,12 @@ function applyFilters() {
         filters.location = locationMultiSelect.getValues().join(',');
     }
     
-    filters.branch_type = document.getElementById('filter-branch-type').value;
-    filters.branch_status = document.getElementById('filter-branch-status').value;
+    if (branchTypeMultiSelect) {
+        filters.branch_type = branchTypeMultiSelect.getValues().join(',');
+    }
+    if (branchStatusMultiSelect) {
+        filters.branch_status = branchStatusMultiSelect.getValues().join(',');
+    }
     filters.business_head = document.getElementById('filter-business-head').value;
     filters.purity = document.getElementById('filter-purity').value;
     filters.classification = document.getElementById('filter-classification').value;
@@ -160,6 +185,12 @@ function resetFilters() {
     filters.location = '';
     if (locationMultiSelect) {
         locationMultiSelect.reset();
+    }
+    if (branchTypeMultiSelect) {
+        branchTypeMultiSelect.reset();
+    }
+    if (branchStatusMultiSelect) {
+        branchStatusMultiSelect.reset();
     }
     
     document.getElementById('report-search').value = '';
