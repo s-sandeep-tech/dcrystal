@@ -13,6 +13,7 @@ let filterValues = {
     business_head: ''
 };
 let locationMultiSelect;
+let branchTypeMultiSelect;
 let branchStatusMultiSelect;
 let makeHeaderFilter;
 let sectionHeaderFilter;
@@ -33,6 +34,13 @@ document.addEventListener('DOMContentLoaded', () => {
         containerId: 'filter-branch-status-container',
         label: 'Branch Status',
         defaultText: 'All Branch Statuses',
+        options: []
+    });
+
+    branchTypeMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-branch-type-container',
+        label: 'Branch Type',
+        defaultText: 'All Branch Types',
         options: []
     });
     
@@ -91,7 +99,6 @@ async function loadOptions() {
             { id: 'filter-section', data: data.sections },
             { id: 'filter-prov-type', data: data.prov_types },
             { id: 'filter-provision-mode', data: data.provision_modes },
-            { id: 'filter-branch-type', data: data.branch_types },
             { id: 'filter-business-head', data: data.business_heads }
         ];
 
@@ -101,6 +108,10 @@ async function loadOptions() {
 
         if (branchStatusMultiSelect) {
             branchStatusMultiSelect.populateOptions(data.branch_statuses);
+        }
+
+        if (branchTypeMultiSelect) {
+            branchTypeMultiSelect.populateOptions(data.branch_types);
         }
 
         if (makeHeaderFilter) {
@@ -196,7 +207,7 @@ function onSearchInput(val) {
 }
 
 function applyFilters() {
-    filterValues.branch_type = document.getElementById('filter-branch-type').value;
+    filterValues.branch_type = ''; // Will be set by multi-select below
     filterValues.branch_status = ''; // Will be set by multi-select below
     filterValues.business_head = document.getElementById('filter-business-head').value;
 
@@ -206,6 +217,10 @@ function applyFilters() {
 
     if (branchStatusMultiSelect) {
         filterValues.branch_status = branchStatusMultiSelect.getValues().join(',');
+    }
+
+    if (branchTypeMultiSelect) {
+        filterValues.branch_type = branchTypeMultiSelect.getValues().join(',');
     }
 
     filterValues.purity = document.getElementById('filter-purity').value;
@@ -266,6 +281,10 @@ function resetFilters() {
 
     if (branchStatusMultiSelect) {
         branchStatusMultiSelect.reset();
+    }
+
+    if (branchTypeMultiSelect) {
+        branchTypeMultiSelect.reset();
     }
 
     if (makeHeaderFilter) {
