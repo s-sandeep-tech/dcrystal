@@ -157,7 +157,7 @@ WITH base AS (
         AND (:prov_type IS NULL OR prov_type = :prov_type)
         AND (:provision_mode IS NULL OR provision_mode_filter = :provision_mode)
         AND (:branch_type IS NULL OR branch_type = :branch_type)
-        AND (:branch_status IS NULL OR branch_status = :branch_status)
+        AND (:branch_status IS NULL OR branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
         AND (:business_head IS NULL OR business_head_name = :business_head)
         AND (:bh_emp_code IS NULL OR business_head_emp_code = :bh_emp_code)
 ),

@@ -13,6 +13,7 @@ let filterValues = {
     business_head: ''
 };
 let locationMultiSelect;
+let branchStatusMultiSelect;
 let makeHeaderFilter;
 let sectionHeaderFilter;
 let purityHeaderFilter;
@@ -25,6 +26,13 @@ document.addEventListener('DOMContentLoaded', () => {
         containerId: 'filter-location-container',
         label: 'Location',
         defaultText: 'All Locations',
+        options: []
+    });
+
+    branchStatusMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-branch-status-container',
+        label: 'Branch Status',
+        defaultText: 'All Branch Statuses',
         options: []
     });
     
@@ -84,12 +92,15 @@ async function loadOptions() {
             { id: 'filter-prov-type', data: data.prov_types },
             { id: 'filter-provision-mode', data: data.provision_modes },
             { id: 'filter-branch-type', data: data.branch_types },
-            { id: 'filter-branch-status', data: data.branch_statuses },
             { id: 'filter-business-head', data: data.business_heads }
         ];
 
         if (locationMultiSelect) {
             locationMultiSelect.populateOptions(data.locations);
+        }
+
+        if (branchStatusMultiSelect) {
+            branchStatusMultiSelect.populateOptions(data.branch_statuses);
         }
 
         if (makeHeaderFilter) {
@@ -185,9 +196,18 @@ function onSearchInput(val) {
 }
 
 function applyFilters() {
+    filterValues.branch_type = document.getElementById('filter-branch-type').value;
+    filterValues.branch_status = ''; // Will be set by multi-select below
+    filterValues.business_head = document.getElementById('filter-business-head').value;
+
     if (locationMultiSelect) {
         filterValues.location = locationMultiSelect.getValues().join(',');
     }
+
+    if (branchStatusMultiSelect) {
+        filterValues.branch_status = branchStatusMultiSelect.getValues().join(',');
+    }
+
     filterValues.purity = document.getElementById('filter-purity').value;
     filterValues.classification = document.getElementById('filter-classification').value;
     filterValues.make = document.getElementById('filter-make').value;
@@ -195,9 +215,6 @@ function applyFilters() {
     filterValues.section = document.getElementById('filter-section').value;
     filterValues.prov_type = document.getElementById('filter-prov-type').value;
     filterValues.provision_mode = document.getElementById('filter-provision-mode').value;
-    filterValues.branch_type = document.getElementById('filter-branch-type').value;
-    filterValues.branch_status = document.getElementById('filter-branch-status').value;
-    filterValues.business_head = document.getElementById('filter-business-head').value;
 
     // Combine Sidebar Make and Header Filter Makes
     let sidebarMake = document.getElementById('filter-make').value;
@@ -245,6 +262,10 @@ function resetFilters() {
 
     if (locationMultiSelect) {
         locationMultiSelect.reset();
+    }
+
+    if (branchStatusMultiSelect) {
+        branchStatusMultiSelect.reset();
     }
 
     if (makeHeaderFilter) {
