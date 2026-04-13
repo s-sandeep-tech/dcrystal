@@ -48,6 +48,14 @@
                 <th class="px-2 py-1 border border-gray-300 text-left font-bold text-gray-700">
                     <div class="flex items-center justify-between gap-1">
                         <span>{{ title }}</span>
+                        {% if title == 'Classification Wise' %}
+                        <div class="flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px] cursor-pointer hover:text-primary transition-colors select-none" 
+                                  id="expand-shrink-all"
+                                  onclick="toggleAllClassifications(this)"
+                                  title="Expand/Shrink All">keyboard_double_arrow_down</span>
+                        </div>
+                        {% endif %}
                         {% if title == 'Make Wise' or title == 'Section Wise' or title == 'Purity Wise' %}
                         {% set filter_id = 'make' if title == 'Make Wise' else ('section' if title == 'Section Wise' else 'purity') %}
                         <span class="header-filter-container material-symbols-outlined text-[14px] cursor-pointer hover:text-primary transition-colors" 
@@ -215,5 +223,30 @@
                 arrow.style.transform = 'rotate(0deg)';
             }
         }
+    }
+
+    function toggleAllClassifications(icon) {
+        const isExpanding = icon.textContent === 'keyboard_double_arrow_down';
+        const parentRows = document.querySelectorAll('.parent-row[data-classification]');
+        
+        parentRows.forEach(parent => {
+            const classification = parent.getAttribute('data-classification');
+            const childRows = document.querySelectorAll(`tr[data-classification="${classification}"].child-row`);
+            const arrow = document.getElementById(`arrow-${classification}`);
+            
+            childRows.forEach(row => {
+                if (isExpanding) {
+                    row.classList.remove('hidden');
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+            
+            if (arrow) {
+                arrow.style.transform = isExpanding ? 'rotate(90deg)' : 'rotate(0deg)';
+            }
+        });
+        
+        icon.textContent = isExpanding ? 'keyboard_double_arrow_up' : 'keyboard_double_arrow_down';
     }
 </script>
