@@ -12,13 +12,27 @@ let filterValues = {
     branch_status: '',
     business_head: ''
 };
-let locationMultiSelect;
+let locationMultiSelect, branchTypeMultiSelect, branchStatusMultiSelect;
 
 document.addEventListener('DOMContentLoaded', () => {
     locationMultiSelect = new CustomMultiSelect({
         containerId: 'filter-location-container',
         label: 'Location',
         defaultText: 'All Locations',
+        options: []
+    });
+    
+    branchTypeMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-branch-type-container',
+        label: 'Branch Type',
+        defaultText: 'All Branch Types',
+        options: []
+    });
+
+    branchStatusMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-branch-status-container',
+        label: 'Branch Status',
+        defaultText: 'All Branch Statuses',
         options: []
     });
     
@@ -50,7 +64,16 @@ async function loadOptions() {
             locationMultiSelect.populateOptions(data.locations);
         }
 
+        if (branchTypeMultiSelect) {
+            branchTypeMultiSelect.populateOptions(data.branch_types);
+        }
+
+        if (branchStatusMultiSelect) {
+            branchStatusMultiSelect.populateOptions(data.branch_statuses);
+        }
+
         config.forEach(item => {
+            if (item.id === 'filter-branch-type' || item.id === 'filter-branch-status') return;
             const select = document.getElementById(item.id);
             if (select && item.data) {
                 item.data.forEach(opt => {
@@ -120,8 +143,12 @@ function applyFilters() {
     filterValues.section = document.getElementById('filter-section').value;
     filterValues.prov_type = document.getElementById('filter-prov-type').value;
     filterValues.provision_mode = document.getElementById('filter-provision-mode').value;
-    filterValues.branch_type = document.getElementById('filter-branch-type').value;
-    filterValues.branch_status = document.getElementById('filter-branch-status').value;
+    if (branchTypeMultiSelect) {
+        filterValues.branch_type = branchTypeMultiSelect.getValues().join(',');
+    }
+    if (branchStatusMultiSelect) {
+        filterValues.branch_status = branchStatusMultiSelect.getValues().join(',');
+    }
     filterValues.business_head = document.getElementById('filter-business-head').value;
     
     loadReport();
@@ -146,6 +173,14 @@ function resetFilters() {
 
     if (locationMultiSelect) {
         locationMultiSelect.reset();
+    }
+
+    if (branchTypeMultiSelect) {
+        branchTypeMultiSelect.reset();
+    }
+
+    if (branchStatusMultiSelect) {
+        branchStatusMultiSelect.reset();
     }
     
     const searchInput = document.getElementById('report-search');
