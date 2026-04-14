@@ -214,7 +214,9 @@ def get_base_query(query_filter_func=None, feedback_status=None,
             HallmarkingDelayedSnapshot.hm_agent,
             HallmarkingDelayedSnapshot.supplier,
             func.sum(HallmarkingDelayedSnapshot.pieces).label('sum_pieces'),
-            func.sum(HallmarkingDelayedSnapshot.weight).label('sum_weight')
+            func.sum(HallmarkingDelayedSnapshot.weight).label('sum_weight'),
+            func.max(HallmarkingDelayedSnapshot.challan_date).label('challan_date'),
+            func.max(HallmarkingDelayedSnapshot.challan_no).label('challan_no')
         )
         if query_filter_func:
             q = query_filter_func(q)
@@ -237,6 +239,8 @@ def get_base_query(query_filter_func=None, feedback_status=None,
             q.c.supplier,
             q.c.sum_pieces,
             q.c.sum_weight,
+            q.c.challan_date,
+            q.c.challan_no,
             latest_feedback.c.feedback_text,
             latest_feedback.c.feedback_category,
             latest_feedback.c.username,
@@ -919,6 +923,8 @@ def get_pending_acceptance_partial():
                     'supplier': getattr(r, 'supplier', '') or '',
                     'sum_pieces': float(getattr(r, 'sum_pieces', 0) or 0),
                     'sum_weight': float(getattr(r, 'sum_weight', 0) or 0),
+                    'challan_date': r.challan_date.strftime('%Y-%m-%d') if getattr(r, 'challan_date', None) else '',
+                    'requested_delivery_challan': getattr(r, 'challan_no', '') or '',
                     'feedback_text': getattr(r, 'feedback_text', '') or '',
                     'feedback_category': getattr(r, 'feedback_category', '') or '',
                     'feedback_username': getattr(r, 'username', '') or '',
