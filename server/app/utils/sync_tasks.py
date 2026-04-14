@@ -1688,7 +1688,7 @@ def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_ty
                         'not_in_prov_gr_weight': row.get('not_in_prov_gr_weight'),
                         'not_in_prov_amt': row.get('not_in_prov_amt'),
                         'prov_type': row.get('prov_type'),
-                        'snapshot_date': today
+                        'snapshot_date': row.get('last_updated_at') or today
                     })
                 
                 db.session.bulk_insert_mappings(ProvisionStockRawSnapshot, batch_data)
@@ -1746,7 +1746,8 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
                    "refill_to_qty","refill_from_wt","refill_to_wt","prov_type_filter","short_pcs",
                    "short_gr_wt","short_amt","short_percent","excess_pcs","excess_gr_weight","excess_amt",
                    "not_in_prov_pcs","not_in_prov_gr_weight","not_in_prov_amt","prov_type",
-                   "branch_type","branch_status","business_head_name","business_head_emp_code"
+                   "branch_type","branch_status","business_head_name","business_head_emp_code",
+                   "last_updated_at"
             FROM  ext_view.vw_prov_and_stock_size_level;
         """
         
