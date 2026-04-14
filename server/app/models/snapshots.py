@@ -928,3 +928,74 @@ class HallmarkingDelayedSnapshot(db.Model):
             'hm_status': self.hm_status,
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
         }
+
+class QCDelayedSnapshot(db.Model):
+    __tablename__ = 'qc_delayed_snapshot'
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.BigInteger)
+    office = db.Column(db.Text)
+    make_owner = db.Column(db.Text)
+    collection_owner = db.Column(db.Text)
+    collection = db.Column(db.Text)
+    supplier = db.Column(db.Text)
+    pieces = db.Column(db.Integer)
+    weight = db.Column(db.Numeric(18, 3))
+    qc_completion_status = db.Column(db.Text)
+    qc_request_no = db.Column(db.Text)
+    qc_date = db.Column(db.DateTime)
+    qc_received_delivery_challan = db.Column(db.Text)
+    receipt_no = db.Column(db.Text)
+    qc_received_on = db.Column(db.DateTime)
+    snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'order_id': self.order_id,
+            'office': self.office,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'supplier': self.supplier,
+            'pieces': self.pieces,
+            'weight': float(self.weight or 0),
+            'qc_completion_status': self.qc_completion_status,
+            'qc_request_no': self.qc_request_no,
+            'qc_date': self.qc_date.isoformat() if self.qc_date else '',
+            'qc_received_delivery_challan': self.qc_received_delivery_challan,
+            'receipt_no': self.receipt_no,
+            'qc_received_on': self.qc_received_on.isoformat() if self.qc_received_on else '',
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None
+        }
+
+class QCDelayedFeedback(db.Model):
+    __tablename__ = 'qc_delayed_feedback'
+
+    id = db.Column(db.Integer, primary_key=True)
+    office = db.Column(db.Text)
+    make_owner = db.Column(db.Text)
+    collection_owner = db.Column(db.Text)
+    collection = db.Column(db.Text)
+    supplier = db.Column(db.Text)
+    qc_request_no = db.Column(db.Text)
+    feedback_text = db.Column(db.Text)
+    feedback_category = db.Column(db.String(100))
+    username = db.Column(db.String(80))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'office': self.office,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'supplier': self.supplier,
+            'qc_request_no': self.qc_request_no,
+            'feedback_text': self.feedback_text,
+            'feedback_category': self.feedback_category,
+            'username': self.username,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }

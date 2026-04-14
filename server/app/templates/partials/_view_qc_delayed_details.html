@@ -1,0 +1,56 @@
+{% if details %}
+<div class="overflow-x-auto rounded-lg border border-gray-100 dark:border-gray-800 break-words mb-4 max-h-[60vh]">
+    <table class="w-full text-left border-collapse min-w-[1000px]">
+        <thead class="sticky top-0 z-10 shadow-sm bg-gray-100/90 dark:bg-gray-800/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
+            <tr>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Details</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right">Pieces</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right">Weight</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">QC Date</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">QC Req No</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Received DC</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Receipt No</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Received On</th>
+                <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Status</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            {% for d in details %}
+            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors">
+                <td class="px-4 py-3">
+                    <div class="text-[11px] font-bold text-primary">{{ d.supplier }}</div>
+                    <div class="text-[10px] text-gray-500">{{ d.collection }} • {{ d.office }}</div>
+                </td>
+                <td class="px-4 py-3 text-[11px] text-right font-mono">{{ "{:,.0f}".format(d.pieces or 0) }}</td>
+                <td class="px-4 py-3 text-[11px] text-right font-mono text-rose-600">{{ "{:,.3f}".format(d.weight or 0) }}</td>
+                <td class="px-4 py-3 text-[11px] text-gray-600 dark:text-gray-400">{{ d.qc_date }}</td>
+                <td class="px-4 py-3 text-[11px] font-mono text-gray-600 dark:text-gray-400">{{ d.qc_request_no }}</td>
+                <td class="px-4 py-3 text-[11px] text-gray-600 dark:text-gray-400">{{ d.qc_received_delivery_challan }}</td>
+                <td class="px-4 py-3 text-[11px] font-mono text-gray-600 dark:text-gray-400">{{ d.receipt_no }}</td>
+                <td class="px-4 py-3 text-[11px] text-gray-600 dark:text-gray-400">{{ d.qc_received_on }}</td>
+                <td class="px-4 py-3">
+                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider
+                        {% if d.qc_completion_status == 'Completed' %} bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400
+                        {% else %} bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 {% endif %}">
+                        {{ d.qc_completion_status }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot class="sticky bottom-0">
+            <tr class="bg-gray-50/90 dark:bg-gray-800/90 backdrop-blur-sm font-bold border-t border-gray-200 dark:border-gray-800 shadow-[0_-2px_6px_-2px_rgba(0,0,0,0.05)]">
+                <td class="px-4 py-3 text-[10px] uppercase tracking-wider text-gray-500">Totals</td>
+                <td class="px-4 py-3 text-[11px] text-right font-mono text-gray-800 dark:text-white">{{ "{:,.0f}".format(totals.pieces or 0) }}</td>
+                <td class="px-4 py-3 text-[11px] text-right font-mono text-rose-600">{{ "{:,.3f}".format(totals.weight or 0) }}</td>
+                <td colspan="6" class="px-4 py-3"></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+{% else %}
+<div class="p-12 text-center bg-gray-50 dark:bg-gray-800/30 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
+    <span class="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600 mb-2">inbox</span>
+    <div class="text-gray-500 font-medium">No detail items found</div>
+</div>
+{% endif %}

@@ -1,7 +1,7 @@
 from flask import render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.dashboard import dashboard_bp
-from app.models.snapshots import PendingAcceptanceSnapshot, ReportFeedback, PendingAcceptanceAction, HallmarkingDelayedSnapshot, HallmarkingDelayedFeedback
+from app.models.snapshots import PendingAcceptanceSnapshot, ReportFeedback, PendingAcceptanceAction, HallmarkingDelayedSnapshot, HallmarkingDelayedFeedback, QCDelayedSnapshot, QCDelayedFeedback
 from app.models.auth import User
 from app.extensions import db, redis_client
 from sqlalchemy import func, case
@@ -86,6 +86,33 @@ def get_latest_hd_feedback_subquery():
         )
     ).subquery()
 
+def get_latest_qc_feedback_subquery():
+    group_cols = [
+        QCDelayedFeedback.collection_owner,
+        QCDelayedFeedback.make_owner,
+        QCDelayedFeedback.supplier,
+        QCDelayedFeedback.collection,
+        QCDelayedFeedback.office
+    ]
+    subq = db.session.query(
+        *group_cols,
+        func.max(QCDelayedFeedback.created_at).label('max_date')
+    ).group_by(
+        *group_cols
+    ).subquery()
+    
+    return db.session.query(QCDelayedFeedback).join(
+        subq,
+        db.and_(
+            func.coalesce(QCDelayedFeedback.collection_owner, '') == func.coalesce(subq.c.collection_owner, ''),
+            func.coalesce(QCDelayedFeedback.make_owner, '') == func.coalesce(subq.c.make_owner, ''),
+            func.coalesce(QCDelayedFeedback.supplier, '') == func.coalesce(subq.c.supplier, ''),
+            func.coalesce(QCDelayedFeedback.collection, '') == func.coalesce(subq.c.collection, ''),
+            func.coalesce(QCDelayedFeedback.office, '') == func.coalesce(subq.c.office, ''),
+            QCDelayedFeedback.created_at == subq.c.max_date
+        )
+    ).subquery()
+
 def get_latest_wizard_action_subquery(status_filter='pending_to_deliver_not_barcoded', action_type=None):
     base_filter = PendingAcceptanceAction.status_filter == status_filter
     if action_type:
@@ -147,6 +174,28 @@ def apply_filters(query, search, latest_date_query, collection_owner=None, make_
             
         return query
 
+    if status_filter == 'qc_delayed':
+        model = QCDelayedSnapshot
+        query = query.filter(model.snapshot_date == latest_date_query)
+        if search:
+            query = query.filter(model.supplier.ilike(f"%{search}%") | 
+                                 model.collection_owner.ilike(f"%{search}%") |
+                                 model.make_owner.ilike(f"%{search}%") |
+                                 model.collection.ilike(f"%{search}%") |
+                                 model.office.ilike(f"%{search}%"))
+        if office:
+            query = query.filter(model.office == office)
+        if make_owner:
+            query = query.filter(model.make_owner == make_owner)
+        if collection_owner:
+            query = query.filter(model.collection_owner == collection_owner)
+        if collection:
+            query = query.filter(model.collection == collection)
+        if supplier:
+            query = query.filter(model.supplier == supplier)
+            
+        return query
+
     # Default logic for PendingAcceptanceSnapshot
     query = query.filter(PendingAcceptanceSnapshot.snapshot_date == latest_date_query)
 
@@ -200,8 +249,16 @@ def get_base_query(query_filter_func=None, feedback_status=None,
         p_code = 'PNB'
     elif status_filter == 'hallmarking_delayed':
         p_code = 'HD'
+    elif status_filter == 'qc_delayed':
+        p_code = 'QC'
     
-    latest_feedback = get_latest_hd_feedback_subquery() if status_filter == 'hallmarking_delayed' else get_latest_feedback_subquery(page_code=p_code)
+    
+    if status_filter == 'hallmarking_delayed':
+        latest_feedback = get_latest_hd_feedback_subquery()
+    elif status_filter == 'qc_delayed':
+        latest_feedback = get_latest_qc_feedback_subquery()
+    else:
+        latest_feedback = get_latest_feedback_subquery(page_code=p_code)
     latest_continue = get_latest_wizard_action_subquery(status_filter=status_filter, action_type='CONTINUE')
     latest_cancel = get_latest_wizard_action_subquery(status_filter=status_filter, action_type='CANCEL')
     
@@ -253,6 +310,53 @@ def get_base_query(query_filter_func=None, feedback_status=None,
                 func.coalesce(q.c.collection_owner, '') == func.coalesce(latest_feedback.c.collection_owner, ''),
                 func.coalesce(q.c.collection, '') == func.coalesce(latest_feedback.c.collection, ''),
                 func.coalesce(q.c.hm_agent, '') == func.coalesce(latest_feedback.c.hm_agent, ''),
+                func.coalesce(q.c.supplier, '') == func.coalesce(latest_feedback.c.supplier, '')
+            )
+        )
+    elif status_filter == 'qc_delayed':
+        q = db.session.query(
+            QCDelayedSnapshot.office,
+            QCDelayedSnapshot.make_owner,
+            QCDelayedSnapshot.collection_owner,
+            QCDelayedSnapshot.collection,
+            QCDelayedSnapshot.supplier,
+            func.sum(QCDelayedSnapshot.pieces).label('sum_pieces'),
+            func.sum(QCDelayedSnapshot.weight).label('sum_weight'),
+            func.max(QCDelayedSnapshot.qc_date).label('qc_date'),
+            func.max(QCDelayedSnapshot.qc_request_no).label('qc_request_no')
+        )
+        if query_filter_func:
+            q = query_filter_func(q)
+            
+        q = q.group_by(
+            QCDelayedSnapshot.office,
+            QCDelayedSnapshot.make_owner,
+            QCDelayedSnapshot.collection_owner,
+            QCDelayedSnapshot.collection,
+            QCDelayedSnapshot.supplier
+        ).subquery('agg_snapshot')
+
+        query = db.session.query(
+            q.c.office,
+            q.c.make_owner,
+            q.c.collection_owner,
+            q.c.collection,
+            q.c.supplier,
+            q.c.sum_pieces,
+            q.c.sum_weight,
+            q.c.qc_date,
+            q.c.qc_request_no,
+            latest_feedback.c.feedback_text,
+            latest_feedback.c.feedback_category,
+            latest_feedback.c.username,
+            latest_feedback.c.created_at
+        ).outerjoin(
+            latest_feedback,
+            db.and_(
+                func.coalesce(q.c.office, '') == func.coalesce(latest_feedback.c.office, ''),
+                func.coalesce(q.c.make_owner, '') == func.coalesce(latest_feedback.c.make_owner, ''),
+                func.coalesce(q.c.collection_owner, '') == func.coalesce(latest_feedback.c.collection_owner, ''),
+                func.coalesce(q.c.collection, '') == func.coalesce(latest_feedback.c.collection, ''),
                 func.coalesce(q.c.supplier, '') == func.coalesce(latest_feedback.c.supplier, '')
             )
         )
@@ -378,6 +482,8 @@ def get_base_query(query_filter_func=None, feedback_status=None,
         )
     elif status_filter == 'hallmarking_delayed':
         query = query.order_by(q.c.sum_pieces.desc(), q.c.sum_weight.desc())
+    elif status_filter == 'qc_delayed':
+        query = query.order_by(q.c.sum_pieces.desc(), q.c.sum_weight.desc())
     else:
         query = query.order_by(q.c.sum_accepted_wt.desc(), q.c.sum_pending_to_accepted_wt.desc())
     return query
@@ -385,7 +491,7 @@ def get_base_query(query_filter_func=None, feedback_status=None,
 def calculate_stats(query, status_filter='pending_to_accept'):
     try:
         s = query.order_by(None).subquery()
-        if status_filter == 'hallmarking_delayed':
+        if status_filter == 'hallmarking_delayed' or status_filter == 'qc_delayed':
             res = db.session.query(
                 func.sum(s.c.sum_pieces),
                 func.sum(s.c.sum_weight),
@@ -456,6 +562,9 @@ def pending_acceptance():
         if status_filter == 'hallmarking_delayed':
             has_any_data = db.session.query(HallmarkingDelayedSnapshot.id).first()
             latest_date_query = db.session.query(func.max(HallmarkingDelayedSnapshot.snapshot_date)).scalar()
+        elif status_filter == 'qc_delayed':
+            has_any_data = db.session.query(QCDelayedSnapshot.id).first()
+            latest_date_query = db.session.query(func.max(QCDelayedSnapshot.snapshot_date)).scalar()
         else:
             has_any_data = db.session.query(PendingAcceptanceSnapshot.id).first()
             latest_date_query = db.session.query(func.max(PendingAcceptanceSnapshot.snapshot_date)).scalar()
@@ -556,6 +665,24 @@ def pending_acceptance():
                     'collections': [r[0] for r in base_q.with_entities(HallmarkingDelayedSnapshot.collection).distinct().order_by(HallmarkingDelayedSnapshot.collection).all()],
                     'hm_agents': [r[0] for r in base_q.with_entities(HallmarkingDelayedSnapshot.hm_agent).distinct().order_by(HallmarkingDelayedSnapshot.hm_agent).all()],
                     'suppliers': [r[0] for r in base_q.with_entities(HallmarkingDelayedSnapshot.supplier).distinct().order_by(HallmarkingDelayedSnapshot.supplier).all()],
+                }
+            
+            if status_filter == 'qc_delayed':
+                base_q = db.session.query(QCDelayedSnapshot).filter(
+                    QCDelayedSnapshot.snapshot_date == latest_date_query
+                )
+                if restrict_to_user:
+                    u = current_username.lower()
+                    base_q = base_q.filter(
+                        (func.lower(func.trim(QCDelayedSnapshot.collection_owner)) == u) | 
+                        (func.lower(func.trim(QCDelayedSnapshot.make_owner)) == u) 
+                    )
+                return {
+                    'offices': [r[0] for r in base_q.with_entities(QCDelayedSnapshot.office).distinct().order_by(QCDelayedSnapshot.office).all()],
+                    'make_owners': [r[0] for r in base_q.with_entities(QCDelayedSnapshot.make_owner).distinct().order_by(QCDelayedSnapshot.make_owner).all()],
+                    'collection_owners': [current_username] if restrict_to_user else [r[0] for r in base_q.with_entities(QCDelayedSnapshot.collection_owner).distinct().order_by(QCDelayedSnapshot.collection_owner).all()],
+                    'collections': [r[0] for r in base_q.with_entities(QCDelayedSnapshot.collection).distinct().order_by(QCDelayedSnapshot.collection).all()],
+                    'suppliers': [r[0] for r in base_q.with_entities(QCDelayedSnapshot.supplier).distinct().order_by(QCDelayedSnapshot.supplier).all()],
                 }
 
             base_q = db.session.query(PendingAcceptanceSnapshot).filter(
@@ -761,6 +888,88 @@ def get_hd_hierarchical_rows(flat_rows):
                             result.append(r)
     return result
 
+def get_qc_hierarchical_rows(flat_rows):
+    """Transform flat rows into a hierarchical structure for QC Delayed (5 levels)."""
+    import hashlib
+    def get_id(*args):
+        return hashlib.md5((":".join(map(str, args))).encode()).hexdigest()[:8]
+
+    hierarchy = {}
+    for r in flat_rows:
+        off = r.get('office') or 'Unknown'
+        mo = r.get('make_owner') or 'Unknown'
+        co = r.get('collection_owner') or 'Unknown'
+        col = r.get('collection') or 'Unknown'
+        s = r.get('supplier') or 'Unknown'
+        
+        # Level 1: Office
+        if off not in hierarchy:
+            hierarchy[off] = {'pcs': 0, 'wt': 0, 'children': {}}
+        # Level 2: Make Owner
+        if mo not in hierarchy[off]['children']:
+            hierarchy[off]['children'][mo] = {'pcs': 0, 'wt': 0, 'children': {}}
+        # Level 3: Collection Owner
+        if co not in hierarchy[off]['children'][mo]['children']:
+            hierarchy[off]['children'][mo]['children'][co] = {'pcs': 0, 'wt': 0, 'children': {}}
+        # Level 4: Collection
+        if col not in hierarchy[off]['children'][mo]['children'][co]['children']:
+            hierarchy[off]['children'][mo]['children'][co]['children'][col] = {'pcs': 0, 'wt': 0, 'children': []}
+            
+        pcs = r.get('sum_pieces', 0)
+        wt = r.get('sum_weight', 0)
+        
+        hierarchy[off]['pcs'] += pcs
+        hierarchy[off]['wt'] += wt
+        
+        hierarchy[off]['children'][mo]['pcs'] += pcs
+        hierarchy[off]['children'][mo]['wt'] += wt
+        
+        hierarchy[off]['children'][mo]['children'][co]['pcs'] += pcs
+        hierarchy[off]['children'][mo]['children'][co]['wt'] += wt
+        
+        hierarchy[off]['children'][mo]['children'][co]['children'][col]['pcs'] += pcs
+        hierarchy[off]['children'][mo]['children'][co]['children'][col]['wt'] += wt
+        
+        hierarchy[off]['children'][mo]['children'][co]['children'][col]['children'].append(r)
+
+    result = []
+    for off, off_data in sorted(hierarchy.items()):
+        off_id = f"qoff_{get_id(off)}"
+        result.append({
+            'level': 1, 'id': off_id, 'parent_id': None, 'label': off,
+            'sum_pieces': off_data['pcs'], 'sum_weight': off_data['wt'],
+            'is_leaf': False
+        })
+        for mo, mo_data in sorted(off_data['children'].items()):
+            mo_id = f"qmo_{get_id(off, mo)}"
+            result.append({
+                'level': 2, 'id': mo_id, 'parent_id': off_id, 'label': mo,
+                'sum_pieces': mo_data['pcs'], 'sum_weight': mo_data['wt'],
+                'is_leaf': False
+            })
+            for co, co_data in sorted(mo_data['children'].items()):
+                co_id = f"qco_{get_id(off, mo, co)}"
+                result.append({
+                    'level': 3, 'id': co_id, 'parent_id': mo_id, 'label': co,
+                    'sum_pieces': co_data['pcs'], 'sum_weight': co_data['wt'],
+                    'is_leaf': False
+                })
+                for col, col_data in sorted(co_data['children'].items()):
+                    col_id = f"qcol_{get_id(off, mo, co, col)}"
+                    result.append({
+                        'level': 4, 'id': col_id, 'parent_id': co_id, 'label': col,
+                        'sum_pieces': col_data['pcs'], 'sum_weight': col_data['wt'],
+                        'is_leaf': False
+                    })
+                    for r in sorted(col_data['children'], key=lambda x: x.get('sum_weight', 0), reverse=True):
+                        r_id = f"qr_{get_id(off, mo, co, col, r.get('supplier'))}"
+                        r.update({
+                            'level': 5, 'id': r_id, 'parent_id': col_id, 'label': r.get('supplier') or 'Unknown',
+                            'is_leaf': True
+                        })
+                        result.append(r)
+    return result
+
 @dashboard_bp.route('/partial/pending-acceptance-feedback')
 @jwt_required()
 def get_pending_acceptance_partial():
@@ -768,6 +977,8 @@ def get_pending_acceptance_partial():
         status_filter = request.args.get('status_filter', 'pending_to_accept')
         if status_filter == 'hallmarking_delayed':
             latest_date_query = db.session.query(func.max(HallmarkingDelayedSnapshot.snapshot_date)).scalar()
+        elif status_filter == 'qc_delayed':
+            latest_date_query = db.session.query(func.max(QCDelayedSnapshot.snapshot_date)).scalar()
         else:
             latest_date_query = db.session.query(func.max(PendingAcceptanceSnapshot.snapshot_date)).scalar()
 
@@ -849,6 +1060,8 @@ def get_pending_acceptance_partial():
                 template_name = 'partials/_view_pending_acceptance_not_barcoded.html'
             elif status_filter == 'hallmarking_delayed':
                 template_name = 'partials/_view_hallmarking_delayed.html'
+            elif status_filter == 'qc_delayed':
+                template_name = 'partials/_view_qc_delayed.html'
 
             return render_template(template_name, 
                                  rows=data['rows'], 
@@ -865,6 +1078,11 @@ def get_pending_acceptance_partial():
                     q = q.filter(
                         (func.lower(func.trim(HallmarkingDelayedSnapshot.collection_owner)) == u) | 
                         (func.lower(func.trim(HallmarkingDelayedSnapshot.make_owner)) == u)
+                    )
+                elif status_filter == 'qc_delayed':
+                    q = q.filter(
+                        (func.lower(func.trim(QCDelayedSnapshot.collection_owner)) == u) | 
+                        (func.lower(func.trim(QCDelayedSnapshot.make_owner)) == u)
                     )
                 else:
                     q = q.filter(
@@ -933,6 +1151,28 @@ def get_pending_acceptance_partial():
                 processed_rows.append(row_dict)
             
             processed_rows = get_hd_hierarchical_rows(processed_rows)
+            pagination.total = len(processed_rows)
+        elif status_filter == 'qc_delayed':
+            for r in pagination.items:
+                row_dict = {
+                    'id': f"{getattr(r, 'office', '')}_{getattr(r, 'make_owner', '')}_{getattr(r, 'collection_owner', '')}_{getattr(r, 'collection', '')}_{getattr(r, 'supplier', '')}",
+                    'office': getattr(r, 'office', '') or '',
+                    'make_owner': getattr(r, 'make_owner', '') or '',
+                    'collection_owner': getattr(r, 'collection_owner', '') or '',
+                    'collection': getattr(r, 'collection', '') or '',
+                    'supplier': getattr(r, 'supplier', '') or '',
+                    'sum_pieces': float(getattr(r, 'sum_pieces', 0) or 0),
+                    'sum_weight': float(getattr(r, 'sum_weight', 0) or 0),
+                    'qc_date': r.qc_date.strftime('%Y-%m-%d') if getattr(r, 'qc_date', None) else '',
+                    'qc_request_no': getattr(r, 'qc_request_no', '') or '',
+                    'feedback_text': getattr(r, 'feedback_text', '') or '',
+                    'feedback_category': getattr(r, 'feedback_category', '') or '',
+                    'feedback_username': getattr(r, 'username', '') or '',
+                    'feedback_date': (getattr(r, 'created_at') + timedelta(hours=5, minutes=30)).strftime('%Y-%m-%d %H:%M') if getattr(r, 'created_at', None) else '',
+                }
+                processed_rows.append(row_dict)
+            
+            processed_rows = get_qc_hierarchical_rows(processed_rows)
             pagination.total = len(processed_rows)
         else:
             for r in pagination.items:
@@ -1040,6 +1280,8 @@ def get_pending_acceptance_partial():
             template_name = 'partials/_view_pending_acceptance_not_barcoded.html'
         elif status_filter == 'hallmarking_delayed':
             template_name = 'partials/_view_hallmarking_delayed.html'
+        elif status_filter == 'qc_delayed':
+            template_name = 'partials/_view_qc_delayed.html'
 
         return render_template(template_name, 
                              rows=processed_rows, 
@@ -1059,14 +1301,22 @@ def get_pending_acceptance_po_details():
         status_filter = request.args.get('status_filter', 'pending_to_accept')
         if status_filter == 'hallmarking_delayed':
             latest_date_query = db.session.query(func.max(HallmarkingDelayedSnapshot.snapshot_date)).scalar()
+        elif status_filter == 'qc_delayed':
+            latest_date_query = db.session.query(func.max(QCDelayedSnapshot.snapshot_date)).scalar()
         else:
             latest_date_query = db.session.query(func.max(PendingAcceptanceSnapshot.snapshot_date)).scalar()
         
         collection_owner = request.args.get('collection_owner', '')
+        if collection_owner == 'Unknown': collection_owner = ''
         make_owner = request.args.get('make_owner', '')
+        if make_owner == 'Unknown': make_owner = ''
         supplier = request.args.get('supplier', '')
+        if supplier == 'Unknown': supplier = ''
         collection = request.args.get('collection', '')
+        if collection == 'Unknown': collection = ''
+        
         classification = request.args.get('classification', '')
+        if classification == 'Unknown': classification = ''
         
         # Apply global filters to match exactly what is in the main row
         search = request.args.get('search', '').strip()
@@ -1231,7 +1481,9 @@ def get_pending_acceptance_po_details():
         if status_filter == 'hallmarking_delayed':
             # Detailed records for HD
             f_office = request.args.get('office', '')
+            if f_office == 'Unknown': f_office = ''
             f_hm_agent = request.args.get('hm_agent', '')
+            if f_hm_agent == 'Unknown': f_hm_agent = ''
             
             q_hd = db.session.query(HallmarkingDelayedSnapshot).filter(
                 HallmarkingDelayedSnapshot.snapshot_date == latest_date_query,
@@ -1265,6 +1517,44 @@ def get_pending_acceptance_po_details():
                     'receipt_no': r.receipt_no
                 })
             return render_template('partials/_view_hallmarking_delayed_details.html', details=details, totals=totals)
+        
+        if status_filter == 'qc_delayed':
+            # Detailed records for QC
+            f_office = request.args.get('office', '')
+            if f_office == 'Unknown': f_office = ''
+            
+            q_qc = db.session.query(QCDelayedSnapshot).filter(
+                QCDelayedSnapshot.snapshot_date == latest_date_query,
+                func.coalesce(QCDelayedSnapshot.office, '') == f_office,
+                func.coalesce(QCDelayedSnapshot.make_owner, '') == make_owner,
+                func.coalesce(QCDelayedSnapshot.collection_owner, '') == collection_owner,
+                func.coalesce(QCDelayedSnapshot.collection, '') == collection,
+                func.coalesce(QCDelayedSnapshot.supplier, '') == supplier
+            )
+            records = q_qc.all()
+            details = []
+            totals = {'pieces': 0, 'weight': 0}
+            for r in records:
+                p = float(r.pieces or 0)
+                w = float(r.weight or 0)
+                totals['pieces'] += p
+                totals['weight'] += w
+                details.append({
+                    'office': r.office,
+                    'make_owner': r.make_owner,
+                    'collection_owner': r.collection_owner,
+                    'collection': r.collection,
+                    'supplier': r.supplier,
+                    'qc_date': r.qc_date.strftime('%Y-%m-%d') if r.qc_date else '',
+                    'qc_request_no': r.qc_request_no,
+                    'pieces': p,
+                    'weight': w,
+                    'qc_received_delivery_challan': r.qc_received_delivery_challan,
+                    'receipt_no': r.receipt_no,
+                    'qc_received_on': r.qc_received_on.strftime('%Y-%m-%d %H:%M') if r.qc_received_on else '',
+                    'qc_completion_status': r.qc_completion_status
+                })
+            return render_template('partials/_view_qc_delayed_details.html', details=details, totals=totals)
 
         return render_template('partials/_po_details_modal_generic.html', details=details, totals=totals, report_type='PA', status_filter=status_filter)
     except Exception as e:
@@ -1320,9 +1610,12 @@ def save_pending_acceptance_feedback():
             p_code = 'PNB'
         elif status_f == 'hallmarking_delayed':
             p_code = 'HD'
+        elif status_f == 'qc_delayed':
+            p_code = 'QC'
         
         current_username = session.get('username')
         challan_no = data.get('challan_no')
+        qc_request_no = data.get('qc_request_no')
         
         if p_code == 'HD':
             feedback = HallmarkingDelayedFeedback.query.filter(
@@ -1349,6 +1642,34 @@ def save_pending_acceptance_feedback():
                     office=office,
                     hm_agent=hm_agent,
                     challan_no=challan_no,
+                    feedback_text=feedback_text,
+                    feedback_category=feedback_category,
+                    username=current_username
+                )
+                db.session.add(feedback)
+        elif p_code == 'QC':
+            feedback = QCDelayedFeedback.query.filter(
+                func.coalesce(QCDelayedFeedback.collection_owner, '') == func.coalesce(collection_owner, ''),
+                func.coalesce(QCDelayedFeedback.make_owner, '') == func.coalesce(make_owner, ''),
+                func.coalesce(QCDelayedFeedback.supplier, '') == func.coalesce(supplier, ''),
+                func.coalesce(QCDelayedFeedback.collection, '') == func.coalesce(collection, ''),
+                func.coalesce(QCDelayedFeedback.office, '') == func.coalesce(office, '')
+            ).first()
+            
+            if feedback:
+                feedback.feedback_text = feedback_text
+                feedback.feedback_category = feedback_category
+                feedback.username = current_username
+                feedback.created_at = datetime.utcnow()
+                feedback.qc_request_no = qc_request_no
+            else:
+                feedback = QCDelayedFeedback(
+                    collection_owner=collection_owner,
+                    make_owner=make_owner,
+                    supplier=supplier,
+                    collection=collection,
+                    office=office,
+                    qc_request_no=qc_request_no,
                     feedback_text=feedback_text,
                     feedback_category=feedback_category,
                     username=current_username

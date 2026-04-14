@@ -12,7 +12,8 @@ from app.models.snapshots import (
     RejectedWeightSnapshot,
     ShowroomWiseOrderSummarySnapshot,
     ProvisionStockRawSnapshot,
-    HallmarkingDelayedSnapshot
+    HallmarkingDelayedSnapshot,
+    QCDelayedSnapshot
 )
 from flask import current_app
 import os
@@ -1780,5 +1781,111 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
         emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
         return {"status": "error", "message": error_msg}
 
+    finally:
+        if conn: conn.close()
+
+def sync_qc_delayed_data_task() -> Dict[str, Any]:
+    """Sync QC Delayed data using the provided materialized CTE query."""
+    conn = None
+    DATA_TYPE = 'qc_delayed'
+    try:
+        emit_sync_update('processing', 'Starting QC Delayed Sync...', 5, DATA_TYPE)
+        conn = get_external_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        emit_sync_update('processing', 'Fetching QC data from Azure...', 20, DATA_TYPE)
+        query = """
+            WITH qc_base AS MATERIALIZED (
+                SELECT
+                    vod.order_id,
+                    vqd.qc_ro_name AS Office,
+                    vopd.make_owner,
+                    vopd.collection_owner,
+                    vopd.collection,
+                    vod.supplier AS supplier,
+                    1 AS pieces,
+                    COALESCE(vod.barcoded_weight, vod.required_weight) AS weight,
+                    COALESCE(vqd.qc_status_name, 'Pending') AS qc_completion_status,
+                    vqd.qc_request_no,
+                    vqd.qc_date,
+                    vqd.qc_received_delivery_challan,
+                    vqd.receipt_no,
+                    vqd.qc_received_on,
+                    vod.cancelled_on
+                FROM ext_view.vw_order_details vod
+                INNER JOIN ext_view.vw_order_product_details vopd
+                    ON vopd.order_id = vod.order_id
+                LEFT JOIN ext_view.vw_order_qc_details vqd
+                    ON vqd.order_id = vod.order_id
+                LEFT JOIN ext_view.vw_order_supplier_invoice_summary vosis
+                    ON vosis.order_id = vod.order_id
+                WHERE vqd.qc_received_on IS NOT NULL
+                  AND vqd.qc_received_on < CURRENT_DATE - INTERVAL '3 days'
+                  AND COALESCE(vqd.qc_status_name, 'Pending') = 'Pending'
+            )
+            SELECT
+                order_id,
+                Office,
+                make_owner,
+                collection_owner,
+                collection,
+                supplier,
+                pieces,
+                weight,
+                qc_completion_status,
+                qc_request_no,
+                qc_date,
+                qc_received_delivery_challan,
+                receipt_no,
+                qc_received_on,
+                cancelled_on
+            FROM qc_base
+            WHERE cancelled_on IS NULL;
+        """
+        
+        start_time = time.time()
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        duration = time.time() - start_time
+        
+        logger.info(f"QCDelayed query took {duration:.2f} seconds.")
+        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, DATA_TYPE)
+        
+        # Clear existing
+        db.session.query(QCDelayedSnapshot).delete()
+        
+        new_records = []
+        for row in rows:
+            record = {
+                'order_id': row.get('order_id'),
+                'office': row.get('office'),
+                'make_owner': row.get('make_owner'),
+                'collection_owner': row.get('collection_owner'),
+                'collection': row.get('collection'),
+                'supplier': row.get('supplier'),
+                'pieces': row.get('pieces'),
+                'weight': row.get('weight'),
+                'qc_completion_status': row.get('qc_completion_status'),
+                'qc_request_no': row.get('qc_request_no'),
+                'qc_date': row.get('qc_date'),
+                'qc_received_delivery_challan': row.get('qc_received_delivery_challan'),
+                'receipt_no': row.get('receipt_no'),
+                'qc_received_on': row.get('qc_received_on'),
+                'snapshot_date': db.func.current_date()
+            }
+            new_records.append(record)
+        
+        db.session.bulk_insert_mappings(QCDelayedSnapshot, new_records)
+        db.session.commit()
+        
+        emit_sync_update('success', f'QC Delayed Sync completed! {len(rows)} records updated.', 100, DATA_TYPE)
+        return {"status": "success", "count": len(rows)}
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        logger.error(f"QCDelayed Sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()

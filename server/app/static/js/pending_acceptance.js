@@ -73,6 +73,9 @@ function setStatusFilter(filter) {
     } else if (filter === 'hallmarking_delayed') {
         const btn = document.getElementById('btn-status-hallmarking-delayed');
         if (btn) btn.classList.add('active');
+    } else if (filter === 'qc_delayed') {
+        const btn = document.getElementById('btn-status-qc-delayed');
+        if (btn) btn.classList.add('active');
     }
     
     // Apply filters. 
@@ -99,6 +102,15 @@ function setStatusFilter(filter) {
             delayInput.value = '2';
             delayInput.disabled = true;
         }
+    } else if (filter === 'qc_delayed') {
+        if (delayEnable) {
+            delayEnable.checked = true;
+            delayEnable.disabled = true;
+        }
+        if (delayInput) {
+            delayInput.value = '3';
+            delayInput.disabled = true;
+        }
     } else {
         if (delayEnable) delayEnable.disabled = false;
         if (delayInput) delayInput.disabled = false;
@@ -110,6 +122,9 @@ function setStatusFilter(filter) {
     if (filter === 'hallmarking_delayed') {
         if (officeContainer) officeContainer.style.display = 'block';
         if (hmAgentContainer) hmAgentContainer.style.display = 'block';
+    } else if (filter === 'qc_delayed') {
+        if (officeContainer) officeContainer.style.display = 'block';
+        if (hmAgentContainer) hmAgentContainer.style.display = 'none';
     } else {
         if (officeContainer) officeContainer.style.display = 'none';
         if (hmAgentContainer) hmAgentContainer.style.display = 'none';
@@ -409,7 +424,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'pending_to_accept': 'btn-status-accept',
         'pending_to_deliver': 'btn-status-deliver',
         'pending_to_deliver_not_barcoded': 'btn-status-not-barcoded',
-        'hallmarking_delayed': 'btn-status-hallmarking-delayed'
+        'hallmarking_delayed': 'btn-status-hallmarking-delayed',
+        'qc_delayed': 'btn-status-qc-delayed'
     };
     const activeBtn = document.getElementById(btnMap[statusFilter]);
     if (activeBtn) activeBtn.classList.add('active');
@@ -420,20 +436,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const delayEnabledArg = urlParams.get('delay_enabled');
     const delayArg = urlParams.get('delay');
 
-    if (statusFilter === 'hallmarking_delayed') {
+    if (statusFilter === 'hallmarking_delayed' || statusFilter === 'qc_delayed') {
         if (delayEnable) {
             delayEnable.checked = true;
             delayEnable.disabled = true;
         }
         if (delayInput) {
-            delayInput.value = '2';
+            delayInput.value = statusFilter === 'hallmarking_delayed' ? '2' : '3';
             delayInput.disabled = true;
         }
-        // Visibility for HD specific filters
+        // Visibility for HD/QC specific filters
         const officeContainer = document.getElementById('filter-container-office');
         const hmAgentContainer = document.getElementById('filter-container-hm-agent');
         if (officeContainer) officeContainer.style.display = 'block';
-        if (hmAgentContainer) hmAgentContainer.style.display = 'block';
+        if (hmAgentContainer) hmAgentContainer.style.display = statusFilter === 'hallmarking_delayed' ? 'block' : 'none';
     } else {
         if (delayEnable) {
             delayEnable.disabled = false;
@@ -565,6 +581,27 @@ function updateStatsCards(stats) {
         document.getElementById('stat-contextual-metric').className = 'stat-val text-emerald-premium';
 
         if (card5) card5.classList.add('hidden');
+    } else if (statusFilter === 'qc_delayed') {
+        const pcs = parseInt(stats.totalPieces || 0);
+        const wt = parseFloat(stats.totalWeight || 0);
+        const withoutFeedback = parseInt(stats.withoutFeedback || 0);
+
+        card1.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-indigo-600">inventory_2</span>Total Pieces`;
+        document.getElementById('stat-order-wt').textContent = pcs.toLocaleString();
+
+        card2.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-rose-600">check_circle</span>Total Weight`;
+        document.getElementById('stat-accepted-wt').textContent = fmt(wt);
+        document.getElementById('stat-accepted-wt').className = 'stat-val text-rose-600';
+
+        card3.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-red-600">chat_error</span>Without Feedback`;
+        document.getElementById('stat-pending-wt').textContent = withoutFeedback.toLocaleString();
+        document.getElementById('stat-pending-wt').className = 'stat-val';
+
+        card4.querySelector('.stat-label').innerHTML = `<span class="material-symbols-outlined text-emerald-premium">chat_bubble</span>With Feedback`;
+        document.getElementById('stat-contextual-metric').textContent = withFeedback.toLocaleString();
+        document.getElementById('stat-contextual-metric').className = 'stat-val text-emerald-premium';
+
+        if (card5) card5.classList.add('hidden');
     } else {
         const pendingWt = parseFloat(stats.totalPendingToAcceptedWt || 0);
         const withoutFeedback = parseInt(stats.withoutFeedback || 0);
@@ -604,9 +641,11 @@ function openFeedbackModal(collectionOwner, makeOwner, supplier, collection, cur
         const h1 = document.createElement('input'); h1.type = 'hidden'; h1.id = 'fb_office'; h1.name = 'office';
         const h2 = document.createElement('input'); h2.type = 'hidden'; h2.id = 'fb_hm_agent'; h2.name = 'hm_agent';
         const h3 = document.createElement('input'); h3.type = 'hidden'; h3.id = 'fb_challan_no'; h3.name = 'challan_no';
+        const h4 = document.createElement('input'); h4.type = 'hidden'; h4.id = 'fb_qc_request_no'; h4.name = 'qc_request_no';
         form.appendChild(h1);
         form.appendChild(h2);
         form.appendChild(h3);
+        form.appendChild(h4);
     }
     
     const btn = event.currentTarget || {};
@@ -614,6 +653,8 @@ function openFeedbackModal(collectionOwner, makeOwner, supplier, collection, cur
     document.getElementById('fb_hm_agent').value = btn.dataset?.hmAgent || '';
     const challanInput = document.getElementById('fb_challan_no');
     if (challanInput) challanInput.value = btn.dataset?.challanNo || '';
+    const qcInput = document.getElementById('fb_qc_request_no');
+    if (qcInput) qcInput.value = btn.dataset?.qcRequestNo || '';
 
     document.getElementById('feedbackModalContext').textContent = `${collectionOwner} | ${makeOwner} | ${collection}`;
 
@@ -621,7 +662,27 @@ function openFeedbackModal(collectionOwner, makeOwner, supplier, collection, cur
     ta.value = currFeedback || '';
 
     const cat = document.getElementById('feedbackCategory');
-    if (cat) cat.value = currCategory || '';
+    if (cat) {
+        let options = '<option value="">Select Category</option>';
+        if (currentStatusFilter === 'qc_delayed') {
+            const qcCats = ["Details Incomplete", "Rework", "Capacity Issue", "Complex Verification Process", "others"];
+            qcCats.forEach(c => {
+                options += `<option value="${c}">${c}</option>`;
+            });
+        } else if (currentStatusFilter === 'hallmarking_delayed') {
+            const hmCats = ["Courier Delay", "Agent Delay", "Office Pending", "others"];
+            hmCats.forEach(c => {
+                options += `<option value="${c}">${c}</option>`;
+            });
+        } else {
+            const defaultCats = ["Payment issues", "discussion pending", "design related issues", "Item in progress", "others"];
+            defaultCats.forEach(c => {
+                options += `<option value="${c}">${c}</option>`;
+            });
+        }
+        cat.innerHTML = options;
+        cat.value = currCategory || '';
+    }
 
     document.getElementById('feedbackModal').classList.remove('hidden');
 }
@@ -646,7 +707,8 @@ async function saveFeedback() {
         status_filter: currentStatusFilter,
         office: document.getElementById('fb_office')?.value || '',
         hm_agent: document.getElementById('fb_hm_agent')?.value || '',
-        challan_no: document.getElementById('fb_challan_no')?.value || ''
+        challan_no: document.getElementById('fb_challan_no')?.value || '',
+        qc_request_no: document.getElementById('fb_qc_request_no')?.value || ''
     };
 
     if (!payload.feedback_text.trim()) {
@@ -707,12 +769,14 @@ async function showPODetailsModal(collectionOwner, makeOwner, supplier, collecti
     urlParams.set('collection', collection);
     if (statusFilter) urlParams.set('status_filter', statusFilter);
     
-    // Add HD context if applicable
-    if (statusFilter === 'hallmarking_delayed') {
+    // Add HD/QC context if applicable
+    if (statusFilter === 'hallmarking_delayed' || statusFilter === 'qc_delayed') {
         const btn = event.currentTarget; // Should be row or button
         if (btn) {
             urlParams.set('office', btn.dataset.office || '');
-            urlParams.set('hm_agent', btn.dataset.hmAgent || '');
+            if (statusFilter === 'hallmarking_delayed') {
+                urlParams.set('hm_agent', btn.dataset.hmAgent || '');
+            }
         }
     }
     

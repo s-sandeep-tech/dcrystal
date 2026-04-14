@@ -49,3 +49,6 @@ def sync_provision_stock_status_data(user_id=None):
 
 def sync_hallmarking_delayed_data(user_id=None):
     return enqueue_sync_task('hallmarking_delayed', user_id)
+
+def sync_qc_delayed_data(user_id=None):
+    return enqueue_sync_task('qc_delayed', user_id)
