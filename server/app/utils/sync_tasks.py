@@ -1217,25 +1217,47 @@ def sync_hallmarking_delayed_data_task() -> Dict[str, Any]:
         
         emit_sync_update('processing', 'Fetching data from Azure...', 20, 'hallmarking_delayed')
         query = """
-            select
-                hm_ro,
-                make_owner,
-                collection_owner,
-                collection,
-                hm_agent,
-                Supplier as supplier,
-                hm.challan_date,
-                hm.requested_delivery_challan as challan_no,
-                1 as pieces,
-                coalesce(vod.barcoded_weight, vod.required_weight) as weight,
-                hm.agent_received_on as receipt_date,
-                hm.receipt_no,
-                hm.hm_status
-            from ext_view.vw_order_hallmark_details hm
-            inner join ext_view.vw_order_details vod on vod.order_id = hm.order_id
-            inner join ext_view.vw_order_product_details vopd on vopd.order_id = hm.order_id
-            Where hm.hm_status = 'Pending' and hm.agent_received_on IS NOT NULL 
-			    and CURRENT_DATE - hm.agent_received_on > 2
+           WITH base AS MATERIALIZED (
+    SELECT
+        hm.hm_ro,
+        vopd.make_owner,
+        vopd.collection_owner,
+        vopd.collection,
+        hm.hm_agent,
+        vod.supplier AS supplier,
+        hm.challan_date,
+        hm.requested_delivery_challan AS challan_no,
+        1 AS pieces,
+        COALESCE(vod.barcoded_weight, vod.required_weight) AS weight,
+        hm.agent_received_on AS receipt_date,
+        hm.receipt_no,
+        hm.hm_status,
+        vod.cancelled_on
+    FROM ext_view.vw_order_hallmark_details hm
+    INNER JOIN ext_view.vw_order_details vod
+        ON vod.order_id = hm.order_id
+    INNER JOIN ext_view.vw_order_product_details vopd
+        ON vopd.order_id = hm.order_id
+    WHERE hm.hm_status = 'Pending'
+      AND hm.agent_received_on IS NOT NULL
+      AND CURRENT_DATE - hm.agent_received_on > 2
+)
+        SELECT
+            hm_ro,
+            make_owner,
+            collection_owner,
+            collection,
+            hm_agent,
+            supplier,
+            challan_date,
+            challan_no,
+            pieces,
+            weight,
+            receipt_date,
+            receipt_no,
+            hm_status
+        FROM base
+        WHERE cancelled_on IS  NULL;
         """
         
         start_time = time.time()
