@@ -1322,6 +1322,7 @@ def save_pending_acceptance_feedback():
             p_code = 'HD'
         
         current_username = session.get('username')
+        challan_no = data.get('challan_no')
         
         if p_code == 'HD':
             feedback = HallmarkingDelayedFeedback.query.filter(
@@ -1338,6 +1339,7 @@ def save_pending_acceptance_feedback():
                 feedback.feedback_category = feedback_category
                 feedback.username = current_username
                 feedback.created_at = datetime.utcnow()
+                feedback.challan_no = challan_no
             else:
                 feedback = HallmarkingDelayedFeedback(
                     collection_owner=collection_owner,
@@ -1346,6 +1348,7 @@ def save_pending_acceptance_feedback():
                     collection=collection,
                     office=office,
                     hm_agent=hm_agent,
+                    challan_no=challan_no,
                     feedback_text=feedback_text,
                     feedback_category=feedback_category,
                     username=current_username

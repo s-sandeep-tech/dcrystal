@@ -623,6 +623,7 @@ class HallmarkingDelayedFeedback(db.Model):
     collection = db.Column(db.Text)
     office = db.Column(db.Text)
     hm_agent = db.Column(db.Text)
+    challan_no = db.Column(db.Text)
     feedback_text = db.Column(db.Text)
     feedback_category = db.Column(db.String(100))
     username = db.Column(db.String(80))
@@ -637,6 +638,7 @@ class HallmarkingDelayedFeedback(db.Model):
             'collection': self.collection,
             'office': self.office,
             'hm_agent': self.hm_agent,
+            'challan_no': self.challan_no,
             'feedback_text': self.feedback_text,
             'feedback_category': self.feedback_category,
             'username': self.username,

@@ -126,6 +126,7 @@
                         title="Add Feedback" data-office="{{ row.office }}" data-make-owner="{{ row.make_owner }}"
                         data-collection-owner="{{ row.collection_owner }}" data-collection="{{ row.collection }}"
                         data-hm-agent="{{ row.hm_agent }}" data-supplier="{{ row.supplier }}"
+                        data-challan-no="{{ row.requested_delivery_challan }}"
                         data-status-filter="hallmarking_delayed"
                         onclick="openFeedbackModal('{{ (row.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (row.make_owner or '') | replace('\'', '\\\'') }}', '{{ (row.supplier or '') | replace('\'', '\\\'') }}', '{{ (row.collection or '') | replace('\'', '\\\'') }}', '{{ (row.feedback_text or '') | replace('\'', '\\\'') }}', '{{ (row.feedback_category or '') | replace('\'', '\\\'') }}')">
                         <span class="material-symbols-outlined text-[14px]">chat</span>

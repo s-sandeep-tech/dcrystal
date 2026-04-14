@@ -603,13 +603,17 @@ function openFeedbackModal(collectionOwner, makeOwner, supplier, collection, cur
         const form = document.querySelector('#feedbackModal form') || document.getElementById('feedbackModal');
         const h1 = document.createElement('input'); h1.type = 'hidden'; h1.id = 'fb_office'; h1.name = 'office';
         const h2 = document.createElement('input'); h2.type = 'hidden'; h2.id = 'fb_hm_agent'; h2.name = 'hm_agent';
+        const h3 = document.createElement('input'); h3.type = 'hidden'; h3.id = 'fb_challan_no'; h3.name = 'challan_no';
         form.appendChild(h1);
         form.appendChild(h2);
+        form.appendChild(h3);
     }
     
     const btn = event.currentTarget || {};
     document.getElementById('fb_office').value = btn.dataset?.office || '';
     document.getElementById('fb_hm_agent').value = btn.dataset?.hmAgent || '';
+    const challanInput = document.getElementById('fb_challan_no');
+    if (challanInput) challanInput.value = btn.dataset?.challanNo || '';
 
     document.getElementById('feedbackModalContext').textContent = `${collectionOwner} | ${makeOwner} | ${collection}`;
 
@@ -641,7 +645,8 @@ async function saveFeedback() {
         feedback_category: document.getElementById('feedbackCategory').value,
         status_filter: currentStatusFilter,
         office: document.getElementById('fb_office')?.value || '',
-        hm_agent: document.getElementById('fb_hm_agent')?.value || ''
+        hm_agent: document.getElementById('fb_hm_agent')?.value || '',
+        challan_no: document.getElementById('fb_challan_no')?.value || ''
     };
 
     if (!payload.feedback_text.trim()) {
