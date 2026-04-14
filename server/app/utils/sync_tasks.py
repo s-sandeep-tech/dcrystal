@@ -1559,7 +1559,8 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, sh
                "refill_to_qty","refill_from_wt","refill_to_wt","prov_type_filter","short_pcs",
                "short_gr_wt","short_amt","short_percent","excess_pcs","excess_gr_weight","excess_amt",
                "not_in_prov_pcs","not_in_prov_gr_weight","not_in_prov_amt","prov_type",
-               "branch_type","branch_status","business_head_name","business_head_emp_code"
+               "branch_type","branch_status","business_head_name","business_head_emp_code",
+               "last_updated_at"
         FROM  ext_view.vw_prov_and_stock_size_level
         OFFSET %s;
     """
@@ -1615,7 +1616,7 @@ def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_ty
     """Consumer thread: Processes rows and updates shared progress for resume capability."""
     try:
         with app.app_context():
-            current_time = datetime.now()
+            current_time = datetime.utcnow()
             while True:
                 try:
                     rows = data_queue.get(timeout=1)
