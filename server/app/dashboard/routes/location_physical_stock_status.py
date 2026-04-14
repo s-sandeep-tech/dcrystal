@@ -20,9 +20,9 @@ def location_physical_stock_status():
     try:
         snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
         if snapshot_date:
-            sync_time = snapshot_date.strftime("%d %b, %I:%M %p")
+            sync_time = snapshot_date.strftime("%d, %I:%M %p")
         else:
-            sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d %b, %I:%M %p")
+            sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d, %I:%M %p")
             
         return render_template('location_physical_stock_status.html', sync_time=sync_time)
     except Exception as e:
