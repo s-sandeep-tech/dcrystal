@@ -1872,7 +1872,7 @@ def sync_qc_delayed_data_task() -> Dict[str, Any]:
                 'qc_received_delivery_challan': row.get('qc_received_delivery_challan'),
                 'receipt_no': row.get('receipt_no'),
                 'qc_received_on': row.get('qc_received_on'),
-                'snapshot_date': db.func.current_date()
+                'snapshot_date': date.today()
             }
             new_records.append(record)
         
