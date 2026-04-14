@@ -226,7 +226,7 @@ def sync_process_level_delay_data_task() -> Dict[str, Any]:
             hm_agg AS (
                 SELECT
                 order_id,
-                MAX(hm_out_date)::date AS hallmark_date,
+                MAX(hm_issued_delivery_challan_date)::date AS hallmark_date,
                 CASE
                     WHEN BOOL_OR(hm_status = 'Passed') THEN 'Passed'
                     ELSE 'Not Passed'
@@ -556,7 +556,7 @@ qc_agg AS (
 hm_agg AS (
   SELECT
     order_id,
-    MAX(hm_out_date)::date AS hallmark_date,
+    MAX(hm_issued_delivery_challan_date)::date AS hallmark_date,
     CASE
       WHEN BOOL_OR(hm_status = 'Passed') THEN 'Passed'
       ELSE 'Not Passed'
