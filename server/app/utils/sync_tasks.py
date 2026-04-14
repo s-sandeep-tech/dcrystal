@@ -18,7 +18,7 @@ from app.models.snapshots import (
 from flask import current_app
 import os
 import time
-from datetime import date
+from datetime import date, datetime
 import json
 import logging
 import socket
@@ -1615,7 +1615,7 @@ def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_ty
     """Consumer thread: Processes rows and updates shared progress for resume capability."""
     try:
         with app.app_context():
-            today = date.today()
+            current_time = datetime.now()
             while True:
                 try:
                     rows = data_queue.get(timeout=1)
@@ -1688,7 +1688,7 @@ def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_ty
                         'not_in_prov_gr_weight': row.get('not_in_prov_gr_weight'),
                         'not_in_prov_amt': row.get('not_in_prov_amt'),
                         'prov_type': row.get('prov_type'),
-                        'snapshot_date': row.get('last_updated_at') or today
+                        'snapshot_date': row.get('last_updated_at') or current_time
                     })
                 
                 db.session.bulk_insert_mappings(ProvisionStockRawSnapshot, batch_data)

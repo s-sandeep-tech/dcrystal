@@ -888,7 +888,7 @@ class ProvisionStockRawSnapshot(db.Model):
     # Filter Trackers
     prov_type_filter = db.Column(db.Integer)
     
-    snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    snapshot_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 class HallmarkingDelayedSnapshot(db.Model):
     __tablename__ = 'hallmarking_delayed_snapshot'
