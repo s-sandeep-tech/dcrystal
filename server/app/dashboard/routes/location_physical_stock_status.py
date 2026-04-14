@@ -20,11 +20,7 @@ def location_physical_stock_status():
     try:
         snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
         if snapshot_date:
-            # Convert UTC snapshot_date to IST
-            if snapshot_date.tzinfo is None:
-                snapshot_date = snapshot_date.replace(tzinfo=ZoneInfo("UTC"))
-            ist_date = snapshot_date.astimezone(ZoneInfo("Asia/Kolkata"))
-            sync_time = ist_date.strftime("%d, %I:%M %p")
+            sync_time = snapshot_date.strftime("%d, %I:%M %p")
         else:
             sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d, %I:%M %p")
             
