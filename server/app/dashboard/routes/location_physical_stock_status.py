@@ -18,7 +18,12 @@ logger = logging.getLogger(__name__)
 @jwt_required()
 def location_physical_stock_status():
     try:
-        sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d, %I:%M %p")
+        snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
+        if snapshot_date:
+            sync_time = snapshot_date.strftime("%d %b, %I:%M %p")
+        else:
+            sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d %b, %I:%M %p")
+            
         return render_template('location_physical_stock_status.html', sync_time=sync_time)
     except Exception as e:
         logger.error(f"Error in location_physical_stock_status: {str(e)}")
