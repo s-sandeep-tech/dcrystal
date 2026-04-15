@@ -36,7 +36,7 @@
 
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
             <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
-            <span id="sync-time-info" class="flex items-center gap-1 font-medium uppercase tracking-wider">
+            <span id="sync-time-info" class="flex items-center gap-1 font-medium uppercase tracking-wider {% if not is_today %}text-red-600 dark:text-red-500{% endif %}">
                 <span class="material-symbols-outlined text-[14px]">schedule</span>
                 {{ sync_time }}
             </span>

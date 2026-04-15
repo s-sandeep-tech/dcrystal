@@ -19,12 +19,18 @@ logger = logging.getLogger(__name__)
 def location_physical_stock_status():
     try:
         snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
+        is_today = True
         if snapshot_date:
             sync_time = snapshot_date.strftime("%d, %I:%M %p")
+            today_date = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+            if snapshot_date.date() == today_date:
+                is_today = True
+            else:
+                is_today = False
         else:
             sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d, %I:%M %p")
             
-        return render_template('location_physical_stock_status.html', sync_time=sync_time)
+        return render_template('location_physical_stock_status.html', sync_time=sync_time, is_today=is_today)
     except Exception as e:
         logger.error(f"Error in location_physical_stock_status: {str(e)}")
         return f"Error: {str(e)}", 500
