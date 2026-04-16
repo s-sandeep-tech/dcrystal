@@ -1608,7 +1608,14 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, to
 
             # If we reached the end, signal completion and exit producer
             if producer_offset >= total_to_sync:
-                data_queue.put(None, timeout=1)
+                # Wait for the consumer to drain the queue before signaling EOF
+                put_success = False
+                while not put_success and not stop_event.is_set():
+                    try:
+                        data_queue.put(None, timeout=5)
+                        put_success = True
+                    except queue.Full:
+                        continue
                 return # SUCCESSFUL PRODUCER EXIT
             
         except Exception as e:
