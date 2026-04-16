@@ -1563,7 +1563,8 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, sh
                "state",
                "last_updated_at"
         FROM  ext_view.vw_prov_and_stock_size_level
-        OFFSET %s;
+        ORDER BY location, division, "group", purity, classification, make, collection, size, last_updated_at
+        LIMIT %s OFFSET %s;
     """
 
     while retry_count < max_retries and not stop_event.is_set():
@@ -1577,24 +1578,26 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, sh
             with conn.cursor() as s_cur:
                  s_cur.execute("SET statement_timeout = 0")
             
-            cur = conn.cursor(name=f'provision_stock_resumable_{retry_count}', cursor_factory=RealDictCursor)
-            cur.itersize = 5000
+            # Use a standard cursor (CLIENT-SIDE buffering is avoided because we use LIMIT)
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             
-            # 2. Re-issue query with PRODUCER offset (avoids duplicates in queue)
-            cur.execute(query_template, (producer_offset,))
-            
-            # 3. Resume streaming
+            # 2. Chunked fetching loop
             while not stop_event.is_set():
-                rows = cur.fetchmany(batch_size)
+                # Fetch a specific block of data
+                cur.execute(query_template, (batch_size, producer_offset))
+                rows = cur.fetchall()
+                
                 if not rows:
-                    data_queue.put(None, timeout=1) # Signal completion
+                    # Signal completion to consumer
+                    data_queue.put(None, timeout=1)
                     return # SUCCESSFUL PRODUCER EXIT
                 
+                # Signal progress and move to next block
                 put_success = False
                 while not put_success and not stop_event.is_set():
                     try:
                         data_queue.put(rows, timeout=1)
-                        producer_offset += len(rows) # Correctly update only after successful put
+                        producer_offset += len(rows) # Correctly update after successful put
                         put_success = True
                     except queue.Full:
                         continue
@@ -1612,6 +1615,10 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, sh
                 try: data_queue.put(None, timeout=1)
                 except: pass
                 raise e
+        finally:
+            if conn:
+                try: conn.close()
+                except: pass
 
 def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_type, shared_state):
     """Consumer thread: Processes rows and updates shared progress for resume capability."""
