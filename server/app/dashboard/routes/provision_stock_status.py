@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @jwt_required()
 def provision_stock_status():
     try:
-        sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
+        sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d, %I:%M %p")
         return render_template('provision_stock_status.html', sync_time=sync_time)
     except Exception as e:
         logger.error(f"Error in provision_stock_status: {str(e)}")
@@ -154,24 +154,28 @@ WITH base AS (
     WHERE 
         (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
         AND (:purity IS NULL OR purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
-        AND (:classification IS NULL OR classification = :classification)
+        AND (:classification IS NULL OR classification = ANY(string_to_array(CAST(:classification AS text), ',')))
         AND (:make IS NULL OR make = ANY(string_to_array(CAST(:make AS text), ',')))
-        AND (:collection IS NULL OR collection = :collection)
+        AND (:collection IS NULL OR collection = ANY(string_to_array(CAST(:collection AS text), ',')))
         AND (:section IS NULL OR section = ANY(string_to_array(CAST(:section AS text), ',')))
-        AND (:prov_type IS NULL OR prov_type = :prov_type)
-        AND (:provision_mode IS NULL OR provision_mode_filter = :provision_mode)
+        AND (:prov_type IS NULL OR prov_type = ANY(string_to_array(CAST(:prov_type AS text), ',')))
+        AND (:provision_mode IS NULL OR provision_mode_filter = ANY(string_to_array(CAST(:provision_mode AS text), ',')))
         AND (:branch_type IS NULL OR branch_type = ANY(string_to_array(CAST(:branch_type AS text), ',')))
         AND (:branch_status IS NULL OR branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
-        AND (:business_head IS NULL OR business_head_name = :business_head)
+        AND (:business_head IS NULL OR business_head_name = ANY(string_to_array(CAST(:business_head AS text), ',')))
         AND (:bh_emp_code IS NULL OR business_head_emp_code = :bh_emp_code)
 ),
 location_summary AS (
     SELECT
-        location,
+        location::text AS location,
         'Location Summary'::text AS report_section,
         location::text AS report_label,
         NULL::text AS classification,
         NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
         1 AS is_parent,
         SUM(prov_pieces) AS prov_pcs,
         SUM(prov_gr_wt) AS prov_gr_wt,
@@ -180,11 +184,7 @@ location_summary AS (
         SUM(in_transit_wt) AS in_transit_wt,
         SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
         ROUND(
-            CASE
-                WHEN SUM(prov_gr_wt) = 0 THEN 0
-                ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt)
-            END,
-            2
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
         ) AS percent,
         1 AS section_sort,
         1 AS row_sort
@@ -198,6 +198,10 @@ purity_wise AS (
         purity::text AS report_label,
         NULL::text AS classification,
         NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
         1 AS is_parent,
         NULL::numeric AS prov_pcs,
         SUM(prov_gr_wt) AS prov_gr_wt,
@@ -206,11 +210,7 @@ purity_wise AS (
         SUM(in_transit_wt) AS in_transit_wt,
         SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
         ROUND(
-            CASE
-                WHEN SUM(prov_gr_wt) = 0 THEN 0
-                ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt)
-            END,
-            2
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
         ) AS percent,
         2 AS section_sort,
         ROW_NUMBER() OVER (ORDER BY purity) AS row_sort
@@ -224,6 +224,10 @@ classification_wise AS (
         x.report_label,
         x.classification,
         x.sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
         x.is_parent,
         x.prov_pcs,
         x.prov_gr_wt,
@@ -278,6 +282,136 @@ classification_wise AS (
         GROUP BY classification, sub_classification
     ) x
 ),
+collection_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        x.report_section,
+        x.report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        x.collection,
+        x.sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        x.is_parent,
+        x.prov_pcs,
+        x.prov_gr_wt,
+        x.in_shop_wt,
+        x.ordered_wt,
+        x.in_transit_wt,
+        x.short_excess_wt,
+        x.percent,
+        10 AS section_sort,
+        ROW_NUMBER() OVER (
+            ORDER BY x.collection, x.level_order, x.sub_section NULLS FIRST
+        ) AS row_sort
+    FROM (
+        SELECT
+            'Collection Wise'::text AS report_section,
+            collection::text AS report_label,
+            collection::text AS collection,
+            NULL::text AS sub_section,
+            1 AS is_parent,
+            NULL::numeric AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            0 AS level_order
+        FROM base
+        GROUP BY collection
+
+        UNION ALL
+
+        SELECT
+            'Collection Wise'::text AS report_section,
+            '   ' || COALESCE(sub_section::text, 'Unknown') AS report_label,
+            collection::text AS collection,
+            COALESCE(sub_section::text, 'Unknown') AS sub_section,
+            0 AS is_parent,
+            NULL::numeric AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            1 AS level_order
+        FROM base
+        GROUP BY collection, sub_section
+    ) x
+),
+section_details_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        x.report_section,
+        x.report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        x.sec_name,
+        x.typ_name,
+        x.is_parent,
+        x.prov_pcs,
+        x.prov_gr_wt,
+        x.in_shop_wt,
+        x.ordered_wt,
+        x.in_transit_wt,
+        x.short_excess_wt,
+        x.percent,
+        9 AS section_sort,
+        ROW_NUMBER() OVER (
+            ORDER BY x.sec_name, x.level_order, x.typ_name NULLS FIRST
+        ) AS row_sort
+    FROM (
+        SELECT
+            'Section Details'::text AS report_section,
+            section::text AS report_label,
+            section::text AS sec_name,
+            NULL::text AS typ_name,
+            1 AS is_parent,
+            SUM(prov_pieces) AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            0 AS level_order
+        FROM base
+        GROUP BY section
+
+        UNION ALL
+
+        SELECT
+            'Section Details'::text AS report_section,
+            '   ' || COALESCE(type::text, 'Unknown') AS report_label,
+            section::text AS sec_name,
+            COALESCE(type::text, 'Unknown') AS typ_name,
+            0 AS is_parent,
+            SUM(prov_pieces) AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            1 AS level_order
+        FROM base
+        GROUP BY section, type
+    ) x
+),
 make_wise AS (
     SELECT
         'SUMMARY'::text AS location,
@@ -285,28 +419,10 @@ make_wise AS (
         make::text AS report_label,
         NULL::text AS classification,
         NULL::text AS sub_classification,
-        1 AS is_parent,
-        NULL::numeric AS prov_pcs,
-        SUM(prov_gr_wt) AS prov_gr_wt,
-        SUM(in_shop_wt) AS in_shop_wt,
-        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
-        SUM(in_transit_wt) AS in_transit_wt,
-        SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
-        ROUND(
-            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
-        ) AS percent,
-        4 AS section_sort,
-        ROW_NUMBER() OVER (ORDER BY make) AS row_sort
-    FROM base
-    GROUP BY make
-),
-prov_type_wise AS (
-    SELECT
-        'SUMMARY'::text AS location,
-        'Provision Type Wise'::text AS report_section,
-        prov_type::text AS report_label,
-        NULL::text AS classification,
-        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
         1 AS is_parent,
         NULL::numeric AS prov_pcs,
         SUM(prov_gr_wt) AS prov_gr_wt,
@@ -318,6 +434,32 @@ prov_type_wise AS (
             CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
         ) AS percent,
         5 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY make) AS row_sort
+    FROM base
+    GROUP BY make
+),
+prov_type_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        'Provision Type Wise'::text AS report_section,
+        prov_type::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        1 AS is_parent,
+        NULL::numeric AS prov_pcs,
+        SUM(prov_gr_wt) AS prov_gr_wt,
+        SUM(in_shop_wt) AS in_shop_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(in_transit_wt) AS in_transit_wt,
+        SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+        ROUND(
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+        ) AS percent,
+        6 AS section_sort,
         ROW_NUMBER() OVER (ORDER BY prov_type) AS row_sort
     FROM base
     GROUP BY prov_type
@@ -329,6 +471,10 @@ section_wise AS (
         section::text AS report_label,
         NULL::text AS classification,
         NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
         1 AS is_parent,
         SUM(prov_pieces) AS prov_pcs,
         SUM(prov_gr_wt) AS prov_gr_wt,
@@ -339,7 +485,7 @@ section_wise AS (
         ROUND(
             CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
         ) AS percent,
-        6 AS section_sort,
+        7 AS section_sort,
         ROW_NUMBER() OVER (ORDER BY section) AS row_sort
     FROM base
     GROUP BY section
@@ -351,6 +497,10 @@ provision_mode_wise AS (
         provision_mode_filter::text AS report_label,
         NULL::text AS classification,
         NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
         1 AS is_parent,
         NULL::numeric AS prov_pcs,
         SUM(prov_gr_wt) AS prov_gr_wt,
@@ -361,7 +511,7 @@ provision_mode_wise AS (
         ROUND(
             CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
         ) AS percent,
-        7 AS section_sort,
+        8 AS section_sort,
         ROW_NUMBER() OVER (ORDER BY provision_mode_filter) AS row_sort
     FROM base
     GROUP BY provision_mode_filter
@@ -373,6 +523,8 @@ combined_report AS (
     UNION ALL
     SELECT * FROM classification_wise
     UNION ALL
+    SELECT * FROM collection_wise
+    UNION ALL
     SELECT * FROM make_wise
     UNION ALL
     SELECT * FROM prov_type_wise
@@ -380,6 +532,8 @@ combined_report AS (
     SELECT * FROM section_wise
     UNION ALL
     SELECT * FROM provision_mode_wise
+    UNION ALL
+    SELECT * FROM section_details_wise
 )
 
 SELECT
@@ -388,6 +542,10 @@ SELECT
     report_label,
     classification,
     sub_classification,
+    collection,
+    sub_section,
+    sec_name,
+    typ_name,
     is_parent,
     prov_pcs,
     prov_gr_wt,
@@ -408,17 +566,39 @@ ORDER BY
         result = db.session.execute(text(query), params)
         rows = [dict(r._mapping) for r in result]
 
-        # In-memory sorting for Location Summary (All numeric columns)
+        # General In-memory sorting for all report sections
         numeric_cols = ['prov_pcs', 'prov_gr_wt', 'in_shop_wt', 'ordered_wt', 'in_transit_wt', 'short_excess_wt', 'percent']
         if sort_by in numeric_cols:
-            loc_summary_rows = [r for r in rows if r['report_section'] == 'Location Summary']
-            other_rows = [r for r in rows if r['report_section'] != 'Location Summary']
+            sections = {}
+            for row in rows:
+                section_name = row['report_section']
+                if section_name not in sections:
+                    sections[section_name] = []
+                sections[section_name].append(row)
             
-            loc_summary_rows.sort(
-                key=lambda x: (float(x.get(sort_by)) if x.get(sort_by) is not None else 0.0),
-                reverse=(sort_order == 'desc')
-            )
-            rows = loc_summary_rows + other_rows
+            all_sorted_rows = []
+            sorted_section_names = sorted(sections.keys(), key=lambda s: sections[s][0]['section_sort'])
+            
+            for s in sorted_section_names:
+                sec_rows = sections[s]
+                if s in ['Classification Wise', 'Collection Wise', 'Section Details']:
+                    # Hierarchical sorting
+                    key = 'classification' if s == 'Classification Wise' else ('collection' if s == 'Collection Wise' else 'sec_name')
+                    
+                    parents = [r for r in sec_rows if r['is_parent'] == 1]
+                    parents.sort(key=lambda r: float(r.get(sort_by) or 0), reverse=(sort_order == 'desc'))
+                    
+                    for p in parents:
+                        all_sorted_rows.append(p)
+                        children = [r for r in sec_rows if r['is_parent'] == 0 and r.get(key) == p.get(key)]
+                        children.sort(key=lambda r: float(r.get(sort_by) or 0), reverse=(sort_order == 'desc'))
+                        all_sorted_rows.extend(children)
+                else:
+                    # Flat sorting
+                    sec_rows.sort(key=lambda r: float(r.get(sort_by) or 0), reverse=(sort_order == 'desc'))
+                    all_sorted_rows.extend(sec_rows)
+            
+            rows = all_sorted_rows
         
         rendered_html = render_template('partials/_view_provision_stock_status.html', 
                                       rows=rows, 

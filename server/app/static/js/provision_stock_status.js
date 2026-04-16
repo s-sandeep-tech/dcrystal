@@ -20,6 +20,7 @@ let branchStatusMultiSelect;
 let makeHeaderFilter;
 let sectionHeaderFilter;
 let purityHeaderFilter;
+let collectionHeaderFilter;
 
 
 
@@ -79,6 +80,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    collectionHeaderFilter = new HeaderFilter({
+        id: 'collection',
+        title: 'Collection Wise',
+        onApply: (values) => {
+            applyFilters();
+        },
+        onClear: () => {
+            applyFilters();
+        }
+    });
+
     loadOptions();
 
 
@@ -126,6 +138,10 @@ async function loadOptions() {
 
         if (purityHeaderFilter) {
             purityHeaderFilter.setOptions(data.purities);
+        }
+
+        if (collectionHeaderFilter) {
+            collectionHeaderFilter.setOptions(data.collections);
         }
 
 
@@ -197,6 +213,11 @@ async function loadReport() {
             const icon = document.querySelector('.header-filter-container[data-id="purity"]');
             if (icon) icon.classList.add('filtered');
         }
+
+        if (collectionHeaderFilter && collectionHeaderFilter.selectedValues.length > 0) {
+            const icon = document.querySelector('.header-filter-container[data-id="collection"]');
+            if (icon) icon.classList.add('filtered');
+        }
     } catch (err) {
 
 
@@ -242,25 +263,36 @@ function applyFilters() {
     filterValues.provision_mode = document.getElementById('filter-provision-mode').value;
 
     // Combine Sidebar Make and Header Filter Makes
-    let sidebarMake = document.getElementById('filter-make').value;
+    const makeSelect = document.getElementById('filter-make');
+    let sidebarMake = makeSelect ? makeSelect.value : '';
     let headerMakes = makeHeaderFilter ? makeHeaderFilter.selectedValues : [];
     let combinedMakes = new Set(headerMakes);
     if (sidebarMake) combinedMakes.add(sidebarMake);
     filterValues.make = Array.from(combinedMakes).join(',');
 
     // Combine Sidebar Section and Header Filter Sections
-    let sidebarSection = document.getElementById('filter-section').value;
+    const sectionSelect = document.getElementById('filter-section');
+    let sidebarSection = sectionSelect ? sectionSelect.value : '';
     let headerSections = sectionHeaderFilter ? sectionHeaderFilter.selectedValues : [];
     let combinedSections = new Set(headerSections);
     if (sidebarSection) combinedSections.add(sidebarSection);
     filterValues.section = Array.from(combinedSections).join(',');
 
     // Combine Sidebar Purity and Header Filter Purities
-    let sidebarPurity = document.getElementById('filter-purity').value;
+    const puritySelect = document.getElementById('filter-purity');
+    let sidebarPurity = puritySelect ? puritySelect.value : '';
     let headerPurities = purityHeaderFilter ? purityHeaderFilter.selectedValues : [];
     let combinedPurities = new Set(headerPurities);
     if (sidebarPurity) combinedPurities.add(sidebarPurity);
     filterValues.purity = Array.from(combinedPurities).join(',');
+
+    // Combine Sidebar Collection and Header Filter Collections
+    const collectionSelect = document.getElementById('filter-collection');
+    let sidebarCollection = collectionSelect ? collectionSelect.value : '';
+    let headerCollections = collectionHeaderFilter ? collectionHeaderFilter.selectedValues : [];
+    let combinedCollections = new Set(headerCollections);
+    if (sidebarCollection) combinedCollections.add(sidebarCollection);
+    filterValues.collection = Array.from(combinedCollections).join(',');
     
     loadReport();
 }
@@ -309,6 +341,10 @@ function resetFilters() {
         purityHeaderFilter.setSelectedValues([]);
     }
 
+    if (collectionHeaderFilter) {
+        collectionHeaderFilter.setSelectedValues([]);
+    }
+
     filterValues.sort_by = '';
     filterValues.sort_order = 'none';
 
@@ -318,7 +354,7 @@ function resetFilters() {
     loadReport();
 }
 
-function toggleLocationSort(column) {
+function toggleSort(column) {
     if (filterValues.sort_by === column) {
         if (filterValues.sort_order === 'asc') {
             filterValues.sort_order = 'desc';
@@ -362,9 +398,7 @@ function toggleHeaderFilter(event, id) {
             makeHeaderFilter.close();
             icon.classList.remove('active');
         } else {
-            // Deactivate other filters if any (future proofing)
             document.querySelectorAll('.header-filter-container').forEach(el => el.classList.remove('active'));
-            
             icon.classList.add('active');
             makeHeaderFilter.render(icon);
         }
@@ -386,7 +420,16 @@ function toggleHeaderFilter(event, id) {
             icon.classList.add('active');
             purityHeaderFilter.render(icon);
         }
-    }
+    } else if (id === 'collection' && collectionHeaderFilter) {
+        if (collectionHeaderFilter.isOpen) {
+            collectionHeaderFilter.close();
+            icon.classList.remove('active');
+        } else {
+            document.querySelectorAll('.header-filter-container').forEach(el => el.classList.remove('active'));
+            icon.classList.add('active');
+            collectionHeaderFilter.render(icon);
+        }
+}
 }
 
 
