@@ -1560,6 +1560,7 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, sh
                "short_gr_wt","short_amt","short_percent","excess_pcs","excess_gr_weight","excess_amt",
                "not_in_prov_pcs","not_in_prov_gr_weight","not_in_prov_amt","prov_type",
                "branch_type","branch_status","business_head_name","business_head_emp_code",
+               "state",
                "last_updated_at"
         FROM  ext_view.vw_prov_and_stock_size_level
         OFFSET %s;
@@ -1689,6 +1690,7 @@ def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_ty
                         'not_in_prov_gr_weight': row.get('not_in_prov_gr_weight'),
                         'not_in_prov_amt': row.get('not_in_prov_amt'),
                         'prov_type': row.get('prov_type'),
+                        'state': row.get('state'),
                         'snapshot_date': row.get('last_updated_at') or current_time
                     })
                 
@@ -1748,6 +1750,7 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
                    "short_gr_wt","short_amt","short_percent","excess_pcs","excess_gr_weight","excess_amt",
                    "not_in_prov_pcs","not_in_prov_gr_weight","not_in_prov_amt","prov_type",
                    "branch_type","branch_status","business_head_name","business_head_emp_code",
+                   "state",
                    "last_updated_at"
             FROM  ext_view.vw_prov_and_stock_size_level;
         """

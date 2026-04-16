@@ -11,10 +11,12 @@ let filterValues = {
     branch_type: '',
     branch_status: '',
     business_head: '',
+    state: '',
     sort_by: '',
     sort_order: 'none'
 };
 let locationMultiSelect;
+let stateMultiSelect;
 let branchTypeMultiSelect;
 let branchStatusMultiSelect;
 let makeHeaderFilter;
@@ -44,6 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
         containerId: 'filter-branch-type-container',
         label: 'Branch Type',
         defaultText: 'All Branch Types',
+        options: []
+    });
+
+    stateMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-state-container',
+        label: 'State',
+        defaultText: 'All States',
         options: []
     });
     
@@ -126,6 +135,10 @@ async function loadOptions() {
 
         if (branchTypeMultiSelect) {
             branchTypeMultiSelect.populateOptions(data.branch_types);
+        }
+
+        if (stateMultiSelect) {
+            stateMultiSelect.populateOptions(data.states);
         }
 
         if (makeHeaderFilter) {
@@ -252,6 +265,10 @@ function applyFilters() {
 
     if (branchTypeMultiSelect) {
         filterValues.branch_type = branchTypeMultiSelect.getValues().join(',');
+    }
+
+    if (stateMultiSelect) {
+        filterValues.state = stateMultiSelect.getValues().join(',');
     }
 
     filterValues.purity = document.getElementById('filter-purity').value;

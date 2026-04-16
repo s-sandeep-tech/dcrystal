@@ -68,6 +68,7 @@ def provision_stock_status_options():
         branch_types = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.branch_type.distinct()).order_by(ProvisionStockRawSnapshot.branch_type).all() if r[0]]
         branch_statuses = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.branch_status.distinct()).order_by(ProvisionStockRawSnapshot.branch_status).all() if r[0]]
         business_heads = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.business_head_name.distinct()).order_by(ProvisionStockRawSnapshot.business_head_name).all() if r[0]]
+        states = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.state.distinct()).order_by(ProvisionStockRawSnapshot.state).all() if r[0]]
 
         data = {
             'locations': locations,
@@ -80,7 +81,8 @@ def provision_stock_status_options():
             'provision_modes': provision_modes,
             'branch_types': branch_types,
             'branch_statuses': branch_statuses,
-            'business_heads': business_heads
+            'business_heads': business_heads,
+            'states': states
         }
         
         # Cache for 5 hours as requested
@@ -106,6 +108,7 @@ def get_provision_stock_status_partial():
         branch_type = request.args.get('branch_type', '')
         branch_status = request.args.get('branch_status', '')
         business_head = request.args.get('business_head', '')
+        state = request.args.get('state', '')
         sort_by = request.args.get('sort_by', '')
         sort_order = request.args.get('sort_order', 'asc')
 
@@ -121,6 +124,7 @@ def get_provision_stock_status_partial():
             'branch_type': branch_type if branch_type else None,
             'branch_status': branch_status if branch_status else None,
             'business_head': business_head if business_head else None,
+            'state': state if state else None,
             'bh_emp_code': None,
             'sort_by': sort_by if sort_by else None,
             'sort_order': sort_order if sort_order else None
@@ -153,6 +157,7 @@ WITH base AS (
     FROM provision_stock_raw_snapshot
     WHERE 
         (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
+        AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
         AND (:purity IS NULL OR purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
         AND (:classification IS NULL OR classification = ANY(string_to_array(CAST(:classification AS text), ',')))
         AND (:make IS NULL OR make = ANY(string_to_array(CAST(:make AS text), ',')))
