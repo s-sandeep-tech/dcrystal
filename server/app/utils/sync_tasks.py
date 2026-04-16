@@ -24,6 +24,7 @@ import logging
 import socket
 import threading
 import queue
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -1542,7 +1543,7 @@ def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
         emit_sync_update('error', f'Combined sync failed: {error_msg}', 0, TASK_TYPE)
         return {"status": "error", "message": error_msg}
 
-def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, shared_state):
+def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, total_to_sync, shared_state):
     """Producer thread: Fetches data batches from Azure, with auto-resume support (duplication-safe)."""
     conn = None
     max_retries = 5
@@ -1573,41 +1574,47 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, sh
                 logger.info(f"Retrying Provision Sync (Attempt {retry_count})... Resuming from PRODUCER offset {producer_offset}")
                 time.sleep(5)  # Wait for connection to stabilize
             
-            # 1. Re-establish connection
-            conn = get_external_db_connection()
-            with conn.cursor() as s_cur:
-                 s_cur.execute("SET statement_timeout = 0")
-            
-            # Use a standard cursor (CLIENT-SIDE buffering is avoided because we use LIMIT)
-            cur = conn.cursor(cursor_factory=RealDictCursor)
-            
-            # 2. Chunked fetching loop
-            while not stop_event.is_set():
-                # Fetch a specific block of data
-                cur.execute(query_template, (batch_size, producer_offset))
-                rows = cur.fetchall()
-                
-                if not rows:
-                    # Signal completion to consumer
-                    data_queue.put(None, timeout=1)
-                    return # SUCCESSFUL PRODUCER EXIT
-                
-                # Signal progress and move to next block
-                put_success = False
-                while not put_success and not stop_event.is_set():
-                    try:
-                        data_queue.put(rows, timeout=1)
-                        producer_offset += len(rows) # Correctly update after successful put
-                        put_success = True
-                    except queue.Full:
-                        continue
+            # 2. Chunked fetching loop: Continues until all records are fetched
+            while producer_offset < total_to_sync and not stop_event.is_set():
+                # Establish a FRESH connection for EVERY batch to prevent SSL/Duration timeouts
+                conn = None
+                try:
+                    conn = get_external_db_connection()
+                    with conn.cursor() as s_cur:
+                        s_cur.execute("SET statement_timeout = 0")
+                    
+                    cur = conn.cursor(cursor_factory=RealDictCursor)
+                    
+                    # Fetch a specific block of data
+                    cur.execute(query_template, (batch_size, producer_offset))
+                    rows = cur.fetchall()
+                    
+                    if not rows:
+                        break # End of data
+                    
+                    # Signal progress and move to next block
+                    put_success = False
+                    while not put_success and not stop_event.is_set():
+                        try:
+                            data_queue.put(rows, timeout=1)
+                            producer_offset += len(rows) # Correctly update after successful put
+                            put_success = True
+                        except queue.Full:
+                            continue
+                finally:
+                    if conn:
+                        try: conn.close()
+                        except: pass
+
+            # If we reached the end, signal completion and exit producer
+            if producer_offset >= total_to_sync:
+                data_queue.put(None, timeout=1)
+                return # SUCCESSFUL PRODUCER EXIT
             
         except Exception as e:
             retry_count += 1
-            logger.error(f"Provision Sync Error (Attempt {retry_count}): {e}")
-            if conn: 
-                try: conn.close()
-                except: pass
+            error_trace = traceback.format_exc()
+            logger.error(f"Provision Sync Error (Attempt {retry_count}): {e}\n{error_trace}")
             
             if retry_count >= max_retries:
                 logger.error("Provision Sync: Max retries exceeded.")
@@ -1615,10 +1622,6 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, sh
                 try: data_queue.put(None, timeout=1)
                 except: pass
                 raise e
-        finally:
-            if conn:
-                try: conn.close()
-                except: pass
 
 def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_type, shared_state):
     """Consumer thread: Processes rows and updates shared progress for resume capability."""
@@ -1774,7 +1777,7 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
         from concurrent.futures import ThreadPoolExecutor
         with ThreadPoolExecutor(max_workers=2) as executor:
             # Note: Producer now handles its own connection and cursor for resumability
-            producer_future = executor.submit(_provision_sync_producer, None, data_queue, stop_event, BATCH_SIZE, shared_state)
+            producer_future = executor.submit(_provision_sync_producer, None, data_queue, stop_event, BATCH_SIZE, total_to_sync, shared_state)
             consumer_future = executor.submit(_provision_sync_consumer, app, data_queue, stop_event, total_to_sync, DATA_TYPE, shared_state)
             
             total_records = consumer_future.result()
