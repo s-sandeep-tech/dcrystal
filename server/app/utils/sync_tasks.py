@@ -1730,7 +1730,7 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
     This avoids SSL connection timeouts by keeping the connection active during inserts.
     """
     conn = None
-    BATCH_SIZE = 50000  # Increased batch size for higher throughput
+    BATCH_SIZE = 25000  # Reduced batch size for more consistent performance
     DATA_TYPE = 'provision_stock_status'
     
     try:
