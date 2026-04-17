@@ -52,6 +52,7 @@ def get_akt_transaction_data():
     try:
         # perminutebillcount is VARCHAR in DB, so it needs explicit casting for aggregates
         def cast_pmbc(col): return cast(col, Numeric)
+        def coal(col, default=0): return func.coalesce(col, default)
 
         # Applying all global filters
         filters = []
@@ -73,12 +74,12 @@ def get_akt_transaction_data():
 
         # 1. Top KPI Strip Data
         kpi_query = db.session.query(
-            func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount)).label('avg_per_min'),
-            func.sum(AKTTransactionPerformance.hourlybillcount).label('total_hourly'),
-            func.sum(AKTTransactionPerformance.invoiceamt).label('total_sales'),
-            func.sum(AKTTransactionPerformance.billcount).label('total_bills'),
-            func.sum(AKTTransactionPerformance.mcprofit + AKTTransactionPerformance.stonevalueprofit).label('total_profit'),
-            func.sum(AKTTransactionPerformance.netweight).label('total_net_weight')
+            coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
+            coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('total_hourly'),
+            coal(func.sum(AKTTransactionPerformance.invoiceamt)).label('total_sales'),
+            coal(func.sum(AKTTransactionPerformance.billcount)).label('total_bills'),
+            coal(func.sum(coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit))).label('total_profit'),
+            coal(func.sum(AKTTransactionPerformance.netweight)).label('total_net_weight')
         ).filter(*filters)
         
         kpi_data = kpi_query.first()
@@ -86,19 +87,19 @@ def get_akt_transaction_data():
         # 2. Billing Efficiency Data (by timepartt)
         efficiency_data = db.session.query(
             AKTTransactionPerformance.timepartt,
-            func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount)).label('avg_per_min'),
-            func.sum(AKTTransactionPerformance.hourlybillcount).label('sum_hourly'),
-            func.sum(AKTTransactionPerformance.invoiceamt).label('sum_revenue')
+            coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
+            coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
+            coal(func.sum(AKTTransactionPerformance.invoiceamt)).label('sum_revenue')
         ).filter(*filters).group_by(AKTTransactionPerformance.timepartt).order_by(AKTTransactionPerformance.timepartt).all()
 
         # 3. Location Performance
         location_data = db.session.query(
             AKTTransactionPerformance.location,
-            func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount)).label('avg_per_min'),
-            func.sum(AKTTransactionPerformance.hourlybillcount).label('sum_hourly'),
-            func.sum(AKTTransactionPerformance.invoiceamt).label('sum_revenue'),
-            func.sum(AKTTransactionPerformance.billcount).label('sum_bills'),
-            func.sum(AKTTransactionPerformance.mcprofit + AKTTransactionPerformance.stonevalueprofit).label('total_profit')
+            coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
+            coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
+            coal(func.sum(AKTTransactionPerformance.invoiceamt)).label('sum_revenue'),
+            coal(func.sum(AKTTransactionPerformance.billcount)).label('sum_bills'),
+            coal(func.sum(coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit))).label('total_profit')
         ).filter(*filters).group_by(AKTTransactionPerformance.location).order_by(func.sum(AKTTransactionPerformance.invoiceamt).desc()).all()
 
         # 4. State Performance
@@ -110,10 +111,10 @@ def get_akt_transaction_data():
         # 5. Trends (Daily)
         trend_data = db.session.query(
             func.date(AKTTransactionPerformance.date).label('d'),
-            func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount)).label('avg_per_min'),
-            func.sum(AKTTransactionPerformance.hourlybillcount).label('sum_hourly'),
-            func.sum(AKTTransactionPerformance.invoiceamt).label('sum_revenue'),
-            func.sum(AKTTransactionPerformance.turnover).label('sum_turnover')
+            coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
+            coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
+            coal(func.sum(AKTTransactionPerformance.invoiceamt)).label('sum_revenue'),
+            coal(func.sum(AKTTransactionPerformance.turnover)).label('sum_turnover')
         ).filter(*filters).group_by(func.date(AKTTransactionPerformance.date)).order_by(func.date(AKTTransactionPerformance.date)).all()
 
         # 6. Division Data
@@ -124,15 +125,15 @@ def get_akt_transaction_data():
 
         # 7. Revenue Composition & Weight
         comp_query = db.session.query(
-            func.sum(AKTTransactionPerformance.metalvalue).label('metal'),
-            func.sum(AKTTransactionPerformance.netstonevalue).label('stone'),
-            func.sum(AKTTransactionPerformance.netdiamondvalue).label('diamond'),
-            func.sum(AKTTransactionPerformance.netcolourstonevalue).label('color_stone'),
-            func.sum(AKTTransactionPerformance.netmcvalue).label('mc'),
-            func.sum(AKTTransactionPerformance.grossweight).label('gross_wt'),
-            func.sum(AKTTransactionPerformance.netweight).label('net_wt'),
-            func.sum(AKTTransactionPerformance.diamondcarat).label('diamond_carat'),
-            func.sum(AKTTransactionPerformance.colourstonecarat).label('color_carat')
+            coal(func.sum(AKTTransactionPerformance.metalvalue)).label('metal'),
+            coal(func.sum(AKTTransactionPerformance.netstonevalue)).label('stone'),
+            coal(func.sum(AKTTransactionPerformance.netdiamondvalue)).label('diamond'),
+            coal(func.sum(AKTTransactionPerformance.netcolourstonevalue)).label('color_stone'),
+            coal(func.sum(AKTTransactionPerformance.netmcvalue)).label('mc'),
+            coal(func.sum(AKTTransactionPerformance.grossweight)).label('gross_wt'),
+            coal(func.sum(AKTTransactionPerformance.netweight)).label('net_wt'),
+            coal(func.sum(AKTTransactionPerformance.diamondcarat)).label('diamond_carat'),
+            coal(func.sum(AKTTransactionPerformance.colourstonecarat)).label('color_carat')
         ).filter(*filters)
         
         composition = comp_query.first()
