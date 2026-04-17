@@ -10,9 +10,10 @@ let filterValues = {
     provision_mode: '',
     branch_type: '',
     branch_status: '',
-    business_head: ''
+    business_head: '',
+    state: ''
 };
-let locationMultiSelect, branchTypeMultiSelect, branchStatusMultiSelect;
+let locationMultiSelect, branchTypeMultiSelect, branchStatusMultiSelect, stateMultiSelect;
 
 document.addEventListener('DOMContentLoaded', () => {
     locationMultiSelect = new CustomMultiSelect({
@@ -33,6 +34,13 @@ document.addEventListener('DOMContentLoaded', () => {
         containerId: 'filter-branch-status-container',
         label: 'Branch Status',
         defaultText: 'All Branch Statuses',
+        options: []
+    });
+
+    stateMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-state-container',
+        label: 'State',
+        defaultText: 'All States',
         options: []
     });
     
@@ -70,6 +78,10 @@ async function loadOptions() {
 
         if (branchStatusMultiSelect) {
             branchStatusMultiSelect.populateOptions(data.branch_statuses);
+        }
+
+        if (stateMultiSelect) {
+            stateMultiSelect.populateOptions(data.states);
         }
 
         config.forEach(item => {
@@ -149,6 +161,9 @@ function applyFilters() {
     if (branchStatusMultiSelect) {
         filterValues.branch_status = branchStatusMultiSelect.getValues().join(',');
     }
+    if (stateMultiSelect) {
+        filterValues.state = stateMultiSelect.getValues().join(',');
+    }
     filterValues.business_head = document.getElementById('filter-business-head').value;
     
     loadReport();
@@ -181,6 +196,10 @@ function resetFilters() {
 
     if (branchStatusMultiSelect) {
         branchStatusMultiSelect.reset();
+    }
+
+    if (stateMultiSelect) {
+        stateMultiSelect.reset();
     }
     
     const searchInput = document.getElementById('report-search');

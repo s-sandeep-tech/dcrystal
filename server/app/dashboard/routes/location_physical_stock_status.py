@@ -79,6 +79,7 @@ def location_physical_stock_status_options():
         branch_types = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.branch_type.distinct()).order_by(ProvisionStockRawSnapshot.branch_type).all() if r[0]]
         branch_statuses = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.branch_status.distinct()).order_by(ProvisionStockRawSnapshot.branch_status).all() if r[0]]
         business_heads = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.business_head_name.distinct()).order_by(ProvisionStockRawSnapshot.business_head_name).all() if r[0]]
+        states = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.state.distinct()).order_by(ProvisionStockRawSnapshot.state).all() if r[0]]
 
         data = {
             'locations': locations,
@@ -91,7 +92,8 @@ def location_physical_stock_status_options():
             'provision_modes': provision_modes,
             'branch_types': branch_types,
             'branch_statuses': branch_statuses,
-            'business_heads': business_heads
+            'business_heads': business_heads,
+            'states': states
         }
         
         # Cache for 5 hours as requested
@@ -117,9 +119,11 @@ def get_location_physical_stock_status_partial():
         branch_type = request.args.get('branch_type', '')
         branch_status = request.args.get('branch_status', '')
         business_head = request.args.get('business_head', '')
+        state = request.args.get('state', '')
 
         params = {
             'location': location if location else None,
+            'state': state if state else None,
             'purity': float(purity) if purity else None,
             'classification': classification if classification else None,
             'make': make if make else None,
@@ -160,6 +164,7 @@ WITH base AS (
     FROM provision_stock_raw_snapshot
     WHERE 
         (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
+        AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
         AND (:purity IS NULL OR purity = :purity)
         AND (:classification IS NULL OR classification = :classification)
         AND (:make IS NULL OR make = :make)
