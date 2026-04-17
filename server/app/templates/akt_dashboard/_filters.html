@@ -46,7 +46,10 @@
         </select>
     </div>
 
-    <div class="flex items-end h-full ml-auto">
+    <div class="flex items-end h-full ml-auto gap-2">
+        <button onclick="resetFilters()" class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-4 py-2 rounded-lg text-xs font-bold hover:bg-gray-200 transition-all flex items-center gap-2 shadow-sm mb-0.5">
+            <span class="material-symbols-outlined text-sm">restart_alt</span> Reset
+        </button>
         <button onclick="loadDashboardData()" class="bg-primary text-white px-5 py-2 rounded-lg text-xs font-bold hover:bg-blue-600 transition-all flex items-center gap-2 shadow-md mb-0.5">
             <span class="material-symbols-outlined text-sm">refresh</span> Refresh
         </button>

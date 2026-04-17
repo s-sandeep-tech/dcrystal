@@ -42,6 +42,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+function resetFilters() {
+    // 1. Reset Date to Today
+    const dateInput = document.getElementById('filter-date');
+    if (dateInput) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+
+    // 2. Reset Country to default 'India'
+    const countrySelect = document.getElementById('filter-country');
+    if (countrySelect) {
+        countrySelect.value = 'India';
+    }
+
+    // 3. Reset All others to empty
+    const otherFilters = ['region', 'state', 'location', 'division', 'subledger'];
+    otherFilters.forEach(f => {
+        const el = document.getElementById(`filter-${f}`);
+        if (el) el.value = '';
+    });
+
+    // 4. Reset initialization flag to allow full re-population of cascading filters
+    filtersInitialized = false;
+
+    // 5. Reload data with is_initial=true
+    loadDashboardData(null);
+}
+
 function initCharts() {
     const chartDefaults = {
         responsive: true,
