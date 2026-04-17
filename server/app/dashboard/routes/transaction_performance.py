@@ -58,7 +58,7 @@ def get_akt_transaction_data():
         filters = []
         
         filter_configs = {
-            'date': AKTTransactionPerformance.date,
+            'date': func.date(AKTTransactionPerformance.date),
             'country': AKTTransactionPerformance.country_actual,
             'region': AKTTransactionPerformance.region,
             'state': AKTTransactionPerformance.state,
