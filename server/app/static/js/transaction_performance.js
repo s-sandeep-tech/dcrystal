@@ -90,7 +90,21 @@ function initCharts() {
                 { label: 'Turnover (₹)', data: [], borderColor: '#f59e0b', tension: 0.3, yAxisID: 'y' }
             ] 
         },
-        options: { ...chartDefaults, scales: { y: { type: 'linear', display: true, position: 'left' } } }
+        options: { 
+            ...chartDefaults, 
+            scales: { 
+                y: { 
+                    type: 'linear', 
+                    display: true, 
+                    position: 'left',
+                    ticks: {
+                        font: { size: 9 },
+                        color: '#94a3b8',
+                        callback: (val) => formatCompactNumber(val)
+                    }
+                } 
+            } 
+        }
     });
 
     // --- Section 3: Performance ---
@@ -102,7 +116,7 @@ function initCharts() {
 
     charts.salesState = new Chart(document.getElementById('chart-sales-state').getContext('2d'), {
         type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Sales (k₹)', data: [], backgroundColor: '#10b981', borderRadius: 4 }] },
+        data: { labels: [], datasets: [{ label: 'Sales (₹)', data: [], backgroundColor: '#10b981', borderRadius: 4 }] },
         options: {
             ...chartDefaults,
             scales: {
@@ -302,7 +316,7 @@ function updateDashboardCharts(data) {
     charts.salesLoc.update();
 
     charts.salesState.data.labels = data.state_performance.map(d => d.state);
-    charts.salesState.data.datasets[0].data = data.state_performance.map(d => d.value / 1000);
+    charts.salesState.data.datasets[0].data = data.state_performance.map(d => d.value);
     charts.salesState.update();
 
     charts.salesDivision.data.labels = data.division_sales.map(d => d.division);
