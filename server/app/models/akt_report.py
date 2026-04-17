@@ -1,9 +1,15 @@
 from app.extensions import db
+import os
 
 class AKTTransactionPerformance(db.Model):
     __bind_key__ = 'akt_db'
     __tablename__ = 'akt_dhanteras_saledetails'
-    __table_args__ = {'schema': 'muziris'}
+    
+    # Only use 'muziris' schema in production where it exists
+    if os.getenv('FLASK_ENV') == 'production' or os.getenv('ENABLE_AKT_DB') == 'true':
+        __table_args__ = {'schema': 'muziris'}
+    else:
+        __table_args__ = {}
 
     # Since it's a report table, we might not have a clear PK, 
     # but SQLAlchemy needs one. I'll use a combination or add an id if possible.
