@@ -4,7 +4,7 @@ from app.models.akt_report import AKTTransactionPerformance
 from app.models import Notification
 from app.extensions import db
 from app.utils.decorators import require_perm
-from sqlalchemy import func
+from sqlalchemy import func, cast, Numeric, Integer
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import logging
@@ -28,6 +28,10 @@ def transaction_performance():
 # @require_perm('dashboard.view')
 def get_akt_transaction_data():
     try:
+        # Helper to handle casting VARCHAR columns to Numeric for aggregation
+        def c_num(col): return cast(col, Numeric)
+        def c_int(col): return cast(col, Integer)
+
         # Applying all global filters
         filters = []
         
@@ -48,12 +52,12 @@ def get_akt_transaction_data():
 
         # 1. Top KPI Strip Data
         kpi_query = db.session.query(
-            func.avg(AKTTransactionPerformance.perminutebillcount).label('avg_per_min'),
-            func.sum(AKTTransactionPerformance.hourlybillcount).label('total_hourly'),
-            func.sum(AKTTransactionPerformance.invoiceamt).label('total_sales'),
-            func.sum(AKTTransactionPerformance.billcount).label('total_bills'),
-            func.sum(AKTTransactionPerformance.mcprofit + AKTTransactionPerformance.stonevalueprofit).label('total_profit'),
-            func.sum(AKTTransactionPerformance.netweight).label('total_net_weight')
+            func.avg(c_num(AKTTransactionPerformance.perminutebillcount)).label('avg_per_min'),
+            func.sum(c_int(AKTTransactionPerformance.hourlybillcount)).label('total_hourly'),
+            func.sum(c_num(AKTTransactionPerformance.invoiceamt)).label('total_sales'),
+            func.sum(c_int(AKTTransactionPerformance.billcount)).label('total_bills'),
+            func.sum(c_num(AKTTransactionPerformance.mcprofit) + c_num(AKTTransactionPerformance.stonevalueprofit)).label('total_profit'),
+            func.sum(c_num(AKTTransactionPerformance.netweight)).label('total_net_weight')
         ).filter(*filters)
         
         kpi_data = kpi_query.first()
@@ -61,53 +65,53 @@ def get_akt_transaction_data():
         # 2. Billing Efficiency Data (by timepartt)
         efficiency_data = db.session.query(
             AKTTransactionPerformance.timepartt,
-            func.avg(AKTTransactionPerformance.perminutebillcount).label('avg_per_min'),
-            func.sum(AKTTransactionPerformance.hourlybillcount).label('sum_hourly'),
-            func.sum(AKTTransactionPerformance.invoiceamt).label('sum_revenue')
+            func.avg(c_num(AKTTransactionPerformance.perminutebillcount)).label('avg_per_min'),
+            func.sum(c_int(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
+            func.sum(c_num(AKTTransactionPerformance.invoiceamt)).label('sum_revenue')
         ).filter(*filters).group_by(AKTTransactionPerformance.timepartt).order_by(AKTTransactionPerformance.timepartt).all()
 
         # 3. Location Performance
         location_data = db.session.query(
             AKTTransactionPerformance.location,
-            func.avg(AKTTransactionPerformance.perminutebillcount).label('avg_per_min'),
-            func.sum(AKTTransactionPerformance.hourlybillcount).label('sum_hourly'),
-            func.sum(AKTTransactionPerformance.invoiceamt).label('sum_revenue'),
-            func.sum(AKTTransactionPerformance.billcount).label('sum_bills'),
-            func.sum(AKTTransactionPerformance.mcprofit + AKTTransactionPerformance.stonevalueprofit).label('total_profit')
-        ).filter(*filters).group_by(AKTTransactionPerformance.location).order_by(func.sum(AKTTransactionPerformance.invoiceamt).desc()).all()
+            func.avg(c_num(AKTTransactionPerformance.perminutebillcount)).label('avg_per_min'),
+            func.sum(c_int(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
+            func.sum(c_num(AKTTransactionPerformance.invoiceamt)).label('sum_revenue'),
+            func.sum(c_int(AKTTransactionPerformance.billcount)).label('sum_bills'),
+            func.sum(c_num(AKTTransactionPerformance.mcprofit) + c_num(AKTTransactionPerformance.stonevalueprofit)).label('total_profit')
+        ).filter(*filters).group_by(AKTTransactionPerformance.location).order_by(func.sum(c_num(AKTTransactionPerformance.invoiceamt)).desc()).all()
 
         # 4. State Performance
         state_data = db.session.query(
             AKTTransactionPerformance.state,
-            func.sum(AKTTransactionPerformance.invoiceamt).label('sum_revenue')
-        ).filter(*filters).group_by(AKTTransactionPerformance.state).order_by(func.sum(AKTTransactionPerformance.invoiceamt).desc()).all()
+            func.sum(c_num(AKTTransactionPerformance.invoiceamt)).label('sum_revenue')
+        ).filter(*filters).group_by(AKTTransactionPerformance.state).order_by(func.sum(c_num(AKTTransactionPerformance.invoiceamt)).desc()).all()
 
         # 5. Trends (Daily)
         trend_data = db.session.query(
             AKTTransactionPerformance.date,
-            func.avg(AKTTransactionPerformance.perminutebillcount).label('avg_per_min'),
-            func.sum(AKTTransactionPerformance.hourlybillcount).label('sum_hourly'),
-            func.sum(AKTTransactionPerformance.invoiceamt).label('sum_revenue'),
-            func.sum(AKTTransactionPerformance.turnover).label('sum_turnover')
+            func.avg(c_num(AKTTransactionPerformance.perminutebillcount)).label('avg_per_min'),
+            func.sum(c_int(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
+            func.sum(c_num(AKTTransactionPerformance.invoiceamt)).label('sum_revenue'),
+            func.sum(c_num(AKTTransactionPerformance.turnover)).label('sum_turnover')
         ).filter(*filters).group_by(AKTTransactionPerformance.date).order_by(AKTTransactionPerformance.date).all()
 
         # 6. Division Data
         division_data = db.session.query(
             AKTTransactionPerformance.divisionname,
-            func.sum(AKTTransactionPerformance.invoiceamt).label('sum_revenue')
+            func.sum(c_num(AKTTransactionPerformance.invoiceamt)).label('sum_revenue')
         ).filter(*filters).group_by(AKTTransactionPerformance.divisionname).all()
 
         # 7. Revenue Composition & Weight
         comp_query = db.session.query(
-            func.sum(AKTTransactionPerformance.metalvalue).label('metal'),
-            func.sum(AKTTransactionPerformance.netstonevalue).label('stone'),
-            func.sum(AKTTransactionPerformance.netdiamondvalue).label('diamond'),
-            func.sum(AKTTransactionPerformance.netcolourstonevalue).label('color_stone'),
-            func.sum(AKTTransactionPerformance.netmcvalue).label('mc'),
-            func.sum(AKTTransactionPerformance.grossweight).label('gross_wt'),
-            func.sum(AKTTransactionPerformance.netweight).label('net_wt'),
-            func.sum(AKTTransactionPerformance.diamondcarat).label('diamond_carat'),
-            func.sum(AKTTransactionPerformance.colourstonecarat).label('color_carat')
+            func.sum(c_num(AKTTransactionPerformance.metalvalue)).label('metal'),
+            func.sum(c_num(AKTTransactionPerformance.netstonevalue)).label('stone'),
+            func.sum(c_num(AKTTransactionPerformance.netdiamondvalue)).label('diamond'),
+            func.sum(c_num(AKTTransactionPerformance.netcolourstonevalue)).label('color_stone'),
+            func.sum(c_num(AKTTransactionPerformance.netmcvalue)).label('mc'),
+            func.sum(c_num(AKTTransactionPerformance.grossweight)).label('gross_wt'),
+            func.sum(c_num(AKTTransactionPerformance.netweight)).label('net_wt'),
+            func.sum(c_num(AKTTransactionPerformance.diamondcarat)).label('diamond_carat'),
+            func.sum(c_num(AKTTransactionPerformance.colourstonecarat)).label('color_carat')
         ).filter(*filters)
         
         composition = comp_query.first()
@@ -116,7 +120,7 @@ def get_akt_transaction_data():
         heatmap_raw = db.session.query(
             AKTTransactionPerformance.date,
             AKTTransactionPerformance.timepartt,
-            func.sum(AKTTransactionPerformance.billcount).label('bill_count')
+            func.sum(c_int(AKTTransactionPerformance.billcount)).label('bill_count')
         ).filter(*filters).group_by(AKTTransactionPerformance.date, AKTTransactionPerformance.timepartt).all()
 
         # 9. Unique filter values
