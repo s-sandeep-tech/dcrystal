@@ -11,68 +11,66 @@ class AKTTransactionPerformance(db.Model):
     else:
         __table_args__ = {}
 
-    # Since it's a report table, we might not have a clear PK, 
-    # but SQLAlchemy needs one. I'll use a combination or add an id if possible.
-    # If it's read-only, we can just pick some columns.
-    Year = db.Column(db.Integer)
-    Date = db.Column(db.Date)
-    Country = db.Column(db.String(100))
-    Subledger = db.Column(db.String(100))
-    Region = db.Column(db.String(100))
-    State = db.Column(db.String(100))
-    Location = db.Column(db.String(100))
-    DivisionName = db.Column(db.String(100))
-    TimePartt = db.Column(db.Integer, primary_key=True) # Assuming this as part of PK for simplicity if no other
-    BillCount = db.Column(db.Integer)
-    GrossWeight = db.Column(db.Numeric(18, 4))
-    StoneWeight = db.Column(db.Numeric(18, 4))
-    DiamondCarat = db.Column(db.Numeric(18, 4))
-    ColourStoneCarat = db.Column(db.Numeric(18, 4))
-    NetWeight = db.Column(db.Numeric(18, 4))
-    MetalValue = db.Column(db.Numeric(18, 4))
-    NetStoneValue = db.Column(db.Numeric(18, 4))
-    NetDiamondValue = db.Column(db.Numeric(18, 4))
-    NetColourStoneValue = db.Column(db.Numeric(18, 4))
-    NetMCValue = db.Column(db.Numeric(18, 4))
-    InvoiceAmt = db.Column(db.Numeric(18, 4))
-    MCprofit = db.Column(db.Numeric(18, 4))
-    StoneVAlueProfit = db.Column(db.Numeric(18, 4))
-    Turnover = db.Column(db.Numeric(18, 4))
-    TSK = db.Column(db.String(100))
-    HourlyBillCount = db.Column(db.Integer)
-    PerMinuteBillCount = db.Column(db.Numeric(18, 4))
-    BillTime = db.Column(db.String(20), primary_key=True) # Adding another to reduce collisions
-    Country_Actual = db.Column(db.String(100), primary_key=True)
+    # Updated to lowercase as per PostgreSQL table definition
+    year = db.Column(db.Integer)
+    date = db.Column(db.Date)
+    country = db.Column(db.String(100))
+    subledger = db.Column(db.String(100))
+    region = db.Column(db.String(100))
+    state = db.Column(db.String(100))
+    location = db.Column(db.String(100))
+    divisionname = db.Column(db.String(100))
+    timepartt = db.Column(db.Integer, primary_key=True)
+    billcount = db.Column(db.Integer)
+    grossweight = db.Column(db.Numeric(18, 4))
+    stoneweight = db.Column(db.Numeric(18, 4))
+    diamondcarat = db.Column(db.Numeric(18, 4))
+    colourstonecarat = db.Column(db.Numeric(18, 4))
+    netweight = db.Column(db.Numeric(18, 4))
+    metalvalue = db.Column(db.Numeric(18, 4))
+    netstonevalue = db.Column(db.Numeric(18, 4))
+    netdiamondvalue = db.Column(db.Numeric(18, 4))
+    netcolourstonevalue = db.Column(db.Numeric(18, 4))
+    netmcvalue = db.Column(db.Numeric(18, 4))
+    invoiceamt = db.Column(db.Numeric(18, 4))
+    mcprofit = db.Column(db.Numeric(18, 4))
+    stonevalueprofit = db.Column(db.Numeric(18, 4))
+    turnover = db.Column(db.Numeric(18, 4))
+    tsk = db.Column(db.String(100))
+    hourlybillcount = db.Column(db.Integer)
+    perminutebillcount = db.Column(db.Numeric(18, 4))
+    billtime = db.Column(db.String(20), primary_key=True)
+    country_actual = db.Column(db.String(100), primary_key=True)
 
     def to_dict(self):
         return {
-            "Year": self.Year,
-            "Date": str(self.Date) if self.Date else None,
-            "Country": self.Country,
-            "Subledger": self.Subledger,
-            "Region": self.Region,
-            "State": self.State,
-            "Location": self.Location,
-            "DivisionName": self.DivisionName,
-            "TimePartt": self.TimePartt,
-            "BillCount": self.BillCount,
-            "GrossWeight": float(self.GrossWeight) if self.GrossWeight else 0,
-            "StoneWeight": float(self.StoneWeight) if self.StoneWeight else 0,
-            "DiamondCarat": float(self.DiamondCarat) if self.DiamondCarat else 0,
-            "ColourStoneCarat": float(self.ColourStoneCarat) if self.ColourStoneCarat else 0,
-            "NetWeight": float(self.NetWeight) if self.NetWeight else 0,
-            "MetalValue": float(self.MetalValue) if self.MetalValue else 0,
-            "NetStoneValue": float(self.NetStoneValue) if self.NetStoneValue else 0,
-            "NetDiamondValue": float(self.NetDiamondValue) if self.NetDiamondValue else 0,
-            "NetColourStoneValue": float(self.NetColourStoneValue) if self.NetColourStoneValue else 0,
-            "NetMCValue": float(self.NetMCValue) if self.NetMCValue else 0,
-            "InvoiceAmt": float(self.InvoiceAmt) if self.InvoiceAmt else 0,
-            "MCprofit": float(self.MCprofit) if self.MCprofit else 0,
-            "StoneVAlueProfit": float(self.StoneVAlueProfit) if self.StoneVAlueProfit else 0,
-            "Turnover": float(self.Turnover) if self.Turnover else 0,
-            "TSK": self.TSK,
-            "HourlyBillCount": self.HourlyBillCount,
-            "PerMinuteBillCount": float(self.PerMinuteBillCount) if self.PerMinuteBillCount else 0,
-            "BillTime": self.BillTime,
-            "Country_Actual": self.Country_Actual
+            "year": self.year,
+            "date": str(self.date) if self.date else None,
+            "country": self.country,
+            "subledger": self.subledger,
+            "region": self.region,
+            "state": self.state,
+            "location": self.location,
+            "divisionname": self.divisionname,
+            "timepartt": self.timepartt,
+            "billcount": self.billcount,
+            "grossweight": float(self.grossweight) if self.grossweight else 0,
+            "stoneweight": float(self.stoneweight) if self.stoneweight else 0,
+            "diamondcarat": float(self.diamondcarat) if self.diamondcarat else 0,
+            "colourstonecarat": float(self.colourstonecarat) if self.colourstonecarat else 0,
+            "netweight": float(self.netweight) if self.netweight else 0,
+            "metalvalue": float(self.metalvalue) if self.metalvalue else 0,
+            "netstonevalue": float(self.netstonevalue) if self.netstonevalue else 0,
+            "netdiamondvalue": float(self.netdiamondvalue) if self.netdiamondvalue else 0,
+            "netcolourstonevalue": float(self.netcolourstonevalue) if self.netcolourstonevalue else 0,
+            "netmcvalue": float(self.netmcvalue) if self.netmcvalue else 0,
+            "invoiceamt": float(self.invoiceamt) if self.invoiceamt else 0,
+            "mcprofit": float(self.mcprofit) if self.mcprofit else 0,
+            "stonevalueprofit": float(self.stonevalueprofit) if self.stonevalueprofit else 0,
+            "turnover": float(self.turnover) if self.turnover else 0,
+            "tsk": self.tsk,
+            "hourlybillcount": self.hourlybillcount,
+            "perminutebillcount": float(self.perminutebillcount) if self.perminutebillcount else 0,
+            "billtime": self.billtime,
+            "country_actual": self.country_actual
         }
