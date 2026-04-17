@@ -10,6 +10,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initCharts();
+    
+    // Set default country if specified
+    const countrySelect = document.getElementById('filter-country');
+    if (countrySelect) {
+        countrySelect.value = 'INDIA';
+    }
+
     loadDashboardData();
     
     // Setup filter listeners
@@ -399,6 +406,11 @@ function populateFilters(options) {
         if (select && mappings[id]) {
             mappings[id].forEach(val => {
                 if (!val) return;
+                
+                // Avoid adding duplicate for the default value
+                const exists = Array.from(select.options).some(opt => opt.value === val);
+                if (exists) return;
+
                 const opt = document.createElement('option');
                 opt.value = val;
                 opt.innerText = val;
