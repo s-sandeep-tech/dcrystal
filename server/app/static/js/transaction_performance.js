@@ -102,7 +102,7 @@ function initCharts() {
 
     charts.salesState = new Chart(document.getElementById('chart-sales-state').getContext('2d'), {
         type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Sales (₹)', data: [], backgroundColor: '#10b981', borderRadius: 4 }] },
+        data: { labels: [], datasets: [{ label: 'Sales (k₹)', data: [], backgroundColor: '#10b981', borderRadius: 4 }] },
         options: chartDefaults
     });
 
@@ -250,7 +250,7 @@ function updateDashboardCharts(data) {
     charts.salesLoc.update();
 
     charts.salesState.data.labels = data.state_performance.map(d => d.state);
-    charts.salesState.data.datasets[0].data = data.state_performance.map(d => d.value);
+    charts.salesState.data.datasets[0].data = data.state_performance.map(d => d.value / 1000);
     charts.salesState.update();
 
     charts.salesDivision.data.labels = data.division_sales.map(d => d.division);
