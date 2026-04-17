@@ -1564,7 +1564,10 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, to
                "state",
                "last_updated_at"
         FROM  ext_view.vw_prov_and_stock_size_level
-        ORDER BY location, division, "group", purity, classification, make, collection, size, last_updated_at
+        ORDER BY location, division, "group", purity, classification, sub_classification, 
+                 section, type, make, collection, master_collection, sub_section, gender, 
+                 wide_range, range_weight, size, screw_type, provision_mode, prov_type, 
+                 last_updated_at
         LIMIT %s OFFSET %s;
     """
 
@@ -1737,11 +1740,15 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
         db.session.query(ProvisionStockRawSnapshot).delete()
         db.session.commit()
 
-        # 2. Get total count
+        # 2. Get total count and sum for validation
         count_cur = conn.cursor()
-        count_cur.execute('SELECT COUNT(*) FROM ext_view.vw_prov_and_stock_size_level')
-        total_to_sync = count_cur.fetchone()[0]
+        count_cur.execute('SELECT COUNT(*), SUM(prov_gr_wt) FROM ext_view.vw_prov_and_stock_size_level')
+        source_stats = count_cur.fetchone()
+        total_to_sync = source_stats[0]
+        source_sum_wt = source_stats[1] or 0
         count_cur.close()
+        
+        logger.info(f"Provision Stock Sync: Source Total Count: {total_to_sync}, Source Sum Weight: {source_sum_wt}")
         
         # 3. Setup Named Cursor
         cur = conn.cursor(name='provision_stock_sync_cursor', cursor_factory=RealDictCursor)
@@ -1785,11 +1792,28 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
             total_records = consumer_future.result()
             producer_future.result()
 
-        duration = time.time() - start_time
-        logger.info(f"ProvisionStockStatus Async Sync (Resumable) took {duration:.2f} seconds for {total_records} records.")
-        emit_sync_update('success', f'Sync completed! {total_records:,} records updated in {int(duration)}s.', 100, DATA_TYPE)
+        # 5. Post-Sync Validation
+        local_stats = db.session.query(
+            db.func.count(ProvisionStockRawSnapshot.id),
+            db.func.sum(ProvisionStockRawSnapshot.prov_gr_wt)
+        ).first()
         
-        return {"status": "success", "count": total_records}
+        local_count = local_stats[0] or 0
+        local_sum_wt = float(local_stats[1] or 0)
+        
+        # Determine success vs discrepancy
+        count_matched = (local_count == total_to_sync)
+        # Using a small epsilon for float/decimal comparison if necessary, but here we expect exact match or identifiable loss
+        sum_matched = (abs(float(local_sum_wt) - float(source_sum_wt)) < 0.001)
+
+        if count_matched and sum_matched:
+            emit_sync_update('success', f'Sync completed & validated! {total_records:,} records updated.', 100, DATA_TYPE)
+        else:
+            warn_msg = f"Sync finished with DISCREPANCY! Source: {total_to_sync} rows / {source_sum_wt} wt. Local: {local_count} rows / {local_sum_wt} wt."
+            logger.warning(warn_msg)
+            emit_sync_update('success', f'Sync finished with validation warnings. Please check logs.', 100, DATA_TYPE)
+
+        return {"status": "success", "count": total_records, "validation": {"match": count_matched and sum_matched}}
 
     except Exception as e:
         db.session.rollback()
