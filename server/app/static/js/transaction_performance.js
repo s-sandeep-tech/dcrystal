@@ -11,6 +11,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const el = document.getElementById(`filter-${f}`);
         if (el) el.addEventListener('change', loadDashboardData);
     });
+
+    // Real-time Sync Listener (Dedicated AKT Relay)
+    if (window.socket) {
+        window.socket.on('aktPerformanceRefresh', (data) => {
+            console.log('Real-time AKT sync triggered:', data);
+            
+            // Show toast if available
+            if (window.showToast) {
+                window.showToast('Data Synced', data.message || 'Dashboard updated with latest transaction data', 'success');
+            }
+            
+            // Refresh data (uses current filters)
+            loadDashboardData();
+        });
+    }
 });
 
 function initCharts() {

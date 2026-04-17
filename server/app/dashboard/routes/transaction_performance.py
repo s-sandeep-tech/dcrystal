@@ -2,7 +2,7 @@ from flask import render_template, session, redirect, url_for, request, jsonify
 from app.dashboard import dashboard_bp
 from app.models.akt_report import AKTTransactionPerformance
 from app.models import Notification
-from app.extensions import db
+from app.extensions import db, socketio, redis_client
 from app.utils.decorators import require_perm
 from sqlalchemy import func, cast, Numeric
 from datetime import datetime
@@ -23,6 +23,28 @@ def transaction_performance():
     return render_template('transaction_performance.html', 
                          unread_count=unread_count,
                          sync_time=sync_time)
+
+@dashboard_bp.route('/api/akt/trigger-sync', methods=['POST', 'GET'])
+def trigger_akt_sync():
+    """Public endpoint to trigger a data refresh for the AKT dashboard via Redis relay."""
+    try:
+        import json
+        # Try to get custom message from JSON body
+        request_data = request.get_json(silent=True) or {}
+        custom_message = request_data.get('message', 'Latest transaction data is available')
+        
+        payload = {
+            "action": "refresh",
+            "timestamp": datetime.now().isoformat(),
+            "message": custom_message
+        }
+        # Publish to the dedicated AKT channel
+        redis_client.publish('akt_performance_updates', json.dumps(payload))
+        
+        return jsonify({"status": "success", "message": f"AKT sync signal ('{custom_message}') published to Redis"}), 200
+    except Exception as e:
+        logger.error(f"Error publishing AKT sync signal: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @dashboard_bp.route('/api/akt/transaction-data')
 # @require_perm('dashboard.view')
