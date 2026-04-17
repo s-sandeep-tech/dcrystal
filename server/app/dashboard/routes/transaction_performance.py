@@ -105,7 +105,7 @@ def get_akt_transaction_data():
             coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
             coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
             coal(func.sum(AKTTransactionPerformance.invoiceamt)).label('sum_revenue'),
-            coal(func.sum(case([(AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.billcount)], else_=0))).label('sum_bills'),
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.billcount), else_=0))).label('sum_bills'),
             coal(func.sum(coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit))).label('total_profit')
         ).filter(*filters).group_by(AKTTransactionPerformance.location).all()
 
