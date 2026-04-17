@@ -103,7 +103,19 @@ function initCharts() {
     charts.salesState = new Chart(document.getElementById('chart-sales-state').getContext('2d'), {
         type: 'bar',
         data: { labels: [], datasets: [{ label: 'Sales (k₹)', data: [], backgroundColor: '#10b981', borderRadius: 4 }] },
-        options: chartDefaults
+        options: {
+            ...chartDefaults,
+            scales: {
+                ...chartDefaults.scales,
+                y: {
+                    ...chartDefaults.scales.y,
+                    ticks: {
+                        ...chartDefaults.scales.y.ticks,
+                        callback: (val) => Math.round(val) + 'k'
+                    }
+                }
+            }
+        }
     });
 
     charts.salesDivision = new Chart(document.getElementById('chart-sales-division').getContext('2d'), {
