@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set default country if specified
     const countrySelect = document.getElementById('filter-country');
     if (countrySelect) {
-        countrySelect.value = 'INDIA';
+        countrySelect.value = 'India';
     }
 
     loadDashboardData();
@@ -405,15 +405,26 @@ function populateFilters(options) {
         'subledger': options.subledgers
     };
 
+    let reloadRequired = false;
+
     Object.keys(mappings).forEach(id => {
         const select = document.getElementById(`filter-${id}`);
         if (select && mappings[id]) {
+            const initialValue = select.value;
+
             mappings[id].forEach(val => {
                 if (!val) return;
                 
                 // Avoid adding duplicate for the default value
                 const exists = Array.from(select.options).some(opt => opt.value === val);
-                if (exists) return;
+                if (exists) {
+                    // If it exists but case is different, correct it
+                    if (id === 'country' && val.toLowerCase() === 'india' && val !== initialValue) {
+                        select.value = val;
+                        reloadRequired = true;
+                    }
+                    return;
+                }
 
                 const opt = document.createElement('option');
                 opt.value = val;
@@ -422,10 +433,16 @@ function populateFilters(options) {
                 // Case-insensitive search for 'india' to set as default if found
                 if (id === 'country' && val.toLowerCase() === 'india') {
                     opt.selected = true;
+                    if (val !== initialValue) reloadRequired = true;
                 }
                 
                 select.appendChild(opt);
             });
         }
     });
+
+    if (reloadRequired) {
+        console.log('Corrected country case detected, reloading data...');
+        loadDashboardData();
+    }
 }
