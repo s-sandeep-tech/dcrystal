@@ -141,7 +141,19 @@ function initCharts() {
     charts.avgBillLoc = new Chart(document.getElementById('chart-avg-bill-location').getContext('2d'), {
         type: 'bar',
         data: { labels: [], datasets: [{ label: 'Avg Bill Value (₹)', data: [], backgroundColor: '#6366f1', borderRadius: 4 }] },
-        options: chartDefaults
+        options: {
+            ...chartDefaults,
+            scales: {
+                ...chartDefaults.scales,
+                y: {
+                    ...chartDefaults.scales.y,
+                    ticks: {
+                        ...chartDefaults.scales.y.ticks,
+                        callback: (val) => formatCompactNumber(val)
+                    }
+                }
+            }
+        }
     });
 
     // --- Section 4: Profitability ---
@@ -160,7 +172,19 @@ function initCharts() {
     charts.profitLoc = new Chart(document.getElementById('chart-profit-location').getContext('2d'), {
         type: 'bar',
         data: { labels: [], datasets: [{ label: 'Total Profit (₹)', data: [], backgroundColor: '#10b981', borderRadius: 4 }] },
-        options: chartDefaults
+        options: {
+            ...chartDefaults,
+            scales: {
+                ...chartDefaults.scales,
+                y: {
+                    ...chartDefaults.scales.y,
+                    ticks: {
+                        ...chartDefaults.scales.y.ticks,
+                        callback: (val) => formatCompactNumber(val)
+                    }
+                }
+            }
+        }
     });
 
     // --- Section 5: Analysis ---
