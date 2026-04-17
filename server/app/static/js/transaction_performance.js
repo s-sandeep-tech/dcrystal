@@ -20,10 +20,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loadDashboardData();
 
     // Setup filter listeners
-    const filters = ['date', 'country', 'region', 'state', 'location', 'division', 'subledger'];
-    filters.forEach(f => {
+    const filterIds = ['date', 'country', 'region', 'state', 'location', 'division', 'subledger'];
+    filterIds.forEach(f => {
         const el = document.getElementById(`filter-${f}`);
-        if (el) el.addEventListener('change', loadDashboardData);
+        if (el) el.addEventListener('change', (e) => loadDashboardData(e.target.id));
     });
 
     // Real-time Sync Listener (Dedicated AKT Relay)
@@ -287,9 +287,9 @@ function formatCurrency(val) {
     return '₹' + formatCompactNumber(val);
 }
 
-async function loadDashboardData() {
-    const filterIds = ['date', 'country', 'region', 'state', 'location', 'division', 'subledger'];
+async function loadDashboardData(triggerId = null) {
     const params = new URLSearchParams();
+    const filterIds = ['date', 'country', 'region', 'state', 'location', 'division', 'subledger'];
     filterIds.forEach(id => {
         const val = document.getElementById(`filter-${id}`).value;
         if (val) params.append(id, val);
@@ -306,8 +306,8 @@ async function loadDashboardData() {
         if (data.status === 'success') {
             updateKPIs(data.kpis);
             updateDashboardCharts(data);
-            if (!filtersInitialized && data.filter_options) {
-                populateFilters(data.filter_options);
+            if (data.filter_options) {
+                populateFilters(data.filter_options, triggerId);
                 filtersInitialized = true;
             }
         } else {
@@ -415,51 +415,72 @@ function updateDashboardCharts(data) {
     charts.heatmap.update();
 }
 
-function populateFilters(options) {
+function populateFilters(options, triggerId = null) {
+    const hierarchy = ['filter-country', 'filter-region', 'filter-state', 'filter-location', 'filter-division', 'filter-subledger'];
     const mappings = {
-        'country': options.countries,
-        'region': options.regions,
-        'state': options.states,
-        'location': options.locations,
-        'division': options.divisions,
-        'subledger': options.subledgers
+        'filter-country': options.countries,
+        'filter-region': options.regions,
+        'filter-state': options.states,
+        'filter-location': options.locations,
+        'filter-division': options.divisions,
+        'filter-subledger': options.subledgers
     };
+
+    // Determine where to start the re-population
+    let startIndex = 0;
+    if (triggerId) {
+        startIndex = hierarchy.indexOf(triggerId) + 1;
+    }
 
     let reloadRequired = false;
 
-    Object.keys(mappings).forEach(id => {
-        const select = document.getElementById(`filter-${id}`);
-        if (select && mappings[id]) {
+    for (let i = startIndex; i < hierarchy.length; i++) {
+        const id = hierarchy[i];
+        const select = document.getElementById(id);
+        const dataKey = id;
+        
+        if (select && mappings[dataKey]) {
             const initialValue = select.value;
+            const isCountry = (id === 'filter-country');
 
-            mappings[id].forEach(val => {
+            // Save the current value to try and restore it later if it's still valid
+            const currentValue = select.value;
+
+            // Clear existing options, but keep or re-add the "All" version for sub-filters
+            select.innerHTML = '';
+            if (!isCountry) {
+                const allOpt = document.createElement('option');
+                allOpt.value = '';
+                // e.g. "All Regions"
+                const label = id.replace('filter-', '').charAt(0).toUpperCase() + id.replace('filter-', '').slice(1);
+                allOpt.innerText = `All ${label}s`;
+                select.appendChild(allOpt);
+            }
+
+            mappings[dataKey].forEach(val => {
                 if (!val) return;
-
-                // Avoid adding duplicate for the default value
-                const exists = Array.from(select.options).some(opt => opt.value === val);
-                if (exists) {
-                    // If it exists but case is different, correct it
-                    if (id === 'country' && val.toLowerCase() === 'india' && val !== initialValue) {
-                        select.value = val;
-                        reloadRequired = true;
-                    }
-                    return;
-                }
-
+                
                 const opt = document.createElement('option');
                 opt.value = val;
                 opt.innerText = val;
-
-                // Case-insensitive search for 'india' to set as default if found
-                if (id === 'country' && val.toLowerCase() === 'india') {
-                    opt.selected = true;
-                    if (val !== initialValue) reloadRequired = true;
+                
+                // Case correction for India on initial load
+                if (isCountry && val.toLowerCase() === 'india') {
+                    if (!triggerId) { // only auto-select on very first load if nothing selected
+                        opt.selected = true;
+                        if (val !== initialValue) reloadRequired = true;
+                    }
                 }
-
+                
                 select.appendChild(opt);
             });
+
+            // Try to restore previous selection if it's still valid in the new list
+            if (currentValue && Array.from(select.options).some(o => o.value === currentValue)) {
+                select.value = currentValue;
+            }
         }
-    });
+    }
 
     if (reloadRequired) {
         console.log('Corrected country case detected, reloading data...');

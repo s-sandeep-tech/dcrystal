@@ -150,17 +150,33 @@ def get_akt_transaction_data():
             func.sum(AKTTransactionPerformance.billcount).label('bill_count')
         ).filter(*filters).group_by(func.date(AKTTransactionPerformance.date), AKTTransactionPerformance.timepartt).all()
 
-        # 9. Unique filter values
+        # 9. Unique filter values (Cascading Hierarchy)
+        # Each level narrows down the next: Country -> Region -> State -> Location
         unique_vals = {}
-        if not filters or request.args.get('is_initial') == 'true':
-            unique_vals = {
-                "countries": [r[0] for r in db.session.query(AKTTransactionPerformance.country_actual).distinct().all() if r[0]],
-                "regions": [r[0] for r in db.session.query(AKTTransactionPerformance.region).distinct().all() if r[0]],
-                "states": [r[0] for r in db.session.query(AKTTransactionPerformance.state).distinct().all() if r[0]],
-                "locations": [r[0] for r in db.session.query(AKTTransactionPerformance.location).distinct().all() if r[0]],
-                "divisions": [r[0] for r in db.session.query(AKTTransactionPerformance.divisionname).distinct().all() if r[0]],
-                "subledgers": [r[0] for r in db.session.query(AKTTransactionPerformance.subledger).distinct().all() if r[0]]
-            }
+        
+        country_val = request.args.get('country')
+        region_val = request.args.get('region')
+        state_val = request.args.get('state')
+        location_val = request.args.get('location')
+
+        def get_distinct(field, current_filters):
+            return [r[0] for r in db.session.query(field).filter(*current_filters).distinct().all() if r[0]]
+
+        # Hierarchy filters
+        f_country = []
+        f_region = [AKTTransactionPerformance.country_actual == country_val] if country_val else []
+        f_state = f_region + ([AKTTransactionPerformance.region == region_val] if region_val else [])
+        f_loc = f_state + ([AKTTransactionPerformance.state == state_val] if state_val else [])
+        f_div = f_loc + ([AKTTransactionPerformance.location == location_val] if location_val else [])
+
+        unique_vals = {
+            "countries": get_distinct(AKTTransactionPerformance.country_actual, f_country),
+            "regions": get_distinct(AKTTransactionPerformance.region, f_region),
+            "states": get_distinct(AKTTransactionPerformance.state, f_state),
+            "locations": get_distinct(AKTTransactionPerformance.location, f_loc),
+            "divisions": get_distinct(AKTTransactionPerformance.divisionname, f_div),
+            "subledgers": get_distinct(AKTTransactionPerformance.subledger, f_div)
+        }
 
         # Safety Fallbacks for KPIs
         kpi_res = {
