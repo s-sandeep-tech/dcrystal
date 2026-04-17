@@ -361,8 +361,19 @@ function updateDashboardCharts(data) {
     charts.salesState.data.datasets[0].data = data.state_performance.map(d => d.value);
     charts.salesState.update();
 
-    charts.salesDivision.data.labels = data.division_sales.map(d => d.division);
+    const divisionLabels = data.division_sales.map(d => d.division);
+    const divColors = ['#137fec', '#2dd4bf', '#6366f1', '#feb101', '#ec4899', '#8b5cf6'];
+    const mappedColors = divisionLabels.map((label, i) => {
+        const up = label.toUpperCase();
+        if (up.includes('GOLD')) return '#fbbf24'; // Yellow/Gold
+        if (up.includes('DIAMOND')) return '#6366f1'; // Indigo/Diamond Blue
+        if (up.includes('SILVER')) return '#94a3b8'; // Silver/Gray
+        return divColors[i % divColors.length];
+    });
+
+    charts.salesDivision.data.labels = divisionLabels;
     charts.salesDivision.data.datasets[0].data = data.division_sales.map(d => d.value);
+    charts.salesDivision.data.datasets[0].backgroundColor = mappedColors;
     charts.salesDivision.update();
 
     charts.avgBillLoc.data.labels = data.location_performance.slice(0, 10).map(d => d.location);
