@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initCharts();
-    
+
     // Set default country if specified
     const countrySelect = document.getElementById('filter-country');
     if (countrySelect) {
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     loadDashboardData();
-    
+
     // Setup filter listeners
     const filters = ['date', 'country', 'region', 'state', 'location', 'division', 'subledger'];
     filters.forEach(f => {
@@ -30,12 +30,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.socket) {
         window.socket.on('aktPerformanceRefresh', (data) => {
             console.log('Real-time AKT sync triggered:', data);
-            
+
             // Show toast if available
             if (window.showToast) {
                 window.showToast('Data Synced', data.message || 'Dashboard updated with latest transaction data', 'success');
             }
-            
+
             // Refresh data (uses current filters)
             loadDashboardData();
         });
@@ -97,27 +97,27 @@ function initCharts() {
 
     charts.daily = new Chart(document.getElementById('chart-daily-trend').getContext('2d'), {
         type: 'line',
-        data: { 
-            labels: [], 
+        data: {
+            labels: [],
             datasets: [
                 { label: 'Sales (₹)', data: [], borderColor: '#137fec', tension: 0.3, yAxisID: 'y' },
                 { label: 'Turnover (₹)', data: [], borderColor: '#f59e0b', tension: 0.3, yAxisID: 'y' }
-            ] 
+            ]
         },
-        options: { 
-            ...chartDefaults, 
-            scales: { 
-                y: { 
-                    type: 'linear', 
-                    display: true, 
+        options: {
+            ...chartDefaults,
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
                     position: 'left',
                     ticks: {
                         font: { size: 9 },
                         color: '#94a3b8',
                         callback: (val) => formatCompactNumber(val)
                     }
-                } 
-            } 
+                }
+            }
         }
     });
 
@@ -204,10 +204,12 @@ function initCharts() {
     // --- Section 5: Analysis ---
     charts.weightComp = new Chart(document.getElementById('chart-weight-comparison').getContext('2d'), {
         type: 'bar',
-        data: { labels: ['Weight (Gms)'], datasets: [
-            { label: 'Gross Weight', data: [], backgroundColor: '#94a3b8' },
-            { label: 'Net Weight', data: [], backgroundColor: '#137fec' }
-        ] },
+        data: {
+            labels: ['Weight (Gms)'], datasets: [
+                { label: 'Gross Weight', data: [], backgroundColor: '#94a3b8' },
+                { label: 'Net Weight', data: [], backgroundColor: '#137fec' }
+            ]
+        },
         options: chartDefaults
     });
 
@@ -220,22 +222,28 @@ function initCharts() {
     // Heatmap (Simulated with small cells using Chart.js)
     charts.heatmap = new Chart(document.getElementById('chart-billing-heatmap').getContext('2d'), {
         type: 'matrix', // This requires chartjs-chart-matrix which might not be there. Fallback to bubble or simple grid.
-        type: 'bubble', 
-        data: { datasets: [{ label: 'Bill Count', data: [], backgroundColor: (ctx) => {
-            const v = ctx.raw ? ctx.raw.v : 0;
-            const alpha = Math.min(v / 50, 1);
-            return `rgba(19, 127, 236, ${alpha})`;
-        }, borderRadius: 0 }] },
-        options: { ...chartDefaults, scales: { 
-            x: { title: { display: true, text: 'Hour (0-23)' } }, 
-            y: { title: { display: true, text: 'Date' }, type: 'category' } 
-        } }
+        type: 'bubble',
+        data: {
+            datasets: [{
+                label: 'Bill Count', data: [], backgroundColor: (ctx) => {
+                    const v = ctx.raw ? ctx.raw.v : 0;
+                    const alpha = Math.min(v / 50, 1);
+                    return `rgba(19, 127, 236, ${alpha})`;
+                }, borderRadius: 0
+            }]
+        },
+        options: {
+            ...chartDefaults, scales: {
+                x: { title: { display: true, text: 'Hour (0-23)' } },
+                y: { title: { display: true, text: 'Date' }, type: 'category' }
+            }
+        }
     });
 }
 
 function formatCompactNumber(val, useGlobal = false) {
     if (val === null || val === undefined || isNaN(val)) return '0';
-    
+
     const absVal = Math.abs(val);
     const sign = val < 0 ? '-' : '';
     let result = '';
@@ -286,7 +294,7 @@ async function loadDashboardData() {
         const val = document.getElementById(`filter-${id}`).value;
         if (val) params.append(id, val);
     });
-    
+
     if (filtersInitialized === false) {
         params.append('is_initial', 'true');
     }
@@ -294,7 +302,7 @@ async function loadDashboardData() {
     try {
         const response = await fetch(`/api/akt/transaction-data?${params.toString()}`);
         const data = await response.json();
-        
+
         if (data.status === 'success') {
             updateKPIs(data.kpis);
             updateDashboardCharts(data);
@@ -365,9 +373,10 @@ function updateDashboardCharts(data) {
     const divColors = ['#137fec', '#2dd4bf', '#6366f1', '#feb101', '#ec4899', '#8b5cf6'];
     const mappedColors = divisionLabels.map((label, i) => {
         const up = label.toUpperCase();
-        if (up.includes('GOLD')) return '#fbbf24'; // Yellow/Gold
-        if (up.includes('DIAMOND')) return '#6366f1'; // Indigo/Diamond Blue
-        if (up.includes('SILVER')) return '#94a3b8'; // Silver/Gray
+        if (up.includes('GOLD COIN')) return '#aedf1aff'; // Amber for Gold Coin
+        if (up.includes('GOLD')) return '#fbbf24';      // Yellow for Gold
+        if (up.includes('DIAMOND')) return '#6366f1';   // Indigo for Diamond
+        if (up.includes('SILVER')) return '#94a3b8';    // Silver for Gray
         return divColors[i % divColors.length];
     });
 
@@ -425,7 +434,7 @@ function populateFilters(options) {
 
             mappings[id].forEach(val => {
                 if (!val) return;
-                
+
                 // Avoid adding duplicate for the default value
                 const exists = Array.from(select.options).some(opt => opt.value === val);
                 if (exists) {
@@ -440,13 +449,13 @@ function populateFilters(options) {
                 const opt = document.createElement('option');
                 opt.value = val;
                 opt.innerText = val;
-                
+
                 // Case-insensitive search for 'india' to set as default if found
                 if (id === 'country' && val.toLowerCase() === 'india') {
                     opt.selected = true;
                     if (val !== initialValue) reloadRequired = true;
                 }
-                
+
                 select.appendChild(opt);
             });
         }
