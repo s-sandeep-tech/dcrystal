@@ -77,12 +77,17 @@ def get_akt_transaction_data():
             coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
             coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('total_hourly'),
             coal(func.sum(AKTTransactionPerformance.invoiceamt)).label('total_sales'),
-            coal(func.sum(AKTTransactionPerformance.billcount)).label('total_bills'),
             coal(func.sum(coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit))).label('total_profit'),
             coal(func.sum(AKTTransactionPerformance.netweight)).label('total_net_weight')
         ).filter(*filters)
         
         kpi_data = kpi_query.first()
+
+        # New: Snapshot-based Total Bill Count (Latest records only)
+        max_time_sub = db.session.query(func.max(AKTTransactionPerformance.billtime)).filter(*filters).scalar_subquery()
+        total_bills_query = db.session.query(coal(func.sum(AKTTransactionPerformance.billcount)))\
+            .filter(*filters, AKTTransactionPerformance.billtime == max_time_sub)
+        total_bills = total_bills_query.scalar() or 0
 
         # 2. Billing Efficiency Data (by timepartt)
         efficiency_data = db.session.query(
@@ -162,7 +167,7 @@ def get_akt_transaction_data():
             "avg_per_min": float(kpi_data.avg_per_min) if kpi_data and kpi_data.avg_per_min else 0,
             "total_hourly": int(kpi_data.total_hourly) if kpi_data and kpi_data.total_hourly else 0,
             "total_sales": float(kpi_data.total_sales) if kpi_data and kpi_data.total_sales else 0,
-            "total_bills": int(kpi_data.total_bills) if kpi_data and kpi_data.total_bills else 0,
+            "total_bills": int(total_bills),
             "avg_bill_value": 0,
             "total_profit": float(kpi_data.total_profit) if kpi_data and kpi_data.total_profit else 0,
             "total_net_weight": float(kpi_data.total_net_weight) if kpi_data and kpi_data.total_net_weight else 0
