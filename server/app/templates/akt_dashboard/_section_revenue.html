@@ -1,0 +1,30 @@
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 h-[450px]">
+        <div class="flex flex-col mb-6">
+            <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Revenue vs Billing Efficiency</h4>
+            <p class="text-[10px] text-gray-400">Correlation between speed and value</p>
+        </div>
+        <div class="h-[350px]">
+            <canvas id="chart-revenue-scatter"></canvas>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 h-[450px]">
+        <div class="flex flex-col mb-6">
+            <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Revenue by Hour</h4>
+            <p class="text-[10px] text-gray-400">Peak sales periods</p>
+        </div>
+        <div class="h-[350px]">
+            <canvas id="chart-revenue-hour"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 gap-6 mb-8">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 h-[400px]">
+        <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-6">Daily Sales & Turnover Trend</h4>
+        <div class="h-[300px]">
+            <canvas id="chart-daily-trend"></canvas>
+        </div>
+    </div>
+</div>

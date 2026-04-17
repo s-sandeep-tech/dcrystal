@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}AKT Transaction Performance Dashboard{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js - Imported only for this page -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/inventory.css') }}">
+<style>
+    .kpi-card {
+        @apply bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-md;
+    }
+    .chart-container {
+        @apply bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700;
+    }
+    canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main id="akt-main" class="flex-1 overflow-y-auto bg-[#f8fafc] dark:bg-background-dark p-6">
+    <!-- Header with Version Info (Cloning inventory style) -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+            <h2 class="text-xl font-bold tracking-tight text-gray-800 dark:text-white flex items-center gap-3">
+                Transaction Performance Dashboard
+                <span class="text-[10px] font-normal px-2 py-0.5 bg-primary/10 text-primary rounded-full uppercase tracking-widest border border-primary/20">
+                    AKT Enterprise v1.2
+                </span>
+            </h2>
+            <p class="text-xs text-gray-400 mt-1 font-medium tracking-wide">Jewellery Retail Operational Efficiency & Value Analytics</p>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <div id="sync-status" class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm">
+                <span class="size-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Live Connection: AKT Azure DB</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- GLOBAL FILTERS (PARTIAL) -->
+    {% include 'akt_dashboard/_filters.html' %}
+
+    <!-- TOP KPI STRIP (PARTIAL) -->
+    {% include 'akt_dashboard/_kpi_strip.html' %}
+
+    <!-- DASHBOARD SECTIONS -->
+    <div class="space-y-8">
+        <!-- SECTION 1: BILLING EFFICIENCY -->
+        <div class="border-t border-gray-100 dark:border-gray-800 pt-8">
+            <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+                <span class="w-8 h-px bg-gray-200 dark:bg-gray-800"></span>
+                SECTION 1: BILLING EFFICIENCY
+                <span class="flex-1 h-px bg-gray-200 dark:bg-gray-800"></span>
+            </h5>
+            {% include 'akt_dashboard/_section_billing.html' %}
+        </div>
+
+        <!-- SECTION 2: REVENUE LINKED TO BILLING -->
+        <div class="border-t border-gray-100 dark:border-gray-800 pt-8">
+            <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+                <span class="w-8 h-px bg-gray-200 dark:bg-gray-800"></span>
+                SECTION 2: REVENUE FLOW & TRENDS
+                <span class="flex-1 h-px bg-gray-200 dark:bg-gray-800"></span>
+            </h5>
+            {% include 'akt_dashboard/_section_revenue.html' %}
+        </div>
+
+        <!-- SECTION 3: LOCATION & BUSINESS PERFORMANCE -->
+        <div class="border-t border-gray-100 dark:border-gray-800 pt-8">
+            <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+                <span class="w-8 h-px bg-gray-200 dark:bg-gray-800"></span>
+                SECTION 3: LOCATION & GEOGRAPHIC PERFORMANCE
+                <span class="flex-1 h-px bg-gray-200 dark:bg-gray-800"></span>
+            </h5>
+            {% include 'akt_dashboard/_section_performance.html' %}
+        </div>
+
+        <!-- SECTION 4: VALUE MIX & PROFITABILITY -->
+        <div class="border-t border-gray-100 dark:border-gray-800 pt-8">
+            <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+                <span class="w-8 h-px bg-gray-200 dark:bg-gray-800"></span>
+                SECTION 4: VALUE MIX & PROFITABILITY
+                <span class="flex-1 h-px bg-gray-200 dark:bg-gray-800"></span>
+            </h5>
+            {% include 'akt_dashboard/_section_profitability.html' %}
+        </div>
+
+        <!-- SECTION 5: PRODUCT & MATERIAL ANALYSIS -->
+        <div class="border-t border-gray-100 dark:border-gray-800 pt-8">
+            <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+                <span class="w-8 h-px bg-gray-200 dark:bg-gray-800"></span>
+                SECTION 5: PRODUCT & MATERIAL DEEP-DIVE
+                <span class="flex-1 h-px bg-gray-200 dark:bg-gray-800"></span>
+            </h5>
+            {% include 'akt_dashboard/_section_analysis.html' %}
+        </div>
+    </div>
+
+    <!-- Tooltip Placeholder -->
+    <div id="chart-tooltip" class="fixed pointer-events-none opacity-0 transition-opacity bg-black/80 text-white p-2 rounded text-[10px] z-[9999]"></div>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/transaction_performance.js') }}"></script>
+{% endblock %}
