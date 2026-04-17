@@ -111,7 +111,7 @@ function initCharts() {
                     ...chartDefaults.scales.y,
                     ticks: {
                         ...chartDefaults.scales.y.ticks,
-                        callback: (val) => Math.round(val) + 'k'
+                        callback: (val) => formatCompactNumber(val)
                     }
                 }
             }
@@ -181,10 +181,50 @@ function initCharts() {
     });
 }
 
+function formatCompactNumber(val, useGlobal = false) {
+    if (val === null || val === undefined || isNaN(val)) return '0';
+    
+    const absVal = Math.abs(val);
+    const sign = val < 0 ? '-' : '';
+    let result = '';
+    let suffix = '';
+
+    if (!useGlobal) {
+        if (absVal >= 10000000) {
+            result = (absVal / 10000000);
+            suffix = 'Cr';
+        } else if (absVal >= 100000) {
+            result = (absVal / 100000);
+            suffix = 'L';
+        } else if (absVal >= 1000) {
+            result = (absVal / 1000);
+            suffix = 'K';
+        } else {
+            return sign + absVal.toString();
+        }
+    } else {
+        if (absVal >= 1000000000) {
+            result = (absVal / 1000000000);
+            suffix = 'B';
+        } else if (absVal >= 1000000) {
+            result = (absVal / 1000000);
+            suffix = 'M';
+        } else if (absVal >= 1000) {
+            result = (absVal / 1000);
+            suffix = 'K';
+        } else {
+            return sign + absVal.toString();
+        }
+    }
+
+    // Remove trailing zeros automatically via parseFloat/toString
+    let formatted = parseFloat(result.toFixed(2)).toString();
+    return sign + formatted + suffix;
+}
+
+// Keep formatCurrency as a wrapper for backward compatibility or specifically for ₹ prefix
 function formatCurrency(val) {
-    if (val >= 10000000) return '₹' + (val / 10000000).toFixed(2) + ' Cr';
-    if (val >= 100000) return '₹' + (val / 100000).toFixed(2) + ' L';
-    return '₹' + new Intl.NumberFormat('en-IN').format(Math.round(val));
+    return '₹' + formatCompactNumber(val);
 }
 
 async function loadDashboardData() {
