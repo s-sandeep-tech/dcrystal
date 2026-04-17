@@ -287,6 +287,10 @@ async function loadDashboardData() {
         if (val) params.append(id, val);
     });
     
+    if (filtersInitialized === false) {
+        params.append('is_initial', 'true');
+    }
+
     try {
         const response = await fetch(`/api/akt/transaction-data?${params.toString()}`);
         const data = await response.json();
@@ -414,6 +418,12 @@ function populateFilters(options) {
                 const opt = document.createElement('option');
                 opt.value = val;
                 opt.innerText = val;
+                
+                // Case-insensitive search for 'india' to set as default if found
+                if (id === 'country' && val.toLowerCase() === 'india') {
+                    opt.selected = true;
+                }
+                
                 select.appendChild(opt);
             });
         }

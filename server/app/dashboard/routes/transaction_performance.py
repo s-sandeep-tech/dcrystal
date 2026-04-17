@@ -147,7 +147,7 @@ def get_akt_transaction_data():
 
         # 9. Unique filter values
         unique_vals = {}
-        if not filters:
+        if not filters or request.args.get('is_initial') == 'true':
             unique_vals = {
                 "countries": [r[0] for r in db.session.query(AKTTransactionPerformance.country_actual).distinct().all() if r[0]],
                 "regions": [r[0] for r in db.session.query(AKTTransactionPerformance.region).distinct().all() if r[0]],
