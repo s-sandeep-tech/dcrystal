@@ -366,12 +366,16 @@ function updateDashboardCharts(data) {
     charts.hourly.data.datasets[0].data = data.efficiency.map(d => d.sum_hourly);
     charts.hourly.update();
 
-    charts.perMinLoc.data.labels = data.location_performance.slice(0, 10).map(d => d.location);
-    charts.perMinLoc.data.datasets[0].data = data.location_performance.slice(0, 10).map(d => d.avg_per_min);
+    // Top Locations for Per Minute Efficiency
+    const topPerMinLoc = [...data.location_performance].sort((a, b) => b.avg_per_min - a.avg_per_min).slice(0, 10);
+    charts.perMinLoc.data.labels = topPerMinLoc.map(d => d.location);
+    charts.perMinLoc.data.datasets[0].data = topPerMinLoc.map(d => d.avg_per_min);
     charts.perMinLoc.update();
 
-    charts.hourlyLoc.data.labels = data.location_performance.slice(0, 10).map(d => d.location);
-    charts.hourlyLoc.data.datasets[0].data = data.location_performance.slice(0, 10).map(d => d.sum_hourly);
+    // Top Locations for Hourly Bill Count
+    const topHourlyLoc = [...data.location_performance].sort((a, b) => b.sum_hourly - a.sum_hourly).slice(0, 10);
+    charts.hourlyLoc.data.labels = topHourlyLoc.map(d => d.location);
+    charts.hourlyLoc.data.datasets[0].data = topHourlyLoc.map(d => d.sum_hourly);
     charts.hourlyLoc.update();
 
     // Section 2
@@ -388,8 +392,10 @@ function updateDashboardCharts(data) {
     charts.daily.update();
 
     // Section 3
-    charts.salesLoc.data.labels = data.location_performance.slice(0, 10).map(d => d.location);
-    charts.salesLoc.data.datasets[0].data = data.location_performance.slice(0, 10).map(d => d.sum_revenue);
+    // Top Locations for Sales Revenue
+    const topSalesLoc = [...data.location_performance].sort((a, b) => b.sum_revenue - a.sum_revenue).slice(0, 10);
+    charts.salesLoc.data.labels = topSalesLoc.map(d => d.location);
+    charts.salesLoc.data.datasets[0].data = topSalesLoc.map(d => d.sum_revenue);
     charts.salesLoc.update();
 
     charts.salesState.data.labels = data.state_performance.map(d => d.state);
@@ -412,8 +418,10 @@ function updateDashboardCharts(data) {
     charts.salesDivision.data.datasets[0].backgroundColor = mappedColors;
     charts.salesDivision.update();
 
-    charts.avgBillLoc.data.labels = data.location_performance.slice(0, 10).map(d => d.location);
-    charts.avgBillLoc.data.datasets[0].data = data.location_performance.slice(0, 10).map(d => d.avg_bill_value);
+    // Top Locations for Avg Bill Value
+    const topAvgBillLoc = [...data.location_performance].sort((a, b) => b.avg_bill_value - a.avg_bill_value).slice(0, 10);
+    charts.avgBillLoc.data.labels = topAvgBillLoc.map(d => d.location);
+    charts.avgBillLoc.data.datasets[0].data = topAvgBillLoc.map(d => d.avg_bill_value);
     charts.avgBillLoc.update();
 
     // Section 4
@@ -421,12 +429,16 @@ function updateDashboardCharts(data) {
     charts.composition.data.datasets[0].data = Object.values(data.composition);
     charts.composition.update();
 
-    charts.profitMarginLoc.data.labels = data.location_performance.slice(0, 20).map(d => d.location);
-    charts.profitMarginLoc.data.datasets[0].data = data.location_performance.slice(0, 20).map(d => d.profit_margin);
+    // Top Locations for Profit Margin
+    const topMarginLoc = [...data.location_performance].sort((a, b) => b.profit_margin - a.profit_margin).slice(0, 20);
+    charts.profitMarginLoc.data.labels = topMarginLoc.map(d => d.location);
+    charts.profitMarginLoc.data.datasets[0].data = topMarginLoc.map(d => d.profit_margin);
     charts.profitMarginLoc.update();
 
-    charts.profitLoc.data.labels = data.location_performance.slice(0, 10).map(d => d.location);
-    charts.profitLoc.data.datasets[0].data = data.location_performance.slice(0, 10).map(d => d.total_profit);
+    // Top Locations for Total Profit
+    const topProfitLoc = [...data.location_performance].sort((a, b) => b.total_profit - a.total_profit).slice(0, 10);
+    charts.profitLoc.data.labels = topProfitLoc.map(d => d.location);
+    charts.profitLoc.data.datasets[0].data = topProfitLoc.map(d => d.total_profit);
     charts.profitLoc.update();
 
     // Section 5

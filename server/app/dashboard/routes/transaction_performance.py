@@ -98,14 +98,21 @@ def get_akt_transaction_data():
         ).filter(*filters).group_by(AKTTransactionPerformance.timepartt).order_by(AKTTransactionPerformance.timepartt).all()
 
         # 3. Location Performance
+        # Note: Bill Count is a running total (snapshot at max_time), while Revenue/Profit are deltas (summed)
+        latest_bills_sub = db.session.query(
+            AKTTransactionPerformance.location,
+            coal(func.sum(AKTTransactionPerformance.billcount)).label('snapshot_bills')
+        ).filter(*filters, AKTTransactionPerformance.billtime == max_time_sub).group_by(AKTTransactionPerformance.location).subquery()
+
         location_data = db.session.query(
             AKTTransactionPerformance.location,
             coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
             coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
             coal(func.sum(AKTTransactionPerformance.invoiceamt)).label('sum_revenue'),
-            coal(func.sum(AKTTransactionPerformance.billcount)).label('sum_bills'),
+            coal(latest_bills_sub.c.snapshot_bills).label('sum_bills'),
             coal(func.sum(coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit))).label('total_profit')
-        ).filter(*filters).group_by(AKTTransactionPerformance.location).order_by(func.sum(AKTTransactionPerformance.invoiceamt).desc()).all()
+        ).outerjoin(latest_bills_sub, AKTTransactionPerformance.location == latest_bills_sub.c.location)\
+         .filter(*filters).group_by(AKTTransactionPerformance.location, latest_bills_sub.c.snapshot_bills).all()
 
         # 4. State Performance
         state_data = db.session.query(
