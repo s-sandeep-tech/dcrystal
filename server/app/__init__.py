@@ -20,7 +20,7 @@ def create_app():
         'postgresql+psycopg2://meetaccess:meetpass@localhost:5432/dcrystaldb'
     )
     # AKT Dashboard Database Bind (Only active in production or if enabled)
-    akt_db_uri = 'postgresql+psycopg2://reportuser:rEp%40eP%40mU%4020_78@kj-az1-prod1-dexcd-psql-db1.postgres.database.azure.com:5432/postgres'
+    akt_db_uri = 'postgresql+psycopg2://reportuser:rEp%40eP%40mU%4020_78@kj-az1-prod1-dexcd-psql-db1.postgres.database.azure.com:5432/KJCHPilotDB'
     if os.getenv('FLASK_ENV') == 'production' or os.getenv('ENABLE_AKT_DB') == 'true':
         app.config['SQLALCHEMY_BINDS'] = {'akt_db': akt_db_uri}
     else:
