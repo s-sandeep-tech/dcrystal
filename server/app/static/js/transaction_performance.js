@@ -2,6 +2,13 @@ let charts = {};
 let filtersInitialized = false;
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Set default date to today
+    const dateInput = document.getElementById('filter-date');
+    if (dateInput) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+    }
+
     initCharts();
     loadDashboardData();
     
