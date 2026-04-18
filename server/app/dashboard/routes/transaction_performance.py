@@ -299,9 +299,9 @@ def get_akt_transaction_data():
             "filter_options": unique_vals
         }
 
-        # Cache the result for 5 minutes (300 seconds)
+        # Cache the result for 15 minutes (900 seconds)
         try:
-            redis_client.setex(cache_key, 300, json.dumps(result))
+            redis_client.setex(cache_key, 900, json.dumps(result))
         except Exception as cache_err:
             logger.error(f"Failed to cache data for {cache_key}: {str(cache_err)}")
 
