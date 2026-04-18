@@ -90,25 +90,44 @@ def get_akt_transaction_data():
         total_bills = kpi_data.total_bills if kpi_data else 0
 
         # 2. Billing Efficiency Data (by timepartt)
-        # For hourly efficiency, we take max(invoiceamt) per hour to show the running total status
-        efficiency_data = db.session.query(
+        # We need the delta (bills in that hour). First, get max cumulative per store/hour
+        eff_sub = db.session.query(
             AKTTransactionPerformance.timepartt,
-            coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
-            coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
-            # Take max of the hour for running total
-            coal(func.max(AKTTransactionPerformance.invoiceamt)).label('sum_revenue')
-        ).filter(*filters).group_by(AKTTransactionPerformance.timepartt).order_by(AKTTransactionPerformance.timepartt).all()
+            AKTTransactionPerformance.location,
+            func.max(AKTTransactionPerformance.billcount).label('max_bills'),
+            func.max(AKTTransactionPerformance.invoiceamt).label('max_rev'),
+            func.max(cast_pmbc(AKTTransactionPerformance.perminutebillcount)).label('max_per_min')
+        ).filter(*filters).group_by(AKTTransactionPerformance.timepartt, AKTTransactionPerformance.location).subquery()
+
+        efficiency_raw = db.session.query(
+            eff_sub.c.timepartt,
+            coal(func.avg(eff_sub.c.max_per_min)).label('avg_per_min'),
+            coal(func.sum(eff_sub.c.max_bills)).label('cum_bills'),
+            coal(func.sum(eff_sub.c.max_rev)).label('cum_rev')
+        ).group_by(eff_sub.c.timepartt).order_by(eff_sub.c.timepartt).all()
+
+        efficiency_data = []
+        prev_bills = 0
+        for row in efficiency_raw:
+            curr_bills = float(row.cum_bills or 0)
+            hourly_delta = max(0, curr_bills - prev_bills)
+            efficiency_data.append({
+                "time": str(row.timepartt),
+                "avg_per_min": float(row.avg_per_min or 0),
+                "sum_hourly": int(hourly_delta),
+                "sum_revenue": float(row.cum_rev or 0)
+            })
+            prev_bills = curr_bills
 
         # 3. Location Performance
-        # Note: All cumulative metrics (Revenue, Bills, Profit, Hourly Bills) must use max_time_sub filter
+        # Note: Use MAX() per location for all cumulative metrics (Revenue, Bills, Profit)
         location_data = db.session.query(
             AKTTransactionPerformance.location,
             coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
-            # Take only the latest hourly bill count to match the current snapshot
-            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.hourlybillcount), else_=0))).label('sum_hourly'),
-            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.invoiceamt), else_=0))).label('sum_revenue'),
-            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.billcount), else_=0))).label('sum_bills'),
-            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit)), else_=0))).label('total_profit')
+            coal(func.max(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
+            coal(func.max(AKTTransactionPerformance.invoiceamt)).label('sum_revenue'),
+            coal(func.max(AKTTransactionPerformance.billcount)).label('sum_bills'),
+            coal(func.max(coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit))).label('total_profit')
         ).filter(*filters).group_by(AKTTransactionPerformance.location).all()
 
         # 4. State Performance
@@ -118,15 +137,26 @@ def get_akt_transaction_data():
         ).filter(*filters).group_by(AKTTransactionPerformance.state).order_by(coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.invoiceamt), else_=0))).desc()).all()
 
         # 5. Trends (Hourly)
-        # For hourly trends, we take the max value of the hour for cumulative metrics
-        trend_data = db.session.query(
-            AKTTransactionPerformance.timepartt.label('hour'),
-            coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
-            coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
-            # Take max of the hour for running totals
-            coal(func.max(AKTTransactionPerformance.invoiceamt)).label('sum_revenue'),
-            coal(func.max(AKTTransactionPerformance.turnover)).label('sum_turnover')
-        ).filter(*filters).group_by(AKTTransactionPerformance.timepartt).order_by(AKTTransactionPerformance.timepartt).all()
+        # Same delta logic as efficiency for the trend chart
+        trend_raw = db.session.query(
+            eff_sub.c.timepartt.label('hour'),
+            coal(func.sum(eff_sub.c.max_bills)).label('cum_bills'),
+            coal(func.sum(eff_sub.c.max_rev)).label('cum_rev'),
+            coal(func.max(AKTTransactionPerformance.turnover)).label('max_turnover') # Turnover often global or per snapshots
+        ).group_by(eff_sub.c.timepartt).order_by(eff_sub.c.timepartt).all()
+
+        trend_data = []
+        prev_trend_bills = 0
+        for row in trend_raw:
+            curr_bills = float(row.cum_bills or 0)
+            delta = max(0, curr_bills - prev_trend_bills)
+            trend_data.append({
+                "hour": row.hour,
+                "sum_hourly": int(delta),
+                "sum_revenue": float(row.cum_rev or 0),
+                "sum_turnover": float(row.max_turnover or 0)
+            })
+            prev_trend_bills = curr_bills
 
         # 6. Division Data
         division_data = db.session.query(
@@ -200,12 +230,7 @@ def get_akt_transaction_data():
         return jsonify({
             "status": "success",
             "kpis": kpi_res,
-            "efficiency": [{
-                "time": str(d.timepartt),
-                "avg_per_min": float(d.avg_per_min or 0),
-                "sum_hourly": int(d.sum_hourly or 0),
-                "sum_revenue": float(d.sum_revenue or 0)
-            } for d in efficiency_data],
+            "efficiency": efficiency_data,
             "location_performance": [{
                 "location": d.location or "Unknown",
                 "avg_per_min": float(d.avg_per_min or 0),
@@ -216,13 +241,7 @@ def get_akt_transaction_data():
                 "profit_margin": (float(d.total_profit or 0) / float(d.sum_revenue or 1)) * 100
             } for d in location_data],
             "state_performance": [{"state": d.state or "Unknown", "value": float(d.sum_revenue or 0)} for d in state_data],
-            "trends": [{
-                "hour": d.hour,
-                "avg_per_min": float(d.avg_per_min or 0),
-                "sum_hourly": int(d.sum_hourly or 0),
-                "sum_revenue": float(d.sum_revenue or 0),
-                "sum_turnover": float(d.sum_turnover or 0)
-            } for d in trend_data],
+            "trends": trend_data,
             "division_sales": [{"division": d.divisionname or "Unknown", "value": float(d.sum_revenue or 0)} for d in division_data],
             "composition": {
                 "Metal": float(composition.metal or 0) if composition else 0,
