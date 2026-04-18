@@ -72,84 +72,87 @@ def get_akt_transaction_data():
             if val:
                 filters.append(field == val)
 
+        # 1. Base Subquery for Latest Snapshot
+        max_time_sub = db.session.query(func.max(AKTTransactionPerformance.billtime)).filter(*filters).scalar_subquery()
+
         # 1. Top KPI Strip Data
         kpi_query = db.session.query(
             coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
             coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('total_hourly'),
-            coal(func.sum(AKTTransactionPerformance.invoiceamt)).label('total_sales'),
-            coal(func.sum(coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit))).label('total_profit'),
-            coal(func.sum(AKTTransactionPerformance.netweight)).label('total_net_weight')
+            # Running totals: take only from latest snapshot
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.invoiceamt), else_=0))).label('total_sales'),
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit)), else_=0))).label('total_profit'),
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.netweight), else_=0))).label('total_net_weight'),
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.billcount), else_=0))).label('total_bills')
         ).filter(*filters)
         
         kpi_data = kpi_query.first()
-
-        # New: Snapshot-based Total Bill Count (Latest records only)
-        max_time_sub = db.session.query(func.max(AKTTransactionPerformance.billtime)).filter(*filters).scalar_subquery()
-        total_bills_query = db.session.query(coal(func.sum(AKTTransactionPerformance.billcount)))\
-            .filter(*filters, AKTTransactionPerformance.billtime == max_time_sub)
-        total_bills = total_bills_query.scalar() or 0
+        total_bills = kpi_data.total_bills if kpi_data else 0
 
         # 2. Billing Efficiency Data (by timepartt)
+        # For hourly efficiency, we take max(invoiceamt) per hour to show the running total status
         efficiency_data = db.session.query(
             AKTTransactionPerformance.timepartt,
             coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
             coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
-            coal(func.sum(AKTTransactionPerformance.invoiceamt)).label('sum_revenue')
+            # Take max of the hour for running total
+            coal(func.max(AKTTransactionPerformance.invoiceamt)).label('sum_revenue')
         ).filter(*filters).group_by(AKTTransactionPerformance.timepartt).order_by(AKTTransactionPerformance.timepartt).all()
 
         # 3. Location Performance
-        # Note: Bill Count is a running total (take only from max_time_sub), 
-        # while Revenue/Profit are deltas (summed across all records of the day)
+        # Note: All cumulative metrics (Revenue, Bills, Profit) must use max_time_sub filter
         location_data = db.session.query(
             AKTTransactionPerformance.location,
             coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
             coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
-            coal(func.sum(AKTTransactionPerformance.invoiceamt)).label('sum_revenue'),
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.invoiceamt), else_=0))).label('sum_revenue'),
             coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.billcount), else_=0))).label('sum_bills'),
-            coal(func.sum(coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit))).label('total_profit')
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit)), else_=0))).label('total_profit')
         ).filter(*filters).group_by(AKTTransactionPerformance.location).all()
 
         # 4. State Performance
         state_data = db.session.query(
             AKTTransactionPerformance.state,
-            func.sum(AKTTransactionPerformance.invoiceamt).label('sum_revenue')
-        ).filter(*filters).group_by(AKTTransactionPerformance.state).order_by(func.sum(AKTTransactionPerformance.invoiceamt).desc()).all()
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.invoiceamt), else_=0))).label('sum_revenue')
+        ).filter(*filters).group_by(AKTTransactionPerformance.state).order_by(coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.invoiceamt), else_=0))).desc()).all()
 
         # 5. Trends (Daily)
+        # For daily trends, we take the max value of the day for cumulative metrics
         trend_data = db.session.query(
             func.date(AKTTransactionPerformance.date).label('d'),
             coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
             coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
-            coal(func.sum(AKTTransactionPerformance.invoiceamt)).label('sum_revenue'),
-            coal(func.sum(AKTTransactionPerformance.turnover)).label('sum_turnover')
+            # Take max of the day for running totals
+            coal(func.max(AKTTransactionPerformance.invoiceamt)).label('sum_revenue'),
+            coal(func.max(AKTTransactionPerformance.turnover)).label('sum_turnover')
         ).filter(*filters).group_by(func.date(AKTTransactionPerformance.date)).order_by(func.date(AKTTransactionPerformance.date)).all()
 
         # 6. Division Data
         division_data = db.session.query(
             AKTTransactionPerformance.divisionname,
-            func.sum(AKTTransactionPerformance.invoiceamt).label('sum_revenue')
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.invoiceamt), else_=0))).label('sum_revenue')
         ).filter(*filters).group_by(AKTTransactionPerformance.divisionname).all()
 
         # 7. Revenue Composition & Weight
         comp_query = db.session.query(
-            coal(func.sum(AKTTransactionPerformance.metalvalue)).label('metal'),
-            coal(func.sum(AKTTransactionPerformance.netstonevalue)).label('stone'),
-            coal(func.sum(AKTTransactionPerformance.netdiamondvalue)).label('diamond'),
-            coal(func.sum(AKTTransactionPerformance.netcolourstonevalue)).label('color_stone'),
-            coal(func.sum(AKTTransactionPerformance.netmcvalue)).label('mc'),
-            coal(func.sum(AKTTransactionPerformance.grossweight)).label('gross_wt'),
-            coal(func.sum(AKTTransactionPerformance.netweight)).label('net_wt'),
-            coal(func.sum(AKTTransactionPerformance.diamondcarat)).label('diamond_carat'),
-            coal(func.sum(AKTTransactionPerformance.colourstonecarat)).label('color_carat')
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.metalvalue), else_=0))).label('metal'),
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.netstonevalue), else_=0))).label('stone'),
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.netdiamondvalue), else_=0))).label('diamond'),
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.netcolourstonevalue), else_=0))).label('color_stone'),
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.netmcvalue), else_=0))).label('mc'),
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.grossweight), else_=0))).label('gross_wt'),
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.netweight), else_=0))).label('net_wt'),
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.diamondcarat), else_=0))).label('diamond_carat'),
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.colourstonecarat), else_=0))).label('color_carat')
         ).filter(*filters)
         
         composition = comp_query.first()
 
-        # 8. Heatmap Data (date vs timepartt)
+        # 8. Heatmap Data (Activity density using hourly delta)
         heatmap_raw = db.session.query(
             func.date(AKTTransactionPerformance.date).label('d'),
             AKTTransactionPerformance.timepartt,
-            func.sum(AKTTransactionPerformance.billcount).label('bill_count')
+            coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('bill_count')
         ).filter(*filters).group_by(func.date(AKTTransactionPerformance.date), AKTTransactionPerformance.timepartt).all()
 
         # 9. Unique filter values (Cascading Hierarchy)
