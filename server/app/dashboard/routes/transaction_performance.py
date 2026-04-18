@@ -79,7 +79,10 @@ def get_akt_transaction_data():
             for attempt in range(3): # Try a few times if locked
                 cached_data = redis_client.get(cache_key)
                 if cached_data:
-                    return cached_data, 200, {'Content-Type': 'application/json'}
+                    # Parse and add a 'cached' flag before returning
+                    data = json.loads(cached_data)
+                    data['cached'] = True
+                    return jsonify(data), 200, {'Content-Type': 'application/json'}
                 
                 # Check if another process is currently fetching this data
                 if redis_client.exists(lock_key):
@@ -98,7 +101,9 @@ def get_akt_transaction_data():
                 time.sleep(1.5)
                 cached_data = redis_client.get(cache_key)
                 if cached_data:
-                    return cached_data, 200, {'Content-Type': 'application/json'}
+                    data = json.loads(cached_data)
+                    data['cached'] = True
+                    return jsonify(data), 200, {'Content-Type': 'application/json'}
                 # If still no cache and no lock, we proceed to fetch anyway to avoid hanging
         
         try:
@@ -301,6 +306,7 @@ def get_akt_transaction_data():
 
             result = {
                 "status": "success",
+                "cached": False,
                 "kpis": kpi_res,
                 "efficiency": efficiency_data,
                 "location_performance": [{
