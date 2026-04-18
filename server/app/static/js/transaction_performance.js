@@ -90,38 +90,38 @@ function initCharts() {
         data: { labels: [], datasets: [{ label: 'Avg Per Min', data: [], borderColor: '#137fec', tension: 0.4, fill: true, backgroundColor: 'rgba(19, 127, 236, 0.1)' }] },
         options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: false } } }
     });
-
+ 
     charts.hourly = new Chart(document.getElementById('chart-hourly-count').getContext('2d'), {
         type: 'bar',
         data: { labels: [], datasets: [{ label: 'Hourly Count', data: [], backgroundColor: '#137fec', borderRadius: 4 }] },
         options: chartDefaults
     });
-
+ 
     charts.perMinLoc = new Chart(document.getElementById('chart-per-min-location').getContext('2d'), {
         type: 'bar',
         data: { labels: [], datasets: [{ label: 'Avg Per Min', data: [], backgroundColor: '#2dd4bf', borderRadius: 4 }] },
-        options: { ...chartDefaults, indexAxis: 'y' }
+        options: chartDefaults
     });
-
+ 
     charts.hourlyLoc = new Chart(document.getElementById('chart-hourly-location').getContext('2d'), {
         type: 'bar',
         data: { labels: [], datasets: [{ label: 'Hourly Count', data: [], backgroundColor: '#6366f1', borderRadius: 4 }] },
-        options: { ...chartDefaults, indexAxis: 'y' }
+        options: chartDefaults
     });
-
+ 
     // --- Section 2: Revenue ---
     charts.scatter = new Chart(document.getElementById('chart-revenue-scatter').getContext('2d'), {
         type: 'scatter',
         data: { datasets: [{ label: 'Revenue (₹) vs Efficiency', data: [], backgroundColor: '#137fec', pointRadius: 5 }] },
         options: { ...chartDefaults, scales: { x: { title: { display: true, text: 'Efficiency (Bills/Min)' } }, y: { title: { display: true, text: 'Revenue (₹)' } } } }
     });
-
+ 
     charts.revenueHour = new Chart(document.getElementById('chart-revenue-hour').getContext('2d'), {
         type: 'bar',
         data: { labels: [], datasets: [{ label: 'Revenue (₹)', data: [], backgroundColor: '#137fec', borderRadius: 4 }] },
         options: chartDefaults
     });
-
+ 
     charts.daily = new Chart(document.getElementById('chart-daily-trend').getContext('2d'), {
         type: 'line',
         data: {
@@ -147,14 +147,14 @@ function initCharts() {
             }
         }
     });
-
+ 
     // --- Section 3: Performance ---
     charts.salesLoc = new Chart(document.getElementById('chart-sales-location').getContext('2d'), {
         type: 'bar',
         data: { labels: [], datasets: [{ label: 'Sales (₹)', data: [], backgroundColor: '#feb101', borderRadius: 4 }] },
-        options: { ...chartDefaults, indexAxis: 'y' }
+        options: chartDefaults
     });
-
+ 
     charts.salesState = new Chart(document.getElementById('chart-sales-state').getContext('2d'), {
         type: 'bar',
         data: { labels: [], datasets: [{ label: 'Sales (₹)', data: [], backgroundColor: '#10b981', borderRadius: 4 }] },
@@ -172,13 +172,13 @@ function initCharts() {
             }
         }
     });
-
+ 
     charts.salesDivision = new Chart(document.getElementById('chart-sales-division').getContext('2d'), {
         type: 'doughnut',
         data: { labels: [], datasets: [{ data: [], backgroundColor: ['#137fec', '#2dd4bf', '#6366f1', '#feb101', '#ec4899', '#8b5cf6'] }] },
         options: { ...chartDefaults, cutout: '70%' }
     });
-
+ 
     charts.avgBillLoc = new Chart(document.getElementById('chart-avg-bill-location').getContext('2d'), {
         type: 'bar',
         data: { labels: [], datasets: [{ label: 'Avg Bill Value (₹)', data: [], backgroundColor: '#6366f1', borderRadius: 4 }] },
@@ -196,20 +196,20 @@ function initCharts() {
             }
         }
     });
-
+ 
     // --- Section 4: Profitability ---
     charts.composition = new Chart(document.getElementById('chart-revenue-composition').getContext('2d'), {
         type: 'polarArea',
         data: { labels: [], datasets: [{ data: [], backgroundColor: ['#137fec', '#2dd4bf', '#6366f1', '#feb101', '#ec4899'] }] },
         options: { ...chartDefaults, scales: { r: { grid: { color: 'rgba(148, 163, 184, 0.1)' } } } }
     });
-
+ 
     charts.profitMarginLoc = new Chart(document.getElementById('chart-profit-margin-location').getContext('2d'), {
         type: 'line',
         data: { labels: [], datasets: [{ label: 'Profit Margin %', data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.4 }] },
         options: chartDefaults
     });
-
+ 
     charts.profitLoc = new Chart(document.getElementById('chart-profit-location').getContext('2d'), {
         type: 'bar',
         data: { labels: [], datasets: [{ label: 'Total Profit (₹)', data: [], backgroundColor: '#10b981', borderRadius: 4 }] },
