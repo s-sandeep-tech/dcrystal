@@ -8,6 +8,7 @@ from sqlalchemy import func, cast, Numeric, case
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,21 @@ def get_akt_transaction_data():
         # perminutebillcount is VARCHAR in DB, so it needs explicit casting for aggregates
         def cast_pmbc(col): return cast(col, Numeric)
         def coal(col, default=0): return func.coalesce(col, default)
+
+        # 0. Caching Logic
+        cache_key_parts = []
+        for param in ['date', 'country', 'region', 'state', 'location', 'division', 'subledger']:
+            val = request.args.get(param, '')
+            cache_key_parts.append(f"{param}={val}")
+        
+        cache_key = f"akt_perf_cache:{':'.join(cache_key_parts)}"
+        bypass_cache = request.args.get('bypass_cache', 'false').lower() == 'true'
+
+        if not bypass_cache:
+            cached_data = redis_client.get(cache_key)
+            if cached_data:
+                # logger.info(f"Cache hit for {cache_key}")
+                return cached_data, 200, {'Content-Type': 'application/json'}
 
         # Applying all global filters
         filters = []
@@ -250,7 +266,7 @@ def get_akt_transaction_data():
         if kpi_res["total_bills"] > 0:
             kpi_res["avg_bill_value"] = kpi_res["total_sales"] / kpi_res["total_bills"]
 
-        return jsonify({
+        result = {
             "status": "success",
             "kpis": kpi_res,
             "efficiency": efficiency_data,
@@ -281,7 +297,15 @@ def get_akt_transaction_data():
             },
             "heatmap": [{"date": str(h.d), "hour": h.timepartt, "value": int(h.bill_count or 0)} for h in heatmap_raw],
             "filter_options": unique_vals
-        })
+        }
+
+        # Cache the result for 5 minutes (300 seconds)
+        try:
+            redis_client.setex(cache_key, 300, json.dumps(result))
+        except Exception as cache_err:
+            logger.error(f"Failed to cache data for {cache_key}: {str(cache_err)}")
+
+        return jsonify(result)
     except Exception as e:
         logger.exception("Final exception in AKT Data API")
         return jsonify({

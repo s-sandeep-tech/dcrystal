@@ -36,8 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.showToast('Data Synced', data.message || 'Dashboard updated with latest transaction data', 'success');
             }
 
-            // Refresh data (uses current filters)
-            loadDashboardData();
+            // Refresh data (uses current filters) - Silent Background Load
+            loadDashboardData(null, true, true);
         });
     }
 });
@@ -314,7 +314,7 @@ function formatCurrency(val) {
     return '₹' + formatCompactNumber(val);
 }
 
-async function loadDashboardData(triggerId = null) {
+async function loadDashboardData(triggerId = null, bypassCache = false, isSilent = false) {
     const params = new URLSearchParams();
     const filterIds = ['date', 'country', 'region', 'state', 'location', 'division', 'subledger'];
     filterIds.forEach(id => {
@@ -326,8 +326,13 @@ async function loadDashboardData(triggerId = null) {
         params.append('is_initial', 'true');
     }
 
+    if (bypassCache) {
+        params.append('bypass_cache', 'true');
+    }
+
     const loader = document.getElementById('loading-overlay');
-    if (loader) loader.classList.remove('hidden');
+    // Only show loader if not a silent refresh
+    if (loader && !isSilent) loader.classList.remove('hidden');
 
     try {
         const response = await fetch(`/api/akt/transaction-data?${params.toString()}`);
@@ -342,7 +347,8 @@ async function loadDashboardData(triggerId = null) {
             }
         } else {
             console.error('API Error:', data.message);
-            alert('Error loading dashboard data: ' + data.message);
+            // Only alert if not silent, or maybe just log for silent
+            if (!isSilent) alert('Error loading dashboard data: ' + data.message);
         }
     } catch (error) {
         console.error('Fetch Error:', error);
