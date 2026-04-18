@@ -240,7 +240,7 @@ def get_akt_transaction_data():
         # Safety Fallbacks for KPIs
         kpi_res = {
             "avg_per_min": float(kpi_data.avg_per_min) if kpi_data and kpi_data.avg_per_min else 0,
-            "total_hourly": int(kpi_data.total_hourly) if kpi_data and kpi_data.total_hourly else 0,
+            "total_hourly": efficiency_data[-1]["sum_hourly"] if efficiency_data else 0,
             "total_sales": float(kpi_data.total_sales) if kpi_data and kpi_data.total_sales else 0,
             "total_bills": int(total_bills),
             "avg_bill_value": 0,
