@@ -156,6 +156,7 @@ def get_akt_transaction_data():
                 AKTTransactionPerformance.divisionname,
                 func.max(AKTTransactionPerformance.billcount).label('max_bills'),
                 func.max(AKTTransactionPerformance.invoiceamt).label('max_rev'),
+                func.max(AKTTransactionPerformance.turnover).label('max_turnover'),
                 func.max(cast_pmbc(AKTTransactionPerformance.perminutebillcount)).label('max_per_min')
             ).filter(*filters).group_by(AKTTransactionPerformance.timepartt, AKTTransactionPerformance.location, AKTTransactionPerformance.divisionname).subquery()
 
@@ -213,7 +214,7 @@ def get_akt_transaction_data():
                 eff_sub.c.timepartt.label('hour'),
                 coal(func.sum(eff_sub.c.max_bills)).label('cum_bills'),
                 coal(func.sum(eff_sub.c.max_rev)).label('cum_rev'),
-                coal(func.max(AKTTransactionPerformance.turnover)).label('max_turnover') # Turnover often global or per snapshots
+                coal(func.sum(eff_sub.c.max_turnover)).label('cum_turnover')
             ).group_by(eff_sub.c.timepartt).order_by(eff_sub.c.timepartt).all()
 
             trend_data = []
@@ -225,7 +226,7 @@ def get_akt_transaction_data():
                     "hour": row.hour,
                     "sum_hourly": int(delta),
                     "sum_revenue": float(row.cum_rev or 0),
-                    "sum_turnover": float(row.max_turnover or 0)
+                    "sum_turnover": float(row.cum_turnover or 0)
                 })
                 prev_trend_bills = curr_bills
 
