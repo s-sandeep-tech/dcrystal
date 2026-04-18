@@ -125,21 +125,34 @@ def get_akt_transaction_data():
                 if val:
                     filters.append(field == val)
 
-            # 1. Base Subquery for Latest Snapshot
-            max_time_sub = db.session.query(func.max(AKTTransactionPerformance.billtime)).filter(*filters).scalar_subquery()
-
-            # 1. Top KPI Strip Data
-            # We take the max cumulative value for each (Location, Division) and sum them
+            # 1. Master Snapshot: Latest values per Location/Division
+            # This is the "Gold Source" for all cumulative metrics (KPIs, State, Division, Composition)
             kpi_sub = db.session.query(
                 AKTTransactionPerformance.location,
                 AKTTransactionPerformance.divisionname,
+                AKTTransactionPerformance.state,
                 func.max(cast_pmbc(AKTTransactionPerformance.perminutebillcount)).label('max_avg_per_min'),
                 func.max(AKTTransactionPerformance.hourlybillcount).label('max_hourly'),
                 func.max(AKTTransactionPerformance.invoiceamt).label('max_sales'),
+                func.max(AKTTransactionPerformance.turnover).label('max_turnover'),
                 func.max(coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit)).label('max_profit'),
                 func.max(AKTTransactionPerformance.netweight).label('max_net_wt'),
-                func.max(AKTTransactionPerformance.billcount).label('max_bills')
-            ).filter(*filters).group_by(AKTTransactionPerformance.location, AKTTransactionPerformance.divisionname).subquery()
+                func.max(AKTTransactionPerformance.billcount).label('max_bills'),
+                # Composition columns (cumulative)
+                func.max(AKTTransactionPerformance.metalvalue).label('max_metal'),
+                func.max(AKTTransactionPerformance.netstonevalue).label('max_stone'),
+                func.max(AKTTransactionPerformance.netdiamondvalue).label('max_diamond'),
+                func.max(AKTTransactionPerformance.netcolourstonevalue).label('max_color_stone'),
+                func.max(AKTTransactionPerformance.netmcvalue).label('max_mc'),
+                # Weight columns (cumulative)
+                func.max(AKTTransactionPerformance.grossweight).label('max_gross_wt'),
+                func.max(AKTTransactionPerformance.diamondcarat).label('max_diamond_carat'),
+                func.max(AKTTransactionPerformance.colourstonecarat).label('max_color_carat')
+            ).filter(*filters).group_by(
+                AKTTransactionPerformance.location, 
+                AKTTransactionPerformance.divisionname,
+                AKTTransactionPerformance.state
+            ).subquery()
 
             kpi_query = db.session.query(
                 coal(func.avg(kpi_sub.c.max_avg_per_min)).label('avg_per_min'),
@@ -186,32 +199,20 @@ def get_akt_transaction_data():
                 prev_bills = curr_bills
 
             # 3. Location Performance
-            # Group by location and division in subquery, then sum per location in outer query
-            loc_sub = db.session.query(
-                AKTTransactionPerformance.location,
-                AKTTransactionPerformance.divisionname,
-                func.max(cast_pmbc(AKTTransactionPerformance.perminutebillcount)).label('m_avg_per_min'),
-                func.max(AKTTransactionPerformance.hourlybillcount).label('m_hourly'),
-                func.max(AKTTransactionPerformance.invoiceamt).label('m_rev'),
-                func.max(AKTTransactionPerformance.billcount).label('m_bills'),
-                func.max(coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit)).label('m_profit'),
-                func.max(AKTTransactionPerformance.billcount).label('m_sum_bills') # redundant but for clarity
-            ).filter(*filters).group_by(AKTTransactionPerformance.location, AKTTransactionPerformance.divisionname).subquery()
-
             location_data = db.session.query(
-                loc_sub.c.location,
-                coal(func.avg(loc_sub.c.m_avg_per_min)).label('avg_per_min'),
-                coal(func.sum(loc_sub.c.m_hourly)).label('sum_hourly'),
-                coal(func.sum(loc_sub.c.m_rev)).label('sum_revenue'),
-                coal(func.sum(loc_sub.c.m_bills)).label('sum_bills'),
-                coal(func.sum(loc_sub.c.m_profit)).label('total_profit')
-            ).group_by(loc_sub.c.location).all()
+                kpi_sub.c.location,
+                coal(func.avg(kpi_sub.c.max_avg_per_min)).label('avg_per_min'),
+                coal(func.sum(kpi_sub.c.max_hourly)).label('sum_hourly'),
+                coal(func.sum(kpi_sub.c.max_sales)).label('sum_revenue'),
+                coal(func.sum(kpi_sub.c.max_bills)).label('sum_bills'),
+                coal(func.sum(kpi_sub.c.max_profit)).label('total_profit')
+            ).group_by(kpi_sub.c.location).all()
 
             # 4. State Performance
             state_data = db.session.query(
-                AKTTransactionPerformance.state,
-                coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.invoiceamt), else_=0))).label('sum_revenue')
-            ).filter(*filters).group_by(AKTTransactionPerformance.state).order_by(coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.invoiceamt), else_=0))).desc()).all()
+                kpi_sub.c.state,
+                coal(func.sum(kpi_sub.c.max_sales)).label('sum_revenue')
+            ).group_by(kpi_sub.c.state).order_by(coal(func.sum(kpi_sub.c.max_sales)).desc()).all()
 
             # 5. Trends (Hourly)
             # Same delta logic as efficiency for the trend chart
@@ -237,22 +238,22 @@ def get_akt_transaction_data():
 
             # 6. Division Data
             division_data = db.session.query(
-                AKTTransactionPerformance.divisionname,
-                coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.invoiceamt), else_=0))).label('sum_revenue')
-            ).filter(*filters).group_by(AKTTransactionPerformance.divisionname).all()
+                kpi_sub.c.divisionname,
+                coal(func.sum(kpi_sub.c.max_sales)).label('sum_revenue')
+            ).group_by(kpi_sub.c.divisionname).all()
 
             # 7. Revenue Composition & Weight
             comp_query = db.session.query(
-                coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.metalvalue), else_=0))).label('metal'),
-                coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.netstonevalue), else_=0))).label('stone'),
-                coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.netdiamondvalue), else_=0))).label('diamond'),
-                coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.netcolourstonevalue), else_=0))).label('color_stone'),
-                coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.netmcvalue), else_=0))).label('mc'),
-                coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.grossweight), else_=0))).label('gross_wt'),
-                coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.netweight), else_=0))).label('net_wt'),
-                coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.diamondcarat), else_=0))).label('diamond_carat'),
-                coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.colourstonecarat), else_=0))).label('color_carat')
-            ).filter(*filters)
+                coal(func.sum(kpi_sub.c.max_metal)).label('metal'),
+                coal(func.sum(kpi_sub.c.max_stone)).label('stone'),
+                coal(func.sum(kpi_sub.c.max_diamond)).label('diamond'),
+                coal(func.sum(kpi_sub.c.max_color_stone)).label('color_stone'),
+                coal(func.sum(kpi_sub.c.max_mc)).label('mc'),
+                coal(func.sum(kpi_sub.c.max_gross_wt)).label('gross_wt'),
+                coal(func.sum(kpi_sub.c.max_net_wt)).label('net_wt'),
+                coal(func.sum(kpi_sub.c.max_diamond_carat)).label('diamond_carat'),
+                coal(func.sum(kpi_sub.c.max_color_carat)).label('color_carat')
+            )
             
             composition = comp_query.first()
 
