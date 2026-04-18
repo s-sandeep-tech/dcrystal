@@ -258,11 +258,25 @@ def get_akt_transaction_data():
             composition = comp_query.first()
 
             # 8. Heatmap Data (Activity density using hourly delta)
-            heatmap_raw = db.session.query(
+            # Use sum(max) to prevent double-counting if multiple snapshots exist in one hour
+            heat_sub = db.session.query(
                 func.date(AKTTransactionPerformance.date).label('d'),
                 AKTTransactionPerformance.timepartt,
-                coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('bill_count')
-            ).filter(*filters).group_by(func.date(AKTTransactionPerformance.date), AKTTransactionPerformance.timepartt).all()
+                AKTTransactionPerformance.location,
+                AKTTransactionPerformance.divisionname,
+                func.max(AKTTransactionPerformance.hourlybillcount).label('max_h_bills')
+            ).filter(*filters).group_by(
+                func.date(AKTTransactionPerformance.date), 
+                AKTTransactionPerformance.timepartt,
+                AKTTransactionPerformance.location,
+                AKTTransactionPerformance.divisionname
+            ).subquery()
+
+            heatmap_raw = db.session.query(
+                heat_sub.c.d,
+                heat_sub.c.timepartt,
+                coal(func.sum(heat_sub.c.max_h_bills)).label('bill_count')
+            ).group_by(heat_sub.c.d, heat_sub.c.timepartt).all()
 
             # 9. Unique filter values (Cascading Hierarchy)
             # Each level narrows down the next: Country -> Region -> State -> Location
