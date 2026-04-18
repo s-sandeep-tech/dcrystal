@@ -100,11 +100,12 @@ def get_akt_transaction_data():
         ).filter(*filters).group_by(AKTTransactionPerformance.timepartt).order_by(AKTTransactionPerformance.timepartt).all()
 
         # 3. Location Performance
-        # Note: All cumulative metrics (Revenue, Bills, Profit) must use max_time_sub filter
+        # Note: All cumulative metrics (Revenue, Bills, Profit, Hourly Bills) must use max_time_sub filter
         location_data = db.session.query(
             AKTTransactionPerformance.location,
             coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
-            coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
+            # Take only the latest hourly bill count to match the current snapshot
+            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.hourlybillcount), else_=0))).label('sum_hourly'),
             coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.invoiceamt), else_=0))).label('sum_revenue'),
             coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.billcount), else_=0))).label('sum_bills'),
             coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit)), else_=0))).label('total_profit')
