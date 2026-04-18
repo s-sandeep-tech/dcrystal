@@ -76,16 +76,17 @@ def get_akt_transaction_data():
         max_time_sub = db.session.query(func.max(AKTTransactionPerformance.billtime)).filter(*filters).scalar_subquery()
 
         # 1. Top KPI Strip Data
-        # We take the max cumulative value for each store and sum them (Robust against staggered sync)
+        # We take the max cumulative value for each (Location, Division) and sum them
         kpi_sub = db.session.query(
             AKTTransactionPerformance.location,
+            AKTTransactionPerformance.divisionname,
             func.max(cast_pmbc(AKTTransactionPerformance.perminutebillcount)).label('max_avg_per_min'),
             func.max(AKTTransactionPerformance.hourlybillcount).label('max_hourly'),
             func.max(AKTTransactionPerformance.invoiceamt).label('max_sales'),
             func.max(coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit)).label('max_profit'),
             func.max(AKTTransactionPerformance.netweight).label('max_net_wt'),
             func.max(AKTTransactionPerformance.billcount).label('max_bills')
-        ).filter(*filters).group_by(AKTTransactionPerformance.location).subquery()
+        ).filter(*filters).group_by(AKTTransactionPerformance.location, AKTTransactionPerformance.divisionname).subquery()
 
         kpi_query = db.session.query(
             coal(func.avg(kpi_sub.c.max_avg_per_min)).label('avg_per_min'),
@@ -100,14 +101,15 @@ def get_akt_transaction_data():
         total_bills = kpi_data.total_bills if kpi_data else 0
 
         # 2. Billing Efficiency Data (by timepartt)
-        # We need the delta (bills in that hour). First, get max cumulative per store/hour
+        # Get max cumulative per (hour, store, division)
         eff_sub = db.session.query(
             AKTTransactionPerformance.timepartt,
             AKTTransactionPerformance.location,
+            AKTTransactionPerformance.divisionname,
             func.max(AKTTransactionPerformance.billcount).label('max_bills'),
             func.max(AKTTransactionPerformance.invoiceamt).label('max_rev'),
             func.max(cast_pmbc(AKTTransactionPerformance.perminutebillcount)).label('max_per_min')
-        ).filter(*filters).group_by(AKTTransactionPerformance.timepartt, AKTTransactionPerformance.location).subquery()
+        ).filter(*filters).group_by(AKTTransactionPerformance.timepartt, AKTTransactionPerformance.location, AKTTransactionPerformance.divisionname).subquery()
 
         efficiency_raw = db.session.query(
             eff_sub.c.timepartt,
@@ -130,15 +132,26 @@ def get_akt_transaction_data():
             prev_bills = curr_bills
 
         # 3. Location Performance
-        # Note: Use MAX() per location for all cumulative metrics (Revenue, Bills, Profit)
-        location_data = db.session.query(
+        # Group by location and division in subquery, then sum per location in outer query
+        loc_sub = db.session.query(
             AKTTransactionPerformance.location,
-            coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
-            coal(func.max(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
-            coal(func.max(AKTTransactionPerformance.invoiceamt)).label('sum_revenue'),
-            coal(func.max(AKTTransactionPerformance.billcount)).label('sum_bills'),
-            coal(func.max(coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit))).label('total_profit')
-        ).filter(*filters).group_by(AKTTransactionPerformance.location).all()
+            AKTTransactionPerformance.divisionname,
+            func.max(cast_pmbc(AKTTransactionPerformance.perminutebillcount)).label('m_avg_per_min'),
+            func.max(AKTTransactionPerformance.hourlybillcount).label('m_hourly'),
+            func.max(AKTTransactionPerformance.invoiceamt).label('m_rev'),
+            func.max(AKTTransactionPerformance.billcount).label('m_bills'),
+            func.max(coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit)).label('m_profit'),
+            func.max(AKTTransactionPerformance.billcount).label('m_sum_bills') # redundant but for clarity
+        ).filter(*filters).group_by(AKTTransactionPerformance.location, AKTTransactionPerformance.divisionname).subquery()
+
+        location_data = db.session.query(
+            loc_sub.c.location,
+            coal(func.avg(loc_sub.c.m_avg_per_min)).label('avg_per_min'),
+            coal(func.sum(loc_sub.c.m_hourly)).label('sum_hourly'),
+            coal(func.sum(loc_sub.c.m_rev)).label('sum_revenue'),
+            coal(func.sum(loc_sub.c.m_bills)).label('sum_bills'),
+            coal(func.sum(loc_sub.c.m_profit)).label('total_profit')
+        ).group_by(loc_sub.c.location).all()
 
         # 4. State Performance
         state_data = db.session.query(
