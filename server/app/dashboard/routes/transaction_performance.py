@@ -116,16 +116,16 @@ def get_akt_transaction_data():
             coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.invoiceamt), else_=0))).label('sum_revenue')
         ).filter(*filters).group_by(AKTTransactionPerformance.state).order_by(coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.invoiceamt), else_=0))).desc()).all()
 
-        # 5. Trends (Daily)
-        # For daily trends, we take the max value of the day for cumulative metrics
+        # 5. Trends (Hourly)
+        # For hourly trends, we take the max value of the hour for cumulative metrics
         trend_data = db.session.query(
-            func.date(AKTTransactionPerformance.date).label('d'),
+            AKTTransactionPerformance.timepartt.label('hour'),
             coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
             coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('sum_hourly'),
-            # Take max of the day for running totals
+            # Take max of the hour for running totals
             coal(func.max(AKTTransactionPerformance.invoiceamt)).label('sum_revenue'),
             coal(func.max(AKTTransactionPerformance.turnover)).label('sum_turnover')
-        ).filter(*filters).group_by(func.date(AKTTransactionPerformance.date)).order_by(func.date(AKTTransactionPerformance.date)).all()
+        ).filter(*filters).group_by(AKTTransactionPerformance.timepartt).order_by(AKTTransactionPerformance.timepartt).all()
 
         # 6. Division Data
         division_data = db.session.query(
@@ -216,7 +216,7 @@ def get_akt_transaction_data():
             } for d in location_data],
             "state_performance": [{"state": d.state or "Unknown", "value": float(d.sum_revenue or 0)} for d in state_data],
             "trends": [{
-                "date": str(d.d),
+                "hour": d.hour,
                 "avg_per_min": float(d.avg_per_min or 0),
                 "sum_hourly": int(d.sum_hourly or 0),
                 "sum_revenue": float(d.sum_revenue or 0),

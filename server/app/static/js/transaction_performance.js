@@ -386,7 +386,7 @@ function updateDashboardCharts(data) {
     charts.revenueHour.data.datasets[0].data = data.efficiency.map(d => d.sum_revenue);
     charts.revenueHour.update();
 
-    charts.daily.data.labels = data.trends.map(d => d.date);
+    charts.daily.data.labels = data.trends.map(d => d.hour + ":00");
     charts.daily.data.datasets[0].data = data.trends.map(d => d.sum_revenue);
     charts.daily.data.datasets[1].data = data.trends.map(d => d.sum_turnover);
     charts.daily.update();
