@@ -76,15 +76,25 @@ def get_akt_transaction_data():
         max_time_sub = db.session.query(func.max(AKTTransactionPerformance.billtime)).filter(*filters).scalar_subquery()
 
         # 1. Top KPI Strip Data
+        # We take the max cumulative value for each store and sum them (Robust against staggered sync)
+        kpi_sub = db.session.query(
+            AKTTransactionPerformance.location,
+            func.max(cast_pmbc(AKTTransactionPerformance.perminutebillcount)).label('max_avg_per_min'),
+            func.max(AKTTransactionPerformance.hourlybillcount).label('max_hourly'),
+            func.max(AKTTransactionPerformance.invoiceamt).label('max_sales'),
+            func.max(coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit)).label('max_profit'),
+            func.max(AKTTransactionPerformance.netweight).label('max_net_wt'),
+            func.max(AKTTransactionPerformance.billcount).label('max_bills')
+        ).filter(*filters).group_by(AKTTransactionPerformance.location).subquery()
+
         kpi_query = db.session.query(
-            coal(func.avg(cast_pmbc(AKTTransactionPerformance.perminutebillcount))).label('avg_per_min'),
-            coal(func.sum(AKTTransactionPerformance.hourlybillcount)).label('total_hourly'),
-            # Running totals: take only from latest snapshot
-            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.invoiceamt), else_=0))).label('total_sales'),
-            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, coal(AKTTransactionPerformance.mcprofit) + coal(AKTTransactionPerformance.stonevalueprofit)), else_=0))).label('total_profit'),
-            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.netweight), else_=0))).label('total_net_weight'),
-            coal(func.sum(case((AKTTransactionPerformance.billtime == max_time_sub, AKTTransactionPerformance.billcount), else_=0))).label('total_bills')
-        ).filter(*filters)
+            coal(func.avg(kpi_sub.c.max_avg_per_min)).label('avg_per_min'),
+            coal(func.sum(kpi_sub.c.max_hourly)).label('total_hourly'),
+            coal(func.sum(kpi_sub.c.max_sales)).label('total_sales'),
+            coal(func.sum(kpi_sub.c.max_profit)).label('total_profit'),
+            coal(func.sum(kpi_sub.c.max_net_wt)).label('total_net_weight'),
+            coal(func.sum(kpi_sub.c.max_bills)).label('total_bills')
+        )
         
         kpi_data = kpi_query.first()
         total_bills = kpi_data.total_bills if kpi_data else 0
