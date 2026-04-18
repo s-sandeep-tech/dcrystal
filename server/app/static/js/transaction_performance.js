@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Refresh data (uses current filters) - Silent Background Load
-            loadDashboardData(null, true, true);
+            loadDashboardData(null, false, true);
         });
     }
 });
