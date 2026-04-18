@@ -48,7 +48,7 @@ def trigger_akt_sync():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @dashboard_bp.route('/api/akt/transaction-data')
-# @require_perm('dashboard.view')
+@require_perm('dashboard.view')
 def get_akt_transaction_data():
     try:
         # perminutebillcount is VARCHAR in DB, so it needs explicit casting for aggregates
