@@ -93,7 +93,13 @@ function initCharts() {
  
     charts.hourly = new Chart(document.getElementById('chart-hourly-count').getContext('2d'), {
         type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Hourly Count', data: [], backgroundColor: '#137fec', borderRadius: 4 }] },
+        data: { 
+            labels: [], 
+            datasets: [
+                { label: 'Current Count', data: [], backgroundColor: '#137fec', borderRadius: 4 },
+                { label: '2025 Count', data: [], backgroundColor: '#fbbf24', borderRadius: 4 }
+            ] 
+        },
         options: chartDefaults
     });
  
@@ -375,6 +381,16 @@ function updateDashboardCharts(data) {
 
     charts.hourly.data.labels = data.efficiency.map(d => d.time);
     charts.hourly.data.datasets[0].data = data.efficiency.map(d => d.sum_hourly);
+    
+    // Map 2025 data to the same hourly labels
+    const efficiency_2025_map = {};
+    if (data.efficiency_2025) {
+        data.efficiency_2025.forEach(d => {
+            efficiency_2025_map[d.time] = d.sum_hourly;
+        });
+    }
+    charts.hourly.data.datasets[1].data = data.efficiency.map(d => efficiency_2025_map[d.time] || 0);
+    
     charts.hourly.update();
 
     // Top Locations for Per Minute Efficiency

@@ -124,6 +124,10 @@ def get_akt_transaction_data():
                 val = request.args.get(param)
                 if val:
                     filters.append(field == val)
+            
+            # Per user request: Only consider hourly snapshots (Minute = 0)
+            from sqlalchemy import extract
+            filters.append(extract('minute', AKTTransactionPerformance.billtime) == 0)
 
             # 1. Master Snapshot: Latest values per Location/Division
             # This is the "Gold Source" for all cumulative metrics (KPIs, State, Division, Composition)
@@ -197,6 +201,40 @@ def get_akt_transaction_data():
                     "sum_revenue": float(row.cum_rev or 0)
                 })
                 prev_bills = curr_bills
+
+            # 2.1. 2025 Comparison Data (Specifically for Hourly Billing Count)
+            filters_2025 = []
+            for param, field in filter_configs.items():
+                if param == 'date':
+                    filters_2025.append(field == '2025-10-18')
+                else:
+                    val = request.args.get(param)
+                    if val:
+                        filters_2025.append(field == val)
+            
+            # Add minute constraint to 2025 as well
+            filters_2025.append(extract('minute', AKTTransactionPerformance.billtime) == 0)
+
+            eff_sub_2025 = db.session.query(
+                AKTTransactionPerformance.timepartt,
+                func.max(AKTTransactionPerformance.billcount).label('max_bills')
+            ).filter(*filters_2025).group_by(AKTTransactionPerformance.timepartt, AKTTransactionPerformance.location, AKTTransactionPerformance.divisionname).subquery()
+
+            efficiency_raw_2025 = db.session.query(
+                eff_sub_2025.c.timepartt,
+                coal(func.sum(eff_sub_2025.c.max_bills)).label('cum_bills')
+            ).group_by(eff_sub_2025.c.timepartt).order_by(eff_sub_2025.c.timepartt).all()
+
+            efficiency_2025 = []
+            prev_bills_2025 = 0
+            for row in efficiency_raw_2025:
+                curr_bills = float(row.cum_bills or 0)
+                hourly_delta = max(0, curr_bills - prev_bills_2025)
+                efficiency_2025.append({
+                    "time": str(row.timepartt),
+                    "sum_hourly": int(hourly_delta)
+                })
+                prev_bills_2025 = curr_bills
 
             # 3. Location Performance
             location_data = db.session.query(
@@ -324,6 +362,7 @@ def get_akt_transaction_data():
                 "cached": False,
                 "kpis": kpi_res,
                 "efficiency": efficiency_data,
+                "efficiency_2025": efficiency_2025,
                 "location_performance": [{
                     "location": d.location or "Unknown",
                     "avg_per_min": float(d.avg_per_min or 0),
