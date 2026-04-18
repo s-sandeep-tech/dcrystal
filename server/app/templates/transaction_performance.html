@@ -17,10 +17,29 @@
         width: 100% !important;
         height: 100% !important;
     }
+    @keyframes progress-indeterminate {
+        0% { left: -35%; width: 35%; }
+        100% { left: 100%; width: 35%; }
+    }
+    .animate-progress {
+        animation: progress-indeterminate 1.2s infinite ease-in-out;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="fixed inset-0 bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center hidden">
+    <div class="w-64 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center">
+        <div class="w-10 h-10 border-4 border-indigo-100 dark:border-gray-700 border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin mb-4"></div>
+        <h3 class="text-sm font-bold text-gray-800 dark:text-white mb-1">Loading Data</h3>
+        <p class="text-[10px] text-gray-500 dark:text-gray-400 text-center mb-4">Fetching performance metrics...</p>
+        <div class="w-full h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden relative">
+            <div class="absolute top-0 bottom-0 left-0 bg-indigo-600 dark:bg-indigo-500 rounded-full animate-progress"></div>
+        </div>
+    </div>
+</div>
+
 <main id="akt-main" class="flex-1 overflow-y-auto bg-[#f8fafc] dark:bg-background-dark p-6">
     <!-- Header with Version Info (Cloning inventory style) -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">

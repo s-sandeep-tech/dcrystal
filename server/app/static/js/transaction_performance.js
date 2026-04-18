@@ -326,6 +326,9 @@ async function loadDashboardData(triggerId = null) {
         params.append('is_initial', 'true');
     }
 
+    const loader = document.getElementById('loading-overlay');
+    if (loader) loader.classList.remove('hidden');
+
     try {
         const response = await fetch(`/api/akt/transaction-data?${params.toString()}`);
         const data = await response.json();
@@ -343,6 +346,8 @@ async function loadDashboardData(triggerId = null) {
         }
     } catch (error) {
         console.error('Fetch Error:', error);
+    } finally {
+        if (loader) loader.classList.add('hidden');
     }
 }
 
