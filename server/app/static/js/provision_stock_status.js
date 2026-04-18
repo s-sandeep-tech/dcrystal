@@ -451,3 +451,79 @@ function toggleHeaderFilter(event, id) {
 
 
 
+
+/**
+ * Drill-down Modal Functions
+ */
+
+async function openDrillDownModal(sectionName) {
+    const modal = document.getElementById('drillDownModal');
+    const container = document.getElementById('drillDownContainer');
+    const title = document.getElementById('drillDownTitle');
+    const loader = document.getElementById('modal-loader');
+    const contentArea = document.getElementById('modal-content-area');
+    const progressBar = document.getElementById('modal-progress');
+
+    if (!modal || !container) return;
+
+    // Show modal structure
+    modal.classList.remove('hidden');
+    // Trigger animation next frame
+    requestAnimationFrame(() => {
+        container.classList.remove('translate-x-full');
+    });
+
+    // Set title
+    title.textContent = `${sectionName} - Section Drill-down`;
+
+    // Show loading state
+    loader.classList.remove('hidden');
+    if (progressBar) progressBar.classList.remove('hidden');
+    contentArea.innerHTML = '';
+
+    try {
+        // Collect all current report filters
+        const params = new URLSearchParams({
+            ...filterValues,
+            drill_section: sectionName // Explicitly filter by the clicked section
+        });
+
+        const response = await fetch(`/api/provision-stock-status/drilldown?${params}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch drill-down data');
+
+        const html = await response.text();
+        contentArea.innerHTML = html;
+
+    } catch (err) {
+        console.error('Drill-down error:', err);
+        contentArea.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-full p-12 text-center">
+                <span class="material-symbols-outlined text-4xl text-red-500 mb-4">error</span>
+                <h4 class="text-sm font-bold text-gray-800 dark:text-white mb-2">Something went wrong</h4>
+                <p class="text-xs text-gray-500">${err.message}</p>
+                <button onclick="openDrillDownModal('${sectionName}')" class="mt-6 px-4 py-2 bg-primary text-white text-[10px] font-bold rounded uppercase tracking-wider">Try Again</button>
+            </div>
+        `;
+    } finally {
+        loader.classList.add('hidden');
+        if (progressBar) progressBar.classList.add('hidden');
+    }
+}
+
+function closeDrillDownModal() {
+    const modal = document.getElementById('drillDownModal');
+    const container = document.getElementById('drillDownContainer');
+
+    if (!modal || !container) return;
+
+    // Trigger close animation
+    container.classList.add('translate-x-full');
+
+    // Hide backdrop after animation
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+}

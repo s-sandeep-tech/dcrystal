@@ -62,6 +62,65 @@
         </div>
     </div>
 </main>
+
+<!-- Drill-down Modal -->
+<div id="drillDownModal" class="fixed inset-0 z-[100] hidden overflow-hidden">
+    <!-- Backdrop with blur -->
+    <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeDrillDownModal()"></div>
+    
+    <!-- Modal Content Container -->
+    <div class="absolute inset-y-0 right-0 w-full max-w-4xl bg-white dark:bg-gray-900 shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-full" id="drillDownContainer">
+        <!-- Close Button (Floating) -->
+        <button onclick="closeDrillDownModal()" class="absolute -left-12 top-4 size-10 bg-white dark:bg-gray-800 text-gray-500 hover:text-red-500 rounded-l-xl shadow-lg flex items-center justify-center transition-colors group">
+            <span class="material-symbols-outlined group-hover:rotate-90 transition-transform duration-300">close</span>
+        </button>
+
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-gray-900 shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="size-10 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary">analytics</span>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-800 dark:text-white" id="drillDownTitle">Section Drill-down</h3>
+                    <p class="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-0.5">Hierarchy View</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div id="modal-last-refresh" class="text-[9px] text-gray-400 font-medium bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded">
+                    LATEST SYNC: {{ sync_time }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Bar for Modal -->
+        <div id="modal-progress" class="h-0.5 w-full bg-gray-100 dark:bg-gray-800 overflow-hidden hidden">
+            <div class="h-full bg-primary w-1/3 animate-[progress_1.5s_ease-in-out_infinite]"></div>
+        </div>
+
+        <!-- Modal Table Body -->
+        <div id="drillDownBody" class="flex-1 overflow-hidden relative">
+            <!-- Loading State -->
+            <div id="modal-loader" class="absolute inset-0 z-20 bg-white/80 dark:bg-gray-900/80 flex flex-col items-center justify-center hidden">
+                <div class="relative">
+                    <div class="size-12 border-4 border-blue-100 dark:border-blue-900/30 rounded-full"></div>
+                    <div class="absolute inset-0 size-12 border-4 border-t-primary rounded-full animate-spin"></div>
+                </div>
+                <p class="mt-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest animate-pulse">Fetching Hierarchy Data...</p>
+            </div>
+
+            <!-- Content will be injected here -->
+            <div id="modal-content-area" class="h-full"></div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="px-6 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20 flex justify-between items-center shrink-0">
+            <p class="text-[10px] text-gray-400 italic">Showing Section → Type → Wide Range → Range Weight hierarchy.</p>
+            <button onclick="closeDrillDownModal()" class="px-4 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-[10px] font-bold rounded uppercase transition-colors">Close</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block sidebar %}

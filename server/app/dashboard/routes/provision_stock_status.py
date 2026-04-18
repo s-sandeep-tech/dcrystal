@@ -630,6 +630,148 @@ ORDER BY
         logger.error(f"Error in get_provision_stock_status_partial: {str(e)}")
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
 
+@dashboard_bp.route('/api/provision-stock-status/drilldown')
+@jwt_required()
+def get_provision_stock_status_drilldown():
+    try:
+        # Read filters from request
+        location = request.args.get('location', '')
+        purity = request.args.get('purity', '')
+        classification = request.args.get('classification', '')
+        make = request.args.get('make', '')
+        collection = request.args.get('collection', '')
+        section = request.args.get('section', '')
+        prov_type = request.args.get('prov_type', '')
+        provision_mode = request.args.get('provision_mode', '')
+        branch_type = request.args.get('branch_type', '')
+        branch_status = request.args.get('branch_status', '')
+        business_head = request.args.get('business_head', '')
+        state = request.args.get('state', '')
+        
+        # Specific filter for the clicked section
+        drill_section = request.args.get('drill_section', '')
+
+        params = {
+            'location': location if location else None,
+            'purity': purity if purity else None,
+            'classification': classification if classification else None,
+            'make': make if make else None,
+            'collection': collection if collection else None,
+            'section': section if section else None,
+            'prov_type': prov_type if prov_type else None,
+            'provision_mode': provision_mode if provision_mode else None,
+            'branch_type': branch_type if branch_type else None,
+            'branch_status': branch_status if branch_status else None,
+            'business_head': business_head if business_head else None,
+            'state': state if state else None,
+            'bh_emp_code': None,
+            'drill_section': drill_section if drill_section else None
+        }
+
+        # Role-based filtering for Business Head
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager_2 = 'MANAGER_2' in roles
+        is_business_head = 'BUSINESS_HEAD' in roles
+        user_id = session.get('user_id')
+
+        if not is_admin and not is_manager_2:
+            if is_business_head and user_id:
+                params['bh_emp_code'] = user_id
+
+        # Hierarchical Query for Modal
+        query = """
+WITH base AS (
+    SELECT *
+    FROM provision_stock_raw_snapshot
+    WHERE 
+        (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
+        AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
+        AND (:purity IS NULL OR purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
+        AND (:classification IS NULL OR classification = ANY(string_to_array(CAST(:classification AS text), ',')))
+        AND (:make IS NULL OR make = ANY(string_to_array(CAST(:make AS text), ',')))
+        AND (:collection IS NULL OR collection = ANY(string_to_array(CAST(:collection AS text), ',')))
+        AND (:section IS NULL OR section = ANY(string_to_array(CAST(:section AS text), ',')))
+        AND (:prov_type IS NULL OR prov_type = ANY(string_to_array(CAST(:prov_type AS text), ',')))
+        AND (:provision_mode IS NULL OR provision_mode_filter = ANY(string_to_array(CAST(:provision_mode AS text), ',')))
+        AND (:branch_type IS NULL OR branch_type = ANY(string_to_array(CAST(:branch_type AS text), ',')))
+        AND (:branch_status IS NULL OR branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
+        AND (:business_head IS NULL OR business_head_name = ANY(string_to_array(CAST(:business_head AS text), ',')))
+        AND (:bh_emp_code IS NULL OR business_head_emp_code = :bh_emp_code)
+        AND (:drill_section IS NULL OR section = :drill_section)
+),
+levels AS (
+    -- Level 1: Section
+    SELECT 1 as level_id, section as l1, NULL::text as l2, NULL::text as l3, NULL::numeric as l4,
+           SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
+           SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
+           SUM(in_transit_wt) as in_transit_wt
+    FROM base GROUP BY section
+    
+    UNION ALL
+    -- Level 2: Section + Type
+    SELECT 2 as level_id, section as l1, type as l2, NULL::text as l3, NULL::numeric as l4,
+           SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
+           SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
+           SUM(in_transit_wt) as in_transit_wt
+    FROM base GROUP BY section, type
+
+    UNION ALL
+    -- Level 3: Section + Type + Wide Range
+    SELECT 3 as level_id, section as l1, type as l2, wide_range as l3, NULL::numeric as l4,
+           SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
+           SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
+           SUM(in_transit_wt) as in_transit_wt
+    FROM base GROUP BY section, type, wide_range
+
+    UNION ALL
+    -- Level 4: Section + Type + Wide Range + Range Weight
+    SELECT 4 as level_id, section as l1, type as l2, wide_range as l3, range_weight as l4,
+           SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
+           SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
+           SUM(in_transit_wt) as in_transit_wt
+    FROM base GROUP BY section, type, wide_range, range_weight
+)
+SELECT 
+    level_id, l1 as section, l2 as type, l3 as wide_range, l4 as range_weight,
+    prov_pcs, prov_gr_wt, in_shop_wt, ordered_wt, in_transit_wt,
+    (in_shop_wt + ordered_wt + in_transit_wt - prov_gr_wt) as short_excess_wt,
+    CASE WHEN prov_gr_wt = 0 THEN 0 ELSE (in_shop_wt + ordered_wt + in_transit_wt - prov_gr_wt) * 100.0 / prov_gr_wt END as percent
+FROM levels
+ORDER BY section, type NULLS FIRST, wide_range NULLS FIRST, range_weight NULLS FIRST, level_id
+        """
+        
+        result = db.session.execute(text(query), params)
+        rows = [dict(r._mapping) for r in result]
+        
+        # Calculate Grand Total for the modal
+        total_pcs = sum(r['prov_pcs'] or 0 for r in rows if r['level_id'] == 1)
+        total_gr_wt = sum(r['prov_gr_wt'] or 0 for r in rows if r['level_id'] == 1)
+        total_in_shop = sum(r['in_shop_wt'] or 0 for r in rows if r['level_id'] == 1)
+        total_ordered = sum(r['ordered_wt'] or 0 for r in rows if r['level_id'] == 1)
+        total_transit = sum(r['in_transit_wt'] or 0 for r in rows if r['level_id'] == 1)
+        total_short_excess = total_in_shop + total_ordered + total_transit - total_gr_wt
+        total_percent = (total_short_excess * 100 / total_gr_wt) if total_gr_wt != 0 else 0
+        
+        modal_totals = {
+            'prov_pcs': total_pcs,
+            'prov_gr_wt': total_gr_wt,
+            'in_shop_wt': total_in_shop,
+            'ordered_wt': total_ordered,
+            'in_transit_wt': total_transit,
+            'short_excess_wt': total_short_excess,
+            'percent': total_percent
+        }
+
+        return render_template('partials/_view_provision_stock_drilldown.html', 
+                               rows=rows, 
+                               modal_totals=modal_totals,
+                               drill_section=drill_section)
+
+    except Exception as e:
+        logger.error(f"Error in get_provision_stock_status_drilldown: {str(e)}")
+        return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
+
 @dashboard_bp.route('/api/sync/provision_stock_status', methods=['POST'])
 @jwt_required()
 def sync_provision_stock_status():
