@@ -124,8 +124,8 @@ function initCharts() {
     // --- Section 2: Revenue ---
     charts.scatter = new Chart(document.getElementById('chart-revenue-scatter').getContext('2d'), {
         type: 'scatter',
-        data: { datasets: [{ label: 'Revenue (₹) vs Efficiency', data: [], backgroundColor: '#137fec', pointRadius: 5 }] },
-        options: { ...chartDefaults, scales: { x: { title: { display: true, text: 'Efficiency (Bills/Min)' } }, y: { title: { display: true, text: 'Revenue (₹)' } } } }
+        data: { datasets: [{ label: 'Revenue (₹) vs Bills/Hour', data: [], backgroundColor: '#137fec', pointRadius: 5 }] },
+        options: { ...chartDefaults, scales: { x: { title: { display: true, text: 'Efficiency (Bills/Hour)' } }, y: { title: { display: true, text: 'Revenue (₹)' } } } }
     });
  
     charts.revenueHour = new Chart(document.getElementById('chart-revenue-hour').getContext('2d'), {
@@ -438,7 +438,7 @@ function updateDashboardCharts(data) {
     charts.hourlyLoc.update();
 
     // Section 2
-    charts.scatter.data.datasets[0].data = data.efficiency.map(d => ({ x: d.avg_per_min, y: d.sum_revenue }));
+    charts.scatter.data.datasets[0].data = data.efficiency.map(d => ({ x: d.sum_hourly, y: d.sum_revenue }));
     charts.scatter.update();
 
     charts.revenueHour.data.labels = data.efficiency.map(d => d.time);
