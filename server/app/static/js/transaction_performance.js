@@ -245,29 +245,7 @@ function initCharts() {
         options: { ...chartDefaults, scales: { r: { grid: { color: 'rgba(148, 163, 184, 0.1)' } } } }
     });
  
-    charts.profitMarginLoc = new Chart(document.getElementById('chart-profit-margin-location').getContext('2d'), {
-        type: 'line',
-        data: { labels: [], datasets: [{ label: 'Profit Margin %', data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.4 }] },
-        options: chartDefaults
-    });
- 
-    charts.profitLoc = new Chart(document.getElementById('chart-profit-location').getContext('2d'), {
-        type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Total Profit (₹)', data: [], backgroundColor: '#10b981', borderRadius: 4 }] },
-        options: {
-            ...chartDefaults,
-            scales: {
-                ...chartDefaults.scales,
-                y: {
-                    ...chartDefaults.scales.y,
-                    ticks: {
-                        ...chartDefaults.scales.y.ticks,
-                        callback: (val) => formatCompactNumber(val)
-                    }
-                }
-            }
-        }
-    });
+    // Note: Profit charts hidden as per request (Data unavailable)
 
     // --- Section 5: Analysis ---
     charts.weightComp = new Chart(document.getElementById('chart-weight-comparison').getContext('2d'), {
@@ -406,7 +384,9 @@ function updateKPIs(kpis) {
     document.getElementById('kpi-sales').innerText = formatCurrency(kpis.total_sales);
     document.getElementById('kpi-bills').innerText = kpis.total_bills.toLocaleString();
     document.getElementById('kpi-avg-bill').innerText = formatCurrency(kpis.avg_bill_value);
-    document.getElementById('kpi-profit').innerText = formatCurrency(kpis.total_profit);
+    const profitEl = document.getElementById('kpi-profit');
+    if (profitEl) profitEl.innerText = formatCurrency(kpis.total_profit);
+    
     document.getElementById('kpi-weight').innerText = kpis.total_net_weight.toFixed(2);
 }
 
@@ -503,17 +483,8 @@ function updateDashboardCharts(data) {
     charts.composition.data.datasets[0].data = Object.values(data.composition);
     charts.composition.update();
 
-    // Top Locations for Profit Margin
-    const topMarginLoc = [...data.location_performance].sort((a, b) => b.profit_margin - a.profit_margin).slice(0, 20);
-    charts.profitMarginLoc.data.labels = topMarginLoc.map(d => d.location);
-    charts.profitMarginLoc.data.datasets[0].data = topMarginLoc.map(d => d.profit_margin);
-    charts.profitMarginLoc.update();
+    // Note: Profit charts hidden as per request (Data unavailable)
 
-    // Top Locations for Total Profit
-    const topProfitLoc = [...data.location_performance].sort((a, b) => b.total_profit - a.total_profit).slice(0, 10);
-    charts.profitLoc.data.labels = topProfitLoc.map(d => d.location);
-    charts.profitLoc.data.datasets[0].data = topProfitLoc.map(d => d.total_profit);
-    charts.profitLoc.update();
 
     // Section 5
     charts.weightComp.data.datasets[0].data = [data.weight_analysis.gross / 1000];
