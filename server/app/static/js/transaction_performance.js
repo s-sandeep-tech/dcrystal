@@ -164,7 +164,21 @@ function initCharts() {
     charts.salesLoc = new Chart(document.getElementById('chart-sales-location').getContext('2d'), {
         type: 'bar',
         data: { labels: [], datasets: [{ label: 'Sales (Lakhs ₹)', data: [], backgroundColor: '#feb101', borderRadius: 4 }] },
-        options: chartDefaults
+        options: {
+            ...chartDefaults,
+            plugins: {
+                ...chartDefaults.plugins,
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const val = context.parsed.y;
+                            const original = val * 100000;
+                            return `Sales: ${val.toFixed(2)} Lakhs (₹${original.toLocaleString('en-IN')})`;
+                        }
+                    }
+                }
+            }
+        }
     });
  
     charts.salesState = new Chart(document.getElementById('chart-sales-state').getContext('2d'), {
