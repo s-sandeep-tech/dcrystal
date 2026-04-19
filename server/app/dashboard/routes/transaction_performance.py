@@ -207,7 +207,7 @@ def get_akt_transaction_data():
             filters_2025 = []
             for param, field in filter_configs.items():
                 if param == 'date':
-                    filters_2025.append(field == '2025-10-18')
+                    filters_2025.append(field == '2025-04-30')
                 else:
                     val = request.args.get(param)
                     if val:
