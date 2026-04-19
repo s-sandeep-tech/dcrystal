@@ -238,6 +238,22 @@ def get_akt_transaction_data():
                 })
                 prev_bills_2025 = curr_bills
 
+            # 2.2. 2025 Weights Comparison
+            kpi_sub_2025 = db.session.query(
+                func.max(AKTTransactionPerformance.grossweight).label('max_gross_wt'),
+                func.max(AKTTransactionPerformance.netweight).label('max_net_wt')
+            ).filter(*filters_2025).group_by(AKTTransactionPerformance.location, AKTTransactionPerformance.divisionname).subquery()
+
+            weights_raw_2025 = db.session.query(
+                coal(func.sum(kpi_sub_2025.c.max_gross_wt)).label('total_gross'),
+                coal(func.sum(kpi_sub_2025.c.max_net_wt)).label('total_net')
+            ).first()
+
+            weight_analysis_2025 = {
+                "gross": float(weights_raw_2025.total_gross or 0) if weights_raw_2025 else 0,
+                "net": float(weights_raw_2025.total_net or 0) if weights_raw_2025 else 0
+            }
+
             # 3. Location Performance
             location_data = db.session.query(
                 kpi_sub.c.location,
@@ -390,6 +406,7 @@ def get_akt_transaction_data():
                     "diamond": float(composition.diamond_carat or 0) if composition else 0,
                     "stone": float(composition.color_carat or 0) if composition else 0
                 },
+                "weight_analysis_2025": weight_analysis_2025,
                 "heatmap": [{"date": str(h.d), "hour": h.timepartt, "value": int(h.bill_count or 0)} for h in heatmap_raw],
                 "filter_options": unique_vals
             }

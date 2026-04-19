@@ -245,8 +245,10 @@ function initCharts() {
         type: 'bar',
         data: {
             labels: ['Weight (Gms)'], datasets: [
-                { label: 'Gross Weight', data: [], backgroundColor: '#94a3b8' },
-                { label: 'Net Weight', data: [], backgroundColor: '#137fec' }
+                { label: 'Current Gross Weight', data: [], backgroundColor: '#94a3b8' },
+                { label: 'Current Net Weight', data: [], backgroundColor: '#137fec' },
+                { label: '2025 Gross Weight', data: [], backgroundColor: '#d97706' },
+                { label: '2025 Net Weight', data: [], backgroundColor: '#fbbf24' }
             ]
         },
         options: chartDefaults
@@ -487,6 +489,8 @@ function updateDashboardCharts(data) {
     // Section 5
     charts.weightComp.data.datasets[0].data = [data.weight_analysis.gross];
     charts.weightComp.data.datasets[1].data = [data.weight_analysis.net];
+    charts.weightComp.data.datasets[2].data = [data.weight_analysis_2025.gross];
+    charts.weightComp.data.datasets[3].data = [data.weight_analysis_2025.net];
     charts.weightComp.update();
 
     charts.stoneAnalysis.data.datasets[0].data = [data.weight_analysis.diamond, data.weight_analysis.stone];
