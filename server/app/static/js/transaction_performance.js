@@ -163,7 +163,7 @@ function initCharts() {
     // --- Section 3: Performance ---
     charts.salesLoc = new Chart(document.getElementById('chart-sales-location').getContext('2d'), {
         type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Sales (₹)', data: [], backgroundColor: '#feb101', borderRadius: 4 }] },
+        data: { labels: [], datasets: [{ label: 'Sales (Lakhs ₹)', data: [], backgroundColor: '#feb101', borderRadius: 4 }] },
         options: chartDefaults
     });
  
@@ -440,7 +440,7 @@ function updateDashboardCharts(data) {
     // Top Locations for Sales Revenue
     const topSalesLoc = [...data.location_performance].sort((a, b) => b.sum_revenue - a.sum_revenue).slice(0, 10);
     charts.salesLoc.data.labels = topSalesLoc.map(d => d.location);
-    charts.salesLoc.data.datasets[0].data = topSalesLoc.map(d => d.sum_revenue);
+    charts.salesLoc.data.datasets[0].data = topSalesLoc.map(d => d.sum_revenue / 100000);
     charts.salesLoc.update();
 
     charts.salesState.data.labels = data.state_performance.map(d => d.state);
