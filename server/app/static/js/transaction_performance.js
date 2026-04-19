@@ -244,7 +244,7 @@ function initCharts() {
     charts.weightComp = new Chart(document.getElementById('chart-weight-comparison').getContext('2d'), {
         type: 'bar',
         data: {
-            labels: ['Weight (Gms)'], datasets: [
+            labels: ['Weight (Kg)'], datasets: [
                 { label: 'Current Gross Weight', data: [], backgroundColor: '#94a3b8' },
                 { label: 'Current Net Weight', data: [], backgroundColor: '#137fec' },
                 { label: '2025 Gross Weight', data: [], backgroundColor: '#d97706' },
@@ -487,10 +487,10 @@ function updateDashboardCharts(data) {
     charts.profitLoc.update();
 
     // Section 5
-    charts.weightComp.data.datasets[0].data = [data.weight_analysis.gross];
-    charts.weightComp.data.datasets[1].data = [data.weight_analysis.net];
-    charts.weightComp.data.datasets[2].data = [data.weight_analysis_2025.gross];
-    charts.weightComp.data.datasets[3].data = [data.weight_analysis_2025.net];
+    charts.weightComp.data.datasets[0].data = [data.weight_analysis.gross / 1000];
+    charts.weightComp.data.datasets[1].data = [data.weight_analysis.net / 1000];
+    charts.weightComp.data.datasets[2].data = [data.weight_analysis_2025.gross / 1000];
+    charts.weightComp.data.datasets[3].data = [data.weight_analysis_2025.net / 1000];
     charts.weightComp.update();
 
     charts.stoneAnalysis.data.datasets[0].data = [data.weight_analysis.diamond, data.weight_analysis.stone];
