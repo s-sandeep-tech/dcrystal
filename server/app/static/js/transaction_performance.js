@@ -87,8 +87,14 @@ function initCharts() {
     // --- Section 1: Billing ---
     charts.perMin = new Chart(document.getElementById('chart-per-min-efficiency').getContext('2d'), {
         type: 'line',
-        data: { labels: [], datasets: [{ label: 'Avg Per Min', data: [], borderColor: '#137fec', tension: 0.4, fill: true, backgroundColor: 'rgba(19, 127, 236, 0.1)' }] },
-        options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: false } } }
+        data: { 
+            labels: [], 
+            datasets: [
+                { label: 'Current Total Bills', data: [], borderColor: '#137fec', tension: 0.4, fill: true, backgroundColor: 'rgba(19, 127, 236, 0.1)' },
+                { label: '2025 Total Bills', data: [], borderColor: '#fbbf24', tension: 0.4, fill: false }
+            ] 
+        },
+        options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: true } } }
     });
  
     charts.hourly = new Chart(document.getElementById('chart-hourly-count').getContext('2d'), {
@@ -376,7 +382,17 @@ function updateKPIs(kpis) {
 function updateDashboardCharts(data) {
     // Section 1
     charts.perMin.data.labels = data.efficiency.map(d => d.time);
-    charts.perMin.data.datasets[0].data = data.efficiency.map(d => d.avg_per_min);
+    charts.perMin.data.datasets[0].data = data.efficiency.map(d => d.cum_bills);
+    
+    // Map 2025 data to the same hourly labels for the line chart
+    const cum_2025_map = {};
+    if (data.efficiency_2025) {
+        data.efficiency_2025.forEach(d => {
+            cum_2025_map[d.time] = d.cum_bills;
+        });
+    }
+    charts.perMin.data.datasets[1].data = data.efficiency.map(d => cum_2025_map[d.time] || 0);
+    
     charts.perMin.update();
 
     charts.hourly.data.labels = data.efficiency.map(d => d.time);

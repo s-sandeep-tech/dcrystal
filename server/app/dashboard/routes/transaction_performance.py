@@ -198,7 +198,8 @@ def get_akt_transaction_data():
                     "time": str(row.timepartt),
                     "avg_per_min": float(row.avg_per_min or 0),
                     "sum_hourly": int(hourly_delta),
-                    "sum_revenue": float(row.cum_rev or 0)
+                    "sum_revenue": float(row.cum_rev or 0),
+                    "cum_bills": int(row.cum_bills or 0)
                 })
                 prev_bills = curr_bills
 
@@ -232,7 +233,8 @@ def get_akt_transaction_data():
                 hourly_delta = max(0, curr_bills - prev_bills_2025)
                 efficiency_2025.append({
                     "time": str(row.timepartt),
-                    "sum_hourly": int(hourly_delta)
+                    "sum_hourly": int(hourly_delta),
+                    "cum_bills": int(row.cum_bills or 0)
                 })
                 prev_bills_2025 = curr_bills
 
