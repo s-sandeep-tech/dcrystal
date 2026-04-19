@@ -202,7 +202,22 @@ function initCharts() {
     charts.salesDivision = new Chart(document.getElementById('chart-sales-division').getContext('2d'), {
         type: 'doughnut',
         data: { labels: [], datasets: [{ data: [], backgroundColor: ['#137fec', '#2dd4bf', '#6366f1', '#feb101', '#ec4899', '#8b5cf6'] }] },
-        options: { ...chartDefaults, cutout: '70%' }
+        options: {
+            ...chartDefaults,
+            cutout: '70%',
+            plugins: {
+                ...chartDefaults.plugins,
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const val = context.raw;
+                            const original = val * 10000000;
+                            return `Sales: ${val.toFixed(2)} Cr (₹${original.toLocaleString('en-IN')})`;
+                        }
+                    }
+                }
+            }
+        }
     });
  
     charts.avgBillLoc = new Chart(document.getElementById('chart-avg-bill-location').getContext('2d'), {
@@ -473,7 +488,7 @@ function updateDashboardCharts(data) {
     });
 
     charts.salesDivision.data.labels = divisionLabels;
-    charts.salesDivision.data.datasets[0].data = data.division_sales.map(d => d.value);
+    charts.salesDivision.data.datasets[0].data = data.division_sales.map(d => d.value / 10000000);
     charts.salesDivision.data.datasets[0].backgroundColor = mappedColors;
     charts.salesDivision.update();
 
