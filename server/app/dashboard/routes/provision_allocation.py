@@ -60,6 +60,8 @@ def provision_allocation_options():
         branch_types = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.branch_type.distinct()).order_by(ProvisionStockRawSnapshot.branch_type).all() if r[0]]
         branch_statuses = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.branch_status.distinct()).order_by(ProvisionStockRawSnapshot.branch_status).all() if r[0]]
         business_heads = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.business_head_name.distinct()).order_by(ProvisionStockRawSnapshot.business_head_name).all() if r[0]]
+        states = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.state.distinct()).order_by(ProvisionStockRawSnapshot.state).all() if r[0]]
+
 
         data = {
             'locations': locations,
@@ -72,8 +74,10 @@ def provision_allocation_options():
             'provision_modes': provision_modes,
             'branch_types': branch_types,
             'branch_statuses': branch_statuses,
-            'business_heads': business_heads
+            'business_heads': business_heads,
+            'states': states
         }
+
         
         # Cache for 5 hours
         redis_client.setex(cache_key, 18000, json.dumps(data))
@@ -99,6 +103,8 @@ def get_provision_allocation_partial():
         branch_type = request.args.get('branch_type', '')
         branch_status = request.args.get('branch_status', '')
         business_head = request.args.get('business_head', '')
+        state = request.args.get('state', '')
+
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 2000, type=int)
 
@@ -113,8 +119,10 @@ def get_provision_allocation_partial():
             'provision_mode': provision_mode if provision_mode else None,
             'branch_type': branch_type if branch_type else None,
             'branch_status': branch_status if branch_status else None,
-            'business_head': business_head if business_head else None
+            'business_head': business_head if business_head else None,
+            'state': state if state else None
         }
+
 
         # Redis Caching Logic
         snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
@@ -141,7 +149,9 @@ WITH base AS (
         AND (:branch_type IS NULL OR branch_type = ANY(string_to_array(CAST(:branch_type AS text), ',')))
         AND (:branch_status IS NULL OR branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
         AND (:business_head IS NULL OR business_head_name = :business_head)
+        AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
 ),
+
 global_total AS (
     SELECT
         COALESCE(SUM(prov_gr_wt), 0) AS total_prov_wt

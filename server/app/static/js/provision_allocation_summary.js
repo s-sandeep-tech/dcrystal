@@ -8,7 +8,9 @@ let filters = {
     branch_type: '',
     branch_status: '',
     business_head: '',
+    state: '',
     purity: '',
+
     classification: '',
     make: '',
     collection: '',
@@ -17,7 +19,8 @@ let filters = {
     provision_mode: ''
 };
 
-let locationMultiSelect, branchTypeMultiSelect, branchStatusMultiSelect;
+let locationMultiSelect, stateMultiSelect, branchTypeMultiSelect, branchStatusMultiSelect;
+
 
 document.addEventListener('DOMContentLoaded', () => {
     locationMultiSelect = new CustomMultiSelect({
@@ -26,6 +29,14 @@ document.addEventListener('DOMContentLoaded', () => {
         defaultText: 'All Locations',
         options: []
     });
+    
+    stateMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-state-container',
+        label: 'State',
+        defaultText: 'All States',
+        options: []
+    });
+
 
     branchTypeMultiSelect = new CustomMultiSelect({
         containerId: 'filter-branch-type-container',
@@ -101,6 +112,10 @@ async function loadOptions() {
         if (locationMultiSelect) {
             locationMultiSelect.populateOptions(data.locations);
         }
+        if (stateMultiSelect) {
+            stateMultiSelect.populateOptions(data.states);
+        }
+
 
     } catch (err) {
         console.error('Failed to load filter options:', err);
@@ -161,7 +176,11 @@ function applyFilters() {
     if (branchStatusMultiSelect) {
         filters.branch_status = branchStatusMultiSelect.getValues().join(',');
     }
+    if (stateMultiSelect) {
+        filters.state = stateMultiSelect.getValues().join(',');
+    }
     filters.business_head = document.getElementById('filter-business-head').value;
+
     filters.purity = document.getElementById('filter-purity').value;
     filters.classification = document.getElementById('filter-classification').value;
     filters.make = document.getElementById('filter-make').value;
@@ -192,6 +211,10 @@ function resetFilters() {
     if (branchStatusMultiSelect) {
         branchStatusMultiSelect.reset();
     }
+    if (stateMultiSelect) {
+        stateMultiSelect.reset();
+    }
+
     
     document.getElementById('report-search').value = '';
     currentSearch = '';
