@@ -1274,7 +1274,7 @@ def sync_hallmarking_delayed_data_task() -> Dict[str, Any]:
         emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, 'hallmarking_delayed')
         
         # Clear existing
-        db.session.query(HallmarkingDelayedSnapshot).delete()
+        db.session.execute(text("TRUNCATE hallmarking_delayed_snapshot"))
         
         new_records = []
         for row in rows:
@@ -1413,7 +1413,7 @@ FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS
         emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, 'showroom_wise_order')
         
         # Clear existing
-        db.session.query(ShowroomWiseOrderSummarySnapshot).delete()
+        db.session.execute(text("TRUNCATE showroom_wise_order_summary_snapshot"))
         
         # Insert new using high-performance bulk mappings
         new_records = []
@@ -1742,7 +1742,7 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
         
         # 1. Clear existing STAGING data (ensure clean slate)
         emit_sync_update('processing', 'Preparing staging area...', 10, DATA_TYPE)
-        db.session.query(ProvisionStockRawStaging).delete()
+        db.session.execute(text("TRUNCATE provision_stock_raw_staging"))
         db.session.commit()
 
         # 2. Get total count and sum for validation
@@ -1948,7 +1948,7 @@ def sync_qc_delayed_data_task() -> Dict[str, Any]:
         emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, DATA_TYPE)
         
         # Clear existing
-        db.session.query(QCDelayedSnapshot).delete()
+        db.session.execute(text("TRUNCATE qc_delayed_snapshot"))
         
         new_records = []
         for row in rows:
