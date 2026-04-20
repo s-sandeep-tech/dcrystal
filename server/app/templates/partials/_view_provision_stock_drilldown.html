@@ -1,41 +1,49 @@
 {# Macro for rendering hierarchical rows #}
 {% macro render_drilldown_row(row) %}
-    {% set level = row.level_id %}
-    {% set label = '' %}
-    {% if level == 1 %}
-        {% set label = row.section or 'Unknown Section' %}
-    {% elif level == 2 %}
-        {% set label = row.type or 'Unknown Type' %}
-    {% elif level == 3 %}
-        {% set label = row.wide_range or 'Unknown Range' %}
-    {% elif level == 4 %}
-        {% set label = (row.range_weight|string ~ ' (range wt)') if row.range_weight is not none else 'Unknown Weight' %}
-    {% endif %}
+{% set level = row.level_id %}
+{% set label = '' %}
+{% if level == 1 %}
+{% set label = row.section or 'Unknown Section' %}
+{% elif level == 2 %}
+{% set label = row.type or 'Unknown Type' %}
+{% elif level == 3 %}
+{% set label = row.wide_range or 'Unknown Range' %}
+{% elif level == 4 %}
+{% set label = (row.range_weight|string ~ ' (range wt)') if row.range_weight is not none else 'Unknown Weight' %}
+{% endif %}
 
-    <tr class="{% if level == 1 %}bg-gray-100 dark:bg-gray-800 font-bold{% elif level == 2 %}bg-gray-50 dark:bg-gray-800/50 font-semibold{% else %}bg-white dark:bg-gray-900{% endif %} hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-100 dark:border-gray-800/50">
-        <td class="px-3 py-2 text-[11px]">
-            <div class="flex items-center" style="padding-left: {{ (level - 1) * 1.5 }}rem;">
-                {% if level < 4 %}
-                    <span class="material-symbols-outlined text-[14px] mr-1 text-gray-400">arrow_drop_down</span>
+<tr
+    class="{% if level == 1 %}bg-gray-100 dark:bg-gray-800 font-bold{% elif level == 2 %}bg-gray-50 dark:bg-gray-800/50 font-semibold{% else %}bg-white dark:bg-gray-900{% endif %} hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-100 dark:border-gray-800/50">
+    <td class="px-3 py-2 text-[11px]">
+        <div class="flex items-center" style="padding-left: {{ (level - 1) * 1.5 }}rem;">
+            {% if level < 4 %} <span class="material-symbols-outlined text-[14px] mr-1 text-gray-400">
+                arrow_drop_down</span>
                 {% else %}
-                    <span class="material-symbols-outlined text-[10px] mr-2 ml-1 text-gray-300">fiber_manual_record</span>
+                <span class="material-symbols-outlined text-[10px] mr-2 ml-1 text-gray-300">fiber_manual_record</span>
                 {% endif %}
-                <span class="{% if level == 1 %}text-primary{% elif level == 4 %}text-gray-500 italic{% endif %}">{{ label }}</span>
-            </div>
-        </td>
-        <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.prov_gr_wt|float) if row.prov_gr_wt else '0.000' }}</td>
-        <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.in_shop_wt|float) if row.in_shop_wt else '0.000' }}</td>
-        <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.ordered_wt|float) if row.ordered_wt else '0.000' }}</td>
-        <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.in_transit_wt|float) if row.in_transit_wt else '0.000' }}</td>
-        <td class="px-3 py-2 text-right text-[11px] font-mono {% if row.short_excess_wt < 0 %}text-red-500 font-bold{% elif row.short_excess_wt > 0 %}text-green-600{% endif %}">
-            {{ "{:,.3f}".format(row.short_excess_wt|float) if row.short_excess_wt else '0.000' }}
-        </td>
-        <td class="px-3 py-2 text-right text-[11px] font-mono">
-            <span class="px-1.5 py-0.5 rounded {% if row.percent < 0 %}bg-red-50 text-red-600{% else %}bg-green-50 text-green-600{% endif %}">
-                {{ "{:,.1f}%".format(row.percent|float) if row.percent is not none else '0.0%' }}
-            </span>
-        </td>
-    </tr>
+                <span class="{% if level == 1 %}text-primary{% elif level == 4 %}text-gray-500 italic{% endif %}">{{
+                    label }}</span>
+        </div>
+    </td>
+    <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.prov_gr_wt|float) if row.prov_gr_wt
+        else '0.000' }}</td>
+    <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.in_shop_wt|float) if row.in_shop_wt
+        else '0.000' }}</td>
+    <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.ordered_wt|float) if row.ordered_wt
+        else '0.000' }}</td>
+    <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.in_transit_wt|float) if
+        row.in_transit_wt else '0.000' }}</td>
+    <td
+        class="px-3 py-2 text-right text-[11px] font-mono {% if row.short_excess_wt < 0 %}text-red-500 font-bold{% elif row.short_excess_wt > 0 %}text-green-600{% endif %}">
+        {{ "{:,.3f}".format(row.short_excess_wt|float) if row.short_excess_wt else '0.000' }}
+    </td>
+    <td class="px-3 py-2 text-right text-[11px] font-mono">
+        <span
+            class="px-1.5 py-0.5 rounded {% if row.percent < 0 %}bg-red-50 text-red-600{% else %}bg-green-50 text-green-600{% endif %}">
+            {{ "{:,.1f}%".format(row.percent|float) if row.percent is not none else '0.0%' }}
+        </span>
+    </td>
+</tr>
 {% endmacro %}
 
 <div class="flex flex-col h-full overflow-hidden bg-white dark:bg-gray-900 rounded-b-lg">
@@ -43,7 +51,7 @@
         <table class="w-full text-left border-collapse">
             <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr class="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
-                    <th class="px-4 py-3 min-w-[250px]">Hierarchy (Section > Type > Range > Wt)</th>
+                    <th class="px-4 py-3 min-w-[250px]">Hierarchy (Section > Type > Wide Range > Range Weight)</th>
                     <th class="px-3 py-3 text-right">Prov Gr.Wt</th>
                     <th class="px-3 py-3 text-right">In Shop Wt</th>
                     <th class="px-3 py-3 text-right">Ordered Wt</th>
@@ -54,23 +62,30 @@
             </thead>
             <tbody>
                 {% for row in rows %}
-                    {{ render_drilldown_row(row) }}
+                {{ render_drilldown_row(row) }}
                 {% endfor %}
                 {% if not rows %}
                 <tr>
-                    <td colspan="7" class="p-12 text-center text-gray-400 italic">No drill-down data available for this section.</td>
+                    <td colspan="7" class="p-12 text-center text-gray-400 italic">No drill-down data available for this
+                        section.</td>
                 </tr>
                 {% endif %}
             </tbody>
             {% if modal_totals %}
-            <tfoot class="sticky bottom-0 z-10 bg-gray-100 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700">
+            <tfoot
+                class="sticky bottom-0 z-10 bg-gray-100 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700">
                 <tr class="text-[11px] font-bold text-gray-900 dark:text-white uppercase tracking-tight">
                     <td class="px-4 py-3">Totals for {{ drill_section or 'All' }}</td>
-                    <td class="px-3 py-3 text-right font-mono">{{ "{:,.3f}".format(modal_totals.prov_gr_wt|float) }}</td>
-                    <td class="px-3 py-3 text-right font-mono">{{ "{:,.3f}".format(modal_totals.in_shop_wt|float) }}</td>
-                    <td class="px-3 py-3 text-right font-mono">{{ "{:,.3f}".format(modal_totals.ordered_wt|float) }}</td>
-                    <td class="px-3 py-3 text-right font-mono">{{ "{:,.3f}".format(modal_totals.in_transit_wt|float) }}</td>
-                    <td class="px-3 py-3 text-right font-mono {% if modal_totals.short_excess_wt < 0 %}text-red-500{% elif modal_totals.short_excess_wt > 0 %}text-green-600{% endif %}">
+                    <td class="px-3 py-3 text-right font-mono">{{ "{:,.3f}".format(modal_totals.prov_gr_wt|float) }}
+                    </td>
+                    <td class="px-3 py-3 text-right font-mono">{{ "{:,.3f}".format(modal_totals.in_shop_wt|float) }}
+                    </td>
+                    <td class="px-3 py-3 text-right font-mono">{{ "{:,.3f}".format(modal_totals.ordered_wt|float) }}
+                    </td>
+                    <td class="px-3 py-3 text-right font-mono">{{ "{:,.3f}".format(modal_totals.in_transit_wt|float) }}
+                    </td>
+                    <td
+                        class="px-3 py-3 text-right font-mono {% if modal_totals.short_excess_wt < 0 %}text-red-500{% elif modal_totals.short_excess_wt > 0 %}text-green-600{% endif %}">
                         {{ "{:,.3f}".format(modal_totals.short_excess_wt|float) }}
                     </td>
                     <td class="px-3 py-3 text-right font-mono">
