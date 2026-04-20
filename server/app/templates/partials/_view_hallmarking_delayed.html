@@ -5,7 +5,7 @@
         <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
             <th class="text-left px-4 pl-6 py-2 text-gray-800 dark:text-gray-200"
                 style="width: 30% !important; white-space: normal !important; word-wrap: break-word; line-height: 1.2;">
-                Hierarchy (Office > Make Owner > Collection Owner > Collection > Agency > Party)</th>
+                (HM Office > Make Owner > Collection Owner > Collection > Agency > Party)</th>
             <th class="text-left px-2 py-2"
                 style="width: 10% !important; white-space: normal !important; word-wrap: break-word; line-height: 1.2;">
                 Challan Date</th>
@@ -126,8 +126,7 @@
                         title="Add Feedback" data-office="{{ row.office }}" data-make-owner="{{ row.make_owner }}"
                         data-collection-owner="{{ row.collection_owner }}" data-collection="{{ row.collection }}"
                         data-hm-agent="{{ row.hm_agent }}" data-supplier="{{ row.supplier }}"
-                        data-challan-no="{{ row.requested_delivery_challan }}"
-                        data-status-filter="hallmarking_delayed"
+                        data-challan-no="{{ row.requested_delivery_challan }}" data-status-filter="hallmarking_delayed"
                         onclick="openFeedbackModal('{{ (row.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (row.make_owner or '') | replace('\'', '\\\'') }}', '{{ (row.supplier or '') | replace('\'', '\\\'') }}', '{{ (row.collection or '') | replace('\'', '\\\'') }}', '{{ (row.feedback_text or '') | replace('\'', '\\\'') }}', '{{ (row.feedback_category or '') | replace('\'', '\\\'') }}')">
                         <span class="material-symbols-outlined text-[14px]">chat</span>
                     </button>
