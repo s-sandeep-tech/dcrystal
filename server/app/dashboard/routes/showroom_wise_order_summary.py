@@ -42,7 +42,9 @@ def apply_showroom_filters(query, latest_date_query=None, search=None, business_
                          make_owner=None, collection_owner=None, party=None, location=None, 
                          purchase_ro=None, order_type=None, order_request_type=None, 
                          division=None, group_name=None, purity=None, classification=None,
-                         make=None, collection=None, branch_type=None):
+                         make=None, collection=None, branch_type=None,
+                         from_date=None, to_date=None):
+
     if search:
         query = query.filter(ShowroomWiseOrderSummarySnapshot.business_head.ilike(f"%{search}%") | 
                              ShowroomWiseOrderSummarySnapshot.party.ilike(f"%{search}%") |
@@ -71,6 +73,13 @@ def apply_showroom_filters(query, latest_date_query=None, search=None, business_
     if make: query = query.filter(ShowroomWiseOrderSummarySnapshot.make == make)
     if collection: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection == collection)
     if branch_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_type == branch_type)
+    
+    # Date Filtering
+    if from_date:
+        query = query.filter(ShowroomWiseOrderSummarySnapshot.order_date >= from_date)
+    if to_date:
+        query = query.filter(ShowroomWiseOrderSummarySnapshot.order_date <= to_date)
+
     
     if latest_date_query:
         query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
@@ -109,7 +118,9 @@ def get_showroom_aggs(latest_date_query, search=None, business_head=None, classi
                     make_owner=None, collection_owner=None, party=None, location=None, 
                     purchase_ro=None, order_type=None, order_request_type=None, 
                     division=None, group_name=None, purity=None, classification=None,
-                    make=None, collection=None, branch_type=None):
+                    make=None, collection=None, branch_type=None,
+                    from_date=None, to_date=None):
+
     
     agg_cols = [
         func.sum(cast(ShowroomWiseOrderSummarySnapshot.order_wt, Numeric)).label('total_order_wt'),
@@ -129,7 +140,9 @@ def get_showroom_aggs(latest_date_query, search=None, business_head=None, classi
     agg_q = apply_showroom_filters(agg_q, latest_date_query, search, business_head, classification_owner, 
                                  make_owner, collection_owner, party, location, 
                                  purchase_ro, order_type, order_request_type, 
-                                 division, group_name, purity, classification, make, collection, branch_type)
+                                 division, group_name, purity, classification, make, collection, branch_type,
+                                 from_date, to_date)
+
     aggs = agg_q.first()
 
     return {
@@ -228,7 +241,11 @@ def get_showroom_partial():
         collection = request.args.get('collection', '')
         branch_type = request.args.get('branch_type', '')
 
+        from_date = request.args.get('from_date')
+        to_date = request.args.get('to_date')
+
         parent_level = request.args.get('parent_level')
+
         parent_value = request.args.get('parent_value')
         
         page = request.args.get('page', 1, type=int)
@@ -329,7 +346,9 @@ def get_showroom_partial():
         main_q = apply_showroom_filters(main_q, latest_date_query, search, business_head, classification_owner, 
                                     make_owner, collection_owner, party, location, 
                                     purchase_ro, order_type, order_request_type, 
-                                    division, group_name, purity, classification, make, collection, branch_type)
+                                    division, group_name, purity, classification, make, collection, branch_type,
+                                    from_date, to_date)
+
         main_q = main_q.group_by(*group_cols).order_by(*group_cols)
         
         pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
@@ -364,7 +383,9 @@ def get_showroom_partial():
             stats = get_showroom_aggs(latest_date_query, search, business_head, classification_owner, 
                                     make_owner, collection_owner, party, location, 
                                     purchase_ro, order_type, order_request_type, 
-                                    division, group_name, purity, classification, make, collection, branch_type)
+                                    division, group_name, purity, classification, make, collection, branch_type,
+                                    from_date, to_date)
+
             footer_totals = stats
 
         return render_template('partials/_view_showroom_wise_order.html', 
@@ -407,8 +428,12 @@ def get_showroom_details():
         make = request.args.get('make', '')
         collection = request.args.get('collection', '')
         branch_type = request.args.get('branch_type', '')
+        
+        from_date = request.args.get('from_date')
+        to_date = request.args.get('to_date')
 
         print(f"DEBUG modal API: level={request.args.get('modal_level')}, is_child={request.args.get('is_modal_child')}, location={location_filter}")
+
 
         # Modal specific logic for nested tree
         modal_level = request.args.get('modal_level', 'location')
@@ -420,7 +445,9 @@ def get_showroom_details():
         query = apply_showroom_filters(query, latest_date_query, search, business_head, classification_owner, 
                                      make_owner, collection_owner, party_filter, location_filter, 
                                      purchase_ro, order_type, order_request_type, 
-                                     division, group_name, purity, classification, make, collection, branch_type)
+                                     division, group_name, purity, classification, make, collection, branch_type,
+                                     from_date, to_date)
+
         
         hierarchy = ['location', 'division', 'group_name', 'purity', 'classification', 'make', 'collection', 'party']
         col_map = {

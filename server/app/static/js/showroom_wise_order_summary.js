@@ -1,5 +1,24 @@
 let currentZoom = parseFloat(localStorage.getItem('showroom-zoom')) || 1.0;
 
+function toggleDateInputs(isActive) {
+    const fromDate = document.getElementById('filter-from-date');
+    const toDate = document.getElementById('filter-to-date');
+    if (fromDate && toDate) {
+        fromDate.disabled = !isActive;
+        toDate.disabled = !isActive;
+        if (isActive) {
+            fromDate.classList.remove('opacity-50');
+            toDate.classList.remove('opacity-50');
+        } else {
+            fromDate.classList.add('opacity-50');
+            toDate.classList.add('opacity-50');
+            fromDate.value = '';
+            toDate.value = '';
+        }
+    }
+}
+
+
 function adjustZoom(delta, reset = false) {
     const tableArea = document.getElementById('table-area');
     if (!tableArea) return;
@@ -211,6 +230,24 @@ function applyGlobalFilters() {
         else urlParams.delete(id);
     });
 
+    // Date filters
+    const dateFilterActive = document.getElementById('date-filter-active')?.checked;
+    const fromDate = document.getElementById('filter-from-date')?.value;
+    const toDate = document.getElementById('filter-to-date')?.value;
+
+    if (dateFilterActive) {
+        urlParams.set('date_filter_active', 'true');
+        if (fromDate) urlParams.set('from_date', fromDate);
+        else urlParams.delete('from_date');
+        if (toDate) urlParams.set('to_date', toDate);
+        else urlParams.delete('to_date');
+    } else {
+        urlParams.delete('date_filter_active');
+        urlParams.delete('from_date');
+        urlParams.delete('to_date');
+    }
+
+
     const searchVal = document.getElementById('hierarchy-search')?.value;
     if (searchVal) urlParams.set('search', searchVal);
     else urlParams.delete('search');
@@ -233,6 +270,13 @@ function resetGlobalFilters() {
 
     const search = document.getElementById('hierarchy-search');
     if (search) search.value = '';
+
+    const dateFilterActive = document.getElementById('date-filter-active');
+    if (dateFilterActive) {
+        dateFilterActive.checked = false;
+        toggleDateInputs(false);
+    }
+
 
     const urlParams = new URLSearchParams();
     urlParams.set('page', 1);
@@ -542,4 +586,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     loadFilterOptions();
+
+    // Initialize date filters from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const dateActive = urlParams.get('date_filter_active') === 'true';
+    const activeCheckbox = document.getElementById('date-filter-active');
+    if (activeCheckbox) {
+        activeCheckbox.checked = dateActive;
+        toggleDateInputs(dateActive);
+        if (dateActive) {
+            const fd = document.getElementById('filter-from-date');
+            const td = document.getElementById('filter-to-date');
+            if (fd) fd.value = urlParams.get('from_date') || '';
+            if (td) td.value = urlParams.get('to_date') || '';
+        }
+    }
 });
+

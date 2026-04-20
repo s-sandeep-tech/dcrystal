@@ -221,6 +221,7 @@
     <!-- Scrollable Filter Content -->
     <div class="p-4 flex-1 overflow-y-auto no-scrollbar">
         <div class="space-y-4">
+
             {% set filter_list = [
             ('business_head', 'Business Head'),
             ('classification_owner', 'Classification Owner'),
@@ -248,6 +249,28 @@
                 </select>
             </div>
             {% endfor %}
+
+            <!-- Date Filter Section -->
+            <div class="p-3 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700 space-y-3 mt-4">
+                <div class="flex items-center justify-between">
+                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order Date Filter</label>
+                    <input type="checkbox" id="date-filter-active" onchange="toggleDateInputs(this.checked)"
+                        class="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer">
+                </div>
+                <div class="space-y-3">
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">From Date</label>
+                        <input type="date" id="filter-from-date" disabled
+                            class="w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[11px] focus:ring-0 focus:border-primary p-2 opacity-50 transition-opacity">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">To Date</label>
+                        <input type="date" id="filter-to-date" disabled
+                            class="w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[11px] focus:ring-0 focus:border-primary p-2 opacity-50 transition-opacity">
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
