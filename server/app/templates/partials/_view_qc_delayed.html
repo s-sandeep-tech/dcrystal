@@ -5,7 +5,7 @@
         <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
             <th class="text-left px-4 pl-6 py-2 text-gray-800 dark:text-gray-200"
                 style="width: 35% !important; white-space: normal !important; word-wrap: break-word; line-height: 1.2;">
-                Hierarchy (Office > Make Owner > Collection Owner > Collection > Party)</th>
+                Hierarchy (QC Office > Make Owner > Collection Owner > Collection > Party)</th>
             <th class="text-left px-2 py-2"
                 style="width: 12% !important; white-space: normal !important; word-wrap: break-word; line-height: 1.2;">
                 QC Date</th>
@@ -94,7 +94,9 @@
                                                     class="text-[8px] text-amber-400 font-bold uppercase tracking-widest mt-0.5">COMMENT</span>
                                             </div>
                                             <span class="text-[9px] text-gray-400 italic">
-                                                {% if row.qc_request_no %}<span class="text-blue-400 font-bold not-italic">#{{ row.qc_request_no }}</span> | {% endif %}
+                                                {% if row.qc_request_no %}<span
+                                                    class="text-blue-400 font-bold not-italic">#{{ row.qc_request_no
+                                                    }}</span> | {% endif %}
                                                 {{ row.feedback_username }}
                                             </span>
                                         </div>
@@ -124,8 +126,7 @@
                         class="feedback-btn size-6.5 flex items-center justify-center rounded bg-rose-50 dark:bg-rose-900/30 text-rose-600 border border-rose-100 dark:border-rose-800 hover:bg-rose-600 hover:text-white transition-all shadow-sm"
                         title="Add Feedback" data-office="{{ row.office }}" data-make-owner="{{ row.make_owner }}"
                         data-collection-owner="{{ row.collection_owner }}" data-collection="{{ row.collection }}"
-                        data-supplier="{{ row.supplier }}"
-                        data-status-filter="qc_delayed"
+                        data-supplier="{{ row.supplier }}" data-status-filter="qc_delayed"
                         data-qc-request-no="{{ row.qc_request_no }}"
                         onclick="openFeedbackModal('{{ (row.collection_owner or '') | replace('\'', '\\\'') }}', '{{ (row.make_owner or '') | replace('\'', '\\\'') }}', '{{ (row.supplier or '') | replace('\'', '\\\'') }}', '{{ (row.collection or '') | replace('\'', '\\\'') }}', '{{ (row.feedback_text or '') | replace('\'', '\\\'') }}', '{{ (row.feedback_category or '') | replace('\'', '\\\'') }}')">
                         <span class="material-symbols-outlined text-[14px]">chat</span>
