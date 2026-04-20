@@ -1,6 +1,7 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
+from sqlalchemy import text
 from app.extensions import db, socketio, redis_client
 from app.models.snapshots import (
     OwnerWiseOrderSummarySnapshot, 
@@ -1801,7 +1802,7 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
         try:
             # We use raw SQL for the fastest possible copy operation
             # TRUNCATE is faster than DELETE for large tables and resists locking issues
-            db.session.execute("TRUNCATE provision_stock_raw_snapshot")
+            db.session.execute(text("TRUNCATE provision_stock_raw_snapshot"))
             
             # Copy all columns from staging to main. 
             # We explicitly exclude the 'id' column if it's serial to avoid sequence issues, 
@@ -1833,10 +1834,10 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
                 snapshot_date
                 FROM provision_stock_raw_staging;
             """
-            db.session.execute(copy_query)
+            db.session.execute(text(copy_query))
             
             # Clean up staging table to save space
-            db.session.execute("TRUNCATE provision_stock_raw_staging")
+            db.session.execute(text("TRUNCATE provision_stock_raw_staging"))
             db.session.commit()
             
             logger.info("Atomic swap completed successfully.")
