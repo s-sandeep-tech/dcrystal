@@ -12,6 +12,7 @@ from app.models.snapshots import (
     RejectedWeightSnapshot,
     ShowroomWiseOrderSummarySnapshot,
     ProvisionStockRawSnapshot,
+    ProvisionStockRawStaging,
     HallmarkingDelayedSnapshot,
     QCDelayedSnapshot
 )
@@ -1628,7 +1629,7 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, to
                 except: pass
                 raise e
 
-def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_type, shared_state):
+def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_type, shared_state, target_model=None):
     """Consumer thread: Processes rows and updates shared progress for resume capability."""
     try:
         with app.app_context():
@@ -1709,7 +1710,10 @@ def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_ty
                         'snapshot_date': row.get('last_updated_at') or current_time
                     })
                 
-                db.session.bulk_insert_mappings(ProvisionStockRawSnapshot, batch_data)
+                if target_model:
+                    db.session.bulk_insert_mappings(target_model, batch_data)
+                else:
+                    db.session.bulk_insert_mappings(ProvisionStockRawSnapshot, batch_data)
                 db.session.commit()
                 
                 shared_state['records_committed'] += len(rows)
@@ -1735,9 +1739,9 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
         emit_sync_update('processing', 'Starting Async Provision & Stock Status Sync...', 5, DATA_TYPE)
         conn = get_external_db_connection()
         
-        # 1. Clear existing data
-        emit_sync_update('processing', 'Clearing existing local snapshots...', 10, DATA_TYPE)
-        db.session.query(ProvisionStockRawSnapshot).delete()
+        # 1. Clear existing STAGING data (ensure clean slate)
+        emit_sync_update('processing', 'Preparing staging area...', 10, DATA_TYPE)
+        db.session.query(ProvisionStockRawStaging).delete()
         db.session.commit()
 
         # 2. Get total count and sum for validation
@@ -1787,12 +1791,61 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
         with ThreadPoolExecutor(max_workers=2) as executor:
             # Note: Producer now handles its own connection and cursor for resumability
             producer_future = executor.submit(_provision_sync_producer, None, data_queue, stop_event, BATCH_SIZE, total_to_sync, shared_state)
-            consumer_future = executor.submit(_provision_sync_consumer, app, data_queue, stop_event, total_to_sync, DATA_TYPE, shared_state)
+            consumer_future = executor.submit(_provision_sync_consumer, app, data_queue, stop_event, total_to_sync, DATA_TYPE, shared_state, ProvisionStockRawStaging)
             
             total_records = consumer_future.result()
             producer_future.result()
 
-        # 5. Post-Sync Validation
+        # 5. ATOMIC SWAP: Move from staging to main
+        emit_sync_update('processing', 'Finalizing sync (Atomic swap)...', 95, DATA_TYPE)
+        try:
+            # We use raw SQL for the fastest possible copy operation
+            # TRUNCATE is faster than DELETE for large tables and resists locking issues
+            db.session.execute("TRUNCATE provision_stock_raw_snapshot")
+            
+            # Copy all columns from staging to main. 
+            # We explicitly exclude the 'id' column if it's serial to avoid sequence issues, 
+            # but here both have the same structure. In PG, 'autoincrement' means serial.
+            # It's safer to specify columns or use SELECT * EXCLUDING if both are identical.
+            # Since they are IDENTICAL, SELECT * is fine as long as we don't mind IDs changing.
+            copy_query = """
+                INSERT INTO provision_stock_raw_snapshot 
+                (division, "group", location, branch_type, branch_status, business_head_name, 
+                business_head_emp_code, state, provision_mode, provision_mode_filter, classification, 
+                sub_classification, section, type, make, collection, master_collection, sub_section, 
+                gender, wide_range, size, screw_type, prov_type, purity, range_weight, prov_pieces, 
+                prov_gr_wt, prov_amount, stock_qty, stock_gr_wt, stock_amount, in_shop_pcs, in_shop_wt, 
+                in_shop_amt, not_in_shop, in_transit, order_only, req_only, in_transit_wt, order_only_wt, 
+                not_in_shop_wt, refill_from_qty, refill_to_qty, refill_from_wt, refill_to_wt, 
+                short_pcs, short_gr_wt, short_amt, short_percent, excess_pcs, excess_gr_weight, 
+                excess_amt, not_in_prov_pcs, not_in_prov_gr_weight, not_in_prov_amt, prov_type_filter, 
+                snapshot_date)
+                SELECT 
+                division, "group", location, branch_type, branch_status, business_head_name, 
+                business_head_emp_code, state, provision_mode, provision_mode_filter, classification, 
+                sub_classification, section, type, make, collection, master_collection, sub_section, 
+                gender, wide_range, size, screw_type, prov_type, purity, range_weight, prov_pieces, 
+                prov_gr_wt, prov_amount, stock_qty, stock_gr_wt, stock_amount, in_shop_pcs, in_shop_wt, 
+                in_shop_amt, not_in_shop, in_transit, order_only, req_only, in_transit_wt, order_only_wt, 
+                not_in_shop_wt, refill_from_qty, refill_to_qty, refill_from_wt, refill_to_wt, 
+                short_pcs, short_gr_wt, short_amt, short_percent, excess_pcs, excess_gr_weight, 
+                excess_amt, not_in_prov_pcs, not_in_prov_gr_weight, not_in_prov_amt, prov_type_filter, 
+                snapshot_date
+                FROM provision_stock_raw_staging;
+            """
+            db.session.execute(copy_query)
+            
+            # Clean up staging table to save space
+            db.session.execute("TRUNCATE provision_stock_raw_staging")
+            db.session.commit()
+            
+            logger.info("Atomic swap completed successfully.")
+        except Exception as swap_error:
+            db.session.rollback()
+            logger.error(f"Atomic swap failed: {swap_error}")
+            raise Exception(f"Finalizing sync failed: {swap_error}")
+
+        # 6. Post-Sync Validation
         local_stats = db.session.query(
             db.func.count(ProvisionStockRawSnapshot.id),
             db.func.sum(ProvisionStockRawSnapshot.prov_gr_wt)
