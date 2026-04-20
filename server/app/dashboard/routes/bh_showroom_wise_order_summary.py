@@ -67,13 +67,13 @@ def apply_bh_showroom_filters(query, latest_date_query=None, search=None, busine
 
     roles = [r.upper() for r in session.get('roles', [])]
     is_admin = 'ADMIN' in roles
-    is_manager_2 = 'MANAGER_2' in roles
+    is_manager = any(r in roles for r in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
     is_business_head = 'BUSINESS_HEAD' in roles
     is_manager_kmu = 'MANAGER_KMU' in roles
     user_id = session.get('user_id')
     username = session.get('username')
     
-    if not is_admin and not is_manager_2:
+    if not is_admin and not is_manager:
         if is_business_head and user_id:
             query = query.filter(ShowroomWiseOrderSummarySnapshot.bh_emp_code == user_id)
         elif is_manager_kmu:
