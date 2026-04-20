@@ -9,7 +9,7 @@
 {% elif level == 3 %}
 {% set label = row.wide_range or 'Unknown Range' %}
 {% elif level == 4 %}
-{% set label = (row.range_weight|string ~ ' (range wt)') if row.range_weight is not none else 'Unknown Weight' %}
+{% set label = (row.range_weight|string ~ ' ') if row.range_weight is not none else 'Unknown Weight' %}
 {% endif %}
 
 <tr
