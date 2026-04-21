@@ -1551,7 +1551,7 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, to
     max_retries = 5
     retry_count = 0
     producer_offset = 0 # Track records successfully put into the queue
-    
+    raise Exception("Invalid Column 'State'")
     query_template = """
         SELECT "division","group","location","provision_mode","provision_mode_filter",
                "purity","classification","sub_classification","section","type","make","collection",
