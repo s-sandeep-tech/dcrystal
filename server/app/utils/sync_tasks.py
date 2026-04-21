@@ -1737,8 +1737,6 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
     
     try:
         emit_sync_update('processing', 'Starting Async Provision & Stock Status Sync...', 5, DATA_TYPE)
-        emit_sync_update('processing', 'Failed! Invalid Column State', 5, DATA_TYPE)
-        raise Exception("Invalid Column 'State'")
 
         conn = get_external_db_connection()
         
