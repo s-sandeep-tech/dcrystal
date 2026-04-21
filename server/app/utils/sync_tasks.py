@@ -1551,7 +1551,6 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, to
     max_retries = 5
     retry_count = 0
     producer_offset = 0 # Track records successfully put into the queue
-    raise Exception("Invalid Column 'State'")
     query_template = """
         SELECT "division","group","location","provision_mode","provision_mode_filter",
                "purity","classification","sub_classification","section","type","make","collection",
@@ -1738,6 +1737,9 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
     
     try:
         emit_sync_update('processing', 'Starting Async Provision & Stock Status Sync...', 5, DATA_TYPE)
+        emit_sync_update('processing', 'Failed! Invalid Column State', 5, DATA_TYPE)
+        raise Exception("Invalid Column 'State'")
+
         conn = get_external_db_connection()
         
         # 1. Clear existing STAGING data (ensure clean slate)
