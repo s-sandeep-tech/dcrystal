@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}System Maintenance - DCrystal Intelligence{% endblock %}
+
+{% block content %}
+<div
+    class="flex-1 w-full min-h-[calc(100vh-64px)] bg-gray-50 dark:bg-background-dark flex items-center justify-center p-4">
+    <div class="max-w-xl w-full text-center">
+        <!-- Main Card -->
+        <div
+            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-none overflow-hidden transform hover:scale-[1.01] transition-all duration-500">
+            <!-- Header Decoration -->
+            <div class="h-2 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-600"></div>
+
+            <div class="p-8 md:p-12">
+                <!-- Icon and Status -->
+                <div class="relative mb-8 flex justify-center">
+                    <div class="size-24 bg-amber-500/10 rounded-full flex items-center justify-center animate-pulse">
+                        <span class="material-symbols-outlined text-amber-500 text-5xl">construction</span>
+                    </div>
+                </div>
+
+                <!-- Text Content -->
+                <h1 class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight mb-4">
+                    Report Currently <span class="text-amber-500">Offline</span>
+                </h1>
+
+                <p class="text-gray-500 dark:text-gray-400 text-[14px] md:text-[15px] font-medium leading-relaxed mb-8">
+                    This specific report is currently undergoing scheduled maintenance or is temporarily disabled by the
+                    administrator.
+                    Standard access is restricted to ensure data integrity during updates.
+                </p>
+
+                <!-- Status Badge -->
+                <div
+                    class="inline-flex items-center gap-3 px-5 py-2.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl mb-8">
+                    <span class="size-2.5 bg-amber-500 rounded-full animate-ping"></span>
+                    <span
+                        class="text-[11px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">Maintenance
+                        In Progress</span>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <a href="{{ url_for('dashboard.index') }}"
+                        class="w-full sm:w-auto px-8 py-3 bg-primary text-white text-[11px] font-black uppercase tracking-[0.1em] rounded-xl hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">dashboard</span>
+                        Back to Dashboard
+                    </a>
+                    <button onclick="window.location.reload()"
+                        class="w-full sm:w-auto px-8 py-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 text-[11px] font-black uppercase tracking-[0.1em] rounded-xl hover:bg-gray-50 dark:hover:bg-gray-750 transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">refresh</span>
+                        Check Again
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer Info -->
+            <div
+                class="px-8 py-4 bg-gray-50/50 dark:bg-gray-800/30 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                <span class="flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px]">shield</span>
+                    System Protected
+                </span>
+                <span>Ref: OFL-403</span>
+            </div>
+        </div>
+
+        <!-- Help Text -->
+        <p class="mt-8 text-[11px] text-gray-400 font-medium">
+            If you believe this is an error, please contact your system administrator at
+            <a href="mailto:admin.services@kalyanjewellers.tech"
+                class="text-primary hover:underline italic font-bold tracking-normal">admin.services@kalyanjewellers.tech</a>
+        </p>
+    </div>
+</div>
+
+<style>
+    @keyframes pulse-soft {
+
+        0%,
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        50% {
+            opacity: 0.8;
+            transform: scale(0.98);
+        }
+    }
+
+    .animate-pulse-soft {
+        animation: pulse-soft 3s ease-in-out infinite;
+    }
+</style>
+{% endblock %}

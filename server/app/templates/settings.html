@@ -28,6 +28,11 @@
                             <span class="material-symbols-outlined text-sm">monitor_heart</span>
                             Application Status
                         </a>
+                        <a href="#" id="nav-report-status"
+                            class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
+                            <span class="material-symbols-outlined text-sm">block</span>
+                            Report Visibility
+                        </a>
                         <a href="#" id="nav-general"
                             class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
                             <span class="material-symbols-outlined text-sm">settings</span>
@@ -434,6 +439,68 @@
                         </p>
                     </div>
                 </div> <!-- End Tab Pane Status -->
+
+                <!-- Tab Pane: Report Visibility -->
+                <div id="tab-report-status" class="tab-pane hidden space-y-6">
+                    <div
+                        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex flex-col">
+                        <div
+                            class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 flex items-center justify-between">
+                            <div>
+                                <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Report Maintenance Mode</h3>
+                                <p class="text-[9px] text-gray-400 mt-1 uppercase tracking-widest font-medium">Individual status control for all dashboard modules</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="relative">
+                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[16px]">search</span>
+                                    <input type="text" id="report-search" placeholder="Filter reports..." 
+                                        class="pl-9 pr-4 py-1.5 bg-gray-100 dark:bg-gray-800 border-none rounded-lg text-[11px] w-48 focus:ring-1 focus:ring-primary">
+                                </div>
+                                <button id="refresh-report-status-btn"
+                                    class="p-1.5 text-gray-400 hover:text-primary transition-colors">
+                                    <span class="material-symbols-outlined text-[18px]">refresh</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-0">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-[11px] border-collapse">
+                                    <thead class="text-[10px] text-gray-400 uppercase bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800">
+                                        <tr>
+                                            <th class="px-6 py-4 font-black tracking-widest">Report Module</th>
+                                            <th class="px-6 py-4 font-black tracking-widest">Endpoint URL</th>
+                                            <th class="px-6 py-4 font-black tracking-widest text-center w-32">Status</th>
+                                            <th class="px-6 py-4 font-black tracking-widest text-right w-40">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="report-status-tbody" class="divide-y divide-gray-50 dark:divide-gray-800">
+                                        <!-- Will be populated by JS -->
+                                        <tr>
+                                            <td colspan="4" class="px-6 py-12 text-center text-gray-400">
+                                                <div class="flex flex-col items-center gap-3">
+                                                    <span class="material-symbols-outlined text-3xl animate-spin">sync</span>
+                                                    <span class="font-bold uppercase tracking-widest text-[10px]">Loading report catalog...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Warning Alert -->
+                    <div class="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/30 rounded-xl flex gap-4">
+                        <span class="material-symbols-outlined text-amber-500 text-xl">warning</span>
+                        <div class="space-y-1">
+                            <p class="text-[12px] text-amber-800 dark:text-amber-300 font-black uppercase tracking-wider">Administrator Warning</p>
+                            <p class="text-[11px] text-amber-700 dark:text-amber-400/80 font-medium leading-relaxed">
+                                Setting a report to <span class="font-bold">OFFLINE</span> will immediately block visibility for all non-admin users. 
+                                Users currently viewing the report will be redirected upon their next interaction or page refresh.
+                            </p>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Tab Pane: Notifications -->
                 <div id="tab-notifications" class="tab-pane hidden space-y-6">

@@ -26,6 +26,7 @@ class Menu(db.Model):
     icon = db.Column(db.String(100))
     sort_order = db.Column(db.Integer, default=0)
     permission_required = db.Column(db.String(100), db.ForeignKey('permissions.name', ondelete='SET NULL'))
+    is_offline = db.Column(db.Boolean, default=False)
     
     # Self-referential relationship for hierarchical menus
     children = db.relationship('Menu', backref=db.backref('parent', remote_side=[id]))

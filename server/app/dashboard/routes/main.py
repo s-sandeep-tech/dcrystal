@@ -5,6 +5,8 @@ from app.extensions import db
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from app.utils.decorators import require_perm
+from app.models.rbac import Menu
+import json
 
 @dashboard_bp.route('/my_account')
 def my_account():
@@ -501,3 +503,95 @@ def inventory():
 @dashboard_bp.route('/logout-success')
 def logout_success():
     return render_template('logout_success.html')
+
+@dashboard_bp.before_request
+def check_report_offline():
+    from flask import request, session, redirect, url_for
+    import json
+    
+    # Exclude certain routes from being blocked
+    excluded_endpoints = [
+        'dashboard.report_offline',
+        'dashboard.login',
+        'dashboard.logout',
+        'dashboard.settings',
+        'dashboard.get_report_offline_status',
+        'dashboard.toggle_report_offline',
+        'static'
+    ]
+    
+    if request.endpoint in excluded_endpoints or request.endpoint is None:
+        return
+        
+    # Check if user is an admin - administrators are exempt
+    user_roles = session.get('roles', [])
+    if 'ADMIN' in user_roles:
+        return
+        
+    # Check current path/endpoint in Redis for offline status
+    from app.extensions import redis_client
+    
+    # Check if this specific URL is marked offline in Redis
+    # We store offline statuses in Redis as dcrystal:offline_reports: <json_dict>
+    current_path = request.path
+    try:
+        offline_reports_json = redis_client.get('dcrystal:offline_reports')
+        if offline_reports_json:
+            offline_reports = json.loads(offline_reports_json)
+            if current_path in offline_reports and offline_reports[current_path]:
+                return redirect(url_for('dashboard.report_offline', next=current_path))
+    except Exception as e:
+        print(f"Error checking offline status: {e}")
+
+@dashboard_bp.route('/report-offline')
+def report_offline():
+    return render_template('report_offline.html')
+
+@dashboard_bp.route('/settings/report-offline-status')
+def get_report_offline_status():
+    from flask import session
+    from app.models.rbac import Menu
+    if 'ADMIN' not in session.get('roles', []):
+        return {"status": "error", "message": "Unauthorized"}, 403
+        
+    # Fetch from DB (source of truth)
+    menus = Menu.query.filter(Menu.url != None, Menu.url != '#', Menu.url != '').all()
+    status_data = {menu.url: menu.is_offline for menu in menus}
+    
+    return {"status": "success", "reports": status_data}
+
+@dashboard_bp.route('/settings/toggle-report-offline', methods=['POST'])
+def toggle_report_offline():
+    from flask import request, session
+    from app.models.rbac import Menu
+    from app.extensions import db, redis_client
+    import json
+    
+    if 'ADMIN' not in session.get('roles', []):
+        return {"status": "error", "message": "Unauthorized"}, 403
+        
+    data = request.get_json()
+    report_url = data.get('url')
+    is_offline = data.get('is_offline', False)
+    
+    if not report_url:
+        return {"status": "error", "message": "URL is required"}, 400
+        
+    # Update DB
+    menu = Menu.query.filter_by(url=report_url).first()
+    if not menu:
+        return {"status": "error", "message": "Report not found"}, 404
+        
+    menu.is_offline = is_offline
+    db.session.commit()
+    
+    # Update Redis cache
+    try:
+        offline_reports_json = redis_client.get('dcrystal:offline_reports')
+        offline_reports = json.loads(offline_reports_json) if offline_reports_json else {}
+        offline_reports[report_url] = is_offline
+        redis_client.set('dcrystal:offline_reports', json.dumps(offline_reports))
+    except Exception as e:
+        print(f"Failed to update redis: {e}")
+    
+    return {"status": "success", "message": f"Report {'offline' if is_offline else 'online'} successfully"}

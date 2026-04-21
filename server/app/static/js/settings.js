@@ -1287,6 +1287,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tab Switching Logic Extended
     const allTabs = {
         'status': { nav: document.getElementById('nav-status'), pane: document.getElementById('tab-status') },
+        'report-status': { nav: document.getElementById('nav-report-status'), pane: document.getElementById('tab-report-status') },
         'general': { nav: document.getElementById('nav-general'), pane: null },
         'notifications': { nav: document.getElementById('nav-notifications'), pane: document.getElementById('tab-notifications') },
         'sessions': { nav: document.getElementById('nav-sessions'), pane: document.getElementById('tab-sessions') },
@@ -1811,14 +1812,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Handle URL params on load - Moved to end to ensure all constants are initialized
-    const urlParams = new URLSearchParams(window.location.search);
-    const activeTab = urlParams.get('tab');
-    if (activeTab && allTabs[activeTab]) {
-        switchTab(activeTab);
-    } else {
-        switchTab('status');
-    }
+    // Handle URL params on load will be at the very bottom
     // === LOGIN LOGS LOGIC ===
     let loginLogsCurrentPage = 1;
 
@@ -2004,17 +1998,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const refreshDownloadLogsBtn = document.getElementById('refresh-download-logs-btn');
     if (refreshDownloadLogsBtn) {
         refreshDownloadLogsBtn.onclick = () => fetchDownloadLogs(downloadLogsCurrentPage);
-    }
-
-    // Initial fetch if we are on login-logs or download-logs tab
-    if (activeTab === 'login-logs') {
-        fetchLoginLogs(1);
-    } else if (activeTab === 'download-logs') {
-        fetchDownloadLogs(1);
-    } else if (activeTab === 'audit-logs') {
-        fetchAuditLogs(1);
-    } else if (activeTab === 'notifications') {
-        fetchUserNotifications();
     }
 
     // === NOTIFICATIONS LOGIC ===
@@ -2327,6 +2310,165 @@ document.addEventListener('DOMContentLoaded', () => {
     const refreshAuditLogsBtn = document.getElementById('refresh-audit-logs-btn');
     if (refreshAuditLogsBtn) {
         refreshAuditLogsBtn.onclick = () => fetchAuditLogs(auditLogsCurrentPage);
+    }
+
+    // === REPORT STATUS LOGIC ===
+    let gReportStatuses = {};
+    const reportStatusTbody = document.getElementById('report-status-tbody');
+    const reportSearchInput = document.getElementById('report-search');
+    const refreshReportStatusBtn = document.getElementById('refresh-report-status-btn');
+
+    async function fetchReportStatus() {
+        if (!reportStatusTbody) return;
+        
+        reportStatusTbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="px-6 py-12 text-center text-gray-400">
+                    <div class="flex flex-col items-center gap-3">
+                        <span class="material-symbols-outlined text-3xl animate-spin">sync</span>
+                        <span class="font-bold uppercase tracking-widest text-[10px]">Updating catalog...</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        try {
+            const res = await fetch('/settings/report-offline-status', {
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                gReportStatuses = data.reports;
+                renderReportStatusTable();
+            } else {
+                showToast(data.message || 'Failed to fetch status', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Network error fetching report status', 'error');
+        }
+    }
+
+    function renderReportStatusTable() {
+        if (!reportStatusTbody) return;
+        
+        const filter = reportSearchInput ? reportSearchInput.value.toLowerCase() : '';
+        reportStatusTbody.innerHTML = '';
+        
+        const reports = Object.keys(gReportStatuses).filter(url => {
+            // Simple filter logic
+            const name = url.split('/').pop().replace(/-/g, ' ').replace(/_/g, ' ');
+            return url.toLowerCase().includes(filter) || name.toLowerCase().includes(filter);
+        }).sort();
+
+        if (reports.length === 0) {
+            reportStatusTbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="px-6 py-12 text-center text-gray-400">
+                        <span class="material-symbols-outlined text-2xl mb-2 opacity-20">search_off</span>
+                        <p class="font-bold uppercase tracking-widest text-[10px]">No matching reports found</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        reports.forEach(url => {
+            const isOffline = gReportStatuses[url];
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-all border-b border-gray-50 dark:border-gray-800/50 group";
+            
+            const reportName = url.split('/').pop().replace(/-/g, ' ').replace(/_/g, ' ') || 'Dashboard Home';
+            
+            tr.innerHTML = `
+                <td class="px-6 py-4">
+                    <div class="flex items-center gap-3">
+                        <div class="size-8 rounded-lg ${isOffline ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'} flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[18px]">${isOffline ? 'block' : 'check_circle'}</span>
+                        </div>
+                        <div>
+                            <span class="text-[12px] font-black text-gray-900 dark:text-white uppercase tracking-tight block">${reportName}</span>
+                            <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Module Access Control</span>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="font-mono text-[10px] text-gray-400 bg-gray-50 dark:bg-gray-800 px-2 py-0.5 rounded border border-gray-100 dark:border-gray-700">${url}</span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${isOffline ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/30' : 'bg-green-50 text-green-600 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800/30'}">
+                        ${isOffline ? 'Offline' : 'Online'}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                        <button onclick="toggleReportOfflineStatus('${url}', ${!isOffline})" 
+                            class="px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${isOffline ? 'bg-green-500 text-white hover:bg-green-600 shadow-md shadow-green-500/20' : 'bg-red-500 text-white hover:bg-red-600 shadow-md shadow-red-500/20'}">
+                            Set ${isOffline ? 'Online' : 'Offline'}
+                        </button>
+                    </div>
+                </td>
+            `;
+            reportStatusTbody.appendChild(tr);
+        });
+    }
+
+    window.toggleReportOfflineStatus = async function(url, isOffline) {
+        const confirmed = await showConfirmModal(
+            `Confirm Status Change`,
+            `Are you sure you want to set "${url}" to ${isOffline ? 'OFFLINE' : 'ONLINE'}? This will affect access for all non-admin users immediately.`
+        );
+        if (!confirmed) return;
+
+        try {
+            const res = await fetch('/settings/toggle-report-offline', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${window.jwtToken}`
+                },
+                body: JSON.stringify({ url, is_offline: isOffline })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                showToast(data.message, 'success');
+                gReportStatuses[url] = isOffline;
+                renderReportStatusTable();
+            } else {
+                showToast(data.message || 'Update failed', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Network error during update', 'error');
+        }
+    };
+
+    if (refreshReportStatusBtn) {
+        refreshReportStatusBtn.onclick = fetchReportStatus;
+    }
+
+    if (reportSearchInput) {
+        reportSearchInput.oninput = renderReportStatusTable;
+    }
+
+    // Add to tab switch listener
+    const originalSwitchTab = window.switchTab;
+    window.switchTab = function(tabId) {
+        if (typeof originalSwitchTab === 'function') {
+            originalSwitchTab(tabId);
+        }
+        if (tabId === 'report-status') {
+            fetchReportStatus();
+        }
+    };
+
+    // Handle URL params on load - Ensure all constants are initialized first
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab');
+    if (activeTab && allTabs[activeTab]) {
+        window.switchTab(activeTab);
+    } else {
+        window.switchTab('status');
     }
 });
 

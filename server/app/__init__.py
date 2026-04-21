@@ -140,6 +140,24 @@ def create_app():
                 db.session.commit()
                 print("Existing 'admin' user updated to is_admin=True.")
 
+        # Sync offline reports to Redis on startup
+        try:
+            from app.models.rbac import Menu
+            from app.extensions import redis_client
+            import json
+            
+            offline_menus = Menu.query.filter_by(is_offline=True).all()
+            offline_status = {menu.url: True for menu in offline_menus if menu.url}
+            
+            if offline_status:
+                redis_client.set('dcrystal:offline_reports', json.dumps(offline_status))
+                print(f"Synced {len(offline_status)} offline reports to Redis.")
+            else:
+                # Clear if none are offline to ensure cache is fresh
+                redis_client.delete('dcrystal:offline_reports')
+        except Exception as e:
+            app.logger.error(f"Failed to sync offline reports to Redis on startup: {e}")
+
     # Session Recovery Middleware
     from flask import session, request, g
     from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
