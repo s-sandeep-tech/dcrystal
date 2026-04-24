@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncSupplierHMIssueBtn) syncSupplierHMIssueBtn.addEventListener('click', () => triggerSync(syncSupplierHMIssueBtn, window.SETTINGS_CONFIG.syncSupplierHMIssueUrl, 'HM issue completed – Receipt pending Sync', 'supplier_hm_issue'));
     if (syncHMReturnPendingBtn) syncHMReturnPendingBtn.addEventListener('click', () => triggerSync(syncHMReturnPendingBtn, window.SETTINGS_CONFIG.syncHMReturnPendingUrl, 'HM Completed Return Pending Sync', 'hm_return_pending'));
     if (syncHMQCIssuePendingBtn) syncHMQCIssuePendingBtn.addEventListener('click', () => triggerSync(syncHMQCIssuePendingBtn, window.SETTINGS_CONFIG.syncHMQCIssuePendingUrl, 'HM Return Received QC Pending Sync', 'hm_qc_issue_pending'));
-    if (syncSupplierQCIssueReceiptBtn) syncSupplierQCIssueReceiptBtn.addEventListener('click', () => triggerSync(syncSupplierQCIssueReceiptBtn, window.SETTINGS_CONFIG.syncSupplierQCIssueReceiptUrl, 'Supplier QC Issue Receipt Pending Sync', 'supplier_qc_issue_receipt_pending'));
+    if (syncSupplierQCIssueReceiptBtn) syncSupplierQCIssueReceiptBtn.addEventListener('click', () => triggerSync(syncSupplierQCIssueReceiptBtn, window.SETTINGS_CONFIG.syncSupplierQCIssueReceiptUrl, 'QC issue completed – KJ receipt pending Sync', 'supplier_qc_issue_receipt_pending'));
     if (syncQCCompletedInvoiceBtn) syncQCCompletedInvoiceBtn.addEventListener('click', () => triggerSync(syncQCCompletedInvoiceBtn, window.SETTINGS_CONFIG.syncQCCompletedInvoiceUrl, 'QC Completed Invoice Pending Sync', 'qc_completed_invoice_pending'));
     if (syncInvoiceCompletedDeliverBtn) syncInvoiceCompletedDeliverBtn.addEventListener('click', () => triggerSync(syncInvoiceCompletedDeliverBtn, window.SETTINGS_CONFIG.syncInvoiceCompletedDeliverUrl, 'Invoice Completed Pending Delivery Sync', 'invoice_completed_pending_deliver'));
 
@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { url: window.SETTINGS_CONFIG.syncSupplierHMIssueUrl, label: 'HM issue completed – Receipt pending', type: 'supplier_hm_issue' },
                 { url: window.SETTINGS_CONFIG.syncHMReturnPendingUrl, label: 'HM Completed Return Pending', type: 'hm_return_pending' },
                 { url: window.SETTINGS_CONFIG.syncHMQCIssuePendingUrl, label: 'HM Return Received QC Pending', type: 'hm_qc_issue_pending' },
-                { url: window.SETTINGS_CONFIG.syncSupplierQCIssueReceiptUrl, label: 'Supplier QC Issue Receipt Pending', type: 'supplier_qc_issue_receipt_pending' },
+                { url: window.SETTINGS_CONFIG.syncSupplierQCIssueReceiptUrl, label: 'QC issue completed – KJ receipt pending', type: 'supplier_qc_issue_receipt_pending' },
                 { url: window.SETTINGS_CONFIG.syncQCCompletedInvoiceUrl, label: 'QC Completed Invoice Pending', type: 'qc_completed_invoice_pending' },
                 { url: window.SETTINGS_CONFIG.syncInvoiceCompletedDeliverUrl, label: 'Invoice Completed Pending Delivery', type: 'invoice_completed_pending_deliver' },
             ];
