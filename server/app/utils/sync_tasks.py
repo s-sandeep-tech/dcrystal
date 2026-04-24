@@ -2,8 +2,8 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
 from sqlalchemy import text
-from app.extensions import db, socketio, redis_client
-from app.models.snapshots import (
+from ..extensions import db, socketio, redis_client
+from ..models.snapshots import (
     OwnerWiseOrderSummarySnapshot, 
     PartyProcessAgeingSnapshot,
     OutstandingPurchaseOrderStatusSnapshot,
@@ -15,7 +15,14 @@ from app.models.snapshots import (
     ProvisionStockRawSnapshot,
     ProvisionStockRawStaging,
     HallmarkingDelayedSnapshot,
-    QCDelayedSnapshot
+    QCDelayedSnapshot,
+    OrderProcessingPendingSnapshot,
+    HMCompletedReturnSnapshot,
+    SupplierHMIssueSnapshot,
+    HMReturnQCIssueSnapshot,
+    SupplierQCIssueReceiptPendingSnapshot,
+    QCCompletedInvoicePendingSnapshot,
+    InvoiceCompletedPendingDeliverSnapshot
 )
 from flask import current_app
 import os
@@ -1982,5 +1989,707 @@ def sync_qc_delayed_data_task() -> Dict[str, Any]:
         logger.error(f"QCDelayed Sync error: {error_msg}")
         emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
         return {"status": "error", "message": error_msg}
+    finally:
+        if conn: conn.close()
+
+def sync_order_processing_pending_data_task():
+    """Sync Order Processing Pending Report data from External Azure DB"""
+    DATA_TYPE = 'order_processing_pending'
+    
+    emit_sync_update('processing', 'Fetching data from external source...', 10, DATA_TYPE)
+    start_time = time.time()
+    logger.info("Starting Order Processing Pending Data sync...")
+
+    conn = get_external_db_connection()
+    if not conn:
+        error_msg = "Could not establish connection to external database"
+        logger.error(f"OrderProcessingPending sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
+
+    try:
+        cur = conn.cursor()
+        query = """
+        SELECT 
+            make_owner, collection_owner, collection, order_branch, party, po_date, po_number, 
+            party, party_mobile_no, barcode_completion_date, barcoded_weight, 
+            set_identifier, set_design_no, order_type, order_request_type, target_date, 
+            pending_to_hallmark_issue_piece, pending_to_hallmark_issue_wt 
+        FROM ext_view.vw_order_barcoding_completed_hm_issue_pending
+        WHERE CURRENT_DATE - DATE(barcode_completion_date) > 1;
+        """
+        
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
+        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+
+        if rows:
+            # Clear existing data
+            db.session.execute(text("TRUNCATE TABLE order_processing_pending_snapshots"))
+            db.session.commit()
+
+            snapshot_date = datetime.now()
+            
+            # Bulk insert
+            batch_size = 1000
+            for i in range(0, len(rows), batch_size):
+                batch = rows[i:i + batch_size]
+                objects = [
+                    OrderProcessingPendingSnapshot(
+                        snapshot_date=snapshot_date,
+                        make_owner=row[0],
+                        collection_owner=row[1],
+                        collection=row[2],
+                        branch=row[3],
+                        supplier=row[4],
+                        po_date=row[5],
+                        po_number=row[6],
+                        # party (repeat) is row[7]
+                        party_mobile_no=row[8],
+                        barcode_completion_date=row[9],
+                        barcoded_weight=row[10],
+                        set_identifier=row[11],
+                        set_design_no=row[12],
+                        order_type=row[13],
+                        order_request_type=row[14],
+                        target_date=row[15],
+                        pieces=row[16], # pending_to_hallmark_issue_piece
+                        weight=row[17]  # pending_to_hallmark_issue_wt
+                    )
+                    for row in batch
+                ]
+                db.session.bulk_save_objects(objects)
+                db.session.commit()
+                
+                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
+                emit_sync_update('processing', f'Saving batch {i//batch_size + 1} of {total_batches}...', progress, DATA_TYPE)
+
+            duration = time.time() - start_time
+            msg = f"Successfully synced {len(rows)} records in {duration:.2f}s"
+            logger.info(msg)
+            emit_sync_update('success', msg, 100, DATA_TYPE)
+            return {"status": "success", "message": msg, "count": len(rows)}
+        else:
+            msg = "No data found for Order Processing Pending Report"
+            logger.warning(msg)
+            emit_sync_update('success', msg, 100, DATA_TYPE)
+            return {"status": "success", "message": msg, "count": 0}
+
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        logger.error(f"OrderProcessingPending sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
+    finally:
+        if cur: cur.close()
+        if conn: conn.close()
+
+def sync_hm_completed_return_data_task():
+    DATA_TYPE = 'hm_completed_return'
+    start_time = time.time()
+    conn = None
+    try:
+        emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
+        conn = get_external_db_connection()
+    except Exception as e:
+        error_msg = f"Connection failed: {str(e)}"
+        logger.error(f"HMCompletedReturn sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
+
+    try:
+        cur = conn.cursor()
+        query = """
+        SELECT
+            make_owner, collection_owner, collection, order_branch, party, po_date, po_number,
+            order_type, order_request_type, party_mobile_no, barcode_completion_date,
+            barcoded_weight, set_identifier, set_design_no, hm_request_no, hm_ro,
+            hallmark_agent, hm_agent_email, hm_agent_pnone_no, hm_completed_at,
+            hm_agent_invoice_receipt_no, hm_agent_invoice_receipt_date, net_weight,
+            gross_weight, stone_weight, pending_to_hm_recipt_return_piece,
+            pending_to_hm_recipt_return_wt, logistic_mobile_no, logistic_date, vehicle_no
+        FROM ext_view.vw_hm_completed_return_pending
+        WHERE CURRENT_DATE - DATE(hm_completed_at) > 1;
+        """
+        
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
+        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+
+        if rows:
+            db.session.execute(text("TRUNCATE TABLE hm_completed_return_snapshots"))
+            db.session.commit()
+
+            snapshot_date = datetime.now()
+            batch_size = 1000
+            for i in range(0, len(rows), batch_size):
+                batch = rows[i:i + batch_size]
+                objects = [
+                    HMCompletedReturnSnapshot(
+                        snapshot_date=snapshot_date,
+                        make_owner=row[0],
+                        collection_owner=row[1],
+                        collection=row[2],
+                        order_branch=row[3],
+                        supplier=row[4],
+                        po_date=row[5],
+                        po_number=row[6],
+                        order_type=row[7],
+                        order_request_type=row[8],
+                        party_mobile_no=row[9],
+                        set_identifier=row[12],
+                        set_design_no=row[13],
+                        hm_ro=row[15],
+                        hallmark_agent=row[16],
+                        hm_agent_email=row[17],
+                        hm_agent_pnone_no=row[18],
+                        hm_completed_date=row[19],
+                        hm_agent_invoice_receipt_no=row[20],
+                        hm_agent_invoice_receipt_date=row[21],
+                        net_weight=row[22],
+                        gross_weight=row[23],
+                        stone_weight=row[24],
+                        pieces=row[25],
+                        weight=row[26],
+                        logistic_mobile_no=row[27],
+                        logistic_date=row[28],
+                        vehicle_no=row[29]
+                    )
+                    for row in batch
+                ]
+                db.session.bulk_save_objects(objects)
+                db.session.commit()
+                
+                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
+                emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
+
+        duration = time.time() - start_time
+        emit_sync_update('completed', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
+        return {"status": "success", "count": len(rows)}
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Sync failed: {str(e)}")
+        emit_sync_update('error', str(e), 0, DATA_TYPE)
+        return {"status": "error", "message": str(e)}
+    finally:
+        if conn: conn.close()
+
+def sync_supplier_hm_issue_data_task():
+    DATA_TYPE = 'supplier_hm_issue'
+    start_time = time.time()
+    conn = None
+    try:
+        emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
+        conn = get_external_db_connection()
+    except Exception as e:
+        error_msg = f"Connection failed: {str(e)}"
+        logger.error(f"SupplierHMIssue sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
+
+    try:
+        cur = conn.cursor()
+        # Query based on user provided view and columns
+        query = """
+        SELECT
+            make_owner,
+            collection_owner,
+            collection,
+            order_branch,
+            party,
+            po_date,
+            po_number,
+            party_mobile_no,
+            barcode_completion_date,
+            barcoded_weight,
+            set_identifier,
+            set_design_no,
+            order_type,
+            order_request_type,
+            target_date,
+            pending_to_hallmark_issue_piece,
+            pending_to_hallmark_issue_wt,
+            ''::text AS Bh_name,
+            1 AS Piece,
+            '' AS MobileNo,
+            hm_ro,
+            hallmark_agent,
+            gross_weight,
+            net_weight,
+            stone_weight,
+            hm_issue_receipt_date,
+            hm_issue_receipt_no,
+            hm_agent_email
+        FROM ext_view.vw_order_barcoding_completed_hm_issue_pending
+        WHERE CURRENT_DATE - DATE(barcode_completion_date) > 1
+        """
+        
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
+        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+
+        if rows:
+            # Clear existing data
+            db.session.execute(text("TRUNCATE TABLE supplier_hm_issue_snapshots"))
+            db.session.commit()
+
+            snapshot_date = datetime.now()
+            
+            # Bulk insert
+            batch_size = 1000
+            total_batches = (len(rows) + batch_size - 1) // batch_size
+            
+            for i in range(0, len(rows), batch_size):
+                batch = rows[i:i + batch_size]
+                objects = [
+                    SupplierHMIssueSnapshot(
+                        snapshot_date=snapshot_date,
+                        make_owner=row[0],
+                        collection_owner=row[1],
+                        collection=row[2],
+                        order_branch=row[3],
+                        supplier=row[4],
+                        po_date=row[5],
+                        po_number=row[6],
+                        party_mobile_no=row[7],
+                        barcode_completion_date=row[8],
+                        barcoded_weight=row[9],
+                        set_identifier=row[10],
+                        set_design_no=row[11],
+                        order_type=row[12],
+                        order_request_type=row[13],
+                        target_date=row[14],
+                        pieces=row[18], # Using Piece (row 18) as per query '1 Piece'
+                        bh_name=row[17],
+                        hm_ro=row[20],
+                        hallmark_agent=row[21],
+                        gross_weight=row[22],
+                        net_weight=row[23],
+                        stone_weight=row[24],
+                        hm_issue_receipt_date=row[25],
+                        hm_issue_receipt_no=row[26],
+                        hm_agent_email=row[27]
+                    )
+                    for row in batch
+                ]
+                db.session.bulk_save_objects(objects)
+                db.session.commit()
+                
+                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
+                emit_sync_update('processing', f'Saving batch {i//batch_size + 1} of {total_batches}...', progress, DATA_TYPE)
+
+        duration = time.time() - start_time
+        msg = f"Successfully synced {len(rows)} records in {duration:.2f}s"
+        logger.info(msg)
+        emit_sync_update('completed', msg, 100, DATA_TYPE)
+        return {"status": "success", "count": len(rows), "duration": duration}
+
+    except Exception as e:
+        db.session.rollback()
+        error_msg = f"Sync failed: {str(e)}"
+        logger.error(error_msg)
+        emit_sync_update('error', error_msg, 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
+    finally:
+        if conn:
+            conn.close()
+
+def sync_hm_return_qc_issue_data_task():
+    DATA_TYPE = 'hm_qc_issue'
+    start_time = time.time()
+    conn = None
+    try:
+        emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
+        conn = get_external_db_connection()
+    except Exception as e:
+        error_msg = f"Connection failed: {str(e)}"
+        logger.error(f"HMReturnQCIssue sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
+
+    try:
+        cur = conn.cursor()
+        query = """
+        SELECT 
+            make_owner, collection_owner, collection, order_branch, party, po_date, po_number, 
+            order_type, order_request_type, party_mobile_no, barcode_completion_date, 
+            barcoded_weight, set_identifier, set_design_no, target_date, 
+            hm_request_no, hm_ro, hallmark_agent, hm_agent_email, hm_agent_pnone_no, 
+            hm_completed_at, hm_agent_invoice_receipt_no, hm_agent_invoice_receipt_date, 
+            net_weight, gross_weight, stone_weight, pending_to_final_qc_issue_pcs, 
+            pending_to_final_qc_issue_weight 
+        FROM ext_view.vw_hm_return_received_qc_issue_pending
+        WHERE CURRENT_DATE - DATE(hm_agent_invoice_receipt_date) > 1
+        """
+        
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
+        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+
+        if rows:
+            db.session.execute(text("TRUNCATE TABLE hm_return_qc_issue_snapshots"))
+            db.session.commit()
+
+            snapshot_date = datetime.now()
+            batch_size = 1000
+            for i in range(0, len(rows), batch_size):
+                batch = rows[i:i + batch_size]
+                objects = [
+                    HMReturnQCIssueSnapshot(
+                        snapshot_date=snapshot_date,
+                        make_owner=row[0],
+                        collection_owner=row[1],
+                        collection=row[2],
+                        order_branch=row[3],
+                        party=row[4],
+                        po_date=row[5],
+                        po_number=row[6],
+                        order_type=row[7],
+                        order_request_type=row[8],
+                        party_mobile_no=row[9],
+                        barcode_completion_date=row[10],
+                        barcoded_weight=row[11],
+                        set_identifier=row[12],
+                        set_design_no=row[13],
+                        target_date=row[14],
+                        hm_request_no=row[15],
+                        hm_ro=row[16],
+                        hallmark_agent=row[17],
+                        hm_agent_email=row[18],
+                        hm_agent_pnone_no=row[19],
+                        hm_completed_at=row[20],
+                        hm_agent_invoice_receipt_no=row[21],
+                        hm_agent_invoice_receipt_date=row[22],
+                        net_weight=row[23],
+                        gross_weight=row[24],
+                        stone_weight=row[25],
+                        pieces=row[26], # pending_to_final_qc_issue_pcs
+                        weight=row[27]   # pending_to_final_qc_issue_weight
+                    )
+                    for row in batch
+                ]
+                db.session.bulk_save_objects(objects)
+                db.session.commit()
+                
+                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
+                emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
+
+        duration = time.time() - start_time
+        emit_sync_update('completed', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
+        return {"status": "success", "count": len(rows)}
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Sync failed: {str(e)}")
+        emit_sync_update('error', str(e), 0, DATA_TYPE)
+        return {"status": "error", "message": str(e)}
+    finally:
+        if conn: conn.close()
+
+def sync_supplier_qc_issue_receipt_pending_data_task():
+    DATA_TYPE = 'qc_issue_receipt'
+    start_time = time.time()
+    conn = None
+    try:
+        emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
+        conn = get_external_db_connection()
+    except Exception as e:
+        error_msg = f"Connection failed: {str(e)}"
+        logger.error(f"SupplierQCIssueReceiptPending sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
+
+    try:
+        cur = conn.cursor()
+        query = """
+        SELECT 
+            make_owner, collection_owner, collection, order_branch, business_head_name, 
+            party, po_date, po_number, order_type, order_request_type, 
+            party_mobile_no, barcode_completion_date, barcoded_weight, 
+            set_identifier, set_design_no, target_date, hm_request_no, 
+            hm_ro, hallmark_agent, hm_agent_email, hm_agent_pnone_no, 
+            hm_completed_at, qc_issue_receipt_no, qc_issue_receipt_date, 
+            qc_ro, qc_ro_incharge, net_weight, gross_weight, stone_weight, 
+            qc_pending_to_receipt_pcs, qc_pending_to_receipt_wt
+        FROM ext_view.vw_supplier_qc_issue_completed_receipt_pending
+        WHERE CURRENT_DATE - DATE(qc_issue_receipt_date) > 1;
+        """
+        
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
+        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+
+        if rows:
+            db.session.execute(text("TRUNCATE TABLE supplier_qc_issue_receipt_pending_snapshots"))
+            db.session.commit()
+
+            snapshot_date = datetime.now()
+            batch_size = 1000
+            for i in range(0, len(rows), batch_size):
+                batch = rows[i:i + batch_size]
+                objects = [
+                    SupplierQCIssueReceiptPendingSnapshot(
+                        snapshot_date=snapshot_date,
+                        make_owner=row[0],
+                        collection_owner=row[1],
+                        collection=row[2],
+                        order_branch=row[3],
+                        business_head_name=row[4],
+                        party=row[5],
+                        po_date=row[6],
+                        po_number=row[7],
+                        order_type=row[8],
+                        order_request_type=row[9],
+                        party_mobile_no=row[10],
+                        barcode_completion_date=row[11],
+                        barcoded_weight=row[12],
+                        set_identifier=row[13],
+                        set_design_no=row[14],
+                        target_date=row[15],
+                        hm_request_no=row[16],
+                        hm_ro=row[17],
+                        hallmark_agent=row[18],
+                        hm_agent_email=row[19],
+                        hm_agent_pnone_no=row[20],
+                        hm_completed_at=row[21],
+                        qc_issue_receipt_no=row[22],
+                        qc_issue_receipt_date=row[23],
+                        qc_ro=row[24],
+                        qc_ro_incharge=row[25],
+                        net_weight=row[26],
+                        gross_weight=row[27],
+                        stone_weight=row[28],
+                        pieces=row[29], # qc_pending_to_receipt_pcs
+                        weight=row[30]   # qc_pending_to_receipt_wt
+                    )
+                    for row in batch
+                ]
+                db.session.bulk_save_objects(objects)
+                db.session.commit()
+                
+                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
+                emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
+
+        duration = time.time() - start_time
+        emit_sync_update('completed', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
+        return {"status": "success", "count": len(rows)}
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Sync failed: {str(e)}")
+        emit_sync_update('error', str(e), 0, DATA_TYPE)
+        return {"status": "error", "message": str(e)}
+    finally:
+        if conn: conn.close()
+
+def sync_qc_completed_invoice_pending_data_task():
+    DATA_TYPE = 'qc_completed_invoice'
+    start_time = time.time()
+    conn = None
+    try:
+        emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
+        conn = get_external_db_connection()
+    except Exception as e:
+        error_msg = f"Connection failed: {str(e)}"
+        logger.error(f"QCCompletedInvoicePending sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
+
+    try:
+        cur = conn.cursor()
+        query = """
+        SELECT 
+            make_owner, make, collection_owner, collection, order_branch, business_head_name, 
+            party, po_date, po_number, order_type, order_request_type, 
+            party_mobile_no, barcode_completion_date, barcoded_weight, 
+            set_identifier, set_design_no, target_date, qc_issue_receipt_no, 
+            qc_issue_receipt_date, qc_ro, qc_ro_incharge, final_qc_receipt_no, 
+            final_qc_receipt_date, net_weight, gross_weight, stone_weight, 
+            invoice_ro, is_qc_completed, qc_completed_date, 
+            is_rate_requisition_completed, is_invoiced, 
+            purchase_invoice_rate_requisition_number, 
+            pending_to_invoice_pcs, pending_to_invoice_wt
+        FROM ext_view.vw_qc_completed_invoice_pending
+        WHERE CURRENT_DATE - DATE(qc_completed_date) > 1
+        """
+        
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
+        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+
+        if rows:
+            db.session.execute(text("TRUNCATE TABLE qc_completed_invoice_pending_snapshots"))
+            db.session.commit()
+
+            snapshot_date = datetime.now()
+            batch_size = 1000
+            for i in range(0, len(rows), batch_size):
+                batch = rows[i:i + batch_size]
+                objects = [
+                    QCCompletedInvoicePendingSnapshot(
+                        snapshot_date=snapshot_date,
+                        make_owner=row[0],
+                        make=row[1],
+                        collection_owner=row[2],
+                        collection=row[3],
+                        order_branch=row[4],
+                        business_head_name=row[5],
+                        party=row[6],
+                        po_date=row[7],
+                        po_number=row[8],
+                        order_type=row[9],
+                        order_request_type=row[10],
+                        party_mobile_no=row[11],
+                        barcode_completion_date=row[12],
+                        barcoded_weight=row[13],
+                        set_identifier=row[14],
+                        set_design_no=row[15],
+                        target_date=row[16],
+                        qc_issue_receipt_no=row[17],
+                        qc_issue_receipt_date=row[18],
+                        qc_ro=row[19],
+                        qc_ro_incharge=row[20],
+                        final_qc_receipt_no=row[21],
+                        final_qc_receipt_date=row[22],
+                        net_weight=row[23],
+                        gross_weight=row[24],
+                        stone_weight=row[25],
+                        invoice_ro=row[26],
+                        is_qc_completed=bool(row[27]) if row[27] is not None else False,
+                        qc_completed_date=row[28],
+                        is_rate_requisition_completed=bool(row[29]) if row[29] is not None else False,
+                        is_invoiced=bool(row[30]) if row[30] is not None else False,
+                        purchase_invoice_rate_requisition_number=row[31],
+                        pieces=row[32], # pending_to_invoice_pcs
+                        weight=row[33]   # pending_to_invoice_wt
+                    )
+                    for row in batch
+                ]
+                db.session.bulk_save_objects(objects)
+                db.session.commit()
+                
+                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
+                emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
+
+        duration = time.time() - start_time
+        emit_sync_update('completed', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
+        return {"status": "success", "count": len(rows)}
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Sync failed: {str(e)}")
+        emit_sync_update('error', str(e), 0, DATA_TYPE)
+        return {"status": "error", "message": str(e)}
+    finally:
+        if conn: conn.close()
+
+def sync_invoice_completed_pending_deliver_data_task():
+    DATA_TYPE = 'invoice_completed_deliver'
+    start_time = time.time()
+    conn = None
+    try:
+        emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
+        conn = get_external_db_connection()
+    except Exception as e:
+        error_msg = f"Connection failed: {str(e)}"
+        logger.error(f"InvoiceCompletedPendingDeliver sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
+
+    try:
+        cur = conn.cursor()
+        query = """
+        SELECT 
+            make_owner, make, collection_owner, collection, order_branch, business_head_name, 
+            party, po_date, po_number, order_type, order_request_type, 
+            party, party_mobile_no, barcode_completion_date, barcoded_weight, 
+            set_identifier, set_design_no, order_type, order_request_type, target_date, 
+            net_weight, gross_weight, stone_weight, is_invoiced, 
+            purchase_invoice_rate_requisition_number, invoice_ro, invoice_no, 
+            invoice_date, invoice_amount, pending_to_deliver_pcs, pending_to_deliver_wt
+        FROM ext_view.vw_invoice_completed_pending_to_deliver
+        WHERE invoice_date IS NOT NULL AND CURRENT_DATE - DATE(invoice_date) > 1
+        """
+        
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
+        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+
+        if rows:
+            db.session.execute(text("TRUNCATE TABLE invoice_completed_pending_deliver_snapshots"))
+            db.session.commit()
+
+            snapshot_date = datetime.now()
+            batch_size = 1000
+            for i in range(0, len(rows), batch_size):
+                batch = rows[i:i + batch_size]
+                objects = [
+                    InvoiceCompletedPendingDeliverSnapshot(
+                        snapshot_date=snapshot_date,
+                        make_owner=row[0],
+                        make=row[1],
+                        collection_owner=row[2],
+                        collection=row[3],
+                        order_branch=row[4],
+                        business_head_name=row[5],
+                        party=row[6],
+                        po_date=row[7],
+                        po_number=row[8],
+                        order_type=row[9],
+                        order_request_type=row[10],
+                        # party (repeat) is row[11]
+                        party_mobile_no=row[12],
+                        barcode_completion_date=row[13],
+                        barcoded_weight=row[14],
+                        set_identifier=row[15],
+                        set_design_no=row[16],
+                        # order_type (repeat) is row[17]
+                        # order_request_type (repeat) is row[18]
+                        target_date=row[19],
+                        net_weight=row[20],
+                        gross_weight=row[21],
+                        stone_weight=row[22],
+                        is_invoiced=bool(row[23]) if row[23] is not None else False,
+                        purchase_invoice_rate_requisition_number=row[24],
+                        invoice_ro=row[25],
+                        invoice_no=row[26],
+                        invoice_date=row[27],
+                        invoice_amount=row[28],
+                        pieces=row[29], # pending_to_deliver_pcs
+                        weight=row[30]   # pending_to_deliver_wt
+                    )
+                    for row in batch
+                ]
+                db.session.bulk_save_objects(objects)
+                db.session.commit()
+                
+                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
+                emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
+
+        duration = time.time() - start_time
+        emit_sync_update('completed', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
+        return {"status": "success", "count": len(rows)}
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Sync failed: {str(e)}")
+        emit_sync_update('error', str(e), 0, DATA_TYPE)
+        return {"status": "error", "message": str(e)}
     finally:
         if conn: conn.close()

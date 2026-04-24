@@ -1,0 +1,70 @@
+
+<div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+        <thead class="bg-gray-50 dark:bg-gray-900">
+            <tr>
+                <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Invoice Info</th>
+                <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">PO Info</th>
+                <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Design / Set</th>
+                <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Status</th>
+                <th class="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Weights (G/N/S)</th>
+                <th class="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase bg-indigo-50/50 dark:bg-indigo-900/10">Pending Del</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
+            {% for po in pos %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                <td class="px-3 py-2 whitespace-nowrap text-[11px]">
+                    <div class="flex flex-col">
+                        <span class="font-bold text-indigo-600">No: {{ po.invoice_no or '-' }}</span>
+                        <span class="text-[9px] text-gray-400">Date: {{ po.invoice_date.strftime('%Y-%m-%d') if po.invoice_date else '-' }}</span>
+                        <span class="text-[9px] text-emerald-600 font-bold">Amt: ₹{{ "{:,.2f}".format(po.invoice_amount or 0) }}</span>
+                        <span class="text-[9px] text-gray-500">RO: {{ po.invoice_ro or '-' }}</span>
+                    </div>
+                </td>
+                <td class="px-3 py-2 whitespace-nowrap text-[11px]">
+                    <div class="flex flex-col">
+                        <span class="font-bold text-primary">{{ po.po_number }}</span>
+                        <span class="text-[9px] text-gray-400">{{ po.po_date.strftime('%Y-%m-%d') if po.po_date else '-' }}</span>
+                        <span class="text-[9px] text-gray-500">{{ po.order_type }} / {{ po.order_request_type }}</span>
+                        <span class="text-[9px] text-gray-400">Mob: {{ po.party_mobile_no or '-' }}</span>
+                        <span class="text-[9px] text-indigo-500 font-bold">BH: {{ po.business_head_name or '-' }}</span>
+                    </div>
+                </td>
+                <td class="px-3 py-2 whitespace-nowrap text-[11px]">
+                    <div class="flex flex-col">
+                        <span class="text-gray-700 dark:text-gray-300">{{ po.set_design_no or '-' }}</span>
+                        <span class="text-[9px] text-gray-400">Set: {{ po.set_identifier or '-' }}</span>
+                        <span class="text-[9px] text-gray-500">Make: {{ po.make or '-' }}</span>
+                        <span class="text-[9px] text-blue-500">BC Date: {{ po.barcode_completion_date.strftime('%Y-%m-%d') if po.barcode_completion_date else '-' }}</span>
+                        <span class="text-[9px] text-rose-500">Target: {{ po.target_date.strftime('%Y-%m-%d') if po.target_date else '-' }}</span>
+                    </div>
+                </td>
+                <td class="px-3 py-2 whitespace-nowrap text-[11px]">
+                    <div class="flex flex-col gap-1">
+                        <div class="flex items-center gap-2">
+                             <span class="size-1.5 rounded-full {{ 'bg-emerald-500' if po.is_invoiced else 'bg-gray-300' }}"></span>
+                             <span class="text-[9px] font-bold text-gray-600 uppercase">Invoiced</span>
+                        </div>
+                        <span class="text-[9px] text-indigo-600 font-bold mt-1">Rate Req No: {{ po.purchase_invoice_rate_requisition_number or '-' }}</span>
+                    </div>
+                </td>
+                <td class="px-3 py-2 text-right whitespace-nowrap text-[11px]">
+                    <div class="flex flex-col font-medium">
+                        <span class="text-gray-700 dark:text-gray-200">G: {{ "{:,.3f}".format(po.gross_weight or 0) }}</span>
+                        <span class="text-gray-600 dark:text-gray-400">N: {{ "{:,.3f}".format(po.net_weight or 0) }}</span>
+                        <span class="text-gray-400">S: {{ "{:,.3f}".format(po.stone_weight or 0) }}</span>
+                        <span class="text-[9px] text-blue-500 italic">BC: {{ "{:,.3f}".format(po.barcoded_weight or 0) }}</span>
+                    </div>
+                </td>
+                <td class="px-3 py-2 text-right whitespace-nowrap text-[11px] bg-indigo-50/30 dark:bg-indigo-900/10">
+                    <div class="flex flex-col">
+                        <span class="font-black text-indigo-600">{{ "{:,.3f}".format(po.weight or 0) }}</span>
+                        <span class="text-[10px] font-bold text-gray-500">{{ po.pieces or 0 }} PCS</span>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

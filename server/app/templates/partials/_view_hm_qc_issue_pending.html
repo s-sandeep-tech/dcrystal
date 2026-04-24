@@ -1,0 +1,105 @@
+
+<div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+        <thead class="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
+            <tr>
+                <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Group / Detail</th>
+                <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">HM Receipt</th>
+                <th class="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Pieces</th>
+                <th class="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Weight</th>
+                <th class="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Feedback</th>
+                <th class="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Action</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white dark:bg-background-dark divide-y divide-gray-100 dark:divide-gray-800">
+            {% if rows %}
+                {% for row in rows %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors {{ 'hidden' if row.level > 1 else '' }}" 
+                    data-id="{{ row.id }}" data-parent="{{ row.parent_id }}" data-level="{{ row.level }}" data-expanded="false"
+                    {% if not row.is_leaf %}onclick="toggleRow('{{ row.id }}')" style="cursor: pointer;"{% endif %}>
+                    <td class="px-3 py-2 whitespace-nowrap">
+                        <div class="flex items-center" style="padding-left: {{ (row.level - 1) * 1.25 }}rem;">
+                            {% if not row.is_leaf %}
+                            <span class="material-symbols-outlined text-[16px] text-gray-400 mr-2 toggle-icon transition-transform">chevron_right</span>
+                            <span class="text-[11px] font-bold text-gray-700 dark:text-gray-200 uppercase">{{ row.label }}</span>
+                            {% else %}
+                            <span class="size-4 mr-2"></span>
+                            <span class="text-[11px] font-medium text-gray-600 dark:text-gray-400 uppercase">{{ row.label }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-3 py-2 whitespace-nowrap text-[10px] text-gray-500">
+                        {% if row.is_leaf %}
+                        <div class="flex flex-col">
+                            <span class="font-bold">{{ row.hm_agent_invoice_receipt_no or '-' }}</span>
+                            <span>{{ row.hm_agent_invoice_receipt_date.strftime('%Y-%m-%d') if row.hm_agent_invoice_receipt_date else '-' }}</span>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-2 text-right whitespace-nowrap text-[11px] font-bold {{ 'text-primary' if not row.is_leaf else 'text-gray-600 dark:text-gray-400' }}">
+                        {{ row.pieces }}
+                    </td>
+                    <td class="px-3 py-2 text-right whitespace-nowrap text-[11px] font-bold {{ 'text-primary' if not row.is_leaf else 'text-gray-600 dark:text-gray-400' }}">
+                        {{ "{:,.3f}".format(row.weight) }}
+                    </td>
+                    <td class="px-3 py-2 text-center whitespace-nowrap">
+                        {% if row.is_leaf %}
+                            {% if row.feedback_text %}
+                            <div class="relative group/tooltip inline-flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[16px] text-indigo-500 cursor-help hover:text-primary transition-colors">chat</span>
+                                <div class="absolute right-full top-1/2 -translate-y-1/2 mr-3 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all duration-200 z-[9999] min-w-[280px] max-w-[320px] pointer-events-none text-left">
+                                    <div class="bg-gray-800 dark:bg-gray-900 border border-gray-700 shadow-xl shadow-black/40 rounded-lg p-3 text-white relative">
+                                        <div class="absolute left-full top-1/2 -translate-y-1/2 -ml-1 border-8 border-transparent border-l-gray-800 dark:border-l-gray-900"></div>
+                                        <div class="text-[10px] space-y-2">
+                                            <div class="flex items-center justify-between border-b border-gray-700/50 pb-1.5">
+                                                <div class="flex flex-col">
+                                                    <span class="font-bold text-blue-400 uppercase tracking-wider">User Feedback</span>
+                                                    {% if row.feedback_category %}
+                                                    <span class="text-[8px] text-amber-400 font-bold uppercase tracking-widest mt-0.5">{{ row.feedback_category }}</span>
+                                                    {% endif %}
+                                                </div>
+                                                <span class="text-[9px] text-gray-400 italic">{{ row.feedback_username }}</span>
+                                            </div>
+                                            <p class="whitespace-normal break-words leading-relaxed text-gray-200 italic">"{{ row.feedback_text }}"</p>
+                                            <div class="pt-1.5 border-t border-gray-700/50 text-[9px] text-gray-400 flex justify-end italic">{{ row.feedback_date }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-gray-300 italic text-[10px]">-</span>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-2 text-center whitespace-nowrap" onclick="event.stopPropagation()">
+                        {% if row.is_leaf %}
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="openHMQCIssueFeedbackModal('{{ row.order_branch }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '{{ row.collection }}', '{{ row.hallmark_agent }}', '{{ row.party }}', '{{ row.feedback_text or '' }}', '{{ row.feedback_category or '' }}')" 
+                                    class="p-1 text-gray-400 hover:text-primary transition-colors" title="Add/Edit Feedback">
+                                <span class="material-symbols-outlined text-[16px]">{{ 'edit_note' if row.feedback_text else 'add_comment' }}</span>
+                            </button>
+                            <button onclick="showHMQCIssueDetailsModal('{{ row.order_branch }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '{{ row.collection }}', '{{ row.hallmark_agent }}', '{{ row.party }}')" 
+                                    class="p-1 text-gray-400 hover:text-primary" title="View Details">
+                                <span class="material-symbols-outlined text-[16px]">visibility</span>
+                            </button>
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+            <tr><td colspan="6" class="px-3 py-12 text-center text-gray-400">No records found</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<div class="pagination-meta hidden" 
+     data-page="{{ pagination.page }}" data-per-page="{{ pagination.per_page }}" data-total="{{ pagination.total }}"
+     data-has-prev="{{ 'true' if pagination.has_prev else 'false' }}" data-has-next="{{ 'true' if pagination.has_next else 'false' }}">
+</div>
+
+<div class="stats-meta hidden" 
+     data-total-pieces="{{ stats.total_pieces }}" data-total-weight="{{ "{:,.3f}".format(stats.total_weight) }}"
+     data-with-feedback="{{ stats.with_feedback }}" data-without-feedback="{{ stats.without_feedback }}">
+</div>

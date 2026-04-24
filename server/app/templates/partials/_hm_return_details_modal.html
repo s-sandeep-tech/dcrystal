@@ -1,0 +1,42 @@
+
+<div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+        <thead class="bg-gray-50 dark:bg-gray-900">
+            <tr>
+                <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">PO No</th>
+                <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">PO Date</th>
+                <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Branch</th>
+                <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Type / Request</th>
+                <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Set ID / Design</th>
+                <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Agent Contact</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            {% for po in pos %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                <td class="px-3 py-2 whitespace-nowrap text-[11px] font-bold text-primary">{{ po.po_number }}</td>
+                <td class="px-3 py-2 whitespace-nowrap text-[11px] text-gray-600">{{ po.po_date.strftime('%Y-%m-%d') if po.po_date else '-' }}</td>
+                <td class="px-3 py-2 whitespace-nowrap text-[11px] text-gray-600">{{ po.order_branch or '-' }}</td>
+                <td class="px-3 py-2 whitespace-nowrap text-[11px]">
+                    <div class="flex flex-col">
+                        <span class="text-gray-700 font-medium">{{ po.order_type }}</span>
+                        <span class="text-[9px] text-gray-400">{{ po.order_request_type }}</span>
+                    </div>
+                </td>
+                <td class="px-3 py-2 whitespace-nowrap text-[11px]">
+                    <div class="flex flex-col">
+                        <span class="text-gray-700">{{ po.set_identifier or '-' }}</span>
+                        <span class="text-[9px] text-gray-400">{{ po.set_design_no or '-' }}</span>
+                    </div>
+                </td>
+                <td class="px-3 py-2 whitespace-nowrap text-[11px]">
+                    <div class="flex flex-col">
+                        <span class="text-gray-700 font-bold">{{ po.hm_agent_pnone_no or '-' }}</span>
+                        <span class="text-[9px] text-gray-400">{{ po.hm_agent_email or '-' }}</span>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -1,13 +1,13 @@
 from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
-from app.extensions import db, socketio, jwt, migrate, limiter
+from .extensions import db, socketio, jwt, migrate, limiter
 import os
 
 def create_app():
     app = Flask(__name__)
     CORS(app)
     # Import models to register them with SQLAlchemy
-    from app.models import (
+    from .models import (
         User, Notification, Order, DashboardStats, ExportDownloadLog,
         OrderStatusReportSnapshot, ShortStatusReportSnapshot, OrderProvisionSummaryReport,
         LocationWiseOrderSnapshot, AllocatedBarcodesSnapshot, OwnerWiseOrderSummarySnapshot,
@@ -142,8 +142,8 @@ def create_app():
 
         # Sync offline reports to Redis on startup
         try:
-            from app.models.rbac import Menu
-            from app.extensions import redis_client
+            from .models.rbac import Menu
+            from .extensions import redis_client
             import json
             
             offline_menus = Menu.query.filter_by(is_offline=True).all()
@@ -161,7 +161,7 @@ def create_app():
     # Session Recovery Middleware
     from flask import session, request, g
     from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
-    from app.models import User
+    from .models import User
 
     @app.before_request
     def restore_session_from_jwt():
@@ -200,10 +200,10 @@ def create_app():
         return response
 
     # Register Blueprints
-    from app.api.routes import api_bp
-    from app.dashboard import dashboard_bp
-    from app.api.auth import auth_bp
-    from app.api.admin_rbac import admin_rbac_bp
+    from .api.routes import api_bp
+    from .dashboard import dashboard_bp
+    from .api.auth import auth_bp
+    from .api.admin_rbac import admin_rbac_bp
 
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(dashboard_bp)
@@ -214,8 +214,8 @@ def create_app():
     @app.context_processor
     def inject_global_vars():
         from flask import session
-        from app.models import Notification
-        from app.utils.rbac_cache import get_user_permissions
+        from .models import Notification
+        from .utils.rbac_cache import get_user_permissions
         from sqlalchemy import or_
         
         user_id = session.get('user_id')

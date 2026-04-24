@@ -149,6 +149,70 @@ def settings_sync_provision_allocation():
     result = sync_provision_allocation_data(session.get('user_id'))
     return result, 200 if result.get('status') == 'success' else 500
 
+@dashboard_bp.route('/settings/sync-provision-stock-status', methods=['POST'])
+def settings_sync_provision_stock_status():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
+        
+    from app.utils.sync_manager import sync_provision_stock_status_data
+    result = sync_provision_stock_status_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500
+@dashboard_bp.route('/settings/sync-order-processing-pending', methods=['POST'])
+def settings_sync_order_processing_pending():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
+    from app.utils.sync_manager import sync_order_processing_pending_data
+    result = sync_order_processing_pending_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500
+
+@dashboard_bp.route('/settings/sync-supplier-hm-issue', methods=['POST'])
+def settings_sync_supplier_hm_issue():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized"}, 401
+    from app.utils.sync_manager import sync_supplier_hm_issue_data
+    result = sync_supplier_hm_issue_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500
+
+@dashboard_bp.route('/settings/sync-hm-return-pending', methods=['POST'])
+def settings_sync_hm_return_pending():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized"}, 401
+    from app.utils.sync_manager import sync_hm_return_pending_data
+    result = sync_hm_return_pending_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500
+
+@dashboard_bp.route('/settings/sync-hm-qc-issue-pending', methods=['POST'])
+def settings_sync_hm_qc_issue_pending():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized"}, 401
+    from app.utils.sync_manager import sync_hm_qc_issue_pending_data
+    result = sync_hm_qc_issue_pending_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500
+
+@dashboard_bp.route('/settings/sync-supplier-qc-issue-receipt', methods=['POST'])
+def settings_sync_supplier_qc_issue_receipt():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized"}, 401
+    from app.utils.sync_manager import sync_supplier_qc_issue_receipt_pending_data
+    result = sync_supplier_qc_issue_receipt_pending_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500
+
+@dashboard_bp.route('/settings/sync-qc-completed-invoice', methods=['POST'])
+def settings_sync_qc_completed_invoice():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized"}, 401
+    from app.utils.sync_manager import sync_qc_completed_invoice_pending_data
+    result = sync_qc_completed_invoice_pending_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500
+
+@dashboard_bp.route('/settings/sync-invoice-completed-deliver', methods=['POST'])
+def settings_sync_invoice_completed_deliver():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized"}, 401
+    from app.utils.sync_manager import sync_invoice_completed_pending_deliver_data
+    result = sync_invoice_completed_pending_deliver_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500
+
 
 @dashboard_bp.route('/settings/clear-cache', methods=['POST'])
 def clear_cache():

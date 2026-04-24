@@ -1,0 +1,105 @@
+
+<div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+        <thead class="bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
+            <tr>
+                <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Office / Owner / Coll / Party</th>
+                <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">QC Receipt</th>
+                <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">QC Comp Date</th>
+                <th class="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase tracking-wider">Weights (G/N/S)</th>
+                <th class="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase tracking-wider bg-emerald-50 dark:bg-emerald-900/20">Pending Invoice</th>
+                <th class="px-2 py-2 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wider w-10">FB</th>
+                <th class="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wider">Action</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            {% for row in rows %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors {{ 'leaf-row' if row.is_leaf else 'group-row' }} level-{{ row.level }} {{ 'hidden' if row.level > 1 else '' }}" 
+                data-id="{{ row.id }}" data-parent="{{ row.parent_id }}" data-expanded="false">
+                
+                <td class="px-3 py-2 whitespace-nowrap">
+                    <div class="flex items-center gap-2" style="padding-left: {{ (row.level - 1) * 16 }}px">
+                        {% if not row.is_leaf %}
+                        <button onclick="toggleRow('{{ row.id }}')" class="flex items-center justify-center size-5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                            <span class="material-symbols-outlined text-[16px] transform transition-transform toggle-icon" id="icon-{{ row.id }}">chevron_right</span>
+                        </button>
+                        {% else %}
+                        <span class="size-5 flex items-center justify-center">
+                             <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                        </span>
+                        {% endif %}
+                        <span class="text-[11px] {{ 'font-black text-gray-800 dark:text-gray-100' if not row.is_leaf else 'font-bold text-primary' }} uppercase tracking-tight">
+                            {{ row.label }}
+                        </span>
+                    </div>
+                </td>
+                
+                <td class="px-3 py-2 whitespace-nowrap text-[11px]">
+                    {% if row.is_leaf %}
+                    <div class="flex flex-col">
+                        <span class="font-bold text-gray-700 dark:text-gray-200">{{ row.qc_issue_receipt_no or '-' }}</span>
+                        <span class="text-[9px] text-gray-400">{{ row.qc_issue_receipt_date.strftime('%Y-%m-%d') if row.qc_issue_receipt_date else '-' }}</span>
+                    </div>
+                    {% endif %}
+                </td>
+
+                <td class="px-3 py-2 whitespace-nowrap text-[11px]">
+                    {% if row.is_leaf %}
+                    <span class="font-bold text-emerald-600">{{ row.qc_completed_date.strftime('%Y-%m-%d') if row.qc_completed_date else '-' }}</span>
+                    {% endif %}
+                </td>
+                
+                <td class="px-3 py-2 text-right whitespace-nowrap text-[10px]">
+                    {% if row.is_leaf %}
+                    <div class="flex flex-col font-medium">
+                        <span class="text-gray-700 dark:text-gray-200">G: {{ "{:,.3f}".format(row.gross_weight or 0) }}</span>
+                        <span class="text-gray-600 dark:text-gray-400">N: {{ "{:,.3f}".format(row.net_weight or 0) }}</span>
+                        <span class="text-gray-400">S: {{ "{:,.3f}".format(row.stone_weight or 0) }}</span>
+                        <span class="text-[9px] text-blue-500 italic">BC: {{ "{:,.3f}".format(row.barcoded_weight or 0) }}</span>
+                    </div>
+                    {% endif %}
+                </td>
+                
+                <td class="px-3 py-2 text-right whitespace-nowrap bg-emerald-50/50 dark:bg-emerald-900/5">
+                    <div class="flex flex-col items-end">
+                        <span class="text-[12px] font-black text-emerald-700 dark:text-emerald-400 leading-none">
+                            {{ "{:,.3f}".format(row.weight or 0) }}
+                        </span>
+                        <span class="text-[10px] font-bold text-gray-400 mt-0.5">
+                            {{ row.pieces or 0 }} <span class="text-[8px] uppercase">pcs</span>
+                        </span>
+                    </div>
+                </td>
+
+                <td class="px-2 py-2 text-center w-10">
+                    {% if row.is_leaf %}
+                    <button onclick="openQCCompletedInvoiceFeedbackModal('{{ row.order_branch }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '{{ row.collection }}', '{{ row.party }}', '{{ row.feedback_text|escape if row.feedback_text else '' }}', '{{ row.feedback_category or '' }}')" 
+                            class="group relative inline-flex items-center justify-center p-1 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all">
+                        <span class="material-symbols-outlined {{ 'text-emerald-500 fill-1' if row.feedback_text else 'text-gray-300' }} text-[18px]">
+                            {{ 'chat_bubble' if row.feedback_text else 'add_comment' }}
+                        </span>
+                        {% if row.feedback_text %}
+                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                            <div class="bg-gray-900 text-white text-[10px] rounded px-2 py-1 whitespace-nowrap shadow-xl">
+                                <span class="text-emerald-400 font-bold">[{{ row.feedback_category }}]</span> {{ row.feedback_text[:50] }}...
+                            </div>
+                        </div>
+                        {% endif %}
+                    </button>
+                    {% endif %}
+                </td>
+                
+                <td class="px-3 py-2 text-center whitespace-nowrap">
+                    {% if row.is_leaf %}
+                    <button onclick="showQCCompletedInvoiceDetailsModal('{{ row.order_branch }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '{{ row.collection }}', '{{ row.party }}')" 
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-[10px] font-black text-primary hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm">
+                        <span class="material-symbols-outlined text-[14px]">visibility</span>
+                        VIEW POs
+                    </button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -2,29 +2,60 @@ import time
 import json
 import logging
 import threading
-from app import create_app
-from app.extensions import redis_client
-from app.utils.sync_tasks import (
-    sync_owner_wise_data_task,
-    sync_process_level_delay_data_task,
-    sync_outstanding_purchase_order_data_task,
-    sync_stage_level_delay_data_task,
-    sync_order_delay_tracking_data_task,
-    sync_pending_acceptance_data_task,
-    sync_rejected_weight_data_task,
-    sync_showroom_wise_order_summary_task,
-    sync_owner_and_showroom_wise_task,
-    sync_provision_stock_status_data_task,
-    sync_hallmarking_delayed_data_task,
-    sync_qc_delayed_data_task,
-    emit_sync_update
-)
+import sys
+import os
+
+# DEFENSIVE: Explicitly manage the search path
+base_dir = os.path.abspath(os.path.dirname(__file__))
+server_dir = os.path.join(base_dir, 'server')
+
+# Prioritize the server directory which contains the 'app' package
+if server_dir not in sys.path:
+    sys.path.insert(0, server_dir)
+
+# Ensure the working directory is also in path but at lower priority
+if base_dir not in sys.path:
+    sys.path.append(base_dir)
+
+# Clear any shadowed or stale 'app' module from cache
+if 'app' in sys.modules:
+    del sys.modules['app']
+
+try:
+    from app import create_app
+    from app.extensions import redis_client
+    from app.utils.sync_tasks import (
+        sync_owner_wise_data_task,
+        sync_process_level_delay_data_task,
+        sync_outstanding_purchase_order_data_task,
+        sync_stage_level_delay_data_task,
+        sync_order_delay_tracking_data_task,
+        sync_pending_acceptance_data_task,
+        sync_rejected_weight_data_task,
+        sync_showroom_wise_order_summary_task,
+        sync_owner_and_showroom_wise_task,
+        sync_provision_stock_status_data_task,
+        sync_hallmarking_delayed_data_task,
+        sync_qc_delayed_data_task,
+        sync_order_processing_pending_data_task,
+        sync_hm_completed_return_data_task,
+        sync_supplier_hm_issue_data_task,
+        sync_hm_return_qc_issue_data_task,
+        sync_supplier_qc_issue_receipt_pending_data_task,
+        sync_qc_completed_invoice_pending_data_task,
+        sync_invoice_completed_pending_deliver_data_task,
+        emit_sync_update
+    )
+except Exception as e:
+    # We can't log to the logger yet as it's defined later, but we can print
+    print(f"CRITICAL IMPORT ERROR: {str(e)}")
+    raise e
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("SyncConsumer")
 
-app = create_app()
+flask_app = create_app()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Sync Queue Worker (original behaviour — unchanged)
@@ -42,7 +73,7 @@ def process_sync_queue():
 
             logger.info(f"[sync_queue] Processing task: {task_type}")
 
-            with app.app_context():
+            with flask_app.app_context():
                 from app.models.core import SyncLog
                 from app.extensions import db
                 from datetime import datetime
@@ -84,6 +115,20 @@ def process_sync_queue():
                         res = sync_hallmarking_delayed_data_task()
                     elif task_type == 'qc_delayed':
                         res = sync_qc_delayed_data_task()
+                    elif task_type == 'order_processing_pending':
+                        res = sync_order_processing_pending_data_task()
+                    elif task_type == 'supplier_hm_issue':
+                        res = sync_supplier_hm_issue_data_task()
+                    elif task_type == 'hm_return_pending':
+                        res = sync_hm_completed_return_data_task()
+                    elif task_type == 'hm_qc_issue_pending':
+                        res = sync_hm_return_qc_issue_data_task()
+                    elif task_type == 'supplier_qc_issue_receipt_pending':
+                        res = sync_supplier_qc_issue_receipt_pending_data_task()
+                    elif task_type == 'qc_completed_invoice_pending':
+                        res = sync_qc_completed_invoice_pending_data_task()
+                    elif task_type == 'invoice_completed_pending_deliver':
+                        res = sync_invoice_completed_pending_deliver_data_task()
                     else:
                         logger.error(f"Unknown sync task type: {task_type}")
                         emit_sync_update('error', f'Unknown task type: {task_type}')
@@ -133,7 +178,7 @@ def process_export_queue():
 
             logger.info(f"[export_queue] Processing task: {task_type}")
 
-            with app.app_context():
+            with flask_app.app_context():
                 if task_type == 'export_opo':
                     _handle_export_opo(task_data)
                 elif task_type == 'export_pending_acceptance':
@@ -205,7 +250,7 @@ def _handle_export_opo(task_data: dict):
         logger.error(f"Export failed: {str(e)}")
         # Push error notification to users
         try:
-            with app.app_context():
+            with flask_app.app_context():
                 notification = Notification(
                     title='Export Failed',
                     message=f'Outstanding PO export could not be generated. Please try again.',
@@ -294,7 +339,7 @@ def _handle_export_pending_acceptance(task_data: dict):
     except Exception as e:
         logger.error(f"Pending Acceptance export failed: {str(e)}")
         try:
-            with app.app_context():
+            with flask_app.app_context():
                 notification = Notification(
                     title='Export Failed — Pending Acceptance',
                     message=f'Pending Acceptance export could not be generated. Please try again.',

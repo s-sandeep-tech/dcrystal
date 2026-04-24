@@ -1,4 +1,4 @@
-from app.extensions import db
+from ..extensions import db
 from datetime import datetime
 
 class OrderStatusReportSnapshot(db.Model):
@@ -1067,6 +1067,623 @@ class QCDelayedFeedback(db.Model):
             'collection': self.collection,
             'supplier': self.supplier,
             'qc_request_no': self.qc_request_no,
+            'feedback_text': self.feedback_text,
+            'feedback_category': self.feedback_category,
+            'username': self.username,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class OrderProcessingPendingSnapshot(db.Model):
+    __tablename__ = 'order_processing_pending_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    branch = db.Column(db.String(200))
+    supplier = db.Column(db.String(200))
+    po_number = db.Column(db.String(100), index=True)
+    po_date = db.Column(db.Date)
+    barcoded_weight = db.Column(db.Numeric(12, 3))
+    pieces = db.Column(db.Integer)
+    target_date = db.Column(db.Date)
+    order_type = db.Column(db.String(150))
+    order_request_type = db.Column(db.String(150))
+    
+    # New fields for updated query
+    party_mobile_no = db.Column(db.String(50))
+    barcode_completion_date = db.Column(db.DateTime)
+    set_identifier = db.Column(db.String(100))
+    set_design_no = db.Column(db.String(100))
+    weight = db.Column(db.Numeric(12, 3)) # pending_to_hallmark_issue_wt
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'branch': self.branch,
+            'supplier': self.supplier,
+            'po_number': self.po_number,
+            'po_date': self.po_date.isoformat() if self.po_date else None,
+            'barcoded_weight': float(self.barcoded_weight or 0),
+            'pieces': self.pieces,
+            'target_date': self.target_date.isoformat() if self.target_date else None,
+            'order_type': self.order_type,
+            'order_request_type': self.order_request_type,
+            'party_mobile_no': self.party_mobile_no,
+            'barcode_completion_date': self.barcode_completion_date.isoformat() if self.barcode_completion_date else None,
+            'set_identifier': self.set_identifier,
+            'set_design_no': self.set_design_no,
+            'weight': float(self.weight or 0)
+        }
+
+class OrderProcessingPendingFeedback(db.Model):
+    __tablename__ = 'order_processing_pending_feedback'
+
+    id = db.Column(db.Integer, primary_key=True)
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    branch = db.Column(db.String(200))
+    supplier = db.Column(db.String(200))
+    feedback_text = db.Column(db.Text)
+    feedback_category = db.Column(db.String(100))
+    username = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.Index('idx_opp_feedback_lookup', 'collection_owner', 'collection', 'branch', 'supplier'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'branch': self.branch,
+            'supplier': self.supplier,
+            'feedback_text': self.feedback_text,
+            'feedback_category': self.feedback_category,
+            'username': self.username,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class HMCompletedReturnFeedback(db.Model):
+    __tablename__ = 'hm_completed_return_feedback'
+
+    id = db.Column(db.Integer, primary_key=True)
+    hm_ro = db.Column(db.String(150))
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    hallmark_agent = db.Column(db.String(200))
+    supplier = db.Column(db.String(200))
+    
+    feedback_text = db.Column(db.Text)
+    feedback_category = db.Column(db.String(100))
+    username = db.Column(db.String(80))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'hm_ro': self.hm_ro,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'hallmark_agent': self.hallmark_agent,
+            'supplier': self.supplier,
+            'feedback_text': self.feedback_text,
+            'feedback_category': self.feedback_category,
+            'username': self.username,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class HMCompletedReturnSnapshot(db.Model):
+    __tablename__ = 'hm_completed_return_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    
+    # Core grouping
+    hm_ro = db.Column(db.String(150))
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    hallmark_agent = db.Column(db.String(200))
+    supplier = db.Column(db.String(200)) # party
+    
+    # Summary columns
+    hm_agent_invoice_receipt_date = db.Column(db.Date)
+    hm_agent_invoice_receipt_no = db.Column(db.String(100))
+    hm_completed_date = db.Column(db.DateTime)
+    pieces = db.Column(db.Integer) # pending_to_hm_recipt_return_piece
+    weight = db.Column(db.Numeric(12, 3)) # pending_to_hm_recipt_return_wt
+    net_weight = db.Column(db.Numeric(12, 3))
+    gross_weight = db.Column(db.Numeric(12, 3))
+    stone_weight = db.Column(db.Numeric(12, 3))
+    
+    # Detail / Popup Columns
+    po_number = db.Column(db.String(100), index=True)
+    po_date = db.Column(db.Date)
+    order_branch = db.Column(db.String(200))
+    order_type = db.Column(db.String(150))
+    order_request_type = db.Column(db.String(150))
+    party_mobile_no = db.Column(db.String(50))
+    set_identifier = db.Column(db.String(100))
+    set_design_no = db.Column(db.String(100))
+    hm_agent_email = db.Column(db.String(200))
+    hm_agent_pnone_no = db.Column(db.String(50))
+    
+    # Logistic Popup Columns
+    logistic_mobile_no = db.Column(db.String(50))
+    logistic_date = db.Column(db.DateTime)
+    vehicle_no = db.Column(db.String(50))
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
+            'hm_ro': self.hm_ro,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'hallmark_agent': self.hallmark_agent,
+            'supplier': self.supplier,
+            'pieces': self.pieces,
+            'weight': float(self.weight or 0),
+            'net_weight': float(self.net_weight or 0),
+            'gross_weight': float(self.gross_weight or 0),
+            'stone_weight': float(self.stone_weight or 0),
+            'po_number': self.po_number,
+            'po_date': self.po_date.isoformat() if self.po_date else None,
+            'logistic_date': self.logistic_date.isoformat() if self.logistic_date else None,
+            'vehicle_no': self.vehicle_no
+        }
+
+class SupplierHMIssueFeedback(db.Model):
+    __tablename__ = 'supplier_hm_issue_feedback'
+
+    id = db.Column(db.Integer, primary_key=True)
+    hm_ro = db.Column(db.String(150))
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    hallmark_agent = db.Column(db.String(200))
+    supplier = db.Column(db.String(200))
+    
+    feedback_text = db.Column(db.Text)
+    feedback_category = db.Column(db.String(100))
+    username = db.Column(db.String(80))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'hm_ro': self.hm_ro,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'hallmark_agent': self.hallmark_agent,
+            'supplier': self.supplier,
+            'feedback_text': self.feedback_text,
+            'feedback_category': self.feedback_category,
+            'username': self.username,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class SupplierHMIssueSnapshot(db.Model):
+    __tablename__ = 'supplier_hm_issue_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    
+    # Core drill-down / grouping columns
+    hm_ro = db.Column(db.String(150))
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    hallmark_agent = db.Column(db.String(200))
+    supplier = db.Column(db.String(200)) # party from view
+    
+    # Metrics
+    pieces = db.Column(db.Integer) # Piece or pending_to_hallmark_issue_piece
+    barcoded_weight = db.Column(db.Numeric(12, 3))
+    gross_weight = db.Column(db.Numeric(12, 3))
+    net_weight = db.Column(db.Numeric(12, 3))
+    stone_weight = db.Column(db.Numeric(12, 3))
+    
+    # Detail / Modal columns
+    po_number = db.Column(db.String(100), index=True)
+    po_date = db.Column(db.Date)
+    party_mobile_no = db.Column(db.String(50))
+    hm_agent_email = db.Column(db.String(200))
+    hm_issue_receipt_date = db.Column(db.DateTime)
+    hm_issue_receipt_no = db.Column(db.String(100))
+    barcode_completion_date = db.Column(db.Date)
+    set_identifier = db.Column(db.String(100))
+    set_design_no = db.Column(db.String(100))
+    order_type = db.Column(db.String(150))
+    order_request_type = db.Column(db.String(150))
+    target_date = db.Column(db.Date)
+    order_branch = db.Column(db.String(200))
+    bh_name = db.Column(db.String(200))
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
+            'hm_ro': self.hm_ro,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'hallmark_agent': self.hallmark_agent,
+            'supplier': self.supplier,
+            'pieces': self.pieces,
+            'barcoded_weight': float(self.barcoded_weight or 0),
+            'gross_weight': float(self.gross_weight or 0),
+            'net_weight': float(self.net_weight or 0),
+            'stone_weight': float(self.stone_weight or 0),
+            'po_number': self.po_number,
+            'po_date': self.po_date.isoformat() if self.po_date else None,
+            'party_mobile_no': self.party_mobile_no,
+            'hm_agent_email': self.hm_agent_email,
+            'hm_issue_receipt_date': self.hm_issue_receipt_date.isoformat() if self.hm_issue_receipt_date else None,
+            'hm_issue_receipt_no': self.hm_issue_receipt_no,
+            'barcode_completion_date': self.barcode_completion_date.isoformat() if self.barcode_completion_date else None,
+            'set_identifier': self.set_identifier,
+            'set_design_no': self.set_design_no,
+            'order_type': self.order_type,
+            'order_request_type': self.order_request_type,
+            'target_date': self.target_date.isoformat() if self.target_date else None,
+            'order_branch': self.order_branch,
+            'bh_name': self.bh_name
+        }
+
+class HMReturnQCIssueFeedback(db.Model):
+    __tablename__ = 'hm_return_qc_issue_feedback'
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_branch = db.Column(db.String(200))
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    hallmark_agent = db.Column(db.String(200))
+    party = db.Column(db.String(200))
+    
+    feedback_text = db.Column(db.Text)
+    feedback_category = db.Column(db.String(100))
+    username = db.Column(db.String(80))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'order_branch': self.order_branch,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'hallmark_agent': self.hallmark_agent,
+            'party': self.party,
+            'feedback_text': self.feedback_text,
+            'feedback_category': self.feedback_category,
+            'username': self.username,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class HMReturnQCIssueSnapshot(db.Model):
+    __tablename__ = 'hm_return_qc_issue_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    
+    # Core grouping / drill-down
+    order_branch = db.Column(db.String(200))
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    party = db.Column(db.String(200))
+    hallmark_agent = db.Column(db.String(200))
+    
+    # Summary columns
+    hm_agent_invoice_receipt_date = db.Column(db.Date)
+    hm_agent_invoice_receipt_no = db.Column(db.String(100))
+    pieces = db.Column(db.Integer) # pending_to_final_qc_issue_pcs
+    weight = db.Column(db.Numeric(12, 3)) # pending_to_final_qc_issue_weight
+    barcoded_weight = db.Column(db.Numeric(12, 3))
+    net_weight = db.Column(db.Numeric(12, 3))
+    gross_weight = db.Column(db.Numeric(12, 3))
+    stone_weight = db.Column(db.Numeric(12, 3))
+    
+    # Detail / Popup columns
+    po_date = db.Column(db.Date)
+    po_number = db.Column(db.String(100), index=True)
+    order_type = db.Column(db.String(150))
+    order_request_type = db.Column(db.String(150))
+    party_mobile_no = db.Column(db.String(50))
+    hm_request_no = db.Column(db.String(100))
+    hm_ro = db.Column(db.String(150))
+    hm_agent_email = db.Column(db.String(200))
+    hm_agent_pnone_no = db.Column(db.String(50))
+    hm_completed_at = db.Column(db.DateTime)
+    barcode_completion_date = db.Column(db.DateTime)
+    set_identifier = db.Column(db.String(100))
+    set_design_no = db.Column(db.String(100))
+    target_date = db.Column(db.Date)
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
+            'order_branch': self.order_branch,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'party': self.party,
+            'hallmark_agent': self.hallmark_agent,
+            'hm_agent_invoice_receipt_date': self.hm_agent_invoice_receipt_date.isoformat() if self.hm_agent_invoice_receipt_date else None,
+            'hm_agent_invoice_receipt_no': self.hm_agent_invoice_receipt_no,
+            'pieces': self.pieces,
+            'weight': float(self.weight or 0),
+            'barcoded_weight': float(self.barcoded_weight or 0),
+            'net_weight': float(self.net_weight or 0),
+            'gross_weight': float(self.gross_weight or 0),
+            'stone_weight': float(self.stone_weight or 0),
+            'po_date': self.po_date.isoformat() if self.po_date else None,
+            'po_number': self.po_number,
+            'hm_completed_at': self.hm_completed_at.isoformat() if self.hm_completed_at else None
+        }
+
+class SupplierQCIssueReceiptPendingFeedback(db.Model):
+    __tablename__ = 'supplier_qc_issue_receipt_pending_feedback'
+
+    id = db.Column(db.Integer, primary_key=True)
+    qc_ro = db.Column(db.String(150))
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    party = db.Column(db.String(200))
+    
+    feedback_text = db.Column(db.Text)
+    feedback_category = db.Column(db.String(100))
+    username = db.Column(db.String(80))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'qc_ro': self.qc_ro,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'party': self.party,
+            'feedback_text': self.feedback_text,
+            'feedback_category': self.feedback_category,
+            'username': self.username,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class SupplierQCIssueReceiptPendingSnapshot(db.Model):
+    __tablename__ = 'supplier_qc_issue_receipt_pending_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    
+    # Core grouping / drill-down
+    qc_ro = db.Column(db.String(150))
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    party = db.Column(db.String(200))
+    
+    # Filter only columns
+    order_branch = db.Column(db.String(200))
+    business_head_name = db.Column(db.String(150))
+    
+    # Summary columns
+    qc_issue_receipt_date = db.Column(db.Date)
+    qc_issue_receipt_no = db.Column(db.String(100))
+    pieces = db.Column(db.Integer) # qc_pending_to_receipt_pcs
+    weight = db.Column(db.Numeric(12, 3)) # qc_pending_to_receipt_wt
+    barcoded_weight = db.Column(db.Numeric(12, 3))
+    net_weight = db.Column(db.Numeric(12, 3))
+    gross_weight = db.Column(db.Numeric(12, 3))
+    stone_weight = db.Column(db.Numeric(12, 3))
+    
+    # Detail / Popup columns
+    qc_ro_incharge = db.Column(db.String(150))
+    po_date = db.Column(db.Date)
+    po_number = db.Column(db.String(100), index=True)
+    set_identifier = db.Column(db.String(100))
+    set_design_no = db.Column(db.String(100))
+    order_type = db.Column(db.String(150))
+    order_request_type = db.Column(db.String(150))
+    party_mobile_no = db.Column(db.String(50))
+    barcode_completion_date = db.Column(db.DateTime)
+    target_date = db.Column(db.Date)
+    hm_ro = db.Column(db.String(150))
+    hallmark_agent = db.Column(db.String(200))
+    hm_agent_email = db.Column(db.String(200))
+    hm_agent_pnone_no = db.Column(db.String(50))
+    hm_completed_at = db.Column(db.DateTime)
+    hm_request_no = db.Column(db.String(100))
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
+            'qc_ro': self.qc_ro,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'party': self.party,
+            'qc_issue_receipt_date': self.qc_issue_receipt_date.isoformat() if self.qc_issue_receipt_date else None,
+            'qc_issue_receipt_no': self.qc_issue_receipt_no,
+            'pieces': self.pieces,
+            'weight': float(self.weight or 0),
+            'barcoded_weight': float(self.barcoded_weight or 0),
+            'net_weight': float(self.net_weight or 0),
+            'gross_weight': float(self.gross_weight or 0),
+            'stone_weight': float(self.stone_weight or 0),
+            'po_number': self.po_number,
+            'po_date': self.po_date.isoformat() if self.po_date else None
+        }
+
+class QCCompletedInvoicePendingSnapshot(db.Model):
+    __tablename__ = 'qc_completed_invoice_pending_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    
+    # Core drill-down / grouping columns
+    order_branch = db.Column(db.String(150))
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    party = db.Column(db.String(200))
+    
+    # Summary/Metrics
+    qc_issue_receipt_no = db.Column(db.String(100))
+    qc_issue_receipt_date = db.Column(db.Date)
+    qc_completed_date = db.Column(db.DateTime)
+    pieces = db.Column(db.Integer) # pending_to_invoice_pcs
+    weight = db.Column(db.Numeric(12, 3)) # pending_to_invoice_wt
+    barcoded_weight = db.Column(db.Numeric(12, 3))
+    net_weight = db.Column(db.Numeric(12, 3))
+    gross_weight = db.Column(db.Numeric(12, 3))
+    stone_weight = db.Column(db.Numeric(12, 3))
+    
+    # Detail / Modal columns
+    make = db.Column(db.String(150))
+    business_head_name = db.Column(db.String(150))
+    po_date = db.Column(db.Date)
+    po_number = db.Column(db.String(100), index=True)
+    order_type = db.Column(db.String(150))
+    order_request_type = db.Column(db.String(150))
+    party_mobile_no = db.Column(db.String(50))
+    barcode_completion_date = db.Column(db.DateTime)
+    set_identifier = db.Column(db.String(100))
+    set_design_no = db.Column(db.String(100))
+    target_date = db.Column(db.Date)
+    qc_ro = db.Column(db.String(150))
+    qc_ro_incharge = db.Column(db.String(150))
+    final_qc_receipt_no = db.Column(db.String(100))
+    final_qc_receipt_date = db.Column(db.Date)
+    invoice_ro = db.Column(db.String(150))
+    is_qc_completed = db.Column(db.Boolean, default=False)
+    is_rate_requisition_completed = db.Column(db.Boolean, default=False)
+    is_invoiced = db.Column(db.Boolean, default=False)
+    purchase_invoice_rate_requisition_number = db.Column(db.String(150))
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class QCCompletedInvoicePendingFeedback(db.Model):
+    __tablename__ = 'qc_completed_invoice_pending_feedbacks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_branch = db.Column(db.String(150))
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    party = db.Column(db.String(200))
+    
+    feedback_text = db.Column(db.Text)
+    feedback_category = db.Column(db.String(100))
+    username = db.Column(db.String(80))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'order_branch': self.order_branch,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'party': self.party,
+            'feedback_text': self.feedback_text,
+            'feedback_category': self.feedback_category,
+            'username': self.username,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class InvoiceCompletedPendingDeliverSnapshot(db.Model):
+    __tablename__ = 'invoice_completed_pending_deliver_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    
+    # Core drill-down / grouping columns
+    order_branch = db.Column(db.String(150))
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    party = db.Column(db.String(200))
+    
+    # Summary/Metrics
+    invoice_date = db.Column(db.Date)
+    invoice_no = db.Column(db.String(100))
+    invoice_amount = db.Column(db.Numeric(15, 2))
+    pieces = db.Column(db.Integer) # pending_to_deliver_pcs
+    weight = db.Column(db.Numeric(12, 3)) # pending_to_deliver_wt
+    barcoded_weight = db.Column(db.Numeric(12, 3))
+    net_weight = db.Column(db.Numeric(12, 3))
+    gross_weight = db.Column(db.Numeric(12, 3))
+    stone_weight = db.Column(db.Numeric(12, 3))
+    
+    # Detail / Modal columns
+    make = db.Column(db.String(150))
+    business_head_name = db.Column(db.String(150))
+    po_date = db.Column(db.Date)
+    po_number = db.Column(db.String(100), index=True)
+    order_type = db.Column(db.String(150))
+    order_request_type = db.Column(db.String(150))
+    party_mobile_no = db.Column(db.String(50))
+    barcode_completion_date = db.Column(db.DateTime)
+    set_identifier = db.Column(db.String(100))
+    set_design_no = db.Column(db.String(100))
+    target_date = db.Column(db.Date)
+    invoice_ro = db.Column(db.String(150))
+    is_invoiced = db.Column(db.Boolean, default=False)
+    purchase_invoice_rate_requisition_number = db.Column(db.String(150))
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class InvoiceCompletedPendingDeliverFeedback(db.Model):
+    __tablename__ = 'invoice_completed_pending_deliver_feedbacks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_branch = db.Column(db.String(150))
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    party = db.Column(db.String(200))
+    
+    feedback_text = db.Column(db.Text)
+    feedback_category = db.Column(db.String(100))
+    username = db.Column(db.String(80))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'order_branch': self.order_branch,
+            'make_owner': self.make_owner,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'party': self.party,
             'feedback_text': self.feedback_text,
             'feedback_category': self.feedback_category,
             'username': self.username,

@@ -399,6 +399,139 @@
                                     </button>
                                 </div>
 
+                                <div id="sync-wrapper-order_processing_pending"
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-blue-500 text-xl">assignment_late</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Barcode Completed Hallmark Pending</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for hallmarking issue</p>
+                                        </div>
+                                    </div>
+                                    <button id="sync-order-processing-pending-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-blue-600 transition-all shadow-md shadow-blue-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
+                                </div>
+
+                                <div id="sync-wrapper-supplier_hm_issue"
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-cyan-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-cyan-500 text-xl">move_to_inbox</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Supplier HM Issue Completed</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs pending hallmark receipt</p>
+                                        </div>
+                                    </div>
+                                    <button id="sync-supplier-hm-issue-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-cyan-600 transition-all shadow-md shadow-cyan-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
+                                </div>
+
+                                <div id="sync-wrapper-hm_return_pending"
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-sky-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-sky-500 text-xl">assignment_return</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">HM Completed Return Pending</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for HM return receipt</p>
+                                        </div>
+                                    </div>
+                                    <button id="sync-hm-return-pending-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-sky-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-sky-600 transition-all shadow-md shadow-sky-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
+                                </div>
+
+                                <div id="sync-wrapper-hm_qc_issue_pending"
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-indigo-500 text-xl">rule</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">HM Return Received QC Pending</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for QC issue</p>
+                                        </div>
+                                    </div>
+                                    <button id="sync-hm-qc-issue-pending-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-indigo-600 transition-all shadow-md shadow-indigo-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
+                                </div>
+
+                                <div id="sync-wrapper-supplier_qc_issue_receipt_pending"
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-violet-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-violet-500 text-xl">receipt_long</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Supplier QC Issue Receipt Pending</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for QC receipt</p>
+                                        </div>
+                                    </div>
+                                    <button id="sync-supplier-qc-issue-receipt-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-violet-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-violet-600 transition-all shadow-md shadow-violet-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
+                                </div>
+
+                                <div id="sync-wrapper-qc_completed_invoice_pending"
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-purple-500 text-xl">description</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">QC Completed Invoice Pending</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for invoicing</p>
+                                        </div>
+                                    </div>
+                                    <button id="sync-qc-completed-invoice-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-purple-600 transition-all shadow-md shadow-purple-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
+                                </div>
+
+                                <div id="sync-wrapper-invoice_completed_pending_deliver"
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-fuchsia-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-fuchsia-500 text-xl">local_shipping</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Invoice Completed Pending Delivery</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for delivery</p>
+                                        </div>
+                                    </div>
+                                    <button id="sync-invoice-completed-deliver-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-fuchsia-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-fuchsia-600 transition-all shadow-md shadow-fuchsia-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
+                                </div>
+
                             </div>
 
                             <div
@@ -1054,9 +1187,16 @@
             syncPendingAcceptanceUrl: "{{ url_for('dashboard.sync_pending_acceptance') }}",
             syncRejectedWeightUrl: "{{ url_for('dashboard.sync_rejected_weight') }}",
             syncProvisionAllocationUrl: "{{ url_for('dashboard.settings_sync_provision_allocation') }}",
-            syncProvisionStatusUrl: "{{ url_for('dashboard.sync_provision_stock_status') }}",
+            syncProvisionStatusUrl: "{{ url_for('dashboard.settings_sync_provision_stock_status') }}",
             syncHallmarkingDelayedUrl: "{{ url_for('dashboard.sync_hallmarking_delayed') }}",
             syncQCDelayedUrl: "{{ url_for('dashboard.sync_qc_delayed') }}",
+            syncOrderProcessingPendingUrl: "{{ url_for('dashboard.settings_sync_order_processing_pending') }}",
+            syncSupplierHMIssueUrl: "{{ url_for('dashboard.settings_sync_supplier_hm_issue') }}",
+            syncHMReturnPendingUrl: "{{ url_for('dashboard.settings_sync_hm_return_pending') }}",
+            syncHMQCIssuePendingUrl: "{{ url_for('dashboard.settings_sync_hm_qc_issue_pending') }}",
+            syncSupplierQCIssueReceiptUrl: "{{ url_for('dashboard.settings_sync_supplier_qc_issue_receipt') }}",
+            syncQCCompletedInvoiceUrl: "{{ url_for('dashboard.settings_sync_qc_completed_invoice') }}",
+            syncInvoiceCompletedDeliverUrl: "{{ url_for('dashboard.settings_sync_invoice_completed_deliver') }}",
             syncOwnerShowroomUrl: "{{ url_for('dashboard.sync_owner_and_showroom_wise') }}",
             syncLogsUrl: "{{ url_for('dashboard.get_sync_logs') }}",
             auditLogsUrl: "{{ url_for('admin_rbac.get_audit_logs') }}",

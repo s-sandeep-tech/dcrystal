@@ -60,6 +60,7 @@ def seed_rbac():
             {"title": "StageLevel Delay Report", "url": "/stageleveldelay", "icon": "query_stats", "order": 65},
             {"title": "Owner Wise Summary", "url": "/ownerwiseordersummary", "icon": "person_pin", "order": 70},
             {"title": "Pending Acceptance Report", "url": "/pending-acceptance-feedback", "icon": "assignment_turned_in", "order": 72},
+            {"title": "Order Processing Pending Report", "url": "/order-processing-pending-status", "icon": "assignment_late", "order": 73},
             {"title": "Outstanding PO Status", "url": "/outstanding_purchase_orders", "icon": "receipt_long", "order": 75},
             {"title": "Crystal General Issues", "url": "/crystal_issues", "icon": "report_problem", "order": 80},
             {"title": "Provision Allocation Summary", "url": "/provision-allocation-summary", "icon": "summarize", "order": 85},

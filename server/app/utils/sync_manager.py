@@ -52,3 +52,24 @@ def sync_hallmarking_delayed_data(user_id=None):
 
 def sync_qc_delayed_data(user_id=None):
     return enqueue_sync_task('qc_delayed', user_id)
+
+def sync_order_processing_pending_data(user_id=None):
+    return enqueue_sync_task('order_processing_pending', user_id)
+
+def sync_supplier_hm_issue_data(user_id=None):
+    return enqueue_sync_task('supplier_hm_issue', user_id)
+
+def sync_hm_return_pending_data(user_id=None):
+    return enqueue_sync_task('hm_return_pending', user_id)
+
+def sync_hm_qc_issue_pending_data(user_id=None):
+    return enqueue_sync_task('hm_qc_issue_pending', user_id)
+
+def sync_supplier_qc_issue_receipt_pending_data(user_id=None):
+    return enqueue_sync_task('supplier_qc_issue_receipt_pending', user_id)
+
+def sync_qc_completed_invoice_pending_data(user_id=None):
+    return enqueue_sync_task('qc_completed_invoice_pending', user_id)
+
+def sync_invoice_completed_pending_deliver_data(user_id=None):
+    return enqueue_sync_task('invoice_completed_pending_deliver', user_id)

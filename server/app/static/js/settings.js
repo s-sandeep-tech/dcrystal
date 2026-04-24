@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Reset all sync buttons IF NOT in Sync All mode
                     if (!window.isSyncAllActive) {
-                        [syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, syncProvisionStatusBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn].forEach(btn => {
+                        [syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, syncProvisionStatusBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn, syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
                         });
                     }
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Reset all sync buttons
                     if (!window.isSyncAllActive) {
-                        [syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, syncProvisionStatusBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn].forEach(btn => {
+                        [syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, syncProvisionStatusBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn, syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
                         });
                     }
@@ -135,6 +135,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncProvisionStatusBtn = document.getElementById('sync-provision-status-btn');
     const syncHallmarkingDelayedBtn = document.getElementById('sync-hallmarking-delayed-btn');
     const syncQCDelayedBtn = document.getElementById('sync-qc-delayed-btn');
+    const syncOrderProcessingPendingBtn = document.getElementById('sync-order-processing-pending-btn');
+    const syncSupplierHMIssueBtn = document.getElementById('sync-supplier-hm-issue-btn');
+    const syncHMReturnPendingBtn = document.getElementById('sync-hm-return-pending-btn');
+    const syncHMQCIssuePendingBtn = document.getElementById('sync-hm-qc-issue-pending-btn');
+    const syncSupplierQCIssueReceiptBtn = document.getElementById('sync-supplier-qc-issue-receipt-btn');
+    const syncQCCompletedInvoiceBtn = document.getElementById('sync-qc-completed-invoice-btn');
+    const syncInvoiceCompletedDeliverBtn = document.getElementById('sync-invoice-completed-deliver-btn');
     const syncAllBtn = document.getElementById('sync-all-btn');
 
     async function triggerSync(btn, url, label, type) {
@@ -185,6 +192,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncProvisionStatusBtn) syncProvisionStatusBtn.addEventListener('click', () => triggerSync(syncProvisionStatusBtn, window.SETTINGS_CONFIG.syncProvisionStatusUrl, 'Provision & Stock Status Sync', 'provision_stock_status'));
     if (syncHallmarkingDelayedBtn) syncHallmarkingDelayedBtn.addEventListener('click', () => triggerSync(syncHallmarkingDelayedBtn, window.SETTINGS_CONFIG.syncHallmarkingDelayedUrl, 'Hallmarking Delayed Sync', 'hallmarking_delayed'));
     if (syncQCDelayedBtn) syncQCDelayedBtn.addEventListener('click', () => triggerSync(syncQCDelayedBtn, window.SETTINGS_CONFIG.syncQCDelayedUrl, 'QC Pending Sync', 'qc_delayed'));
+    if (syncOrderProcessingPendingBtn) syncOrderProcessingPendingBtn.addEventListener('click', () => triggerSync(syncOrderProcessingPendingBtn, window.SETTINGS_CONFIG.syncOrderProcessingPendingUrl, 'Barcode Completed Hallmark Pending Sync', 'order_processing_pending'));
+    if (syncSupplierHMIssueBtn) syncSupplierHMIssueBtn.addEventListener('click', () => triggerSync(syncSupplierHMIssueBtn, window.SETTINGS_CONFIG.syncSupplierHMIssueUrl, 'Supplier HM Issue Completed Sync', 'supplier_hm_issue'));
+    if (syncHMReturnPendingBtn) syncHMReturnPendingBtn.addEventListener('click', () => triggerSync(syncHMReturnPendingBtn, window.SETTINGS_CONFIG.syncHMReturnPendingUrl, 'HM Completed Return Pending Sync', 'hm_return_pending'));
+    if (syncHMQCIssuePendingBtn) syncHMQCIssuePendingBtn.addEventListener('click', () => triggerSync(syncHMQCIssuePendingBtn, window.SETTINGS_CONFIG.syncHMQCIssuePendingUrl, 'HM Return Received QC Pending Sync', 'hm_qc_issue_pending'));
+    if (syncSupplierQCIssueReceiptBtn) syncSupplierQCIssueReceiptBtn.addEventListener('click', () => triggerSync(syncSupplierQCIssueReceiptBtn, window.SETTINGS_CONFIG.syncSupplierQCIssueReceiptUrl, 'Supplier QC Issue Receipt Pending Sync', 'supplier_qc_issue_receipt_pending'));
+    if (syncQCCompletedInvoiceBtn) syncQCCompletedInvoiceBtn.addEventListener('click', () => triggerSync(syncQCCompletedInvoiceBtn, window.SETTINGS_CONFIG.syncQCCompletedInvoiceUrl, 'QC Completed Invoice Pending Sync', 'qc_completed_invoice_pending'));
+    if (syncInvoiceCompletedDeliverBtn) syncInvoiceCompletedDeliverBtn.addEventListener('click', () => triggerSync(syncInvoiceCompletedDeliverBtn, window.SETTINGS_CONFIG.syncInvoiceCompletedDeliverUrl, 'Invoice Completed Pending Delivery Sync', 'invoice_completed_pending_deliver'));
 
     function showConfirmModal(title, message) {
         return new Promise((resolve) => {
@@ -244,6 +258,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 { url: window.SETTINGS_CONFIG.syncProvisionStatusUrl, label: 'Provision & Stock Status', type: 'provision_stock_status' },
                 { url: window.SETTINGS_CONFIG.syncHallmarkingDelayedUrl, label: 'Hallmarking Delayed', type: 'hallmarking_delayed' },
                 { url: window.SETTINGS_CONFIG.syncQCDelayedUrl, label: 'QC Pending', type: 'qc_delayed' },
+                { url: window.SETTINGS_CONFIG.syncOrderProcessingPendingUrl, label: 'Barcode Completed Hallmark Pending', type: 'order_processing_pending' },
+                { url: window.SETTINGS_CONFIG.syncSupplierHMIssueUrl, label: 'Supplier HM Issue Completed', type: 'supplier_hm_issue' },
+                { url: window.SETTINGS_CONFIG.syncHMReturnPendingUrl, label: 'HM Completed Return Pending', type: 'hm_return_pending' },
+                { url: window.SETTINGS_CONFIG.syncHMQCIssuePendingUrl, label: 'HM Return Received QC Pending', type: 'hm_qc_issue_pending' },
+                { url: window.SETTINGS_CONFIG.syncSupplierQCIssueReceiptUrl, label: 'Supplier QC Issue Receipt Pending', type: 'supplier_qc_issue_receipt_pending' },
+                { url: window.SETTINGS_CONFIG.syncQCCompletedInvoiceUrl, label: 'QC Completed Invoice Pending', type: 'qc_completed_invoice_pending' },
+                { url: window.SETTINGS_CONFIG.syncInvoiceCompletedDeliverUrl, label: 'Invoice Completed Pending Delivery', type: 'invoice_completed_pending_deliver' },
             ];
 
             setSyncLoading(syncAllBtn, 'Processing');

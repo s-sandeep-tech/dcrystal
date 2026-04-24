@@ -1,0 +1,93 @@
+<table class="enterprise-grid w-full text-[11px] border-collapse bg-white dark:bg-gray-900 sticky-header" style="table-layout: fixed;">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[9px] tracking-wider">
+            <th class="text-left px-4 pl-6 py-2 text-gray-800 dark:text-gray-200" style="width: 65%;">Hierarchy (Owner > Collection > Branch > Supplier)</th>
+            <th class="text-right px-4 py-2" style="width: 10%;">Weight (KG)</th>
+            <th class="text-right px-4 py-2" style="width: 10%;">Pieces</th>
+            <th class="text-center px-4 py-2" style="width: 5%;">Feedback</th>
+            <th class="text-center px-4 py-2" style="width: 10%;">Actions</th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        {% for r in rows %}
+        <tr class="level-{{ r.level }} hover:bg-blue-50/20 transition-colors {{ 'hidden' if r.level > 1 else '' }} group" 
+            data-id="{{ r.id }}" data-parent="{{ r.parent_id }}" data-level="{{ r.level }}" data-expanded="false"
+            onclick="toggleRow('{{ r.id }}')">
+            <td class="px-4 py-2 flex items-center gap-2" style="padding-left: {{ (r.level - 1) * 20 + 24 }}px;">
+                {% if not r.is_leaf %}
+                <span class="material-symbols-outlined text-[16px] cursor-pointer toggle-icon text-gray-400 group-hover:text-primary transition-all">chevron_right</span>
+                <span class="font-bold text-gray-800 dark:text-gray-200">{{ r.label }}</span>
+                {% else %}
+                <span class="size-4 shrink-0"></span>
+                <span class="font-medium text-gray-600 dark:text-gray-400">{{ r.label }}</span>
+                {% endif %}
+            </td>
+            <td class="text-right px-4 py-2 font-black {{ 'text-blue-600' if r.level == 1 else 'text-gray-700 dark:text-gray-300' }}">
+                {{ "%.3f"|format(r.weight) }}
+            </td>
+            <td class="text-right px-4 py-2 font-bold text-gray-500 dark:text-gray-400">
+                {{ r.pieces }}
+            </td>
+            <td class="px-4 py-2 text-center">
+                {% if r.is_leaf %}
+                    {% if r.feedback_text %}
+                    <div class="relative group/tooltip inline-flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[16px] text-indigo-500 cursor-help hover:text-primary transition-colors">chat</span>
+                        <div class="absolute right-full top-1/2 -translate-y-1/2 mr-3 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all duration-200 z-[9999] min-w-[280px] max-w-[320px] pointer-events-none text-left">
+                            <div class="bg-gray-800 dark:bg-gray-900 border border-gray-700 shadow-xl shadow-black/40 rounded-lg p-3 text-white relative">
+                                <div class="absolute left-full top-1/2 -translate-y-1/2 -ml-1 border-8 border-transparent border-l-gray-800 dark:border-l-gray-900"></div>
+                                <div class="text-[10px] space-y-2">
+                                    <div class="flex items-center justify-between border-b border-gray-700/50 pb-1.5">
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-blue-400 uppercase tracking-wider">User Feedback</span>
+                                            {% if r.feedback_category %}
+                                            <span class="text-[8px] text-amber-400 font-bold uppercase tracking-widest mt-0.5">{{ r.feedback_category }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <span class="text-[9px] text-gray-400 italic">{{ r.feedback_username }}</span>
+                                    </div>
+                                    <p class="whitespace-normal break-words leading-relaxed text-gray-200 italic">"{{ r.feedback_text }}"</p>
+                                    <div class="pt-1.5 border-t border-gray-700/50 text-[9px] text-gray-400 flex justify-end italic">{{ r.feedback_date }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <span class="text-gray-300 italic text-[10px]">-</span>
+                    {% endif %}
+                {% endif %}
+            </td>
+            <td class="px-4 py-2 text-center" onclick="event.stopPropagation()">
+                {% if r.is_leaf %}
+                <div class="flex items-center justify-center gap-2">
+                    <button onclick="showPODetailsModal('{{ r.collection_owner | replace('\'', '\\\'') }}', '{{ r.collection | replace('\'', '\\\'') }}', '{{ r.branch | replace('\'', '\\\'') }}', '{{ r.supplier | replace('\'', '\\\'') }}')" 
+                            class="size-6.5 flex items-center justify-center rounded bg-gray-50 border border-gray-200 text-gray-500 hover:text-indigo-600 hover:border-indigo-300 transition-all shadow-sm" title="View PO Details">
+                        <span class="material-symbols-outlined text-[14px]">visibility</span>
+                    </button>
+                    <button onclick="openFeedbackModal('{{ r.collection_owner | replace('\'', '\\\'') }}', '{{ r.collection | replace('\'', '\\\'') }}', '{{ r.branch | replace('\'', '\\\'') }}', '{{ r.supplier | replace('\'', '\\\'') }}', '{{ (r.feedback_text or '')|replace("\'", "\\\'") }}', '{{ (r.feedback_category or '')|replace("\'", "\\\'") }}')"
+                            class="size-6.5 flex items-center justify-center rounded bg-indigo-50 border border-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Feedback">
+                        <span class="material-symbols-outlined text-[14px]">{{ 'edit_note' if r.feedback_text else 'add_comment' }}</span>
+                    </button>
+                </div>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Metadata for JS to pick up -->
+<div class="stats-meta hidden" 
+    data-total-pieces="{{ stats.total_pieces }}"
+    data-total-weight="{{ "{:,.3f}".format(stats.total_weight) }}"
+    data-with-feedback="{{ stats.with_feedback }}"
+    data-without-feedback="{{ stats.without_feedback }}">
+</div>
+
+<div class="pagination-meta hidden" 
+    data-page="{{ pagination.page }}"
+    data-per-page="{{ pagination.per_page }}"
+    data-total="{{ pagination.total }}"
+    data-has-prev="{{ 'true' if pagination.has_prev else 'false' }}"
+    data-has-next="{{ 'true' if pagination.has_next else 'false' }}">
+</div>
