@@ -659,3 +659,11 @@ def toggle_report_offline():
         print(f"Failed to update redis: {e}")
     
     return {"status": "success", "message": f"Report {'offline' if is_offline else 'online'} successfully"}
+
+@dashboard_bp.route('/debug-origin')
+def debug_origin():
+    from flask import request, jsonify
+    header_value = request.headers.get('X-Access-Channel')
+    if header_value:
+        return jsonify({"origin": header_value})
+    return "Header Not Found"
