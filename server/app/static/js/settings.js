@@ -192,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncProvisionStatusBtn) syncProvisionStatusBtn.addEventListener('click', () => triggerSync(syncProvisionStatusBtn, window.SETTINGS_CONFIG.syncProvisionStatusUrl, 'Provision & Stock Status Sync', 'provision_stock_status'));
     if (syncHallmarkingDelayedBtn) syncHallmarkingDelayedBtn.addEventListener('click', () => triggerSync(syncHallmarkingDelayedBtn, window.SETTINGS_CONFIG.syncHallmarkingDelayedUrl, 'Hallmarking Delayed Sync', 'hallmarking_delayed'));
     if (syncQCDelayedBtn) syncQCDelayedBtn.addEventListener('click', () => triggerSync(syncQCDelayedBtn, window.SETTINGS_CONFIG.syncQCDelayedUrl, 'QC Pending Sync', 'qc_delayed'));
-    if (syncOrderProcessingPendingBtn) syncOrderProcessingPendingBtn.addEventListener('click', () => triggerSync(syncOrderProcessingPendingBtn, window.SETTINGS_CONFIG.syncOrderProcessingPendingUrl, 'Barcode Completed Hallmark Pending Sync', 'order_processing_pending'));
+    if (syncOrderProcessingPendingBtn) syncOrderProcessingPendingBtn.addEventListener('click', () => triggerSync(syncOrderProcessingPendingBtn, window.SETTINGS_CONFIG.syncOrderProcessingPendingUrl, 'Barcode completed – HM issue pending Sync', 'order_processing_pending'));
     if (syncSupplierHMIssueBtn) syncSupplierHMIssueBtn.addEventListener('click', () => triggerSync(syncSupplierHMIssueBtn, window.SETTINGS_CONFIG.syncSupplierHMIssueUrl, 'Supplier HM Issue Completed Sync', 'supplier_hm_issue'));
     if (syncHMReturnPendingBtn) syncHMReturnPendingBtn.addEventListener('click', () => triggerSync(syncHMReturnPendingBtn, window.SETTINGS_CONFIG.syncHMReturnPendingUrl, 'HM Completed Return Pending Sync', 'hm_return_pending'));
     if (syncHMQCIssuePendingBtn) syncHMQCIssuePendingBtn.addEventListener('click', () => triggerSync(syncHMQCIssuePendingBtn, window.SETTINGS_CONFIG.syncHMQCIssuePendingUrl, 'HM Return Received QC Pending Sync', 'hm_qc_issue_pending'));
@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { url: window.SETTINGS_CONFIG.syncProvisionStatusUrl, label: 'Provision & Stock Status', type: 'provision_stock_status' },
                 { url: window.SETTINGS_CONFIG.syncHallmarkingDelayedUrl, label: 'Hallmarking Delayed', type: 'hallmarking_delayed' },
                 { url: window.SETTINGS_CONFIG.syncQCDelayedUrl, label: 'QC Pending', type: 'qc_delayed' },
-                { url: window.SETTINGS_CONFIG.syncOrderProcessingPendingUrl, label: 'Barcode Completed Hallmark Pending', type: 'order_processing_pending' },
+                { url: window.SETTINGS_CONFIG.syncOrderProcessingPendingUrl, label: 'Barcode completed – HM issue pending', type: 'order_processing_pending' },
                 { url: window.SETTINGS_CONFIG.syncSupplierHMIssueUrl, label: 'Supplier HM Issue Completed', type: 'supplier_hm_issue' },
                 { url: window.SETTINGS_CONFIG.syncHMReturnPendingUrl, label: 'HM Completed Return Pending', type: 'hm_return_pending' },
                 { url: window.SETTINGS_CONFIG.syncHMQCIssuePendingUrl, label: 'HM Return Received QC Pending', type: 'hm_qc_issue_pending' },
