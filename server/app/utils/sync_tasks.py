@@ -2169,7 +2169,7 @@ def sync_hm_completed_return_data_task():
                 emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
 
         duration = time.time() - start_time
-        emit_sync_update('completed', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
+        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
         return {"status": "success", "count": len(rows)}
 
     except Exception as e:
@@ -2289,7 +2289,7 @@ def sync_supplier_hm_issue_data_task():
         duration = time.time() - start_time
         msg = f"Successfully synced {len(rows)} records in {duration:.2f}s"
         logger.info(msg)
-        emit_sync_update('completed', msg, 100, DATA_TYPE)
+        emit_sync_update('success', msg, 100, DATA_TYPE)
         return {"status": "success", "count": len(rows), "duration": duration}
 
     except Exception as e:
@@ -2385,7 +2385,7 @@ def sync_hm_return_qc_issue_data_task():
                 emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
 
         duration = time.time() - start_time
-        emit_sync_update('completed', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
+        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
         return {"status": "success", "count": len(rows)}
 
     except Exception as e:
@@ -2483,7 +2483,7 @@ def sync_supplier_qc_issue_receipt_pending_data_task():
                 emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
 
         duration = time.time() - start_time
-        emit_sync_update('completed', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
+        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
         return {"status": "success", "count": len(rows)}
 
     except Exception as e:
@@ -2586,7 +2586,7 @@ def sync_qc_completed_invoice_pending_data_task():
                 emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
 
         duration = time.time() - start_time
-        emit_sync_update('completed', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
+        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
         return {"status": "success", "count": len(rows)}
 
     except Exception as e:
@@ -2683,7 +2683,7 @@ def sync_invoice_completed_pending_deliver_data_task():
                 emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
 
         duration = time.time() - start_time
-        emit_sync_update('completed', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
+        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
         return {"status": "success", "count": len(rows)}
 
     except Exception as e:
