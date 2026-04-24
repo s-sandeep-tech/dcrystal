@@ -2030,41 +2030,35 @@ def sync_order_processing_pending_data_task():
             db.session.execute(text("TRUNCATE TABLE order_processing_pending_snapshots"))
             db.session.commit()
 
+            # Insert all records at once
             snapshot_date = datetime.now()
-            
-            # Bulk insert
-            batch_size = 1000
-            for i in range(0, len(rows), batch_size):
-                batch = rows[i:i + batch_size]
-                objects = [
-                    OrderProcessingPendingSnapshot(
-                        snapshot_date=snapshot_date,
-                        make_owner=row[0],
-                        collection_owner=row[1],
-                        collection=row[2],
-                        branch=row[3],
-                        supplier=row[4],
-                        po_date=row[5],
-                        po_number=row[6],
-                        # party (repeat) is row[7]
-                        party_mobile_no=row[8],
-                        barcode_completion_date=row[9],
-                        barcoded_weight=row[10],
-                        set_identifier=row[11],
-                        set_design_no=row[12],
-                        order_type=row[13],
-                        order_request_type=row[14],
-                        target_date=row[15],
-                        pieces=row[16], # pending_to_hallmark_issue_piece
-                        weight=row[17]  # pending_to_hallmark_issue_wt
-                    )
-                    for row in batch
-                ]
-                db.session.bulk_save_objects(objects)
-                db.session.commit()
-                
-                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
-                emit_sync_update('processing', f'Saving batch {i//batch_size + 1} of {total_batches}...', progress, DATA_TYPE)
+            objects = [
+                OrderProcessingPendingSnapshot(
+                    snapshot_date=snapshot_date,
+                    make_owner=row[0],
+                    collection_owner=row[1],
+                    collection=row[2],
+                    branch=row[3],
+                    supplier=row[4],
+                    po_date=row[5],
+                    po_number=row[6],
+                    # party (repeat) is row[7]
+                    party_mobile_no=row[8],
+                    barcode_completion_date=row[9],
+                    barcoded_weight=row[10],
+                    set_identifier=row[11],
+                    set_design_no=row[12],
+                    order_type=row[13],
+                    order_request_type=row[14],
+                    target_date=row[15],
+                    pieces=row[16], # pending_to_hallmark_issue_piece
+                    weight=row[17]  # pending_to_hallmark_issue_wt
+                )
+                for row in rows
+            ]
+            db.session.bulk_save_objects(objects)
+            db.session.commit()
+            emit_sync_update('processing', 'Local snapshot updated successfully.', 90, DATA_TYPE)
 
             duration = time.time() - start_time
             msg = f"Successfully synced {len(rows)} records in {duration:.2f}s"
