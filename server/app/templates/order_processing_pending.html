@@ -55,10 +55,21 @@
         margin-bottom: 4px;
     }
 
-    .text-blue-premium { color: #2563eb; }
-    .text-emerald-premium { color: #059669; }
-    .text-orange-premium { color: #ea580c; }
-    .text-indigo-premium { color: #4f46e5; }
+    .text-blue-premium {
+        color: #2563eb;
+    }
+
+    .text-emerald-premium {
+        color: #059669;
+    }
+
+    .text-orange-premium {
+        color: #ea580c;
+    }
+
+    .text-indigo-premium {
+        color: #4f46e5;
+    }
 
     .dark .stats-grid {
         background: #111827;
@@ -104,12 +115,12 @@
         background-color: transparent;
         border-color: transparent;
     }
-    
+
     .barcode-pending-card.active {
         border-color: #2563eb !important;
         background-color: #f1f7ff !important;
     }
-    
+
     .dark .barcode-pending-card.active {
         background-color: #1e293b !important;
         border-color: #3b82f6 !important;
@@ -118,27 +129,27 @@
     .barcode-pending-card .barcode-icon-container {
         padding-right: 12px;
     }
-    
+
     .barcode-pending-card.active .barcode-icon-container {
         border-right: 1px solid rgba(37, 99, 235, 0.2);
     }
-    
+
     .curved-arrow {
         position: absolute;
-        left: 8px;
+        left: -7px;
         top: -8px;
-        width: 20px;
+        width: 31px;
         height: 16px;
         border-left: 2px solid #2563eb;
         border-bottom: 2px solid #2563eb;
         border-bottom-left-radius: 10px;
         opacity: 0.4;
     }
-    
+
     .barcode-pending-card:not(.active) .curved-arrow {
         border-color: #94a3b8;
     }
-    
+
     .curved-arrow::after {
         content: '';
         position: absolute;
@@ -154,16 +165,16 @@
     .barcode-pending-card:not(.active) .curved-arrow::after {
         border-left-color: #94a3b8;
     }
-    
+
     .barcode-pending-card:not(.active) .text-blue-700 {
         color: #64748b !important;
     }
-    
+
     .barcode-pending-card:not(.active) .bg-blue-600 {
         background-color: #94a3b8 !important;
         box-shadow: none !important;
     }
-    
+
     .barcode-pending-card:not(.active) .material-symbols-outlined {
         color: #94a3b8 !important;
     }
@@ -171,33 +182,45 @@
 {% endblock %}
 
 {% block content %}
-<main id="order_processing_pending_main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+<main id="order_processing_pending_main"
+    class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
     <!-- Header -->
-    <div class="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
+    <div
+        class="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
         <div class="flex items-center gap-4">
             <h2 class="text-sm font-bold tracking-tight">Order Processing Pending Status and Feedback Report</h2>
         </div>
         <div class="flex items-center gap-3">
             <!-- Zoom Controls -->
-            <div class="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 items-center mr-2 ring-1 ring-gray-200 dark:ring-gray-700">
-                <button onclick="adjustZoom(-0.1)" class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors text-gray-500" title="Zoom Out">
+            <div
+                class="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 items-center mr-2 ring-1 ring-gray-200 dark:ring-gray-700">
+                <button onclick="adjustZoom(-0.1)"
+                    class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors text-gray-500"
+                    title="Zoom Out">
                     <span class="material-symbols-outlined text-[18px]">zoom_out</span>
                 </button>
-                <span id="zoom-level" class="text-[10px] font-bold text-gray-600 dark:text-gray-400 min-w-[35px] text-center">100%</span>
-                <button onclick="adjustZoom(0.1)" class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors text-gray-500" title="Zoom In">
+                <span id="zoom-level"
+                    class="text-[10px] font-bold text-gray-600 dark:text-gray-400 min-w-[35px] text-center">100%</span>
+                <button onclick="adjustZoom(0.1)"
+                    class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors text-gray-500"
+                    title="Zoom In">
                     <span class="material-symbols-outlined text-[18px]">zoom_in</span>
                 </button>
             </div>
 
-            <div class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
+            <div
+                class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
                 <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
-                <input id="hierarchy-search" class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0" placeholder="Search Data..." type="text" oninput="onSearchInput(this.value)" />
+                <input id="hierarchy-search"
+                    class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0"
+                    placeholder="Search Data..." type="text" oninput="onSearchInput(this.value)" />
             </div>
         </div>
     </div>
 
     <!-- Pagination Strip -->
-    <div class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+    <div
+        class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
             <span class="material-symbols-outlined text-[14px]">info</span>
             <span>Showing pending status and feedback for barcoded items.</span>
@@ -206,7 +229,8 @@
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
             <div class="flex items-center gap-2">
                 <span class="text-gray-400">Rows:</span>
-                <select id="per-page-select" onchange="changePerPage(this.value)" class="bg-transparent border-none text-[10px] font-bold focus:ring-0 p-0 cursor-pointer">
+                <select id="per-page-select" onchange="changePerPage(this.value)"
+                    class="bg-transparent border-none text-[10px] font-bold focus:ring-0 p-0 cursor-pointer">
                     <option value="50">50</option>
                     <option value="100">100</option>
                 </select>
@@ -227,30 +251,38 @@
     <!-- Stats Grid -->
     <div class="stats-grid no-scrollbar z-10" id="stats-container">
         <div class="stat-card">
-            <p class="stat-label"><span class="material-symbols-outlined text-blue-premium">inventory_2</span><span id="label-total-pieces">Total Pieces</span></p>
+            <p class="stat-label"><span class="material-symbols-outlined text-blue-premium">inventory_2</span><span
+                    id="label-total-pieces">Total Pieces</span></p>
             <p id="stat-total-pieces" class="stat-val text-blue-premium">0</p>
         </div>
         <div class="stat-card">
-            <p class="stat-label"><span class="material-symbols-outlined text-emerald-premium">check_circle</span><span id="label-total-weight">Total Weight</span></p>
+            <p class="stat-label"><span class="material-symbols-outlined text-emerald-premium">check_circle</span><span
+                    id="label-total-weight">Total Weight</span></p>
             <p id="stat-total-weight" class="stat-val text-emerald-premium">0.000</p>
         </div>
         <div class="stat-card">
-            <p class="stat-label"><span class="material-symbols-outlined text-red-600">chat_error</span><span id="label-without-feedback">Without Feedback</span></p>
+            <p class="stat-label"><span class="material-symbols-outlined text-red-600">chat_error</span><span
+                    id="label-without-feedback">Without Feedback</span></p>
             <p id="stat-without-feedback" class="stat-val text-orange-600">0</p>
         </div>
         <div class="stat-card">
-            <p class="stat-label"><span class="material-symbols-outlined text-emerald-premium">chat_bubble</span><span id="label-with-feedback">With Feedback</span></p>
+            <p class="stat-label"><span class="material-symbols-outlined text-emerald-premium">chat_bubble</span><span
+                    id="label-with-feedback">With Feedback</span></p>
             <p id="stat-with-feedback" class="stat-val text-emerald-premium">0</p>
         </div>
     </div>
 
     <!-- Table Area -->
     <div id="table-area" class="flex-1 overflow-auto relative">
-        <div id="loader-overlay" class="absolute inset-0 bg-white/60 dark:bg-gray-900/60 backdrop-blur-[2px] z-[60] flex flex-col items-center justify-center hidden">
-            <div class="flex flex-col items-center gap-4 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700">
+        <div id="loader-overlay"
+            class="absolute inset-0 bg-white/60 dark:bg-gray-900/60 backdrop-blur-[2px] z-[60] flex flex-col items-center justify-center hidden">
+            <div
+                class="flex flex-col items-center gap-4 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700">
                 <div class="relative">
                     <div class="size-12 border-4 border-gray-100 dark:border-gray-700 rounded-full"></div>
-                    <div class="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+                    <div
+                        class="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0">
+                    </div>
                 </div>
                 <p class="text-[11px] font-black uppercase tracking-[2px]">Loading Report...</p>
             </div>
@@ -266,8 +298,10 @@
     <!-- Modals -->
     <div id="feedbackModal" class="fixed inset-0 z-[100] hidden">
         <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onclick="closeFeedbackModal()"></div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden">
-            <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden">
+            <div
+                class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary text-xl">feedback</span>
                     <h2 class="text-sm font-bold uppercase tracking-tight">Add Feedback</h2>
@@ -287,10 +321,11 @@
                 <input type="hidden" id="fb_order_branch">
                 <input type="hidden" id="fb_party">
                 <input type="hidden" id="fb_qc_ro">
-                
+
                 <div class="space-y-1.5">
                     <label class="text-[10px] font-bold text-gray-400 uppercase">Category</label>
-                    <select id="feedbackCategory" class="w-full bg-gray-50 dark:bg-gray-800 border rounded-lg p-2.5 text-sm">
+                    <select id="feedbackCategory"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border rounded-lg p-2.5 text-sm">
                         <option value="">Select Category</option>
                         <option value="Payment issues">Payment issues</option>
                         <option value="discussion pending">discussion pending</option>
@@ -299,10 +334,14 @@
                         <option value="others">others</option>
                     </select>
                 </div>
-                <textarea id="feedbackText" rows="4" class="w-full bg-gray-50 dark:bg-gray-800 border rounded-lg p-3 text-sm resize-none" placeholder="Enter your feedback here..."></textarea>
+                <textarea id="feedbackText" rows="4"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border rounded-lg p-3 text-sm resize-none"
+                    placeholder="Enter your feedback here..."></textarea>
                 <div class="flex justify-end gap-3 mt-2">
-                    <button onclick="closeFeedbackModal()" class="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-lg">Cancel</button>
-                    <button onclick="saveFeedback()" class="px-4 py-2 text-xs font-bold text-white bg-primary rounded-lg shadow-sm flex items-center gap-2">
+                    <button onclick="closeFeedbackModal()"
+                        class="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-lg">Cancel</button>
+                    <button onclick="saveFeedback()"
+                        class="px-4 py-2 text-xs font-bold text-white bg-primary rounded-lg shadow-sm flex items-center gap-2">
                         <span class="material-symbols-outlined text-sm">save</span>Save
                     </button>
                 </div>
@@ -312,8 +351,10 @@
 
     <div id="poDetailsModal" class="fixed inset-0 z-[100] hidden">
         <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onclick="closePODetailsModal()"></div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-6xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden max-h-[85vh]">
-            <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-6xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden max-h-[85vh]">
+            <div
+                class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary text-xl">receipt_long</span>
                     <h2 class="text-sm font-bold uppercase tracking-tight">Purchase Order Details</h2>
@@ -329,76 +370,115 @@
 {% endblock %}
 
 {% block sidebar %}
-<aside class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+<aside
+    class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
     <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-[10px] font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> FILTERS
             </h2>
-            <button onclick="resetFilters()" class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+            <button onclick="resetFilters()"
+                class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
         </div>
-        
+
         <div class="space-y-4">
             <!-- Status Filter -->
             <div class="space-y-2 mb-4">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-3">
+                <label
+                    class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-3">
                     <span class="material-symbols-outlined text-[14px]">checklist</span> STATUS FILTER
                 </label>
                 <div class="flex flex-col gap-2">
-                    <button onclick="setStatus('pending')" id="btn-status-barcode" class="status-filter-btn active barcode-pending-card flex items-center gap-3 p-2 rounded-xl border-2 transition-all w-full relative shadow-sm hover:shadow-md">
+                    <button onclick="setStatus('pending')" id="btn-status-barcode"
+                        class="status-filter-btn active barcode-pending-card flex items-center gap-3 p-2 rounded-xl border-2 transition-all w-full relative shadow-sm hover:shadow-md">
                         <div class="barcode-icon-container flex items-center justify-center">
-                            <span class="material-symbols-outlined text-blue-600 text-2xl font-light">barcode_scanner</span>
+                            <span
+                                class="material-symbols-outlined text-blue-600 text-2xl font-light">barcode_scanner</span>
                         </div>
                         <div class="flex flex-col relative">
                             <div class="flex items-center gap-2">
-                                <span class="text-[13px] font-black text-blue-700 dark:text-blue-400 uppercase tracking-tight">Barcode Completed</span>
+                                <span
+                                    class="text-[13px] font-black text-blue-700 dark:text-blue-400 uppercase tracking-tight">Barcode
+                                    Completed</span>
                             </div>
                             <div class="relative pl-8 flex items-center">
                                 <div class="curved-arrow"></div>
-                                <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Hallmark Pending</span>
+                                <span
+                                    class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Hallmark
+                                    Pending</span>
                             </div>
                         </div>
                     </button>
-                    <button onclick="setStatus('hm_issue')" id="btn-status-hm-issue" class="status-filter-btn flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group w-full">
-                        <span class="material-symbols-outlined text-orange-500 group-hover:scale-110 transition-transform">warning</span>
+                    <button onclick="setStatus('hm_issue')" id="btn-status-hm-issue"
+                        class="status-filter-btn flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group w-full">
+                        <span
+                            class="material-symbols-outlined text-orange-500 group-hover:scale-110 transition-transform">warning</span>
                         <div class="flex flex-col text-left">
-                            <span class="text-[10px] font-bold text-gray-700 dark:text-gray-200 uppercase leading-tight">HM issue completed</span>
-                            <span class="text-[8px] text-gray-400 font-black uppercase tracking-tighter">Receipt pending</span>
+                            <span
+                                class="text-[10px] font-bold text-gray-700 dark:text-gray-200 uppercase leading-tight">HM
+                                issue completed</span>
+                            <span class="text-[8px] text-gray-400 font-black uppercase tracking-tighter">Receipt
+                                pending</span>
                         </div>
                     </button>
-                    <button onclick="setStatus('hm_return')" id="btn-status-hm-return" class="status-filter-btn flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group w-full">
-                        <span class="material-symbols-outlined text-purple-500 group-hover:scale-110 transition-transform">assignment_return</span>
+                    <button onclick="setStatus('hm_return')" id="btn-status-hm-return"
+                        class="status-filter-btn flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group w-full">
+                        <span
+                            class="material-symbols-outlined text-purple-500 group-hover:scale-110 transition-transform">assignment_return</span>
                         <div class="flex flex-col text-left">
-                            <span class="text-[10px] font-bold text-gray-700 dark:text-gray-200 uppercase leading-tight">HM COMPLETED</span>
-                            <span class="text-[8px] text-gray-400 font-black uppercase tracking-tighter">RETURN PENDING</span>
+                            <span
+                                class="text-[10px] font-bold text-gray-700 dark:text-gray-200 uppercase leading-tight">HM
+                                COMPLETED</span>
+                            <span class="text-[8px] text-gray-400 font-black uppercase tracking-tighter">RETURN
+                                PENDING</span>
                         </div>
                     </button>
-                    <button onclick="setStatus('hm_qc_issue')" id="btn-status-hm-qc-issue" class="status-filter-btn flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group w-full">
-                        <span class="material-symbols-outlined text-rose-500 group-hover:scale-110 transition-transform">report_problem</span>
+                    <button onclick="setStatus('hm_qc_issue')" id="btn-status-hm-qc-issue"
+                        class="status-filter-btn flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group w-full">
+                        <span
+                            class="material-symbols-outlined text-rose-500 group-hover:scale-110 transition-transform">report_problem</span>
                         <div class="flex flex-col text-left">
-                            <span class="text-[10px] font-bold text-gray-700 dark:text-gray-200 uppercase leading-tight">HM RETURN RECEIVED</span>
-                            <span class="text-[8px] text-gray-400 font-black uppercase tracking-tighter">QC ISSUE PENDING</span>
+                            <span
+                                class="text-[10px] font-bold text-gray-700 dark:text-gray-200 uppercase leading-tight">HM
+                                RETURN RECEIVED</span>
+                            <span class="text-[8px] text-gray-400 font-black uppercase tracking-tighter">QC ISSUE
+                                PENDING</span>
                         </div>
                     </button>
-                    <button onclick="setStatus('qc_issue_receipt')" id="btn-status-qc-issue-receipt" class="status-filter-btn flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group w-full">
-                        <span class="material-symbols-outlined text-amber-500 group-hover:scale-110 transition-transform">receipt_long</span>
+                    <button onclick="setStatus('qc_issue_receipt')" id="btn-status-qc-issue-receipt"
+                        class="status-filter-btn flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group w-full">
+                        <span
+                            class="material-symbols-outlined text-amber-500 group-hover:scale-110 transition-transform">receipt_long</span>
                         <div class="flex flex-col text-left">
-                            <span class="text-[10px] font-bold text-gray-700 dark:text-gray-200 uppercase leading-tight">QC issue completed</span>
-                            <span class="text-[8px] text-gray-400 font-black uppercase tracking-tighter">KJ receipt pending</span>
+                            <span
+                                class="text-[10px] font-bold text-gray-700 dark:text-gray-200 uppercase leading-tight">QC
+                                issue completed</span>
+                            <span class="text-[8px] text-gray-400 font-black uppercase tracking-tighter">KJ receipt
+                                pending</span>
                         </div>
                     </button>
-                    <button onclick="setStatus('qc_completed_invoice')" id="btn-status-qc-completed-invoice" class="status-filter-btn flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group w-full">
-                        <span class="material-symbols-outlined text-emerald-500 group-hover:scale-110 transition-transform">task_alt</span>
+                    <button onclick="setStatus('qc_completed_invoice')" id="btn-status-qc-completed-invoice"
+                        class="status-filter-btn flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group w-full">
+                        <span
+                            class="material-symbols-outlined text-emerald-500 group-hover:scale-110 transition-transform">task_alt</span>
                         <div class="flex flex-col text-left">
-                            <span class="text-[10px] font-bold text-gray-700 dark:text-gray-200 uppercase leading-tight">QC COMPLETED</span>
-                            <span class="text-[8px] text-gray-400 font-black uppercase tracking-tighter">INVOICE PENDING</span>
+                            <span
+                                class="text-[10px] font-bold text-gray-700 dark:text-gray-200 uppercase leading-tight">QC
+                                COMPLETED</span>
+                            <span class="text-[8px] text-gray-400 font-black uppercase tracking-tighter">INVOICE
+                                PENDING</span>
                         </div>
                     </button>
-                    <button onclick="setStatus('invoice_completed_deliver')" id="btn-status-invoice-completed-deliver" class="status-filter-btn flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group w-full">
-                        <span class="material-symbols-outlined text-indigo-500 group-hover:scale-110 transition-transform">local_shipping</span>
+                    <button onclick="setStatus('invoice_completed_deliver')" id="btn-status-invoice-completed-deliver"
+                        class="status-filter-btn flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group w-full">
+                        <span
+                            class="material-symbols-outlined text-indigo-500 group-hover:scale-110 transition-transform">local_shipping</span>
                         <div class="flex flex-col text-left">
-                            <span class="text-[10px] font-bold text-gray-700 dark:text-gray-200 uppercase leading-tight">INVOICE COMPLETED</span>
-                            <span class="text-[8px] text-gray-400 font-black uppercase tracking-tighter">PENDING TO DELIVER</span>
+                            <span
+                                class="text-[10px] font-bold text-gray-700 dark:text-gray-200 uppercase leading-tight">INVOICE
+                                COMPLETED</span>
+                            <span class="text-[8px] text-gray-400 font-black uppercase tracking-tighter">PENDING TO
+                                DELIVER</span>
                         </div>
                     </button>
                 </div>
@@ -406,7 +486,8 @@
 
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase text-xs">Collection Owner</label>
-                <select id="filter-collection-owner" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                <select id="filter-collection-owner"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
                     <option value="">All Owners</option>
                     {% if filter_options %}
                     {% for item in filter_options.collection_owners %}
@@ -418,7 +499,8 @@
 
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase text-xs">Collection</label>
-                <select id="filter-collection" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                <select id="filter-collection"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
                     <option value="">All Collections</option>
                     {% if filter_options %}
                     {% for item in filter_options.collections %}
@@ -430,7 +512,8 @@
 
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase text-xs">Branch</label>
-                <select id="filter-branch" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                <select id="filter-branch"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
                     <option value="">All Branches</option>
                     {% if filter_options %}
                     {% for item in filter_options.branches %}
@@ -442,7 +525,8 @@
 
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase text-xs">Supplier</label>
-                <select id="filter-supplier" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                <select id="filter-supplier"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
                     <option value="">All Suppliers</option>
                     {% if filter_options %}
                     {% for item in filter_options.suppliers %}
@@ -454,7 +538,8 @@
 
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase text-xs">Make Owner</label>
-                <select id="filter-make-owner" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                <select id="filter-make-owner"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
                     <option value="">All Owners</option>
                     {% if filter_options %}
                     {% for item in filter_options.make_owners %}
@@ -466,7 +551,8 @@
 
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase text-xs">Business Head</label>
-                <select id="filter-business-head-name" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                <select id="filter-business-head-name"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
                     <option value="">All Heads</option>
                     {% if filter_options %}
                     {% for item in filter_options.business_heads %}
@@ -478,7 +564,8 @@
 
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase text-xs">Make</label>
-                <select id="filter-make" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                <select id="filter-make"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
                     <option value="">All Makes</option>
                     {% if filter_options %}
                     {% for item in filter_options.makes %}
@@ -490,22 +577,29 @@
 
             <div class="grid grid-cols-2 gap-2 pt-2">
                 <div class="flex items-center gap-2">
-                    <input type="checkbox" id="filter-is-qc-completed" class="rounded border-gray-300 text-primary focus:ring-primary h-3 w-3">
-                    <label for="filter-is-qc-completed" class="text-[9px] font-bold text-gray-600 uppercase">QC Comp</label>
+                    <input type="checkbox" id="filter-is-qc-completed"
+                        class="rounded border-gray-300 text-primary focus:ring-primary h-3 w-3">
+                    <label for="filter-is-qc-completed" class="text-[9px] font-bold text-gray-600 uppercase">QC
+                        Comp</label>
                 </div>
                 <div class="flex items-center gap-2">
-                    <input type="checkbox" id="filter-is-rate-requisition-completed" class="rounded border-gray-300 text-primary focus:ring-primary h-3 w-3">
-                    <label for="filter-is-rate-requisition-completed" class="text-[9px] font-bold text-gray-600 uppercase">Rate Req</label>
+                    <input type="checkbox" id="filter-is-rate-requisition-completed"
+                        class="rounded border-gray-300 text-primary focus:ring-primary h-3 w-3">
+                    <label for="filter-is-rate-requisition-completed"
+                        class="text-[9px] font-bold text-gray-600 uppercase">Rate Req</label>
                 </div>
                 <div class="flex items-center gap-2">
-                    <input type="checkbox" id="filter-is-invoiced" class="rounded border-gray-300 text-primary focus:ring-primary h-3 w-3">
-                    <label for="filter-is-invoiced" class="text-[9px] font-bold text-gray-600 uppercase">Invoiced</label>
+                    <input type="checkbox" id="filter-is-invoiced"
+                        class="rounded border-gray-300 text-primary focus:ring-primary h-3 w-3">
+                    <label for="filter-is-invoiced"
+                        class="text-[9px] font-bold text-gray-600 uppercase">Invoiced</label>
                 </div>
             </div>
 
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase text-xs">Order Type</label>
-                <select id="filter-order-type" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                <select id="filter-order-type"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
                     <option value="">All Types</option>
                     {% if filter_options %}
                     {% for item in filter_options.order_types %}
@@ -517,7 +611,8 @@
 
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase text-xs">Order Request Type</label>
-                <select id="filter-order-request-type" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                <select id="filter-order-request-type"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
                     <option value="">All Request Types</option>
                     {% if filter_options %}
                     {% for item in filter_options.order_request_types %}
@@ -529,7 +624,8 @@
 
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase text-xs">Feedback Status</label>
-                <select id="filter-feedback-status" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                <select id="filter-feedback-status"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
                     <option value="">All</option>
                     <option value="with">With Feedback</option>
                     <option value="without">Without Feedback</option>
@@ -538,7 +634,8 @@
 
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase text-xs">Business Head</label>
-                <select id="filter-business-head-name" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                <select id="filter-business-head-name"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
                     <option value="">All Business Heads</option>
                     {% if filter_options %}
                     {% for item in filter_options.business_heads %}
@@ -550,7 +647,8 @@
         </div>
     </div>
     <div class="p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-background-dark">
-        <button onclick="applyFilters()" class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2">
+        <button onclick="applyFilters()"
+            class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2">
             <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
         </button>
     </div>
