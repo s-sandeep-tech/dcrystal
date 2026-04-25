@@ -259,43 +259,66 @@ def partial_order_processing_pending():
 
     # Apply filters
     if search:
-        search_filters = [
-            Model.collection_owner.ilike(f'%{search}%'),
-            Model.collection.ilike(f'%{search}%'),
-            Model.supplier.ilike(f'%{search}%'),
-            Model.po_number.ilike(f'%{search}%')
-        ]
-        # Add model specific search fields
+        search_filters = []
+        if hasattr(Model, 'collection_owner'): search_filters.append(Model.collection_owner.ilike(f'%{search}%'))
+        if hasattr(Model, 'collection'): search_filters.append(Model.collection.ilike(f'%{search}%'))
+        if hasattr(Model, 'po_number'): search_filters.append(Model.po_number.ilike(f'%{search}%'))
+        
+        if hasattr(Model, 'supplier'): search_filters.append(Model.supplier.ilike(f'%{search}%'))
+        elif hasattr(Model, 'party'): search_filters.append(Model.party.ilike(f'%{search}%'))
+        
         if hasattr(Model, 'branch'): search_filters.append(Model.branch.ilike(f'%{search}%'))
+        elif hasattr(Model, 'order_branch'): search_filters.append(Model.order_branch.ilike(f'%{search}%'))
+        
         if hasattr(Model, 'hm_ro'): search_filters.append(Model.hm_ro.ilike(f'%{search}%'))
         if hasattr(Model, 'hallmark_agent'): search_filters.append(Model.hallmark_agent.ilike(f'%{search}%'))
         
-        q = q.filter(db.or_(*search_filters))
+        if search_filters:
+            q = q.filter(db.or_(*search_filters))
     
-    if f_make_owner: q = q.filter(Model.make_owner == f_make_owner)
-    if f_collection_owner: q = q.filter(Model.collection_owner == f_collection_owner)
-    if f_collection: q = q.filter(Model.collection == f_collection)
-    if f_branch and hasattr(Model, 'branch'): q = q.filter(Model.branch == f_branch)
-    if f_supplier: q = q.filter(Model.supplier == f_supplier)
-    if f_order_type: q = q.filter(Model.order_type == f_order_type)
-    if f_order_request_type: q = q.filter(Model.order_request_type == f_order_request_type)
+    if f_make_owner and hasattr(Model, 'make_owner'): 
+        q = q.filter(Model.make_owner == f_make_owner)
+    if f_collection_owner and hasattr(Model, 'collection_owner'): 
+        q = q.filter(Model.collection_owner == f_collection_owner)
+    if f_collection and hasattr(Model, 'collection'): 
+        q = q.filter(Model.collection == f_collection)
     
-    # New filters
+    if f_branch:
+        if hasattr(Model, 'branch'): q = q.filter(Model.branch == f_branch)
+        elif hasattr(Model, 'order_branch'): q = q.filter(Model.order_branch == f_branch)
+        
+    if f_supplier:
+        if hasattr(Model, 'supplier'): q = q.filter(Model.supplier == f_supplier)
+        elif hasattr(Model, 'party'): q = q.filter(Model.party == f_supplier)
+        
+    if f_order_type and hasattr(Model, 'order_type'): 
+        q = q.filter(Model.order_type == f_order_type)
+    if f_order_request_type and hasattr(Model, 'order_request_type'): 
+        q = q.filter(Model.order_request_type == f_order_request_type)
+    
     if f_business_head:
         if hasattr(Model, 'business_head_name'):
             q = q.filter(Model.business_head_name == f_business_head)
         elif hasattr(Model, 'bh_name'):
             q = q.filter(Model.bh_name == f_business_head)
     
-    if f_make: q = q.filter(Model.make == f_make)
-    if f_is_qc_completed == 'true': q = q.filter(Model.is_qc_completed == True)
-    elif f_is_qc_completed == 'false': q = q.filter(Model.is_qc_completed == False)
+    if f_make and hasattr(Model, 'make'):
+        q = q.filter(Model.make == f_make)
+
+    if f_is_qc_completed == 'true' and hasattr(Model, 'is_qc_completed'): 
+        q = q.filter(Model.is_qc_completed == True)
+    elif f_is_qc_completed == 'false' and hasattr(Model, 'is_qc_completed'): 
+        q = q.filter(Model.is_qc_completed == False)
     
-    if f_is_rate_req_completed == 'true': q = q.filter(Model.is_rate_requisition_completed == True)
-    elif f_is_rate_req_completed == 'false': q = q.filter(Model.is_rate_requisition_completed == False)
+    if f_is_rate_req_completed == 'true' and hasattr(Model, 'is_rate_requisition_completed'): 
+        q = q.filter(Model.is_rate_requisition_completed == True)
+    elif f_is_rate_req_completed == 'false' and hasattr(Model, 'is_rate_requisition_completed'): 
+        q = q.filter(Model.is_rate_requisition_completed == False)
     
-    if f_is_invoiced == 'true': q = q.filter(Model.is_invoiced == True)
-    elif f_is_invoiced == 'false': q = q.filter(Model.is_invoiced == False)
+    if f_is_invoiced == 'true' and hasattr(Model, 'is_invoiced'): 
+        q = q.filter(Model.is_invoiced == True)
+    elif f_is_invoiced == 'false' and hasattr(Model, 'is_invoiced'): 
+        q = q.filter(Model.is_invoiced == False)
 
     q = q.group_by(*grouping_cols).subquery('agg')
 

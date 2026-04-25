@@ -98,3 +98,19 @@
         </tbody>
     </table>
 </div>
+
+<!-- Metadata for JS to pick up -->
+<div class="stats-meta hidden" 
+    data-total-pieces="{{ stats.total_pieces }}"
+    data-total-weight="{{ "{:,.3f}".format(stats.total_weight) }}"
+    data-with-feedback="{{ stats.with_feedback }}"
+    data-without-feedback="{{ stats.without_feedback }}">
+</div>
+
+<div class="pagination-meta hidden" 
+    data-page="{{ pagination.page }}"
+    data-per-page="{{ pagination.per_page }}"
+    data-total="{{ pagination.total }}"
+    data-has-prev="{{ 'true' if pagination.has_prev else 'false' }}"
+    data-has-next="{{ 'true' if pagination.has_next else 'false' }}">
+</div>

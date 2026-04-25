@@ -647,18 +647,6 @@
                 </select>
             </div>
 
-            <div class="space-y-1.5">
-                <label class="text-[9px] font-bold text-gray-400 uppercase text-xs">Business Head</label>
-                <select id="filter-business-head-name"
-                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
-                    <option value="">All Business Heads</option>
-                    {% if filter_options %}
-                    {% for item in filter_options.business_heads %}
-                    <option value="{{ item }}">{{ item }}</option>
-                    {% endfor %}
-                    {% endif %}
-                </select>
-            </div>
         </div>
     </div>
     <div class="p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-background-dark">
