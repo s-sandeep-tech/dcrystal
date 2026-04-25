@@ -63,7 +63,7 @@ def get_model_for_status(status):
         Model = HMReturnQCIssueSnapshot
         grouping_cols = [Model.order_branch, Model.make_owner, Model.collection_owner, Model.collection, Model.party, Model.hallmark_agent]
         FeedbackModel = HMReturnQCIssueFeedback
-    elif status == 'qc_receipt_pending':
+    elif status == 'qc_issue_receipt':
         Model = SupplierQCIssueReceiptPendingSnapshot
         grouping_cols = [Model.qc_ro, Model.make_owner, Model.collection_owner, Model.collection, Model.party, Model.order_branch, Model.business_head_name]
         FeedbackModel = SupplierQCIssueReceiptPendingFeedback
