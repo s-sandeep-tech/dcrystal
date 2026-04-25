@@ -6,7 +6,8 @@
                 <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Office / Owner / Coll / Party</th>
                 <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Invoice Info</th>
                 <th class="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase tracking-wider">Weights (G/N/S)</th>
-                <th class="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase tracking-wider bg-indigo-50 dark:bg-indigo-900/20">Pending Delivery</th>
+                <th class="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase tracking-wider bg-indigo-50 dark:bg-indigo-900/20">Weight</th>
+                <th class="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase tracking-wider bg-indigo-50 dark:bg-indigo-900/20">Pieces</th>
                 <th class="px-2 py-2 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wider w-10">FB</th>
                 <th class="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wider">Action</th>
             </tr>
@@ -54,14 +55,15 @@
                 </td>
                 
                 <td class="px-3 py-2 text-right whitespace-nowrap bg-indigo-50/50 dark:bg-indigo-900/5">
-                    <div class="flex flex-col items-end">
-                        <span class="text-[12px] font-black text-indigo-700 dark:text-indigo-400 leading-none">
-                            {{ "{:,.3f}".format(row.weight or 0) }}
-                        </span>
-                        <span class="text-[10px] font-bold text-gray-400 mt-0.5">
-                            {{ row.pieces or 0 }} <span class="text-[8px] uppercase">pcs</span>
-                        </span>
-                    </div>
+                    <span class="text-[12px] font-black text-indigo-700 dark:text-indigo-400 leading-none">
+                        {{ "{:,.3f}".format(row.weight or 0) }}
+                    </span>
+                </td>
+                
+                <td class="px-3 py-2 text-right whitespace-nowrap bg-indigo-50/50 dark:bg-indigo-900/5">
+                    <span class="text-[11px] font-bold text-gray-600 dark:text-gray-400">
+                        {{ row.pieces or 0 }}
+                    </span>
                 </td>
 
                 <td class="px-2 py-2 text-center w-10">
