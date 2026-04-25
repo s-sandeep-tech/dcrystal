@@ -1206,13 +1206,17 @@ def get_qc_issue_receipt_latest_feedback_subquery():
         SupplierQCIssueReceiptPendingFeedback.collection_owner,
         SupplierQCIssueReceiptPendingFeedback.collection,
         SupplierQCIssueReceiptPendingFeedback.party,
+        SupplierQCIssueReceiptPendingFeedback.order_branch,
+        SupplierQCIssueReceiptPendingFeedback.business_head_name,
         func.max(SupplierQCIssueReceiptPendingFeedback.id).label('max_id')
     ).group_by(
         SupplierQCIssueReceiptPendingFeedback.qc_ro,
         SupplierQCIssueReceiptPendingFeedback.make_owner,
         SupplierQCIssueReceiptPendingFeedback.collection_owner,
         SupplierQCIssueReceiptPendingFeedback.collection,
-        SupplierQCIssueReceiptPendingFeedback.party
+        SupplierQCIssueReceiptPendingFeedback.party,
+        SupplierQCIssueReceiptPendingFeedback.order_branch,
+        SupplierQCIssueReceiptPendingFeedback.business_head_name
     ).subquery('latest_fb_ids')
 
     return db.session.query(
@@ -1221,6 +1225,8 @@ def get_qc_issue_receipt_latest_feedback_subquery():
         SupplierQCIssueReceiptPendingFeedback.collection_owner,
         SupplierQCIssueReceiptPendingFeedback.collection,
         SupplierQCIssueReceiptPendingFeedback.party,
+        SupplierQCIssueReceiptPendingFeedback.order_branch,
+        SupplierQCIssueReceiptPendingFeedback.business_head_name,
         SupplierQCIssueReceiptPendingFeedback.feedback_text,
         SupplierQCIssueReceiptPendingFeedback.feedback_category,
         SupplierQCIssueReceiptPendingFeedback.username,

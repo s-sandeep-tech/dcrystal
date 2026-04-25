@@ -1456,6 +1456,8 @@ class SupplierQCIssueReceiptPendingFeedback(db.Model):
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
     party = db.Column(db.String(200))
+    order_branch = db.Column(db.String(200))
+    business_head_name = db.Column(db.String(150))
     
     feedback_text = db.Column(db.Text)
     feedback_category = db.Column(db.String(100))
@@ -1470,6 +1472,8 @@ class SupplierQCIssueReceiptPendingFeedback(db.Model):
             'collection_owner': self.collection_owner,
             'collection': self.collection,
             'party': self.party,
+            'order_branch': self.order_branch,
+            'business_head_name': self.business_head_name,
             'feedback_text': self.feedback_text,
             'feedback_category': self.feedback_category,
             'username': self.username,
