@@ -1294,7 +1294,7 @@ class SupplierHMIssueSnapshot(db.Model):
     supplier = db.Column(db.String(200)) # party from view
     
     # Metrics
-    pieces = db.Column(db.Integer) # Piece or pending_to_hallmark_issue_piece
+    pieces = db.Column(db.Integer) # hm_receipt_pending_pcs
     barcoded_weight = db.Column(db.Numeric(12, 3))
     gross_weight = db.Column(db.Numeric(12, 3))
     net_weight = db.Column(db.Numeric(12, 3))
@@ -1303,8 +1303,9 @@ class SupplierHMIssueSnapshot(db.Model):
     # Detail / Modal columns
     po_number = db.Column(db.String(100), index=True)
     po_date = db.Column(db.Date)
-    party_mobile_no = db.Column(db.String(50))
+    party_mobile_no = db.Column(db.String(100))
     hm_agent_email = db.Column(db.String(200))
+    hm_agent_pnone_no = db.Column(db.String(100))
     hm_issue_receipt_date = db.Column(db.DateTime)
     hm_issue_receipt_no = db.Column(db.String(100))
     barcode_completion_date = db.Column(db.Date)
@@ -1314,7 +1315,7 @@ class SupplierHMIssueSnapshot(db.Model):
     order_request_type = db.Column(db.String(150))
     target_date = db.Column(db.Date)
     order_branch = db.Column(db.String(200))
-    bh_name = db.Column(db.String(200))
+    business_head_name = db.Column(db.String(200))
     
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -1337,6 +1338,7 @@ class SupplierHMIssueSnapshot(db.Model):
             'po_date': self.po_date.isoformat() if self.po_date else None,
             'party_mobile_no': self.party_mobile_no,
             'hm_agent_email': self.hm_agent_email,
+            'hm_agent_pnone_no': self.hm_agent_pnone_no,
             'hm_issue_receipt_date': self.hm_issue_receipt_date.isoformat() if self.hm_issue_receipt_date else None,
             'hm_issue_receipt_no': self.hm_issue_receipt_no,
             'barcode_completion_date': self.barcode_completion_date.isoformat() if self.barcode_completion_date else None,
@@ -1346,7 +1348,7 @@ class SupplierHMIssueSnapshot(db.Model):
             'order_request_type': self.order_request_type,
             'target_date': self.target_date.isoformat() if self.target_date else None,
             'order_branch': self.order_branch,
-            'bh_name': self.bh_name
+            'business_head_name': self.business_head_name
         }
 
 class HMReturnQCIssueFeedback(db.Model):

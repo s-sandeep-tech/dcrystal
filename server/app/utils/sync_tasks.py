@@ -2191,37 +2191,14 @@ def sync_supplier_hm_issue_data_task():
         cur = conn.cursor()
         # Query based on user provided view and columns
         query = """
-        SELECT
-            make_owner,
-            collection_owner,
-            collection,
-            order_branch,
-            party,
-            po_date,
-            po_number,
-            party_mobile_no,
-            barcode_completion_date,
-            barcoded_weight,
-            set_identifier,
-            set_design_no,
-            order_type,
-            order_request_type,
-            target_date,
-            pending_to_hallmark_issue_piece,
-            pending_to_hallmark_issue_wt,
-            ''::text AS Bh_name,
-            1 AS Piece,
-            '' AS MobileNo,
-            hm_ro,
-            hallmark_agent,
-            gross_weight,
-            net_weight,
-            stone_weight,
-            hm_issue_receipt_date,
-            hm_issue_receipt_no,
-            hm_agent_email
-        FROM ext_view.vw_order_barcoding_completed_hm_issue_pending
-        WHERE CURRENT_DATE - DATE(barcode_completion_date) > 1
+        SELECT 
+            make_owner, collection_owner, collection, order_branch, party, po_date, po_number, 
+            order_type, order_request_type, party_mobile_no, 
+            barcode_completion_date, barcoded_weight, set_identifier, set_design_no, 
+            target_date, hm_ro, hallmark_agent, hm_agent_email, hm_agent_pnone_no, 
+            hm_issue_receipt_no, hm_issue_receipt_date, net_weight, gross_weight, 
+            stone_weight, business_head_name, hm_receipt_pending_pcs, hm_receipt_pending_wt
+        FROM ext_view.vw_supplier_hm_issue_completed_hm_receipt_pending
         """
         
         cur.execute("SET statement_timeout = 0")
@@ -2235,50 +2212,43 @@ def sync_supplier_hm_issue_data_task():
             db.session.execute(text("TRUNCATE TABLE supplier_hm_issue_snapshots"))
             db.session.commit()
 
+            # Insert all records at once
             snapshot_date = datetime.now()
-            
-            # Bulk insert
-            batch_size = 1000
-            total_batches = (len(rows) + batch_size - 1) // batch_size
-            
-            for i in range(0, len(rows), batch_size):
-                batch = rows[i:i + batch_size]
-                objects = [
-                    SupplierHMIssueSnapshot(
-                        snapshot_date=snapshot_date,
-                        make_owner=row[0],
-                        collection_owner=row[1],
-                        collection=row[2],
-                        order_branch=row[3],
-                        supplier=row[4],
-                        po_date=row[5],
-                        po_number=row[6],
-                        party_mobile_no=row[7],
-                        barcode_completion_date=row[8],
-                        barcoded_weight=row[9],
-                        set_identifier=row[10],
-                        set_design_no=row[11],
-                        order_type=row[12],
-                        order_request_type=row[13],
-                        target_date=row[14],
-                        pieces=row[18], # Using Piece (row 18) as per query '1 Piece'
-                        bh_name=row[17],
-                        hm_ro=row[20],
-                        hallmark_agent=row[21],
-                        gross_weight=row[22],
-                        net_weight=row[23],
-                        stone_weight=row[24],
-                        hm_issue_receipt_date=row[25],
-                        hm_issue_receipt_no=row[26],
-                        hm_agent_email=row[27]
-                    )
-                    for row in batch
-                ]
-                db.session.bulk_save_objects(objects)
-                db.session.commit()
-                
-                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
-                emit_sync_update('processing', f'Saving batch {i//batch_size + 1} of {total_batches}...', progress, DATA_TYPE)
+            objects = [
+                SupplierHMIssueSnapshot(
+                    snapshot_date=snapshot_date,
+                    make_owner=row[0],
+                    collection_owner=row[1],
+                    collection=row[2],
+                    order_branch=row[3],
+                    supplier=row[4],
+                    po_date=row[5],
+                    po_number=row[6],
+                    order_type=row[7],
+                    order_request_type=row[8],
+                    party_mobile_no=row[9],
+                    barcode_completion_date=row[10],
+                    barcoded_weight=row[11],
+                    set_identifier=row[12],
+                    set_design_no=row[13],
+                    target_date=row[14],
+                    hm_ro=row[15],
+                    hallmark_agent=row[16],
+                    hm_agent_email=row[17],
+                    hm_agent_pnone_no=row[18],
+                    hm_issue_receipt_no=row[19],
+                    hm_issue_receipt_date=row[20],
+                    net_weight=row[21],
+                    gross_weight=row[22],
+                    stone_weight=row[23],
+                    business_head_name=row[24],
+                    pieces=row[25] # hm_receipt_pending_pcs
+                )
+                for row in rows
+            ]
+            db.session.bulk_save_objects(objects)
+            db.session.commit()
+            emit_sync_update('processing', 'Local snapshot updated successfully.', 90, DATA_TYPE)
 
         duration = time.time() - start_time
         msg = f"Successfully synced {len(rows)} records in {duration:.2f}s"
