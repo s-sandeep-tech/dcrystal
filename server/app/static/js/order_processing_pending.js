@@ -24,17 +24,7 @@ async function loadViewData() {
     const urlParams = new URLSearchParams(window.location.search);
     
     // Sync active button state
-    document.querySelectorAll('.status-filter-btn').forEach(btn => btn.classList.remove('active'));
-    let btnId = 'btn-status-barcode';
-    const statusVal = urlParams.get('status');
-    if (statusVal === 'hm_issue') btnId = 'btn-status-hm-issue';
-    else if (statusVal === 'hm_return') btnId = 'btn-status-hm-return';
-    else if (statusVal === 'hm_qc_issue') btnId = 'btn-status-hm-qc-issue';
-    else if (statusVal === 'qc_issue_receipt') btnId = 'btn-status-qc-issue-receipt';
-    else if (statusVal === 'qc_completed_invoice') btnId = 'btn-status-qc-completed-invoice';
-    else if (statusVal === 'invoice_completed_deliver') btnId = 'btn-status-invoice-completed-deliver';
-    const activeBtn = document.getElementById(btnId);
-    if (activeBtn) activeBtn.classList.add('active');
+    syncActiveStatusButton(urlParams.get('status') || 'pending');
 
     try {
         const response = await fetch(`/partial/order-processing-pending-status?${urlParams.toString()}`, {
@@ -75,11 +65,113 @@ async function loadViewData() {
     }
 }
 
-function setStatus(status) {
+async function refreshFilters(status) {
+    const sidebar = document.querySelector('aside');
+    if (!sidebar) return;
+
+    try {
+        const response = await fetch(`/api/order-processing-pending-filters?status=${status}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const data = await response.json();
+        const urlParams = new URLSearchParams(window.location.search);
+        let paramsChanged = false;
+
+        // Toggle visibility and populate options
+        document.querySelectorAll('[data-filter-id]').forEach(container => {
+            const fieldId = container.dataset.filterId;
+            if (fieldId === 'checkboxes') return; // Handled by individual items
+
+            const isValid = data.valid_fields.includes(fieldId);
+            if (isValid) {
+                container.classList.remove('hidden');
+                const select = container.querySelector('select');
+                if (select && data.options[fieldId]) {
+                    const currentValue = urlParams.get(fieldId) || '';
+                    const defaultOption = select.querySelector('option[value=""]');
+                    select.innerHTML = '';
+                    if (defaultOption) select.appendChild(defaultOption);
+                    
+                    data.options[fieldId].forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt;
+                        option.textContent = opt;
+                        if (opt === currentValue) option.selected = true;
+                        select.appendChild(option);
+                    });
+                }
+            } else {
+                container.classList.add('hidden');
+                // Clear value from URL if hidden
+                if (urlParams.has(fieldId)) {
+                    urlParams.delete(fieldId);
+                    paramsChanged = true;
+                }
+                const select = container.querySelector('select');
+                if (select) select.value = '';
+                const checkbox = container.querySelector('input[type="checkbox"]');
+                if (checkbox) checkbox.checked = false;
+            }
+        });
+
+        // Special case for checkbox group container
+        const checkboxGroup = document.querySelector('[data-filter-id="checkboxes"]');
+        if (checkboxGroup) {
+            const hasAnyValidCheckbox = ['is_qc_completed', 'is_rate_requisition_completed', 'is_invoiced'].some(f => data.valid_fields.includes(f));
+            if (hasAnyValidCheckbox) checkboxGroup.classList.remove('hidden');
+            else checkboxGroup.classList.add('hidden');
+        }
+
+        if (paramsChanged) {
+            const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+            window.history.pushState({ path: newUrl }, '', newUrl);
+        }
+
+    } catch (error) {
+        console.error('Error refreshing filters:', error);
+    }
+}
+
+async function setStatus(status) {
     const urlParams = new URLSearchParams(window.location.search);
     urlParams.set('status', status);
     urlParams.set('page', 1);
-    updateUrlAndLoad(urlParams);
+    
+    // Clear previous filters if switching status to avoid invalid data
+    const fields = ['collection_owner', 'collection', 'branch', 'supplier', 'make_owner', 'order_type', 'order_request_type', 'business_head_name', 'make'];
+    fields.forEach(f => urlParams.delete(f));
+
+    // Update URL immediately so loadViewData sees the new status
+    const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+    window.history.pushState({ path: newUrl }, '', newUrl);
+
+    // Sync active button state IMMEDIATELY for better UX
+    syncActiveStatusButton(status);
+
+    // Refresh filters in background, but don't block data loading if it fails
+    try {
+        await refreshFilters(status);
+    } catch (e) {
+        console.error("Failed to refresh filters:", e);
+    }
+    
+    loadViewData();
+}
+
+function syncActiveStatusButton(statusVal) {
+    document.querySelectorAll('.status-filter-btn').forEach(btn => btn.classList.remove('active'));
+    let btnId = 'btn-status-barcode';
+    if (statusVal === 'hm_issue') btnId = 'btn-status-hm-issue';
+    else if (statusVal === 'hm_return') btnId = 'btn-status-hm-return';
+    else if (statusVal === 'hm_qc_issue') btnId = 'btn-status-hm-qc-issue';
+    else if (statusVal === 'qc_issue_receipt') btnId = 'btn-status-qc-issue-receipt';
+    else if (statusVal === 'qc_completed_invoice') btnId = 'btn-status-qc-completed-invoice';
+    else if (statusVal === 'invoice_completed_deliver') btnId = 'btn-status-invoice-completed-deliver';
+    
+    const activeBtn = document.getElementById(btnId);
+    if (activeBtn) activeBtn.classList.add('active');
 }
 
 function updateUrlAndLoad(params) {
@@ -761,3 +853,10 @@ async function showInvoiceDeliverDetailsModal(order_branch, make_owner, collecti
         content.innerHTML = await response.text();
     } catch (err) { content.innerHTML = 'Error'; }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status') || 'pending';
+    refreshFilters(status);
+    loadViewData();
+});

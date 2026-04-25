@@ -49,6 +49,105 @@ def get_latest_feedback_subquery():
         )
     ).subquery()
 
+def get_model_for_status(status):
+    """Returns (Model, grouping_cols, feedback_model) for a given status."""
+    if status == 'hm_issue':
+        Model = SupplierHMIssueSnapshot
+        grouping_cols = [Model.hm_ro, Model.make_owner, Model.collection_owner, Model.collection, Model.hallmark_agent, Model.supplier]
+        FeedbackModel = SupplierHMIssueFeedback
+    elif status == 'hm_return':
+        Model = HMCompletedReturnSnapshot
+        grouping_cols = [Model.hm_ro, Model.make_owner, Model.collection_owner, Model.collection, Model.hallmark_agent, Model.supplier]
+        FeedbackModel = HMCompletedReturnFeedback
+    elif status == 'hm_qc_issue':
+        Model = HMReturnQCIssueSnapshot
+        grouping_cols = [Model.order_branch, Model.make_owner, Model.collection_owner, Model.collection, Model.party, Model.hallmark_agent]
+        FeedbackModel = HMReturnQCIssueFeedback
+    elif status == 'qc_receipt_pending':
+        Model = SupplierQCIssueReceiptPendingSnapshot
+        grouping_cols = [Model.qc_ro, Model.make_owner, Model.collection_owner, Model.collection, Model.party, Model.order_branch, Model.business_head_name]
+        FeedbackModel = SupplierQCIssueReceiptPendingFeedback
+    elif status == 'qc_completed_invoice':
+        Model = QCCompletedInvoicePendingSnapshot
+        grouping_cols = [Model.order_branch, Model.make_owner, Model.collection_owner, Model.collection, Model.party]
+        FeedbackModel = QCCompletedInvoicePendingFeedback
+    elif status == 'invoice_completed_deliver':
+        Model = InvoiceCompletedPendingDeliverSnapshot
+        grouping_cols = [Model.order_branch, Model.make_owner, Model.collection_owner, Model.collection, Model.party]
+        FeedbackModel = InvoiceCompletedPendingDeliverFeedback
+    else: # Default: pending_acceptance
+        Model = OrderProcessingPendingSnapshot
+        grouping_cols = [Model.collection_owner, Model.collection, Model.branch, Model.supplier]
+        FeedbackModel = OrderProcessingPendingFeedback
+    
+    return Model, grouping_cols, FeedbackModel
+
+@dashboard_bp.route('/api/order-processing-pending-filters')
+@jwt_required()
+def api_order_processing_filters():
+    from datetime import timedelta
+    status = request.args.get('status', 'pending')
+    Model, _, _ = get_model_for_status(status)
+    
+    try:
+        latest_date = db.session.query(func.max(Model.snapshot_date)).scalar()
+    except Exception as e:
+        logger.error(f"Error fetching latest date for {status}: {str(e)}")
+        return jsonify({'options': {}, 'valid_fields': []})
+        
+    if not latest_date:
+        return jsonify({'options': {}, 'valid_fields': []})
+        
+    base_q = db.session.query(Model).filter(
+        Model.snapshot_date >= latest_date - timedelta(milliseconds=10),
+        Model.snapshot_date <= latest_date + timedelta(milliseconds=10)
+    )
+    
+    def get_opts(col):
+        if col not in Model.__table__.columns: return []
+        attr = getattr(Model, col)
+        try:
+            return [r[0] for r in base_q.with_entities(attr).distinct().order_by(attr).all() if r[0]]
+        except Exception as e:
+            logger.error(f"Error fetching options for {col} in {status}: {str(e)}")
+            return []
+
+    # Map internal field names to UI filter IDs
+    field_map = {
+        'collection_owner': 'collection_owner',
+        'collection': 'collection',
+        'branch': 'branch',
+        'order_branch': 'branch',
+        'supplier': 'supplier',
+        'party': 'supplier',
+        'make_owner': 'make_owner',
+        'order_type': 'order_type',
+        'order_request_type': 'order_request_type',
+        'business_head_name': 'business_head_name',
+        'make': 'make'
+    }
+    
+    options = {}
+    valid_fields = ['feedback_status'] # Feedback status is always valid
+    
+    for model_field, ui_field in field_map.items():
+        if model_field in Model.__table__.columns:
+            opts = get_opts(model_field)
+            if ui_field not in options: options[ui_field] = []
+            # Merge options if multiple model fields map to same UI field (e.g. branch vs order_branch)
+            options[ui_field] = sorted(list(set(options[ui_field] + opts)))
+            if ui_field not in valid_fields: valid_fields.append(ui_field)
+
+    # Checkboxes
+    if 'is_qc_completed' in Model.__table__.columns: valid_fields.append('is_qc_completed')
+    if 'is_rate_requisition_completed' in Model.__table__.columns: valid_fields.append('is_rate_requisition_completed')
+    if 'is_invoiced' in Model.__table__.columns: valid_fields.append('is_invoiced')
+
+    return jsonify({
+        'options': options,
+        'valid_fields': valid_fields
+    })
+
 @dashboard_bp.route('/order-processing-pending-status')
 @jwt_required()
 @require_perm('report.view')
@@ -123,77 +222,11 @@ def partial_order_processing_pending():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
 
-    # Determine Model based on status
-    if status == 'hm_issue':
-        Model = SupplierHMIssueSnapshot
-        grouping_cols = [
-            Model.hm_ro,
-            Model.make_owner,
-            Model.collection_owner,
-            Model.collection,
-            Model.hallmark_agent,
-            Model.supplier
-        ]
-    elif status == 'hm_return':
-        Model = HMCompletedReturnSnapshot
-        grouping_cols = [
-            Model.hm_ro,
-            Model.make_owner,
-            Model.collection_owner,
-            Model.collection,
-            Model.hallmark_agent,
-            Model.supplier
-        ]
-    elif status == 'hm_qc_issue':
-        Model = HMReturnQCIssueSnapshot
-        grouping_cols = [
-            Model.order_branch,
-            Model.make_owner,
-            Model.collection_owner,
-            Model.collection,
-            Model.hallmark_agent,
-            Model.party
-        ]
-    elif status == 'qc_issue_receipt':
-        Model = SupplierQCIssueReceiptPendingSnapshot
-        grouping_cols = [
-            Model.qc_ro,
-            Model.make_owner,
-            Model.collection_owner,
-            Model.collection,
-            Model.party
-        ]
-    elif status == 'qc_completed_invoice':
-        Model = QCCompletedInvoicePendingSnapshot
-        grouping_cols = [
-            Model.order_branch,
-            Model.make_owner,
-            Model.collection_owner,
-            Model.collection,
-            Model.party
-        ]
-    elif status == 'invoice_completed_deliver':
-        Model = InvoiceCompletedPendingDeliverSnapshot
-        grouping_cols = [
-            Model.order_branch,
-            Model.make_owner,
-            Model.collection_owner,
-            Model.collection,
-            Model.party
-        ]
-    else:
-        Model = OrderProcessingPendingSnapshot
-        grouping_cols = [
-            Model.collection_owner,
-            Model.collection,
-            Model.branch,
-            Model.supplier
-        ]
-
-    latest_date = db.session.query(func.max(Model.snapshot_date)).scalar()
+    Model, grouping_cols, FeedbackModel = get_model_for_status(status)
     
+    latest_date = db.session.query(func.max(Model.snapshot_date)).scalar()
     if not latest_date:
-        return ""
+        return render_template('partials/_view_order_processing_pending.html', rows=[], pagination=None, stats={'total_pieces': 0, 'total_weight': 0})
 
     if status == 'hm_issue':
         latest_feedback = get_hm_latest_feedback_subquery()
