@@ -146,6 +146,17 @@
         opacity: 0.4;
     }
 
+    .curved-arrow::before {
+        content: '';
+        position: absolute;
+        top: -4px;
+        left: -4px;
+        width: 6px;
+        height: 6px;
+        background-color: #2563eb;
+        border-radius: 60%;
+    }
+
     .barcode-pending-card:not(.active) .curved-arrow {
         border-color: #94a3b8;
     }
@@ -164,6 +175,10 @@
 
     .barcode-pending-card:not(.active) .curved-arrow::after {
         border-left-color: #94a3b8;
+    }
+
+    .barcode-pending-card:not(.active) .curved-arrow::before {
+        background-color: #94a3b8;
     }
 
     .barcode-pending-card:not(.active) .text-blue-700 {
