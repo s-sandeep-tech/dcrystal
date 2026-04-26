@@ -2082,7 +2082,7 @@ def sync_order_processing_pending_data_task():
         if conn: conn.close()
 
 def sync_hm_completed_return_data_task():
-    DATA_TYPE = 'hm_completed_return'
+    DATA_TYPE = 'hm_return_pending'
     start_time = time.time()
     conn = None
     try:
@@ -2267,7 +2267,7 @@ def sync_supplier_hm_issue_data_task():
             conn.close()
 
 def sync_hm_return_qc_issue_data_task():
-    DATA_TYPE = 'hm_qc_issue'
+    DATA_TYPE = 'hm_qc_issue_pending'
     start_time = time.time()
     conn = None
     try:
@@ -2361,7 +2361,7 @@ def sync_hm_return_qc_issue_data_task():
         if conn: conn.close()
 
 def sync_supplier_qc_issue_receipt_pending_data_task():
-    DATA_TYPE = 'qc_issue_receipt'
+    DATA_TYPE = 'supplier_qc_issue_receipt_pending'
     start_time = time.time()
     conn = None
     try:
@@ -2459,7 +2459,7 @@ def sync_supplier_qc_issue_receipt_pending_data_task():
         if conn: conn.close()
 
 def sync_qc_completed_invoice_pending_data_task():
-    DATA_TYPE = 'qc_completed_invoice'
+    DATA_TYPE = 'qc_completed_invoice_pending'
     start_time = time.time()
     conn = None
     try:
@@ -2562,7 +2562,7 @@ def sync_qc_completed_invoice_pending_data_task():
         if conn: conn.close()
 
 def sync_invoice_completed_pending_deliver_data_task():
-    DATA_TYPE = 'invoice_completed_deliver'
+    DATA_TYPE = 'invoice_completed_pending_deliver'
     start_time = time.time()
     conn = None
     try:

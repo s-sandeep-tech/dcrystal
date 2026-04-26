@@ -293,8 +293,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Wait for task completion via socket
                 await new Promise((resolve) => {
+                    let timeoutId;
                     const handler = (data) => {
                         if (data.type === task.type && (data.status === 'success' || data.status === 'error')) {
+                            clearTimeout(timeoutId);
                             window.socket.off('sync_update', handler);
                             if (data.status === 'error') {
                                 window.isSyncAllActive = false;
@@ -305,6 +307,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     };
                     window.socket.on('sync_update', handler);
+
+                    // Add a timeout fallback (5 minutes) in case the socket response is lost
+                    timeoutId = setTimeout(() => {
+                        window.socket.off('sync_update', handler);
+                        syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-amber-50 text-amber-600 border border-amber-100';
+                        syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">warning</span> Task timed out waiting for response</div>`;
+                        window.isSyncAllActive = false;
+                        resolve(false);
+                    }, 5 * 60 * 1000);
                 });
 
                 if (!window.isSyncAllActive) break;
