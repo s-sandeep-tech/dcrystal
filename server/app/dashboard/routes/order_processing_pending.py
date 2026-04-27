@@ -69,7 +69,7 @@ def get_model_for_status(status):
         FeedbackModel = SupplierQCIssueReceiptPendingFeedback
     elif status == 'qc_completed_invoice':
         Model = QCCompletedInvoicePendingSnapshot
-        grouping_cols = [Model.order_branch, Model.make_owner, Model.collection_owner, Model.collection, Model.party]
+        grouping_cols = [Model.qc_ro, Model.make_owner, Model.collection_owner, Model.collection, Model.party]
         FeedbackModel = QCCompletedInvoicePendingFeedback
     elif status == 'invoice_completed_deliver':
         Model = InvoiceCompletedPendingDeliverSnapshot
@@ -77,7 +77,7 @@ def get_model_for_status(status):
         FeedbackModel = InvoiceCompletedPendingDeliverFeedback
     else: # Default: pending_acceptance
         Model = OrderProcessingPendingSnapshot
-        grouping_cols = [Model.collection_owner, Model.collection, Model.branch, Model.supplier]
+        grouping_cols = [Model.collection_owner, Model.collection, Model.supplier]
         FeedbackModel = OrderProcessingPendingFeedback
     
     return Model, grouping_cols, FeedbackModel
@@ -647,7 +647,6 @@ def save_opp_feedback():
 def get_opp_po_details():
     collection_owner = request.args.get('collection_owner')
     collection = request.args.get('collection')
-    branch = request.args.get('branch')
     supplier = request.args.get('supplier')
     
     latest_date = db.session.query(func.max(OrderProcessingPendingSnapshot.snapshot_date)).scalar()
@@ -656,7 +655,6 @@ def get_opp_po_details():
         OrderProcessingPendingSnapshot.snapshot_date == latest_date,
         OrderProcessingPendingSnapshot.collection_owner == collection_owner,
         OrderProcessingPendingSnapshot.collection == collection,
-        OrderProcessingPendingSnapshot.branch == branch,
         OrderProcessingPendingSnapshot.supplier == supplier
     ).order_by(OrderProcessingPendingSnapshot.po_date.desc())
     
@@ -666,7 +664,7 @@ def get_opp_po_details():
 def get_opp_hierarchical_rows(flat_rows):
     """
     Transforms flat rows into a hierarchical structure:
-    Collection Owner (L1) -> Collection (L2) -> Branch (L3) -> Supplier (L4 - Leaf)
+    Collection Owner (L1) -> Collection (L2) -> Supplier (L3 - Leaf)
     """
     import hashlib
     def get_id(*args):
@@ -676,23 +674,18 @@ def get_opp_hierarchical_rows(flat_rows):
     for r in flat_rows:
         o = r.get('collection_owner') or 'Unknown'
         c = r.get('collection') or 'Unknown'
-        b = r.get('branch') or 'Unknown'
         s = r.get('supplier') or 'Unknown'
         
         if o not in hierarchy:
             hierarchy[o] = {'wt': 0, 'pcs': 0, 'children': {}}
         if c not in hierarchy[o]['children']:
-            hierarchy[o]['children'][c] = {'wt': 0, 'pcs': 0, 'children': {}}
-        if b not in hierarchy[o]['children'][c]['children']:
-            hierarchy[o]['children'][c]['children'][b] = {'wt': 0, 'pcs': 0, 'children': []}
+            hierarchy[o]['children'][c] = {'wt': 0, 'pcs': 0, 'children': []}
             
         hierarchy[o]['wt'] += r['weight']
         hierarchy[o]['pcs'] += r['pieces']
         hierarchy[o]['children'][c]['wt'] += r['weight']
         hierarchy[o]['children'][c]['pcs'] += r['pieces']
-        hierarchy[o]['children'][c]['children'][b]['wt'] += r['weight']
-        hierarchy[o]['children'][c]['children'][b]['pcs'] += r['pieces']
-        hierarchy[o]['children'][c]['children'][b]['children'].append(r)
+        hierarchy[o]['children'][c]['children'].append(r)
 
     result = []
     for o, o_data in sorted(hierarchy.items()):
@@ -709,20 +702,13 @@ def get_opp_hierarchical_rows(flat_rows):
                 'weight': c_data['wt'], 'pieces': c_data['pcs'], 
                 'is_leaf': False
             })
-            for b, b_data in sorted(c_data['children'].items()):
-                b_id = f"b_{get_id(o, c, b)}"
-                result.append({
-                    'level': 3, 'id': b_id, 'parent_id': c_id, 'label': b, 
-                    'weight': b_data['wt'], 'pieces': b_data['pcs'], 
-                    'is_leaf': False
+            for r in sorted(c_data['children'], key=lambda x: x['weight'], reverse=True):
+                r_id = f"s_{get_id(o, c, r['supplier'])}"
+                r.update({
+                    'level': 3, 'id': r_id, 'parent_id': c_id, 
+                    'label': r['supplier'], 'is_leaf': True
                 })
-                for r in sorted(b_data['children'], key=lambda x: x['weight'], reverse=True):
-                    r_id = f"s_{get_id(o, c, b, r['supplier'])}"
-                    r.update({
-                        'level': 4, 'id': r_id, 'parent_id': b_id, 
-                        'label': r['supplier'], 'is_leaf': True
-                    })
-                    result.append(r)
+                result.append(r)
     return result
 
 def get_hm_latest_feedback_subquery():
@@ -1433,14 +1419,14 @@ def get_qc_issue_receipt_details():
 
 def get_qc_completed_invoice_latest_feedback_subquery():
     subq = db.session.query(
-        QCCompletedInvoicePendingFeedback.order_branch,
+        QCCompletedInvoicePendingFeedback.qc_ro,
         QCCompletedInvoicePendingFeedback.make_owner,
         QCCompletedInvoicePendingFeedback.collection_owner,
         QCCompletedInvoicePendingFeedback.collection,
         QCCompletedInvoicePendingFeedback.party,
         func.max(QCCompletedInvoicePendingFeedback.id).label('max_id')
     ).group_by(
-        QCCompletedInvoicePendingFeedback.order_branch,
+        QCCompletedInvoicePendingFeedback.qc_ro,
         QCCompletedInvoicePendingFeedback.make_owner,
         QCCompletedInvoicePendingFeedback.collection_owner,
         QCCompletedInvoicePendingFeedback.collection,
@@ -1456,7 +1442,7 @@ def get_qc_completed_invoice_hierarchical_rows(processed_rows):
     def get_id(*args): return "_".join(str(a).replace(" ", "_").replace("&", "_") for a in args)
     
     for r in processed_rows:
-        ro = r['order_branch'] or 'Unknown RO'
+        ro = r['qc_ro'] or 'Unknown QC RO'
         mo = r['make_owner'] or 'Unknown MO'
         co = r['collection_owner'] or 'Unknown CO'
         cl = r['collection'] or 'Unknown Coll'
@@ -1513,7 +1499,7 @@ def get_qc_completed_invoice_hierarchical_rows(processed_rows):
                         result.append({
                             'level': 5, 'id': f"leaf_{get_id(ro, mo, co, cl, r['party'])}", 'parent_id': cl_id, 'label': r['party'],
                             'weight': r['weight'], 'pieces': r['pieces'], 'gross_weight': r.get('gross_weight', 0), 'net_weight': r.get('net_weight', 0), 'stone_weight': r.get('stone_weight', 0), 'barcoded_weight': r.get('barcoded_weight', 0), 'is_leaf': True,
-                            'order_branch': ro, 'make_owner': mo, 'collection_owner': co, 'collection': cl, 'party': r['party'],
+                            'qc_ro': ro, 'make_owner': mo, 'collection_owner': co, 'collection': cl, 'party': r['party'],
                             'qc_issue_receipt_date': r['qc_issue_receipt_date'],
                             'qc_issue_receipt_no': r['qc_issue_receipt_no'],
                             'qc_completed_date': r['qc_completed_date'],
@@ -1528,7 +1514,7 @@ def save_qc_completed_invoice_feedback():
     data = request.json
     username = session.get('username', 'Unknown')
     feedback = QCCompletedInvoicePendingFeedback(
-        order_branch=data.get('order_branch'),
+        qc_ro=data.get('qc_ro'),
         make_owner=data.get('make_owner'),
         collection_owner=data.get('collection_owner'),
         collection=data.get('collection'),
@@ -1546,7 +1532,7 @@ def save_qc_completed_invoice_feedback():
 @jwt_required()
 @require_perm('report.view')
 def get_qc_completed_invoice_details():
-    order_branch = request.args.get('order_branch')
+    qc_ro = request.args.get('qc_ro')
     make_owner = request.args.get('make_owner')
     collection_owner = request.args.get('collection_owner')
     collection = request.args.get('collection')
@@ -1555,7 +1541,7 @@ def get_qc_completed_invoice_details():
     latest_date = db.session.query(func.max(QCCompletedInvoicePendingSnapshot.snapshot_date)).scalar()
     pos = QCCompletedInvoicePendingSnapshot.query.filter(
         QCCompletedInvoicePendingSnapshot.snapshot_date == latest_date,
-        QCCompletedInvoicePendingSnapshot.order_branch == order_branch,
+        QCCompletedInvoicePendingSnapshot.qc_ro == qc_ro,
         QCCompletedInvoicePendingSnapshot.make_owner == make_owner,
         QCCompletedInvoicePendingSnapshot.collection_owner == collection_owner,
         QCCompletedInvoicePendingSnapshot.collection == collection,

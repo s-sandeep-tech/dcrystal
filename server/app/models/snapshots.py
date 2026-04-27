@@ -1600,7 +1600,7 @@ class QCCompletedInvoicePendingFeedback(db.Model):
     __tablename__ = 'qc_completed_invoice_pending_feedbacks'
 
     id = db.Column(db.Integer, primary_key=True)
-    order_branch = db.Column(db.String(150))
+    qc_ro = db.Column(db.String(150))
     make_owner = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
@@ -1615,7 +1615,7 @@ class QCCompletedInvoicePendingFeedback(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
-            'order_branch': self.order_branch,
+            'qc_ro': self.qc_ro,
             'make_owner': self.make_owner,
             'collection_owner': self.collection_owner,
             'collection': self.collection,

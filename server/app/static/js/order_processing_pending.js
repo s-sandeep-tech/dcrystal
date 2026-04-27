@@ -752,8 +752,8 @@ async function showQCIssueReceiptDetailsModal(qc_ro, make_owner, collection_owne
     } catch (err) { content.innerHTML = 'Error'; }
 }
 
-function openQCCompletedInvoiceFeedbackModal(order_branch, make_owner, collection_owner, collection, party, qc_issue_receipt_no, currentFeedback, currentCategory) {
-    document.getElementById('fb_order_branch').value = order_branch;
+function openQCCompletedInvoiceFeedbackModal(qc_ro, make_owner, collection_owner, collection, party, qc_issue_receipt_no, currentFeedback, currentCategory) {
+    document.getElementById('fb_qc_ro').value = qc_ro;
     document.getElementById('fb_make_owner').value = make_owner;
     document.getElementById('fb_collection_owner').value = collection_owner;
     document.getElementById('fb_collection').value = collection;
@@ -762,7 +762,7 @@ function openQCCompletedInvoiceFeedbackModal(order_branch, make_owner, collectio
     
     document.getElementById('feedbackText').value = currentFeedback || '';
     document.getElementById('feedbackCategory').value = currentCategory || '';
-    document.getElementById('feedbackModalContext').textContent = `${order_branch} > ${party} (Invoice)`;
+    document.getElementById('feedbackModalContext').textContent = `${qc_ro} > ${party} (Invoice)`;
     
     const saveBtn = document.querySelector('#feedbackModal button[onclick*="save"]');
     if (saveBtn) saveBtn.setAttribute('onclick', 'saveQCCompletedInvoiceFeedback()');
@@ -772,7 +772,7 @@ function openQCCompletedInvoiceFeedbackModal(order_branch, make_owner, collectio
 
 async function saveQCCompletedInvoiceFeedback() {
     const data = {
-        order_branch: document.getElementById('fb_order_branch').value,
+        qc_ro: document.getElementById('fb_qc_ro').value,
         make_owner: document.getElementById('fb_make_owner').value,
         collection_owner: document.getElementById('fb_collection_owner').value,
         collection: document.getElementById('fb_collection').value,
@@ -792,12 +792,12 @@ async function saveQCCompletedInvoiceFeedback() {
     } catch (err) { console.error(err); showToast("Error", "error"); }
 }
 
-async function showQCCompletedInvoiceDetailsModal(order_branch, make_owner, collection_owner, collection, party) {
+async function showQCCompletedInvoiceDetailsModal(qc_ro, make_owner, collection_owner, collection, party) {
     const content = document.getElementById('poDetailsContent');
     content.innerHTML = '<div class="p-8 text-center">Loading Details...</div>';
     document.getElementById('poDetailsModal').classList.remove('hidden');
     try {
-        const params = new URLSearchParams({ order_branch, make_owner, collection_owner, collection, party });
+        const params = new URLSearchParams({ qc_ro, make_owner, collection_owner, collection, party });
         const response = await fetch(`/api/qc-completed-invoice/details?${params.toString()}`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
         });
