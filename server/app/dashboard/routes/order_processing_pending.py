@@ -281,14 +281,21 @@ def partial_order_processing_pending():
         agg_cols.extend([
             func.max(Model.qc_issue_receipt_date).label('qc_issue_receipt_date'),
             func.max(Model.qc_issue_receipt_no).label('qc_issue_receipt_no'),
-            func.max(Model.qc_completed_date).label('qc_completed_date')
+            func.max(Model.qc_completed_date).label('qc_completed_date'),
+            func.sum(Model.gross_weight).label('sum_gross_weight'),
+            func.sum(Model.net_weight).label('sum_net_weight'),
+            func.sum(Model.stone_weight).label('sum_stone_weight'),
+            func.sum(Model.barcoded_weight).label('sum_barcoded_weight')
         ])
     
     if status == 'invoice_completed_deliver':
         agg_cols.extend([
             func.max(Model.invoice_no).label('invoice_no'),
             func.max(Model.invoice_date).label('invoice_date'),
-            func.max(Model.invoice_amount).label('invoice_amount')
+            func.max(Model.invoice_amount).label('invoice_amount'),
+            func.sum(Model.gross_weight).label('sum_gross_weight'),
+            func.sum(Model.net_weight).label('sum_net_weight'),
+            func.sum(Model.stone_weight).label('sum_stone_weight')
         ])
 
     q = db.session.query(*agg_cols).filter(
@@ -450,6 +457,9 @@ def partial_order_processing_pending():
             q.c.invoice_no,
             q.c.invoice_date,
             q.c.invoice_amount,
+            q.c.sum_gross_weight,
+            q.c.sum_net_weight,
+            q.c.sum_stone_weight,
             latest_feedback.c.feedback_text,
             latest_feedback.c.feedback_category,
             latest_feedback.c.username.label('feedback_username'),
@@ -469,6 +479,10 @@ def partial_order_processing_pending():
             q.c.qc_issue_receipt_date,
             q.c.qc_issue_receipt_no,
             q.c.qc_completed_date,
+            q.c.sum_gross_weight,
+            q.c.sum_net_weight,
+            q.c.sum_stone_weight,
+            q.c.sum_barcoded_weight,
             latest_feedback.c.feedback_text,
             latest_feedback.c.feedback_category,
             latest_feedback.c.username.label('feedback_username'),
@@ -556,11 +570,18 @@ def partial_order_processing_pending():
             row_dict['qc_issue_receipt_no'] = getattr(r, 'qc_issue_receipt_no', None)
             if status == 'qc_completed_invoice':
                 row_dict['qc_completed_date'] = getattr(r, 'qc_completed_date', None)
+                row_dict['gross_weight'] = float(getattr(r, 'sum_gross_weight', 0) or 0)
+                row_dict['net_weight'] = float(getattr(r, 'sum_net_weight', 0) or 0)
+                row_dict['stone_weight'] = float(getattr(r, 'sum_stone_weight', 0) or 0)
+                row_dict['barcoded_weight'] = float(getattr(r, 'sum_barcoded_weight', 0) or 0)
 
         if status == 'invoice_completed_deliver':
             row_dict['invoice_no'] = getattr(r, 'invoice_no', None)
             row_dict['invoice_date'] = getattr(r, 'invoice_date', None)
             row_dict['invoice_amount'] = float(getattr(r, 'invoice_amount', 0) or 0)
+            row_dict['gross_weight'] = float(getattr(r, 'sum_gross_weight', 0) or 0)
+            row_dict['net_weight'] = float(getattr(r, 'sum_net_weight', 0) or 0)
+            row_dict['stone_weight'] = float(getattr(r, 'sum_stone_weight', 0) or 0)
             
         processed_rows.append(row_dict)
 
@@ -1440,38 +1461,58 @@ def get_qc_completed_invoice_hierarchical_rows(processed_rows):
         co = r['collection_owner'] or 'Unknown CO'
         cl = r['collection'] or 'Unknown Coll'
         
-        if ro not in hierarchy: hierarchy[ro] = {'wt': 0, 'pcs': 0, 'children': {}}
-        if mo not in hierarchy[ro]['children']: hierarchy[ro]['children'][mo] = {'wt': 0, 'pcs': 0, 'children': {}}
-        if co not in hierarchy[ro]['children'][mo]['children']: hierarchy[ro]['children'][mo]['children'][co] = {'wt': 0, 'pcs': 0, 'children': {}}
-        if cl not in hierarchy[ro]['children'][mo]['children'][co]['children']: hierarchy[ro]['children'][mo]['children'][co]['children'][cl] = {'wt': 0, 'pcs': 0, 'children': []}
+        if ro not in hierarchy: hierarchy[ro] = {'wt': 0, 'pcs': 0, 'gross_wt': 0, 'net_wt': 0, 'stone_wt': 0, 'bc_wt': 0, 'children': {}}
+        if mo not in hierarchy[ro]['children']: hierarchy[ro]['children'][mo] = {'wt': 0, 'pcs': 0, 'gross_wt': 0, 'net_wt': 0, 'stone_wt': 0, 'bc_wt': 0, 'children': {}}
+        if co not in hierarchy[ro]['children'][mo]['children']: hierarchy[ro]['children'][mo]['children'][co] = {'wt': 0, 'pcs': 0, 'gross_wt': 0, 'net_wt': 0, 'stone_wt': 0, 'bc_wt': 0, 'children': {}}
+        if cl not in hierarchy[ro]['children'][mo]['children'][co]['children']: hierarchy[ro]['children'][mo]['children'][co]['children'][cl] = {'wt': 0, 'pcs': 0, 'gross_wt': 0, 'net_wt': 0, 'stone_wt': 0, 'bc_wt': 0, 'children': []}
         
         hierarchy[ro]['wt'] += r['weight']
         hierarchy[ro]['pcs'] += r['pieces']
+        hierarchy[ro]['gross_wt'] += r.get('gross_weight', 0)
+        hierarchy[ro]['net_wt'] += r.get('net_weight', 0)
+        hierarchy[ro]['stone_wt'] += r.get('stone_weight', 0)
+        hierarchy[ro]['bc_wt'] += r.get('barcoded_weight', 0)
+        
         hierarchy[ro]['children'][mo]['wt'] += r['weight']
         hierarchy[ro]['children'][mo]['pcs'] += r['pieces']
+        hierarchy[ro]['children'][mo]['gross_wt'] += r.get('gross_weight', 0)
+        hierarchy[ro]['children'][mo]['net_wt'] += r.get('net_weight', 0)
+        hierarchy[ro]['children'][mo]['stone_wt'] += r.get('stone_weight', 0)
+        hierarchy[ro]['children'][mo]['bc_wt'] += r.get('barcoded_weight', 0)
+
         hierarchy[ro]['children'][mo]['children'][co]['wt'] += r['weight']
         hierarchy[ro]['children'][mo]['children'][co]['pcs'] += r['pieces']
+        hierarchy[ro]['children'][mo]['children'][co]['gross_wt'] += r.get('gross_weight', 0)
+        hierarchy[ro]['children'][mo]['children'][co]['net_wt'] += r.get('net_weight', 0)
+        hierarchy[ro]['children'][mo]['children'][co]['stone_wt'] += r.get('stone_weight', 0)
+        hierarchy[ro]['children'][mo]['children'][co]['bc_wt'] += r.get('barcoded_weight', 0)
+
         hierarchy[ro]['children'][mo]['children'][co]['children'][cl]['wt'] += r['weight']
         hierarchy[ro]['children'][mo]['children'][co]['children'][cl]['pcs'] += r['pieces']
+        hierarchy[ro]['children'][mo]['children'][co]['children'][cl]['gross_wt'] += r.get('gross_weight', 0)
+        hierarchy[ro]['children'][mo]['children'][co]['children'][cl]['net_wt'] += r.get('net_weight', 0)
+        hierarchy[ro]['children'][mo]['children'][co]['children'][cl]['stone_wt'] += r.get('stone_weight', 0)
+        hierarchy[ro]['children'][mo]['children'][co]['children'][cl]['bc_wt'] += r.get('barcoded_weight', 0)
+        
         hierarchy[ro]['children'][mo]['children'][co]['children'][cl]['children'].append(r)
 
     result = []
     for ro, ro_data in sorted(hierarchy.items()):
         ro_id = f"ro_{get_id(ro)}"
-        result.append({'level': 1, 'id': ro_id, 'parent_id': None, 'label': ro, 'weight': ro_data['wt'], 'pieces': ro_data['pcs'], 'is_leaf': False})
+        result.append({'level': 1, 'id': ro_id, 'parent_id': None, 'label': ro, 'weight': ro_data['wt'], 'pieces': ro_data['pcs'], 'gross_weight': ro_data['gross_wt'], 'net_weight': ro_data['net_wt'], 'stone_weight': ro_data['stone_wt'], 'barcoded_weight': ro_data['bc_wt'], 'is_leaf': False})
         for mo, mo_data in sorted(ro_data['children'].items()):
             mo_id = f"mo_{get_id(ro, mo)}"
-            result.append({'level': 2, 'id': mo_id, 'parent_id': ro_id, 'label': mo, 'weight': mo_data['wt'], 'pieces': mo_data['pcs'], 'is_leaf': False})
+            result.append({'level': 2, 'id': mo_id, 'parent_id': ro_id, 'label': mo, 'weight': mo_data['wt'], 'pieces': mo_data['pcs'], 'gross_weight': mo_data['gross_wt'], 'net_weight': mo_data['net_wt'], 'stone_weight': mo_data['stone_wt'], 'barcoded_weight': mo_data['bc_wt'], 'is_leaf': False})
             for co, co_data in sorted(mo_data['children'].items()):
                 co_id = f"co_{get_id(ro, mo, co)}"
-                result.append({'level': 3, 'id': co_id, 'parent_id': mo_id, 'label': co, 'weight': co_data['wt'], 'pieces': co_data['pcs'], 'is_leaf': False})
+                result.append({'level': 3, 'id': co_id, 'parent_id': mo_id, 'label': co, 'weight': co_data['wt'], 'pieces': co_data['pcs'], 'gross_weight': co_data['gross_wt'], 'net_weight': co_data['net_wt'], 'stone_weight': co_data['stone_wt'], 'barcoded_weight': co_data['bc_wt'], 'is_leaf': False})
                 for cl, cl_data in sorted(co_data['children'].items()):
                     cl_id = f"cl_{get_id(ro, mo, co, cl)}"
-                    result.append({'level': 4, 'id': cl_id, 'parent_id': co_id, 'label': cl, 'weight': cl_data['wt'], 'pieces': cl_data['pcs'], 'is_leaf': False})
+                    result.append({'level': 4, 'id': cl_id, 'parent_id': co_id, 'label': cl, 'weight': cl_data['wt'], 'pieces': cl_data['pcs'], 'gross_weight': cl_data['gross_wt'], 'net_weight': cl_data['net_wt'], 'stone_weight': cl_data['stone_wt'], 'barcoded_weight': cl_data['bc_wt'], 'is_leaf': False})
                     for r in sorted(cl_data['children'], key=lambda x: x['party']):
                         result.append({
                             'level': 5, 'id': f"leaf_{get_id(ro, mo, co, cl, r['party'])}", 'parent_id': cl_id, 'label': r['party'],
-                            'weight': r['weight'], 'pieces': r['pieces'], 'is_leaf': True,
+                            'weight': r['weight'], 'pieces': r['pieces'], 'gross_weight': r.get('gross_weight', 0), 'net_weight': r.get('net_weight', 0), 'stone_weight': r.get('stone_weight', 0), 'barcoded_weight': r.get('barcoded_weight', 0), 'is_leaf': True,
                             'order_branch': ro, 'make_owner': mo, 'collection_owner': co, 'collection': cl, 'party': r['party'],
                             'qc_issue_receipt_date': r['qc_issue_receipt_date'],
                             'qc_issue_receipt_no': r['qc_issue_receipt_no'],
@@ -1552,38 +1593,54 @@ def get_invoice_completed_deliver_hierarchical_rows(processed_rows):
         co = r['collection_owner'] or 'Unknown CO'
         cl = r['collection'] or 'Unknown Coll'
         
-        if ro not in hierarchy: hierarchy[ro] = {'wt': 0, 'pcs': 0, 'children': {}}
-        if mo not in hierarchy[ro]['children']: hierarchy[ro]['children'][mo] = {'wt': 0, 'pcs': 0, 'children': {}}
-        if co not in hierarchy[ro]['children'][mo]['children']: hierarchy[ro]['children'][mo]['children'][co] = {'wt': 0, 'pcs': 0, 'children': {}}
-        if cl not in hierarchy[ro]['children'][mo]['children'][co]['children']: hierarchy[ro]['children'][mo]['children'][co]['children'][cl] = {'wt': 0, 'pcs': 0, 'children': []}
+        if ro not in hierarchy: hierarchy[ro] = {'wt': 0, 'pcs': 0, 'gross_wt': 0, 'net_wt': 0, 'stone_wt': 0, 'children': {}}
+        if mo not in hierarchy[ro]['children']: hierarchy[ro]['children'][mo] = {'wt': 0, 'pcs': 0, 'gross_wt': 0, 'net_wt': 0, 'stone_wt': 0, 'children': {}}
+        if co not in hierarchy[ro]['children'][mo]['children']: hierarchy[ro]['children'][mo]['children'][co] = {'wt': 0, 'pcs': 0, 'gross_wt': 0, 'net_wt': 0, 'stone_wt': 0, 'children': {}}
+        if cl not in hierarchy[ro]['children'][mo]['children'][co]['children']: hierarchy[ro]['children'][mo]['children'][co]['children'][cl] = {'wt': 0, 'pcs': 0, 'gross_wt': 0, 'net_wt': 0, 'stone_wt': 0, 'children': []}
         
         hierarchy[ro]['wt'] += r['weight']
         hierarchy[ro]['pcs'] += r['pieces']
+        hierarchy[ro]['gross_wt'] += r.get('gross_weight', 0)
+        hierarchy[ro]['net_wt'] += r.get('net_weight', 0)
+        hierarchy[ro]['stone_wt'] += r.get('stone_weight', 0)
+        
         hierarchy[ro]['children'][mo]['wt'] += r['weight']
         hierarchy[ro]['children'][mo]['pcs'] += r['pieces']
+        hierarchy[ro]['children'][mo]['gross_wt'] += r.get('gross_weight', 0)
+        hierarchy[ro]['children'][mo]['net_wt'] += r.get('net_weight', 0)
+        hierarchy[ro]['children'][mo]['stone_wt'] += r.get('stone_weight', 0)
+
         hierarchy[ro]['children'][mo]['children'][co]['wt'] += r['weight']
         hierarchy[ro]['children'][mo]['children'][co]['pcs'] += r['pieces']
+        hierarchy[ro]['children'][mo]['children'][co]['gross_wt'] += r.get('gross_weight', 0)
+        hierarchy[ro]['children'][mo]['children'][co]['net_wt'] += r.get('net_weight', 0)
+        hierarchy[ro]['children'][mo]['children'][co]['stone_wt'] += r.get('stone_weight', 0)
+
         hierarchy[ro]['children'][mo]['children'][co]['children'][cl]['wt'] += r['weight']
         hierarchy[ro]['children'][mo]['children'][co]['children'][cl]['pcs'] += r['pieces']
+        hierarchy[ro]['children'][mo]['children'][co]['children'][cl]['gross_wt'] += r.get('gross_weight', 0)
+        hierarchy[ro]['children'][mo]['children'][co]['children'][cl]['net_wt'] += r.get('net_weight', 0)
+        hierarchy[ro]['children'][mo]['children'][co]['children'][cl]['stone_wt'] += r.get('stone_weight', 0)
+        
         hierarchy[ro]['children'][mo]['children'][co]['children'][cl]['children'].append(r)
 
     result = []
     for ro, ro_data in sorted(hierarchy.items()):
         ro_id = f"ro_{get_id(ro)}"
-        result.append({'level': 1, 'id': ro_id, 'parent_id': None, 'label': ro, 'weight': ro_data['wt'], 'pieces': ro_data['pcs'], 'is_leaf': False})
+        result.append({'level': 1, 'id': ro_id, 'parent_id': None, 'label': ro, 'weight': ro_data['wt'], 'pieces': ro_data['pcs'], 'gross_weight': ro_data['gross_wt'], 'net_weight': ro_data['net_wt'], 'stone_weight': ro_data['stone_wt'], 'is_leaf': False})
         for mo, mo_data in sorted(ro_data['children'].items()):
             mo_id = f"mo_{get_id(ro, mo)}"
-            result.append({'level': 2, 'id': mo_id, 'parent_id': ro_id, 'label': mo, 'weight': mo_data['wt'], 'pieces': mo_data['pcs'], 'is_leaf': False})
+            result.append({'level': 2, 'id': mo_id, 'parent_id': ro_id, 'label': mo, 'weight': mo_data['wt'], 'pieces': mo_data['pcs'], 'gross_weight': mo_data['gross_wt'], 'net_weight': mo_data['net_wt'], 'stone_weight': mo_data['stone_wt'], 'is_leaf': False})
             for co, co_data in sorted(mo_data['children'].items()):
                 co_id = f"co_{get_id(ro, mo, co)}"
-                result.append({'level': 3, 'id': co_id, 'parent_id': mo_id, 'label': co, 'weight': co_data['wt'], 'pieces': co_data['pcs'], 'is_leaf': False})
+                result.append({'level': 3, 'id': co_id, 'parent_id': mo_id, 'label': co, 'weight': co_data['wt'], 'pieces': co_data['pcs'], 'gross_weight': co_data['gross_wt'], 'net_weight': co_data['net_wt'], 'stone_weight': co_data['stone_wt'], 'is_leaf': False})
                 for cl, cl_data in sorted(co_data['children'].items()):
                     cl_id = f"cl_{get_id(ro, mo, co, cl)}"
-                    result.append({'level': 4, 'id': cl_id, 'parent_id': co_id, 'label': cl, 'weight': cl_data['wt'], 'pieces': cl_data['pcs'], 'is_leaf': False})
+                    result.append({'level': 4, 'id': cl_id, 'parent_id': co_id, 'label': cl, 'weight': cl_data['wt'], 'pieces': cl_data['pcs'], 'gross_weight': cl_data['gross_wt'], 'net_weight': cl_data['net_wt'], 'stone_weight': cl_data['stone_wt'], 'is_leaf': False})
                     for r in sorted(cl_data['children'], key=lambda x: x['party']):
                         result.append({
                             'level': 5, 'id': f"leaf_{get_id(ro, mo, co, cl, r['party'])}", 'parent_id': cl_id, 'label': r['party'],
-                            'weight': r['weight'], 'pieces': r['pieces'], 'is_leaf': True,
+                            'weight': r['weight'], 'pieces': r['pieces'], 'gross_weight': r.get('gross_weight', 0), 'net_weight': r.get('net_weight', 0), 'stone_weight': r.get('stone_weight', 0), 'is_leaf': True,
                             'order_branch': ro, 'make_owner': mo, 'collection_owner': co, 'collection': cl, 'party': r['party'],
                             'invoice_no': r['invoice_no'],
                             'invoice_date': r['invoice_date'],
