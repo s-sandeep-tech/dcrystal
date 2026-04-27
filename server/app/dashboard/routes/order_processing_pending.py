@@ -1533,6 +1533,7 @@ def save_qc_completed_invoice_feedback():
         collection_owner=data.get('collection_owner'),
         collection=data.get('collection'),
         party=data.get('party'),
+        qc_issue_receipt_no=data.get('qc_issue_receipt_no'),
         feedback_text=data.get('feedback_text'),
         feedback_category=data.get('feedback_category'),
         username=username

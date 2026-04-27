@@ -369,7 +369,7 @@ function closeFeedbackModal() {
     if (saveBtn) saveBtn.setAttribute('onclick', 'saveFeedback()');
     
     // Clear all hidden inputs
-    ['fb_hm_ro', 'fb_make_owner', 'fb_hallmark_agent', 'fb_collection_owner', 'fb_collection', 'fb_branch', 'fb_supplier', 'fb_order_branch', 'fb_party', 'fb_qc_ro'].forEach(id => {
+    ['fb_hm_ro', 'fb_make_owner', 'fb_hallmark_agent', 'fb_collection_owner', 'fb_collection', 'fb_branch', 'fb_supplier', 'fb_order_branch', 'fb_party', 'fb_qc_ro', 'fb_qc_issue_receipt_no'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -576,7 +576,7 @@ window.closeFeedbackModal = function() {
     if (saveBtn) saveBtn.setAttribute('onclick', 'saveFeedback()');
     
     // Clear all hidden inputs
-    ['fb_hm_ro', 'fb_make_owner', 'fb_hallmark_agent', 'fb_collection_owner', 'fb_collection', 'fb_branch', 'fb_supplier', 'fb_order_branch', 'fb_party', 'fb_qc_ro'].forEach(id => {
+    ['fb_hm_ro', 'fb_make_owner', 'fb_hallmark_agent', 'fb_collection_owner', 'fb_collection', 'fb_branch', 'fb_supplier', 'fb_order_branch', 'fb_party', 'fb_qc_ro', 'fb_qc_issue_receipt_no'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -752,12 +752,13 @@ async function showQCIssueReceiptDetailsModal(qc_ro, make_owner, collection_owne
     } catch (err) { content.innerHTML = 'Error'; }
 }
 
-function openQCCompletedInvoiceFeedbackModal(order_branch, make_owner, collection_owner, collection, party, currentFeedback, currentCategory) {
+function openQCCompletedInvoiceFeedbackModal(order_branch, make_owner, collection_owner, collection, party, qc_issue_receipt_no, currentFeedback, currentCategory) {
     document.getElementById('fb_order_branch').value = order_branch;
     document.getElementById('fb_make_owner').value = make_owner;
     document.getElementById('fb_collection_owner').value = collection_owner;
     document.getElementById('fb_collection').value = collection;
     document.getElementById('fb_party').value = party;
+    document.getElementById('fb_qc_issue_receipt_no').value = qc_issue_receipt_no;
     
     document.getElementById('feedbackText').value = currentFeedback || '';
     document.getElementById('feedbackCategory').value = currentCategory || '';
@@ -776,6 +777,7 @@ async function saveQCCompletedInvoiceFeedback() {
         collection_owner: document.getElementById('fb_collection_owner').value,
         collection: document.getElementById('fb_collection').value,
         party: document.getElementById('fb_party').value,
+        qc_issue_receipt_no: document.getElementById('fb_qc_issue_receipt_no').value,
         feedback_text: document.getElementById('feedbackText').value,
         feedback_category: document.getElementById('feedbackCategory').value
     };

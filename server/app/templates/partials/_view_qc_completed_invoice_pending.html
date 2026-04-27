@@ -75,7 +75,7 @@
 
                 <td class="px-2 py-2 text-center w-10">
                     {% if row.is_leaf %}
-                    <button onclick="openQCCompletedInvoiceFeedbackModal('{{ row.order_branch }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '{{ row.collection }}', '{{ row.party }}', '{{ row.feedback_text|escape if row.feedback_text else '' }}', '{{ row.feedback_category or '' }}')" 
+                    <button onclick="openQCCompletedInvoiceFeedbackModal('{{ row.order_branch }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '{{ row.collection }}', '{{ row.party }}', '{{ row.qc_issue_receipt_no or '' }}', '{{ row.feedback_text|escape if row.feedback_text else '' }}', '{{ row.feedback_category or '' }}')" 
                             class="group relative inline-flex items-center justify-center p-1 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all">
                         <span class="material-symbols-outlined {{ 'text-emerald-500 fill-1' if row.feedback_text else 'text-gray-300' }} text-[18px]">
                             {{ 'chat_bubble' if row.feedback_text else 'add_comment' }}

@@ -1605,6 +1605,7 @@ class QCCompletedInvoicePendingFeedback(db.Model):
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
     party = db.Column(db.String(200))
+    qc_issue_receipt_no = db.Column(db.String(100))
     
     feedback_text = db.Column(db.Text)
     feedback_category = db.Column(db.String(100))
