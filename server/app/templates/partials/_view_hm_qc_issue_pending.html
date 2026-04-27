@@ -74,11 +74,11 @@
                     <td class="px-3 py-2 text-center whitespace-nowrap" onclick="event.stopPropagation()">
                         {% if row.is_leaf %}
                         <div class="flex items-center justify-center gap-2">
-                            <button onclick="openHMQCIssueFeedbackModal('{{ row.order_branch }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '{{ row.collection }}', '{{ row.hallmark_agent }}', '{{ row.party }}', '{{ row.feedback_text or '' }}', '{{ row.feedback_category or '' }}')" 
+                            <button onclick="openHMQCIssueFeedbackModal('{{ row.hm_ro }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '{{ row.collection }}', '{{ row.hallmark_agent }}', '{{ row.party }}', '{{ row.feedback_text or '' }}', '{{ row.feedback_category or '' }}')" 
                                     class="p-1 text-gray-400 hover:text-primary transition-colors" title="Add/Edit Feedback">
                                 <span class="material-symbols-outlined text-[16px]">{{ 'edit_note' if row.feedback_text else 'add_comment' }}</span>
                             </button>
-                            <button onclick="showHMQCIssueDetailsModal('{{ row.order_branch }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '{{ row.collection }}', '{{ row.hallmark_agent }}', '{{ row.party }}')" 
+                            <button onclick="showHMQCIssueDetailsModal('{{ row.hm_ro }}', '{{ row.make_owner }}', '{{ row.collection_owner }}', '{{ row.collection }}', '{{ row.hallmark_agent }}', '{{ row.party }}')" 
                                     class="p-1 text-gray-400 hover:text-primary" title="View Details">
                                 <span class="material-symbols-outlined text-[16px]">visibility</span>
                             </button>

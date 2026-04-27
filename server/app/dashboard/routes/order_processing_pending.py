@@ -61,7 +61,7 @@ def get_model_for_status(status):
         FeedbackModel = HMCompletedReturnFeedback
     elif status == 'hm_qc_issue':
         Model = HMReturnQCIssueSnapshot
-        grouping_cols = [Model.order_branch, Model.make_owner, Model.collection_owner, Model.collection, Model.party, Model.hallmark_agent]
+        grouping_cols = [Model.hm_ro, Model.make_owner, Model.collection_owner, Model.collection, Model.party, Model.hallmark_agent]
         FeedbackModel = HMReturnQCIssueFeedback
     elif status == 'qc_issue_receipt':
         Model = SupplierQCIssueReceiptPendingSnapshot
@@ -1141,7 +1141,7 @@ def get_hm_return_logistic_details():
 
 def get_hm_qc_issue_latest_feedback_subquery():
     latest_id_q = db.session.query(
-        HMReturnQCIssueFeedback.order_branch,
+        HMReturnQCIssueFeedback.hm_ro,
         HMReturnQCIssueFeedback.make_owner,
         HMReturnQCIssueFeedback.collection_owner,
         HMReturnQCIssueFeedback.collection,
@@ -1149,7 +1149,7 @@ def get_hm_qc_issue_latest_feedback_subquery():
         HMReturnQCIssueFeedback.party,
         func.max(HMReturnQCIssueFeedback.id).label('max_id')
     ).group_by(
-        HMReturnQCIssueFeedback.order_branch,
+        HMReturnQCIssueFeedback.hm_ro,
         HMReturnQCIssueFeedback.make_owner,
         HMReturnQCIssueFeedback.collection_owner,
         HMReturnQCIssueFeedback.collection,
@@ -1158,7 +1158,7 @@ def get_hm_qc_issue_latest_feedback_subquery():
     ).subquery('latest_fb_ids')
 
     return db.session.query(
-        HMReturnQCIssueFeedback.order_branch,
+        HMReturnQCIssueFeedback.hm_ro,
         HMReturnQCIssueFeedback.make_owner,
         HMReturnQCIssueFeedback.collection_owner,
         HMReturnQCIssueFeedback.collection,
@@ -1180,7 +1180,7 @@ def get_hm_qc_issue_hierarchical_rows(flat_rows):
 
     hierarchy = {}
     for r in flat_rows:
-        ob = r.get('order_branch') or 'Unknown'
+        ob = r.get('hm_ro') or 'Unknown HM RO'
         mo = r.get('make_owner') or 'Unknown'
         co = r.get('collection_owner') or 'Unknown'
         cl = r.get('collection') or 'Unknown'
@@ -1230,7 +1230,7 @@ def get_hm_qc_issue_hierarchical_rows(flat_rows):
                             result.append({
                                 'level': 6, 'id': f"leaf_{get_id(ob, mo, co, cl, ha, r['party'])}", 'parent_id': ha_id, 'label': r['party'],
                                 'weight': r['weight'], 'pieces': r['pieces'], 'is_leaf': True,
-                                'order_branch': ob, 'make_owner': mo, 'collection_owner': co, 'collection': cl, 'hallmark_agent': ha, 'party': r['party'],
+                                'hm_ro': ob, 'make_owner': mo, 'collection_owner': co, 'collection': cl, 'hallmark_agent': ha, 'party': r['party'],
                                 'hm_agent_invoice_receipt_date': r['hm_agent_invoice_receipt_date'],
                                 'hm_agent_invoice_receipt_no': r['hm_agent_invoice_receipt_no'],
                                 'feedback_text': r['feedback_text'], 'feedback_category': r['feedback_category'], 'feedback_username': r['feedback_username']
@@ -1244,7 +1244,7 @@ def save_hm_qc_issue_feedback():
     data = request.json
     username = session.get('username', 'Unknown')
     feedback = HMReturnQCIssueFeedback(
-        order_branch=data.get('order_branch'),
+        hm_ro=data.get('hm_ro'),
         make_owner=data.get('make_owner'),
         collection_owner=data.get('collection_owner'),
         collection=data.get('collection'),
@@ -1262,7 +1262,7 @@ def save_hm_qc_issue_feedback():
 @jwt_required()
 @require_perm('report.view')
 def get_hm_qc_issue_details():
-    order_branch = request.args.get('order_branch')
+    hm_ro = request.args.get('hm_ro')
     make_owner = request.args.get('make_owner')
     collection_owner = request.args.get('collection_owner')
     collection = request.args.get('collection')
@@ -1272,7 +1272,7 @@ def get_hm_qc_issue_details():
     latest_date = db.session.query(func.max(HMReturnQCIssueSnapshot.snapshot_date)).scalar()
     pos = HMReturnQCIssueSnapshot.query.filter(
         HMReturnQCIssueSnapshot.snapshot_date == latest_date,
-        HMReturnQCIssueSnapshot.order_branch == order_branch,
+        HMReturnQCIssueSnapshot.hm_ro == hm_ro,
         HMReturnQCIssueSnapshot.make_owner == make_owner,
         HMReturnQCIssueSnapshot.collection_owner == collection_owner,
         HMReturnQCIssueSnapshot.collection == collection,

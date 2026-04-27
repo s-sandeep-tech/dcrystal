@@ -1355,7 +1355,7 @@ class HMReturnQCIssueFeedback(db.Model):
     __tablename__ = 'hm_return_qc_issue_feedback'
 
     id = db.Column(db.Integer, primary_key=True)
-    order_branch = db.Column(db.String(200))
+    hm_ro = db.Column(db.String(200))
     make_owner = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
@@ -1370,7 +1370,7 @@ class HMReturnQCIssueFeedback(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
-            'order_branch': self.order_branch,
+            'hm_ro': self.hm_ro,
             'make_owner': self.make_owner,
             'collection_owner': self.collection_owner,
             'collection': self.collection,

@@ -648,8 +648,8 @@ async function showHMReturnLogisticModal(hm_ro, make_owner, collection_owner, co
     } catch (err) { content.innerHTML = 'Error'; }
 }
 
-function openHMQCIssueFeedbackModal(order_branch, make_owner, collection_owner, collection, hallmark_agent, party, currentFeedback, currentCategory) {
-    document.getElementById('fb_order_branch').value = order_branch;
+function openHMQCIssueFeedbackModal(hm_ro, make_owner, collection_owner, collection, hallmark_agent, party, currentFeedback, currentCategory) {
+    document.getElementById('fb_hm_ro').value = hm_ro;
     document.getElementById('fb_make_owner').value = make_owner;
     document.getElementById('fb_collection_owner').value = collection_owner;
     document.getElementById('fb_collection').value = collection;
@@ -658,7 +658,7 @@ function openHMQCIssueFeedbackModal(order_branch, make_owner, collection_owner, 
     
     document.getElementById('feedbackText').value = currentFeedback || '';
     document.getElementById('feedbackCategory').value = currentCategory || '';
-    document.getElementById('feedbackModalContext').textContent = `${order_branch} > ${party} (QC Issue)`;
+    document.getElementById('feedbackModalContext').textContent = `${hm_ro} > ${party} (QC Issue)`;
     
     const saveBtn = document.querySelector('#feedbackModal button[onclick*="save"]');
     if (saveBtn) saveBtn.setAttribute('onclick', 'saveHMQCIssueFeedback()');
@@ -668,7 +668,7 @@ function openHMQCIssueFeedbackModal(order_branch, make_owner, collection_owner, 
 
 async function saveHMQCIssueFeedback() {
     const data = {
-        order_branch: document.getElementById('fb_order_branch').value,
+        hm_ro: document.getElementById('fb_hm_ro').value,
         make_owner: document.getElementById('fb_make_owner').value,
         collection_owner: document.getElementById('fb_collection_owner').value,
         collection: document.getElementById('fb_collection').value,
@@ -688,12 +688,12 @@ async function saveHMQCIssueFeedback() {
     } catch (err) { console.error(err); showToast("Error", "error"); }
 }
 
-async function showHMQCIssueDetailsModal(order_branch, make_owner, collection_owner, collection, hallmark_agent, party) {
+async function showHMQCIssueDetailsModal(hm_ro, make_owner, collection_owner, collection, hallmark_agent, party) {
     const content = document.getElementById('poDetailsContent');
     content.innerHTML = '<div class="p-8 text-center">Loading Details...</div>';
     document.getElementById('poDetailsModal').classList.remove('hidden');
     try {
-        const params = new URLSearchParams({ order_branch, make_owner, collection_owner, collection, hallmark_agent, party });
+        const params = new URLSearchParams({ hm_ro, make_owner, collection_owner, collection, hallmark_agent, party });
         const response = await fetch(`/api/hm-qc-issue/details?${params.toString()}`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
         });
