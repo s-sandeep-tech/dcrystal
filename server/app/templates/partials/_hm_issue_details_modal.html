@@ -10,8 +10,8 @@
                 <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Business Head Name</th>
                 <th class="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Mobile No</th>
                 <th class="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">N.Wt</th>
-                <th class="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">G.Wt</th>
                 <th class="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">S.Wt</th>
+                <th class="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">G.Wt</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -29,8 +29,8 @@
                     </div>
                 </td>
                 <td class="px-3 py-2 text-right whitespace-nowrap text-[11px] font-bold text-gray-700 dark:text-gray-200">{{ "{:,.3f}".format(po.net_weight or 0) }}</td>
-                <td class="px-3 py-2 text-right whitespace-nowrap text-[11px] font-bold text-gray-700 dark:text-gray-200">{{ "{:,.3f}".format(po.gross_weight or 0) }}</td>
                 <td class="px-3 py-2 text-right whitespace-nowrap text-[11px] font-bold text-gray-700 dark:text-gray-200">{{ "{:,.3f}".format(po.stone_weight or 0) }}</td>
+                <td class="px-3 py-2 text-right whitespace-nowrap text-[11px] font-bold text-gray-700 dark:text-gray-200">{{ "{:,.3f}".format(po.gross_weight or 0) }}</td>
             </tr>
             {% endfor %}
         </tbody>
