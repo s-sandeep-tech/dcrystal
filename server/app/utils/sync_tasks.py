@@ -2387,7 +2387,7 @@ def sync_supplier_qc_issue_receipt_pending_data_task():
             qc_ro, qc_ro_incharge, net_weight, gross_weight, stone_weight, 
             qc_pending_to_receipt_pcs, qc_pending_to_receipt_wt
         FROM ext_view.vw_supplier_qc_issue_completed_receipt_pending
-        WHERE CURRENT_DATE - DATE(qc_issue_receipt_date) > 2;
+        WHERE CURRENT_DATE - DATE(qc_issue_receipt_date) > 1;
         """
         
         cur.execute("SET statement_timeout = 0")
