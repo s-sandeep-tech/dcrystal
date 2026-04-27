@@ -2199,6 +2199,7 @@ def sync_supplier_hm_issue_data_task():
             hm_issue_receipt_no, hm_issue_receipt_date, net_weight, gross_weight, 
             stone_weight, business_head_name, hm_receipt_pending_pcs, hm_receipt_pending_wt
         FROM ext_view.vw_supplier_hm_issue_completed_hm_receipt_pending
+        WHERE CURRENT_DATE - DATE(hm_issue_receipt_date) > 1
         """
         
         cur.execute("SET statement_timeout = 0")
@@ -2386,7 +2387,7 @@ def sync_supplier_qc_issue_receipt_pending_data_task():
             qc_ro, qc_ro_incharge, net_weight, gross_weight, stone_weight, 
             qc_pending_to_receipt_pcs, qc_pending_to_receipt_wt
         FROM ext_view.vw_supplier_qc_issue_completed_receipt_pending
-        WHERE CURRENT_DATE - DATE(qc_issue_receipt_date) > 1;
+        WHERE CURRENT_DATE - DATE(qc_issue_receipt_date) > 2;
         """
         
         cur.execute("SET statement_timeout = 0")
@@ -2586,7 +2587,7 @@ def sync_invoice_completed_pending_deliver_data_task():
             purchase_invoice_rate_requisition_number, invoice_ro, invoice_no, 
             invoice_date, invoice_amount, pending_to_deliver_pcs, pending_to_deliver_wt
         FROM ext_view.vw_invoice_completed_pending_to_deliver
-        WHERE invoice_date IS NOT NULL AND CURRENT_DATE - DATE(invoice_date) > 1
+        WHERE invoice_date IS NOT NULL AND CURRENT_DATE - DATE(invoice_date) >= 1
         """
         
         cur.execute("SET statement_timeout = 0")
