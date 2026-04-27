@@ -26,7 +26,7 @@
                         <span class="font-bold text-primary">{{ po.po_number }}</span>
                         <span class="text-[9px] text-gray-400">{{ po.po_date.strftime('%Y-%m-%d') if po.po_date else '-' }}</span>
                         <span class="text-[9px] text-gray-500">{{ po.order_type }} / {{ po.order_request_type }}</span>
-                        <span class="text-[9px] text-gray-400">Mob: {{ po.party_mobile_no or '-' }}</span>
+                        <span class="text-[9px] text-gray-400 flex items-center gap-0.5"><span class="material-symbols-outlined text-[11px]">smartphone</span> {{ po.party_mobile_no or '-' }}</span>
                     </div>
                 </td>
                 <td class="px-3 py-2 whitespace-nowrap text-[11px]">
@@ -41,8 +41,8 @@
                     <div class="flex flex-col">
                         <span class="font-bold text-gray-700 dark:text-gray-200">{{ po.hallmark_agent or '-' }}</span>
                         <span class="text-[9px] text-gray-400">RO: {{ po.hm_ro or '-' }}</span>
-                        <span class="text-[9px] text-gray-500">{{ po.hm_agent_email or '-' }}</span>
-                        <span class="text-[9px] text-gray-400">{{ po.hm_agent_pnone_no or '-' }}</span>
+                        <span class="text-[9px] text-gray-500 flex items-center gap-0.5"><span class="material-symbols-outlined text-[11px]">mail</span> {{ po.hm_agent_email or '-' }}</span>
+                        <span class="text-[9px] text-gray-400 flex items-center gap-0.5"><span class="material-symbols-outlined text-[11px]">call</span> {{ po.hm_agent_pnone_no or '-' }}</span>
                         <span class="text-[9px] text-blue-600 font-bold">HM COMP: {{ po.hm_completed_at.strftime('%Y-%m-%d %H:%M') if po.hm_completed_at else '-' }}</span>
                     </div>
                 </td>
