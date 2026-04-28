@@ -44,6 +44,7 @@ try:
         sync_supplier_qc_issue_receipt_pending_data_task,
         sync_qc_completed_invoice_pending_data_task,
         sync_invoice_completed_pending_deliver_data_task,
+        sync_branch_authority_data_task,
         emit_sync_update
     )
 except Exception as e:
@@ -129,6 +130,8 @@ def process_sync_queue():
                         res = sync_qc_completed_invoice_pending_data_task()
                     elif task_type == 'invoice_completed_pending_deliver':
                         res = sync_invoice_completed_pending_deliver_data_task()
+                    elif task_type == 'branch_authority':
+                        res = sync_branch_authority_data_task()
                     else:
                         logger.error(f"Unknown sync task type: {task_type}")
                         emit_sync_update('error', f'Unknown task type: {task_type}')
