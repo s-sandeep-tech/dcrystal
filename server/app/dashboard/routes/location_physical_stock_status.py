@@ -1,11 +1,11 @@
 from flask import render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.dashboard import dashboard_bp
-from app.models.snapshots import ProvisionStockRawSnapshot
+from app.models.snapshots import ProvisionStockRawSnapshot, BranchAuthoritySnapshot
 from app.extensions import db, redis_client
 from app.utils.sync_manager import sync_provision_stock_status_data
 from app.utils.cache_utils import generate_cache_key
-from sqlalchemy import func, text
+from sqlalchemy import func, text, cast, Integer
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import logging
@@ -44,7 +44,18 @@ def location_physical_stock_status_options():
         is_admin = 'ADMIN' in roles
         is_manager = any(r in roles for r in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
         is_business_head = 'BUSINESS_HEAD' in roles
+        is_showroom_manager = 'SHOWROOM_MANAGER' in roles
         user_id = session.get('user_id')
+
+        # Get authorized branch IDs if showroom manager
+        authorized_branch_ids = []
+        if not is_admin and not is_manager and is_showroom_manager and user_id:
+            try:
+                emp_code_int = int(user_id)
+                auth_records = BranchAuthoritySnapshot.query.filter_by(emp_code=emp_code_int).all()
+                authorized_branch_ids = [r.branch_id for r in auth_records]
+            except (ValueError, TypeError):
+                pass
 
         # Check cache first
         snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
@@ -52,8 +63,11 @@ def location_physical_stock_status_options():
         
         # Role-aware cache key
         cache_suffix = "all"
-        if not is_admin and not is_manager and is_business_head and user_id:
-            cache_suffix = f"bh_{user_id}"
+        if not is_admin and not is_manager:
+            if is_business_head and user_id:
+                cache_suffix = f"bh_{user_id}"
+            elif is_showroom_manager and user_id:
+                cache_suffix = f"sm_{user_id}"
             
         cache_key = f"loc_phys_stock_status_options:{date_str}:{cache_suffix}"
         
@@ -66,6 +80,11 @@ def location_physical_stock_status_options():
         if not is_admin and not is_manager:
             if is_business_head and user_id:
                 base_q = base_q.filter(ProvisionStockRawSnapshot.business_head_emp_code == user_id)
+            elif is_showroom_manager and authorized_branch_ids:
+                base_q = base_q.filter(ProvisionStockRawSnapshot.branch_id.in_(authorized_branch_ids))
+            elif is_showroom_manager and not authorized_branch_ids:
+                # If showroom manager but no branch authority records found, return empty results
+                base_q = base_q.filter(False)
 
         # Query distinct values for filters from the local raw snapshot
         locations = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.location.distinct()).order_by(ProvisionStockRawSnapshot.location).all() if r[0]]
@@ -137,6 +156,7 @@ def get_location_physical_stock_status_partial():
             'branch_status': branch_status if branch_status else None,
             'business_head': business_head if business_head else None,
             'bh_emp_code': None,
+            'authorized_branch_ids': None,
             'sort_by': sort_by if sort_by else None,
             'sort_order': sort_order if sort_order else None
         }
@@ -146,11 +166,23 @@ def get_location_physical_stock_status_partial():
         is_admin = 'ADMIN' in roles
         is_manager = any(r in roles for r in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
         is_business_head = 'BUSINESS_HEAD' in roles
+        is_showroom_manager = 'SHOWROOM_MANAGER' in roles
         user_id = session.get('user_id')
 
         if not is_admin and not is_manager:
             if is_business_head and user_id:
                 params['bh_emp_code'] = user_id
+            elif is_showroom_manager and user_id:
+                try:
+                    emp_code_int = int(user_id)
+                    auth_records = BranchAuthoritySnapshot.query.filter_by(emp_code=emp_code_int).all()
+                    branch_ids = [r.branch_id for r in auth_records]
+                    if branch_ids:
+                        params['authorized_branch_ids'] = ','.join(map(str, branch_ids))
+                    else:
+                        params['authorized_branch_ids'] = '-1' # Force empty
+                except (ValueError, TypeError):
+                    params['authorized_branch_ids'] = '-1'
 
         # Redis Caching Logic
         snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
@@ -180,6 +212,7 @@ WITH base AS (
         AND (:branch_status IS NULL OR branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
         AND (:business_head IS NULL OR business_head_name = ANY(string_to_array(CAST(:business_head AS text), ',')))
         AND (:bh_emp_code IS NULL OR business_head_emp_code = :bh_emp_code)
+        AND (:authorized_branch_ids IS NULL OR branch_id = ANY(string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]))
 ),
 location_summary AS (
     SELECT
@@ -664,6 +697,7 @@ def get_location_physical_stock_status_drilldown():
             'business_head': business_head if business_head else None,
             'state': state if state else None,
             'bh_emp_code': None,
+            'authorized_branch_ids': None,
             'drill_section': drill_section if drill_section else None
         }
 
@@ -672,11 +706,23 @@ def get_location_physical_stock_status_drilldown():
         is_admin = 'ADMIN' in roles
         is_manager = any(r in roles for r in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
         is_business_head = 'BUSINESS_HEAD' in roles
+        is_showroom_manager = 'SHOWROOM_MANAGER' in roles
         user_id = session.get('user_id')
 
         if not is_admin and not is_manager:
             if is_business_head and user_id:
                 params['bh_emp_code'] = user_id
+            elif is_showroom_manager and user_id:
+                try:
+                    emp_code_int = int(user_id)
+                    auth_records = BranchAuthoritySnapshot.query.filter_by(emp_code=emp_code_int).all()
+                    branch_ids = [r.branch_id for r in auth_records]
+                    if branch_ids:
+                        params['authorized_branch_ids'] = ','.join(map(str, branch_ids))
+                    else:
+                        params['authorized_branch_ids'] = '-1' # Force empty
+                except (ValueError, TypeError):
+                    params['authorized_branch_ids'] = '-1'
 
         # Hierarchical Query for Modal (Location Physical logic minus ordered_wt in short_excess)
         query = '''
@@ -697,6 +743,7 @@ WITH base AS (
         AND (:branch_status IS NULL OR branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
         AND (:business_head IS NULL OR business_head_name = ANY(string_to_array(CAST(:business_head AS text), ',')))
         AND (:bh_emp_code IS NULL OR business_head_emp_code = :bh_emp_code)
+        AND (:authorized_branch_ids IS NULL OR branch_id = ANY(string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]))
         AND (:drill_section IS NULL OR section = :drill_section)
 ),
 levels AS (
