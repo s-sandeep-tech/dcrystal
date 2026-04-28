@@ -1661,6 +1661,7 @@ def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_ty
                         'division': row.get('division'),
                         'group_name': row.get('group'),
                         'location': row.get('location'),
+                        'branch_id': row.get('branch_id'),
                         'branch_type': row.get('branch_type'),
                         'branch_status': row.get('branch_status'),
                         'business_head_name': row.get('business_head_name'),
@@ -1771,7 +1772,7 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
             s_cur.execute("SET statement_timeout = 0")
         
         query = """
-            SELECT "division","group","location","provision_mode","provision_mode_filter",
+            SELECT "division","group","location","branch_id","provision_mode","provision_mode_filter",
                    "purity","classification","sub_classification","section","type","make","collection",
                    "master_collection","sub_section","gender","wide_range","range_weight","size",
                    "screw_type","prov_pieces","prov_gr_wt","prov_amount","stock_qty","stock_gr_wt",
@@ -1818,7 +1819,7 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
             # Since they are IDENTICAL, SELECT * is fine as long as we don't mind IDs changing.
             copy_query = """
                 INSERT INTO provision_stock_raw_snapshot 
-                (division, "group", location, branch_type, branch_status, business_head_name, 
+                (division, "group", location, branch_id, branch_type, branch_status, business_head_name, 
                 business_head_emp_code, state, provision_mode, provision_mode_filter, classification, 
                 sub_classification, section, type, make, collection, master_collection, sub_section, 
                 gender, wide_range, size, screw_type, prov_type, purity, range_weight, prov_pieces, 
@@ -1829,7 +1830,7 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
                 excess_amt, not_in_prov_pcs, not_in_prov_gr_weight, not_in_prov_amt, prov_type_filter, 
                 snapshot_date)
                 SELECT 
-                division, "group", location, branch_type, branch_status, business_head_name, 
+                division, "group", location, branch_id, branch_type, branch_status, business_head_name, 
                 business_head_emp_code, state, provision_mode, provision_mode_filter, classification, 
                 sub_classification, section, type, make, collection, master_collection, sub_section, 
                 gender, wide_range, size, screw_type, prov_type, purity, range_weight, prov_pieces, 
