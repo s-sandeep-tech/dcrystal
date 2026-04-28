@@ -33,11 +33,19 @@ def login():
         return jsonify({"msg": "This account has been disabled. Please contact your administrator."}), 403
 
     if user and user.check_password(password):
+        # SHOWROOM_MANAGER network restriction check
+        user_roles = [r.name for r in user.roles]
+        if 'SHOWROOM_MANAGER' in user_roles:
+            access_channel = request.headers.get('X-Access-Channel')
+            if access_channel != 'private':
+                auth_service.log_attempt(user_id, user_id=user.user_id, status='failure', failure_reason='network_restriction')
+                return jsonify({"msg": "try to login from private network"}), 403
+
         # Store in session for server-side auth checks (e.g. data filtering)
         session['user_id'] = user.user_id
         session['username'] = user.username
         session['is_admin'] = user.is_admin
-        session['roles'] = [r.name for r in user.roles]
+        session['roles'] = user_roles
         
         auth_service.handle_successful_login(user, request.remote_addr)
         
