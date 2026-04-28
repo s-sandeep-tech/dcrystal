@@ -39,7 +39,7 @@ def login():
             access_channel = request.headers.get('X-Access-Channel')
             if access_channel != 'private':
                 auth_service.log_attempt(user_id, user_id=user.user_id, status='failure', failure_reason='network_restriction')
-                return jsonify({"msg": "try to login from private network"}), 403
+                return jsonify({"msg": "Access denied. Login attempts from public networks are not permitted. Please connect to the private network and try again."}), 403
 
         # Store in session for server-side auth checks (e.g. data filtering)
         session['user_id'] = user.user_id
