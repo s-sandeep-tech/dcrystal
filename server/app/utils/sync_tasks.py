@@ -22,7 +22,8 @@ from ..models.snapshots import (
     HMReturnQCIssueSnapshot,
     SupplierQCIssueReceiptPendingSnapshot,
     QCCompletedInvoicePendingSnapshot,
-    InvoiceCompletedPendingDeliverSnapshot
+    InvoiceCompletedPendingDeliverSnapshot,
+    BranchAuthoritySnapshot
 )
 from flask import current_app
 import os
@@ -2647,6 +2648,55 @@ def sync_invoice_completed_pending_deliver_data_task():
                 
                 progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
                 emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
+
+        duration = time.time() - start_time
+        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
+        return {"status": "success", "count": len(rows)}
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Sync failed: {str(e)}")
+        emit_sync_update('error', str(e), 0, DATA_TYPE)
+        return {"status": "error", "message": str(e)}
+    finally:
+        if conn: conn.close()
+
+def sync_branch_authority_data_task():
+    DATA_TYPE = 'branch_authority'
+    start_time = time.time()
+    conn = None
+    try:
+        emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
+        conn = get_external_db_connection()
+    except Exception as e:
+        error_msg = f"Connection failed: {str(e)}"
+        logger.error(f"BranchAuthority sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
+
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        query = "SELECT branch_id, emp_code FROM ext_view.vw_branch_authority_data"
+        
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
+        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+
+        if rows:
+            db.session.execute(text("TRUNCATE TABLE branch_authority_snapshot"))
+            db.session.commit()
+
+            new_records = []
+            for row in rows:
+                new_records.append({
+                    'branch_id': row.get('branch_id'),
+                    'emp_code': row.get('emp_code')
+                })
+            
+            db.session.bulk_insert_mappings(BranchAuthoritySnapshot, new_records)
+            db.session.commit()
 
         duration = time.time() - start_time
         emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)

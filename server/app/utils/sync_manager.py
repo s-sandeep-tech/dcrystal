@@ -73,3 +73,6 @@ def sync_qc_completed_invoice_pending_data(user_id=None):
 
 def sync_invoice_completed_pending_deliver_data(user_id=None):
     return enqueue_sync_task('invoice_completed_pending_deliver', user_id)
+
+def sync_branch_authority_data(user_id=None):
+    return enqueue_sync_task('branch_authority', user_id)

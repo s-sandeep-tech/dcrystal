@@ -532,6 +532,25 @@
                                     </button>
                                 </div>
 
+                                <div id="sync-wrapper-branch_authority"
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-indigo-500 text-xl">admin_panel_settings</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Branch Authority Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync branch authority mappings (Branch ID & Emp Code)</p>
+                                        </div>
+                                    </div>
+                                    <button id="sync-branch-authority-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-indigo-600 transition-all shadow-md shadow-indigo-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
+                                </div>
+
                             </div>
 
                             <div
@@ -1197,6 +1216,7 @@
             syncSupplierQCIssueReceiptUrl: "{{ url_for('dashboard.settings_sync_supplier_qc_issue_receipt') }}",
             syncQCCompletedInvoiceUrl: "{{ url_for('dashboard.settings_sync_qc_completed_invoice') }}",
             syncInvoiceCompletedDeliverUrl: "{{ url_for('dashboard.settings_sync_invoice_completed_deliver') }}",
+            syncBranchAuthorityUrl: "{{ url_for('dashboard.settings_sync_branch_authority') }}",
             syncOwnerShowroomUrl: "{{ url_for('dashboard.sync_owner_and_showroom_wise') }}",
             syncLogsUrl: "{{ url_for('dashboard.get_sync_logs') }}",
             auditLogsUrl: "{{ url_for('admin_rbac.get_audit_logs') }}",
