@@ -148,7 +148,7 @@ def api_order_processing_filters():
         'valid_fields': valid_fields
     })
 
-@dashboard_bp.route('/order-processing-pending-stage-tatus')
+@dashboard_bp.route('/order-processing-pending-stage-status')
 @jwt_required()
 @require_perm('report.view')
 def order_processing_pending():
