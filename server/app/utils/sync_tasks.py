@@ -1560,7 +1560,7 @@ def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, to
     retry_count = 0
     producer_offset = 0 # Track records successfully put into the queue
     query_template = """
-        SELECT "division","group","location","provision_mode","provision_mode_filter",
+        SELECT "division","group","location","branch_id","provision_mode","provision_mode_filter",
                "purity","classification","sub_classification","section","type","make","collection",
                "master_collection","sub_section","gender","wide_range","range_weight","size",
                "screw_type","prov_pieces","prov_gr_wt","prov_amount","stock_qty","stock_gr_wt",
