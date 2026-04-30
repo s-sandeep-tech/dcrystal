@@ -220,7 +220,7 @@ def partial_order_processing_pending():
     f_is_invoiced = request.args.get('is_invoiced', '')
 
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 50, type=int)
+    per_page = request.args.get('per_page', 500, type=int)
 
     Model, grouping_cols, FeedbackModel = get_model_for_status(status)
     

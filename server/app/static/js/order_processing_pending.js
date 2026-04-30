@@ -223,6 +223,9 @@ function updatePaginationControls(meta) {
     const hasPrev = meta.hasPrev === 'true';
     const hasNext = meta.hasNext === 'true';
 
+    const perPageSelect = document.getElementById('per-page-select');
+    if (perPageSelect) perPageSelect.value = perPage;
+
     const start = total > 0 ? (page - 1) * perPage + 1 : 0;
     const end = Math.min(page * perPage, total);
     
