@@ -1556,7 +1556,7 @@ def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
 def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, total_to_sync, shared_state):
     """Producer thread: Fetches data batches from Azure, with auto-resume support (duplication-safe)."""
     conn = None
-    max_retries = 10
+    max_retries = 25
     retry_count = 0
     producer_offset = 0 # Track records successfully put into the queue
     query_template = """
