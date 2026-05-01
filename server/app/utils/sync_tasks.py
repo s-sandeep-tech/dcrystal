@@ -1556,7 +1556,7 @@ def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
 def _provision_sync_producer(conn_params, data_queue, stop_event, batch_size, total_to_sync, shared_state):
     """Producer thread: Fetches data batches from Azure, with auto-resume support (duplication-safe)."""
     conn = None
-    max_retries = 5
+    max_retries = 10
     retry_count = 0
     producer_offset = 0 # Track records successfully put into the queue
     query_template = """
@@ -1741,7 +1741,7 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
     This avoids SSL connection timeouts by keeping the connection active during inserts.
     """
     conn = None
-    BATCH_SIZE = 10000  # Reduced batch size for more consistent performance
+    BATCH_SIZE = 20000  # Reduced batch size for more consistent performance
     DATA_TYPE = 'provision_stock_status'
     
     try:
