@@ -12,3 +12,4 @@ bcrypt==3.1.7
 flask-limiter
 flask-migrate
 openpyxl>=3.1.0
+apscheduler

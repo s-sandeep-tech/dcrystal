@@ -47,6 +47,8 @@ try:
         sync_branch_authority_data_task,
         emit_sync_update
     )
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from app.utils.sync_manager import enqueue_sync_task
 except Exception as e:
     # We can't log to the logger yet as it's defined later, but we can print
     print(f"CRITICAL IMPORT ERROR: {str(e)}")
@@ -127,7 +129,19 @@ def process_sync_queue():
                     elif task_type == 'supplier_qc_issue_receipt_pending':
                         res = sync_supplier_qc_issue_receipt_pending_data_task()
                     elif task_type == 'qc_completed_invoice_pending':
-                        res = sync_qc_completed_invoice_pending_data_task()
+                        # Special retry logic: 10 attempts with 5s delay and UI updates
+                        max_retries = 10
+                        for attempt in range(max_retries):
+                            res = sync_qc_completed_invoice_pending_data_task()
+                            if res.get('status') == 'success':
+                                break
+                            
+                            if attempt < max_retries - 1:
+                                retry_msg = f"Task {task_type} failed (Attempt {attempt + 1}/{max_retries}). Retrying in 5s..."
+                                logger.warning(retry_msg)
+                                # Update UI via SocketIO
+                                emit_sync_update('processing', retry_msg, data_type=task_type)
+                                time.sleep(5)
                     elif task_type == 'invoice_completed_pending_deliver':
                         res = sync_invoice_completed_pending_deliver_data_task()
                     elif task_type == 'branch_authority':
@@ -375,9 +389,34 @@ def _handle_export_pending_acceptance(task_data: dict):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Entry point — run both workers in separate threads
+# Automated Scheduler setup
+# ─────────────────────────────────────────────────────────────────────────────
+def setup_scheduler():
+    """Initializes and starts the background scheduler for automated tasks."""
+    scheduler = BackgroundScheduler()
+
+    # Schedule "Provision & Stock Status Sync" every day at 6 AM
+    # Task type 'provision_stock_status' matches sync_manager.py
+    scheduler.add_job(
+        func=enqueue_sync_task,
+        trigger='cron',
+        hour=6,
+        minute=0,
+        args=['provision_stock_status'],
+        id='daily_provision_stock_sync',
+        replace_existing=True
+    )
+
+    scheduler.start()
+    logger.info("Background Scheduler started. 'Provision & Stock Status Sync' scheduled for 06:00 daily.")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Entry point — run workers and scheduler
 # ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
+    # Start the automated scheduler
+    setup_scheduler()
+
     sync_thread = threading.Thread(target=process_sync_queue, daemon=True, name="SyncWorker")
     export_thread = threading.Thread(target=process_export_queue, daemon=True, name="ExportWorker")
 
