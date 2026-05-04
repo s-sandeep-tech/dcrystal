@@ -32,6 +32,7 @@ class CustomMultiSelect {
         this.defaultText = config.defaultText || 'All Options';
         this.options = config.options || [];
         this.onChange = config.onChange || null;
+        this.onSearch = config.onSearch || null;
 
         this.render();
         this.attachEvents();
@@ -121,11 +122,37 @@ class CustomMultiSelect {
         // Search filtering
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
-                const searchValue = e.target.value.toLowerCase();
+                const searchValue = e.target.value;
+                const searchValueLower = searchValue.toLowerCase();
+                
+                // If remote search callback is provided
+                if (this.onSearch) {
+                    // Debounce remote search
+                    clearTimeout(this.searchTimeout);
+                    this.searchTimeout = setTimeout(() => {
+                        this.onSearch(searchValue, (newOptions) => {
+                            // Merge new options with currently selected values to ensure they don't disappear
+                            const selectedValues = this.getValues();
+                            const mergedOptions = [...new Set([...selectedValues, ...newOptions])];
+                            this.populateOptions(mergedOptions);
+                            
+                            // Restore selections
+                            document.querySelectorAll(`.${this.containerId}-checkbox`).forEach(cb => {
+                                if (selectedValues.includes(cb.value)) {
+                                    cb.checked = true;
+                                }
+                            });
+                            this.updateTriggerText();
+                        });
+                    }, 300);
+                    return;
+                }
+
+                // Local filtering (default behavior)
                 const optionLabels = optionsList.querySelectorAll('label');
                 optionLabels.forEach(opt => {
                     const text = opt.dataset.text;
-                    if (text.includes(searchValue)) {
+                    if (text.includes(searchValueLower)) {
                         opt.style.display = 'flex';
                     } else {
                         opt.style.display = 'none';

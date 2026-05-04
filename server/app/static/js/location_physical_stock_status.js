@@ -65,7 +65,27 @@ document.addEventListener('DOMContentLoaded', () => {
         containerId: 'filter-collection-container',
         label: 'Collection',
         defaultText: 'All Collections',
-        options: []
+        options: [],
+        onSearch: async (query, callback) => {
+            try {
+                const response = await fetch(`/api/location-physical-stock-status/collections/search?q=${encodeURIComponent(query)}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Collection search failed:', err);
+                callback([]);
+            }
+        }
+    });
+
+    // Initial empty search to populate first set of collections
+    fetch(`/api/location-physical-stock-status/collections/search?q=`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+    }).then(res => res.json()).then(data => {
+        if (collectionMultiSelect) collectionMultiSelect.populateOptions(data);
+        if (collectionHeaderFilter) collectionHeaderFilter.setOptions(data);
     });
     
     makeHeaderFilter = new HeaderFilter({
@@ -109,6 +129,18 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onClear: () => {
             applyFilters();
+        },
+        onSearch: async (query, callback) => {
+            try {
+                const response = await fetch(`/api/location-physical-stock-status/collections/search?q=${encodeURIComponent(query)}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Collection header search failed:', err);
+                callback([]);
+            }
         }
     });
 
@@ -140,8 +172,8 @@ async function loadOptions() {
         if (makeHeaderFilter) makeHeaderFilter.setOptions(data.makes);
         if (sectionHeaderFilter) sectionHeaderFilter.setOptions(data.sections);
         if (purityHeaderFilter) purityHeaderFilter.setOptions(data.purities);
-        if (collectionMultiSelect) collectionMultiSelect.populateOptions(data.collections);
-        if (collectionHeaderFilter) collectionHeaderFilter.setOptions(data.collections);
+        // collectionMultiSelect is now dynamic
+        if (collectionHeaderFilter) collectionHeaderFilter.setOptions([]); // Initially empty or we can add search here too
 
         config.forEach(item => {
             const select = document.getElementById(item.id);

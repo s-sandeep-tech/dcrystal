@@ -9,6 +9,7 @@ class HeaderFilter {
         this.selectedValues = config.selectedValues || [];
         this.onApply = config.onApply || null;
         this.onClear = config.onClear || null;
+        this.onSearch = config.onSearch || null;
         
         this.dropdown = null;
         this.isOpen = false;
@@ -135,20 +136,32 @@ class HeaderFilter {
 
         // Search filtering
         searchInput.addEventListener('input', (e) => {
-            const val = e.target.value.toLowerCase();
-            const optionLabels = optionsList.querySelectorAll('.header-filter-option');
-            let hasVisible = false;
+            const val = e.target.value;
+            const valLower = val.toLowerCase();
             
+            if (this.onSearch) {
+                // Remote search
+                clearTimeout(this.searchTimeout);
+                this.searchTimeout = setTimeout(() => {
+                    this.onSearch(val, (newOptions) => {
+                        // Merge with currently selected
+                        const merged = [...new Set([...this.selectedValues.map(String), ...newOptions.map(String)])];
+                        this.setOptions(merged);
+                        optionsList.innerHTML = this.renderOptions(this.options);
+                        this.updateSelectAllState();
+                    });
+                }, 300);
+                return;
+            }
+
+            const optionLabels = optionsList.querySelectorAll('.header-filter-option');
             optionLabels.forEach(label => {
-                if (label.dataset.value.includes(val)) {
+                if (label.dataset.value.includes(valLower)) {
                     label.style.display = 'flex';
-                    hasVisible = true;
                 } else {
                     label.style.display = 'none';
                 }
             });
-
-            // Handle "No Results" display if needed (could be improved)
         });
 
         // Select All
