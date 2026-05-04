@@ -80,14 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Initial empty search to populate first set of collections
-    fetch(`/api/location-physical-stock-status/collections/search?q=`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-    }).then(res => res.json()).then(data => {
-        if (collectionMultiSelect) collectionMultiSelect.populateOptions(data);
-        if (collectionHeaderFilter) collectionHeaderFilter.setOptions(data);
-    });
-    
     makeHeaderFilter = new HeaderFilter({
         id: 'make',
         title: 'Make Wise',
