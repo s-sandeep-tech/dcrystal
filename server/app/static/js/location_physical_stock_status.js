@@ -58,7 +58,19 @@ document.addEventListener('DOMContentLoaded', () => {
         containerId: 'filter-make-container',
         label: 'Make',
         defaultText: 'All Makes',
-        options: []
+        options: [],
+        onSearch: async (query, callback) => {
+            try {
+                const response = await fetch(`/api/location-physical-stock-status/makes/search?q=${encodeURIComponent(query)}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Make search failed:', err);
+                callback([]);
+            }
+        }
     });
 
     collectionMultiSelect = new CustomMultiSelect({
@@ -88,6 +100,18 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onClear: () => {
             applyFilters();
+        },
+        onSearch: async (query, callback) => {
+            try {
+                const response = await fetch(`/api/location-physical-stock-status/makes/search?q=${encodeURIComponent(query)}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Make header search failed:', err);
+                callback([]);
+            }
         }
     });
 
@@ -160,8 +184,8 @@ async function loadOptions() {
         if (branchStatusMultiSelect) branchStatusMultiSelect.populateOptions(data.branch_statuses);
         if (branchTypeMultiSelect) branchTypeMultiSelect.populateOptions(data.branch_types);
         if (stateMultiSelect) stateMultiSelect.populateOptions(data.states);
-        if (makeMultiSelect) makeMultiSelect.populateOptions(data.makes);
-        if (makeHeaderFilter) makeHeaderFilter.setOptions(data.makes);
+        // makeMultiSelect is now dynamic
+        if (makeHeaderFilter) makeHeaderFilter.setOptions([]); 
         if (sectionHeaderFilter) sectionHeaderFilter.setOptions(data.sections);
         if (purityHeaderFilter) purityHeaderFilter.setOptions(data.purities);
         // collectionMultiSelect is now dynamic

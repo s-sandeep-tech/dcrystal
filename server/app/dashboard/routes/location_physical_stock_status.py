@@ -90,8 +90,7 @@ def location_physical_stock_status_options():
         locations = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.location.distinct()).order_by(ProvisionStockRawSnapshot.location).all() if r[0]]
         purities = [float(r[0]) for r in base_q.with_entities(ProvisionStockRawSnapshot.purity.distinct()).order_by(ProvisionStockRawSnapshot.purity).all() if r[0]]
         classifications = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.classification.distinct()).order_by(ProvisionStockRawSnapshot.classification).all() if r[0]]
-        makes = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.make.distinct()).order_by(ProvisionStockRawSnapshot.make).all() if r[0]]
-        # collections removed for dynamic loading
+        # makes and collections removed for dynamic loading
         sections = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.section.distinct()).order_by(ProvisionStockRawSnapshot.section).all() if r[0]]
         prov_types = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.prov_type.distinct()).order_by(ProvisionStockRawSnapshot.prov_type).all() if r[0]]
         provision_modes = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.provision_mode_filter.distinct()).order_by(ProvisionStockRawSnapshot.provision_mode_filter).all() if r[0]]
@@ -104,7 +103,6 @@ def location_physical_stock_status_options():
             'locations': locations,
             'purities': purities,
             'classifications': classifications,
-            'makes': makes,
             'sections': sections,
             'prov_types': prov_types,
             'provision_modes': provision_modes,
@@ -158,6 +156,45 @@ def location_physical_stock_status_collections_search():
         return jsonify(collections)
     except Exception as e:
         logger.error(f"Error in collections search: {str(e)}")
+        return jsonify([]), 500
+
+@dashboard_bp.route('/api/location-physical-stock-status/makes/search')
+@jwt_required()
+def location_physical_stock_status_makes_search():
+    try:
+        q = request.args.get('q', '').strip()
+        
+        # Role-based filtering
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(r in roles for r in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        is_business_head = 'BUSINESS_HEAD' in roles
+        is_showroom_manager = 'SHOWROOM_MANAGER' in roles
+        user_id = session.get('user_id')
+
+        base_q = db.session.query(ProvisionStockRawSnapshot.make.distinct())
+        
+        if not is_admin and not is_manager:
+            if is_business_head and user_id:
+                base_q = base_q.filter(ProvisionStockRawSnapshot.business_head_emp_code == user_id)
+            elif is_showroom_manager:
+                emp_code_int = int(user_id)
+                auth_records = BranchAuthoritySnapshot.query.filter_by(emp_code=emp_code_int).all()
+                authorized_branch_ids = [r.branch_id for r in auth_records]
+                if authorized_branch_ids:
+                    base_q = base_q.filter(ProvisionStockRawSnapshot.branch_id.in_(authorized_branch_ids))
+                else:
+                    return jsonify([])
+
+        if q:
+            base_q = base_q.filter(ProvisionStockRawSnapshot.make.ilike(f'%{q}%'))
+        
+        # Limit results for performance
+        makes = [r[0] for r in base_q.order_by(ProvisionStockRawSnapshot.make).limit(50).all() if r[0]]
+        
+        return jsonify(makes)
+    except Exception as e:
+        logger.error(f"Error in makes search: {str(e)}")
         return jsonify([]), 500
 
 @dashboard_bp.route('/partial/location-physical-stock-status')
