@@ -233,7 +233,6 @@ function applyFilters() {
 
     filterValues.purity = document.getElementById('filter-purity').value;
     filterValues.classification = document.getElementById('filter-classification').value;
-    filterValues.make = document.getElementById('filter-make').value;
     filterValues.collection = document.getElementById('filter-collection').value;
     filterValues.section = document.getElementById('filter-section').value;
     filterValues.prov_type = document.getElementById('filter-prov-type').value;
@@ -275,7 +274,7 @@ function resetFilters() {
     
     const filterIds = [
         'filter-purity', 'filter-classification', 
-        'filter-make', 'filter-collection', 'filter-section', 
+        'filter-collection', 'filter-section', 
         'filter-prov-type', 'filter-provision-mode',
         'filter-business-head'
     ];
