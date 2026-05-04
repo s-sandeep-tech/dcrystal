@@ -213,9 +213,31 @@ def create_app():
         if request.path.startswith('/static/') or request.path == '/force-reset' or request.path == '/logout':
             return
 
-        if session.get('must_reset_password'):
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        
+        user_id = session.get('user_id')
+        
+        # If not in session, try to identify user from JWT (handles API clients with Bearer tokens)
+        if not user_id:
+            try:
+                verify_jwt_in_request(optional=True)
+                user_id = get_jwt_identity()
+            except Exception:
+                pass
+
+        must_reset = False
+        if user_id:
+            # Always check the DB for the most current status to prevent real-time bypass
+            # Identity map in SQLAlchemy makes this efficient for repeated calls in one request
+            user = User.query.get(user_id)
+            if user and user.must_reset_password:
+                must_reset = True
+                session['must_reset_password'] = True
+            else:
+                session['must_reset_password'] = False
+
+        if must_reset:
             if request.path.startswith('/api/'):
-                # For API calls, return a structured error so the frontend can handle it
                 return jsonify({
                     "msg": "Action Required: Password reset is mandatory for your account.",
                     "force_reset": True
