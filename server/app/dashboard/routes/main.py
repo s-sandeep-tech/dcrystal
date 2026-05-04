@@ -581,7 +581,7 @@ def check_report_offline():
     from flask import request, session, redirect, url_for
     import json
     
-    # Exclude certain routes from being blocked
+    # Exclude certain routes from being blocked by the "Report Offline" feature
     excluded_endpoints = [
         'dashboard.report_offline',
         'dashboard.login',
@@ -618,6 +618,15 @@ def check_report_offline():
 @dashboard_bp.route('/report-offline')
 def report_offline():
     return render_template('report_offline.html')
+
+@dashboard_bp.route('/force-reset')
+def force_reset():
+    # Only allow access if user is logged in and MUST reset password
+    if not session.get('user_id') or not session.get('must_reset_password'):
+        return redirect(url_for('dashboard.index'))
+    
+    # We don't need to fetch unread_count etc. for this exclusive page
+    return render_template('force_reset.html')
 
 @dashboard_bp.route('/settings/report-offline-status')
 def get_report_offline_status():

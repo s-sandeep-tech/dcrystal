@@ -24,14 +24,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         updatePasswordBtn.addEventListener('click', openPasswordModal);
 
-        // Auto-open if redirected from login with force_reset flag
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('force_reset') === '1') {
-            openPasswordModal();
-            if (window.showToast) {
-                window.showToast('Reset Required', 'A password reset has been forced for your account. Please update your password to continue.', 'warning', 60000);
-            }
-        }
 
         passwordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -39,6 +31,30 @@ document.addEventListener('DOMContentLoaded', function () {
             const currentPassword = document.getElementById('current_password').value;
             const newPassword = document.getElementById('new_password').value;
             const confirmPassword = document.getElementById('confirm_password').value;
+
+            function validatePassword(pw) {
+                const minLength = pw.length >= 6;
+                const hasUpper = /[A-Z]/.test(pw);
+                const hasLower = /[a-z]/.test(pw);
+                const hasNumber = /\d/.test(pw);
+                const hasSpecial = /[^a-zA-Z\d\s]/.test(pw);
+                const noSpace = !/\s/.test(pw);
+
+                if (!minLength) return "Password must be at least 6 characters long";
+                if (!noSpace) return "Spaces are not allowed in the password";
+                if (!hasUpper) return "Password must contain at least one uppercase letter";
+                if (!hasLower) return "Password must contain at least one lowercase letter";
+                if (!hasNumber) return "Password must contain at least one numeric digit";
+                if (!hasSpecial) return "Password must contain at least one special character";
+                return null;
+            }
+
+            const strengthError = validatePassword(newPassword);
+            if (strengthError) {
+                if (window.showToast) window.showToast('Weak Password', strengthError, 'error');
+                else alert(strengthError);
+                return;
+            }
 
             if (newPassword === currentPassword) {
                 if (window.showToast) window.showToast('Error', 'New password cannot be the same as current password', 'error');

@@ -6,7 +6,28 @@ from datetime import timedelta
 from app.services.auth_service import auth_service
 from app.utils.decorators import require_role
 
+import re
+
 auth_bp = Blueprint('auth', __name__)
+
+def validate_password_strength(password):
+    """
+    Minimum 6 characters, at least one uppercase, one lowercase, one number, 
+    one special character, and no spaces.
+    """
+    if len(password) < 6:
+        return False, "Password must be at least 6 characters long"
+    if ' ' in password:
+        return False, "Password cannot contain spaces"
+    if not re.search(r"[a-z]", password):
+        return False, "Password must contain at least one lowercase letter"
+    if not re.search(r"[A-Z]", password):
+        return False, "Password must contain at least one uppercase letter"
+    if not re.search(r"\d", password):
+        return False, "Password must contain at least one numeric digit"
+    if not re.search(r"[^a-zA-Z\d\s]", password):
+        return False, "Password must contain at least one special character"
+    return True, ""
 
 @auth_bp.route('/login', methods=['POST'])
 @limiter.limit("10 per minute per IP")
@@ -46,6 +67,7 @@ def login():
         session['username'] = user.username
         session['is_admin'] = user.is_admin
         session['roles'] = user_roles
+        session['must_reset_password'] = user.must_reset_password
         
         auth_service.handle_successful_login(user, request.remote_addr)
         
@@ -87,6 +109,11 @@ def register():
         return jsonify({"msg": "User ID already exists"}), 400
 
     new_user = User(user_id=user_id, username=username, email=email)
+    
+    is_valid, error_msg = validate_password_strength(password)
+    if not is_valid:
+        return jsonify({"msg": error_msg}), 400
+        
     new_user.set_password(password)
     
     db.session.add(new_user)
@@ -138,13 +165,19 @@ def update_password():
     if current_password == new_password:
         return jsonify({"msg": "New password cannot be the same as current password"}), 400
         
+    is_valid, error_msg = validate_password_strength(new_password)
+    if not is_valid:
+        return jsonify({"msg": error_msg}), 400
+        
     user = User.query.filter_by(user_id=session['user_id']).first()
     if not user or not user.check_password(current_password):
         return jsonify({"msg": "Incorrect current password"}), 401
         
+    was_forced = user.must_reset_password
     user.set_password(new_password)
     user.session_version += 1
     user.must_reset_password = False
+    session['must_reset_password'] = False
     
     # Log history
     history = UserPasswordHistory(
@@ -159,7 +192,10 @@ def update_password():
         action="UPDATE_PASSWORD",
         target_type="USER",
         target_id=str(user.id),
-        details={"method": "self-service"}
+        details={
+            "method": "self-service",
+            "is_forced": was_forced
+        }
     ))
     
     db.session.commit()

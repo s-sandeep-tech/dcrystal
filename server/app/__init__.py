@@ -183,6 +183,7 @@ def create_app():
                             session['username'] = user.username
                             session['is_admin'] = user.is_admin
                             session['roles'] = [r.name for r in user.roles]
+                            session['must_reset_password'] = user.must_reset_password
                             app.logger.info(f"Restored session for {user.username} from JWT cookie")
                         else:
                             g.clear_token_cookie = True
@@ -191,6 +192,35 @@ def create_app():
                 # If token is invalid or expired, flag it for removal to prevent redundant attempts
                 g.clear_token_cookie = True
                 app.logger.warning(f"Invalid JWT detected during session restoration: {str(e)}")
+
+    @app.before_request
+    def enforce_forced_password_reset():
+        # Exclude routes that must remain accessible
+        # We check both request.path and request.endpoint for robustness
+        reset_excluded_endpoints = [
+            'dashboard.force_reset', 
+            'dashboard.logout', 
+            'dashboard.login',
+            'auth.logout',
+            'auth.update_password',
+            'static'
+        ]
+        
+        if request.endpoint in reset_excluded_endpoints:
+            return
+            
+        # Also check path prefixes for API or other untracked routes
+        if request.path.startswith('/static/') or request.path == '/force-reset' or request.path == '/logout':
+            return
+
+        if session.get('must_reset_password'):
+            if request.path.startswith('/api/'):
+                # For API calls, return a structured error so the frontend can handle it
+                return jsonify({
+                    "msg": "Action Required: Password reset is mandatory for your account.",
+                    "force_reset": True
+                }), 403
+            return redirect(url_for('dashboard.force_reset'))
 
     @app.after_request
     def clear_invalid_token_cookie(response):

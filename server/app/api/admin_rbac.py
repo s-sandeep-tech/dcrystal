@@ -7,6 +7,7 @@ from app.models.rbac import Role, Menu, UserRole, RoleMenu, Permission, RolePerm
 from app.utils.decorators import require_role, require_perm
 from app.utils.rbac_cache import increment_rbac_version, invalidate_user_cache
 from datetime import datetime
+from app.api.auth import validate_password_strength
 
 admin_rbac_bp = Blueprint('admin_rbac', __name__)
 
@@ -194,6 +195,11 @@ def manage_users():
             return jsonify({"msg": "User ID already exists"}), 400
             
         user = User(username=username, email=email, user_id=user_id)
+        
+        is_valid, error_msg = validate_password_strength(password)
+        if not is_valid:
+            return jsonify({"msg": error_msg}), 400
+            
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
@@ -225,6 +231,10 @@ def update_delete_user(id):
             if user.is_admin:
                 return jsonify({"msg": "Administrator passwords cannot be reset through the user management interface."}), 403
             
+            is_valid, error_msg = validate_password_strength(data.get('password'))
+            if not is_valid:
+                return jsonify({"msg": error_msg}), 400
+                
             user.set_password(data.get('password'))
             user.session_version += 1
             # Log history
@@ -253,6 +263,11 @@ def change_user_password(user_id):
     # Security: Admins cannot reset other ADMIN passwords through this UI
     if user.is_admin:
         return jsonify({"msg": "Administrator passwords cannot be reset through the user management interface."}), 403
+        
+    # Validate password strength
+    is_valid, error_msg = validate_password_strength(new_password)
+    if not is_valid:
+        return jsonify({"msg": error_msg}), 400
         
     # Update password
     user.set_password(new_password)
