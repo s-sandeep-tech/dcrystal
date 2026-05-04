@@ -19,7 +19,7 @@ let filters = {
     provision_mode: ''
 };
 
-let locationMultiSelect, stateMultiSelect, branchTypeMultiSelect, branchStatusMultiSelect;
+let locationMultiSelect, stateMultiSelect, branchTypeMultiSelect, branchStatusMultiSelect, makeMultiSelect;
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -49,6 +49,13 @@ document.addEventListener('DOMContentLoaded', () => {
         containerId: 'filter-branch-status-container',
         label: 'Branch Status',
         defaultText: 'All Branch Statuses',
+        options: []
+    });
+
+    makeMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-make-container',
+        label: 'Make',
+        defaultText: 'All Makes',
         options: []
     });
 
@@ -103,7 +110,9 @@ async function loadOptions() {
         populateSelect('filter-business-head', data.business_heads);
         populateSelect('filter-purity', data.purities);
         populateSelect('filter-classification', data.classifications);
-        populateSelect('filter-make', data.makes);
+        if (makeMultiSelect) {
+            makeMultiSelect.populateOptions(data.makes);
+        }
         populateSelect('filter-collection', data.collections);
         populateSelect('filter-section', data.sections);
         populateSelect('filter-prov-type', data.prov_types);
@@ -183,7 +192,9 @@ function applyFilters() {
 
     filters.purity = document.getElementById('filter-purity').value;
     filters.classification = document.getElementById('filter-classification').value;
-    filters.make = document.getElementById('filter-make').value;
+    if (makeMultiSelect) {
+        filters.make = makeMultiSelect.getValues().join(',');
+    }
     filters.collection = document.getElementById('filter-collection').value;
     filters.section = document.getElementById('filter-section').value;
     filters.prov_type = document.getElementById('filter-prov-type').value;
@@ -213,6 +224,9 @@ function resetFilters() {
     }
     if (stateMultiSelect) {
         stateMultiSelect.reset();
+    }
+    if (makeMultiSelect) {
+        makeMultiSelect.reset();
     }
 
     

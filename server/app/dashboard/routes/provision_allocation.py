@@ -141,7 +141,7 @@ WITH base AS (
         (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
         AND (:purity IS NULL OR purity = :purity)
         AND (:classification IS NULL OR classification = :classification)
-        AND (:make IS NULL OR make = :make)
+        AND (:make IS NULL OR make = ANY(string_to_array(CAST(:make AS text), ',')))
         AND (:collection IS NULL OR collection = :collection)
         AND (:section IS NULL OR section = :section)
         AND (:prov_type IS NULL OR prov_type = :prov_type)
