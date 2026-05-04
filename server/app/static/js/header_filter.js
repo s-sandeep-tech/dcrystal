@@ -93,6 +93,21 @@ class HeaderFilter {
         this.attachEvents();
         this.updateSelectAllState();
         
+        // DYNAMIC LOAD ON FOCUS: If dynamic and no options, fetch them
+        if (this.onSearch && this.options.length === 0) {
+            const optionsList = this.dropdown.querySelector(`#filter-options-list-${this.id}`);
+            if (optionsList) {
+                optionsList.innerHTML = '<div class="header-filter-no-results">Loading...</div>';
+            }
+            this.onSearch('', (data) => {
+                this.setOptions(data);
+                if (optionsList) {
+                    optionsList.innerHTML = this.renderOptions(this.options);
+                    this.updateSelectAllState();
+                }
+            });
+        }
+
         // Focus search
         setTimeout(() => {
             const searchInput = this.dropdown.querySelector('.header-filter-search-input');

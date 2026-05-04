@@ -113,6 +113,17 @@ class CustomMultiSelect {
                 dropdown.classList.remove('hidden');
                 if(icon) icon.style.transform = 'rotate(180deg)';
                 if(searchInput) searchInput.focus();
+
+                // DYNAMIC LOAD ON FOCUS: If dynamic and no options yet, load them
+                if (this.onSearch && this.options.length === 0) {
+                    const optionsList = document.getElementById(`${this.containerId}-options-list`);
+                    if (optionsList) {
+                        optionsList.innerHTML = '<div class="p-4 text-center text-gray-400 text-[10px]">Loading...</div>';
+                    }
+                    this.onSearch('', (data) => {
+                        this.populateOptions(data);
+                    });
+                }
             } else {
                 dropdown.classList.add('hidden');
                 if(icon) icon.style.transform = 'rotate(0deg)';
