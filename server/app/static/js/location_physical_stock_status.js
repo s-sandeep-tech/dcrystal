@@ -23,6 +23,7 @@ let makeMultiSelect;
 let makeHeaderFilter;
 let sectionHeaderFilter;
 let purityHeaderFilter;
+let collectionMultiSelect;
 let collectionHeaderFilter;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -53,11 +54,17 @@ document.addEventListener('DOMContentLoaded', () => {
         defaultText: 'All States',
         options: []
     });
-
     makeMultiSelect = new CustomMultiSelect({
         containerId: 'filter-make-container',
         label: 'Make',
         defaultText: 'All Makes',
+        options: []
+    });
+
+    collectionMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-collection-container',
+        label: 'Collection',
+        defaultText: 'All Collections',
         options: []
     });
     
@@ -119,7 +126,6 @@ async function loadOptions() {
         const config = [
             { id: 'filter-purity', data: data.purities },
             { id: 'filter-classification', data: data.classifications },
-            { id: 'filter-collection', data: data.collections },
             { id: 'filter-section', data: data.sections },
             { id: 'filter-prov-type', data: data.prov_types },
             { id: 'filter-provision-mode', data: data.provision_modes },
@@ -134,6 +140,7 @@ async function loadOptions() {
         if (makeHeaderFilter) makeHeaderFilter.setOptions(data.makes);
         if (sectionHeaderFilter) sectionHeaderFilter.setOptions(data.sections);
         if (purityHeaderFilter) purityHeaderFilter.setOptions(data.purities);
+        if (collectionMultiSelect) collectionMultiSelect.populateOptions(data.collections);
         if (collectionHeaderFilter) collectionHeaderFilter.setOptions(data.collections);
 
         config.forEach(item => {
@@ -233,7 +240,6 @@ function applyFilters() {
 
     filterValues.purity = document.getElementById('filter-purity').value;
     filterValues.classification = document.getElementById('filter-classification').value;
-    filterValues.collection = document.getElementById('filter-collection').value;
     filterValues.section = document.getElementById('filter-section').value;
     filterValues.prov_type = document.getElementById('filter-prov-type').value;
     filterValues.provision_mode = document.getElementById('filter-provision-mode').value;
@@ -258,11 +264,9 @@ function applyFilters() {
     if (sidebarPurity) combinedPurities.add(sidebarPurity);
     filterValues.purity = Array.from(combinedPurities).join(',');
 
-    const collectionSelect = document.getElementById('filter-collection');
-    let sidebarCollection = collectionSelect ? collectionSelect.value : '';
+    let sidebarCollections = collectionMultiSelect ? collectionMultiSelect.getValues() : [];
     let headerCollections = collectionHeaderFilter ? collectionHeaderFilter.selectedValues : [];
-    let combinedCollections = new Set(headerCollections);
-    if (sidebarCollection) combinedCollections.add(sidebarCollection);
+    let combinedCollections = new Set([...sidebarCollections, ...headerCollections]);
     filterValues.collection = Array.from(combinedCollections).join(',');
     
     loadReport();
@@ -274,7 +278,7 @@ function resetFilters() {
     
     const filterIds = [
         'filter-purity', 'filter-classification', 
-        'filter-collection', 'filter-section', 
+        'filter-section', 
         'filter-prov-type', 'filter-provision-mode',
         'filter-business-head'
     ];
@@ -288,6 +292,7 @@ function resetFilters() {
     if (branchTypeMultiSelect) branchTypeMultiSelect.reset();
     if (stateMultiSelect) stateMultiSelect.reset();
     if (makeMultiSelect) makeMultiSelect.reset();
+    if (collectionMultiSelect) collectionMultiSelect.reset();
     
     if (makeHeaderFilter) makeHeaderFilter.setSelectedValues([]);
     if (sectionHeaderFilter) sectionHeaderFilter.setSelectedValues([]);
