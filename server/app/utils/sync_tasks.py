@@ -84,14 +84,14 @@ def emit_combined_sync_update(status, message, progress, task_type, progress_ran
 def get_external_db_connection():
     """Establishes a connection to the external Azure PostgreSQL database."""
     host = "kj-az1-prod1-crystal-psql-db2.postgres.database.azure.com"
-    ip_fallback = "10.host.76.133"
+    ip_fallback = "10.150.76.133"
     
     try:
         target_host = host
         try:
             socket.gethostbyname(host)
         except Exception:
-            target_host = host
+            target_host = ip_fallback
             
         conn = psycopg2.connect(
             host=target_host,
