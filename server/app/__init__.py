@@ -229,7 +229,11 @@ def create_app():
         if user_id:
             # Always check the DB for the most current status to prevent real-time bypass
             # Identity map in SQLAlchemy makes this efficient for repeated calls in one request
-            user = User.query.get(user_id)
+            # Robust lookup to handle both primary key (numeric) and alphanumeric user_id
+            user = None
+            if not user:
+                user = User.query.filter_by(user_id=str(user_id)).first()
+
             if user and user.must_reset_password:
                 must_reset = True
                 session['must_reset_password'] = True
