@@ -85,11 +85,14 @@ def qc_delay_management():
     # Process rows into dicts for the template
     processed_rows = []
     for r, f1_t, f1_c, f1_u, f1_d, f2_t, f2_c, f2_u, f2_d, f3_t, f3_c, f3_u, f3_d in rows:
-        d = r.to_dict()
-        d['f1'] = {'text': f1_t, 'category': f1_c, 'username': f1_u, 'date': f1_d.strftime("%Y-%m-%d %H:%M") if f1_d else None}
-        d['f2'] = {'text': f2_t, 'category': f2_c, 'username': f2_u, 'date': f2_d.strftime("%Y-%m-%d %H:%M") if f2_d else None}
-        d['f3'] = {'text': f3_t, 'category': f3_c, 'username': f3_u, 'date': f3_d.strftime("%Y-%m-%d %H:%M") if f3_d else None}
-        processed_rows.append(d)
+        processed_rows.append({
+            'summary': r.to_dict(),
+            'feedbacks': {
+                'segment1': {'feedback_text': f1_t, 'category': f1_c, 'username': f1_u, 'date': f1_d.strftime("%Y-%m-%d %H:%M") if f1_d else ''},
+                'segment2': {'feedback_text': f2_t, 'category': f2_c, 'username': f2_u, 'date': f2_d.strftime("%Y-%m-%d %H:%M") if f2_d else ''},
+                'segment3': {'feedback_text': f3_t, 'category': f3_c, 'username': f3_u, 'date': f3_d.strftime("%Y-%m-%d %H:%M") if f3_d else ''},
+            }
+        })
 
     # Get unique offices for filter
     offices_query = db.session.query(QCDelayManagementSnapshot.qc_ro).distinct()
