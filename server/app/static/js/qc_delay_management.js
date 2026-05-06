@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (el) el.value = val;
         }
     });
+
+    setupDynamicTooltips();
 });
 
 function adjustZoom(delta, reset = false) {
@@ -317,4 +319,71 @@ function showToast(message, type = 'info') {
     } else {
         alert(message);
     }
+}
+
+function setupDynamicTooltips() {
+    const triggers = document.querySelectorAll('.feedback-trigger');
+    const tooltip = document.getElementById('feedbackTooltip');
+    if (!tooltip) return;
+
+    triggers.forEach(trigger => {
+        trigger.addEventListener('mouseenter', function(e) {
+            const qc_ro = this.getAttribute('data-qc-ro');
+            const segment_id = this.getAttribute('data-segment-id');
+            
+            // Show loading state immediately
+            document.getElementById('tt-username').textContent = 'Loading...';
+            document.getElementById('tt-date').textContent = '';
+            document.getElementById('tt-category').textContent = '...';
+            document.getElementById('tt-text').textContent = 'Fetching latest feedback...';
+            
+            tooltip.classList.remove('hidden');
+            tooltip.classList.add('opacity-100');
+            updateTooltipPosition(e, tooltip);
+            
+            fetch(`/api/qc-delay-management/feedback-info?qc_ro=${encodeURIComponent(qc_ro)}&segment_id=${segment_id}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const fb = data.data;
+                    document.getElementById('tt-username').textContent = fb.username || 'System';
+                    document.getElementById('tt-date').textContent = fb.date;
+                    document.getElementById('tt-category').textContent = fb.category || 'N/A';
+                    document.getElementById('tt-text').textContent = fb.text;
+                } else {
+                    document.getElementById('tt-text').textContent = 'No feedback found.';
+                }
+            })
+            .catch(err => {
+                console.error('Tooltip Fetch Error:', err);
+                document.getElementById('tt-text').textContent = 'Error loading feedback.';
+            });
+        });
+        
+        trigger.addEventListener('mousemove', function(e) {
+            updateTooltipPosition(e, tooltip);
+        });
+        
+        trigger.addEventListener('mouseleave', function() {
+            tooltip.classList.remove('opacity-100');
+            tooltip.classList.add('hidden');
+        });
+    });
+}
+
+function updateTooltipPosition(e, tooltip) {
+    const offset = 15;
+    let x = e.clientX + offset;
+    let y = e.clientY + offset;
+    
+    const ttRect = tooltip.getBoundingClientRect();
+    if (x + ttRect.width > window.innerWidth) x = e.clientX - ttRect.width - offset;
+    if (y + ttRect.height > window.innerHeight) y = e.clientY - ttRect.height - offset;
+    
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
 }

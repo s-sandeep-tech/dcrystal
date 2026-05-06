@@ -155,3 +155,27 @@ def get_qc_delay_details(segment_id):
         
     rows = query.all()
     return jsonify([r.to_dict() for r in rows])
+
+@dashboard_bp.route('/api/qc-delay-management/feedback-info')
+@jwt_required()
+def get_feedback_info():
+    qc_ro = request.args.get('qc_ro')
+    segment_id = request.args.get('segment_id', type=int)
+    
+    feedback = QCDelayManagementFeedback.query.filter_by(
+        qc_ro=qc_ro, 
+        segment_id=segment_id
+    ).order_by(QCDelayManagementFeedback.created_at.desc()).first()
+    
+    if not feedback:
+        return jsonify({"status": "error", "message": "No feedback found"}), 404
+        
+    return jsonify({
+        "status": "success",
+        "data": {
+            "username": feedback.username,
+            "date": feedback.created_at.strftime("%Y-%m-%d %H:%M"),
+            "category": feedback.feedback_category,
+            "text": feedback.feedback_text
+        }
+    })
