@@ -112,7 +112,7 @@ document.getElementById('feedbackForm').addEventListener('submit', function(e) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getCookie('access_token')}`
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         },
         body: JSON.stringify(data)
     })
@@ -149,7 +149,11 @@ function openDetailsModal(qc_ro, segment_id) {
     
     modal.classList.remove('hidden');
 
-    fetch(`/api/qc-delay-management/details/${segment_id}?qc_ro=${encodeURIComponent(qc_ro)}`)
+    fetch(`/api/qc-delay-management/details/${segment_id}?qc_ro=${encodeURIComponent(qc_ro)}`, {
+        headers: {
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+    })
         .then(response => response.json())
         .then(data => {
             if (data.length === 0) {
@@ -289,7 +293,7 @@ function triggerSync() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getCookie('access_token')}`
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
     })
     .then(response => response.json())
