@@ -36,11 +36,9 @@
                 <!-- Segment 1 -->
                 <td>{{ item.summary.qc_issue_completed_receipt_pending_piece }}</td>
                 <td>{{ "%.3f"|format(item.summary.qc_issue_completed_receipt_pending_weight) }}</td>
-                <td class="truncate max-w-[150px] relative group cursor-help" title="{{ item.feedbacks.get('segment1', {}).get('feedback_text') or 'No feedback available' }}">
+                <td class="text-center relative group cursor-help" title="{{ item.feedbacks.get('segment1', {}).get('feedback_text') or 'No feedback available' }}">
                     {% if item.feedbacks.get('segment1', {}).get('feedback_text') %}
-                        <span class="bg-blue-100 text-blue-700 px-1 rounded">{{ item.feedbacks.get('segment1', {}).get('feedback_text') }}</span>
-                    {% else %}
-                        <span class="text-gray-400 italic">None</span>
+                        <span class="material-symbols-outlined text-primary text-[16px]">chat_bubble_outline</span>
                     {% endif %}
                 </td>
                 <td>
@@ -57,11 +55,9 @@
                 <!-- Segment 2 -->
                 <td>{{ item.summary.qc_receipt_completed_qc_pending_piece }}</td>
                 <td>{{ "%.3f"|format(item.summary.qc_receipt_completed_qc_pending_weight) }}</td>
-                <td class="truncate max-w-[150px] relative group cursor-help" title="{{ item.feedbacks.get('segment2', {}).get('feedback_text') or 'No feedback available' }}">
+                <td class="text-center relative group cursor-help" title="{{ item.feedbacks.get('segment2', {}).get('feedback_text') or 'No feedback available' }}">
                     {% if item.feedbacks.get('segment2', {}).get('feedback_text') %}
-                        <span class="bg-blue-100 text-blue-700 px-1 rounded">{{ item.feedbacks.get('segment2', {}).get('feedback_text') }}</span>
-                    {% else %}
-                        <span class="text-gray-400 italic">None</span>
+                        <span class="material-symbols-outlined text-primary text-[16px]">chat_bubble_outline</span>
                     {% endif %}
                 </td>
                 <td>
@@ -78,11 +74,9 @@
                 <!-- Segment 3 -->
                 <td>{{ item.summary.qc_completed_invoice_request_pending_piece }}</td>
                 <td>{{ "%.3f"|format(item.summary.qc_completed_invoice_request_pending_weight) }}</td>
-                <td class="truncate max-w-[150px] relative group cursor-help" title="{{ item.feedbacks.get('segment3', {}).get('feedback_text') or 'No feedback available' }}">
+                <td class="text-center relative group cursor-help" title="{{ item.feedbacks.get('segment3', {}).get('feedback_text') or 'No feedback available' }}">
                     {% if item.feedbacks.get('segment3', {}).get('feedback_text') %}
-                        <span class="bg-blue-100 text-blue-700 px-1 rounded">{{ item.feedbacks.get('segment3', {}).get('feedback_text') }}</span>
-                    {% else %}
-                        <span class="text-gray-400 italic">None</span>
+                        <span class="material-symbols-outlined text-primary text-[16px]">chat_bubble_outline</span>
                     {% endif %}
                 </td>
                 <td>
