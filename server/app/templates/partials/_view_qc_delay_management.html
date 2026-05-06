@@ -33,14 +33,24 @@
             <tr>
                 <td style="font-weight: 600;">{{ item.summary.qc_ro }}</td>
                 
-                <!-- Segment 1 -->
-                <td style="background-color: #f8fafc;">{{ item.summary.qc_issue_completed_receipt_pending_piece }}</td>
-                <td style="background-color: #f8fafc;">{{ "%.3f"|format(item.summary.qc_issue_completed_receipt_pending_weight) }}</td>
                 <td class="text-center relative group cursor-help" style="background-color: #f8fafc;">
                     {% if item.feedbacks.get('segment1', {}).get('feedback_text') %}
                         {% set fb1 = item.feedbacks.get('segment1', {}) %}
-                        <div title="User: {{ fb1.get('username', 'N/A') }} | Date: {{ fb1.get('date', 'N/A') }}&#10;Category: {{ fb1.get('feedback_category', 'N/A') }}&#10;Feedback: {{ fb1.get('feedback_text') }}">
-                            <span class="material-symbols-outlined text-primary text-[16px]">chat_bubble_outline</span>
+                        <div class="inline-block relative">
+                            <span class="material-symbols-outlined text-primary text-[18px]">chat_bubble_outline</span>
+                            <!-- Custom Premium Tooltip -->
+                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-[100] w-64 bg-[#1e293b] text-white p-4 rounded-xl shadow-2xl border border-white/10 text-left pointer-events-none animate-zoom-in">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="text-[10px] font-black text-blue-400 uppercase tracking-wider">USER FEEDBACK</span>
+                                    <span class="text-[9px] text-gray-400 italic font-medium uppercase">{{ fb1.get('username', 'SYSTEM') }}</span>
+                                </div>
+                                <div class="text-[11px] font-bold text-amber-400 uppercase mb-2 tracking-tight">{{ fb1.get('feedback_category', 'GENERAL') }}</div>
+                                <div class="h-px bg-white/10 mb-3 w-full"></div>
+                                <div class="text-[12px] italic text-gray-100 font-medium leading-relaxed">"{{ fb1.get('feedback_text') }}"</div>
+                                <div class="text-[9px] text-gray-500 mt-3 text-right font-mono">{{ fb1.get('date') }}</div>
+                                <!-- Arrow -->
+                                <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-8 border-transparent border-t-[#1e293b]"></div>
+                            </div>
                         </div>
                     {% endif %}
                 </td>
@@ -61,8 +71,21 @@
                 <td class="text-center relative group cursor-help" style="background-color: #fffbeb;">
                     {% if item.feedbacks.get('segment2', {}).get('feedback_text') %}
                         {% set fb2 = item.feedbacks.get('segment2', {}) %}
-                        <div title="User: {{ fb2.get('username', 'N/A') }} | Date: {{ fb2.get('date', 'N/A') }}&#10;Category: {{ fb2.get('feedback_category', 'N/A') }}&#10;Feedback: {{ fb2.get('feedback_text') }}">
-                            <span class="material-symbols-outlined text-primary text-[16px]">chat_bubble_outline</span>
+                        <div class="inline-block relative">
+                            <span class="material-symbols-outlined text-primary text-[18px]">chat_bubble_outline</span>
+                            <!-- Custom Premium Tooltip -->
+                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-[100] w-64 bg-[#1e293b] text-white p-4 rounded-xl shadow-2xl border border-white/10 text-left pointer-events-none animate-zoom-in">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="text-[10px] font-black text-blue-400 uppercase tracking-wider">USER FEEDBACK</span>
+                                    <span class="text-[9px] text-gray-400 italic font-medium uppercase">{{ fb2.get('username', 'SYSTEM') }}</span>
+                                </div>
+                                <div class="text-[11px] font-bold text-amber-400 uppercase mb-2 tracking-tight">{{ fb2.get('feedback_category', 'GENERAL') }}</div>
+                                <div class="h-px bg-white/10 mb-3 w-full"></div>
+                                <div class="text-[12px] italic text-gray-100 font-medium leading-relaxed">"{{ fb2.get('feedback_text') }}"</div>
+                                <div class="text-[9px] text-gray-500 mt-3 text-right font-mono">{{ fb2.get('date') }}</div>
+                                <!-- Arrow -->
+                                <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-8 border-transparent border-t-[#1e293b]"></div>
+                            </div>
                         </div>
                     {% endif %}
                 </td>
@@ -83,8 +106,21 @@
                 <td class="text-center relative group cursor-help" style="background-color: #fdf4ff;">
                     {% if item.feedbacks.get('segment3', {}).get('feedback_text') %}
                         {% set fb3 = item.feedbacks.get('segment3', {}) %}
-                        <div title="User: {{ fb3.get('username', 'N/A') }} | Date: {{ fb3.get('date', 'N/A') }}&#10;Category: {{ fb3.get('feedback_category', 'N/A') }}&#10;Feedback: {{ fb3.get('feedback_text') }}">
-                            <span class="material-symbols-outlined text-primary text-[16px]">chat_bubble_outline</span>
+                        <div class="inline-block relative">
+                            <span class="material-symbols-outlined text-primary text-[18px]">chat_bubble_outline</span>
+                            <!-- Custom Premium Tooltip -->
+                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-[100] w-64 bg-[#1e293b] text-white p-4 rounded-xl shadow-2xl border border-white/10 text-left pointer-events-none animate-zoom-in">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="text-[10px] font-black text-blue-400 uppercase tracking-wider">USER FEEDBACK</span>
+                                    <span class="text-[9px] text-gray-400 italic font-medium uppercase">{{ fb3.get('username', 'SYSTEM') }}</span>
+                                </div>
+                                <div class="text-[11px] font-bold text-amber-400 uppercase mb-2 tracking-tight">{{ fb3.get('feedback_category', 'GENERAL') }}</div>
+                                <div class="h-px bg-white/10 mb-3 w-full"></div>
+                                <div class="text-[12px] italic text-gray-100 font-medium leading-relaxed">"{{ fb3.get('feedback_text') }}"</div>
+                                <div class="text-[9px] text-gray-500 mt-3 text-right font-mono">{{ fb3.get('date') }}</div>
+                                <!-- Arrow -->
+                                <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-8 border-transparent border-t-[#1e293b]"></div>
+                            </div>
                         </div>
                     {% endif %}
                 </td>
