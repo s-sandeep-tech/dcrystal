@@ -263,19 +263,23 @@
     </div>
 
     <!-- Dynamic Tooltip -->
-    <div id="feedbackTooltip" class="fixed hidden z-[1000] max-w-xs bg-gray-900 text-white text-[11px] p-3 rounded-lg shadow-2xl pointer-events-none transition-opacity duration-200 opacity-0">
-        <div class="flex flex-col gap-1.5">
-            <div class="flex justify-between items-center border-b border-white/10 pb-1.5 mb-0.5">
-                <span id="tt-username" class="font-bold text-blue-400"></span>
-                <span id="tt-date" class="text-white/50 text-[10px]"></span>
+    <div id="feedbackTooltip" class="fixed hidden z-[1000] max-w-sm bg-gray-900 text-white p-4 rounded-xl shadow-2xl pointer-events-none transition-all duration-200 opacity-0 border border-white/10">
+        <div class="flex flex-col gap-3">
+            <div class="flex justify-between items-center border-b border-white/10 pb-2 mb-1">
+                <span id="tt-username" class="text-[13px] font-black text-blue-400 tracking-tight"></span>
+                <span id="tt-date" class="text-white/40 text-[10px] font-medium"></span>
             </div>
-            <div>
-                <span class="text-white/40 uppercase text-[9px] font-bold block">Category</span>
-                <p id="tt-category" class="font-medium"></p>
+            
+            <div class="space-y-1">
+                <span class="text-white/30 uppercase text-[9px] font-black tracking-widest block">Category</span>
+                <p id="tt-category" class="text-xs font-bold text-gray-100"></p>
             </div>
-            <div>
-                <span class="text-white/40 uppercase text-[9px] font-bold block">Feedback</span>
-                <p id="tt-text" class="italic whitespace-pre-wrap"></p>
+            
+            <div class="space-y-1">
+                <span class="text-white/30 uppercase text-[9px] font-black tracking-widest block">Feedback</span>
+                <div class="bg-white/5 rounded-lg p-2.5 mt-1 border border-white/5">
+                    <p id="tt-text" class="text-[12px] leading-relaxed text-gray-200 italic whitespace-pre-wrap"></p>
+                </div>
             </div>
         </div>
     </div>
