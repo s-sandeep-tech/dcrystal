@@ -1714,3 +1714,101 @@ class BranchAuthoritySnapshot(db.Model):
             'emp_code': self.emp_code,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+
+class QCDelayManagementSnapshot(db.Model):
+    __tablename__ = 'qc_delay_management_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    qc_ro_id = db.Column(db.Integer)
+    qc_ro = db.Column(db.String(150))
+    qc_ro_code = db.Column(db.String(50))
+    
+    # Segment 1: QC ISSUE COMPLETED - RECEIPT PENDING
+    qc_issue_completed_receipt_pending_piece = db.Column(db.Integer, default=0)
+    qc_issue_completed_receipt_pending_weight = db.Column(db.Numeric(12, 3), default=0)
+    
+    # Segment 2: QC RECEIPT COMPLETED-QC PENDING
+    qc_receipt_completed_qc_pending_piece = db.Column(db.Integer, default=0)
+    qc_receipt_completed_qc_pending_weight = db.Column(db.Numeric(12, 3), default=0)
+    
+    # Segment 3: QC COMPLETED-INNVOICE REQUEST PENDING
+    qc_completed_invoice_request_pending_piece = db.Column(db.Integer, default=0)
+    qc_completed_invoice_request_pending_weight = db.Column(db.Numeric(12, 3), default=0)
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
+            'qc_ro_id': self.qc_ro_id,
+            'qc_ro': self.qc_ro,
+            'qc_ro_code': self.qc_ro_code,
+            'qc_issue_completed_receipt_pending_piece': self.qc_issue_completed_receipt_pending_piece,
+            'qc_issue_completed_receipt_pending_weight': float(self.qc_issue_completed_receipt_pending_weight or 0),
+            'qc_receipt_completed_qc_pending_piece': self.qc_receipt_completed_qc_pending_piece,
+            'qc_receipt_completed_qc_pending_weight': float(self.qc_receipt_completed_qc_pending_weight or 0),
+            'qc_completed_invoice_request_pending_piece': self.qc_completed_invoice_request_pending_piece,
+            'qc_completed_invoice_request_pending_weight': float(self.qc_completed_invoice_request_pending_weight or 0)
+        }
+
+class QCDelayManagementFeedback(db.Model):
+    __tablename__ = 'qc_delay_management_feedbacks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    qc_ro = db.Column(db.String(150))
+    segment_id = db.Column(db.Integer) # 1, 2, or 3
+    
+    feedback_text = db.Column(db.Text)
+    feedback_category = db.Column(db.String(100))
+    username = db.Column(db.String(80))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'qc_ro': self.qc_ro,
+            'segment_id': self.segment_id,
+            'feedback_text': self.feedback_text,
+            'feedback_category': self.feedback_category,
+            'username': self.username,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class QCReceiptCompletedQCPendingSnapshot(db.Model):
+    __tablename__ = 'qc_receipt_completed_qc_pending_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    
+    qc_ro = db.Column(db.String(150))
+    qc_date = db.Column(db.DateTime)
+    qc_req_no = db.Column(db.String(100))
+    received_challan_no = db.Column(db.String(100))
+    receipt_no = db.Column(db.String(100))
+    receipt_date = db.Column(db.Date)
+    piece = db.Column(db.Integer)
+    weight = db.Column(db.Numeric(12, 3))
+    
+    # Extra fields usually present in these detail views
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    po_number = db.Column(db.String(100))
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
+            'qc_ro': self.qc_ro,
+            'qc_date': self.qc_date.isoformat() if self.qc_date else None,
+            'qc_req_no': self.qc_req_no,
+            'received_challan_no': self.received_challan_no,
+            'receipt_no': self.receipt_no,
+            'receipt_date': self.receipt_date.isoformat() if self.receipt_date else None,
+            'piece': self.piece,
+            'weight': float(self.weight or 0)
+        }

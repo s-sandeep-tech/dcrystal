@@ -221,6 +221,14 @@ def settings_sync_invoice_completed_deliver():
     result = sync_invoice_completed_pending_deliver_data(session.get('user_id'))
     return result, 200 if result.get('status') == 'success' else 500
 
+@dashboard_bp.route('/settings/sync-qc-delay-management', methods=['POST'])
+def settings_sync_qc_delay_management():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized"}, 401
+    from app.utils.sync_manager import sync_qc_delay_management_data
+    result = sync_qc_delay_management_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500
+
 
 @dashboard_bp.route('/settings/clear-cache', methods=['POST'])
 def clear_cache():

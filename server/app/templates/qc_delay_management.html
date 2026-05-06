@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block title %} QC Delay Control Management {% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
+<style>
+    .stats-grid {
+        display: flex;
+        background: #fff;
+        border-bottom: 1px solid #e2e8f0;
+        overflow-x: auto;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    .stat-card {
+        flex: 1;
+        min-width: 160px;
+        padding: 12px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-right: 1px solid #f1f5f9;
+        position: relative;
+    }
+
+    .stat-card:last-child {
+        border-right: none;
+    }
+
+    .stat-label {
+        font-size: 8.5px;
+        font-weight: 800;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .stat-label .material-symbols-outlined {
+        font-size: 14px;
+    }
+
+    .stat-val {
+        font-size: 14px;
+        font-weight: 900;
+        line-height: 1;
+        margin-bottom: 4px;
+    }
+
+    .text-blue-premium {
+        color: #2563eb;
+    }
+
+    .text-emerald-premium {
+        color: #059669;
+    }
+
+    .text-orange-premium {
+        color: #ea580c;
+    }
+
+    .text-indigo-premium {
+        color: #4f46e5;
+    }
+
+    .dark .stats-grid {
+        background: #111827;
+        border-bottom: 1px solid #1f2937;
+    }
+
+    .dark .stat-card {
+        border-right: 1px solid #1f2937;
+    }
+
+    .status-filter-btn {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .status-filter-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+    }
+
+    .status-filter-btn.active {
+        border-color: #2563eb !important;
+        background: #eff6ff !important;
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1), 0 2px 4px -1px rgba(37, 99, 235, 0.06) !important;
+    }
+
+    .dark .status-filter-btn.active {
+        background: #1e3a8a !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    /* Excel-like table specific styling */
+    .excel-table {
+        border-collapse: collapse;
+        width: 100%;
+        background-color: white;
+    }
+    
+    .excel-table th, .excel-table td {
+        border: 1px solid #d1d5db;
+        padding: 4px 6px;
+        text-align: left;
+        font-size: 10px;
+    }
+
+    .excel-table th {
+        background-color: #f3f4f6;
+        font-weight: 600;
+        color: #374151;
+        white-space: nowrap;
+    }
+
+    .excel-table th.top-header {
+        background-color: #f9fafb;
+        text-align: center;
+        border-bottom: 2px solid #9ca3af;
+    }
+    
+    .dark .excel-table th {
+        background-color: #1f2937;
+        color: #e5e7eb;
+        border-color: #374151;
+    }
+    
+    .dark .excel-table td {
+        border-color: #374151;
+        background-color: #111827;
+        color: #d1d5db;
+        font-size: 10px;
+    }
+
+    .dark .excel-table th.top-header {
+        background-color: #111827;
+        border-bottom-color: #4b5563;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main id="qc_delay_management_main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    <!-- Header -->
+    <div class="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <h2 class="text-sm font-bold tracking-tight text-gray-900 dark:text-white">QC Delay Control Management</h2>
+            <span class="bg-gray-100 text-gray-500 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">V1.0</span>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- Simplified Zoom Controls -->
+            <div class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded items-center overflow-hidden">
+                <button onclick="adjustZoom(-0.1)" class="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 border-r border-gray-200 dark:border-gray-700 transition-colors">
+                    <span class="text-lg font-bold leading-none">-</span>
+                </button>
+                <span id="zoom-level" class="text-[10px] font-bold text-gray-500 dark:text-gray-400 px-3 min-w-[45px] text-center bg-white dark:bg-gray-900">100%</span>
+                <button onclick="adjustZoom(0.1)" class="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 border-l border-gray-200 dark:border-gray-700 transition-colors">
+                    <span class="text-lg font-bold leading-none">+</span>
+                </button>
+            </div>
+
+            <div class="flex bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2.5 py-1.5 items-center gap-2 shadow-sm">
+                <span class="material-symbols-outlined text-gray-400 text-[16px]">search</span>
+                <input id="hierarchy-search" class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0" placeholder="Search..." type="text" oninput="onSearchInput(this.value)" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination Strip -->
+    <div class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <span class="material-symbols-outlined text-[14px]">info</span>
+            <span>Showing QC Delay Status Summary.</span>
+        </div>
+
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <div class="flex items-center gap-2">
+                <span class="text-gray-400">Rows:</span>
+                <select id="per-page-select" onchange="changePerPage(this.value)" class="bg-transparent border-none text-[10px] font-bold focus:ring-0 p-0 cursor-pointer">
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                    <option value="500" selected>500</option>
+                    <option value="1000">1000</option>
+                </select>
+            </div>
+            <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
+            <span id="pagination-info" class="font-medium">0-0 of 0</span>
+            <div class="flex items-center gap-1">
+                <button id="btn-prev" class="p-0.5 hover:bg-gray-100 rounded disabled:opacity-50">
+                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                </button>
+                <button id="btn-next" class="p-0.5 hover:bg-gray-100 rounded disabled:opacity-50">
+                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Area -->
+    <div id="table-area" class="flex-1 overflow-auto relative">
+        <div id="loader-overlay" class="absolute inset-0 bg-white/60 dark:bg-gray-900/60 backdrop-blur-[2px] z-[60] flex flex-col items-center justify-center hidden">
+            <div class="flex flex-col items-center gap-4 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700">
+                <div class="relative">
+                    <div class="size-12 border-4 border-gray-100 dark:border-gray-700 rounded-full"></div>
+                    <div class="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+                </div>
+                <p class="text-[11px] font-black uppercase tracking-[2px]">Loading Report...</p>
+            </div>
+        </div>
+        <div id="view-container" class="dashboard-view">
+            {% include 'partials/_view_qc_delay_management.html' %}
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="feedbackModal" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onclick="closeFeedbackModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-xl">feedback</span>
+                    <h2 class="text-sm font-bold uppercase tracking-tight">Add Feedback</h2>
+                </div>
+                <button onclick="closeFeedbackModal()"><span class="material-symbols-outlined">close</span></button>
+            </div>
+            <div class="p-4 flex flex-col gap-4">
+                <p id="feedbackModalContext" class="text-xs text-gray-500 truncate"></p>
+                <form id="feedbackForm" class="space-y-4">
+                    <input type="hidden" name="qc_ro" id="fb_qc_ro">
+                    <input type="hidden" name="segment_id" id="fb_segment_id">
+
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase">Category</label>
+                        <select id="feedbackCategory" name="category" class="w-full bg-gray-50 dark:bg-gray-800 border rounded-lg p-2.5 text-sm outline-none">
+                            <option value="">Select Category</option>
+                            <option value="Production Delay">Production Delay</option>
+                            <option value="Logistics Delay">Logistics Delay</option>
+                            <option value="Quality Issue">Quality Issue</option>
+                            <option value="Documentation Pending">Documentation Pending</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <textarea id="feedbackText" name="feedback_text" rows="4" class="w-full bg-gray-50 dark:bg-gray-800 border rounded-lg p-3 text-sm resize-none outline-none" placeholder="Enter your feedback here..."></textarea>
+                    <div class="flex justify-end gap-3 mt-2">
+                        <button type="button" onclick="closeFeedbackModal()" class="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+                        <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-primary rounded-lg shadow-sm flex items-center gap-2 hover:bg-primary/90">
+                            <span class="material-symbols-outlined text-sm">save</span>Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rich Detail Modal -->
+    <div id="detailsModal" class="fixed inset-0 z-[100] hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeDetailsModal()"></div>
+            <div class="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden transform transition-all border border-gray-200 dark:border-gray-800 max-h-[85vh] flex flex-col">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                            <span class="material-symbols-outlined text-blue-600 dark:text-blue-400">inventory_2</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white" id="modalTitle">Purchase Order Details</h3>
+                            <p class="text-[10px] text-gray-500 dark:text-gray-400" id="modalSubtitle">Loading detailed information...</p>
+                        </div>
+                    </div>
+                    <button onclick="closeDetailsModal()" class="size-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 transition-all">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-6" id="modalContent">
+                    <!-- Content will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block sidebar %}
+<aside class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-[10px] font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> FILTERS
+            </h2>
+            <button onclick="resetFilters()" class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+        </div>
+
+        <div class="space-y-4">
+            <!-- Status Filter -->
+            <div class="space-y-2 mb-4">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-3">
+                    <span class="material-symbols-outlined text-[14px]">checklist</span> STATUS FILTER
+                </label>
+                <div class="flex flex-col gap-1.5">
+                    <button onclick="setStatus('qc_summary')" id="btn-status-qc-summary" class="status-filter-btn active flex items-center gap-3 p-2 rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm transition-all hover:border-primary/50 group w-full">
+                        <span class="material-symbols-outlined text-emerald-500 group-hover:scale-110 transition-transform">fact_check</span>
+                        <div class="flex flex-col text-left">
+                            <span class="text-[10px] font-bold text-gray-700 dark:text-gray-200 uppercase leading-tight">QC SUMMARY</span>
+                            <span class="text-[8px] text-gray-400 font-black uppercase tracking-tighter">Delay Control Management</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="py-0 -mx-4">
+                <div class="h-0.5 bg-gray-100 dark:bg-gray-800"></div>
+            </div>
+
+            <!-- QC Office Filter -->
+            <div class="space-y-1.5" data-filter-id="office">
+                <label class="text-[9px] font-bold text-gray-400 uppercase text-xs">QC Office</label>
+                <select id="filter-office" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                    <option value="">All Offices</option>
+                    {% for off in offices %}
+                    <option value="{{ off }}">{{ off }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-background-dark">
+        <button onclick="applyFilters()" class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
+        </button>
+    </div>
+</aside>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/qc_delay_management.js') }}"></script>
+{% endblock %}

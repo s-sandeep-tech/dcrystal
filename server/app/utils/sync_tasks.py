@@ -23,7 +23,10 @@ from ..models.snapshots import (
     SupplierQCIssueReceiptPendingSnapshot,
     QCCompletedInvoicePendingSnapshot,
     InvoiceCompletedPendingDeliverSnapshot,
-    BranchAuthoritySnapshot
+    BranchAuthoritySnapshot,
+    QCDelayManagementSnapshot,
+    QCDelayManagementFeedback,
+    QCReceiptCompletedQCPendingSnapshot
 )
 from flask import current_app
 import os
@@ -2709,3 +2712,82 @@ def sync_branch_authority_data_task():
         return {"status": "error", "message": str(e)}
     finally:
         if conn: conn.close()
+
+def sync_qc_delay_management_data_task():
+    DATA_TYPE = 'qc_delay_management'
+    start_time = time.time()
+    conn = None
+    try:
+        emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
+        conn = get_external_db_connection()
+    except Exception as e:
+        error_msg = f"Connection failed: {str(e)}"
+        logger.error(f"QCDelayManagement sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
+
+    try:
+        cur = conn.cursor()
+        query = """
+        SELECT 
+            qc_ro_id, qc_ro, qc_ro_code, 
+            qc_issue_completed_receipt_pending_piece, qc_issue_completed_receipt_pending_weight, 
+            qc_receipt_completed_qc_pending_piece, qc_receipt_completed_qc_pending_weight, 
+            qc_completed_invoice_request_pending_piece, qc_completed_invoice_request_pending_weight
+        FROM ext_view.qc_summary_data
+        """
+        
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
+        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+
+        if rows:
+            db.session.execute(text("TRUNCATE TABLE qc_delay_management_snapshots"))
+            db.session.commit()
+
+            snapshot_date = datetime.now()
+            batch_size = 1000
+            for i in range(0, len(rows), batch_size):
+                batch = rows[i:i + batch_size]
+                objects = [
+                    QCDelayManagementSnapshot(
+                        snapshot_date=snapshot_date,
+                        qc_ro_id=row[0],
+                        qc_ro=row[1],
+                        qc_ro_code=row[2],
+                        qc_issue_completed_receipt_pending_piece=row[3],
+                        qc_issue_completed_receipt_pending_weight=row[4],
+                        qc_receipt_completed_qc_pending_piece=row[5],
+                        qc_receipt_completed_qc_pending_weight=row[6],
+                        qc_completed_invoice_request_pending_piece=row[7],
+                        qc_completed_invoice_request_pending_weight=row[8]
+                    )
+                    for row in batch
+                ]
+                db.session.bulk_save_objects(objects)
+                db.session.commit()
+                
+                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
+                emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
+
+        duration = time.time() - start_time
+        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
+        return {"status": "success", "count": len(rows)}
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Sync failed: {str(e)}")
+        emit_sync_update('error', str(e), 0, DATA_TYPE)
+        return {"status": "error", "message": str(e)}
+    finally:
+        if conn: conn.close()
+
+def sync_qc_receipt_completed_pending_data_task():
+    # This is a placeholder for now as per implementation plan
+    DATA_TYPE = 'qc_receipt_completed_pending'
+    emit_sync_update('processing', 'Starting placeholder sync...', 10, DATA_TYPE)
+    time.sleep(1)
+    emit_sync_update('success', 'Placeholder sync completed.', 100, DATA_TYPE)
+    return {"status": "success", "count": 0}
