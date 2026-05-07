@@ -207,6 +207,23 @@
             </div>
         </div>
     </div>
+    
+    <!-- Filter Bar -->
+    <div class="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 shrink-0 flex items-center gap-4 flex-wrap">
+        <div class="flex items-center gap-2 min-w-[200px]">
+            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Filter Party</label>
+            <div id="filter-party-container" class="flex-1">
+                <!-- Custom MultiSelect will be injected here -->
+            </div>
+        </div>
+        
+        <button onclick="applyFilters()" class="px-4 py-1.5 bg-primary hover:bg-primary/90 text-white text-[10px] font-bold rounded uppercase transition-all shadow-sm flex items-center gap-2">
+            <span class="material-symbols-outlined text-[16px]">filter_list</span> Apply
+        </button>
+        <button onclick="resetFilters()" class="px-4 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-[10px] font-bold rounded uppercase transition-all">
+            Reset
+        </button>
+    </div>
 
     <!-- Pagination Strip -->
     <div
