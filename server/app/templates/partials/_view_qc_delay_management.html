@@ -31,6 +31,7 @@
                 <td style="font-weight: 600;">{{ item.summary.qc_ro }}</td>
                 
                 <!-- Segment 1 -->
+                {% set s1_has_data = (item.summary.qc_issue_completed_receipt_pending_piece|int > 0 or item.summary.qc_issue_completed_receipt_pending_weight|float > 0) %}
                 <td style="background-color: #f8fafc;">{{ item.summary.qc_issue_completed_receipt_pending_piece }}</td>
                 <td style="background-color: #f8fafc;">{{ "%.3f"|format(item.summary.qc_issue_completed_receipt_pending_weight) }}</td>
                 <td class="text-center relative group cursor-help" style="background-color: #f8fafc;">
@@ -42,16 +43,23 @@
                 </td>
                 <td style="background-color: #f8fafc;">
                     <div class="flex items-center gap-1">
-                        <button onclick="openFeedbackModal('{{ item.summary.qc_ro }}', 1)" class="p-1 hover:bg-gray-100 rounded text-gray-500" title="Add Feedback">
+                        <button onclick="openFeedbackModal('{{ item.summary.qc_ro }}', 1)" 
+                                class="p-1 rounded text-gray-500 {{ 'hover:bg-gray-100' if s1_has_data else 'opacity-20 cursor-not-allowed' }}" 
+                                {{ '' if s1_has_data else 'disabled' }}
+                                title="{{ 'Add Feedback' if s1_has_data else 'No data available' }}">
                             <span class="material-symbols-outlined text-[12px]">comment</span>
                         </button>
-                        <button onclick="openDetailsModal('{{ item.summary.qc_ro }}', 1)" class="p-1 hover:bg-gray-100 rounded text-blue-500" title="View Details">
+                        <button onclick="openDetailsModal('{{ item.summary.qc_ro }}', 1)" 
+                                class="p-1 rounded text-blue-500 {{ 'hover:bg-gray-100' if s1_has_data else 'opacity-20 cursor-not-allowed' }}" 
+                                {{ '' if s1_has_data else 'disabled' }}
+                                title="{{ 'View Details' if s1_has_data else 'No data available' }}">
                             <span class="material-symbols-outlined text-[12px]">visibility</span>
                         </button>
                     </div>
                 </td>
                 
                 <!-- Segment 2 -->
+                {% set s2_has_data = (item.summary.qc_receipt_completed_qc_pending_piece|int > 0 or item.summary.qc_receipt_completed_qc_pending_weight|float > 0) %}
                 <td style="background-color: #fffbeb;">{{ item.summary.qc_receipt_completed_qc_pending_piece }}</td>
                 <td style="background-color: #fffbeb;">{{ "%.3f"|format(item.summary.qc_receipt_completed_qc_pending_weight) }}</td>
                 <td class="text-center relative group cursor-help" style="background-color: #fffbeb;">
@@ -63,16 +71,23 @@
                 </td>
                 <td style="background-color: #fffbeb;">
                     <div class="flex items-center gap-1">
-                        <button onclick="openFeedbackModal('{{ item.summary.qc_ro }}', 2)" class="p-1 hover:bg-gray-100 rounded text-gray-500" title="Add Feedback">
+                        <button onclick="openFeedbackModal('{{ item.summary.qc_ro }}', 2)" 
+                                class="p-1 rounded text-gray-500 {{ 'hover:bg-gray-100' if s2_has_data else 'opacity-20 cursor-not-allowed' }}" 
+                                {{ '' if s2_has_data else 'disabled' }}
+                                title="{{ 'Add Feedback' if s2_has_data else 'No data available' }}">
                             <span class="material-symbols-outlined text-[12px]">comment</span>
                         </button>
-                        <button onclick="openDetailsModal('{{ item.summary.qc_ro }}', 2)" class="p-1 hover:bg-gray-100 rounded text-blue-500" title="View Details">
+                        <button onclick="openDetailsModal('{{ item.summary.qc_ro }}', 2)" 
+                                class="p-1 rounded text-blue-500 {{ 'hover:bg-gray-100' if s2_has_data else 'opacity-20 cursor-not-allowed' }}" 
+                                {{ '' if s2_has_data else 'disabled' }}
+                                title="{{ 'View Details' if s2_has_data else 'No data available' }}">
                             <span class="material-symbols-outlined text-[12px]">visibility</span>
                         </button>
                     </div>
                 </td>
                 
                 <!-- Segment 3 -->
+                {% set s3_has_data = (item.summary.qc_completed_invoice_request_pending_piece|int > 0 or item.summary.qc_completed_invoice_request_pending_weight|float > 0) %}
                 <td style="background-color: #fdf4ff;">{{ item.summary.qc_completed_invoice_request_pending_piece }}</td>
                 <td style="background-color: #fdf4ff;">{{ "%.3f"|format(item.summary.qc_completed_invoice_request_pending_weight) }}</td>
                 <td class="text-center relative group cursor-help" style="background-color: #fdf4ff;">
@@ -84,10 +99,16 @@
                 </td>
                 <td style="background-color: #fdf4ff;">
                     <div class="flex items-center gap-1">
-                        <button onclick="openFeedbackModal('{{ item.summary.qc_ro }}', 3)" class="p-1 hover:bg-gray-100 rounded text-gray-500" title="Add Feedback">
+                        <button onclick="openFeedbackModal('{{ item.summary.qc_ro }}', 3)" 
+                                class="p-1 rounded text-gray-500 {{ 'hover:bg-gray-100' if s3_has_data else 'opacity-20 cursor-not-allowed' }}" 
+                                {{ '' if s3_has_data else 'disabled' }}
+                                title="{{ 'Add Feedback' if s3_has_data else 'No data available' }}">
                             <span class="material-symbols-outlined text-[12px]">comment</span>
                         </button>
-                        <button onclick="openDetailsModal('{{ item.summary.qc_ro }}', 3)" class="p-1 hover:bg-gray-100 rounded text-blue-500" title="View Details">
+                        <button onclick="openDetailsModal('{{ item.summary.qc_ro }}', 3)" 
+                                class="p-1 rounded text-blue-500 {{ 'hover:bg-gray-100' if s3_has_data else 'opacity-20 cursor-not-allowed' }}" 
+                                {{ '' if s3_has_data else 'disabled' }}
+                                title="{{ 'View Details' if s3_has_data else 'No data available' }}">
                             <span class="material-symbols-outlined text-[12px]">visibility</span>
                         </button>
                     </div>
