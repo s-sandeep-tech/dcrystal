@@ -179,16 +179,16 @@ document.getElementById('feedbackForm').addEventListener('submit', function(e) {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            showToast('Feedback saved successfully', 'success');
+            if (window.showToast) window.showToast('Feedback Saved', 'Feedback saved successfully', 'success');
             closeFeedbackModal();
             setTimeout(() => window.location.reload(), 1000);
         } else {
-            showToast(data.message || 'Error saving feedback', 'error');
+            if (window.showToast) window.showToast('Error', data.message || 'Error saving feedback', 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('Error saving feedback', 'error');
+        if (window.showToast) window.showToast('Network Error', 'Error saving feedback', 'error');
     });
 });
 
@@ -358,11 +358,11 @@ function triggerSync() {
     })
     .then(response => response.json())
     .then(data => {
-        showToast('Sync task queued. Check notifications for progress.', 'info');
+        if (window.showToast) window.showToast('Sync Queued', 'Sync task queued. Check notifications for progress.', 'info');
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('Failed to trigger sync', 'error');
+        if (window.showToast) window.showToast('Sync Failed', 'Failed to trigger sync', 'error');
     })
     .finally(() => {
         button.disabled = false;
@@ -371,13 +371,7 @@ function triggerSync() {
 }
 
 
-function showToast(message, type = 'info') {
-    if (window.showToastNotification) {
-        window.showToastNotification(message, type);
-    } else {
-        alert(message);
-    }
-}
+// Local showToast removed to use global system from toast.js
 
 function setupDynamicTooltips() {
     const triggers = document.querySelectorAll('.feedback-trigger');
