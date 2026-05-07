@@ -47,6 +47,7 @@ try:
         sync_branch_authority_data_task,
         sync_qc_delay_management_data_task,
         sync_qc_receipt_completed_pending_data_task,
+        sync_qc_completed_invoice_request_pending_data_task,
         emit_sync_update
     )
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -144,6 +145,8 @@ def process_sync_queue():
                                 # Update UI via SocketIO
                                 emit_sync_update('processing', retry_msg, data_type=task_type)
                                 time.sleep(5)
+                    elif task_type == 'qc_completed_invoice_request_pending':
+                        res = sync_qc_completed_invoice_request_pending_data_task()
                     elif task_type == 'invoice_completed_pending_deliver':
                         res = sync_invoice_completed_pending_deliver_data_task()
                     elif task_type == 'branch_authority':
