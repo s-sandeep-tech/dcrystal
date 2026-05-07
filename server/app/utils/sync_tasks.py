@@ -22,6 +22,7 @@ from ..models.snapshots import (
     HMReturnQCIssueSnapshot,
     SupplierQCIssueReceiptPendingSnapshot,
     QCCompletedInvoicePendingSnapshot,
+    QCCompletedInvoiceRequestPendingSnapshot,
     InvoiceCompletedPendingDeliverSnapshot,
     BranchAuthoritySnapshot,
     QCDelayManagementSnapshot,
