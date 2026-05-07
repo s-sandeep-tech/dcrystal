@@ -1,4 +1,7 @@
 let currentZoom = parseFloat(localStorage.getItem('qc-delay-report-zoom')) || 1.0;
+let allModalRows = [];
+let selectedModalParties = new Set();
+let currentModalSegmentId = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('QC Delay Management JS Initialized');
@@ -207,6 +210,12 @@ function openDetailsModal(qc_ro, segment_id) {
     subtitle.textContent = segmentName;
     content.innerHTML = '<div class="flex justify-center p-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>';
     
+    currentModalSegmentId = segment_id;
+    selectedModalParties.clear();
+    document.getElementById('modalFilterBar').classList.add('hidden');
+    document.getElementById('modalPartyFilterContainer').innerHTML = '';
+    document.getElementById('clearModalFilterBtn').classList.add('hidden');
+    
     modal.classList.remove('hidden');
 
     fetch(`/api/qc-delay-management/details/${segment_id}?qc_ro=${encodeURIComponent(qc_ro)}`, {
@@ -220,6 +229,8 @@ function openDetailsModal(qc_ro, segment_id) {
                 content.innerHTML = '<div class="p-12 text-center text-gray-500">No detailed records found for this office and segment.</div>';
                 return;
             }
+            allModalRows = data;
+            initModalPartyFilter(data);
             renderRichModalContent(data, segment_id);
         })
         .catch(error => {
@@ -230,6 +241,66 @@ function openDetailsModal(qc_ro, segment_id) {
 
 function closeDetailsModal() {
     document.getElementById('detailsModal').classList.add('hidden');
+    allModalRows = [];
+    selectedModalParties.clear();
+    currentModalSegmentId = null;
+}
+
+function initModalPartyFilter(data) {
+    const container = document.getElementById('modalPartyFilterContainer');
+    const filterBar = document.getElementById('modalFilterBar');
+    
+    // Extract unique parties
+    const parties = [...new Set(data.map(row => row.party).filter(p => p))].sort();
+    
+    if (parties.length <= 1) {
+        filterBar.classList.add('hidden');
+        return;
+    }
+
+    filterBar.classList.remove('hidden');
+    container.innerHTML = parties.map(party => `
+        <button onclick="toggleModalPartyTag(this, '${party.replace(/'/g, "\\'")}')" 
+                class="modal-party-tag px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-700 text-[10px] font-bold transition-all hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400">
+            ${party}
+        </button>
+    `).join('');
+}
+
+function toggleModalPartyTag(btn, party) {
+    if (selectedModalParties.has(party)) {
+        selectedModalParties.delete(party);
+        btn.classList.remove('bg-primary', 'text-white', 'border-primary', 'shadow-sm');
+        btn.classList.add('text-gray-500', 'dark:text-gray-400', 'border-gray-200', 'dark:border-gray-700');
+    } else {
+        selectedModalParties.add(party);
+        btn.classList.add('bg-primary', 'text-white', 'border-primary', 'shadow-sm');
+        btn.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-gray-200', 'dark:border-gray-700');
+    }
+
+    const clearBtn = document.getElementById('clearModalFilterBtn');
+    if (selectedModalParties.size > 0) clearBtn.classList.remove('hidden');
+    else clearBtn.classList.add('hidden');
+
+    applyModalFiltering();
+}
+
+function applyModalFiltering() {
+    let filteredData = allModalRows;
+    if (selectedModalParties.size > 0) {
+        filteredData = allModalRows.filter(row => selectedModalParties.has(row.party));
+    }
+    renderRichModalContent(filteredData, currentModalSegmentId);
+}
+
+function clearModalPartyFilter() {
+    selectedModalParties.clear();
+    document.querySelectorAll('.modal-party-tag').forEach(btn => {
+        btn.classList.remove('bg-primary', 'text-white', 'border-primary', 'shadow-sm');
+        btn.classList.add('text-gray-500', 'dark:text-gray-400', 'border-gray-200', 'dark:border-gray-700');
+    });
+    document.getElementById('clearModalFilterBtn').classList.add('hidden');
+    renderRichModalContent(allModalRows, currentModalSegmentId);
 }
 
 function renderRichModalContent(data, segment_id) {

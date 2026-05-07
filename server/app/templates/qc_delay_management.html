@@ -371,6 +371,22 @@
                         <span class="material-symbols-outlined">close</span>
                     </button>
                 </div>
+                
+                <!-- Modal Filter Bar -->
+                <div id="modalFilterBar" class="px-6 py-3 bg-gray-50/50 dark:bg-gray-800/30 border-b border-gray-100 dark:border-gray-800 hidden">
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="material-symbols-outlined text-gray-400 text-sm">filter_list</span>
+                            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Filter by Party:</span>
+                        </div>
+                        <div id="modalPartyFilterContainer" class="flex-1 flex flex-wrap gap-1.5 items-center">
+                            <!-- Party tags will be injected here -->
+                        </div>
+                        <button onclick="clearModalPartyFilter()" id="clearModalFilterBtn" class="hidden text-[10px] font-bold text-primary hover:text-primary/70 transition-colors uppercase tracking-tight">
+                            Clear All
+                        </button>
+                    </div>
+                </div>
 
                 <div class="flex-1 overflow-y-auto p-6" id="modalContent">
                     <!-- Content will be injected here -->
