@@ -1812,21 +1812,53 @@ class QCReceiptCompletedQCPendingSnapshot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     
+    order_id = db.Column(db.BigInteger)
+    order_no = db.Column(db.String(100))
+    qc_ro_id = db.Column(db.Integer)
     qc_ro = db.Column(db.String(150))
     qc_ro_incharge = db.Column(db.String(150))
+    qc_ro_incharge_email = db.Column(db.String(150))
+    qc_ro_incharge_phone_no = db.Column(db.String(50))
+    
     make_owner = db.Column(db.String(150))
     make = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
+    
     party = db.Column(db.String(200))
+    party_mobile_no = db.Column(db.String(50))
+    
+    po_date = db.Column(db.Date)
+    delivery_target_date = db.Column(db.Date)
+    po_number = db.Column(db.String(100))
+    order_type = db.Column(db.String(100))
+    order_request_type = db.Column(db.String(100))
+    
+    design_no = db.Column(db.String(100))
+    set_identifier = db.Column(db.String(100))
+    set_design_no = db.Column(db.String(100))
+    
+    order_ro = db.Column(db.String(150))
+    order_branch = db.Column(db.String(150))
+    business_head_name = db.Column(db.String(150))
+    order_incharge_email = db.Column(db.String(150))
+    order_incharge_phone_no = db.Column(db.String(50))
+    
+    barcoded_weight = db.Column(db.Numeric(12, 3))
+    barcode_completion_date = db.Column(db.DateTime)
+    hm_completed_date = db.Column(db.DateTime)
     
     qc_issue_challan_no = db.Column(db.String(100))
     qc_issue_challan_date = db.Column(db.Date)
     receipt_no = db.Column(db.String(100))
     receipt_date = db.Column(db.DateTime)
     
-    weight = db.Column(db.Numeric(12, 3)) # Maps to qc_receipt_weight
-    piece = db.Column(db.Integer)        # Maps to qc_receipt_pcs
+    net_weight = db.Column(db.Numeric(12, 3))
+    gross_weight = db.Column(db.Numeric(12, 3))
+    stone_weight = db.Column(db.Numeric(12, 3))
+    
+    weight = db.Column(db.Numeric(12, 3)) # Standard weight field for report
+    piece = db.Column(db.Integer)        # Standard piece field for report
     
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -1841,11 +1873,27 @@ class QCReceiptCompletedQCPendingSnapshot(db.Model):
             'collection_owner': self.collection_owner,
             'collection': self.collection,
             'party': self.party,
-            'qc_req_no': self.receipt_no, # Map to JS expected field
-            'qc_date': self.receipt_date.isoformat() if self.receipt_date else None, # Map to JS expected field
-            'received_challan_no': self.qc_issue_challan_no,
-            'receipt_no': self.receipt_no,
-            'receipt_date': self.receipt_date.isoformat() if self.receipt_date else None,
-            'weight': float(self.weight or 0),
+            'party_mobile_no': self.party_mobile_no,
+            'po_number': self.po_number,
+            'po_date': self.po_date.isoformat() if self.po_date else None,
+            'target_date': self.delivery_target_date.isoformat() if self.delivery_target_date else None,
+            'order_type': self.order_type,
+            'order_request_type': self.order_request_type,
+            'design_no': self.design_no,
+            'set_identifier': self.set_identifier,
+            'set_design_no': self.set_design_no,
+            'order_branch': self.order_branch,
+            'business_head_name': self.business_head_name,
+            'barcode_date': self.barcode_completion_date.isoformat() if self.barcode_completion_date else None,
+            'hm_completed_date': self.hm_completed_date.isoformat() if self.hm_completed_date else None,
+            'qc_issue_challan_no': self.qc_issue_challan_no,
+            'qc_issue_challan_date': self.qc_issue_challan_date.isoformat() if self.qc_issue_challan_date else None,
+            'qc_req_no': self.receipt_no,
+            'qc_date': self.receipt_date.isoformat() if self.receipt_date else None,
+            'net_weight': float(self.net_weight) if self.net_weight else 0,
+            'gross_weight': float(self.gross_weight) if self.gross_weight else 0,
+            'stone_weight': float(self.stone_weight) if self.stone_weight else 0,
+            'barcoded_weight': float(self.barcoded_weight) if self.barcoded_weight else 0,
+            'weight': float(self.weight) if self.weight else 0,
             'piece': self.piece or 0
         }

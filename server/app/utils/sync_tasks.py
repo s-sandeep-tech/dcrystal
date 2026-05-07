@@ -2801,9 +2801,13 @@ def sync_qc_receipt_completed_pending_data_task():
         cur = conn.cursor()
         query = """
         SELECT 
-            qc_ro, qc_ro_incharge, make_owner, make, collection_owner, collection, party, 
-            qc_issue_challan_no, qc_issue_challan_date, receipt_no, receipt_date, 
-            qc_receipt_weight, qc_receipt_pcs
+            order_id, order_no, qc_ro_id, qc_ro, qc_ro_incharge, qc_ro_incharge_email, qc_ro_incharge_phone_no,
+            make_owner, make, collection_owner, collection, party, party_mobile_no, po_date,
+            delivery_target_date, po_number, order_type, order_request_type, design_no,
+            set_identifier, set_design_no, order_ro, order_branch, business_head_name,
+            order_incharge_email, order_incharge_phone_no, barcoded_weight, barcode_completion_date,
+            hm_completed_date, qc_issue_challan_no, qc_issue_challan_date, receipt_no, receipt_date,
+            net_weight, gross_weight, stone_weight
         FROM ext_view.vw_qc_receipt_completed_qc_pending
         """
         
@@ -2824,19 +2828,44 @@ def sync_qc_receipt_completed_pending_data_task():
                 objects = [
                     QCReceiptCompletedQCPendingSnapshot(
                         snapshot_date=snapshot_date,
-                        qc_ro=row[0],
-                        qc_ro_incharge=row[1],
-                        make_owner=row[2],
-                        make=row[3],
-                        collection_owner=row[4],
-                        collection=row[5],
-                        party=row[6],
-                        qc_issue_challan_no=row[7],
-                        qc_issue_challan_date=row[8],
-                        receipt_no=row[9],
-                        receipt_date=row[10],
-                        weight=row[11], # qc_receipt_weight
-                        piece=row[12]   # qc_receipt_pcs
+                        order_id=row[0],
+                        order_no=row[1],
+                        qc_ro_id=row[2],
+                        qc_ro=row[3],
+                        qc_ro_incharge=row[4],
+                        qc_ro_incharge_email=row[5],
+                        qc_ro_incharge_phone_no=row[6],
+                        make_owner=row[7],
+                        make=row[8],
+                        collection_owner=row[9],
+                        collection=row[10],
+                        party=row[11],
+                        party_mobile_no=row[12],
+                        po_date=row[13],
+                        delivery_target_date=row[14],
+                        po_number=row[15],
+                        order_type=row[16],
+                        order_request_type=row[17],
+                        design_no=row[18],
+                        set_identifier=row[19],
+                        set_design_no=row[20],
+                        order_ro=row[21],
+                        order_branch=row[22],
+                        business_head_name=row[23],
+                        order_incharge_email=row[24],
+                        order_incharge_phone_no=row[25],
+                        barcoded_weight=row[26],
+                        barcode_completion_date=row[27],
+                        hm_completed_date=row[28],
+                        qc_issue_challan_no=row[29],
+                        qc_issue_challan_date=row[30],
+                        receipt_no=row[31],
+                        receipt_date=row[32],
+                        net_weight=row[33],
+                        gross_weight=row[34],
+                        stone_weight=row[35],
+                        weight=row[34], # Standard weight field (using gross_weight)
+                        piece=1         # Standard piece field (default to 1 per row for this view)
                     )
                     for row in batch
                 ]
