@@ -1813,19 +1813,20 @@ class QCReceiptCompletedQCPendingSnapshot(db.Model):
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     
     qc_ro = db.Column(db.String(150))
-    qc_date = db.Column(db.DateTime)
-    qc_req_no = db.Column(db.String(100))
-    received_challan_no = db.Column(db.String(100))
-    receipt_no = db.Column(db.String(100))
-    receipt_date = db.Column(db.Date)
-    piece = db.Column(db.Integer)
-    weight = db.Column(db.Numeric(12, 3))
-    
-    # Extra fields usually present in these detail views
+    qc_ro_incharge = db.Column(db.String(150))
     make_owner = db.Column(db.String(150))
+    make = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
-    po_number = db.Column(db.String(100))
+    party = db.Column(db.String(200))
+    
+    qc_issue_challan_no = db.Column(db.String(100))
+    qc_issue_challan_date = db.Column(db.Date)
+    receipt_no = db.Column(db.String(100))
+    receipt_date = db.Column(db.DateTime)
+    
+    weight = db.Column(db.Numeric(12, 3)) # Maps to qc_receipt_weight
+    piece = db.Column(db.Integer)        # Maps to qc_receipt_pcs
     
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -1834,11 +1835,17 @@ class QCReceiptCompletedQCPendingSnapshot(db.Model):
             'id': self.id,
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
             'qc_ro': self.qc_ro,
-            'qc_date': self.qc_date.isoformat() if self.qc_date else None,
-            'qc_req_no': self.qc_req_no,
-            'received_challan_no': self.received_challan_no,
+            'qc_ro_incharge': self.qc_ro_incharge,
+            'make_owner': self.make_owner,
+            'make': self.make,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'party': self.party,
+            'qc_req_no': self.receipt_no, # Map to JS expected field
+            'qc_date': self.receipt_date.isoformat() if self.receipt_date else None, # Map to JS expected field
+            'received_challan_no': self.qc_issue_challan_no,
             'receipt_no': self.receipt_no,
             'receipt_date': self.receipt_date.isoformat() if self.receipt_date else None,
-            'piece': self.piece,
-            'weight': float(self.weight or 0)
+            'weight': float(self.weight or 0),
+            'piece': self.piece or 0
         }
