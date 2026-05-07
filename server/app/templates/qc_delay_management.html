@@ -101,6 +101,26 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
     }
 
+    .category-tag {
+        transition: all 0.2s ease;
+        user-select: none;
+    }
+    .category-tag:hover:not(.selected) {
+        background-color: #f8fafc;
+        border-color: #cbd5e1;
+    }
+    .category-tag.selected {
+        background-color: #2563eb !important;
+        color: white !important;
+        border-color: #2563eb !important;
+        transform: scale(1.05);
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+    }
+    .dark .category-tag:hover:not(.selected) {
+        background-color: #1f2937;
+        border-color: #374151;
+    }
+
     /* Excel-like table specific styling */
     .excel-table {
         border-collapse: collapse;
@@ -245,16 +265,16 @@
                     <input type="hidden" name="qc_ro" id="fb_qc_ro">
                     <input type="hidden" name="segment_id" id="fb_segment_id">
 
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase">Category</label>
-                        <select id="feedbackCategory" name="category" class="w-full bg-gray-50 dark:bg-gray-800 border rounded-lg p-2.5 text-sm outline-none">
-                            <option value="">Select Category</option>
-                            <option value="Production Delay">Production Delay</option>
-                            <option value="Logistics Delay">Logistics Delay</option>
-                            <option value="Quality Issue">Quality Issue</option>
-                            <option value="Documentation Pending">Documentation Pending</option>
-                            <option value="Other">Other</option>
-                        </select>
+                    <div class="space-y-2.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Category</label>
+                        <input type="hidden" name="category" id="feedbackCategory">
+                        <div class="flex flex-wrap gap-2" id="categoryContainer">
+                            <div onclick="selectCategoryTag(this, 'Production Delay')" class="category-tag px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[11px] font-bold cursor-pointer text-gray-600 dark:text-gray-400">Production Delay</div>
+                            <div onclick="selectCategoryTag(this, 'Logistics Delay')" class="category-tag px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[11px] font-bold cursor-pointer text-gray-600 dark:text-gray-400">Logistics Delay</div>
+                            <div onclick="selectCategoryTag(this, 'Quality Issue')" class="category-tag px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[11px] font-bold cursor-pointer text-gray-600 dark:text-gray-400">Quality Issue</div>
+                            <div onclick="selectCategoryTag(this, 'Documentation Pending')" class="category-tag px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[11px] font-bold cursor-pointer text-gray-600 dark:text-gray-400">Documentation Pending</div>
+                            <div onclick="selectCategoryTag(this, 'Other')" class="category-tag px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[11px] font-bold cursor-pointer text-gray-600 dark:text-gray-400">Other</div>
+                        </div>
                     </div>
                     <textarea id="feedbackText" name="feedback_text" rows="4" class="w-full bg-gray-50 dark:bg-gray-800 border rounded-lg p-3 text-sm resize-none outline-none" placeholder="Enter your feedback here..."></textarea>
                     <div class="flex justify-end gap-3 mt-2">

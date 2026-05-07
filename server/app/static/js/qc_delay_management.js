@@ -141,6 +141,19 @@ function openFeedbackModal(qc_ro, segment_id) {
 function closeFeedbackModal() {
     document.getElementById('feedbackModal').classList.add('hidden');
     document.getElementById('feedbackForm').reset();
+    
+    // Reset category tags
+    document.getElementById('feedbackCategory').value = '';
+    document.querySelectorAll('.category-tag').forEach(t => t.classList.remove('selected'));
+}
+
+function selectCategoryTag(el, value) {
+    // Update hidden input
+    document.getElementById('feedbackCategory').value = value;
+    
+    // Update UI
+    document.querySelectorAll('.category-tag').forEach(t => t.classList.remove('selected'));
+    el.classList.add('selected');
 }
 
 document.getElementById('feedbackForm').addEventListener('submit', function(e) {
