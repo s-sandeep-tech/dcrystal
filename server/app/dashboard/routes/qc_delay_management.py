@@ -29,6 +29,26 @@ def qc_delay_management():
     search = request.args.get('search', '')
     office = request.args.get('office', '')
     
+    # Get unique offices for filter
+    offices_query = db.session.query(QCDelayManagementSnapshot.qc_ro).distinct()
+    if latest_date:
+        offices_query = offices_query.filter(QCDelayManagementSnapshot.snapshot_date == latest_date)
+    offices = [o[0] for o in offices_query.all() if o[0]]
+
+    return render_template(
+        'qc_delay_management.html',
+        offices=sorted(offices),
+        sync_time=sync_time,
+        current_username=session.get('username'),
+        initial_load=True
+    )
+
+@dashboard_bp.route('/partial/qc-delay-management-report')
+@jwt_required()
+def partial_qc_delay_management_report():
+    search = request.args.get('search', '')
+    office = request.args.get('office', '')
+    
     # Get latest snapshot date
     latest_date = db.session.query(func.max(QCDelayManagementSnapshot.snapshot_date)).scalar()
     
@@ -82,7 +102,6 @@ def qc_delay_management():
 
     rows = query.order_by(QCDelayManagementSnapshot.qc_ro).all()
     
-    # Process rows into dicts for the template
     processed_rows = []
     for r, f1_t, f1_c, f1_u, f1_d, f2_t, f2_c, f2_u, f2_d, f3_t, f3_c, f3_u, f3_d in rows:
         processed_rows.append({
@@ -94,18 +113,9 @@ def qc_delay_management():
             }
         })
 
-    # Get unique offices for filter
-    offices_query = db.session.query(QCDelayManagementSnapshot.qc_ro).distinct()
-    if latest_date:
-        offices_query = offices_query.filter(QCDelayManagementSnapshot.snapshot_date == latest_date)
-    offices = [o[0] for o in offices_query.all() if o[0]]
-
     return render_template(
-        'qc_delay_management.html',
-        rows=processed_rows,
-        offices=sorted(offices),
-        sync_time=sync_time,
-        current_username=session.get('username')
+        'partials/_view_qc_delay_management.html',
+        rows=processed_rows
     )
 
 @dashboard_bp.route('/api/qc-delay-management/feedback', methods=['POST'])

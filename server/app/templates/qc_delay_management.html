@@ -218,7 +218,13 @@
             </div>
         </div>
         <div id="view-container" class="dashboard-view">
-            {% include 'partials/_view_qc_delay_management.html' %}
+            {% if not initial_load %}
+                {% include 'partials/_view_qc_delay_management.html' %}
+            {% else %}
+                <div class="flex flex-col items-center justify-center p-20 opacity-40">
+                    <p class="text-xs font-bold animate-pulse uppercase tracking-widest">Initializing Control Matrix...</p>
+                </div>
+            {% endif %}
         </div>
     </div>
 

@@ -19,10 +19,35 @@ document.addEventListener('DOMContentLoaded', function() {
             const el = document.getElementById(`filter-${f.replace(/_/g, '-')}`);
             if (el) el.value = val;
         }
-    });
-
     setupDynamicTooltips();
+    loadReport();
 });
+
+function loadReport() {
+    const loader = document.getElementById('loader-overlay');
+    const container = document.getElementById('view-container');
+    if (loader) loader.classList.remove('hidden');
+
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    fetch(`/partial/qc-delay-management-report?${urlParams.toString()}`, {
+        headers: {
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+    })
+    .then(res => res.text())
+    .then(html => {
+        container.innerHTML = html;
+        setupDynamicTooltips(); // Re-init tooltips for new rows
+    })
+    .catch(err => {
+        console.error('Error loading report:', err);
+        container.innerHTML = '<div class="p-20 text-center text-red-500 font-bold">Error loading report. Please refresh.</div>';
+    })
+    .finally(() => {
+        if (loader) loader.classList.add('hidden');
+    });
+}
 
 function adjustZoom(delta, reset = false) {
     const tableArea = document.getElementById('table-area');
@@ -54,32 +79,50 @@ function applyFilters() {
 
     urlParams.set('page', 1);
     const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
-    window.location.href = newUrl;
+    window.history.pushState({path: newUrl}, '', newUrl);
+    loadReport();
 }
 
 function resetFilters() {
-    window.location.href = window.location.pathname + '?status=segment_1&page=1';
+    const newUrl = window.location.pathname + '?status=segment_1&page=1';
+    window.history.pushState({path: newUrl}, '', newUrl);
+    
+    // Reset DOM elements
+    const s = document.getElementById('hierarchy-search');
+    if (s) s.value = '';
+    ['office', 'status'].forEach(f => {
+        const el = document.getElementById(`filter-${f.replace(/_/g, '-')}`);
+        if (el) el.value = (f === 'status' ? 'segment_1' : '');
+    });
+    
+    loadReport();
 }
 
 function setStatus(status) {
     const urlParams = new URLSearchParams(window.location.search);
     urlParams.set('status', status);
     urlParams.set('page', 1);
-    window.location.href = `${window.location.pathname}?${urlParams.toString()}`;
+    const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+    window.history.pushState({path: newUrl}, '', newUrl);
+    loadReport();
 }
 
 function changePerPage(perPage) {
     const urlParams = new URLSearchParams(window.location.search);
     urlParams.set('per_page', perPage);
     urlParams.set('page', 1);
-    window.location.href = `${window.location.pathname}?${urlParams.toString()}`;
+    const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+    window.history.pushState({path: newUrl}, '', newUrl);
+    loadReport();
 }
 
 function changePage(page) {
     if (page < 1) return;
     const urlParams = new URLSearchParams(window.location.search);
     urlParams.set('page', page);
-    window.location.href = `${window.location.pathname}?${urlParams.toString()}`;
+    const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+    window.history.pushState({path: newUrl}, '', newUrl);
+    loadReport();
 }
 
 function openFeedbackModal(qc_ro, segment_id) {
