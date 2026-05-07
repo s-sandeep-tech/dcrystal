@@ -2733,7 +2733,8 @@ def sync_qc_delay_management_data_task():
             qc_ro_id, qc_ro, qc_ro_code, 
             qc_issue_completed_receipt_pending_piece, qc_issue_completed_receipt_pending_weight, 
             qc_receipt_completed_qc_pending_piece, qc_receipt_completed_qc_pending_weight, 
-            qc_completed_invoice_request_pending_piece, qc_completed_invoice_request_pending_weight
+            qc_completed_invoice_request_pending_piece, qc_completed_invoice_request_pending_weight,
+            qc_ro_incharge, qc_ro_incharge_email, qc_ro_incharge_phone_number, qc_ro_address
         FROM ext_view.qc_summary_data
         """
         
@@ -2762,7 +2763,11 @@ def sync_qc_delay_management_data_task():
                         qc_receipt_completed_qc_pending_piece=row[5],
                         qc_receipt_completed_qc_pending_weight=row[6],
                         qc_completed_invoice_request_pending_piece=row[7],
-                        qc_completed_invoice_request_pending_weight=row[8]
+                        qc_completed_invoice_request_pending_weight=row[8],
+                        qc_ro_incharge=row[9],
+                        qc_ro_incharge_email=row[10],
+                        qc_ro_incharge_phone_number=row[11],
+                        qc_ro_address=row[12]
                     )
                     for row in batch
                 ]

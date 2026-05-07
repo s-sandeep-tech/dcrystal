@@ -1766,6 +1766,12 @@ class QCDelayManagementSnapshot(db.Model):
     qc_completed_invoice_request_pending_piece = db.Column(db.Integer, default=0)
     qc_completed_invoice_request_pending_weight = db.Column(db.Numeric(12, 3), default=0)
     
+    # New Contact Details
+    qc_ro_incharge = db.Column(db.String(150))
+    qc_ro_incharge_email = db.Column(db.String(150))
+    qc_ro_incharge_phone_number = db.Column(db.String(50))
+    qc_ro_address = db.Column(db.Text)
+    
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
@@ -1780,7 +1786,11 @@ class QCDelayManagementSnapshot(db.Model):
             'qc_receipt_completed_qc_pending_piece': self.qc_receipt_completed_qc_pending_piece,
             'qc_receipt_completed_qc_pending_weight': float(self.qc_receipt_completed_qc_pending_weight or 0),
             'qc_completed_invoice_request_pending_piece': self.qc_completed_invoice_request_pending_piece,
-            'qc_completed_invoice_request_pending_weight': float(self.qc_completed_invoice_request_pending_weight or 0)
+            'qc_completed_invoice_request_pending_weight': float(self.qc_completed_invoice_request_pending_weight or 0),
+            'qc_ro_incharge': self.qc_ro_incharge,
+            'qc_ro_incharge_email': self.qc_ro_incharge_email,
+            'qc_ro_incharge_phone_number': self.qc_ro_incharge_phone_number,
+            'qc_ro_address': self.qc_ro_address
         }
 
 class QCDelayManagementFeedback(db.Model):

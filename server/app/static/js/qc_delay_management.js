@@ -439,3 +439,36 @@ function updateTooltipPosition(e, tooltip) {
     tooltip.style.left = x + 'px';
     tooltip.style.top = y + 'px';
 }
+
+function openContactModal(row) {
+    const modal = document.getElementById('contactModal');
+    if (!modal) return;
+
+    // Populate data
+    document.getElementById('contactModalTitle').textContent = row.qc_ro || 'N/A';
+    document.getElementById('contact-incharge').textContent = row.qc_ro_incharge || 'N/A';
+    
+    const emailEl = document.getElementById('contact-email');
+    emailEl.textContent = row.qc_ro_incharge_email || 'N/A';
+    emailEl.href = row.qc_ro_incharge_email ? `mailto:${row.qc_ro_incharge_email}` : '#';
+    
+    document.getElementById('contact-phone').textContent = row.qc_ro_incharge_phone_number || 'N/A';
+    document.getElementById('contact-address').textContent = row.qc_ro_address || 'Address not available';
+
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modal.querySelector('.relative').classList.remove('scale-95');
+    }, 10);
+}
+
+function closeContactModal() {
+    const modal = document.getElementById('contactModal');
+    if (!modal) return;
+    
+    modal.classList.add('opacity-0');
+    modal.querySelector('.relative').classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+}

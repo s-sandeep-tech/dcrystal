@@ -28,7 +28,14 @@
         {% if rows %}
             {% for item in rows %}
             <tr>
-                <td style="font-weight: 600;">{{ item.summary.qc_ro }}</td>
+                <td style="font-weight: 600;">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="truncate" title="{{ item.summary.qc_ro }}">{{ item.summary.qc_ro }}</span>
+                        <button onclick='openContactModal({{ item.summary|tojson|safe }})' class="text-primary hover:text-primary/70 transition-all p-0.5 rounded hover:bg-primary/5 flex items-center justify-center shrink-0" title="View Office Contact Info">
+                            <span class="material-symbols-outlined text-[15px]">contact_support</span>
+                        </button>
+                    </div>
+                </td>
                 
                 <!-- Segment 1 -->
                 {% set s1_has_data = (item.summary.qc_issue_completed_receipt_pending_piece|int > 0 or item.summary.qc_issue_completed_receipt_pending_weight|float > 0) %}
