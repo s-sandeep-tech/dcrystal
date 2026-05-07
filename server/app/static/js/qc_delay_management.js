@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const el = document.getElementById(`filter-${f.replace(/_/g, '-')}`);
             if (el) el.value = val;
         }
+    });
+
     setupDynamicTooltips();
     loadReport();
 });
