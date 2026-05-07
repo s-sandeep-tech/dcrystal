@@ -28,6 +28,8 @@ def qc_delay_management():
     # Get filters
     search = request.args.get('search', '')
     office = request.args.get('office', '')
+    # Get latest snapshot date
+    latest_date = db.session.query(func.max(QCDelayManagementSnapshot.snapshot_date)).scalar()
     
     # Get unique offices for filter
     offices_query = db.session.query(QCDelayManagementSnapshot.qc_ro).distinct()
