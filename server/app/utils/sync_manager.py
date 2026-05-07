@@ -71,6 +71,9 @@ def sync_supplier_qc_issue_receipt_pending_data(user_id=None):
 def sync_qc_completed_invoice_pending_data(user_id=None):
     return enqueue_sync_task('qc_completed_invoice_pending', user_id)
 
+def sync_qc_completed_invoice_request_pending_data(user_id=None):
+    return enqueue_sync_task('qc_completed_invoice_request_pending', user_id)
+
 def sync_invoice_completed_pending_deliver_data(user_id=None):
     return enqueue_sync_task('invoice_completed_pending_deliver', user_id)
 

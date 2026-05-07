@@ -6,7 +6,7 @@ from app.models.snapshots import (
     QCDelayManagementFeedback,
     SupplierQCIssueReceiptPendingSnapshot,
     QCReceiptCompletedQCPendingSnapshot,
-    QCCompletedInvoicePendingSnapshot
+    QCCompletedInvoiceRequestPendingSnapshot
 )
 from app.models.auth import User
 from app.extensions import db, redis_client
@@ -155,7 +155,7 @@ def get_qc_delay_details(segment_id):
     elif segment_id == 2:
         model = QCReceiptCompletedQCPendingSnapshot
     elif segment_id == 3:
-        model = QCCompletedInvoicePendingSnapshot
+        model = QCCompletedInvoiceRequestPendingSnapshot
     else:
         return jsonify({"status": "error", "message": "Invalid segment"}), 400
 

@@ -589,6 +589,25 @@
                                     </button>
                                 </div>
 
+                                <div id="sync-wrapper-qc_completed_invoice_request_pending"
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-purple-500 text-xl">description</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">QC Completed – Invoice Request Pending Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Refresh Segment 3 details (new external view sync)</p>
+                                        </div>
+                                    </div>
+                                    <button id="sync-qc-completed-invoice-request-pending-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-purple-600 transition-all shadow-md shadow-purple-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
+                                </div>
+
                             </div>
 
                             <div
@@ -1253,6 +1272,7 @@
             syncHMQCIssuePendingUrl: "{{ url_for('dashboard.settings_sync_hm_qc_issue_pending') }}",
             syncSupplierQCIssueReceiptUrl: "{{ url_for('dashboard.settings_sync_supplier_qc_issue_receipt') }}",
             syncQCCompletedInvoiceUrl: "{{ url_for('dashboard.settings_sync_qc_completed_invoice') }}",
+            syncQCCompletedInvoiceRequestPendingUrl: "{{ url_for('dashboard.settings_sync_qc_completed_invoice_request_pending') }}",
             syncInvoiceCompletedDeliverUrl: "{{ url_for('dashboard.settings_sync_invoice_completed_deliver') }}",
             syncBranchAuthorityUrl: "{{ url_for('dashboard.settings_sync_branch_authority') }}",
             syncQCDelayManagementUrl: "{{ url_for('dashboard.settings_sync_qc_delay_management') }}",

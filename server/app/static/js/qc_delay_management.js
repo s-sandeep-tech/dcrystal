@@ -251,15 +251,17 @@ function renderRichModalContent(data, segment_id) {
     `;
 
     data.forEach(row => {
+        const isSegment3 = segment_id === 3;
         html += `
             <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
                 <!-- QC INFO -->
                 <td class="px-4 py-4 align-top">
                     <div class="flex flex-col gap-0.5">
-                        <span class="text-xs font-bold text-orange-600">No: ${row.qc_req_no || row.id}</span>
-                        <span class="text-[10px] text-gray-400">Date: ${row.qc_date ? row.qc_date.split('T')[0] : 'N/A'}</span>
+                        <span class="text-xs font-bold text-orange-600">No: ${isSegment3 ? (row.qc_number || 'N/A') : (row.qc_req_no || row.id)}</span>
+                        <span class="text-[10px] text-gray-400">QC Date: ${row.qc_completed_date ? row.qc_completed_date.split('T')[0] : (row.qc_date ? row.qc_date.split('T')[0] : 'N/A')}</span>
                         <span class="text-[10px] font-bold text-emerald-600">Comp: ${row.snapshot_date ? row.snapshot_date.split('T')[0] : 'N/A'}</span>
                         <span class="text-[10px] text-gray-500">RO: ${row.qc_ro}</span>
+                        ${isSegment3 ? `<span class="text-[10px] text-indigo-600 font-bold">RO Incharge: ${row.qc_ro_incharge || 'N/A'}</span>` : ''}
                     </div>
                 </td>
 
@@ -267,8 +269,8 @@ function renderRichModalContent(data, segment_id) {
                 <td class="px-4 py-4 align-top">
                     <div class="flex flex-col gap-0.5">
                         <span class="text-xs font-bold text-blue-600">${row.po_number || 'N/A'}</span>
-                        <span class="text-[10px] text-gray-400">${row.po_date || 'N/A'}</span>
-                        <span class="text-[10px] text-gray-500">Individual / Refill</span>
+                        <span class="text-[10px] text-gray-400">${row.po_date ? row.po_date.split('T')[0] : 'N/A'}</span>
+                        <span class="text-[10px] text-gray-500 font-bold">Order No: ${row.order_no || 'N/A'}</span>
                         <span class="text-[10px] text-gray-400 flex items-center gap-1">
                             <span class="material-symbols-outlined text-[12px]">phone</span> ${row.party_mobile_no || 'N/A'}
                         </span>
@@ -279,10 +281,10 @@ function renderRichModalContent(data, segment_id) {
                 <!-- DESIGN / SET -->
                 <td class="px-4 py-4 align-top">
                     <div class="flex flex-col gap-0.5">
-                        <span class="text-xs font-bold text-gray-700 dark:text-gray-300">-</span>
-                        <span class="text-[10px] text-gray-400">Set: ${row.set_identifier || '-'}</span>
-                        <span class="text-[10px] font-bold text-blue-600">BC Date: ${row.barcode_completion_date || 'N/A'}</span>
-                        <span class="text-[10px] font-bold text-red-500">Target: ${row.target_date || 'N/A'}</span>
+                        <span class="text-xs font-bold text-gray-700 dark:text-gray-300">Design: ${row.design_no || '-'}</span>
+                        <span class="text-[10px] text-gray-400">Set: ${row.set_identifier || '-'} (${row.set_design_no || '-'})</span>
+                        <span class="text-[10px] font-bold text-blue-600">BC Date: ${row.barcode_date ? row.barcode_date.split('T')[0] : (row.barcode_completion_date ? row.barcode_completion_date.split('T')[0] : 'N/A')}</span>
+                        <span class="text-[10px] font-bold text-red-500">Target: ${row.delivery_target_date ? row.delivery_target_date.split('T')[0] : (row.target_date ? row.target_date.split('T')[0] : 'N/A')}</span>
                     </div>
                 </td>
 
@@ -293,17 +295,17 @@ function renderRichModalContent(data, segment_id) {
                             <span class="size-1.5 rounded-full bg-emerald-500"></span>
                             <span class="text-[10px] font-bold text-gray-600 dark:text-gray-400">QC COMP</span>
                         </div>
-                        <div class="flex items-center gap-2 opacity-40">
-                            <span class="size-1.5 rounded-full bg-gray-400"></span>
-                            <span class="text-[10px] font-bold text-gray-600 dark:text-gray-400">RATE REQ</span>
+                        <div class="flex items-center gap-2 ${isSegment3 ? '' : 'opacity-40'}">
+                            <span class="size-1.5 rounded-full ${isSegment3 ? 'bg-orange-500' : 'bg-gray-400'}"></span>
+                            <span class="text-[10px] font-bold text-gray-600 dark:text-gray-400">${isSegment3 ? 'HM COMP' : 'RATE REQ'}</span>
                         </div>
                         <div class="flex items-center gap-2 opacity-40">
                             <span class="size-1.5 rounded-full bg-gray-400"></span>
                             <span class="text-[10px] font-bold text-gray-600 dark:text-gray-400">INVOICED</span>
                         </div>
                         <div class="mt-1 flex flex-col gap-0.5">
-                            <span class="text-[10px] font-bold text-blue-600">Rate Req No: -</span>
-                            <span class="text-[10px] text-gray-400">Inv RO: -</span>
+                            <span class="text-[10px] font-bold text-blue-600">Receipt: ${row.final_qc_receipt_no || '-'}</span>
+                            <span class="text-[10px] text-gray-400">Order RO: ${row.order_ro || '-'}</span>
                         </div>
                     </div>
                 </td>
@@ -311,18 +313,18 @@ function renderRichModalContent(data, segment_id) {
                 <!-- WEIGHTS -->
                 <td class="px-4 py-4 align-top text-right">
                     <div class="flex flex-col gap-0.5 font-mono">
-                        <span class="text-[11px] text-gray-600 dark:text-gray-400"><span class="font-bold">G:</span> ${formatWeight(row.gross_weight || row.weight)}</span>
-                        <span class="text-[11px] text-gray-600 dark:text-gray-400"><span class="font-bold">N:</span> ${formatWeight(row.net_weight || row.weight)}</span>
+                        <span class="text-[11px] text-gray-600 dark:text-gray-400"><span class="font-bold">G:</span> ${formatWeight(row.gross_weight)}</span>
+                        <span class="text-[11px] text-gray-600 dark:text-gray-400"><span class="font-bold">N:</span> ${formatWeight(row.net_weight)}</span>
                         <span class="text-[11px] text-gray-600 dark:text-gray-400"><span class="font-bold">S:</span> ${formatWeight(row.stone_weight)}</span>
-                        <span class="text-[11px] text-blue-600 font-bold"><span class="font-bold">BC:</span> ${formatWeight(row.barcoded_weight || row.weight)}</span>
+                        <span class="text-[11px] text-blue-600 font-bold"><span class="font-bold">BC:</span> ${formatWeight(row.barcoded_weight)}</span>
                     </div>
                 </td>
 
                 <!-- SUMMARY -->
                 <td class="px-4 py-4 align-top text-right">
                     <div class="flex flex-col items-end">
-                        <span class="text-lg font-black text-emerald-600 leading-tight">${formatWeight(row.weight)}</span>
-                        <span class="text-[10px] font-bold text-gray-400">${row.piece || row.pieces || 0} PCS</span>
+                        <span class="text-lg font-black text-emerald-600 leading-tight">${formatWeight(row.net_weight || row.weight)}</span>
+                        <span class="text-[10px] font-bold text-gray-400">1 PCS</span>
                     </div>
                 </td>
             </tr>

@@ -1628,6 +1628,93 @@ class QCCompletedInvoicePendingSnapshot(db.Model):
             'set_identifier': self.set_identifier
         }
 
+class QCCompletedInvoiceRequestPendingSnapshot(db.Model):
+    __tablename__ = 'qc_completed_invoice_request_pending_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    
+    order_id = db.Column(db.Integer)
+    order_no = db.Column(db.String(100))
+    qc_ro_id = db.Column(db.Integer)
+    qc_ro = db.Column(db.String(150))
+    qc_ro_incharge = db.Column(db.String(150))
+    qc_ro_incharge_email = db.Column(db.String(150))
+    qc_ro_incharge_phone_no = db.Column(db.String(50))
+    make_owner = db.Column(db.String(150))
+    make = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    party = db.Column(db.String(200))
+    party_mobile_no = db.Column(db.String(50))
+    po_date = db.Column(db.Date)
+    delivery_target_date = db.Column(db.Date)
+    po_number = db.Column(db.String(100))
+    order_type = db.Column(db.String(100))
+    order_request_type = db.Column(db.String(100))
+    design_no = db.Column(db.String(100))
+    set_identifier = db.Column(db.String(100))
+    set_design_no = db.Column(db.String(100))
+    order_ro = db.Column(db.String(150))
+    order_branch = db.Column(db.String(150))
+    business_head_name = db.Column(db.String(150))
+    order_incharge_email = db.Column(db.String(150))
+    order_incharge_phone_no = db.Column(db.String(50))
+    barcoded_weight = db.Column(db.Numeric(12, 3))
+    barcode_completion_date = db.Column(db.DateTime)
+    hm_completed_date = db.Column(db.DateTime)
+    final_qc_receipt_no = db.Column(db.String(100))
+    final_qc_receipt_date = db.Column(db.DateTime)
+    qc_number = db.Column(db.String(100))
+    qc_completed_date = db.Column(db.DateTime)
+    net_weight = db.Column(db.Numeric(12, 3))
+    gross_weight = db.Column(db.Numeric(12, 3))
+    stone_weight = db.Column(db.Numeric(12, 3))
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
+            'order_id': self.order_id,
+            'order_no': self.order_no,
+            'qc_ro_id': self.qc_ro_id,
+            'qc_ro': self.qc_ro,
+            'qc_ro_incharge': self.qc_ro_incharge,
+            'qc_ro_incharge_email': self.qc_ro_incharge_email,
+            'qc_ro_incharge_phone_no': self.qc_ro_incharge_phone_no,
+            'make_owner': self.make_owner,
+            'make': self.make,
+            'collection_owner': self.collection_owner,
+            'collection': self.collection,
+            'party': self.party,
+            'party_mobile_no': self.party_mobile_no,
+            'po_date': self.po_date.isoformat() if self.po_date else None,
+            'delivery_target_date': self.delivery_target_date.isoformat() if self.delivery_target_date else None,
+            'po_number': self.po_number,
+            'order_type': self.order_type,
+            'order_request_type': self.order_request_type,
+            'design_no': self.design_no,
+            'set_identifier': self.set_identifier,
+            'set_design_no': self.set_design_no,
+            'order_ro': self.order_ro,
+            'order_branch': self.order_branch,
+            'business_head_name': self.business_head_name,
+            'order_incharge_email': self.order_incharge_email,
+            'order_incharge_phone_no': self.order_incharge_phone_no,
+            'barcoded_weight': float(self.barcoded_weight or 0),
+            'barcode_date': self.barcode_completion_date.isoformat() if self.barcode_completion_date else None,
+            'hm_completed_date': self.hm_completed_date.isoformat() if self.hm_completed_date else None,
+            'final_qc_receipt_no': self.final_qc_receipt_no,
+            'final_qc_receipt_date': self.final_qc_receipt_date.isoformat() if self.final_qc_receipt_date else None,
+            'qc_number': self.qc_number,
+            'qc_completed_date': self.qc_completed_date.isoformat() if self.qc_completed_date else None,
+            'net_weight': float(self.net_weight or 0),
+            'gross_weight': float(self.gross_weight or 0),
+            'stone_weight': float(self.stone_weight or 0)
+        }
+
 class QCCompletedInvoicePendingFeedback(db.Model):
     __tablename__ = 'qc_completed_invoice_pending_feedbacks'
 

@@ -205,6 +205,14 @@ def settings_sync_qc_completed_invoice():
     result = sync_qc_completed_invoice_pending_data(session.get('user_id'))
     return result, 200 if result.get('status') == 'success' else 500
 
+@dashboard_bp.route('/settings/sync-qc-completed-invoice-request-pending', methods=['POST'])
+def settings_sync_qc_completed_invoice_request_pending():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized"}, 401
+    from app.utils.sync_manager import sync_qc_completed_invoice_request_pending_data
+    result = sync_qc_completed_invoice_request_pending_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500
+
 @dashboard_bp.route('/settings/sync-branch-authority', methods=['POST'])
 def settings_sync_branch_authority():
     if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):

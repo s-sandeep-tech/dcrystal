@@ -2567,6 +2567,108 @@ def sync_qc_completed_invoice_pending_data_task():
     finally:
         if conn: conn.close()
 
+def sync_qc_completed_invoice_request_pending_data_task():
+    DATA_TYPE = 'qc_completed_invoice_request_pending'
+    start_time = time.time()
+    conn = None
+    try:
+        emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
+        conn = get_external_db_connection()
+    except Exception as e:
+        error_msg = f"Connection failed: {str(e)}"
+        logger.error(f"QCCompletedInvoiceRequestPending sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
+
+    try:
+        cur = conn.cursor()
+        query = """
+        SELECT 
+            order_id, order_no, qc_ro_id, qc_ro, qc_ro_incharge, qc_ro_incharge_email, 
+            qc_ro_incharge_phone_no, make_owner, make, collection_owner, collection, 
+            party, party_mobile_no, po_date, delivery_target_date, po_number, 
+            order_type, order_request_type, design_no, set_identifier, set_design_no, 
+            order_ro, order_branch, business_head_name, order_incharge_email, 
+            order_incharge_phone_no, barcoded_weight, barcode_completion_date, 
+            hm_completed_date, final_qc_receipt_no, final_qc_receipt_date, 
+            qc_number, qc_completed_date, net_weight, gross_weight, stone_weight
+        FROM ext_view.vw_qc_completed_invoice_request_pending
+        """
+        
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
+        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+
+        if rows:
+            db.session.execute(text("TRUNCATE TABLE qc_completed_invoice_request_pending_snapshots"))
+            db.session.commit()
+
+            snapshot_date = datetime.now()
+            batch_size = 1000
+            for i in range(0, len(rows), batch_size):
+                batch = rows[i:i + batch_size]
+                objects = [
+                    QCCompletedInvoiceRequestPendingSnapshot(
+                        snapshot_date=snapshot_date,
+                        order_id=row[0],
+                        order_no=row[1],
+                        qc_ro_id=row[2],
+                        qc_ro=row[3],
+                        qc_ro_incharge=row[4],
+                        qc_ro_incharge_email=row[5],
+                        qc_ro_incharge_phone_no=row[6],
+                        make_owner=row[7],
+                        make=row[8],
+                        collection_owner=row[9],
+                        collection=row[10],
+                        party=row[11],
+                        party_mobile_no=row[12],
+                        po_date=row[13],
+                        delivery_target_date=row[14],
+                        po_number=row[15],
+                        order_type=row[16],
+                        order_request_type=row[17],
+                        design_no=row[18],
+                        set_identifier=row[19],
+                        set_design_no=row[20],
+                        order_ro=row[21],
+                        order_branch=row[22],
+                        business_head_name=row[23],
+                        order_incharge_email=row[24],
+                        order_incharge_phone_no=row[25],
+                        barcoded_weight=row[26],
+                        barcode_completion_date=row[27],
+                        hm_completed_date=row[28],
+                        final_qc_receipt_no=row[29],
+                        final_qc_receipt_date=row[30],
+                        qc_number=row[31],
+                        qc_completed_date=row[32],
+                        net_weight=row[33],
+                        gross_weight=row[34],
+                        stone_weight=row[35]
+                    )
+                    for row in batch
+                ]
+                db.session.bulk_save_objects(objects)
+                db.session.commit()
+                
+                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
+                emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
+
+        duration = time.time() - start_time
+        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
+        return {"status": "success", "count": len(rows)}
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Sync failed: {str(e)}")
+        emit_sync_update('error', str(e), 0, DATA_TYPE)
+        return {"status": "error", "message": str(e)}
+    finally:
+        if conn: conn.close()
+
 def sync_invoice_completed_pending_deliver_data_task():
     DATA_TYPE = 'invoice_completed_pending_deliver'
     start_time = time.time()
