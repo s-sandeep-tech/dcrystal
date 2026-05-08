@@ -159,7 +159,7 @@ def get_hm_delay_details(segment_id):
     else:
         return jsonify({"status": "error", "message": "Invalid segment"}), 400
 
-    query = model.query.filter(model.hallmark_center == hallmark_center)
+    query = model.query.filter(model.hallmarking_center == hallmark_center)
     # Get latest date for the detail model
     latest_date = db.session.query(func.max(model.snapshot_date)).scalar()
     if latest_date:
