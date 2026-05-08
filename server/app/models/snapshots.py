@@ -2000,9 +2000,9 @@ class HallmarkingDelayManagementSnapshot(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
-    hallmark_center_id = db.Column(db.Integer)
-    hallmark_center = db.Column(db.String(150))
-    hallmark_center_code = db.Column(db.String(50))
+    hallmarking_center_id = db.Column(db.Integer)
+    hallmarking_center = db.Column(db.String(150))
+    hallmarking_center_code = db.Column(db.String(50))
     
     # Segment 1: HALLMARK ISSUE COMPLETED - RECEIPT PENDING
     hm_issue_completed_receipt_pending_piece = db.Column(db.Integer, default=0)
@@ -2022,9 +2022,9 @@ class HallmarkingDelayManagementSnapshot(db.Model):
         return {
             'id': self.id,
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
-            'hallmark_center_id': self.hallmark_center_id,
-            'hallmark_center': self.hallmark_center,
-            'hallmark_center_code': self.hallmark_center_code,
+            'hallmarking_center_id': self.hallmarking_center_id,
+            'hallmarking_center': self.hallmarking_center,
+            'hallmarking_center_code': self.hallmarking_center_code,
             'hm_issue_completed_receipt_pending_piece': self.hm_issue_completed_receipt_pending_piece,
             'hm_issue_completed_receipt_pending_weight': float(self.hm_issue_completed_receipt_pending_weight or 0),
             'hm_receipt_completed_hm_pending_piece': self.hm_receipt_completed_hm_pending_piece,
