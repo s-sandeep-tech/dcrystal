@@ -3020,7 +3020,7 @@ def sync_hm_delay_management_data_task():
         emit_sync_update('processing', 'Fetching HM Summary data...', 10, DATA_TYPE)
         summary_query = """
         SELECT 
-            hallmark_center_id, hallmark_center, hallmark_center_code, 
+            hallmarking_center_id, hallmarking_center, hallmarking_center_code, 
             hm_issue_completed_receipt_pending_piece, hm_issue_completed_receipt_pending_weight, 
             hm_receipt_completed_hm_pending_piece, hm_receipt_completed_hm_pending_weight, 
             hm_completed_return_pending_piece, hm_completed_return_pending_weight
@@ -3034,9 +3034,9 @@ def sync_hm_delay_management_data_task():
         summary_objects = [
             HallmarkingDelayManagementSnapshot(
                 snapshot_date=snapshot_date,
-                hallmark_center_id=row[0],
-                hallmark_center=row[1],
-                hallmark_center_code=row[2],
+                hallmarking_center_id=row[0],
+                hallmarking_center=row[1],
+                hallmarking_center_code=row[2],
                 hm_issue_completed_receipt_pending_piece=row[3],
                 hm_issue_completed_receipt_pending_weight=row[4],
                 hm_receipt_completed_hm_pending_piece=row[5],

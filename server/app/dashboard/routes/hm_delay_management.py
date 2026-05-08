@@ -32,7 +32,7 @@ def hm_delay_management():
     latest_date = db.session.query(func.max(HallmarkingDelayManagementSnapshot.snapshot_date)).scalar()
     
     # Get unique centers for filter
-    centers_query = db.session.query(HallmarkingDelayManagementSnapshot.hallmark_center).distinct()
+    centers_query = db.session.query(HallmarkingDelayManagementSnapshot.hallmarking_center).distinct()
     if latest_date:
         centers_query = centers_query.filter(HallmarkingDelayManagementSnapshot.snapshot_date == latest_date)
     centers = [c[0] for c in centers_query.all() if c[0]]
@@ -89,20 +89,20 @@ def partial_hm_delay_management_report():
         f3_subq.c.feedback_category.label('f3_category'),
         f3_subq.c.username.label('f3_username'),
         f3_subq.c.created_at.label('f3_date')
-    ).outerjoin(f1_subq, HallmarkingDelayManagementSnapshot.hallmark_center == f1_subq.c.hallmark_center)\
-     .outerjoin(f2_subq, HallmarkingDelayManagementSnapshot.hallmark_center == f2_subq.c.hallmark_center)\
-     .outerjoin(f3_subq, HallmarkingDelayManagementSnapshot.hallmark_center == f3_subq.c.hallmark_center)
+    ).outerjoin(f1_subq, HallmarkingDelayManagementSnapshot.hallmarking_center == f1_subq.c.hallmark_center)\
+     .outerjoin(f2_subq, HallmarkingDelayManagementSnapshot.hallmarking_center == f2_subq.c.hallmark_center)\
+     .outerjoin(f3_subq, HallmarkingDelayManagementSnapshot.hallmarking_center == f3_subq.c.hallmark_center)
 
     if latest_date:
         query = query.filter(HallmarkingDelayManagementSnapshot.snapshot_date == latest_date)
     
     if search:
-        query = query.filter(HallmarkingDelayManagementSnapshot.hallmark_center.ilike(f"%{search}%"))
+        query = query.filter(HallmarkingDelayManagementSnapshot.hallmarking_center.ilike(f"%{search}%"))
     
     if center:
-        query = query.filter(HallmarkingDelayManagementSnapshot.hallmark_center == center)
+        query = query.filter(HallmarkingDelayManagementSnapshot.hallmarking_center == center)
 
-    rows = query.order_by(HallmarkingDelayManagementSnapshot.hallmark_center).all()
+    rows = query.order_by(HallmarkingDelayManagementSnapshot.hallmarking_center).all()
     
     processed_rows = []
     for r, f1_t, f1_c, f1_u, f1_d, f2_t, f2_c, f2_u, f2_d, f3_t, f3_c, f3_u, f3_d in rows:

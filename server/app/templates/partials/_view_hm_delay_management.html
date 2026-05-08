@@ -30,7 +30,7 @@
             <tr>
                 <td style="font-weight: 600;">
                     <div class="flex items-center justify-between gap-2">
-                        <span class="truncate" title="{{ item.summary.hallmark_center }}">{{ item.summary.hallmark_center }}</span>
+                        <span class="truncate" title="{{ item.summary.hallmarking_center }}">{{ item.summary.hallmarking_center }}</span>
                     </div>
                 </td>
                 
@@ -40,20 +40,20 @@
                 <td style="background-color: #f8fafc;">{{ "%.3f"|format(item.summary.hm_issue_completed_receipt_pending_weight) }}</td>
                 <td class="w-px whitespace-nowrap px-1 text-center relative group cursor-help" style="background-color: #f8fafc;">
                     {% if item.feedbacks.get('segment1', {}).get('feedback_text') %}
-                        <div class="feedback-trigger" data-hallmark-center="{{ item.summary.hallmark_center }}" data-segment-id="1">
+                        <div class="feedback-trigger" data-hallmark-center="{{ item.summary.hallmarking_center }}" data-segment-id="1">
                             <span class="material-symbols-outlined text-primary text-[16px]">chat_bubble_outline</span>
                         </div>
                     {% endif %}
                 </td>
                 <td class="w-px whitespace-nowrap px-1" style="background-color: #f8fafc;">
                     <div class="flex items-center gap-1">
-                        <button onclick="openFeedbackModal('{{ item.summary.hallmark_center }}', 1)" 
+                        <button onclick="openFeedbackModal('{{ item.summary.hallmarking_center }}', 1)" 
                                 class="p-1 rounded text-gray-500 {{ 'hover:bg-gray-100' if s1_has_data else 'opacity-20 cursor-not-allowed' }}" 
                                 {{ '' if s1_has_data else 'disabled' }}
                                 title="{{ 'Add Feedback' if s1_has_data else 'No data available' }}">
                             <span class="material-symbols-outlined text-[12px]">comment</span>
                         </button>
-                        <button onclick="openDetailsModal('{{ item.summary.hallmark_center }}', 1)" 
+                        <button onclick="openDetailsModal('{{ item.summary.hallmarking_center }}', 1)" 
                                 class="p-1 rounded text-blue-500 {{ 'hover:bg-gray-100' if s1_has_data else 'opacity-20 cursor-not-allowed' }}" 
                                 {{ '' if s1_has_data else 'disabled' }}
                                 title="{{ 'View Details' if s1_has_data else 'No data available' }}">
@@ -68,20 +68,20 @@
                 <td style="background-color: #fffbeb;">{{ "%.3f"|format(item.summary.hm_receipt_completed_hm_pending_weight) }}</td>
                 <td class="w-px whitespace-nowrap px-1 text-center relative group cursor-help" style="background-color: #fffbeb;">
                     {% if item.feedbacks.get('segment2', {}).get('feedback_text') %}
-                        <div class="feedback-trigger" data-hallmark-center="{{ item.summary.hallmark_center }}" data-segment-id="2">
+                        <div class="feedback-trigger" data-hallmark-center="{{ item.summary.hallmarking_center }}" data-segment-id="2">
                             <span class="material-symbols-outlined text-primary text-[16px]">chat_bubble_outline</span>
                         </div>
                     {% endif %}
                 </td>
                 <td class="w-px whitespace-nowrap px-1" style="background-color: #fffbeb;">
                     <div class="flex items-center gap-1">
-                        <button onclick="openFeedbackModal('{{ item.summary.hallmark_center }}', 2)" 
+                        <button onclick="openFeedbackModal('{{ item.summary.hallmarking_center }}', 2)" 
                                 class="p-1 rounded text-gray-500 {{ 'hover:bg-gray-100' if s2_has_data else 'opacity-20 cursor-not-allowed' }}" 
                                 {{ '' if s2_has_data else 'disabled' }}
                                 title="{{ 'Add Feedback' if s2_has_data else 'No data available' }}">
                             <span class="material-symbols-outlined text-[12px]">comment</span>
                         </button>
-                        <button onclick="openDetailsModal('{{ item.summary.hallmark_center }}', 2)" 
+                        <button onclick="openDetailsModal('{{ item.summary.hallmarking_center }}', 2)" 
                                 class="p-1 rounded text-blue-500 {{ 'hover:bg-gray-100' if s2_has_data else 'opacity-20 cursor-not-allowed' }}" 
                                 {{ '' if s2_has_data else 'disabled' }}
                                 title="{{ 'View Details' if s2_has_data else 'No data available' }}">
@@ -96,20 +96,20 @@
                 <td style="background-color: #fdf4ff;">{{ "%.3f"|format(item.summary.hm_completed_return_pending_weight) }}</td>
                 <td class="w-px whitespace-nowrap px-1 text-center relative group cursor-help" style="background-color: #fdf4ff;">
                     {% if item.feedbacks.get('segment3', {}).get('feedback_text') %}
-                        <div class="feedback-trigger" data-hallmark-center="{{ item.summary.hallmark_center }}" data-segment-id="3">
+                        <div class="feedback-trigger" data-hallmark-center="{{ item.summary.hallmarking_center }}" data-segment-id="3">
                             <span class="material-symbols-outlined text-primary text-[16px]">chat_bubble_outline</span>
                         </div>
                     {% endif %}
                 </td>
                 <td class="w-px whitespace-nowrap px-1" style="background-color: #fdf4ff;">
                     <div class="flex items-center gap-1">
-                        <button onclick="openFeedbackModal('{{ item.summary.hallmark_center }}', 3)" 
+                        <button onclick="openFeedbackModal('{{ item.summary.hallmarking_center }}', 3)" 
                                 class="p-1 rounded text-gray-500 {{ 'hover:bg-gray-100' if s3_has_data else 'opacity-20 cursor-not-allowed' }}" 
                                 {{ '' if s3_has_data else 'disabled' }}
                                 title="{{ 'Add Feedback' if s3_has_data else 'No data available' }}">
                             <span class="material-symbols-outlined text-[12px]">comment</span>
                         </button>
-                        <button onclick="openDetailsModal('{{ item.summary.hallmark_center }}', 3)" 
+                        <button onclick="openDetailsModal('{{ item.summary.hallmarking_center }}', 3)" 
                                 class="p-1 rounded text-blue-500 {{ 'hover:bg-gray-100' if s3_has_data else 'opacity-20 cursor-not-allowed' }}" 
                                 {{ '' if s3_has_data else 'disabled' }}
                                 title="{{ 'View Details' if s3_has_data else 'No data available' }}">
