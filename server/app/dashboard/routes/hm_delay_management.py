@@ -54,19 +54,19 @@ def partial_hm_delay_management_report():
     # Get latest snapshot date
     latest_date = db.session.query(func.max(HallmarkingDelayManagementSnapshot.snapshot_date)).scalar()
     
-    # Subquery helper for latest feedback
+    # Subqueries for feedback (latest for each center/segment)
     def get_latest_feedback_subq(segment_id):
         subq = db.session.query(
-            HallmarkingDelayManagementFeedback.hallmark_center,
+            HallmarkingDelayManagementFeedback.hallmarking_center,
             func.max(HallmarkingDelayManagementFeedback.created_at).label('max_date')
         ).filter(HallmarkingDelayManagementFeedback.segment_id == segment_id).group_by(
-            HallmarkingDelayManagementFeedback.hallmark_center
+            HallmarkingDelayManagementFeedback.hallmarking_center
         ).subquery()
         
         return db.session.query(HallmarkingDelayManagementFeedback).join(
             subq,
             db.and_(
-                HallmarkingDelayManagementFeedback.hallmark_center == subq.c.hallmark_center,
+                HallmarkingDelayManagementFeedback.hallmarking_center == subq.c.hallmarking_center,
                 HallmarkingDelayManagementFeedback.created_at == subq.c.max_date
             )
         ).filter(HallmarkingDelayManagementFeedback.segment_id == segment_id).subquery()
@@ -89,9 +89,9 @@ def partial_hm_delay_management_report():
         f3_subq.c.feedback_category.label('f3_category'),
         f3_subq.c.username.label('f3_username'),
         f3_subq.c.created_at.label('f3_date')
-    ).outerjoin(f1_subq, HallmarkingDelayManagementSnapshot.hallmarking_center == f1_subq.c.hallmark_center)\
-     .outerjoin(f2_subq, HallmarkingDelayManagementSnapshot.hallmarking_center == f2_subq.c.hallmark_center)\
-     .outerjoin(f3_subq, HallmarkingDelayManagementSnapshot.hallmarking_center == f3_subq.c.hallmark_center)
+    ).outerjoin(f1_subq, HallmarkingDelayManagementSnapshot.hallmarking_center == f1_subq.c.hallmarking_center)\
+     .outerjoin(f2_subq, HallmarkingDelayManagementSnapshot.hallmarking_center == f2_subq.c.hallmarking_center)\
+     .outerjoin(f3_subq, HallmarkingDelayManagementSnapshot.hallmarking_center == f3_subq.c.hallmarking_center)
 
     if latest_date:
         query = query.filter(HallmarkingDelayManagementSnapshot.snapshot_date == latest_date)
@@ -134,7 +134,7 @@ def save_hm_delay_feedback():
         return jsonify({"status": "error", "message": "Missing required fields"}), 400
 
     feedback = HallmarkingDelayManagementFeedback(
-        hallmark_center=hallmark_center,
+        hallmarking_center=hallmark_center,
         segment_id=segment_id,
         feedback_text=feedback_text,
         feedback_category=category,
@@ -175,7 +175,7 @@ def get_hm_feedback_info():
     segment_id = request.args.get('segment_id', type=int)
     
     feedback = HallmarkingDelayManagementFeedback.query.filter_by(
-        hallmark_center=hallmark_center, 
+        hallmarking_center=hallmark_center, 
         segment_id=segment_id
     ).order_by(HallmarkingDelayManagementFeedback.created_at.desc()).first()
     
