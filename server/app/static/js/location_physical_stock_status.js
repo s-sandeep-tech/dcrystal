@@ -175,13 +175,7 @@ async function loadOptions() {
             { id: 'filter-purity', data: data.purities },
             { id: 'filter-classification', data: data.classifications },
             { id: 'filter-section', data: data.sections },
-            { 
-                id: 'filter-prov-type', 
-                data: data.prov_types ? data.prov_types.filter(v => {
-                    const val = String(v).toLowerCase().replace(/\s+/g, '');
-                    return val !== 'set' && val !== 'matchingset';
-                }) : []
-            },
+            { id: 'filter-prov-type', data: data.prov_types },
             { id: 'filter-provision-mode', data: data.provision_modes },
             { id: 'filter-business-head', data: data.business_heads }
         ];
