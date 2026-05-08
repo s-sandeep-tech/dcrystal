@@ -2396,7 +2396,7 @@ def sync_supplier_qc_issue_receipt_pending_data_task():
             hm_ro, hallmark_agent, hm_agent_email, hm_agent_pnone_no, 
             hm_completed_at, qc_issue_receipt_no, qc_issue_receipt_date, 
             qc_ro, qc_ro_incharge, net_weight, gross_weight, stone_weight, 
-            qc_pending_to_receipt_pcs, qc_pending_to_receipt_wt
+            qc_pending_to_receipt_pcs, qc_pending_to_receipt_wt, po_no as order_no, set_design_no as design_no
         FROM ext_view.vw_supplier_qc_issue_completed_receipt_pending
         WHERE CURRENT_DATE - DATE(qc_issue_receipt_date) > 1;
         """
@@ -2448,7 +2448,9 @@ def sync_supplier_qc_issue_receipt_pending_data_task():
                         gross_weight=row[27],
                         stone_weight=row[28],
                         pieces=row[29], # qc_pending_to_receipt_pcs
-                        weight=row[30]   # qc_pending_to_receipt_wt
+                        weight=row[30],  # qc_pending_to_receipt_wt
+                        order_no=row[31],
+                        design_no=row[32]
                     )
                     for row in batch
                 ]
@@ -2496,7 +2498,7 @@ def sync_qc_completed_invoice_pending_data_task():
             invoice_ro, is_qc_completed, qc_completed_date, 
             is_rate_requisition_completed, is_invoiced, 
             purchase_invoice_rate_requisition_number, 
-            pending_to_invoice_pcs, pending_to_invoice_wt
+            pending_to_invoice_pcs, pending_to_invoice_wt, design_no
         FROM ext_view.vw_qc_completed_invoice_pending
         WHERE CURRENT_DATE - DATE(qc_completed_date) > 1
         """
@@ -2551,7 +2553,8 @@ def sync_qc_completed_invoice_pending_data_task():
                         is_invoiced=bool(row[30]) if row[30] is not None else False,
                         purchase_invoice_rate_requisition_number=row[31],
                         pieces=row[32], # pending_to_invoice_pcs
-                        weight=row[33]   # pending_to_invoice_wt
+                        weight=row[33],  # pending_to_invoice_wt
+                        design_no=row[34]
                     )
                     for row in batch
                 ]

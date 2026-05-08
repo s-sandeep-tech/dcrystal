@@ -1515,6 +1515,8 @@ class SupplierQCIssueReceiptPendingSnapshot(db.Model):
     po_number = db.Column(db.String(100), index=True)
     set_identifier = db.Column(db.String(100))
     set_design_no = db.Column(db.String(100))
+    design_no = db.Column(db.String(100))
+    order_no = db.Column(db.String(100))
     order_type = db.Column(db.String(150))
     order_request_type = db.Column(db.String(150))
     party_mobile_no = db.Column(db.String(50))
@@ -1551,7 +1553,11 @@ class SupplierQCIssueReceiptPendingSnapshot(db.Model):
             'business_head_name': self.business_head_name,
             'party_mobile_no': self.party_mobile_no,
             'barcode_completion_date': self.barcode_completion_date.isoformat() if self.barcode_completion_date else None,
-            'target_date': self.target_date.isoformat() if self.target_date else None
+            'target_date': self.target_date.isoformat() if self.target_date else None,
+            'design_no': self.design_no,
+            'order_no': self.order_no,
+            'set_identifier': self.set_identifier,
+            'set_design_no': self.set_design_no
         }
 
 class QCCompletedInvoicePendingSnapshot(db.Model):
@@ -1589,6 +1595,7 @@ class QCCompletedInvoicePendingSnapshot(db.Model):
     barcode_completion_date = db.Column(db.DateTime)
     set_identifier = db.Column(db.String(100))
     set_design_no = db.Column(db.String(100))
+    design_no = db.Column(db.String(100))
     target_date = db.Column(db.Date)
     qc_ro = db.Column(db.String(150))
     qc_ro_incharge = db.Column(db.String(150))
@@ -1625,7 +1632,9 @@ class QCCompletedInvoicePendingSnapshot(db.Model):
             'order_type': self.order_type,
             'order_request_type': self.order_request_type,
             'business_head_name': self.business_head_name,
-            'set_identifier': self.set_identifier
+            'set_identifier': self.set_identifier,
+            'design_no': self.design_no,
+            'set_design_no': self.set_design_no
         }
 
 class QCCompletedInvoiceRequestPendingSnapshot(db.Model):
