@@ -2147,7 +2147,9 @@ class SupplierHMIssueReceiptPendingSnapshot(db.Model):
             'stone_weight': float(self.stone_weight or 0),
             'business_head_name': self.business_head_name,
             'hm_receipt_pending_pcs': self.hm_receipt_pending_pcs,
-            'hm_receipt_pending_wt': float(self.hm_receipt_pending_wt or 0)
+            'hm_receipt_pending_wt': float(self.hm_receipt_pending_wt or 0),
+            'pending_piece': self.hm_receipt_pending_pcs,
+            'pending_weight': float(self.hm_receipt_pending_wt or 0)
         }
 
 class HMReceiptCompletedHMPendingSnapshot(db.Model):
@@ -2241,7 +2243,9 @@ class HMReceiptCompletedHMPendingSnapshot(db.Model):
             'agent_received_receipt_date': self.agent_received_receipt_date.isoformat() if self.agent_received_receipt_date else None,
             'net_weight': float(self.net_weight or 0),
             'gross_weight': float(self.gross_weight or 0),
-            'stone_weight': float(self.stone_weight or 0)
+            'stone_weight': float(self.stone_weight or 0),
+            'pending_weight': float(self.gross_weight or 0),
+            'pending_piece': 1
         }
 
 class HMCompletedReturnPendingSnapshot(db.Model):
