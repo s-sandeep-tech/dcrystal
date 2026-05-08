@@ -240,86 +240,125 @@ function closeDetailsModal() {
 
 function renderHMModalContent(data, segment_id) {
     const content = document.getElementById('modalContent');
-    let html = `<div class="overflow-x-auto"><table class="excel-table w-full"><thead><tr>`;
     
-    if (segment_id === 1) {
-        // ISSUE INFO, PO INFO, DESIGN/SET, HM INFO, PIECE, GROSS WT, STONE WT, NET WEIGHT
-        html += `
-            <th>ISSUE INFO</th>
-            <th>PO INFO</th>
-            <th>DESIGN/SET</th>
-            <th>HM INFO</th>
-            <th>PIECE</th>
-            <th>GROSS WT</th>
-            <th>STONE WT</th>
-            <th>NET WEIGHT</th>
-        `;
-    } else if (segment_id === 2) {
-        // PO INFO, CHALLAN DATE, RECEIVED CHALLAN NUMBER, RECEIPT NUMBER, RECEIPT DATE, PIECE, WEIGHT
-        html += `
-            <th>PO INFO</th>
-            <th>CHALLAN DATE</th>
-            <th>RECEIVED CHALLAN NUMBER</th>
-            <th>RECEIPT NUMBER</th>
-            <th>RECEIPT DATE</th>
-            <th>PIECE</th>
-            <th>WEIGHT</th>
-        `;
-    } else if (segment_id === 3) {
-        // PO INFO, HALLMARK REQUEST USER, HALLMARK COMPLETE DATE, DESING/SET, PENDING PIECE, PENDING WEIGHT
-        html += `
-            <th>PO INFO</th>
-            <th>HALLMARK REQUEST USER</th>
-            <th>HALLMARK COMPLETE DATE</th>
-            <th>DESIGN/SET</th>
-            <th>PENDING PIECE</th>
-            <th>PENDING WEIGHT</th>
-        `;
-    }
+    // Group unique parties for the filter
+    const parties = [...new Set(data.map(r => r.party))].filter(Boolean).sort();
     
-    html += `</tr></thead><tbody>`;
+    let html = `
+        <div class="modal-filter-bar mb-4">
+            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">filter_list</span> Filter by Party:
+            </span>
+            <select id="modal-party-filter" onchange="filterModalByParty(this.value)" 
+                class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-3 py-1 text-xs font-bold focus:ring-0 outline-none">
+                <option value="">All Parties</option>
+                ${parties.map(p => `<option value="${p}">${p}</option>`).join('')}
+            </select>
+        </div>
+        <div class="space-y-4" id="rich-modal-list">
+    `;
 
     data.forEach(row => {
-        html += `<tr>`;
-        if (segment_id === 1) {
-            // Updated mapping for expanded S1 model
-            html += `
-                <td>${row.hm_issue_receipt_no || '-'}</td>
-                <td>${row.po_number || '-'}</td>
-                <td>${row.set_design_no || '-'}</td>
-                <td>${row.hm_ro || '-'}</td>
-                <td>${row.hm_receipt_pending_pcs || 0}</td>
-                <td>${formatWeight(row.gross_weight)}</td>
-                <td>${formatWeight(row.stone_weight)}</td>
-                <td>${formatWeight(row.net_weight)}</td>
-            `;
-        } else if (segment_id === 2) {
-            // Updated mapping for expanded S2 model
-            html += `
-                <td>${row.po_number || '-'}</td>
-                <td>${row.supplier_issue_challan_date || '-'}</td>
-                <td>${row.supplier_issue_challan_no || '-'}</td>
-                <td>${row.agent_received_receipt_no || '-'}</td>
-                <td>${row.agent_received_receipt_date || '-'}</td>
-                <td>1</td>
-                <td>${formatWeight(row.gross_weight)}</td>
-            `;
-        } else if (segment_id === 3) {
-            // Updated mapping for expanded S3 model
-            html += `
-                <td>${row.po_number || '-'}</td>
-                <td>${row.hm_request_no || '-'}</td>
-                <td>${row.hm_completed_at || '-'}</td>
-                <td>${row.set_design_no || '-'}</td>
-                <td>${row.pending_piece || 0}</td>
-                <td>${formatWeight(row.pending_weight)}</td>
-            `;
-        }
-        html += `</tr>`;
+        html += `
+        <div class="detail-card animate-in fade-in slide-in-from-bottom-4 duration-300" data-party="${row.party || ''}">
+            <!-- Left: ID / RO Info -->
+            <div class="info-section border-r border-gray-100 dark:border-gray-800 pr-4">
+                <span class="info-label">${segment_id === 1 ? 'HM ISSUE' : segment_id === 2 ? 'HM REQUEST' : 'HM COMPLETION'}</span>
+                <span class="info-value text-orange-600">${row.hm_issue_receipt_no || row.hm_request_number || row.hm_request_no || 'N/A'}</span>
+                <span class="info-subtext">Date: ${row.hm_issue_receipt_date || row.hm_request_date || row.hm_completed_at || '-'}</span>
+                <div class="mt-2 pt-2 border-t border-gray-50 dark:border-gray-800">
+                    <span class="info-label">Hallmark RO</span>
+                    <span class="info-subtext block font-bold">${row.hm_ro || '-'}</span>
+                    <span class="info-subtext block text-[9px]">${row.hm_ro_incharge || ''}</span>
+                </div>
+            </div>
+
+            <!-- Middle Left: PO Info -->
+            <div class="info-section border-r border-gray-100 dark:border-gray-800 pr-4">
+                <span class="info-label">PO INFO</span>
+                <span class="info-value text-blue-600">${row.po_number || '-'}</span>
+                <span class="info-subtext block">Date: ${row.po_date || '-'}</span>
+                <span class="info-subtext block">Order: ${row.order_no || '-'}</span>
+                <div class="mt-2 pt-2 border-t border-gray-50 dark:border-gray-800">
+                    <span class="info-label">Party</span>
+                    <span class="info-subtext block font-bold truncate max-w-[150px]">${row.party || row.business_head_name || row.make_owner || '-'}</span>
+                </div>
+            </div>
+
+            <!-- Middle: Design / Set -->
+            <div class="info-section border-r border-gray-100 dark:border-gray-800 pr-4">
+                <span class="info-label">Design / Set</span>
+                <span class="info-value">${row.design_no || row.set_design_no || '-'}</span>
+                <span class="info-subtext block text-[9px] text-indigo-500 font-bold">${row.set_identifier || ''}</span>
+                <div class="mt-2 pt-2 border-t border-gray-50 dark:border-gray-800">
+                    <span class="info-label">Barcode Status</span>
+                    <span class="info-subtext block ${row.is_barcoded ? 'text-emerald-500' : 'text-gray-400'} font-bold">
+                        ${row.is_barcoded ? 'BARCODED' : 'NOT BARCODED'}
+                    </span>
+                    <span class="info-subtext block text-[9px]">${row.barcode_completion_date || ''}</span>
+                </div>
+            </div>
+
+            <!-- Status Section -->
+            <div class="info-section border-r border-gray-100 dark:border-gray-800 pr-4">
+                <span class="info-label">Status / Stage</span>
+                <div class="flex flex-col gap-2 mt-1">
+                    <div class="flex items-center gap-2">
+                        <span class="status-dot ${row.is_hm_agent_received ? 'bg-emerald-500' : 'bg-gray-300'}"></span>
+                        <span class="text-[10px] font-bold text-gray-500 uppercase">Received by Agent</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="status-dot ${row.is_hallmark_completed ? 'bg-emerald-500' : 'bg-gray-300'}"></span>
+                        <span class="text-[10px] font-bold text-gray-500 uppercase">HM Completed</span>
+                    </div>
+                </div>
+                <div class="mt-2 pt-2 border-t border-gray-50 dark:border-gray-800">
+                    <span class="info-label">Current Stage</span>
+                    <span class="info-subtext block font-black text-blue-500">${row.current_stage || row.order_status || '-'}</span>
+                </div>
+            </div>
+
+            <!-- Right: Weights -->
+            <div class="info-section min-w-[140px]">
+                <span class="info-label">Weights (G/N/S)</span>
+                <div class="weight-grid mt-1">
+                    <span class="weight-label">G:</span> <span class="weight-val">${formatWeight(row.gross_weight)}</span>
+                    <span class="weight-label">N:</span> <span class="weight-val">${formatWeight(row.net_weight)}</span>
+                    <span class="weight-label">S:</span> <span class="weight-val">${formatWeight(row.stone_weight)}</span>
+                </div>
+                <div class="mt-2 pt-2 border-t border-gray-50 dark:border-gray-800">
+                    <span class="info-label">BC Weight</span>
+                    <span class="weight-val block text-indigo-600 font-black">${formatWeight(row.barcoded_weight)}</span>
+                </div>
+            </div>
+
+            <!-- Far Right: Pending -->
+            <div class="flex flex-col justify-center items-end">
+                <div class="pending-badge">
+                    <span class="info-label block text-[8px] mb-1">PENDING</span>
+                    <span class="text-lg font-black text-emerald-600 leading-none">
+                        ${formatWeight(row.hm_receipt_pending_wt || row.pending_weight || row.weight)}
+                    </span>
+                    <span class="block text-[9px] font-bold text-gray-400 mt-1">${row.hm_receipt_pending_pcs || row.pending_piece || row.piece || 1} PCS</span>
+                </div>
+            </div>
+        </div>
+        `;
     });
 
-    html += `</tbody></table></div>`;
-    content.innerHTML = html;
+    html += `</div>`;
+    modalContent.innerHTML = html;
+}
+
+function filterModalByParty(party) {
+    const cards = document.querySelectorAll('#rich-modal-list .detail-card');
+    cards.forEach(card => {
+        if (!party || card.dataset.party === party) {
+            card.classList.remove('hidden');
+        } else {
+            card.classList.add('hidden');
+        }
+    });
 }
 
 function formatWeight(val) {
