@@ -282,32 +282,35 @@ function renderHMModalContent(data, segment_id) {
     data.forEach(row => {
         html += `<tr>`;
         if (segment_id === 1) {
+            // Updated mapping for expanded S1 model
             html += `
-                <td>${row.issue_info || '-'}</td>
-                <td>${row.po_info || '-'}</td>
-                <td>${row.design_set || '-'}</td>
-                <td>${row.hm_info || '-'}</td>
-                <td>${row.piece || 0}</td>
-                <td>${formatWeight(row.gross_wt)}</td>
-                <td>${formatWeight(row.stone_wt)}</td>
+                <td>${row.hm_issue_receipt_no || '-'}</td>
+                <td>${row.po_number || '-'}</td>
+                <td>${row.set_design_no || '-'}</td>
+                <td>${row.hm_ro || '-'}</td>
+                <td>${row.hm_receipt_pending_pcs || 0}</td>
+                <td>${formatWeight(row.gross_weight)}</td>
+                <td>${formatWeight(row.stone_weight)}</td>
                 <td>${formatWeight(row.net_weight)}</td>
             `;
         } else if (segment_id === 2) {
+            // Updated mapping for expanded S2 model
             html += `
-                <td>${row.po_info || '-'}</td>
-                <td>${row.challan_date || '-'}</td>
-                <td>${row.received_challan_number || '-'}</td>
-                <td>${row.receipt_number || '-'}</td>
-                <td>${row.receipt_date || '-'}</td>
-                <td>${row.piece || 0}</td>
-                <td>${formatWeight(row.weight)}</td>
+                <td>${row.po_number || '-'}</td>
+                <td>${row.supplier_issue_challan_date || '-'}</td>
+                <td>${row.supplier_issue_challan_no || '-'}</td>
+                <td>${row.agent_received_receipt_no || '-'}</td>
+                <td>${row.agent_received_receipt_date || '-'}</td>
+                <td>1</td>
+                <td>${formatWeight(row.gross_weight)}</td>
             `;
         } else if (segment_id === 3) {
+            // Updated mapping for expanded S3 model
             html += `
-                <td>${row.po_info || '-'}</td>
-                <td>${row.hm_request_user || '-'}</td>
-                <td>${row.hm_complete_date || '-'}</td>
-                <td>${row.design_set || '-'}</td>
+                <td>${row.po_number || '-'}</td>
+                <td>${row.hm_request_no || '-'}</td>
+                <td>${row.hm_completed_at || '-'}</td>
+                <td>${row.set_design_no || '-'}</td>
                 <td>${row.pending_piece || 0}</td>
                 <td>${formatWeight(row.pending_weight)}</td>
             `;

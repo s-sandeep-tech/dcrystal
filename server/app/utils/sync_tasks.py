@@ -3052,9 +3052,16 @@ def sync_hm_delay_management_data_task():
         # 2. Segment 1 Details
         s1_query = """
         SELECT 
-            hallmark_agent, po_number, hm_issue_receipt_no, hm_issue_receipt_date, 
-            po_date, target_date, set_design_no, hm_ro, 
-            hm_receipt_pending_pcs, gross_weight, stone_weight, net_weight
+            orderid, make_owner, collection_owner, collection, order_ro, 
+            order_branch, party, party_mobile_no, po_date, target_date, 
+            po_number, order_type, order_request_type, order_no, required_weight, 
+            design_no, set_identifier, set_design_no, barcode, is_barcoded, 
+            is_supplier_hm_issue_challan_created, is_supplier_hm_issue_completed, 
+            is_hm_agent_received, barcoded_weight, barcode_completion_date, 
+            order_status, current_stage, hm_req_id, hm_issue_receipt_no, 
+            hm_issue_receipt_date, hallmark_agent, hm_ro, hm_agent_email, 
+            hm_agent_pnone_no, net_weight, gross_weight, stone_weight, 
+            business_head_name, hm_receipt_pending_pcs, hm_receipt_pending_wt
         FROM ext_view.vw_supplier_hm_issue_completed_hm_receipt_pending
         """
         cur.execute(s1_query)
@@ -3063,16 +3070,16 @@ def sync_hm_delay_management_data_task():
         s1_objects = [
             SupplierHMIssueReceiptPendingSnapshot(
                 snapshot_date=snapshot_date,
-                hallmarking_center=row[0],
-                po_number=row[1],
-                issue_info=f"{row[2]} ({row[3]})" if row[3] else row[2],
-                po_info=f"{row[1]} | {row[4]} | Target: {row[5]}",
-                design_set=row[6],
-                hm_info=row[7],
-                piece=row[8],
-                gross_wt=row[9],
-                stone_wt=row[10],
-                net_weight=row[11]
+                orderid=row[0], make_owner=row[1], collection_owner=row[2], collection=row[3], order_ro=row[4],
+                order_branch=row[5], party=row[6], party_mobile_no=row[7], po_date=row[8], target_date=row[9],
+                po_number=row[10], order_type=row[11], order_request_type=row[12], order_no=row[13], required_weight=row[14],
+                design_no=row[15], set_identifier=row[16], set_design_no=row[17], barcode=row[18], is_barcoded=row[19],
+                is_supplier_hm_issue_challan_created=row[20], is_supplier_hm_issue_completed=row[21],
+                is_hm_agent_received=row[22], barcoded_weight=row[23], barcode_completion_date=row[24],
+                order_status=row[25], current_stage=row[26], hm_req_id=row[27], hm_issue_receipt_no=row[28],
+                hm_issue_receipt_date=row[29], hallmarking_center=row[30], hm_ro=row[31], hm_agent_email=row[32],
+                hm_agent_pnone_no=row[33], net_weight=row[34], gross_weight=row[35], stone_weight=row[36],
+                business_head_name=row[37], hm_receipt_pending_pcs=row[38], hm_receipt_pending_wt=row[39]
             ) for row in s1_rows
         ]
         db.session.bulk_save_objects(s1_objects)
@@ -3082,8 +3089,16 @@ def sync_hm_delay_management_data_task():
         # 3. Segment 2 Details
         s2_query = """
         SELECT 
-            hm_ro, po_info, hm_issue_receipt_date, hm_issue_receipt_no, 
-            receipt_no, receipt_date, hm_receipt_pending_pcs, net_weight
+            order_id, order_no, hm_request_number, hm_request_date, hm_ro_id, 
+            hm_ro, hm_ro_incharge, hm_ro_incharge_email, hm_ro_incharge_phone_no, 
+            agent_name, hm_agent_phone_no, hm_agent_email, make_owner, make, 
+            collection_owner, collection, party, party_mobile_no, po_date, 
+            delivery_target_date, po_number, order_type, order_request_type, 
+            design_no, set_identifier, set_design_no, order_ro, order_branch, 
+            business_head_name, order_incharge_email, order_incharge_phone_no, 
+            barcoded_weight, barcode_completion_date, supplier_issue_challan_no, 
+            supplier_issue_challan_date, agent_received_receipt_no, 
+            agent_received_receipt_date, net_weight, gross_weight, stone_weight
         FROM ext_view.vw_hm_receipt_completed_hm_pending
         """
         cur.execute(s2_query)
@@ -3092,14 +3107,16 @@ def sync_hm_delay_management_data_task():
         s2_objects = [
             HMReceiptCompletedHMPendingSnapshot(
                 snapshot_date=snapshot_date,
-                hallmark_center=row[0],
-                po_info=row[1],
-                challan_date=row[2],
-                received_challan_number=row[3],
-                receipt_number=row[4],
-                receipt_date=row[5],
-                piece=row[6],
-                weight=row[7]
+                order_id=row[0], order_no=row[1], hm_request_number=row[2], hm_request_date=row[3], hm_ro_id=row[4],
+                hm_ro=row[5], hm_ro_incharge=row[6], hm_ro_incharge_email=row[7], hm_ro_incharge_phone_no=row[8],
+                hallmarking_center=row[9], hm_agent_phone_no=row[10], hm_agent_email=row[11], make_owner=row[12], make=row[13],
+                collection_owner=row[14], collection=row[15], party=row[16], party_mobile_no=row[17], po_date=row[18],
+                delivery_target_date=row[19], po_number=row[20], order_type=row[21], order_request_type=row[22],
+                design_no=row[23], set_identifier=row[24], set_design_no=row[25], order_ro=row[26], order_branch=row[27],
+                business_head_name=row[28], order_incharge_email=row[29], order_incharge_phone_no=row[30],
+                barcoded_weight=row[31], barcode_completion_date=row[32], supplier_issue_challan_no=row[33],
+                supplier_issue_challan_date=row[34], agent_received_receipt_no=row[35],
+                agent_received_receipt_date=row[36], net_weight=row[37], gross_weight=row[38], stone_weight=row[39]
             ) for row in s2_rows
         ]
         db.session.bulk_save_objects(s2_objects)
@@ -3109,8 +3126,17 @@ def sync_hm_delay_management_data_task():
         # 4. Segment 3 Details
         s3_query = """
         SELECT 
-            hm_ro, po_info, hm_request_user, hm_completed_at, 
-            set_design_no, pending_to_final_qc_issue_pcs, pending_to_final_qc_issue_weight
+            order_id, make_owner, collection_owner, collection, order_ro, 
+            order_branch, party, party_mobile_no, po_date, target_date, 
+            po_number, order_type, order_request_type, order_no, required_weight, 
+            design_no, set_identifier, set_design_no, barcode, is_hm_agent_received, 
+            is_hallmark_completed, barcoded_weight, barcode_completion_date, 
+            order_status, current_stage, hallmar_req_id, hm_request_no, 
+            hallmark_agent, hallmark_status, hm_agent_invoice_receipt_no, 
+            hm_agent_invoice_receipt_date, hm_ro, hm_agent_email, hm_agent_pnone_no, 
+            hm_completed_at, hallmark_info_id, net_weight, gross_weight, 
+            stone_weight, vehicle_no, logistic_mobile_no, logistic_date, 
+            by_hand_name, pending_to_hm_recipt_return_piece, pending_to_hm_recipt_return_wt
         FROM ext_view.vw_hm_completed_return_pending
         """
         cur.execute(s3_query)
@@ -3119,13 +3145,17 @@ def sync_hm_delay_management_data_task():
         s3_objects = [
             HMCompletedReturnPendingSnapshot(
                 snapshot_date=snapshot_date,
-                hallmark_center=row[0],
-                po_info=row[1],
-                hm_request_user=row[2],
-                hm_complete_date=row[3],
-                design_set=row[4],
-                pending_piece=row[5],
-                pending_weight=row[6]
+                order_id=row[0], make_owner=row[1], collection_owner=row[2], collection=row[3], order_ro=row[4],
+                order_branch=row[5], party=row[6], party_mobile_no=row[7], po_date=row[8], target_date=row[9],
+                po_number=row[10], order_type=row[11], order_request_type=row[12], order_no=row[13], required_weight=row[14],
+                design_no=row[15], set_identifier=row[16], set_design_no=row[17], barcode=row[18], is_hm_agent_received=row[22],
+                is_hallmark_completed=row[20], barcoded_weight=row[21], barcode_completion_date=row[22],
+                order_status=row[23], current_stage=row[24], hallmar_req_id=row[25], hm_request_no=row[26],
+                hallmarking_center=row[27], hallmark_status=row[28], hm_agent_invoice_receipt_no=row[29],
+                hm_agent_invoice_receipt_date=row[30], hm_ro=row[31], hm_agent_email=row[32], hm_agent_pnone_no=row[33],
+                hm_completed_at=row[34], hallmark_info_id=row[35], net_weight=row[36], gross_weight=row[37],
+                stone_weight=row[38], vehicle_no=row[39], logistic_mobile_no=row[40], logistic_date=row[41],
+                by_hand_name=row[42], pending_to_hm_recipt_return_piece=row[43], pending_to_hm_recipt_return_wt=row[44]
             ) for row in s3_rows
         ]
         db.session.bulk_save_objects(s3_objects)

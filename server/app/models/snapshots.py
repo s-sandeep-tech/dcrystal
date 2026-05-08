@@ -2062,32 +2062,65 @@ class SupplierHMIssueReceiptPendingSnapshot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     
-    hallmarking_center = db.Column(db.String(150))
+    orderid = db.Column(db.BigInteger)
+    make_owner = db.Column(db.String(100))
+    collection_owner = db.Column(db.String(100))
+    collection = db.Column(db.String(100))
+    order_ro = db.Column(db.String(100))
+    order_branch = db.Column(db.String(100))
+    party = db.Column(db.String(200))
+    party_mobile_no = db.Column(db.String(20))
+    po_date = db.Column(db.Date)
+    target_date = db.Column(db.Date)
     po_number = db.Column(db.String(100))
-    issue_info = db.Column(db.Text)
-    po_info = db.Column(db.Text)
-    design_set = db.Column(db.String(200))
-    hm_info = db.Column(db.Text)
-    piece = db.Column(db.Integer)
-    gross_wt = db.Column(db.Numeric(12, 3))
-    stone_wt = db.Column(db.Numeric(12, 3))
+    order_type = db.Column(db.String(50))
+    order_request_type = db.Column(db.String(50))
+    order_no = db.Column(db.String(100))
+    required_weight = db.Column(db.Numeric(12, 3))
+    design_no = db.Column(db.String(100))
+    set_identifier = db.Column(db.String(100))
+    set_design_no = db.Column(db.String(100))
+    barcode = db.Column(db.String(100))
+    is_barcoded = db.Column(db.Boolean)
+    is_supplier_hm_issue_challan_created = db.Column(db.Boolean)
+    is_supplier_hm_issue_completed = db.Column(db.Boolean)
+    is_hm_agent_received = db.Column(db.Boolean)
+    barcoded_weight = db.Column(db.Numeric(12, 3))
+    barcode_completion_date = db.Column(db.DateTime)
+    order_status = db.Column(db.String(100))
+    current_stage = db.Column(db.String(100))
+    hm_req_id = db.Column(db.BigInteger)
+    hm_issue_receipt_no = db.Column(db.String(100))
+    hm_issue_receipt_date = db.Column(db.Date)
+    hallmarking_center = db.Column(db.String(150))
+    hm_ro = db.Column(db.String(100))
+    hm_agent_email = db.Column(db.String(150))
+    hm_agent_pnone_no = db.Column(db.String(20))
     net_weight = db.Column(db.Numeric(12, 3))
+    gross_weight = db.Column(db.Numeric(12, 3))
+    stone_weight = db.Column(db.Numeric(12, 3))
+    business_head_name = db.Column(db.String(100))
+    hm_receipt_pending_pcs = db.Column(db.Integer)
+    hm_receipt_pending_wt = db.Column(db.Numeric(12, 3))
     
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
         return {
             'id': self.id,
+            'orderid': self.orderid,
             'hallmarking_center': self.hallmarking_center,
             'po_number': self.po_number,
-            'issue_info': self.issue_info,
-            'po_info': self.po_info,
-            'design_set': self.design_set,
-            'hm_info': self.hm_info,
-            'piece': self.piece,
-            'gross_wt': float(self.gross_wt or 0),
-            'stone_wt': float(self.stone_wt or 0),
-            'net_weight': float(self.net_weight or 0)
+            'set_design_no': self.set_design_no,
+            'hm_receipt_pending_pcs': self.hm_receipt_pending_pcs,
+            'gross_weight': float(self.gross_weight or 0),
+            'stone_weight': float(self.stone_weight or 0),
+            'net_weight': float(self.net_weight or 0),
+            'hm_issue_receipt_no': self.hm_issue_receipt_no,
+            'hm_issue_receipt_date': self.hm_issue_receipt_date.isoformat() if self.hm_issue_receipt_date else None,
+            'po_date': self.po_date.isoformat() if self.po_date else None,
+            'target_date': self.target_date.isoformat() if self.target_date else None,
+            'hm_ro': self.hm_ro
         }
 
 class HMReceiptCompletedHMPendingSnapshot(db.Model):
@@ -2096,28 +2129,65 @@ class HMReceiptCompletedHMPendingSnapshot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     
-    hallmarking_center = db.Column(db.String(150))
-    po_info = db.Column(db.Text)
-    challan_date = db.Column(db.Date)
-    received_challan_number = db.Column(db.String(100))
-    receipt_number = db.Column(db.String(100))
-    receipt_date = db.Column(db.Date)
-    piece = db.Column(db.Integer)
-    weight = db.Column(db.Numeric(12, 3))
+    order_id = db.Column(db.BigInteger)
+    order_no = db.Column(db.String(100))
+    hm_request_number = db.Column(db.String(100))
+    hm_request_date = db.Column(db.DateTime)
+    hm_ro_id = db.Column(db.Integer)
+    hm_ro = db.Column(db.String(100))
+    hm_ro_incharge = db.Column(db.String(100))
+    hm_ro_incharge_email = db.Column(db.String(150))
+    hm_ro_incharge_phone_no = db.Column(db.String(20))
+    hallmarking_center = db.Column(db.String(150)) # agent_name
+    hm_agent_phone_no = db.Column(db.String(20))
+    hm_agent_email = db.Column(db.String(150))
+    make_owner = db.Column(db.String(100))
+    make = db.Column(db.String(100))
+    collection_owner = db.Column(db.String(100))
+    collection = db.Column(db.String(100))
+    party = db.Column(db.String(200))
+    party_mobile_no = db.Column(db.String(20))
+    po_date = db.Column(db.Date)
+    delivery_target_date = db.Column(db.Date)
+    po_number = db.Column(db.String(100))
+    order_type = db.Column(db.String(50))
+    order_request_type = db.Column(db.String(50))
+    design_no = db.Column(db.String(100))
+    set_identifier = db.Column(db.String(100))
+    set_design_no = db.Column(db.String(100))
+    order_ro = db.Column(db.String(100))
+    order_branch = db.Column(db.String(100))
+    business_head_name = db.Column(db.String(100))
+    order_incharge_email = db.Column(db.String(150))
+    order_incharge_phone_no = db.Column(db.String(20))
+    barcoded_weight = db.Column(db.Numeric(12, 3))
+    barcode_completion_date = db.Column(db.DateTime)
+    supplier_issue_challan_no = db.Column(db.String(100))
+    supplier_issue_challan_date = db.Column(db.Date)
+    agent_received_receipt_no = db.Column(db.String(100))
+    agent_received_receipt_date = db.Column(db.DateTime)
+    net_weight = db.Column(db.Numeric(12, 3))
+    gross_weight = db.Column(db.Numeric(12, 3))
+    stone_weight = db.Column(db.Numeric(12, 3))
     
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
         return {
             'id': self.id,
+            'order_id': self.order_id,
+            'order_no': self.order_no,
             'hallmarking_center': self.hallmarking_center,
-            'po_info': self.po_info,
-            'challan_date': self.challan_date.isoformat() if self.challan_date else None,
-            'received_challan_number': self.received_challan_number,
-            'receipt_number': self.receipt_number,
-            'receipt_date': self.receipt_date.isoformat() if self.receipt_date else None,
-            'piece': self.piece,
-            'weight': float(self.weight or 0)
+            'po_number': self.po_number,
+            'po_date': self.po_date.isoformat() if self.po_date else None,
+            'delivery_target_date': self.delivery_target_date.isoformat() if self.delivery_target_date else None,
+            'supplier_issue_challan_no': self.supplier_issue_challan_no,
+            'supplier_issue_challan_date': self.supplier_issue_challan_date.isoformat() if self.supplier_issue_challan_date else None,
+            'agent_received_receipt_no': self.agent_received_receipt_no,
+            'agent_received_receipt_date': self.agent_received_receipt_date.isoformat() if self.agent_received_receipt_date else None,
+            'gross_weight': float(self.gross_weight or 0),
+            'net_weight': float(self.net_weight or 0),
+            'stone_weight': float(self.stone_weight or 0)
         }
 
 class HMCompletedReturnPendingSnapshot(db.Model):
@@ -2126,25 +2196,69 @@ class HMCompletedReturnPendingSnapshot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     
-    hallmarking_center = db.Column(db.String(150))
-    po_info = db.Column(db.Text)
-    hm_request_user = db.Column(db.String(150))
-    hm_complete_date = db.Column(db.Date)
-    design_set = db.Column(db.String(200))
-    pending_piece = db.Column(db.Integer)
-    pending_weight = db.Column(db.Numeric(12, 3))
+    order_id = db.Column(db.BigInteger)
+    make_owner = db.Column(db.String(100))
+    collection_owner = db.Column(db.String(100))
+    collection = db.Column(db.String(100))
+    order_ro = db.Column(db.String(100))
+    order_branch = db.Column(db.String(100))
+    party = db.Column(db.String(200))
+    party_mobile_no = db.Column(db.String(20))
+    po_date = db.Column(db.Date)
+    target_date = db.Column(db.Date)
+    po_number = db.Column(db.String(100))
+    order_type = db.Column(db.String(50))
+    order_request_type = db.Column(db.String(50))
+    order_no = db.Column(db.String(100))
+    required_weight = db.Column(db.Numeric(12, 3))
+    design_no = db.Column(db.String(100))
+    set_identifier = db.Column(db.String(100))
+    set_design_no = db.Column(db.String(100))
+    barcode = db.Column(db.String(100))
+    is_hm_agent_received = db.Column(db.Boolean)
+    is_hallmark_completed = db.Column(db.Boolean)
+    barcoded_weight = db.Column(db.Numeric(12, 3))
+    barcode_completion_date = db.Column(db.DateTime)
+    order_status = db.Column(db.String(100))
+    current_stage = db.Column(db.String(100))
+    hallmar_req_id = db.Column(db.BigInteger)
+    hm_request_no = db.Column(db.String(100))
+    hallmarking_center = db.Column(db.String(150)) # hallmark_agent
+    hallmark_status = db.Column(db.Integer)
+    hm_agent_invoice_receipt_no = db.Column(db.String(100))
+    hm_agent_invoice_receipt_date = db.Column(db.Date)
+    hm_ro = db.Column(db.String(100))
+    hm_agent_email = db.Column(db.String(150))
+    hm_agent_pnone_no = db.Column(db.String(20))
+    hm_completed_at = db.Column(db.DateTime)
+    hallmark_info_id = db.Column(db.BigInteger)
+    net_weight = db.Column(db.Numeric(12, 3))
+    gross_weight = db.Column(db.Numeric(12, 3))
+    stone_weight = db.Column(db.Numeric(12, 3))
+    vehicle_no = db.Column(db.String(50))
+    logistic_mobile_no = db.Column(db.String(20))
+    logistic_date = db.Column(db.DateTime)
+    by_hand_name = db.Column(db.String(100))
+    pending_to_hm_recipt_return_piece = db.Column(db.Integer)
+    pending_to_hm_recipt_return_wt = db.Column(db.Numeric(12, 3))
     
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
         return {
             'id': self.id,
+            'order_id': self.order_id,
             'hallmarking_center': self.hallmarking_center,
-            'po_info': self.po_info,
-            'hm_request_user': self.hm_request_user,
-            'hm_complete_date': self.hm_complete_date.isoformat() if self.hm_complete_date else None,
-            'design_set': self.design_set,
-            'pending_piece': self.pending_piece,
-            'pending_weight': float(self.pending_weight or 0)
+            'hm_request_no': self.hm_request_no,
+            'hm_completed_at': self.hm_completed_at.isoformat() if self.hm_completed_at else None,
+            'po_number': self.po_number,
+            'po_date': self.po_date.isoformat() if self.po_date else None,
+            'target_date': self.target_date.isoformat() if self.target_date else None,
+            'set_design_no': self.set_design_no,
+            'pending_piece': self.pending_to_hm_recipt_return_piece,
+            'pending_weight': float(self.pending_to_hm_recipt_return_wt or 0),
+            'gross_weight': float(self.gross_weight or 0),
+            'net_weight': float(self.net_weight or 0),
+            'stone_weight': float(self.stone_weight or 0)
         }
 
