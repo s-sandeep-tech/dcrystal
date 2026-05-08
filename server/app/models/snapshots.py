@@ -2037,7 +2037,7 @@ class HallmarkingDelayManagementFeedback(db.Model):
     __tablename__ = 'hm_delay_management_feedbacks'
 
     id = db.Column(db.Integer, primary_key=True)
-    hallmark_center = db.Column(db.String(150))
+    hallmarking_center = db.Column(db.String(150))
     segment_id = db.Column(db.Integer) # 1, 2, or 3
     
     feedback_text = db.Column(db.Text)
@@ -2048,7 +2048,7 @@ class HallmarkingDelayManagementFeedback(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
-            'hallmark_center': self.hallmark_center,
+            'hallmarking_center': self.hallmarking_center,
             'segment_id': self.segment_id,
             'feedback_text': self.feedback_text,
             'feedback_category': self.feedback_category,
@@ -2062,7 +2062,7 @@ class SupplierHMIssueReceiptPendingSnapshot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     
-    hallmark_center = db.Column(db.String(150))
+    hallmarking_center = db.Column(db.String(150))
     po_number = db.Column(db.String(100))
     issue_info = db.Column(db.Text)
     po_info = db.Column(db.Text)
@@ -2078,7 +2078,7 @@ class SupplierHMIssueReceiptPendingSnapshot(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
-            'hallmark_center': self.hallmark_center,
+            'hallmarking_center': self.hallmarking_center,
             'po_number': self.po_number,
             'issue_info': self.issue_info,
             'po_info': self.po_info,
@@ -2096,7 +2096,7 @@ class HMReceiptCompletedHMPendingSnapshot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     
-    hallmark_center = db.Column(db.String(150))
+    hallmarking_center = db.Column(db.String(150))
     po_info = db.Column(db.Text)
     challan_date = db.Column(db.Date)
     received_challan_number = db.Column(db.String(100))
@@ -2110,7 +2110,7 @@ class HMReceiptCompletedHMPendingSnapshot(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
-            'hallmark_center': self.hallmark_center,
+            'hallmarking_center': self.hallmarking_center,
             'po_info': self.po_info,
             'challan_date': self.challan_date.isoformat() if self.challan_date else None,
             'received_challan_number': self.received_challan_number,
@@ -2126,7 +2126,7 @@ class HMCompletedReturnPendingSnapshot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     
-    hallmark_center = db.Column(db.String(150))
+    hallmarking_center = db.Column(db.String(150))
     po_info = db.Column(db.Text)
     hm_request_user = db.Column(db.String(150))
     hm_complete_date = db.Column(db.Date)
@@ -2139,7 +2139,7 @@ class HMCompletedReturnPendingSnapshot(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
-            'hallmark_center': self.hallmark_center,
+            'hallmarking_center': self.hallmarking_center,
             'po_info': self.po_info,
             'hm_request_user': self.hm_request_user,
             'hm_complete_date': self.hm_complete_date.isoformat() if self.hm_complete_date else None,

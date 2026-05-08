@@ -3052,9 +3052,9 @@ def sync_hm_delay_management_data_task():
         # 2. Segment 1 Details
         s1_query = """
         SELECT 
-            hm_ro, po_number, hm_issue_receipt_no, po_info, 
-            set_design_no, hallmark_agent, hm_receipt_pending_pcs, 
-            gross_weight, stone_weight, net_weight
+            hallmark_agent, po_number, hm_issue_receipt_no, hm_issue_receipt_date, 
+            po_date, target_date, set_design_no, hm_ro, 
+            hm_receipt_pending_pcs, gross_weight, stone_weight, net_weight
         FROM ext_view.vw_supplier_hm_issue_completed_hm_receipt_pending
         """
         cur.execute(s1_query)
@@ -3063,16 +3063,16 @@ def sync_hm_delay_management_data_task():
         s1_objects = [
             SupplierHMIssueReceiptPendingSnapshot(
                 snapshot_date=snapshot_date,
-                hallmark_center=row[0],
+                hallmarking_center=row[0],
                 po_number=row[1],
-                issue_info=row[2],
-                po_info=row[3],
-                design_set=row[4],
-                hm_info=row[5],
-                piece=row[6],
-                gross_wt=row[7],
-                stone_wt=row[8],
-                net_weight=row[9]
+                issue_info=f"{row[2]} ({row[3]})" if row[3] else row[2],
+                po_info=f"{row[1]} | {row[4]} | Target: {row[5]}",
+                design_set=row[6],
+                hm_info=row[7],
+                piece=row[8],
+                gross_wt=row[9],
+                stone_wt=row[10],
+                net_weight=row[11]
             ) for row in s1_rows
         ]
         db.session.bulk_save_objects(s1_objects)
