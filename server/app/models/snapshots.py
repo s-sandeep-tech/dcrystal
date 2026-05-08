@@ -1853,14 +1853,20 @@ class QCDelayManagementSnapshot(db.Model):
     # Segment 1: QC ISSUE COMPLETED - RECEIPT PENDING
     qc_issue_completed_receipt_pending_piece = db.Column(db.Integer, default=0)
     qc_issue_completed_receipt_pending_weight = db.Column(db.Numeric(12, 3), default=0)
+    delayed_qc_issue_completed_receipt_pending_piece = db.Column(db.Integer, default=0)
+    delayed_qc_issue_completed_receipt_pending_weight = db.Column(db.Numeric(12, 3), default=0)
     
     # Segment 2: QC RECEIPT COMPLETED-QC PENDING
     qc_receipt_completed_qc_pending_piece = db.Column(db.Integer, default=0)
     qc_receipt_completed_qc_pending_weight = db.Column(db.Numeric(12, 3), default=0)
+    delayed_qc_receipt_completed_qc_pending_piece = db.Column(db.Integer, default=0)
+    delayed_qc_receipt_completed_qc_pending_weight = db.Column(db.Numeric(12, 3), default=0)
     
     # Segment 3: QC COMPLETED-INNVOICE REQUEST PENDING
     qc_completed_invoice_request_pending_piece = db.Column(db.Integer, default=0)
     qc_completed_invoice_request_pending_weight = db.Column(db.Numeric(12, 3), default=0)
+    delayed_qc_completed_invoice_request_pending_piece = db.Column(db.Integer, default=0)
+    delayed_qc_completed_invoice_request_pending_weight = db.Column(db.Numeric(12, 3), default=0)
     
     # New Contact Details
     qc_ro_incharge = db.Column(db.String(150))
@@ -1879,10 +1885,16 @@ class QCDelayManagementSnapshot(db.Model):
             'qc_ro_code': self.qc_ro_code,
             'qc_issue_completed_receipt_pending_piece': self.qc_issue_completed_receipt_pending_piece,
             'qc_issue_completed_receipt_pending_weight': float(self.qc_issue_completed_receipt_pending_weight or 0),
+            'delayed_qc_issue_completed_receipt_pending_piece': self.delayed_qc_issue_completed_receipt_pending_piece,
+            'delayed_qc_issue_completed_receipt_pending_weight': float(self.delayed_qc_issue_completed_receipt_pending_weight or 0),
             'qc_receipt_completed_qc_pending_piece': self.qc_receipt_completed_qc_pending_piece,
             'qc_receipt_completed_qc_pending_weight': float(self.qc_receipt_completed_qc_pending_weight or 0),
+            'delayed_qc_receipt_completed_qc_pending_piece': self.delayed_qc_receipt_completed_qc_pending_piece,
+            'delayed_qc_receipt_completed_qc_pending_weight': float(self.delayed_qc_receipt_completed_qc_pending_weight or 0),
             'qc_completed_invoice_request_pending_piece': self.qc_completed_invoice_request_pending_piece,
             'qc_completed_invoice_request_pending_weight': float(self.qc_completed_invoice_request_pending_weight or 0),
+            'delayed_qc_completed_invoice_request_pending_piece': self.delayed_qc_completed_invoice_request_pending_piece,
+            'delayed_qc_completed_invoice_request_pending_weight': float(self.delayed_qc_completed_invoice_request_pending_weight or 0),
             'qc_ro_incharge': self.qc_ro_incharge,
             'qc_ro_incharge_email': self.qc_ro_incharge_email,
             'qc_ro_incharge_phone_number': self.qc_ro_incharge_phone_number,
