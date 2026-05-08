@@ -178,8 +178,8 @@ async function loadOptions() {
             { 
                 id: 'filter-prov-type', 
                 data: data.prov_types ? data.prov_types.filter(v => {
-                    const val = String(v).toLowerCase().trim();
-                    return val !== 'set' && val !== 'matching set';
+                    const val = String(v).toLowerCase().replace(/\s+/g, '');
+                    return val !== 'set' && val !== 'matchingset';
                 }) : []
             },
             { id: 'filter-provision-mode', data: data.provision_modes },
