@@ -1994,3 +1994,157 @@ class QCReceiptCompletedQCPendingSnapshot(db.Model):
             'weight': float(self.weight) if self.weight else 0,
             'piece': self.piece or 0
         }
+
+class HallmarkingDelayManagementSnapshot(db.Model):
+    __tablename__ = 'hm_delay_management_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    hallmark_center_id = db.Column(db.Integer)
+    hallmark_center = db.Column(db.String(150))
+    hallmark_center_code = db.Column(db.String(50))
+    
+    # Segment 1: HALLMARK ISSUE COMPLETED - RECEIPT PENDING
+    hm_issue_completed_receipt_pending_piece = db.Column(db.Integer, default=0)
+    hm_issue_completed_receipt_pending_weight = db.Column(db.Numeric(12, 3), default=0)
+    
+    # Segment 2: HALLMARK RECEIPT COMPLETED-HALLMARK PENDING
+    hm_receipt_completed_hm_pending_piece = db.Column(db.Integer, default=0)
+    hm_receipt_completed_hm_pending_weight = db.Column(db.Numeric(12, 3), default=0)
+    
+    # Segment 3: HALLMARK COMPLETED-RETURN PENDING
+    hm_completed_return_pending_piece = db.Column(db.Integer, default=0)
+    hm_completed_return_pending_weight = db.Column(db.Numeric(12, 3), default=0)
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
+            'hallmark_center_id': self.hallmark_center_id,
+            'hallmark_center': self.hallmark_center,
+            'hallmark_center_code': self.hallmark_center_code,
+            'hm_issue_completed_receipt_pending_piece': self.hm_issue_completed_receipt_pending_piece,
+            'hm_issue_completed_receipt_pending_weight': float(self.hm_issue_completed_receipt_pending_weight or 0),
+            'hm_receipt_completed_hm_pending_piece': self.hm_receipt_completed_hm_pending_piece,
+            'hm_receipt_completed_hm_pending_weight': float(self.hm_receipt_completed_hm_pending_weight or 0),
+            'hm_completed_return_pending_piece': self.hm_completed_return_pending_piece,
+            'hm_completed_return_pending_weight': float(self.hm_completed_return_pending_weight or 0)
+        }
+
+class HallmarkingDelayManagementFeedback(db.Model):
+    __tablename__ = 'hm_delay_management_feedbacks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    hallmark_center = db.Column(db.String(150))
+    segment_id = db.Column(db.Integer) # 1, 2, or 3
+    
+    feedback_text = db.Column(db.Text)
+    feedback_category = db.Column(db.String(100))
+    username = db.Column(db.String(80))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'hallmark_center': self.hallmark_center,
+            'segment_id': self.segment_id,
+            'feedback_text': self.feedback_text,
+            'feedback_category': self.feedback_category,
+            'username': self.username,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class SupplierHMIssueReceiptPendingSnapshot(db.Model):
+    __tablename__ = 'supplier_hm_issue_receipt_pending_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    
+    hallmark_center = db.Column(db.String(150))
+    po_number = db.Column(db.String(100))
+    issue_info = db.Column(db.Text)
+    po_info = db.Column(db.Text)
+    design_set = db.Column(db.String(200))
+    hm_info = db.Column(db.Text)
+    piece = db.Column(db.Integer)
+    gross_wt = db.Column(db.Numeric(12, 3))
+    stone_wt = db.Column(db.Numeric(12, 3))
+    net_weight = db.Column(db.Numeric(12, 3))
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'hallmark_center': self.hallmark_center,
+            'po_number': self.po_number,
+            'issue_info': self.issue_info,
+            'po_info': self.po_info,
+            'design_set': self.design_set,
+            'hm_info': self.hm_info,
+            'piece': self.piece,
+            'gross_wt': float(self.gross_wt or 0),
+            'stone_wt': float(self.stone_wt or 0),
+            'net_weight': float(self.net_weight or 0)
+        }
+
+class HMReceiptCompletedHMPendingSnapshot(db.Model):
+    __tablename__ = 'hm_receipt_completed_hm_pending_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    
+    hallmark_center = db.Column(db.String(150))
+    po_info = db.Column(db.Text)
+    challan_date = db.Column(db.Date)
+    received_challan_number = db.Column(db.String(100))
+    receipt_number = db.Column(db.String(100))
+    receipt_date = db.Column(db.Date)
+    piece = db.Column(db.Integer)
+    weight = db.Column(db.Numeric(12, 3))
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'hallmark_center': self.hallmark_center,
+            'po_info': self.po_info,
+            'challan_date': self.challan_date.isoformat() if self.challan_date else None,
+            'received_challan_number': self.received_challan_number,
+            'receipt_number': self.receipt_number,
+            'receipt_date': self.receipt_date.isoformat() if self.receipt_date else None,
+            'piece': self.piece,
+            'weight': float(self.weight or 0)
+        }
+
+class HMCompletedReturnPendingSnapshot(db.Model):
+    __tablename__ = 'hm_completed_return_pending_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    
+    hallmark_center = db.Column(db.String(150))
+    po_info = db.Column(db.Text)
+    hm_request_user = db.Column(db.String(150))
+    hm_complete_date = db.Column(db.Date)
+    design_set = db.Column(db.String(200))
+    pending_piece = db.Column(db.Integer)
+    pending_weight = db.Column(db.Numeric(12, 3))
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'hallmark_center': self.hallmark_center,
+            'po_info': self.po_info,
+            'hm_request_user': self.hm_request_user,
+            'hm_complete_date': self.hm_complete_date.isoformat() if self.hm_complete_date else None,
+            'design_set': self.design_set,
+            'pending_piece': self.pending_piece,
+            'pending_weight': float(self.pending_weight or 0)
+        }
+

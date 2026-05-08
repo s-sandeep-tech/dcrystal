@@ -237,6 +237,14 @@ def settings_sync_qc_delay_management():
     result = sync_qc_delay_management_data(session.get('user_id'))
     return result, 200 if result.get('status') == 'success' else 500
 
+@dashboard_bp.route('/settings/sync-hm-delay-management', methods=['POST'])
+def settings_sync_hm_delay_management():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized"}, 401
+    from app.utils.sync_manager import sync_hm_delay_management_data
+    result = sync_hm_delay_management_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500
+
 @dashboard_bp.route('/settings/sync-qc-receipt-completed-pending', methods=['POST'])
 def settings_sync_qc_receipt_completed_pending():
     if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):

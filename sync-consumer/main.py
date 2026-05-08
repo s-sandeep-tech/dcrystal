@@ -46,6 +46,7 @@ try:
         sync_invoice_completed_pending_deliver_data_task,
         sync_branch_authority_data_task,
         sync_qc_delay_management_data_task,
+        sync_hm_delay_management_data_task,
         sync_qc_receipt_completed_pending_data_task,
         sync_qc_completed_invoice_request_pending_data_task,
         emit_sync_update
@@ -153,6 +154,8 @@ def process_sync_queue():
                         res = sync_branch_authority_data_task()
                     elif task_type == 'qc_delay_management':
                         res = sync_qc_delay_management_data_task()
+                    elif task_type == 'hm_delay_management':
+                        res = sync_hm_delay_management_data_task()
                     elif task_type == 'qc_receipt_completed_pending':
                         res = sync_qc_receipt_completed_pending_data_task()
                     else:

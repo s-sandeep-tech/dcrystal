@@ -27,7 +27,12 @@ from ..models.snapshots import (
     BranchAuthoritySnapshot,
     QCDelayManagementSnapshot,
     QCDelayManagementFeedback,
-    QCReceiptCompletedQCPendingSnapshot
+    QCReceiptCompletedQCPendingSnapshot,
+    HallmarkingDelayManagementSnapshot,
+    HallmarkingDelayManagementFeedback,
+    SupplierHMIssueReceiptPendingSnapshot,
+    HMReceiptCompletedHMPendingSnapshot,
+    HMCompletedReturnPendingSnapshot
 )
 from flask import current_app
 import os
@@ -2990,6 +2995,149 @@ def sync_qc_receipt_completed_pending_data_task():
     except Exception as e:
         db.session.rollback()
         logger.error(f"Sync failed: {str(e)}")
+        emit_sync_update('error', str(e), 0, DATA_TYPE)
+        return {"status": "error", "message": str(e)}
+    finally:
+        if conn: conn.close()
+
+def sync_hm_delay_management_data_task():
+    DATA_TYPE = 'hm_delay_management'
+    start_time = time.time()
+    conn = None
+    try:
+        emit_sync_update('processing', 'Connecting to external database...', 5, DATA_TYPE)
+        conn = get_external_db_connection()
+    except Exception as e:
+        error_msg = f"Connection failed: {str(e)}"
+        logger.error(f"HMDelayManagement sync error: {error_msg}")
+        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
+
+    try:
+        cur = conn.cursor()
+        
+        # 1. Sync Summary Data
+        emit_sync_update('processing', 'Fetching HM Summary data...', 10, DATA_TYPE)
+        summary_query = """
+        SELECT 
+            hallmark_center_id, hallmark_center, hallmark_center_code, 
+            hm_issue_completed_receipt_pending_piece, hm_issue_completed_receipt_pending_weight, 
+            hm_receipt_completed_hm_pending_piece, hm_receipt_completed_hm_pending_weight, 
+            hm_completed_return_pending_piece, hm_completed_return_pending_weight
+        FROM ext_view.hm_summary_data
+        """
+        cur.execute(summary_query)
+        summary_rows = cur.fetchall()
+        
+        db.session.execute(text("TRUNCATE TABLE hm_delay_management_snapshots"))
+        snapshot_date = datetime.now()
+        summary_objects = [
+            HallmarkingDelayManagementSnapshot(
+                snapshot_date=snapshot_date,
+                hallmark_center_id=row[0],
+                hallmark_center=row[1],
+                hallmark_center_code=row[2],
+                hm_issue_completed_receipt_pending_piece=row[3],
+                hm_issue_completed_receipt_pending_weight=row[4],
+                hm_receipt_completed_hm_pending_piece=row[5],
+                hm_receipt_completed_hm_pending_weight=row[6],
+                hm_completed_return_pending_piece=row[7],
+                hm_completed_return_pending_weight=row[8]
+            ) for row in summary_rows
+        ]
+        db.session.bulk_save_objects(summary_objects)
+        db.session.commit()
+        emit_sync_update('processing', 'Summary synced. Syncing Segment 1 details...', 30, DATA_TYPE)
+
+        # 2. Segment 1 Details
+        s1_query = """
+        SELECT 
+            hm_ro, po_number, hm_issue_receipt_no, po_info, 
+            set_design_no, hallmark_agent, hm_receipt_pending_pcs, 
+            gross_weight, stone_weight, net_weight
+        FROM ext_view.vw_supplier_hm_issue_completed_hm_receipt_pending
+        """
+        cur.execute(s1_query)
+        s1_rows = cur.fetchall()
+        db.session.execute(text("TRUNCATE TABLE supplier_hm_issue_receipt_pending_snapshots"))
+        s1_objects = [
+            SupplierHMIssueReceiptPendingSnapshot(
+                snapshot_date=snapshot_date,
+                hallmark_center=row[0],
+                po_number=row[1],
+                issue_info=row[2],
+                po_info=row[3],
+                design_set=row[4],
+                hm_info=row[5],
+                piece=row[6],
+                gross_wt=row[7],
+                stone_wt=row[8],
+                net_weight=row[9]
+            ) for row in s1_rows
+        ]
+        db.session.bulk_save_objects(s1_objects)
+        db.session.commit()
+        emit_sync_update('processing', 'Segment 1 details synced. Syncing Segment 2...', 60, DATA_TYPE)
+
+        # 3. Segment 2 Details
+        s2_query = """
+        SELECT 
+            hm_ro, po_info, hm_issue_receipt_date, hm_issue_receipt_no, 
+            receipt_no, receipt_date, hm_receipt_pending_pcs, net_weight
+        FROM ext_view.vw_hm_receipt_completed_hm_pending
+        """
+        cur.execute(s2_query)
+        s2_rows = cur.fetchall()
+        db.session.execute(text("TRUNCATE TABLE hm_receipt_completed_hm_pending_snapshots"))
+        s2_objects = [
+            HMReceiptCompletedHMPendingSnapshot(
+                snapshot_date=snapshot_date,
+                hallmark_center=row[0],
+                po_info=row[1],
+                challan_date=row[2],
+                received_challan_number=row[3],
+                receipt_number=row[4],
+                receipt_date=row[5],
+                piece=row[6],
+                weight=row[7]
+            ) for row in s2_rows
+        ]
+        db.session.bulk_save_objects(s2_objects)
+        db.session.commit()
+        emit_sync_update('processing', 'Segment 2 details synced. Syncing Segment 3...', 80, DATA_TYPE)
+
+        # 4. Segment 3 Details
+        s3_query = """
+        SELECT 
+            hm_ro, po_info, hm_request_user, hm_completed_at, 
+            set_design_no, pending_to_final_qc_issue_pcs, pending_to_final_qc_issue_weight
+        FROM ext_view.vw_hm_completed_return_pending
+        """
+        cur.execute(s3_query)
+        s3_rows = cur.fetchall()
+        db.session.execute(text("TRUNCATE TABLE hm_completed_return_pending_snapshots"))
+        s3_objects = [
+            HMCompletedReturnPendingSnapshot(
+                snapshot_date=snapshot_date,
+                hallmark_center=row[0],
+                po_info=row[1],
+                hm_request_user=row[2],
+                hm_complete_date=row[3],
+                design_set=row[4],
+                pending_piece=row[5],
+                pending_weight=row[6]
+            ) for row in s3_rows
+        ]
+        db.session.bulk_save_objects(s3_objects)
+        db.session.commit()
+
+        duration = time.time() - start_time
+        emit_sync_update('success', f"Successfully synced HM Delay Management data in {duration:.2f}s", 100, DATA_TYPE)
+        return {"status": "success", "duration": duration}
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"HMDelayManagement sync failed: {str(e)}")
         emit_sync_update('error', str(e), 0, DATA_TYPE)
         return {"status": "error", "message": str(e)}
     finally:
