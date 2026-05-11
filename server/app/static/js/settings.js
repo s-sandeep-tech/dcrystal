@@ -757,7 +757,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const user = gManagedUsers.find(u => u.id === id);
         if (!user) return;
         
-        if (!confirm(`Are you sure you want to clear lockout for ${user.username}?`)) return;
+        const confirmed = await showConfirmModal('Clear User Lockout', `Are you sure you want to clear the lockout for ${user.username}?`);
+        if (!confirmed) return;
 
         try {
             const res = await fetch(`/api/admin/users/${id}/clear-lockout`, {
@@ -767,7 +768,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (res.ok) {
                 showToast('User lockout cleared successfully', 'success');
-                fetchUsers(userCurrentPage);
+                const activeTab = document.querySelector('.tab-pane:not(.hidden)');
+                if (activeTab && activeTab.id === 'tab-reset-password') {
+                    fetchResetPassUsers(resetPassCurrentPage);
+                } else {
+                    fetchUsers(userCurrentPage);
+                }
             } else {
                 const err = await res.json();
                 showToast(err.msg || 'Error clearing lockout', 'error');
@@ -898,6 +904,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button onclick="openResetTabPasswordModal(${u.id})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold uppercase tracking-wider rounded transition-all shadow-sm shadow-amber-500/20" title="Reset Password">
                             <span class="material-symbols-outlined text-[14px]">key</span> Reset
                         </button>
+                        <button onclick="openResetTabClearLockout(${u.id})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold uppercase tracking-wider rounded transition-all shadow-sm shadow-green-500/20 ml-1" title="Clear Lockout">
+                            <span class="material-symbols-outlined text-[14px]">restart_alt</span> Unlock
+                        </button>
                     `}
                 </td>
             `;
@@ -918,6 +927,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             if (!gManagedUsers.find(u => u.id === id)) gManagedUsers.push(user);
             window.openForceResetModal(id);
+        }
+    }
+
+    window.openResetTabClearLockout = function(id) {
+        const user = gResetPassUsers.find(u => u.id === id);
+        if (user) {
+            if (!gManagedUsers.find(u => u.id === id)) gManagedUsers.push(user);
+            window.clearUserLockout(id);
         }
     }
 

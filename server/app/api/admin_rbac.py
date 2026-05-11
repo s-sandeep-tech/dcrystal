@@ -303,7 +303,7 @@ def change_user_password(user_id):
 
 @admin_rbac_bp.route('/users/<int:user_id>/clear-lockout', methods=['POST'])
 @jwt_required()
-@require_role('ADMIN')
+@require_role(['ADMIN', 'PASSWORD_RESET'])
 def clear_user_lockout(user_id):
     user = User.query.get_or_404(user_id)
     
