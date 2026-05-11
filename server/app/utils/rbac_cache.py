@@ -62,6 +62,7 @@ def get_user_permissions(user_id):
     is_admin = user.is_admin or user.username == 'admin' # Double fallback for admin
     
     for r in roles:
+        perms.add(r.name)
         if r.name == 'ADMIN':
             is_admin = True
         for p in r.permissions:

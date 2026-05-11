@@ -152,8 +152,14 @@ def manage_user_roles(u_id):
 
 @admin_rbac_bp.route('/users', methods=['GET', 'POST'])
 @jwt_required()
-@require_role('ADMIN')
+@require_role(['ADMIN', 'PASSWORD_RESET'])
 def manage_users():
+    if request.method == 'POST':
+        # Only ADMIN can create users
+        current_user_id = get_jwt_identity()
+        perms = get_user_permissions(current_user_id)
+        if 'ADMIN' not in perms:
+            return jsonify({"msg": "Forbidden. Admin role required to create users."}), 403
     if request.method == 'GET':
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 8, type=int)
@@ -210,8 +216,17 @@ def manage_users():
 
 @admin_rbac_bp.route('/users/<int:id>', methods=['PUT', 'DELETE'])
 @jwt_required()
-@require_role('ADMIN')
+@require_role(['ADMIN', 'PASSWORD_RESET'])
 def update_delete_user(id):
+    # For PASSWORD_RESET, only allow PUT if it's a password update (which is handled by another route usually, but this route also supports it)
+    # Actually, the settings.js uses /api/admin/users/<id>/password for password updates.
+    # But /api/admin/users/<id> PUT is used for general updates.
+    # We should restrict this to ADMIN.
+    
+    current_user_id = get_jwt_identity()
+    perms = get_user_permissions(current_user_id)
+    if 'ADMIN' not in perms:
+        return jsonify({"msg": "Forbidden. Admin role required."}), 403
     user = User.query.get_or_404(id)
     if request.method == 'DELETE':
         db.session.delete(user)
@@ -251,7 +266,7 @@ def update_delete_user(id):
 
 @admin_rbac_bp.route('/users/<int:user_id>/password', methods=['PUT'])
 @jwt_required()
-@require_role('ADMIN')
+@require_role(['ADMIN', 'PASSWORD_RESET'])
 def change_user_password(user_id):
     user = User.query.get_or_404(user_id)
     data = request.json
@@ -305,7 +320,7 @@ def clear_user_lockout(user_id):
 
 @admin_rbac_bp.route('/users/<int:user_id>/toggle-status', methods=['POST'])
 @jwt_required()
-@require_role('ADMIN')
+@require_role(['ADMIN', 'PASSWORD_RESET'])
 def toggle_user_status(user_id):
     user = User.query.get_or_404(user_id)
     current_user_id = int(get_jwt_identity())
@@ -331,7 +346,7 @@ def toggle_user_status(user_id):
 
 @admin_rbac_bp.route('/users/<int:user_id>/force-password-reset', methods=['POST'])
 @jwt_required()
-@require_role('ADMIN')
+@require_role(['ADMIN', 'PASSWORD_RESET'])
 def force_password_reset(user_id):
     user = User.query.get_or_404(user_id)
     data = request.json or {}

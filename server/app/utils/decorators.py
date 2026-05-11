@@ -30,8 +30,8 @@ def require_perm(permission_name):
 
 def require_role(role_name):
     """
-    Decorator to ensure user holds a specific role.
-    For ADMIN role specifically, we check the virtual 'ADMIN' permission in the sets.
+    Decorator to ensure user holds a specific role (or one of several roles).
+    role_name can be a single string or a list of strings.
     """
     def decorator(fn):
         @wraps(fn)
@@ -45,10 +45,15 @@ def require_role(role_name):
 
             user_id = get_jwt_identity()
             perms = get_user_permissions(user_id)
-            if role_name == 'ADMIN' and 'ADMIN' not in perms:
+            
+            required_roles = [role_name] if isinstance(role_name, str) else role_name
+            
+            # Authorization passes if user is ADMIN or has ANY of the required roles
+            if 'ADMIN' not in perms and not any(r in perms for r in required_roles):
                 if request.path.startswith('/api/'):
-                    return jsonify({"msg": "Forbidden. Admin role required."}), 403
-                return render_template('errors/403.html', permission="ADMIN_REQUIRED"), 403
+                    return jsonify({"msg": f"Forbidden. One of these roles required: {required_roles}"}), 403
+                return render_template('errors/403.html', permission=str(required_roles)), 403
+            
             return fn(*args, **kwargs)
         return wrapper
     return decorator

@@ -844,6 +844,124 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // === RESET PASSWORD MANAGEMENT LOGIC ===
+    let resetPassCurrentPage = 1;
+    let gResetPassUsers = [];
+
+    async function fetchResetPassUsers(page = 1) {
+        const searchInput = document.getElementById('resetPassSearchInput');
+        const search = searchInput ? searchInput.value : '';
+        try {
+            const res = await fetch(`/api/admin/users?page=${page}&search=${encodeURIComponent(search)}`, {
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                gResetPassUsers = data.users;
+                renderResetPassTable(data.users);
+                renderResetPassPagination(data);
+                resetPassCurrentPage = data.current_page;
+            } else {
+                const tbody = document.getElementById('resetPassTableBody');
+                if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500 font-medium whitespace-nowrap">Error loading users (${res.status})</td></tr>`;
+            }
+        } catch (e) {
+            const tbody = document.getElementById('resetPassTableBody');
+            if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500 font-medium whitespace-nowrap">Network error loading users</td></tr>`;
+        }
+    }
+    window.fetchResetPassUsers = fetchResetPassUsers;
+
+    function renderResetPassTable(users) {
+        const tbody = document.getElementById('resetPassTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400 font-medium whitespace-nowrap">No users matched your search.</td></tr>';
+            return;
+        }
+
+        users.forEach(u => {
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors border-b border-gray-100 dark:border-gray-800";
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-mono font-bold text-primary uppercase tracking-wider">#${u.user_id}</td>
+                <td class="px-4 py-3 font-bold text-gray-900 dark:text-white">${u.username}</td>
+                <td class="px-4 py-3">${u.email}</td>
+                <td class="px-4 py-3">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider ${u.is_active ? 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 border border-green-100' : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100'}">
+                        ${u.is_active ? 'Active' : 'Disabled'}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                    ${u.is_admin ? '<span class="text-[9px] text-gray-400 italic">Admin protected</span>' : `
+                        <button onclick="openResetTabPasswordModal(${u.id})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold uppercase tracking-wider rounded transition-all shadow-sm shadow-amber-500/20" title="Reset Password">
+                            <span class="material-symbols-outlined text-[14px]">key</span> Reset
+                        </button>
+                    `}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.openResetTabPasswordModal = function(id) {
+        const user = gResetPassUsers.find(u => u.id === id);
+        if (user) {
+            if (!gManagedUsers.find(u => u.id === id)) gManagedUsers.push(user);
+            window.openChangePasswordModal(id);
+        }
+    }
+
+    window.openResetTabForceResetModal = function(id) {
+        const user = gResetPassUsers.find(u => u.id === id);
+        if (user) {
+            if (!gManagedUsers.find(u => u.id === id)) gManagedUsers.push(user);
+            window.openForceResetModal(id);
+        }
+    }
+
+    function renderResetPassPagination(data) {
+        const info = document.getElementById('resetPassPaginationInfo');
+        if (!info) return;
+        const start = data.total > 0 ? (data.current_page - 1) * 8 + 1 : 0;
+        const end = Math.min(data.current_page * 8, data.total);
+        info.innerText = `Showing ${start} to ${end} of ${data.total} users`;
+
+        const buttons = document.getElementById('resetPassPaginationButtons');
+        if (!buttons) return;
+        buttons.innerHTML = '';
+
+        const prev = document.createElement('button');
+        prev.className = `p-1.5 rounded border transition-all ${data.current_page > 1 ? 'border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800' : 'opacity-30 cursor-not-allowed border-gray-100 dark:border-gray-800'}`;
+        prev.innerHTML = '<span class="material-symbols-outlined text-sm block">chevron_left</span>';
+        if (data.current_page > 1) prev.onclick = () => fetchResetPassUsers(data.current_page - 1);
+        buttons.appendChild(prev);
+
+        for (let i = 1; i <= data.pages; i++) {
+            if (data.pages > 5 && i > 2 && i < data.pages - 1 && Math.abs(i - data.current_page) > 1) {
+                if (i === 3 || i === data.pages - 1) {
+                    const dot = document.createElement('span');
+                    dot.innerText = '...';
+                    dot.className = "px-2 text-gray-400";
+                    buttons.appendChild(dot);
+                }
+                continue;
+            }
+            const btn = document.createElement('button');
+            btn.className = `min-w-[28px] h-7 rounded text-[10px] font-bold border transition-all ${i === data.current_page ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20' : 'border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800'}`;
+            btn.innerText = i;
+            btn.onclick = () => fetchResetPassUsers(i);
+            buttons.appendChild(btn);
+        }
+
+        const next = document.createElement('button');
+        next.className = `p-1.5 rounded border transition-all ${data.current_page < data.pages ? 'border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800' : 'opacity-30 cursor-not-allowed border-gray-100 dark:border-gray-800'}`;
+        next.innerHTML = '<span class="material-symbols-outlined text-sm block">chevron_right</span>';
+        if (data.current_page < data.pages) next.onclick = () => fetchResetPassUsers(data.current_page + 1);
+        buttons.appendChild(next);
+    }
+
     // Generic Toast Function (if not defined globally in base.html)
     function showToast(message, type = 'info') {
         if (typeof window.showToast === 'function') {
@@ -1344,7 +1462,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'menus': { nav: document.getElementById('nav-menus'), pane: document.getElementById('tab-menus') },
         'mappings': { nav: document.getElementById('nav-mappings'), pane: document.getElementById('tab-mappings') },
         'permissions': { nav: document.getElementById('nav-permissions'), pane: document.getElementById('tab-permissions') },
-        'manage-users': { nav: document.getElementById('nav-manage-users'), pane: document.getElementById('tab-manage-users') }
+        'manage-users': { nav: document.getElementById('nav-manage-users'), pane: document.getElementById('tab-manage-users') },
+        'reset-password': { nav: document.getElementById('nav-reset-password'), pane: document.getElementById('tab-reset-password') }
     };
 
     function switchTab(tabId) {
@@ -1397,6 +1516,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'manage-users':
                 fetchUsers();
+                break;
+            case 'reset-password':
+                fetchResetPassUsers();
                 break;
         }
 

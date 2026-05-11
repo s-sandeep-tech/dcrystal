@@ -43,7 +43,12 @@
                             <span class="material-symbols-outlined text-sm">notifications</span>
                             Notifications
                         </a>
-                        {% if session.get('is_admin') or 'ADMIN' in session.get('roles', []) %}
+                        {% set is_admin_or_reporter = session.get('is_admin') or 'ADMIN' in session.get('roles', []) %}
+                        {% set is_password_reset = 'PASSWORD_RESET' in session.get('roles', []) %}
+                        
+                        {% if is_admin_or_reporter or is_password_reset %}
+                        
+                        {% if is_admin_or_reporter %}
                         <a href="#" id="nav-sessions"
                             class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
                             <span class="material-symbols-outlined text-sm">hub</span>
@@ -64,6 +69,17 @@
                             <span class="material-symbols-outlined text-sm">event_note</span>
                             Audit Logs
                         </a>
+                        {% endif %}
+                        
+                        {% if is_password_reset or is_admin_or_reporter %}
+                        <a href="#" id="nav-reset-password"
+                            class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
+                            <span class="material-symbols-outlined text-sm">lock_reset</span>
+                            Reset Passwords
+                        </a>
+                        {% endif %}
+
+                        {% if is_admin_or_reporter %}
                         <!-- RBAC Management Links -->
                         <div class="pt-2 pb-1">
                             <h4 class="px-4 text-[9px] font-bold uppercase tracking-widest text-gray-400">Security &
@@ -94,6 +110,7 @@
                             <span class="material-symbols-outlined text-sm">group</span>
                             Users Management
                         </a>
+                        {% endif %}
                         {% endif %}
                     </div>
                 </div>
@@ -1012,6 +1029,16 @@
                 </div> <!-- End Tab Pane Manage Users -->
                 {% endif %}
 
+                {% if session.get('is_admin') or 'ADMIN' in session.get('roles', []) or 'PASSWORD_RESET' in session.get('roles', []) %}
+                <!-- Tab Pane: Reset Passwords -->
+                <div id="tab-reset-password" class="tab-pane hidden space-y-6 h-full flex flex-col">
+                    <div
+                        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex flex-col h-full flex-1">
+                        {% include 'partials/admin/_reset_password.html' %}
+                    </div>
+                </div> <!-- End Tab Pane Reset Passwords -->
+                {% endif %}
+
             </div>
         </div>
     </div>
@@ -1146,6 +1173,42 @@
             </form>
         </div>
     </div>
+    <!-- Change Password Modal -->
+    <div id="changePasswordModal"
+        class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center hidden opacity-0 transition-opacity">
+        <div class="bg-white dark:bg-gray-900 rounded-lg w-full max-w-sm p-6 shadow-xl transform scale-95 transition-transform"
+            id="changePasswordModalContent">
+            <div class="flex items-center gap-3 mb-4">
+                <div
+                    class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600">
+                    <span class="material-symbols-outlined">key</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold">Update Password</h3>
+                    <p class="text-xs text-gray-500" id="changePassTargetUser">Updating password for user...</p>
+                </div>
+            </div>
+            <form id="changePasswordForm" onsubmit="event.preventDefault(); window.updateUserPassword();">
+                <input type="hidden" id="changePassUserId">
+                <div class="mb-6">
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">New Password *</label>
+                    <input type="password" id="newPasswordInput" required minlength="4"
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded focus:ring-1 focus:ring-primary text-sm"
+                        placeholder="Enter new secure password">
+                    <p class="text-[9px] text-gray-400 mt-2 italic">Note: This action is logged in the password update
+                        history table.</p>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="window.closeChangePasswordModal()"
+                        class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">Cancel</button>
+                    <button type="submit"
+                        class="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-blue-600 shadow-sm shadow-primary/20">Update
+                        Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Confirmation Modal -->
     <div id="confirmModal"
         class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center hidden opacity-0 transition-opacity">
