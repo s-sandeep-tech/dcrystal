@@ -1,0 +1,102 @@
+<table class="excel-table">
+    <thead>
+        <tr>
+            <th rowspan="2" style="vertical-align: bottom;">PARTY</th>
+            <th colspan="4" class="top-header" style="background-color: #f0f9ff;">ACCEPT PENDING</th>
+            <th colspan="4" class="top-header" style="background-color: #fffbeb;">PROCESS PENDING</th>
+            <th colspan="4" class="top-header" style="background-color: #f5f3ff;">PROCESS COMPLETED- BARCODE PENDING</th>
+            <th colspan="4" class="top-header" style="background-color: #f0fdf4;">BARCODE COMPLETED-HM ISSUE PENDING</th>
+            <th colspan="4" class="top-header" style="background-color: #fff1f2;">HM RECEIPT COMPLETED-QC ISSUE PENDING</th>
+            <th colspan="4" class="top-header" style="background-color: #eef2ff;">INVOICE REQUEST COMPLETED-INVOICE PENDING</th>
+        </tr>
+        <tr>
+            <!-- S1 -->
+            <th style="background-color: #f0f9ff;">PCS</th> <th style="background-color: #f0f9ff;">WT</th> <th style="background-color: #f0f9ff;">FB</th> <th style="background-color: #f0f9ff;">ACT</th>
+            <!-- S2 -->
+            <th style="background-color: #fffbeb;">PCS</th> <th style="background-color: #fffbeb;">WT</th> <th style="background-color: #fffbeb;">FB</th> <th style="background-color: #fffbeb;">ACT</th>
+            <!-- S3 -->
+            <th style="background-color: #f5f3ff;">PCS</th> <th style="background-color: #f5f3ff;">WT</th> <th style="background-color: #f5f3ff;">FB</th> <th style="background-color: #f5f3ff;">ACT</th>
+            <!-- S4 -->
+            <th style="background-color: #f0fdf4;">PCS</th> <th style="background-color: #f0fdf4;">WT</th> <th style="background-color: #f0fdf4;">FB</th> <th style="background-color: #f0fdf4;">ACT</th>
+            <!-- S5 -->
+            <th style="background-color: #fff1f2;">PCS</th> <th style="background-color: #fff1f2;">WT</th> <th style="background-color: #fff1f2;">FB</th> <th style="background-color: #fff1f2;">ACT</th>
+            <!-- S6 -->
+            <th style="background-color: #eef2ff;">PCS</th> <th style="background-color: #eef2ff;">WT</th> <th style="background-color: #eef2ff;">FB</th> <th style="background-color: #eef2ff;">ACT</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if rows %}
+            {% for item in rows %}
+            <tr>
+                <td style="font-weight: 600;">
+                    <div class="flex flex-col">
+                        <span class="truncate font-bold" title="{{ item.summary.party }}">{{ item.summary.party }}</span>
+                        <span class="text-[8px] text-gray-400">{{ item.summary.party_code }}</span>
+                    </div>
+                </td>
+                
+                {% for i in range(1, 7) %}
+                    {% if i == 1 %}
+                        {% set pcs = item.summary.pending_to_accept_pcs %}
+                        {% set wt = item.summary.pending_to_accept_wt %}
+                        {% set bg = '#f8fafc' %}
+                    {% elif i == 2 %}
+                        {% set pcs = item.summary.process_pending_pieces %}
+                        {% set wt = item.summary.process_pending_weight %}
+                        {% set bg = '#fffdfa' %}
+                    {% elif i == 3 %}
+                        {% set pcs = item.summary.accepted_and_barcode_pending_piece %}
+                        {% set wt = item.summary.accepted_and_barcode_pending_weight %}
+                        {% set bg = '#fcfaff' %}
+                    {% elif i == 4 %}
+                        {% set pcs = item.summary.barcoded_and_hm_issue_pending_piece %}
+                        {% set wt = item.summary.barcoded_and_hm_issue_pending_weight %}
+                        {% set bg = '#fafffa' %}
+                    {% elif i == 5 %}
+                        {% set pcs = item.summary.hm_receipt_completed_and_qc_issue_pending_piece %}
+                        {% set wt = item.summary.hm_receipt_completed_and_qc_issue_pending_weight %}
+                        {% set bg = '#fffafa' %}
+                    {% elif i == 6 %}
+                        {% set pcs = item.summary.invoice_request_completed_and_invoice_pending_piece %}
+                        {% set wt = item.summary.invoice_request_completed_and_invoice_pending_weight %}
+                        {% set bg = '#fafaff' %}
+                    {% endif %}
+
+                    {% set has_data = (pcs|int > 0 or wt|float > 0) %}
+                    <td style="background-color: {{ bg }};">{{ pcs }}</td>
+                    <td style="background-color: {{ bg }};">{{ "%.3f"|format(wt) }}</td>
+                    <td class="w-px whitespace-nowrap px-1 text-center relative group cursor-help" style="background-color: {{ bg }};">
+                        {% if item.feedbacks.get('segment' ~ i, {}).get('feedback_text') %}
+                            <div class="feedback-trigger" data-party="{{ item.summary.party }}" data-segment-id="{{ i }}">
+                                <span class="material-symbols-outlined text-primary text-[16px]">chat_bubble_outline</span>
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td class="w-px whitespace-nowrap px-1" style="background-color: {{ bg }};">
+                        <div class="flex items-center gap-1">
+                            <button onclick="openFeedbackModal('{{ item.summary.party }}', {{ i }})" 
+                                    class="p-1 rounded text-gray-500 {{ 'hover:bg-gray-100' if has_data else 'opacity-20 cursor-not-allowed' }}" 
+                                    {{ '' if has_data else 'disabled' }}
+                                    title="Add Feedback">
+                                <span class="material-symbols-outlined text-[12px]">comment</span>
+                            </button>
+                            <button onclick="openDetailsModal('{{ item.summary.party }}', {{ i }})" 
+                                    class="p-1 rounded text-blue-500 {{ 'hover:bg-gray-100' if has_data else 'opacity-20 cursor-not-allowed' }}" 
+                                    {{ '' if has_data else 'disabled' }}
+                                    title="View Details">
+                                <span class="material-symbols-outlined text-[12px]">visibility</span>
+                            </button>
+                        </div>
+                    </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="25" class="py-20 text-center text-gray-500 bg-white">
+                    <p class="text-[9px] font-medium">No party delay data available. Try adjusting filters or syncing data.</p>
+                </td>
+            </tr>
+        {% endif %}
+    </tbody>
+</table>

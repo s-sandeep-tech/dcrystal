@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Reset all sync buttons IF NOT in Sync All mode
                     if (!window.isSyncAllActive) {
-                        [syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, syncProvisionStatusBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn, syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, syncQCCompletedInvoiceBtn, syncQCCompletedInvoiceRequestPendingBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncQCReceiptCompletedPendingBtn].forEach(btn => {
+                        [syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, syncProvisionStatusBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn, syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, syncQCCompletedInvoiceBtn, syncQCCompletedInvoiceRequestPendingBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncQCReceiptCompletedPendingBtn].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
                         });
                     }
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Reset all sync buttons
                     if (!window.isSyncAllActive) {
-                        [syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, syncProvisionStatusBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn, syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, syncQCCompletedInvoiceBtn, syncQCCompletedInvoiceRequestPendingBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncQCReceiptCompletedPendingBtn].forEach(btn => {
+                        [syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, syncProvisionStatusBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn, syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, syncQCCompletedInvoiceBtn, syncQCCompletedInvoiceRequestPendingBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncQCReceiptCompletedPendingBtn].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
                         });
                     }
@@ -146,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncBranchAuthorityBtn = document.getElementById('sync-branch-authority-btn');
     const syncQCDelayManagementBtn = document.getElementById('sync-qc-delay-management-btn');
     const syncHMDelayManagementBtn = document.getElementById('sync-hm-delay-management-btn');
+    const syncPartyDelayManagementBtn = document.getElementById('sync-party-delay-management-btn');
     const syncQCReceiptCompletedPendingBtn = document.getElementById('sync-qc-receipt-completed-pending-btn');
     const syncAllBtn = document.getElementById('sync-all-btn');
 
@@ -208,6 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncBranchAuthorityBtn) syncBranchAuthorityBtn.addEventListener('click', () => triggerSync(syncBranchAuthorityBtn, window.SETTINGS_CONFIG.syncBranchAuthorityUrl, 'Branch Authority Sync', 'branch_authority'));
     if (syncQCDelayManagementBtn) syncQCDelayManagementBtn.addEventListener('click', () => triggerSync(syncQCDelayManagementBtn, window.SETTINGS_CONFIG.syncQCDelayManagementUrl, 'QC Delay Summary Sync', 'qc_delay_management'));
     if (syncHMDelayManagementBtn) syncHMDelayManagementBtn.addEventListener('click', () => triggerSync(syncHMDelayManagementBtn, '/settings/sync-hm-delay-management', 'HM Delay Management Sync', 'hm_delay_management'));
+    if (syncPartyDelayManagementBtn) syncPartyDelayManagementBtn.addEventListener('click', () => triggerSync(syncPartyDelayManagementBtn, '/settings/sync-party-delay-management', 'Party Delay Management Sync', 'party_delay_management'));
     if (syncQCReceiptCompletedPendingBtn) syncQCReceiptCompletedPendingBtn.addEventListener('click', () => triggerSync(syncQCReceiptCompletedPendingBtn, window.SETTINGS_CONFIG.syncQCReceiptCompletedPendingUrl, 'QC Receipt Completed – QC Pending Sync', 'qc_receipt_completed_pending'));
 
     function showConfirmModal(title, message) {
@@ -278,6 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { url: window.SETTINGS_CONFIG.syncBranchAuthorityUrl, label: 'Branch Authority', type: 'branch_authority' },
                 { url: window.SETTINGS_CONFIG.syncQCDelayManagementUrl, label: 'QC Delay Summary', type: 'qc_delay_management' },
                 { url: '/settings/sync-hm-delay-management', label: 'HM Delay Management', type: 'hm_delay_management' },
+                { url: '/settings/sync-party-delay-management', label: 'Party Delay Management', type: 'party_delay_management' },
                 { url: window.SETTINGS_CONFIG.syncQCReceiptCompletedPendingUrl, label: 'QC Receipt Completed – QC Pending', type: 'qc_receipt_completed_pending' },
             ];
 

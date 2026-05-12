@@ -49,6 +49,7 @@ try:
         sync_hm_delay_management_data_task,
         sync_qc_receipt_completed_pending_data_task,
         sync_qc_completed_invoice_request_pending_data_task,
+        sync_party_delay_management_data_task,
         emit_sync_update
     )
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -158,6 +159,8 @@ def process_sync_queue():
                         res = sync_hm_delay_management_data_task()
                     elif task_type == 'qc_receipt_completed_pending':
                         res = sync_qc_receipt_completed_pending_data_task()
+                    elif task_type == 'party_delay_management':
+                        res = sync_party_delay_management_data_task()
                     else:
                         logger.error(f"Unknown sync task type: {task_type}")
                         emit_sync_update('error', f'Unknown task type: {task_type}')

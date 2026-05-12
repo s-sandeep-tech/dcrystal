@@ -88,3 +88,6 @@ def sync_hm_delay_management_data(user_id=None):
 
 def sync_qc_receipt_completed_pending_data(user_id=None):
     return enqueue_sync_task('qc_receipt_completed_pending', user_id)
+
+def sync_party_delay_management_data(user_id=None):
+    return enqueue_sync_task('party_delay_management', user_id)

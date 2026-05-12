@@ -25,14 +25,16 @@ from ..models.snapshots import (
     QCCompletedInvoiceRequestPendingSnapshot,
     InvoiceCompletedPendingDeliverSnapshot,
     BranchAuthoritySnapshot,
-    QCDelayManagementSnapshot,
-    QCDelayManagementFeedback,
-    QCReceiptCompletedQCPendingSnapshot,
-    HallmarkingDelayManagementSnapshot,
-    HallmarkingDelayManagementFeedback,
-    SupplierHMIssueReceiptPendingSnapshot,
     HMReceiptCompletedHMPendingSnapshot,
-    HMCompletedReturnPendingSnapshot
+    HMCompletedReturnPendingSnapshot,
+    PartyDelayManagementSnapshot,
+    PartyDelayManagementFeedback,
+    PartyAcceptPendingSnapshot,
+    PartyProcessPendingSnapshot,
+    PartyBarcodePendingSnapshot,
+    PartyHMIssuePendingSnapshot,
+    PartyHMReceiptCompletedQCIssuePendingSnapshot,
+    PartyInvoiceRequestCompletedInvoicePendingSnapshot
 )
 from flask import current_app
 import os
@@ -3181,6 +3183,144 @@ def sync_hm_delay_management_data_task():
     except Exception as e:
         db.session.rollback()
         logger.error(f"HMDelayManagement sync failed: {str(e)}")
+        emit_sync_update('error', str(e), 0, DATA_TYPE)
+        return {"status": "error", "message": str(e)}
+    finally:
+        if conn: conn.close()
+def sync_party_delay_management_data_task():
+    DATA_TYPE = 'party_delay_management'
+    start_time = time.time()
+    conn = None
+    try:
+        emit_sync_update('processing', 'Connecting to external database...', 5, DATA_TYPE)
+        conn = get_external_db_connection()
+        cur = conn.cursor()
+        
+        # 1. Sync Summary Data
+        emit_sync_update('processing', 'Fetching Party Summary data...', 10, DATA_TYPE)
+        summary_query = """
+        SELECT vod.supplier AS party,s.code AS party_code,'' AS address,
+        COUNT(vod.order_id) FILTER (WHERE vod.order_status = 'Invited') AS pending_to_accept_pcs,
+        COALESCE(SUM(vod.required_weight) FILTER (WHERE vod.order_status = 'Invited'),0) AS pending_to_accept_wt,
+        COUNT(vod.order_id) FILTER (WHERE vod.order_status = 'Process Pending') AS process_pending_pieces,
+        COALESCE(SUM(vod.required_weight) FILTER (WHERE vod.order_status = 'Process Pending'),0) AS process_pending_weight,
+        COUNT(vod.order_id) FILTER (WHERE vod.order_status = 'Barcode Pending') AS accepted_and_barcode_pending_piece,
+        COALESCE(SUM(vod.required_weight) FILTER (WHERE vod.order_status = 'Barcode Pending'),0) AS accepted_and_barcode_pending_weight,
+        COUNT(vod.order_id) FILTER (WHERE vod.order_status in ('Packing Pending','Bundle Pending',
+        'Initial QC Challan Pending','Initial QC Issue Pending',
+        'Initial QC Receipt Pending','Initial QC Pending','Initial QC Correction Pending','Initial QC Failed',
+        'Initial QC Test Cut Completed','HM Packing Pending','HM Request Pending','HM Request Initiated',
+        'Initial QC Receipt Return Challan Pending','Initial QC Receipt Return Pending',
+        'Initial QC Issue Return Pending','HM Challan Pending','HM Issue Pending')) AS barcoded_and_hm_issue_pending_piece,
+        COALESCE(SUM(vod.required_weight) FILTER (WHERE vod.order_status in ('Packing Pending','Bundle Pending',
+        'Initial QC Challan Pending','Initial QC Issue Pending',
+        'Initial QC Receipt Pending','Initial QC Pending','Initial QC Correction Pending','Initial QC Failed',
+        'Initial QC Test Cut Completed','HM Packing Pending','HM Request Pending','HM Request Initiated',
+        'Initial QC Receipt Return Challan Pending','Initial QC Receipt Return Pending',
+        'Initial QC Issue Return Pending','HM Challan Pending','HM Issue Pending')),0) AS barcoded_and_hm_issue_pending_weight,
+        COUNT(vod.order_id) FILTER (WHERE vod.order_status in ('Final QC Packing Pending','QC Issue Pending')) AS hm_receipt_completed_and_qc_issue_pending_piece,
+        COALESCE(SUM(vod.required_weight) FILTER (WHERE vod.order_status in ('Final QC Packing Pending','QC Issue Pending')),0) AS hm_receipt_completed_and_qc_issue_pending_weight,
+        COUNT(vod.order_id) FILTER (WHERE vod.order_status = 'Invoice Approval Pending') AS invoice_request_completed_and_invoice_pending_piece,
+        COALESCE(SUM(vod.required_weight) FILTER (WHERE vod.order_status = 'Invoice Approval Pending'),0) AS invoice_request_completed_and_invoice_pending_weight
+        FROM ext_view.vw_order_details vod
+        INNER JOIN ext_view.vw_supplier s ON s.supplier_id = vod.supplier_id
+        GROUP BY vod.supplier,s.code;
+        """
+        cur.execute(summary_query)
+        summary_rows = cur.fetchall()
+        
+        db.session.execute(text("TRUNCATE TABLE party_delay_management_snapshots"))
+        snapshot_date = datetime.now()
+        summary_objects = [
+            PartyDelayManagementSnapshot(
+                snapshot_date=snapshot_date,
+                party=row[0],
+                party_code=row[1],
+                address=row[2],
+                pending_to_accept_pcs=row[3],
+                pending_to_accept_wt=row[4],
+                process_pending_pieces=row[5],
+                process_pending_weight=row[6],
+                accepted_and_barcode_pending_piece=row[7],
+                accepted_and_barcode_pending_weight=row[8],
+                barcoded_and_hm_issue_pending_piece=row[9],
+                barcoded_and_hm_issue_pending_weight=row[10],
+                hm_receipt_completed_and_qc_issue_pending_piece=row[11],
+                hm_receipt_completed_and_qc_issue_pending_weight=row[12],
+                invoice_request_completed_and_invoice_pending_piece=row[13],
+                invoice_request_completed_and_invoice_pending_weight=row[14]
+            ) for row in summary_rows
+        ]
+        db.session.bulk_save_objects(summary_objects)
+        db.session.commit()
+        emit_sync_update('processing', 'Summary synced. Syncing Segment 1 details...', 20, DATA_TYPE)
+
+        # 2. Segment 1 Details (Accept Pending)
+        s1_query = "SELECT make_owner, collection_owner, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_invited_order_details"
+        cur.execute(s1_query)
+        s1_rows = cur.fetchall()
+        db.session.execute(text("TRUNCATE TABLE party_accept_pending_snapshots"))
+        s1_objects = [PartyAcceptPendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyAcceptPendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s1_rows]
+        db.session.bulk_save_objects(s1_objects)
+        db.session.commit()
+        emit_sync_update('processing', 'Segment 1 synced. Syncing Segment 2...', 35, DATA_TYPE)
+
+        # 3. Segment 2 Details (Process Pending)
+        s2_query = "SELECT make_owner, collection_owner, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_process_pending_order_details"
+        cur.execute(s2_query)
+        s2_rows = cur.fetchall()
+        db.session.execute(text("TRUNCATE TABLE party_process_pending_snapshots"))
+        s2_objects = [PartyProcessPendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyProcessPendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s2_rows]
+        db.session.bulk_save_objects(s2_objects)
+        db.session.commit()
+        emit_sync_update('processing', 'Segment 2 synced. Syncing Segment 3...', 50, DATA_TYPE)
+
+        # 4. Segment 3 Details (Barcode Pending)
+        s3_query = "SELECT make_owner, collection_owner, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_barcode_pending_order_details"
+        cur.execute(s3_query)
+        s3_rows = cur.fetchall()
+        db.session.execute(text("TRUNCATE TABLE party_barcode_pending_snapshots"))
+        s3_objects = [PartyBarcodePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyBarcodePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s3_rows]
+        db.session.bulk_save_objects(s3_objects)
+        db.session.commit()
+        emit_sync_update('processing', 'Segment 3 synced. Syncing Segment 4...', 65, DATA_TYPE)
+
+        # 5. Segment 4 Details (HM Issue Pending)
+        s4_query = "SELECT make_owner, collection_owner, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_order_barcoding_completed_hm_issue_pending"
+        cur.execute(s4_query)
+        s4_rows = cur.fetchall()
+        db.session.execute(text("TRUNCATE TABLE party_hm_issue_pending_snapshots"))
+        s4_objects = [PartyHMIssuePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyHMIssuePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s4_rows]
+        db.session.bulk_save_objects(s4_objects)
+        db.session.commit()
+        emit_sync_update('processing', 'Segment 4 synced. Syncing Segment 5...', 80, DATA_TYPE)
+
+        # 6. Segment 5 Details (QC Issue Pending)
+        s5_query = "SELECT order_id, make_owner, collection_owner, collection, order_ro, order_branch, party, party_mobile_no, po_date, target_date, po_number, order_type, order_request_type, order_no, required_weight, design_no, set_identifier, set_design_no, barcode, is_hm_agent_received, barcoded_weight, barcode_completion_date, order_status, current_stage, hallmar_req_id, hm_request_no, hallmark_agent, hallmark_status, hm_ro, hm_agent_email, hm_agent_pnone_no, hm_completed_at, hallmark_info_id, net_weight, gross_weight, stone_weight, business_head_name, hm_agent_invoice_receipt_no, hm_agent_invoice_receipt_date, pending_to_final_qc_issue_pcs, pending_to_final_qc_issue_weight FROM ext_view.vw_hm_return_received_qc_issue_pending"
+        cur.execute(s5_query)
+        s5_rows = cur.fetchall()
+        db.session.execute(text("TRUNCATE TABLE party_qc_issue_pending_snapshots"))
+        s5_objects = [PartyHMReceiptCompletedQCIssuePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyHMReceiptCompletedQCIssuePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s5_rows]
+        db.session.bulk_save_objects(s5_objects)
+        db.session.commit()
+        emit_sync_update('processing', 'Segment 5 synced. Syncing Segment 6...', 90, DATA_TYPE)
+
+        # 7. Segment 6 Details (Invoice Pending)
+        s6_query = "SELECT order_id, order_no, qc_ro_id, qc_ro, qc_ro_incharge, qc_ro_incharge_email, qc_ro_incharge_phone_no, make_owner, make, collection_owner, collection, party, party_mobile_no, po_date, delivery_target_date, po_number, order_type, order_request_type, design_no, set_identifier, set_design_no, order_ro, order_branch, business_head_name, order_incharge_email, order_incharge_phone_no, barcoded_weight, barcode_completion_date, hm_completed_date, final_qc_receipt_no, final_qc_receipt_date, net_weight, gross_weight, stone_weight, invoice_request_number, invoice_request_date FROM ext_view.vw_invoice_request_completed_invoice_pending"
+        cur.execute(s6_query)
+        s6_rows = cur.fetchall()
+        db.session.execute(text("TRUNCATE TABLE party_invoice_pending_snapshots"))
+        s6_objects = [PartyInvoiceRequestCompletedInvoicePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyInvoiceRequestCompletedInvoicePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s6_rows]
+        db.session.bulk_save_objects(s6_objects)
+        db.session.commit()
+
+        duration = time.time() - start_time
+        emit_sync_update('success', f"Successfully synced Party Delay Management data in {duration:.2f}s", 100, DATA_TYPE)
+        return {"status": "success", "duration": duration}
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"PartyDelayManagement sync failed: {str(e)}")
         emit_sync_update('error', str(e), 0, DATA_TYPE)
         return {"status": "error", "message": str(e)}
     finally:
