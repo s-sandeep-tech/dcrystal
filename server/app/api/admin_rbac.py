@@ -5,7 +5,7 @@ from app.models.auth import User
 from app.models.core import ExportDownloadLog
 from app.models.rbac import Role, Menu, UserRole, RoleMenu, Permission, RolePermission, AuditLog, UserPasswordHistory
 from app.utils.decorators import require_role, require_perm
-from app.utils.rbac_cache import increment_rbac_version, invalidate_user_cache
+from app.utils.rbac_cache import increment_rbac_version, invalidate_user_cache, get_user_permissions
 from datetime import datetime
 from app.api.auth import validate_password_strength
 
@@ -354,7 +354,7 @@ def force_password_reset(user_id):
     
     # Security: Admins cannot reset other ADMIN passwords through this interface
     if user.is_admin:
-        return jsonify({"msg": "Administrator characters cannot be forced to reset through this interface."}), 403
+        return jsonify({"msg": "Administrator accounts cannot be forced to reset through this interface."}), 403
         
     # Check "once per day" constraint
     if user.last_reset_initiated_at:
