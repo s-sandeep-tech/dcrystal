@@ -250,7 +250,7 @@ function renderRichModalContent(data, segment_id) {
     data.forEach(row => {
         if (segment_id <= 4) {
             const poDate = row.po_date ? row.po_date.split('T')[0] : '-';
-            const targetDate = (row.target_date || row.delivery_target_date) ? (row.target_date || row.delivery_target_date).split('T')[0] : '-';
+            const targetDate = row.target_date ? row.target_date.split('T')[0] : '-';
             
             html += `
                 <tr class="hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-colors">
@@ -261,6 +261,7 @@ function renderRichModalContent(data, segment_id) {
                                 <span class="material-symbols-outlined text-[12px]">calendar_today</span> ${poDate}
                             </span>
                             <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">${row.order_branch || '-'}</span>
+                            <span class="text-[9px] text-gray-400">Ord: ${row.order_no || '-'}</span>
                         </div>
                     </td>
                     <td class="px-4 py-4">
@@ -271,6 +272,7 @@ function renderRichModalContent(data, segment_id) {
                                 <span class="text-[10px] text-gray-400 leading-tight">BH: ${row.business_head_name || '-'}</span>
                                 <span class="text-[10px] text-gray-400 leading-tight">${row.business_head_phone_number || '-'}</span>
                             </div>
+                            <span class="text-[9px] text-gray-400 mt-1">Owner: ${row.make_owner || '-'} / ${row.collection_owner || '-'}</span>
                         </div>
                     </td>
                     <td class="px-4 py-4">
@@ -282,6 +284,7 @@ function renderRichModalContent(data, segment_id) {
                             <span class="text-[10px] text-gray-500 flex items-center gap-1">
                                 <span class="material-symbols-outlined text-[12px] text-rose-500">event</span> Target: ${targetDate}
                             </span>
+                            <span class="text-[9px] text-gray-400 italic">${row.collection || '-'}</span>
                         </div>
                     </td>
                     <td class="px-4 py-4 text-center">
@@ -291,7 +294,7 @@ function renderRichModalContent(data, segment_id) {
                     </td>
                     <td class="px-4 py-4 text-right">
                         <div class="flex flex-col">
-                            <span class="text-xs font-black text-gray-900 dark:text-gray-100">${formatWeight(row.barcoded_weight || row.required_weight)} <span class="text-[9px] font-normal text-gray-400">Gms</span></span>
+                            <span class="text-xs font-black text-gray-900 dark:text-gray-100">${formatWeight(row.required_weight || row.barcoded_weight)} <span class="text-[9px] font-normal text-gray-400">Gms</span></span>
                             <div class="flex flex-col mt-1">
                                 <span class="text-[9px] text-gray-500">Stone: ${formatWeight(row.stone_weight)}</span>
                                 <span class="text-[9px] text-gray-500">Net: ${formatWeight(row.net_weight)}</span>

@@ -1568,6 +1568,7 @@ class QCCompletedInvoicePendingSnapshot(db.Model):
     
     # Core drill-down / grouping columns
     order_branch = db.Column(db.String(150))
+    branch_id = db.Column(db.BigInteger)
     make_owner = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
@@ -1666,6 +1667,7 @@ class QCCompletedInvoiceRequestPendingSnapshot(db.Model):
     set_design_no = db.Column(db.String(100))
     order_ro = db.Column(db.String(150))
     order_branch = db.Column(db.String(150))
+    branch_id = db.Column(db.BigInteger)
     business_head_name = db.Column(db.String(150))
     order_incharge_email = db.Column(db.String(150))
     order_incharge_phone_no = db.Column(db.String(50))
@@ -1762,6 +1764,7 @@ class InvoiceCompletedPendingDeliverSnapshot(db.Model):
     
     # Core drill-down / grouping columns
     order_branch = db.Column(db.String(150))
+    branch_id = db.Column(db.BigInteger)
     make_owner = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
@@ -1801,6 +1804,7 @@ class InvoiceCompletedPendingDeliverFeedback(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     order_branch = db.Column(db.String(150))
+    branch_id = db.Column(db.BigInteger)
     make_owner = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
@@ -1958,6 +1962,7 @@ class QCReceiptCompletedQCPendingSnapshot(db.Model):
     
     order_ro = db.Column(db.String(150))
     order_branch = db.Column(db.String(150))
+    branch_id = db.Column(db.BigInteger)
     business_head_name = db.Column(db.String(150))
     order_incharge_email = db.Column(db.String(150))
     order_incharge_phone_no = db.Column(db.String(50))
@@ -2461,6 +2466,7 @@ class PartyAcceptPendingSnapshot(db.Model):
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
     order_branch = db.Column(db.String(150))
+    branch_id = db.Column(db.BigInteger)
     po_date = db.Column(db.Date)
     po_number = db.Column(db.String(100))
     party = db.Column(db.String(200))
@@ -2491,6 +2497,7 @@ class PartyProcessPendingSnapshot(db.Model):
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
     order_branch = db.Column(db.String(150))
+    branch_id = db.Column(db.BigInteger)
     po_date = db.Column(db.Date)
     po_number = db.Column(db.String(100))
     party = db.Column(db.String(200))
@@ -2521,6 +2528,7 @@ class PartyBarcodePendingSnapshot(db.Model):
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
     order_branch = db.Column(db.String(150))
+    branch_id = db.Column(db.BigInteger)
     po_date = db.Column(db.Date)
     po_number = db.Column(db.String(100))
     party = db.Column(db.String(200))
@@ -2551,6 +2559,7 @@ class PartyHMIssuePendingSnapshot(db.Model):
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
     order_branch = db.Column(db.String(150))
+    branch_id = db.Column(db.BigInteger)
     po_date = db.Column(db.Date)
     po_number = db.Column(db.String(100))
     party = db.Column(db.String(200))
@@ -2583,6 +2592,7 @@ class PartyHMReceiptCompletedQCIssuePendingSnapshot(db.Model):
     collection = db.Column(db.String(200))
     order_ro = db.Column(db.String(150))
     order_branch = db.Column(db.String(150))
+    branch_id = db.Column(db.BigInteger)
     party = db.Column(db.String(200))
     party_mobile_no = db.Column(db.String(50))
     po_date = db.Column(db.Date)
@@ -2650,6 +2660,7 @@ class PartyInvoiceRequestCompletedInvoicePendingSnapshot(db.Model):
     set_design_no = db.Column(db.String(100))
     order_ro = db.Column(db.String(150))
     order_branch = db.Column(db.String(150))
+    branch_id = db.Column(db.BigInteger)
     business_head_name = db.Column(db.String(150))
     order_incharge_email = db.Column(db.String(150))
     order_incharge_phone_no = db.Column(db.String(50))
