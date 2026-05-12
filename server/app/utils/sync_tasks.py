@@ -3256,7 +3256,7 @@ def sync_party_delay_management_data_task():
         emit_sync_update('processing', 'Summary synced. Syncing Segment 1 details...', 20, DATA_TYPE)
 
         # 2. Segment 1 Details (Accept Pending)
-        s1_query = "SELECT make_owner, collection_owner, collection, order_branch, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_invited_order_details"
+        s1_query = "SELECT make_owner, collection_owner, collection, order_branch, NULL as branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_invited_order_details"
         try:
             cur.execute(s1_query)
             s1_rows = cur.fetchall()
@@ -3269,7 +3269,7 @@ def sync_party_delay_management_data_task():
         emit_sync_update('processing', 'Segment 1 synced. Syncing Segment 2...', 35, DATA_TYPE)
 
         # 3. Segment 2 Details (Process Pending)
-        s2_query = "SELECT make_owner, collection_owner, collection, order_branch, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_process_pending_order_details"
+        s2_query = "SELECT make_owner, collection_owner, collection, order_branch, NULL as branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_process_pending_order_details"
         try:
             cur.execute(s2_query)
             s2_rows = cur.fetchall()
@@ -3282,7 +3282,7 @@ def sync_party_delay_management_data_task():
         emit_sync_update('processing', 'Segment 2 synced. Syncing Segment 3...', 50, DATA_TYPE)
 
         # 4. Segment 3 Details (Barcode Pending)
-        s3_query = "SELECT make_owner, collection_owner, collection, order_branch, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_barcode_pending_order_details"
+        s3_query = "SELECT make_owner, collection_owner, collection, order_branch, NULL as branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_barcode_pending_order_details"
         try:
             cur.execute(s3_query)
             s3_rows = cur.fetchall()
@@ -3295,7 +3295,7 @@ def sync_party_delay_management_data_task():
         emit_sync_update('processing', 'Segment 3 synced. Syncing Segment 4...', 65, DATA_TYPE)
 
         # 5. Segment 4 Details (HM Issue Pending)
-        s4_query = "SELECT make_owner, collection_owner, collection, order_branch, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, '' as business_head_name, '' as business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_order_barcoding_completed_hm_issue_pending"
+        s4_query = "SELECT make_owner, collection_owner, collection, order_branch, NULL as branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, '' as business_head_name, '' as business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_order_barcoding_completed_hm_issue_pending"
         try:
             cur.execute(s4_query)
             s4_rows = cur.fetchall()
