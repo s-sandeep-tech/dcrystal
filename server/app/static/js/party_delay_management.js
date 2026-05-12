@@ -347,26 +347,43 @@ function renderRichModalContent(data, segment_id) {
                     <td class="px-4 py-4">
                         <div class="flex flex-col gap-0.5">
                             <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.po_number || '-'}</span>
-                            <span class="text-[10px] text-orange-600 dark:text-orange-400 font-bold">${row.hm_request_no || '-'}</span>
-                            <span class="text-[10px] text-gray-400 font-medium">${row.hallmark_agent || '-'}</span>
+                            <div class="flex items-center gap-1">
+                                <span class="text-[10px] text-orange-600 dark:text-orange-400 font-bold">${row.hm_request_no || row.hallmar_req_id || 'No HM Req'}</span>
+                                ${row.hallmark_status ? `<span class="px-1 py-0.5 rounded bg-orange-100 text-orange-700 text-[8px] font-bold">${row.hallmark_status}</span>` : ''}
+                            </div>
+                            <span class="text-[10px] text-gray-400 font-medium">Ord: ${row.order_no || '-'}</span>
+                            <span class="text-[9px] text-gray-400 italic">Stage: ${row.current_stage || '-'}</span>
                         </div>
                     </td>
                     <td class="px-4 py-4">
                         <div class="flex flex-col">
                             <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.party || '-'}</span>
                             <span class="text-[10px] text-gray-500">${row.party_mobile_no || '-'}</span>
+                            <div class="flex flex-col mt-1">
+                                <span class="text-[9px] text-gray-400 leading-tight">Agent: ${row.hallmark_agent || '-'}</span>
+                                <span class="text-[9px] text-gray-400">Owner: ${row.make_owner || '-'} / ${row.collection_owner || '-'}</span>
+                            </div>
+                            <div class="mt-1 flex items-center gap-2">
+                                <span class="text-[10px] font-bold text-indigo-600">${row.set_design_no || row.design_no || '-'}</span>
+                                <span class="text-[9px] text-gray-400">${row.collection || '-'}</span>
+                            </div>
                         </div>
                     </td>
                     <td class="px-4 py-4 text-center">
                         <div class="flex flex-col">
                             <span class="text-[10px] text-gray-400 uppercase font-black tracking-tighter">HM Comp At</span>
                             <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${row.hm_completed_at ? row.hm_completed_at.split('T')[0] : '-'}</span>
+                            <span class="text-[9px] text-gray-400 mt-1">ID: ${row.hallmark_info_id || '-'}</span>
                         </div>
                     </td>
                     <td class="px-4 py-4 text-right">
                         <div class="flex flex-col">
-                            <span class="text-xs font-black text-rose-600">${row.pending_to_final_qc_issue_pcs || 0} Pcs</span>
+                            <span class="text-xs font-black text-orange-600">${row.pending_to_final_qc_issue_pcs || 0} Pcs</span>
                             <span class="text-[10px] text-gray-400 font-bold">${formatWeight(row.pending_to_final_qc_issue_weight)} Gms</span>
+                            <div class="flex flex-col mt-1 border-t border-gray-100 pt-1">
+                                <span class="text-[8px] text-gray-400">Net: ${formatWeight(row.net_weight)}</span>
+                                <span class="text-[8px] text-gray-400">Stone: ${formatWeight(row.stone_weight)}</span>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -377,26 +394,40 @@ function renderRichModalContent(data, segment_id) {
                     <td class="px-4 py-4">
                         <div class="flex flex-col gap-0.5">
                             <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.po_number || '-'}</span>
-                            <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">${row.invoice_request_number || '-'}</span>
-                            <span class="text-[10px] text-gray-400">Req: ${row.invoice_request_date ? row.invoice_request_date.split('T')[0] : '-'}</span>
+                            <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">${row.invoice_request_number || 'No Inv Req'}</span>
+                            <span class="text-[10px] text-gray-500">${row.invoice_request_date ? row.invoice_request_date.split('T')[0] : '-'}</span>
+                            <span class="text-[9px] text-gray-400 mt-1 font-medium">Ord: ${row.order_no || '-'}</span>
                         </div>
                     </td>
                     <td class="px-4 py-4">
                         <div class="flex flex-col">
                             <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.party || '-'}</span>
-                            <span class="text-[10px] text-gray-500">RO: ${row.qc_ro || '-'}</span>
+                            <span class="text-[10px] text-gray-500">${row.party_mobile_no || '-'}</span>
+                            <div class="flex flex-col mt-1">
+                                <span class="text-[9px] text-gray-400 leading-tight">BH: ${row.business_head_name || '-'}</span>
+                                <span class="text-[9px] text-gray-400">Owner: ${row.make_owner || '-'} / ${row.collection_owner || '-'}</span>
+                            </div>
+                            <div class="mt-1 flex items-center gap-2">
+                                <span class="text-[10px] font-bold text-indigo-600">${row.set_design_no || row.design_no || '-'}</span>
+                                <span class="text-[9px] text-gray-400">${row.collection || '-'}</span>
+                            </div>
                         </div>
                     </td>
                     <td class="px-4 py-4 text-center">
                         <div class="flex flex-col">
-                            <span class="text-[10px] text-gray-400 uppercase font-black tracking-tighter">QC Receipt</span>
+                            <span class="text-[10px] text-gray-400 uppercase font-black tracking-tighter">Final QC</span>
                             <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${row.final_qc_receipt_date ? row.final_qc_receipt_date.split('T')[0] : '-'}</span>
+                            <span class="text-[9px] text-gray-400 mt-1">${row.final_qc_receipt_no || '-'}</span>
                         </div>
                     </td>
                     <td class="px-4 py-4 text-right">
                         <div class="flex flex-col">
-                            <span class="text-xs font-black text-gray-900 dark:text-gray-100">${formatWeight(row.net_weight)} <span class="text-[9px] font-normal text-gray-400">Net</span></span>
-                            <span class="text-[10px] text-gray-400 font-bold">Stone: ${formatWeight(row.stone_weight)}</span>
+                            <span class="text-xs font-black text-emerald-600">Invoice Pending</span>
+                            <span class="text-[10px] text-gray-400 font-bold">${formatWeight(row.barcoded_weight)} Gms</span>
+                            <div class="flex flex-col mt-1 border-t border-gray-100 pt-1">
+                                <span class="text-[8px] text-gray-400">Net: ${formatWeight(row.net_weight)}</span>
+                                <span class="text-[8px] text-gray-400">Stone: ${formatWeight(row.stone_weight)}</span>
+                            </div>
                         </div>
                     </td>
                 </tr>
