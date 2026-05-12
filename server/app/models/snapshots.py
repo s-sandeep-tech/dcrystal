@@ -1,5 +1,5 @@
 from ..extensions import db
-from datetime import datetime
+from datetime import datetime, date
 
 class OrderStatusReportSnapshot(db.Model):
     __tablename__ = 'order_status_report_snapshot'
