@@ -3257,62 +3257,80 @@ def sync_party_delay_management_data_task():
 
         # 2. Segment 1 Details (Accept Pending)
         s1_query = "SELECT make_owner, collection_owner, collection, order_branch, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_invited_order_details"
-        cur.execute(s1_query)
-        s1_rows = cur.fetchall()
-        db.session.execute(text("TRUNCATE TABLE party_accept_pending_snapshots"))
-        s1_objects = [PartyAcceptPendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyAcceptPendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s1_rows]
-        db.session.bulk_save_objects(s1_objects)
-        db.session.commit()
+        try:
+            cur.execute(s1_query)
+            s1_rows = cur.fetchall()
+            db.session.execute(text("TRUNCATE TABLE party_accept_pending_snapshots"))
+            s1_objects = [PartyAcceptPendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyAcceptPendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s1_rows]
+            db.session.bulk_save_objects(s1_objects)
+            db.session.commit()
+        except Exception as e:
+            raise Exception(f"Segment 1 (vw_invited_order_details) failed: {str(e)}")
         emit_sync_update('processing', 'Segment 1 synced. Syncing Segment 2...', 35, DATA_TYPE)
 
         # 3. Segment 2 Details (Process Pending)
         s2_query = "SELECT make_owner, collection_owner, collection, order_branch, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_process_pending_order_details"
-        cur.execute(s2_query)
-        s2_rows = cur.fetchall()
-        db.session.execute(text("TRUNCATE TABLE party_process_pending_snapshots"))
-        s2_objects = [PartyProcessPendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyProcessPendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s2_rows]
-        db.session.bulk_save_objects(s2_objects)
-        db.session.commit()
+        try:
+            cur.execute(s2_query)
+            s2_rows = cur.fetchall()
+            db.session.execute(text("TRUNCATE TABLE party_process_pending_snapshots"))
+            s2_objects = [PartyProcessPendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyProcessPendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s2_rows]
+            db.session.bulk_save_objects(s2_objects)
+            db.session.commit()
+        except Exception as e:
+            raise Exception(f"Segment 2 (vw_process_pending_order_details) failed: {str(e)}")
         emit_sync_update('processing', 'Segment 2 synced. Syncing Segment 3...', 50, DATA_TYPE)
 
         # 4. Segment 3 Details (Barcode Pending)
         s3_query = "SELECT make_owner, collection_owner, collection, order_branch, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_barcode_pending_order_details"
-        cur.execute(s3_query)
-        s3_rows = cur.fetchall()
-        db.session.execute(text("TRUNCATE TABLE party_barcode_pending_snapshots"))
-        s3_objects = [PartyBarcodePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyBarcodePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s3_rows]
-        db.session.bulk_save_objects(s3_objects)
-        db.session.commit()
+        try:
+            cur.execute(s3_query)
+            s3_rows = cur.fetchall()
+            db.session.execute(text("TRUNCATE TABLE party_barcode_pending_snapshots"))
+            s3_objects = [PartyBarcodePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyBarcodePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s3_rows]
+            db.session.bulk_save_objects(s3_objects)
+            db.session.commit()
+        except Exception as e:
+            raise Exception(f"Segment 3 (vw_barcode_pending_order_details) failed: {str(e)}")
         emit_sync_update('processing', 'Segment 3 synced. Syncing Segment 4...', 65, DATA_TYPE)
 
         # 5. Segment 4 Details (HM Issue Pending)
         s4_query = "SELECT make_owner, collection_owner, collection, order_branch, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_order_barcoding_completed_hm_issue_pending"
-        cur.execute(s4_query)
-        s4_rows = cur.fetchall()
-        db.session.execute(text("TRUNCATE TABLE party_hm_issue_pending_snapshots"))
-        s4_objects = [PartyHMIssuePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyHMIssuePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s4_rows]
-        db.session.bulk_save_objects(s4_objects)
-        db.session.commit()
+        try:
+            cur.execute(s4_query)
+            s4_rows = cur.fetchall()
+            db.session.execute(text("TRUNCATE TABLE party_hm_issue_pending_snapshots"))
+            s4_objects = [PartyHMIssuePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyHMIssuePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s4_rows]
+            db.session.bulk_save_objects(s4_objects)
+            db.session.commit()
+        except Exception as e:
+            raise Exception(f"Segment 4 (vw_order_barcoding_completed_hm_issue_pending) failed: {str(e)}")
         emit_sync_update('processing', 'Segment 4 synced. Syncing Segment 5...', 80, DATA_TYPE)
 
         # 6. Segment 5 Details (QC Issue Pending)
         s5_query = "SELECT order_id, make_owner, collection_owner, collection, order_ro, order_branch, party, party_mobile_no, po_date, target_date, po_number, order_type, order_request_type, order_no, required_weight, design_no, set_identifier, set_design_no, barcode, is_hm_agent_received, barcoded_weight, barcode_completion_date, order_status, current_stage, hallmar_req_id, hm_request_no, hallmark_agent, hallmark_status, hm_ro, hm_agent_email, hm_agent_pnone_no, hm_completed_at, hallmark_info_id, net_weight, gross_weight, stone_weight, business_head_name, hm_agent_invoice_receipt_no, hm_agent_invoice_receipt_date, pending_to_final_qc_issue_pcs, pending_to_final_qc_issue_weight FROM ext_view.vw_hm_return_received_qc_issue_pending"
-        cur.execute(s5_query)
-        s5_rows = cur.fetchall()
-        db.session.execute(text("TRUNCATE TABLE party_qc_issue_pending_snapshots"))
-        s5_objects = [PartyHMReceiptCompletedQCIssuePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyHMReceiptCompletedQCIssuePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s5_rows]
-        db.session.bulk_save_objects(s5_objects)
-        db.session.commit()
+        try:
+            cur.execute(s5_query)
+            s5_rows = cur.fetchall()
+            db.session.execute(text("TRUNCATE TABLE party_qc_issue_pending_snapshots"))
+            s5_objects = [PartyHMReceiptCompletedQCIssuePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyHMReceiptCompletedQCIssuePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s5_rows]
+            db.session.bulk_save_objects(s5_objects)
+            db.session.commit()
+        except Exception as e:
+            raise Exception(f"Segment 5 (vw_hm_return_received_qc_issue_pending) failed: {str(e)}")
         emit_sync_update('processing', 'Segment 5 synced. Syncing Segment 6...', 90, DATA_TYPE)
 
         # 7. Segment 6 Details (Invoice Pending)
         s6_query = "SELECT order_id, order_no, qc_ro_id, qc_ro, qc_ro_incharge, qc_ro_incharge_email, qc_ro_incharge_phone_no, make_owner, make, collection_owner, collection, party, party_mobile_no, po_date, delivery_target_date, po_number, order_type, order_request_type, design_no, set_identifier, set_design_no, order_ro, order_branch, business_head_name, order_incharge_email, order_incharge_phone_no, barcoded_weight, barcode_completion_date, hm_completed_date, final_qc_receipt_no, final_qc_receipt_date, net_weight, gross_weight, stone_weight, invoice_request_number, invoice_request_date FROM ext_view.vw_invoice_request_completed_invoice_pending"
-        cur.execute(s6_query)
-        s6_rows = cur.fetchall()
-        db.session.execute(text("TRUNCATE TABLE party_invoice_pending_snapshots"))
-        s6_objects = [PartyInvoiceRequestCompletedInvoicePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyInvoiceRequestCompletedInvoicePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s6_rows]
-        db.session.bulk_save_objects(s6_objects)
-        db.session.commit()
+        try:
+            cur.execute(s6_query)
+            s6_rows = cur.fetchall()
+            db.session.execute(text("TRUNCATE TABLE party_invoice_pending_snapshots"))
+            s6_objects = [PartyInvoiceRequestCompletedInvoicePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyInvoiceRequestCompletedInvoicePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s6_rows]
+            db.session.bulk_save_objects(s6_objects)
+            db.session.commit()
+        except Exception as e:
+            raise Exception(f"Segment 6 (vw_invoice_request_completed_invoice_pending) failed: {str(e)}")
 
         duration = time.time() - start_time
         emit_sync_update('success', f"Successfully synced Party Delay Management data in {duration:.2f}s", 100, DATA_TYPE)
