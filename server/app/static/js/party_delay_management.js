@@ -212,13 +212,20 @@ function renderRichModalContent(data, segment_id) {
     const content = document.getElementById('modalContent');
     
     let headers = "";
-    if (segment_id <= 4) {
+    if (segment_id === 1 || segment_id === 2 || segment_id === 3) {
         headers = `
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">PO Info</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Party Info</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Design / Set</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">Status</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-right">Weights</th>
+        `;
+    } else if (segment_id === 4) {
+        headers = `
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">PO / HM Req</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Party / Agent</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">HM Receipt</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-right">Pending HM Issue</th>
         `;
     } else if (segment_id === 5) {
         headers = `
@@ -248,7 +255,7 @@ function renderRichModalContent(data, segment_id) {
     `;
 
     data.forEach(row => {
-        if (segment_id <= 4) {
+        if (segment_id === 1 || segment_id === 2 || segment_id === 3) {
             const poDate = row.po_date ? row.po_date.split('T')[0] : '-';
             const targetDate = row.target_date ? row.target_date.split('T')[0] : '-';
             
@@ -299,6 +306,37 @@ function renderRichModalContent(data, segment_id) {
                                 <span class="text-[9px] text-gray-500">Stone: ${formatWeight(row.stone_weight)}</span>
                                 <span class="text-[9px] text-gray-500">Net: ${formatWeight(row.net_weight)}</span>
                             </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        } else if (segment_id === 4) {
+            html += `
+                <tr class="hover:bg-amber-50/30 dark:hover:bg-amber-900/10 transition-colors">
+                    <td class="px-4 py-4">
+                        <div class="flex flex-col gap-0.5">
+                            <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.po_number || '-'}</span>
+                            <span class="text-[10px] text-amber-600 dark:text-amber-400 font-bold">${row.hm_req_id || '-'}</span>
+                            <span class="text-[10px] text-gray-400 font-medium">${row.order_no || '-'}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4">
+                        <div class="flex flex-col">
+                            <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.party || '-'}</span>
+                            <span class="text-[10px] text-gray-500">Agent: ${row.hallmark_agent || '-'}</span>
+                            <span class="text-[9px] text-gray-400 italic">${row.hm_agent_email || '-'}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-gray-400 uppercase font-black tracking-tighter">${row.hm_issue_receipt_no || 'No Receipt'}</span>
+                            <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${row.hm_issue_receipt_date ? row.hm_issue_receipt_date.split('T')[0] : '-'}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 text-right">
+                        <div class="flex flex-col">
+                            <span class="text-xs font-black text-rose-600">${row.pending_to_hallmark_issue_piece || 0} Pcs</span>
+                            <span class="text-[10px] text-gray-400 font-bold">${formatWeight(row.pending_to_hallmark_issue_wt)} Gms</span>
                         </div>
                     </td>
                 </tr>
