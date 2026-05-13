@@ -2395,7 +2395,7 @@ def sync_supplier_qc_issue_receipt_pending_data_task():
         cur = conn.cursor()
         query = """
         SELECT 
-            make_owner, collection_owner, collection, order_branch, business_head_name, 
+            make_owner, collection_owner, collection, order_branch, '' business_head_name, 
             party, po_date, po_number, order_type, order_request_type, 
             party_mobile_no, barcode_completion_date, barcoded_weight, 
             set_identifier, set_design_no, target_date, hm_request_no, 
