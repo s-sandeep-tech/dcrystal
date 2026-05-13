@@ -2639,6 +2639,7 @@ class PartyHMReceiptCompletedQCIssuePendingSnapshot(db.Model):
     gross_weight = db.Column(db.Numeric(12, 3))
     stone_weight = db.Column(db.Numeric(12, 3))
     business_head_name = db.Column(db.String(150))
+    business_head_phone_number = db.Column(db.String(50))
     hm_agent_invoice_receipt_no = db.Column(db.String(100))
     hm_agent_invoice_receipt_date = db.Column(db.Date)
     pending_to_final_qc_issue_pcs = db.Column(db.Integer)

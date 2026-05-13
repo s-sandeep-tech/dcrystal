@@ -229,10 +229,11 @@ function renderRichModalContent(data, segment_id) {
         `;
     } else if (segment_id === 5) {
         headers = `
-            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">PO / HM Info</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">PO Info</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Party Info</th>
-            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">HM Completed</th>
-            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-right">Pending QC Issue</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">Hallmark Info</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Design / Set</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-right">Weight</th>
         `;
     } else {
         headers = `
@@ -342,48 +343,59 @@ function renderRichModalContent(data, segment_id) {
                 </tr>
             `;
         } else if (segment_id === 5) {
+            const poDate = row.po_date ? row.po_date.split('T')[0] : '-';
+            const hmReceiptDate = row.hm_agent_invoice_receipt_date ? row.hm_agent_invoice_receipt_date.split('T')[0] : '-';
+            const hmCompletedAt = row.hm_completed_at ? row.hm_completed_at.split('T')[0] : '-';
+            const targetDate = row.target_date ? row.target_date.split('T')[0] : '-';
+            
             html += `
                 <tr class="hover:bg-orange-50/30 dark:hover:bg-orange-900/10 transition-colors">
-                    <td class="px-4 py-4">
+                    <td class="px-4 py-4 align-top">
                         <div class="flex flex-col gap-0.5">
                             <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.po_number || '-'}</span>
-                            <div class="flex items-center gap-1">
-                                <span class="text-[10px] text-orange-600 dark:text-orange-400 font-bold">${row.hm_request_no || row.hallmar_req_id || 'No HM Req'}</span>
-                                ${row.hallmark_status ? `<span class="px-1 py-0.5 rounded bg-orange-100 text-orange-700 text-[8px] font-bold">${row.hallmark_status}</span>` : ''}
-                            </div>
-                            <span class="text-[10px] text-gray-400 font-medium">Ord: ${row.order_no || '-'}</span>
-                            <span class="text-[9px] text-gray-400 italic">Stage: ${row.current_stage || '-'}</span>
+                            <span class="text-[10px] text-gray-500 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[12px]">calendar_today</span> ${poDate}
+                            </span>
+                            <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">${row.order_branch || '-'}</span>
                         </div>
                     </td>
-                    <td class="px-4 py-4">
-                        <div class="flex flex-col">
+                    <td class="px-4 py-4 align-top">
+                        <div class="flex flex-col gap-0.5">
                             <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.party || '-'}</span>
                             <span class="text-[10px] text-gray-500">${row.party_mobile_no || '-'}</span>
                             <div class="flex flex-col mt-1">
-                                <span class="text-[9px] text-gray-400 leading-tight">Agent: ${row.hallmark_agent || '-'}</span>
-                                <span class="text-[9px] text-gray-400">Owner: ${row.make_owner || '-'} / ${row.collection_owner || '-'}</span>
-                            </div>
-                            <div class="mt-1 flex items-center gap-2">
-                                <span class="text-[10px] font-bold text-indigo-600">${row.set_design_no || row.design_no || '-'}</span>
-                                <span class="text-[9px] text-gray-400">${row.collection || '-'}</span>
+                                <span class="text-[10px] text-gray-400 leading-tight">BH: ${row.business_head_name || '-'}</span>
+                                <span class="text-[10px] text-gray-400 leading-tight">${row.business_head_phone_number || '-'}</span>
                             </div>
                         </div>
                     </td>
-                    <td class="px-4 py-4 text-center">
-                        <div class="flex flex-col">
-                            <span class="text-[10px] text-gray-400 uppercase font-black tracking-tighter">HM Comp At</span>
-                            <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${row.hm_completed_at ? row.hm_completed_at.split('T')[0] : '-'}</span>
-                            <span class="text-[9px] text-gray-400 mt-1">ID: ${row.hallmark_info_id || '-'}</span>
+                    <td class="px-4 py-4 align-top">
+                        <div class="flex flex-col gap-0.5">
+                            <span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Inv/Rect: ${row.hm_agent_invoice_receipt_no || '-'}</span>
+                            <span class="text-[10px] text-gray-500">Dt: ${hmReceiptDate}</span>
+                            <div class="flex flex-col mt-1">
+                                <span class="text-[9px] text-gray-400 leading-tight">Email: ${row.hm_agent_email || '-'}</span>
+                                <span class="text-[9px] text-gray-400 leading-tight">Ph: ${row.hm_agent_pnone_no || '-'}</span>
+                            </div>
+                            <span class="text-[9px] text-gray-400 mt-1">Comp: ${hmCompletedAt}</span>
+                            <span class="text-[9px] text-gray-400">RO: ${row.hm_ro || '-'}</span>
                         </div>
                     </td>
-                    <td class="px-4 py-4 text-right">
+                    <td class="px-4 py-4 align-top">
+                        <div class="flex flex-col gap-0.5">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.set_design_no || row.design_no || '-'}</span>
+                                ${row.set_identifier ? `<span class="px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[9px] font-bold">${row.set_identifier}</span>` : ''}
+                            </div>
+                            <span class="text-[10px] text-gray-500 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[12px] text-rose-500">event</span> Target: ${targetDate}
+                            </span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 text-right align-top">
                         <div class="flex flex-col">
                             <span class="text-xs font-black text-orange-600">${row.pending_to_final_qc_issue_pcs || 0} Pcs</span>
                             <span class="text-[10px] text-gray-400 font-bold">${formatWeight(row.pending_to_final_qc_issue_weight)} Gms</span>
-                            <div class="flex flex-col mt-1 border-t border-gray-100 pt-1">
-                                <span class="text-[8px] text-gray-400">Net: ${formatWeight(row.net_weight)}</span>
-                                <span class="text-[8px] text-gray-400">Stone: ${formatWeight(row.stone_weight)}</span>
-                            </div>
                         </div>
                     </td>
                 </tr>
