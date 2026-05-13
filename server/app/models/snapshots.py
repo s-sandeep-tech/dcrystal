@@ -2576,7 +2576,6 @@ class PartyHMIssuePendingSnapshot(db.Model):
     set_design_no = db.Column(db.String(100))
     barcode = db.Column(db.String(100))
     is_barcoded = db.Column(db.Boolean)
-    is_supplier_hm_issue_challan_created = db.Column(db.Boolean)
     is_supplier_hm_issue_completed = db.Column(db.Boolean)
     barcoded_weight = db.Column(db.Numeric(12, 3))
     barcode_completion_date = db.Column(db.DateTime)

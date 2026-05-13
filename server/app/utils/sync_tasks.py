@@ -3303,7 +3303,7 @@ def sync_party_delay_management_data_task():
             emit_sync_update('processing', 'Segment 3 synced. Syncing Segment 4...', 65, DATA_TYPE)
 
             # 5. Segment 4 Details (HM Issue Pending)
-            s4_query = "SELECT orderid,make_owner,collection_owner,collection,order_ro,order_branch,party,party_mobile_no,po_date,target_date,po_number,order_type,order_request_type,order_no,required_weight,design_no,set_identifier,set_design_no,barcode, 1 as is_barcoded,is_supplier_hm_issue_challan_created,is_supplier_hm_issue_completed,barcoded_weight,barcode_completion_date,order_status,current_stage,hm_req_id,hm_issue_receipt_no,hm_issue_receipt_date,hallmark_agent,hm_ro,hm_agent_email,hm_agent_pnone_no,net_weight,gross_weight,stone_weight,pending_to_hallmark_issue_piece,pending_to_hallmark_issue_wt FROM ext_view.vw_order_barcoding_completed_hm_issue_pending"
+            s4_query = "SELECT orderid,make_owner,collection_owner,collection,order_ro,order_branch,party,party_mobile_no,po_date,target_date,po_number,order_type,order_request_type,order_no,required_weight,design_no,set_identifier,set_design_no,barcode, 1 as is_barcoded,is_supplier_hm_issue_completed,barcoded_weight,barcode_completion_date,order_status,current_stage,hm_req_id,hm_issue_receipt_no,hm_issue_receipt_date,hallmark_agent,hm_ro,hm_agent_email,hm_agent_pnone_no,net_weight,gross_weight,stone_weight,pending_to_hallmark_issue_piece,pending_to_hallmark_issue_wt FROM ext_view.vw_order_barcoding_completed_hm_issue_pending"
             try:
                 cur.execute(s4_query)
                 s4_rows = cur.fetchall()
