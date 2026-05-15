@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %} Party Delay Management {% endblock %}
+{% block title %} Vendor Delay Management {% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
@@ -177,7 +177,7 @@
     <!-- Header -->
     <div class="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
         <div class="flex items-center gap-2">
-            <h2 class="text-sm font-bold tracking-tight text-gray-900 dark:text-white">Party Delay Management</h2>
+            <h2 class="text-sm font-bold tracking-tight text-gray-900 dark:text-white">Vendor Delay Management</h2>
             <span class="bg-gray-100 text-gray-500 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">V1.0</span>
         </div>
         <div class="flex items-center gap-3">
@@ -202,7 +202,7 @@
     <div class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
             <span class="material-symbols-outlined text-[14px]">info</span>
-            <span>Showing Party Delay Status Summary. Last Sync: {{ sync_time }}</span>
+            <span>Showing Vendor Delay Status Summary. Last Sync: {{ sync_time }}</span>
         </div>
 
         <div class="flex items-center gap-4 text-[10px] text-gray-500">

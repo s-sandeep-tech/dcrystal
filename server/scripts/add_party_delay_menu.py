@@ -22,9 +22,9 @@ def seed_party_delay_menu():
             db.session.commit()
             print("Created 'Order Tracking' parent menu.")
 
-        # 2. Add Party Delay Management as child
-        menu_title = "Party Delay Management"
-        menu = Menu.query.filter_by(title=menu_title).first()
+        # 2. Add or update Vendor Delay Management as child
+        menu_title = "Vendor Delay Management"
+        menu = Menu.query.filter_by(url="/party-delay-management").first()
         if not menu:
             menu = Menu(
                 title=menu_title,
@@ -38,7 +38,12 @@ def seed_party_delay_menu():
             db.session.commit()
             print(f"Added '{menu_title}' menu.")
         else:
-            print(f"'{menu_title}' menu already exists.")
+            if menu.title != menu_title:
+                menu.title = menu_title
+                db.session.commit()
+                print(f"Updated menu title to '{menu_title}'.")
+            else:
+                print(f"'{menu_title}' menu already exists.")
 
         # 3. Associate with ADMIN role
         admin_role = Role.query.filter_by(name="ADMIN").first()

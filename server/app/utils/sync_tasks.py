@@ -3341,7 +3341,7 @@ def sync_party_delay_management_data_task():
                 raise Exception(f"Segment 6 (vw_invoice_request_completed_invoice_pending) failed: {str(e)}")
 
             duration = time.time() - start_time
-            emit_sync_update('success', f"Successfully synced Party Delay Management data in {duration:.2f}s", 100, DATA_TYPE)
+            emit_sync_update('success', f"Successfully synced Vendor Delay Management data in {duration:.2f}s", 100, DATA_TYPE)
             return {"status": "success", "duration": duration}
 
         except Exception as e:
