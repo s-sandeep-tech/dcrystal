@@ -255,10 +255,91 @@ function renderRichModalContent(data, segment_id) {
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
     `;
 
+    const groupedData = {};
     data.forEach(row => {
+        const po = row.po_number || 'UNKNOWN_PO';
+        if (!groupedData[po]) {
+            groupedData[po] = {
+                ...row,
+                _designs: new Set(),
+                _collections: new Set(),
+                _targets: new Set(),
+                _statuses: new Set(),
+                _orders: new Set(),
+                _hm_reqs: new Set(),
+                _inv_reqs: new Set(),
+                _hm_receipts: new Set(),
+                _inv_receipts: new Set(),
+                _hm_agents: new Set(),
+                _hm_agent_emails: new Set(),
+                _hm_agent_phones: new Set(),
+                _hm_ros: new Set(),
+                _final_qc_receipts: new Set(),
+                required_weight: 0,
+                barcoded_weight: 0,
+                stone_weight: 0,
+                net_weight: 0,
+                pending_to_hallmark_issue_piece: 0,
+                pending_to_hallmark_issue_wt: 0,
+                pending_to_final_qc_issue_pcs: 0,
+                pending_to_final_qc_issue_weight: 0
+            };
+        }
+        
+        const g = groupedData[po];
+        g.required_weight += parseFloat(row.required_weight || 0);
+        g.barcoded_weight += parseFloat(row.barcoded_weight || 0);
+        g.stone_weight += parseFloat(row.stone_weight || 0);
+        g.net_weight += parseFloat(row.net_weight || 0);
+        
+        g.pending_to_hallmark_issue_piece += parseInt(row.pending_to_hallmark_issue_piece || 0);
+        g.pending_to_hallmark_issue_wt += parseFloat(row.pending_to_hallmark_issue_wt || 0);
+        
+        g.pending_to_final_qc_issue_pcs += parseInt(row.pending_to_final_qc_issue_pcs || 0);
+        g.pending_to_final_qc_issue_weight += parseFloat(row.pending_to_final_qc_issue_weight || 0);
+
+        if (row.set_design_no) g._designs.add(row.set_design_no);
+        else if (row.design_no) g._designs.add(row.design_no);
+
+        if (row.collection) g._collections.add(row.collection);
+        if (row.target_date) g._targets.add(row.target_date.split('T')[0]);
+        if (row.order_status) g._statuses.add(row.order_status);
+        if (row.order_no) g._orders.add(row.order_no);
+        if (row.hm_req_id) g._hm_reqs.add(row.hm_req_id);
+        if (row.invoice_request_number) g._inv_reqs.add(row.invoice_request_number);
+        if (row.hm_issue_receipt_no) g._hm_receipts.add(row.hm_issue_receipt_no);
+        if (row.hm_agent_invoice_receipt_no) g._inv_receipts.add(row.hm_agent_invoice_receipt_no);
+        if (row.hallmark_agent) g._hm_agents.add(row.hallmark_agent);
+        if (row.hm_agent_email) g._hm_agent_emails.add(row.hm_agent_email);
+        if (row.hm_agent_pnone_no) g._hm_agent_phones.add(row.hm_agent_pnone_no);
+        if (row.hm_ro) g._hm_ros.add(row.hm_ro);
+        if (row.final_qc_receipt_no) g._final_qc_receipts.add(row.final_qc_receipt_no);
+    });
+
+    const processedData = Object.values(groupedData).map(g => {
+        return {
+            ...g,
+            set_design_no: Array.from(g._designs).join(', ') || '-',
+            collection: Array.from(g._collections).join(', ') || '-',
+            target_date: Array.from(g._targets).join(', ') || '-',
+            order_status: Array.from(g._statuses).join(', ') || '-',
+            order_no: Array.from(g._orders).join(', ') || '-',
+            hm_req_id: Array.from(g._hm_reqs).join(', ') || '-',
+            invoice_request_number: Array.from(g._inv_reqs).join(', ') || '-',
+            hm_issue_receipt_no: Array.from(g._hm_receipts).join(', ') || '-',
+            hm_agent_invoice_receipt_no: Array.from(g._inv_receipts).join(', ') || '-',
+            hallmark_agent: Array.from(g._hm_agents).join(', ') || '-',
+            hm_agent_email: Array.from(g._hm_agent_emails).join(', ') || '-',
+            hm_agent_pnone_no: Array.from(g._hm_agent_phones).join(', ') || '-',
+            hm_ro: Array.from(g._hm_ros).join(', ') || '-',
+            final_qc_receipt_no: Array.from(g._final_qc_receipts).join(', ') || '-'
+        };
+    });
+
+    processedData.forEach(row => {
         if (segment_id === 1 || segment_id === 2 || segment_id === 3) {
             const poDate = row.po_date ? row.po_date.split('T')[0] : '-';
-            const targetDate = row.target_date ? row.target_date.split('T')[0] : '-';
+            const targetDate = row.target_date;
             
             html += `
                 <tr class="hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-colors">
@@ -269,7 +350,7 @@ function renderRichModalContent(data, segment_id) {
                                 <span class="material-symbols-outlined text-[12px]">calendar_today</span> ${poDate}
                             </span>
                             <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">${row.order_branch || '-'}</span>
-                            <span class="text-[9px] text-gray-400">Ord: ${row.order_no || '-'}</span>
+                            <span class="text-[9px] text-gray-400">Ord: ${row.order_no}</span>
                         </div>
                     </td>
                     <td class="px-4 py-4">
@@ -286,18 +367,17 @@ function renderRichModalContent(data, segment_id) {
                     <td class="px-4 py-4">
                         <div class="flex flex-col gap-0.5">
                             <div class="flex items-center gap-2">
-                                <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.set_design_no || row.design_no || '-'}</span>
-                                ${row.set_identifier ? `<span class="px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[9px] font-bold">${row.set_identifier}</span>` : ''}
+                                <span class="text-xs font-bold text-gray-900 dark:text-gray-100 break-words max-w-[150px]">${row.set_design_no}</span>
                             </div>
-                            <span class="text-[10px] text-gray-500 flex items-center gap-1">
+                            <span class="text-[10px] text-gray-500 flex items-center gap-1 mt-1">
                                 <span class="material-symbols-outlined text-[12px] text-rose-500">event</span> Target: ${targetDate}
                             </span>
-                            <span class="text-[9px] text-gray-400 italic">${row.collection || '-'}</span>
+                            <span class="text-[9px] text-gray-400 italic break-words max-w-[150px]">${row.collection}</span>
                         </div>
                     </td>
                     <td class="px-4 py-4 text-center">
-                        <span class="px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold border border-amber-200 dark:border-amber-800/50 italic">
-                            ${row.order_status || '-'}
+                        <span class="px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold border border-amber-200 dark:border-amber-800/50 italic break-words max-w-[100px]">
+                            ${row.order_status}
                         </span>
                     </td>
                     <td class="px-4 py-4 text-right">
@@ -317,20 +397,20 @@ function renderRichModalContent(data, segment_id) {
                     <td class="px-4 py-4">
                         <div class="flex flex-col gap-0.5">
                             <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.po_number || '-'}</span>
-                            <span class="text-[10px] text-amber-600 dark:text-amber-400 font-bold">${row.hm_req_id || '-'}</span>
-                            <span class="text-[10px] text-gray-400 font-medium">${row.order_no || '-'}</span>
+                            <span class="text-[10px] text-amber-600 dark:text-amber-400 font-bold">${row.hm_req_id}</span>
+                            <span class="text-[10px] text-gray-400 font-medium break-words max-w-[150px]">${row.order_no}</span>
                         </div>
                     </td>
                     <td class="px-4 py-4">
                         <div class="flex flex-col">
                             <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.party || '-'}</span>
-                            <span class="text-[10px] text-gray-500">Agent: ${row.hallmark_agent || '-'}</span>
-                            <span class="text-[9px] text-gray-400 italic">${row.hm_agent_email || '-'}</span>
+                            <span class="text-[10px] text-gray-500">Agent: ${row.hallmark_agent}</span>
+                            <span class="text-[9px] text-gray-400 italic">${row.hm_agent_email}</span>
                         </div>
                     </td>
                     <td class="px-4 py-4 text-center">
                         <div class="flex flex-col">
-                            <span class="text-[10px] text-gray-400 uppercase font-black tracking-tighter">${row.hm_issue_receipt_no || 'No Receipt'}</span>
+                            <span class="text-[10px] text-gray-400 uppercase font-black tracking-tighter">${row.hm_issue_receipt_no !== '-' ? row.hm_issue_receipt_no : 'No Receipt'}</span>
                             <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${row.hm_issue_receipt_date ? row.hm_issue_receipt_date.split('T')[0] : '-'}</span>
                         </div>
                     </td>
@@ -346,7 +426,7 @@ function renderRichModalContent(data, segment_id) {
             const poDate = row.po_date ? row.po_date.split('T')[0] : '-';
             const hmReceiptDate = row.hm_agent_invoice_receipt_date ? row.hm_agent_invoice_receipt_date.split('T')[0] : '-';
             const hmCompletedAt = row.hm_completed_at ? row.hm_completed_at.split('T')[0] : '-';
-            const targetDate = row.target_date ? row.target_date.split('T')[0] : '-';
+            const targetDate = row.target_date;
             
             html += `
                 <tr class="hover:bg-orange-50/30 dark:hover:bg-orange-900/10 transition-colors">
@@ -371,23 +451,22 @@ function renderRichModalContent(data, segment_id) {
                     </td>
                     <td class="px-4 py-4 align-top">
                         <div class="flex flex-col gap-0.5">
-                            <span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Inv/Rect: ${row.hm_agent_invoice_receipt_no || '-'}</span>
+                            <span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Inv/Rect: ${row.hm_agent_invoice_receipt_no}</span>
                             <span class="text-[10px] text-gray-500">Dt: ${hmReceiptDate}</span>
                             <div class="flex flex-col mt-1">
-                                <span class="text-[9px] text-gray-400 leading-tight">Email: ${row.hm_agent_email || '-'}</span>
-                                <span class="text-[9px] text-gray-400 leading-tight">Ph: ${row.hm_agent_pnone_no || '-'}</span>
+                                <span class="text-[9px] text-gray-400 leading-tight break-words max-w-[150px]">Email: ${row.hm_agent_email}</span>
+                                <span class="text-[9px] text-gray-400 leading-tight break-words max-w-[150px]">Ph: ${row.hm_agent_pnone_no}</span>
                             </div>
                             <span class="text-[9px] text-gray-400 mt-1">Comp: ${hmCompletedAt}</span>
-                            <span class="text-[9px] text-gray-400">RO: ${row.hm_ro || '-'}</span>
+                            <span class="text-[9px] text-gray-400 break-words max-w-[150px]">RO: ${row.hm_ro}</span>
                         </div>
                     </td>
                     <td class="px-4 py-4 align-top">
                         <div class="flex flex-col gap-0.5">
                             <div class="flex items-center gap-2">
-                                <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.set_design_no || row.design_no || '-'}</span>
-                                ${row.set_identifier ? `<span class="px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[9px] font-bold">${row.set_identifier}</span>` : ''}
+                                <span class="text-xs font-bold text-gray-900 dark:text-gray-100 break-words max-w-[150px]">${row.set_design_no}</span>
                             </div>
-                            <span class="text-[10px] text-gray-500 flex items-center gap-1">
+                            <span class="text-[10px] text-gray-500 flex items-center gap-1 mt-1">
                                 <span class="material-symbols-outlined text-[12px] text-rose-500">event</span> Target: ${targetDate}
                             </span>
                         </div>
@@ -406,9 +485,9 @@ function renderRichModalContent(data, segment_id) {
                     <td class="px-4 py-4">
                         <div class="flex flex-col gap-0.5">
                             <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.po_number || '-'}</span>
-                            <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">${row.invoice_request_number || 'No Inv Req'}</span>
+                            <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold break-words max-w-[150px]">${row.invoice_request_number !== '-' ? row.invoice_request_number : 'No Inv Req'}</span>
                             <span class="text-[10px] text-gray-500">${row.invoice_request_date ? row.invoice_request_date.split('T')[0] : '-'}</span>
-                            <span class="text-[9px] text-gray-400 mt-1 font-medium">Ord: ${row.order_no || '-'}</span>
+                            <span class="text-[9px] text-gray-400 mt-1 font-medium break-words max-w-[150px]">Ord: ${row.order_no}</span>
                         </div>
                     </td>
                     <td class="px-4 py-4">
@@ -419,9 +498,9 @@ function renderRichModalContent(data, segment_id) {
                                 <span class="text-[9px] text-gray-400 leading-tight">BH: ${row.business_head_name || '-'}</span>
                                 <span class="text-[9px] text-gray-400">Owner: ${row.make_owner || '-'} / ${row.collection_owner || '-'}</span>
                             </div>
-                            <div class="mt-1 flex items-center gap-2">
-                                <span class="text-[10px] font-bold text-indigo-600">${row.set_design_no || row.design_no || '-'}</span>
-                                <span class="text-[9px] text-gray-400">${row.collection || '-'}</span>
+                            <div class="mt-1 flex flex-col gap-0.5">
+                                <span class="text-[10px] font-bold text-indigo-600 break-words max-w-[150px]">${row.set_design_no}</span>
+                                <span class="text-[9px] text-gray-400 break-words max-w-[150px]">${row.collection}</span>
                             </div>
                         </div>
                     </td>
@@ -429,7 +508,7 @@ function renderRichModalContent(data, segment_id) {
                         <div class="flex flex-col">
                             <span class="text-[10px] text-gray-400 uppercase font-black tracking-tighter">Final QC</span>
                             <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${row.final_qc_receipt_date ? row.final_qc_receipt_date.split('T')[0] : '-'}</span>
-                            <span class="text-[9px] text-gray-400 mt-1">${row.final_qc_receipt_no || '-'}</span>
+                            <span class="text-[9px] text-gray-400 mt-1 break-words max-w-[100px]">${row.final_qc_receipt_no}</span>
                         </div>
                     </td>
                     <td class="px-4 py-4 text-right">
