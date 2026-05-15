@@ -275,6 +275,7 @@ function renderRichModalContent(data, segment_id) {
                 _hm_agent_phones: new Set(),
                 _hm_ros: new Set(),
                 _final_qc_receipts: new Set(),
+                piece_count: 0,
                 required_weight: 0,
                 barcoded_weight: 0,
                 stone_weight: 0,
@@ -287,6 +288,7 @@ function renderRichModalContent(data, segment_id) {
         }
         
         const g = groupedData[po];
+        g.piece_count += 1;
         g.required_weight += parseFloat(row.required_weight || 0);
         g.barcoded_weight += parseFloat(row.barcoded_weight || 0);
         g.stone_weight += parseFloat(row.stone_weight || 0);
@@ -390,6 +392,7 @@ function renderRichModalContent(data, segment_id) {
                     </td>
                     <td class="px-4 py-4 text-right">
                         <div class="flex flex-col">
+                            <span class="text-xs font-black text-rose-600 mb-0.5">${row.piece_count || 0} Pcs</span>
                             <span class="text-xs font-black text-gray-900 dark:text-gray-100">${formatWeight(row.required_weight || row.barcoded_weight)} <span class="text-[9px] font-normal text-gray-400">Gms</span></span>
                             <div class="flex flex-col mt-1">
                                 <span class="text-[9px] text-gray-500">Stone: ${formatWeight(row.stone_weight)}</span>
@@ -520,7 +523,7 @@ function renderRichModalContent(data, segment_id) {
                     </td>
                     <td class="px-4 py-4 text-right">
                         <div class="flex flex-col">
-                            <span class="text-xs font-black text-emerald-600">Invoice Pending</span>
+                            <span class="text-xs font-black text-emerald-600 mb-0.5">${row.piece_count || 0} Pcs</span>
                             <span class="text-[10px] text-gray-400 font-bold">${formatWeight(row.barcoded_weight)} Gms</span>
                             <div class="flex flex-col mt-1 border-t border-gray-100 pt-1">
                                 <span class="text-[8px] text-gray-400">Net: ${formatWeight(row.net_weight)}</span>
