@@ -2939,8 +2939,8 @@ def sync_qc_delay_management_data_task():
                     net_weight=row[26],
                     gross_weight=row[27],
                     stone_weight=row[28],
-                    qc_pending_to_receipt_pcs=row[29],
-                    qc_pending_to_receipt_wt=row[30],
+                    pieces=row[29],
+                    weight=row[30],
                     order_no=row[31],
                     design_no=row[32]
                 ) for row in s1_rows
