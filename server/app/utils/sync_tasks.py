@@ -2842,6 +2842,7 @@ def sync_qc_delay_management_data_task():
             emit_sync_update('processing', f'Connecting to external database (Attempt {retry_count + 1}/{max_retries})...', 5, DATA_TYPE)
             conn = get_external_db_connection()
             cur = conn.cursor()
+            current_view = "initialization"
             
             # 1. Sync Summary Data
             emit_sync_update('processing', 'Fetching QC Summary data...', 10, DATA_TYPE)
@@ -2857,6 +2858,7 @@ def sync_qc_delay_management_data_task():
                 qc_ro_incharge, qc_ro_incharge_email, qc_ro_incharge_phone_number, qc_ro_address
             FROM ext_view.qc_summary_data
             """
+            current_view = "ext_view.qc_summary_data"
             cur.execute(summary_query)
             summary_rows = cur.fetchall()
             
@@ -2904,6 +2906,7 @@ def sync_qc_delay_management_data_task():
             FROM ext_view.vw_supplier_qc_issue_completed_receipt_pending
             WHERE CURRENT_DATE - DATE(qc_issue_receipt_date) > 1
             """
+            current_view = "ext_view.vw_supplier_qc_issue_completed_receipt_pending"
             cur.execute(s1_query)
             s1_rows = cur.fetchall()
             db.session.execute(text("TRUNCATE TABLE supplier_qc_issue_receipt_pending_snapshots"))
@@ -2961,6 +2964,7 @@ def sync_qc_delay_management_data_task():
                 net_weight, gross_weight, stone_weight
             FROM ext_view.vw_qc_receipt_completed_qc_pending
             """
+            current_view = "ext_view.vw_qc_receipt_completed_qc_pending"
             cur.execute(s2_query)
             s2_rows = cur.fetchall()
             db.session.execute(text("TRUNCATE TABLE qc_receipt_completed_qc_pending_snapshots"))
@@ -2996,6 +3000,7 @@ def sync_qc_delay_management_data_task():
                 qc_number, qc_completed_date, net_weight, gross_weight, stone_weight
             FROM ext_view.vw_qc_completed_invoice_request_pending
             """
+            current_view = "ext_view.vw_qc_completed_invoice_request_pending"
             cur.execute(s3_query)
             s3_rows = cur.fetchall()
             db.session.execute(text("TRUNCATE TABLE qc_completed_invoice_request_pending_snapshots"))
@@ -3024,7 +3029,7 @@ def sync_qc_delay_management_data_task():
         except Exception as e:
             db.session.rollback()
             retry_count += 1
-            error_msg = f"QCDelayManagement sync failed (Attempt {retry_count}/{max_retries}): {str(e)}"
+            error_msg = f"QCDelayManagement sync failed on {current_view} (Attempt {retry_count}/{max_retries}): {str(e)}"
             logger.error(error_msg)
             
             if retry_count >= max_retries:
