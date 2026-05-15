@@ -2832,89 +2832,209 @@ def sync_branch_authority_data_task():
 
 def sync_qc_delay_management_data_task():
     DATA_TYPE = 'qc_delay_management'
-    start_time = time.time()
-    conn = None
-    try:
-        emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
-        conn = get_external_db_connection()
-    except Exception as e:
-        error_msg = f"Connection failed: {str(e)}"
-        logger.error(f"QCDelayManagement sync error: {error_msg}")
-        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
-        return {"status": "error", "message": error_msg}
-
-    try:
-        cur = conn.cursor()
-        query = """
-        SELECT 
-            qc_ro_id, qc_ro, qc_ro_code, 
-            qc_issue_completed_receipt_pending_piece, qc_issue_completed_receipt_pending_weight, 
-            delayed_qc_issue_completed_receipt_pending_piece, delayed_qc_issue_completed_receipt_pending_weight,
-            qc_receipt_completed_qc_pending_piece, qc_receipt_completed_qc_pending_weight, 
-            delayed_qc_receipt_completed_qc_pending_piece, delayed_qc_receipt_completed_qc_pending_weight,
-            qc_completed_invoice_request_pending_piece, qc_completed_invoice_request_pending_weight,
-            delayed_qc_completed_invoice_request_pending_piece, delayed_qc_completed_invoice_request_pending_weight,
-            qc_ro_incharge, qc_ro_incharge_email, qc_ro_incharge_phone_number, qc_ro_address
-        FROM ext_view.qc_summary_data
-        """
-        
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
-        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
-
-        if rows:
+    max_retries = 5
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        start_time = time.time()
+        conn = None
+        try:
+            emit_sync_update('processing', f'Connecting to external database (Attempt {retry_count + 1}/{max_retries})...', 5, DATA_TYPE)
+            conn = get_external_db_connection()
+            cur = conn.cursor()
+            
+            # 1. Sync Summary Data
+            emit_sync_update('processing', 'Fetching QC Summary data...', 10, DATA_TYPE)
+            summary_query = """
+            SELECT 
+                qc_ro_id, qc_ro, qc_ro_code, 
+                qc_issue_completed_receipt_pending_piece, qc_issue_completed_receipt_pending_weight, 
+                delayed_qc_issue_completed_receipt_pending_piece, delayed_qc_issue_completed_receipt_pending_weight,
+                qc_receipt_completed_qc_pending_piece, qc_receipt_completed_qc_pending_weight, 
+                delayed_qc_receipt_completed_qc_pending_piece, delayed_qc_receipt_completed_qc_pending_weight,
+                qc_completed_invoice_request_pending_piece, qc_completed_invoice_request_pending_weight,
+                delayed_qc_completed_invoice_request_pending_piece, delayed_qc_completed_invoice_request_pending_weight,
+                qc_ro_incharge, qc_ro_incharge_email, qc_ro_incharge_phone_number, qc_ro_address
+            FROM ext_view.qc_summary_data
+            """
+            cur.execute(summary_query)
+            summary_rows = cur.fetchall()
+            
             db.session.execute(text("TRUNCATE TABLE qc_delay_management_snapshots"))
+            snapshot_date = datetime.now()
+            summary_objects = [
+                QCDelayManagementSnapshot(
+                    snapshot_date=snapshot_date,
+                    qc_ro_id=row[0],
+                    qc_ro=row[1],
+                    qc_ro_code=row[2],
+                    qc_issue_completed_receipt_pending_piece=row[3],
+                    qc_issue_completed_receipt_pending_weight=row[4],
+                    delayed_qc_issue_completed_receipt_pending_piece=row[5],
+                    delayed_qc_issue_completed_receipt_pending_weight=row[6],
+                    qc_receipt_completed_qc_pending_piece=row[7],
+                    qc_receipt_completed_qc_pending_weight=row[8],
+                    delayed_qc_receipt_completed_qc_pending_piece=row[9],
+                    delayed_qc_receipt_completed_qc_pending_weight=row[10],
+                    qc_completed_invoice_request_pending_piece=row[11],
+                    qc_completed_invoice_request_pending_weight=row[12],
+                    delayed_qc_completed_invoice_request_pending_piece=row[13],
+                    delayed_qc_completed_invoice_request_pending_weight=row[14],
+                    qc_ro_incharge=row[15],
+                    qc_ro_incharge_email=row[16],
+                    qc_ro_incharge_phone_number=row[17],
+                    qc_ro_address=row[18]
+                ) for row in summary_rows
+            ]
+            db.session.bulk_save_objects(summary_objects)
+            db.session.commit()
+            emit_sync_update('processing', 'Summary synced. Syncing Segment 1 details...', 30, DATA_TYPE)
+
+            # 2. Segment 1 Details (QC issue completed - KJ receipt pending)
+            s1_query = """
+            SELECT 
+                make_owner, collection_owner, collection, order_branch, '' as business_head_name, 
+                party, po_date, po_number, order_type, order_request_type, 
+                party_mobile_no, barcode_completion_date, barcoded_weight, 
+                set_identifier, set_design_no, target_date, hm_request_no, 
+                hm_ro, hallmark_agent, hm_agent_email, hm_agent_pnone_no, 
+                hm_completed_at, qc_issue_receipt_no, qc_issue_receipt_date, 
+                qc_ro, qc_ro_incharge, net_weight, gross_weight, stone_weight, 
+                qc_pending_to_receipt_pcs, qc_pending_to_receipt_wt, po_number as order_no, set_design_no as design_no
+            FROM ext_view.vw_supplier_qc_issue_completed_receipt_pending
+            WHERE CURRENT_DATE - DATE(qc_issue_receipt_date) > 1
+            """
+            cur.execute(s1_query)
+            s1_rows = cur.fetchall()
+            db.session.execute(text("TRUNCATE TABLE supplier_qc_issue_receipt_pending_snapshots"))
+            s1_objects = [
+                SupplierQCIssueReceiptPendingSnapshot(
+                    snapshot_date=snapshot_date,
+                    make_owner=row[0],
+                    collection_owner=row[1],
+                    collection=row[2],
+                    order_branch=row[3],
+                    business_head_name=row[4],
+                    party=row[5],
+                    po_date=row[6],
+                    po_number=row[7],
+                    order_type=row[8],
+                    order_request_type=row[9],
+                    party_mobile_no=row[10],
+                    barcode_completion_date=row[11],
+                    barcoded_weight=row[12],
+                    set_identifier=row[13],
+                    set_design_no=row[14],
+                    target_date=row[15],
+                    hm_request_no=row[16],
+                    hm_ro=row[17],
+                    hallmark_agent=row[18],
+                    hm_agent_email=row[19],
+                    hm_agent_pnone_no=row[20],
+                    hm_completed_at=row[21],
+                    qc_issue_receipt_no=row[22],
+                    qc_issue_receipt_date=row[23],
+                    qc_ro=row[24],
+                    qc_ro_incharge=row[25],
+                    net_weight=row[26],
+                    gross_weight=row[27],
+                    stone_weight=row[28],
+                    qc_pending_to_receipt_pcs=row[29],
+                    qc_pending_to_receipt_wt=row[30],
+                    order_no=row[31],
+                    design_no=row[32]
+                ) for row in s1_rows
+            ]
+            db.session.bulk_save_objects(s1_objects)
+            db.session.commit()
+            emit_sync_update('processing', 'Segment 1 details synced. Syncing Segment 2...', 60, DATA_TYPE)
+
+            # 3. Segment 2 Details (QC Receipt Completed - QC Pending)
+            s2_query = """
+            SELECT 
+                order_id, order_no, qc_ro_id, qc_ro, qc_ro_incharge, qc_ro_incharge_email, qc_ro_incharge_phone_no,
+                make_owner, make, collection_owner, collection, party, party_mobile_no, po_date,
+                delivery_target_date, po_number, order_type, order_request_type, design_no,
+                set_identifier, set_design_no, order_ro, order_branch, business_head_name,
+                order_incharge_email, order_incharge_phone_no, barcoded_weight, barcode_completion_date,
+                hm_completed_date, qc_issue_challan_no, qc_issue_challan_date, receipt_no, receipt_date,
+                net_weight, gross_weight, stone_weight
+            FROM ext_view.vw_qc_receipt_completed_qc_pending
+            """
+            cur.execute(s2_query)
+            s2_rows = cur.fetchall()
+            db.session.execute(text("TRUNCATE TABLE qc_receipt_completed_qc_pending_snapshots"))
+            s2_objects = [
+                QCReceiptCompletedQCPendingSnapshot(
+                    snapshot_date=snapshot_date,
+                    order_id=row[0], order_no=row[1], qc_ro_id=row[2], qc_ro=row[3], qc_ro_incharge=row[4],
+                    qc_ro_incharge_email=row[5], qc_ro_incharge_phone_no=row[6], make_owner=row[7], make=row[8],
+                    collection_owner=row[9], collection=row[10], party=row[11], party_mobile_no=row[12],
+                    po_date=row[13], delivery_target_date=row[14], po_number=row[15], order_type=row[16],
+                    order_request_type=row[17], design_no=row[18], set_identifier=row[19], set_design_no=row[20],
+                    order_ro=row[21], order_branch=row[22], business_head_name=row[23], order_incharge_email=row[24],
+                    order_incharge_phone_no=row[25], barcoded_weight=row[26], barcode_completion_date=row[27],
+                    hm_completed_date=row[28], qc_issue_challan_no=row[29], qc_issue_challan_date=row[30],
+                    receipt_no=row[31], receipt_date=row[32], net_weight=row[33], gross_weight=row[34],
+                    stone_weight=row[35], weight=row[34], piece=1
+                ) for row in s2_rows
+            ]
+            db.session.bulk_save_objects(s2_objects)
+            db.session.commit()
+            emit_sync_update('processing', 'Segment 2 details synced. Syncing Segment 3...', 80, DATA_TYPE)
+
+            # 4. Segment 3 Details (QC Completed - Invoice Request Pending)
+            s3_query = """
+            SELECT 
+                order_id, order_no, qc_ro_id, qc_ro, qc_ro_incharge, qc_ro_incharge_email, 
+                qc_ro_incharge_phone_no, make_owner, make, collection_owner, collection, 
+                party, party_mobile_no, po_date, delivery_target_date, po_number, 
+                order_type, order_request_type, design_no, set_identifier, set_design_no, 
+                order_ro, order_branch, business_head_name, order_incharge_email, 
+                order_incharge_phone_no, barcoded_weight, barcode_completion_date, 
+                hm_completed_date, final_qc_receipt_no, final_qc_receipt_date, 
+                qc_number, qc_completed_date, net_weight, gross_weight, stone_weight
+            FROM ext_view.vw_qc_completed_invoice_request_pending
+            """
+            cur.execute(s3_query)
+            s3_rows = cur.fetchall()
+            db.session.execute(text("TRUNCATE TABLE qc_completed_invoice_request_pending_snapshots"))
+            s3_objects = [
+                QCCompletedInvoiceRequestPendingSnapshot(
+                    snapshot_date=snapshot_date,
+                    order_id=row[0], order_no=row[1], qc_ro_id=row[2], qc_ro=row[3], qc_ro_incharge=row[4],
+                    qc_ro_incharge_email=row[5], qc_ro_incharge_phone_no=row[6], make_owner=row[7], make=row[8],
+                    collection_owner=row[9], collection=row[10], party=row[11], party_mobile_no=row[12],
+                    po_date=row[13], delivery_target_date=row[14], po_number=row[15], order_type=row[16],
+                    order_request_type=row[17], design_no=row[18], set_identifier=row[19], set_design_no=row[20],
+                    order_ro=row[21], order_branch=row[22], business_head_name=row[23], order_incharge_email=row[24],
+                    order_incharge_phone_no=row[25], barcoded_weight=row[26], barcode_completion_date=row[27],
+                    hm_completed_date=row[28], final_qc_receipt_no=row[29], final_qc_receipt_date=row[30],
+                    qc_number=row[31], qc_completed_date=row[32], net_weight=row[33], gross_weight=row[34],
+                    stone_weight=row[35]
+                ) for row in s3_rows
+            ]
+            db.session.bulk_save_objects(s3_objects)
             db.session.commit()
 
-            snapshot_date = datetime.now()
-            batch_size = 1000
-            for i in range(0, len(rows), batch_size):
-                batch = rows[i:i + batch_size]
-                objects = [
-                    QCDelayManagementSnapshot(
-                        snapshot_date=snapshot_date,
-                        qc_ro_id=row[0],
-                        qc_ro=row[1],
-                        qc_ro_code=row[2],
-                        qc_issue_completed_receipt_pending_piece=row[3],
-                        qc_issue_completed_receipt_pending_weight=row[4],
-                        delayed_qc_issue_completed_receipt_pending_piece=row[5],
-                        delayed_qc_issue_completed_receipt_pending_weight=row[6],
-                        qc_receipt_completed_qc_pending_piece=row[7],
-                        qc_receipt_completed_qc_pending_weight=row[8],
-                        delayed_qc_receipt_completed_qc_pending_piece=row[9],
-                        delayed_qc_receipt_completed_qc_pending_weight=row[10],
-                        qc_completed_invoice_request_pending_piece=row[11],
-                        qc_completed_invoice_request_pending_weight=row[12],
-                        delayed_qc_completed_invoice_request_pending_piece=row[13],
-                        delayed_qc_completed_invoice_request_pending_weight=row[14],
-                        qc_ro_incharge=row[15],
-                        qc_ro_incharge_email=row[16],
-                        qc_ro_incharge_phone_number=row[17],
-                        qc_ro_address=row[18]
-                    )
-                    for row in batch
-                ]
-                db.session.bulk_save_objects(objects)
-                db.session.commit()
-                
-                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
-                emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
+            duration = time.time() - start_time
+            emit_sync_update('success', f"Successfully synced QC Delay Management data in {duration:.2f}s", 100, DATA_TYPE)
+            return {"status": "success", "duration": duration}
 
-        duration = time.time() - start_time
-        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
-        return {"status": "success", "count": len(rows)}
-
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Sync failed: {str(e)}")
-        emit_sync_update('error', str(e), 0, DATA_TYPE)
-        return {"status": "error", "message": str(e)}
-    finally:
-        if conn: conn.close()
-
+        except Exception as e:
+            db.session.rollback()
+            retry_count += 1
+            error_msg = f"QCDelayManagement sync failed (Attempt {retry_count}/{max_retries}): {str(e)}"
+            logger.error(error_msg)
+            
+            if retry_count >= max_retries:
+                emit_sync_update('error', str(e), 0, DATA_TYPE)
+                return {"status": "error", "message": str(e)}
+            
+            emit_sync_update('processing', f"Sync failed, retrying in 5s... ({retry_count}/{max_retries})", 0, DATA_TYPE)
+            time.sleep(5)
+        finally:
+            if conn: conn.close()
 def sync_qc_receipt_completed_pending_data_task():
     DATA_TYPE = 'qc_receipt_completed_pending'
     start_time = time.time()
