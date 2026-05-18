@@ -902,9 +902,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button onclick="openResetTabPasswordModal(${u.id})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold uppercase tracking-wider rounded transition-all shadow-sm shadow-amber-500/20" title="Reset Password">
                             <span class="material-symbols-outlined text-[14px]">key</span> Reset
                         </button>
+                        ${(u.failed_attempt_count > 0 || u.lockout_until) ? `
                         <button onclick="openResetTabClearLockout(${u.id})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold uppercase tracking-wider rounded transition-all shadow-sm shadow-green-500/20 ml-1" title="Clear Lockout">
                             <span class="material-symbols-outlined text-[14px]">restart_alt</span> Unlock
                         </button>
+                        ` : ''}
                     `}
                 </td>
             `;
