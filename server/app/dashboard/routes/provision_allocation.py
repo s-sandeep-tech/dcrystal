@@ -1,5 +1,5 @@
 from flask import render_template, request, jsonify
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.dashboard import dashboard_bp
 from app.models.snapshots import ProvisionStockRawSnapshot
 from app.extensions import db, redis_client
@@ -7,6 +7,7 @@ from app.utils.cache_utils import generate_cache_key
 from sqlalchemy import func, case, text
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from app.utils.decorators import require_perm
 import logging
 import json
 
@@ -436,4 +437,29 @@ ORDER BY
     except Exception as e:
         logger.error(f"Error in get_provision_allocation_partial: {str(e)}")
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
+
+@dashboard_bp.route('/api/provision-allocation-summary/export', methods=['POST'])
+@jwt_required()
+@require_perm('report.export')
+def queue_provision_allocation_export():
+    try:
+        data = request.get_json() or {}
+        filters = data.get('filters', {})
+        socket_id = data.get('socket_id')
+        user_id = get_jwt_identity()
+
+        task_payload = {
+            'type': 'export_provision_allocation',
+            'filters': filters,
+            'socket_id': socket_id,
+            'user_id': user_id
+        }
+
+        redis_client.rpush('export_queue', json.dumps(task_payload))
+        logger.info(f"Queued provision_allocation export for user {user_id}")
+
+        return jsonify({'status': 'success', 'message': 'Export job enqueued.'}), 200
+    except Exception as e:
+        logger.error(f"Failed to queue provision_allocation export: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 

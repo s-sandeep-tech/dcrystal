@@ -622,3 +622,818 @@ def generate_pending_acceptance_export(filters: dict) -> str:
 
     logger.info(f'Export saved: {filepath} ({len(po_rows)} records)')
     return filename
+
+
+def generate_provision_allocation_export(filters: dict) -> str:
+    """
+    Generate Provision Allocation Summary Excel export based on filters and search,
+    rendering it in a beautiful, multi-column grid dashboard layout matching the UI.
+    """
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+    except ImportError as e:
+        raise RuntimeError(f"openpyxl not installed: {e}")
+
+    from app.extensions import db
+    from sqlalchemy import text
+
+    _ensure_exports_dir()
+
+    # 1. Parse and build query params
+    location = filters.get('location', '')
+    purity = filters.get('purity', '')
+    classification = filters.get('classification', '')
+    make = filters.get('make', '')
+    collection = filters.get('collection', '')
+    section = filters.get('section', '')
+    prov_type = filters.get('prov_type', '')
+    provision_mode = filters.get('provision_mode', '')
+    branch_type = filters.get('branch_type', '')
+    branch_status = filters.get('branch_status', '')
+    business_head = filters.get('business_head', '')
+    state = filters.get('state', '')
+    search = filters.get('search', '').strip()
+
+    params = {
+        'location': location if location else None,
+        'purity': float(purity) if purity else None,
+        'classification': classification if classification else None,
+        'make': make if make else None,
+        'collection': collection if collection else None,
+        'section': section if section else None,
+        'prov_type': prov_type if prov_type else None,
+        'provision_mode': provision_mode if provision_mode else None,
+        'branch_type': branch_type if branch_type else None,
+        'branch_status': branch_status if branch_status else None,
+        'business_head': business_head if business_head else None,
+        'state': state if state else None
+    }
+
+    # Use the exact same query as the partial endpoint
+    query = """
+WITH base AS (
+    SELECT *
+    FROM provision_stock_raw_snapshot
+    WHERE 
+        (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
+        AND (:purity IS NULL OR purity = :purity)
+        AND (:classification IS NULL OR classification = :classification)
+        AND (:make IS NULL OR make = ANY(string_to_array(CAST(:make AS text), ',')))
+        AND (:collection IS NULL OR collection = :collection)
+        AND (:section IS NULL OR section = :section)
+        AND (:prov_type IS NULL OR prov_type = :prov_type)
+        AND (:provision_mode IS NULL OR provision_mode_filter = :provision_mode)
+        AND (:branch_type IS NULL OR branch_type = ANY(string_to_array(CAST(:branch_type AS text), ',')))
+        AND (:branch_status IS NULL OR branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
+        AND (:business_head IS NULL OR business_head_name = :business_head)
+        AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
+),
+
+global_total AS (
+    SELECT
+        COALESCE(SUM(prov_gr_wt), 0) AS total_prov_wt
+    FROM base
+),
+
+location_summary AS (
+    SELECT
+        CASE 
+            WHEN COUNT(DISTINCT location) > 4 THEN COUNT(DISTINCT location)::text || '+ Location'
+            ELSE (SELECT STRING_AGG(loc, ', ') FROM (SELECT DISTINCT location AS loc FROM base ORDER BY loc) s)
+        END::text AS location,
+        'Location Summary'::text AS report_section,
+        CASE 
+            WHEN COUNT(DISTINCT location) > 4 THEN COUNT(DISTINCT location)::text || '+ Location'
+            ELSE (SELECT STRING_AGG(loc, ', ') FROM (SELECT DISTINCT location AS loc FROM base ORDER BY loc) s)
+        END::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
+        SUM(prov_pieces) AS pcs,
+        SUM(prov_gr_wt) AS gr_wt,
+        100.00::numeric AS percent,
+        1 AS section_sort,
+        1 AS row_sort
+    FROM base
+),
+
+purity_wise AS (
+    SELECT
+        'ALL'::text AS location,
+        'Purity Wise'::text AS report_section,
+        COALESCE(b.purity::text, 'Unknown') AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
+        NULL::numeric AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN gt.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / gt.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        2 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY b.purity) AS row_sort
+    FROM base b
+    CROSS JOIN global_total gt
+    GROUP BY b.purity, gt.total_prov_wt
+),
+
+classification_wise AS (
+    SELECT
+        'ALL'::text AS location,
+        x.report_section,
+        x.report_label,
+        x.classification,
+        x.sub_classification,
+        x.is_parent,
+        x.pcs,
+        x.gr_wt,
+        x.percent,
+        3 AS section_sort,
+        ROW_NUMBER() OVER (
+            ORDER BY
+                x.classification,
+                x.level_order,
+                x.sub_classification NULLS FIRST
+        ) AS row_sort
+    FROM (
+        SELECT
+            'Classification Wise'::text AS report_section,
+            COALESCE(b.classification::text, 'Unknown') AS report_label,
+            b.classification::text AS classification,
+            NULL::text AS sub_classification,
+            1 AS is_parent,
+            NULL::numeric AS pcs,
+            SUM(b.prov_gr_wt) AS gr_wt,
+            ROUND(
+                CASE
+                    WHEN gt.total_prov_wt = 0 THEN 0
+                    ELSE SUM(b.prov_gr_wt) * 100.0 / gt.total_prov_wt
+                END,
+                2
+            ) AS percent,
+            0 AS level_order
+        FROM base b
+        CROSS JOIN global_total gt
+        GROUP BY b.classification, gt.total_prov_wt
+
+        UNION ALL
+
+        SELECT
+            'Classification Wise'::text AS report_section,
+            '   ' || COALESCE(b.sub_classification::text, 'Unknown') AS report_label,
+            b.classification::text AS classification,
+            COALESCE(b.sub_classification::text, 'Unknown') AS sub_classification,
+            0 AS is_parent,
+            NULL::numeric AS pcs,
+            SUM(b.prov_gr_wt) AS gr_wt,
+            ROUND(
+                CASE
+                    WHEN gt.total_prov_wt = 0 THEN 0
+                    ELSE SUM(b.prov_gr_wt) * 100.0 / gt.total_prov_wt
+                END,
+                2
+            ) AS percent,
+            1 AS level_order
+        FROM base b
+        CROSS JOIN global_total gt
+        GROUP BY b.classification, b.sub_classification, gt.total_prov_wt
+    ) x
+),
+
+make_wise AS (
+    SELECT
+        'ALL'::text AS location,
+        'Make Wise'::text AS report_section,
+        COALESCE(b.make::text, 'Unknown') AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
+        NULL::numeric AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN gt.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / gt.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        4 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY b.make) AS row_sort
+    FROM base b
+    CROSS JOIN global_total gt
+    GROUP BY b.make, gt.total_prov_wt
+),
+
+prov_type_wise AS (
+    SELECT
+        'ALL'::text AS location,
+        'Provision Type Wise'::text AS report_section,
+        COALESCE(b.prov_type::text, 'Unknown') AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
+        NULL::numeric AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN gt.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / gt.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        5 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY b.prov_type) AS row_sort
+    FROM base b
+    CROSS JOIN global_total gt
+    GROUP BY b.prov_type, gt.total_prov_wt
+),
+
+section_wise AS (
+    SELECT
+        'ALL'::text AS location,
+        'Section Wise'::text AS report_section,
+        COALESCE(b.section::text, 'Unknown') AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
+        SUM(b.prov_pieces) AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN gt.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / gt.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        6 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY b.section) AS row_sort
+    FROM base b
+    CROSS JOIN global_total gt
+    GROUP BY b.section, gt.total_prov_wt
+),
+
+provision_mode_wise AS (
+    SELECT
+        'ALL'::text AS location,
+        'Provision Mode Wise'::text AS report_section,
+        COALESCE(b.provision_mode_filter::text, 'Unknown') AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
+        NULL::numeric AS pcs,
+        SUM(b.prov_gr_wt) AS gr_wt,
+        ROUND(
+            CASE
+                WHEN gt.total_prov_wt = 0 THEN 0
+                ELSE SUM(b.prov_gr_wt) * 100.0 / gt.total_prov_wt
+            END,
+            2
+        ) AS percent,
+        7 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY b.provision_mode_filter) AS row_sort
+    FROM base b
+    CROSS JOIN global_total gt
+    GROUP BY b.provision_mode_filter, gt.total_prov_wt
+),
+
+provision_mode_count AS (
+    SELECT
+        'ALL'::text AS location,
+        'Provision Mode Count'::text AS report_section,
+        COALESCE(b.provision_mode_filter::text, 'Unknown') AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        1 AS is_parent,
+        SUM(b.prov_pieces) AS pcs,
+        NULL::numeric AS gr_wt,
+        NULL::numeric AS percent,
+        8 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY b.provision_mode_filter) AS row_sort
+    FROM base b
+    GROUP BY b.provision_mode_filter
+),
+
+combined_report AS (
+    SELECT * FROM location_summary
+    UNION ALL
+    SELECT * FROM purity_wise
+    UNION ALL
+    SELECT * FROM classification_wise
+    UNION ALL
+    SELECT * FROM make_wise
+    UNION ALL
+    SELECT * FROM prov_type_wise
+    UNION ALL
+    SELECT * FROM section_wise
+    UNION ALL
+    SELECT * FROM provision_mode_wise
+    UNION ALL
+    SELECT * FROM provision_mode_count
+)
+
+SELECT
+    location,
+    report_section,
+    report_label,
+    classification,
+    sub_classification,
+    is_parent,
+    pcs,
+    gr_wt AS grossweight,
+    percent,
+    section_sort,
+    row_sort
+FROM combined_report
+ORDER BY
+    location,
+    section_sort,
+    row_sort
+    """
+
+    result = db.session.execute(text(query), params)
+    all_rows = [dict(r._mapping) for r in result]
+
+    # Search filter logic
+    if search:
+        s_lower = search.lower()
+        all_rows = [
+            r for r in all_rows
+            if (s_lower in (r.get('report_label') or '').lower() or
+                s_lower in (r.get('report_section') or '').lower())
+        ]
+
+    # Group into segments
+    segments = {}
+    for row in all_rows:
+        if row.get('report_label') == 'Grand Total':
+            continue
+        section = row.get('report_section')
+        if not section:
+            continue
+        if section not in segments:
+            segments[section] = []
+        segments[section].append(row)
+
+    # Sort each segment by percent descending, EXCEPT Classification Wise
+    for section in list(segments.keys()):
+        if section != 'Classification Wise':
+            segments[section] = sorted(
+                segments[section],
+                key=lambda x: x.get('percent') or 0.0,
+                reverse=True
+            )
+
+    # Create Workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Provision Allocation Summary'
+    ws.views.sheetView[0].showGridLines = True
+
+    # Styling colors
+    PRIMARY_FILL = PatternFill('solid', fgColor='1E3A5F') # Navy
+    HEADER_FILL = PatternFill('solid', fgColor='FCE4EC') # Light pink as in UI
+    TOTAL_FILL = PatternFill('solid', fgColor='D6D6D6') # Gray
+    CAT_FILL = PatternFill('solid', fgColor='E3F2FD') # Light blue
+    ALT_FILL = PatternFill('solid', fgColor='F8FAFC')
+
+    TITLE_FONT = Font(name='Calibri', bold=True, size=14, color='FFFFFF')
+    SECTION_HEADER_FONT = Font(name='Calibri', bold=True, size=11, color='1E3A5F')
+    HEADER_FONT = Font(name='Calibri', bold=True, size=9, color='374151')
+    DATA_FONT = Font(name='Calibri', size=9, color='1F2937')
+    BOLD_FONT = Font(name='Calibri', bold=True, size=9, color='111827')
+
+    THIN_BORDER = Border(
+        left=Side(style='thin', color='D1D5DB'),
+        right=Side(style='thin', color='D1D5DB'),
+        top=Side(style='thin', color='D1D5DB'),
+        bottom=Side(style='thin', color='D1D5DB')
+    )
+
+    # Column setups:
+    # Col 1: A, B, C
+    # Spacer: D
+    # Col 2: E, F, G
+    # Spacer: H
+    # Col 3: I, J, K
+    # Spacer: L
+    # Col 4: M, N, O, P
+    ws.column_dimensions['A'].width = 25
+    ws.column_dimensions['B'].width = 16
+    ws.column_dimensions['C'].width = 12
+    ws.column_dimensions['D'].width = 4
+    ws.column_dimensions['E'].width = 25
+    ws.column_dimensions['F'].width = 16
+    ws.column_dimensions['G'].width = 12
+    ws.column_dimensions['H'].width = 4
+    ws.column_dimensions['I'].width = 25
+    ws.column_dimensions['J'].width = 16
+    ws.column_dimensions['K'].width = 12
+    ws.column_dimensions['L'].width = 4
+    ws.column_dimensions['M'].width = 25
+    ws.column_dimensions['N'].width = 12
+    ws.column_dimensions['O'].width = 16
+    ws.column_dimensions['P'].width = 12
+
+    # Title Block
+    ws.merge_cells('A1:P1')
+    title_cell = ws['A1']
+    title_cell.value = 'Provision Allocation Summary Report'
+    title_cell.font = TITLE_FONT
+    title_cell.fill = PRIMARY_FILL
+    title_cell.alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[1].height = 35
+
+    # 4 tracking cursors for columns
+    col_1_row = 4
+    col_2_row = 4
+    col_3_row = 4
+    col_4_row = 4
+
+    # ── Grid Column 1 ────────────────────────────────────────────────────────
+
+    # 1. Location Summary
+    if 'Location Summary' in segments and segments['Location Summary']:
+        loc_row = segments['Location Summary'][0]
+        # Draw Location Summary table
+        ws.merge_cells(start_row=col_1_row, start_column=1, end_row=col_1_row, end_column=3)
+        cell = ws.cell(row=col_1_row, column=1, value=f"Location Summary: {loc_row.get('location') or '-'}")
+        cell.font = BOLD_FONT
+        cell.fill = CAT_FILL
+        cell.alignment = Alignment(horizontal='left', vertical='center')
+        cell.border = THIN_BORDER
+        # Need border on merged cells too
+        for col in range(1, 4):
+            ws.cell(row=col_1_row, column=col).border = THIN_BORDER
+        col_1_row += 2
+
+    # Helper function to render a standard (Label, Gr.Wt, %) table
+    def render_excel_std_table(start_row, start_col, title, rows, category_labels=None):
+        # 1. Title Header row
+        ws.merge_cells(start_row=start_row, start_column=start_col, end_row=start_row, end_column=start_col+2)
+        title_cell = ws.cell(row=start_row, column=start_col, value=title)
+        title_cell.font = SECTION_HEADER_FONT
+        title_cell.alignment = Alignment(horizontal='left', vertical='center')
+        start_row += 1
+
+        # 2. Table Column Headers
+        headers = [title, 'Gr.Wt', '%']
+        for offset, h in enumerate(headers):
+            cell = ws.cell(row=start_row, column=start_col+offset, value=h)
+            cell.font = HEADER_FONT
+            cell.fill = HEADER_FILL
+            cell.alignment = Alignment(horizontal='left' if offset==0 else 'right', vertical='center')
+            cell.border = THIN_BORDER
+        start_row += 1
+
+        # 3. Data rows
+        totals_wt = 0.0
+        totals_pct = 0.0
+        has_grand = False
+        use_cats = False
+
+        if category_labels:
+            for r in rows:
+                if r.get('report_label') in category_labels:
+                    use_cats = True
+                    break
+
+        curr_row = start_row
+        for idx, r in enumerate(rows):
+            label = r.get('report_label') or ''
+            wt = _safe_float(r.get('grossweight'))
+            pct = _safe_float(r.get('percent'))
+            is_parent = r.get('is_parent') if r.get('is_parent') is not None else 1
+
+            is_gt = label == 'Grand Total'
+            is_cat = category_labels is not None and label in category_labels
+
+            if is_gt:
+                has_grand = True
+                # Print Grand Total Row
+                cell_lbl = ws.cell(row=curr_row, column=start_col, value=label)
+                cell_wt = ws.cell(row=curr_row, column=start_col+1, value=wt)
+                cell_pct = ws.cell(row=curr_row, column=start_col+2, value=pct / 100.0)
+
+                for c in range(start_col, start_col+3):
+                    ws.cell(row=curr_row, column=c).font = BOLD_FONT
+                    ws.cell(row=curr_row, column=c).fill = TOTAL_FILL
+                    ws.cell(row=curr_row, column=c).border = THIN_BORDER
+
+                cell_lbl.alignment = Alignment(horizontal='left', vertical='center')
+                cell_wt.alignment = Alignment(horizontal='right', vertical='center')
+                cell_pct.alignment = Alignment(horizontal='right', vertical='center')
+
+                cell_wt.number_format = '#,##0.000'
+                cell_pct.number_format = '0%'
+            else:
+                # Add to totals
+                if use_cats:
+                    if is_cat:
+                        totals_wt += wt
+                        totals_pct += pct
+                else:
+                    if is_parent != 0:
+                        totals_wt += wt
+                        totals_pct += pct
+
+                cell_lbl = ws.cell(row=curr_row, column=start_col, value=label)
+                cell_wt = ws.cell(row=curr_row, column=start_col+1, value=wt)
+                cell_pct = ws.cell(row=curr_row, column=start_col+2, value=pct / 100.0)
+
+                alt = (idx % 2 == 1)
+                row_fill = ALT_FILL if alt else PatternFill(fill_type=None)
+                if is_cat:
+                    row_fill = CAT_FILL
+
+                for c in range(start_col, start_col+3):
+                    cell_curr = ws.cell(row=curr_row, column=c)
+                    cell_curr.border = THIN_BORDER
+                    if row_fill.fill_type:
+                        cell_curr.fill = row_fill
+                    if is_cat:
+                        cell_curr.font = BOLD_FONT
+                    else:
+                        cell_curr.font = DATA_FONT
+
+                # Indentation for classification child rows
+                if is_parent == 0:
+                    cell_lbl.alignment = Alignment(horizontal='left', vertical='center', indent=1)
+                else:
+                    cell_lbl.alignment = Alignment(horizontal='left', vertical='center')
+
+                cell_wt.alignment = Alignment(horizontal='right', vertical='center')
+                cell_pct.alignment = Alignment(horizontal='right', vertical='center')
+
+                cell_wt.number_format = '#,##0.000'
+                cell_pct.number_format = '0%'
+
+            curr_row += 1
+
+        # Append Grand Total if missing
+        if not has_grand and len(rows) > 0:
+            cell_lbl = ws.cell(row=curr_row, column=start_col, value='Grand Total')
+            cell_wt = ws.cell(row=curr_row, column=start_col+1, value=totals_wt)
+            cell_pct = ws.cell(row=curr_row, column=start_col+2, value=1.0) # 100%
+
+            for c in range(start_col, start_col+3):
+                cell_curr = ws.cell(row=curr_row, column=c)
+                cell_curr.font = BOLD_FONT
+                cell_curr.fill = TOTAL_FILL
+                cell_curr.border = THIN_BORDER
+
+            cell_lbl.alignment = Alignment(horizontal='left', vertical='center')
+            cell_wt.alignment = Alignment(horizontal='right', vertical='center')
+            cell_pct.alignment = Alignment(horizontal='right', vertical='center')
+
+            cell_wt.number_format = '#,##0.000'
+            cell_pct.number_format = '0%'
+            curr_row += 1
+
+        return curr_row
+
+    # 2. Purity Wise
+    if 'Purity Wise' in segments:
+        col_1_row = render_excel_std_table(col_1_row, 1, 'Purity Wise', segments['Purity Wise'])
+        col_1_row += 2
+
+    # 3. Classification Wise
+    if 'Classification Wise' in segments:
+        col_1_row = render_excel_std_table(col_1_row, 1, 'Classification Wise', segments['Classification Wise'], category_labels=['BRAND', 'GENERIC', 'LIFE STYLE'])
+
+    # ── Grid Column 2 ────────────────────────────────────────────────────────
+
+    # 4. Make Wise
+    if 'Make Wise' in segments:
+        col_2_row = render_excel_std_table(col_2_row, 5, 'Make Wise', segments['Make Wise'])
+
+    # ── Grid Column 3 ────────────────────────────────────────────────────────
+
+    # 5. Provision Type Wise
+    if 'Provision Type Wise' in segments:
+        col_3_row = render_excel_std_table(col_3_row, 9, 'Provision Type Wise', segments['Provision Type Wise'], category_labels=['GeneralProvision', 'ManagerProvision', 'SetProvision'])
+        col_3_row += 2
+
+    # 6. Provision Mode Wise
+    if 'Provision Mode Wise' in segments:
+        col_3_row = render_excel_std_table(col_3_row, 9, 'Provision Mode Wise', segments['Provision Mode Wise'], category_labels=['MatchingSet', 'Set'])
+
+    # ── Grid Column 4 ────────────────────────────────────────────────────────
+
+    # 7. Section Wise
+    if 'Section Wise' in segments:
+        sec_start_row = col_4_row
+        ws.merge_cells(start_row=sec_start_row, start_column=13, end_row=sec_start_row, end_column=16)
+        title_cell = ws.cell(row=sec_start_row, column=13, value='Section Wise')
+        title_cell.font = SECTION_HEADER_FONT
+        title_cell.alignment = Alignment(horizontal='left', vertical='center')
+        sec_start_row += 1
+
+        headers = ['Section', 'Pcs', 'Gr.Wt', '%']
+        for offset, h in enumerate(headers):
+            cell = ws.cell(row=sec_start_row, column=13+offset, value=h)
+            cell.font = HEADER_FONT
+            cell.fill = HEADER_FILL
+            cell.alignment = Alignment(horizontal='left' if offset==0 else 'right', vertical='center')
+            cell.border = THIN_BORDER
+        sec_start_row += 1
+
+        totals_pcs = 0
+        totals_wt = 0.0
+        has_grand = False
+
+        for idx, r in enumerate(segments['Section Wise']):
+            label = r.get('report_label') or ''
+            pcs = _safe_int(r.get('pcs'))
+            wt = _safe_float(r.get('grossweight'))
+            pct = _safe_float(r.get('percent'))
+
+            is_gt = label == 'Grand Total'
+            if is_gt:
+                has_grand = True
+                cell_lbl = ws.cell(row=sec_start_row, column=13, value=label)
+                cell_pcs = ws.cell(row=sec_start_row, column=14, value=pcs)
+                cell_wt = ws.cell(row=sec_start_row, column=15, value=wt)
+                cell_pct = ws.cell(row=sec_start_row, column=16, value=pct / 100.0)
+
+                for c in range(13, 17):
+                    ws.cell(row=sec_start_row, column=c).font = BOLD_FONT
+                    ws.cell(row=sec_start_row, column=c).fill = TOTAL_FILL
+                    ws.cell(row=sec_start_row, column=c).border = THIN_BORDER
+
+                cell_lbl.alignment = Alignment(horizontal='left', vertical='center')
+                cell_pcs.alignment = Alignment(horizontal='right', vertical='center')
+                cell_wt.alignment = Alignment(horizontal='right', vertical='center')
+                cell_pct.alignment = Alignment(horizontal='right', vertical='center')
+
+                cell_pcs.number_format = '#,##0'
+                cell_wt.number_format = '#,##0.000'
+                cell_pct.number_format = '0%'
+            else:
+                totals_pcs += pcs
+                totals_wt += wt
+
+                cell_lbl = ws.cell(row=sec_start_row, column=13, value=label)
+                cell_pcs = ws.cell(row=sec_start_row, column=14, value=pcs)
+                cell_wt = ws.cell(row=sec_start_row, column=15, value=wt)
+                cell_pct = ws.cell(row=sec_start_row, column=16, value=pct / 100.0)
+
+                alt = (idx % 2 == 1)
+                row_fill = ALT_FILL if alt else PatternFill(fill_type=None)
+
+                for c in range(13, 17):
+                    cell_curr = ws.cell(row=sec_start_row, column=c)
+                    cell_curr.font = DATA_FONT
+                    cell_curr.border = THIN_BORDER
+                    if row_fill.fill_type:
+                        cell_curr.fill = row_fill
+
+                cell_lbl.alignment = Alignment(horizontal='left', vertical='center')
+                cell_pcs.alignment = Alignment(horizontal='right', vertical='center')
+                cell_wt.alignment = Alignment(horizontal='right', vertical='center')
+                cell_pct.alignment = Alignment(horizontal='right', vertical='center')
+
+                cell_pcs.number_format = '#,##0'
+                cell_wt.number_format = '#,##0.000'
+                cell_pct.number_format = '0%'
+
+            sec_start_row += 1
+
+        if not has_grand and len(segments['Section Wise']) > 0:
+            cell_lbl = ws.cell(row=sec_start_row, column=13, value='Grand Total')
+            cell_pcs = ws.cell(row=sec_start_row, column=14, value=totals_pcs)
+            cell_wt = ws.cell(row=sec_start_row, column=15, value=totals_wt)
+            cell_pct = ws.cell(row=sec_start_row, column=16, value=1.0)
+
+            for c in range(13, 17):
+                cell_curr = ws.cell(row=sec_start_row, column=c)
+                cell_curr.font = BOLD_FONT
+                cell_curr.fill = TOTAL_FILL
+                cell_curr.border = THIN_BORDER
+
+            cell_lbl.alignment = Alignment(horizontal='left', vertical='center')
+            cell_pcs.alignment = Alignment(horizontal='right', vertical='center')
+            cell_wt.alignment = Alignment(horizontal='right', vertical='center')
+            cell_pct.alignment = Alignment(horizontal='right', vertical='center')
+
+            cell_pcs.number_format = '#,##0'
+            cell_wt.number_format = '#,##0.000'
+            cell_pct.number_format = '0%'
+            sec_start_row += 1
+
+        col_4_row = sec_start_row + 2
+
+    # 8. Provision Mode Count
+    if 'Provision Mode Count' in segments:
+        cnt_start_row = col_4_row
+        ws.merge_cells(start_row=cnt_start_row, start_column=13, end_row=cnt_start_row, end_column=14)
+        title_cell = ws.cell(row=cnt_start_row, column=13, value='Provision Mode Count')
+        title_cell.font = SECTION_HEADER_FONT
+        title_cell.alignment = Alignment(horizontal='left', vertical='center')
+        cnt_start_row += 1
+
+        headers = ['Provision Mode', 'Count']
+        for offset, h in enumerate(headers):
+            cell = ws.cell(row=cnt_start_row, column=13+offset, value=h)
+            cell.font = HEADER_FONT
+            cell.fill = HEADER_FILL
+            cell.alignment = Alignment(horizontal='left' if offset==0 else 'right', vertical='center')
+            cell.border = THIN_BORDER
+        cnt_start_row += 1
+
+        totals_pcs = 0
+        has_grand = False
+        category_labels = ['BRIDAL SET', 'COMBO SET', 'GeneralProvision', 'ManagerProvision', 'SetProvision']
+        use_cats = False
+
+        for r in segments['Provision Mode Count']:
+            if r.get('report_label') in category_labels:
+                use_cats = True
+                break
+
+        for idx, r in enumerate(segments['Provision Mode Count']):
+            label = r.get('report_label') or ''
+            pcs = _safe_int(r.get('pcs'))
+
+            is_gt = label == 'Grand Total'
+            is_cat = label in category_labels
+
+            if is_gt:
+                has_grand = True
+                cell_lbl = ws.cell(row=cnt_start_row, column=13, value=label)
+                cell_pcs = ws.cell(row=cnt_start_row, column=14, value=pcs)
+
+                for c in range(13, 15):
+                    ws.cell(row=cnt_start_row, column=c).font = BOLD_FONT
+                    ws.cell(row=cnt_start_row, column=c).fill = TOTAL_FILL
+                    ws.cell(row=cnt_start_row, column=c).border = THIN_BORDER
+
+                cell_lbl.alignment = Alignment(horizontal='left', vertical='center')
+                cell_pcs.alignment = Alignment(horizontal='right', vertical='center')
+                cell_pcs.number_format = '#,##0'
+            else:
+                if use_cats:
+                    if is_cat:
+                        totals_pcs += pcs
+                else:
+                    totals_pcs += pcs
+
+                cell_lbl = ws.cell(row=cnt_start_row, column=13, value=label)
+                cell_pcs = ws.cell(row=cnt_start_row, column=14, value=pcs)
+
+                alt = (idx % 2 == 1)
+                row_fill = ALT_FILL if alt else PatternFill(fill_type=None)
+                if is_cat:
+                    row_fill = CAT_FILL
+
+                for c in range(13, 15):
+                    cell_curr = ws.cell(row=cnt_start_row, column=c)
+                    cell_curr.border = THIN_BORDER
+                    if row_fill.fill_type:
+                        cell_curr.fill = row_fill
+                    if is_cat:
+                        cell_curr.font = BOLD_FONT
+                    else:
+                        cell_curr.font = DATA_FONT
+
+                if not (is_cat or is_gt) and use_cats:
+                    cell_lbl.alignment = Alignment(horizontal='left', vertical='center', indent=1)
+                else:
+                    cell_lbl.alignment = Alignment(horizontal='left', vertical='center')
+
+                cell_pcs.alignment = Alignment(horizontal='right', vertical='center')
+                cell_pcs.number_format = '#,##0'
+
+            cnt_start_row += 1
+
+        if not has_grand and len(segments['Provision Mode Count']) > 0:
+            cell_lbl = ws.cell(row=cnt_start_row, column=13, value='Grand Total')
+            cell_pcs = ws.cell(row=cnt_start_row, column=14, value=totals_pcs)
+
+            for c in range(13, 15):
+                cell_curr = ws.cell(row=cnt_start_row, column=c)
+                cell_curr.font = BOLD_FONT
+                cell_curr.fill = TOTAL_FILL
+                cell_curr.border = THIN_BORDER
+
+            cell_lbl.alignment = Alignment(horizontal='left', vertical='center')
+            cell_pcs.alignment = Alignment(horizontal='right', vertical='center')
+            cell_pcs.number_format = '#,##0'
+            cnt_start_row += 1
+
+        col_4_row = cnt_start_row
+
+    # 9. Save
+    now_ist = datetime.now(IST)
+    timestamp = now_ist.strftime('%Y%m%d_%H%M%S')
+    filename = f'provision_allocation_summary_{timestamp}.xlsx'
+    filepath = os.path.join(EXPORTS_DIR, filename)
+    wb.save(filepath)
+
+    logger.info(f'Provision Allocation Summary export saved: {filepath}')
+    return filename

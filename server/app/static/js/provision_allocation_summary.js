@@ -255,4 +255,71 @@ function adjustZoom(delta, reset = false) {
     document.getElementById('zoom-level').textContent = `${Math.round(currentZoom * 100)}%`;
 }
 
+async function exportToExcel() {
+    const btn = document.getElementById('btn-export-excel');
+    if (!btn) return;
+    const icon = document.getElementById('export-btn-icon');
+    const label = document.getElementById('export-btn-label');
+    const originalIcon = icon ? icon.innerText : 'download';
+    const originalLabel = label ? label.innerText : 'Export Excel';
+
+    try {
+        // Disable button and show loading state
+        btn.disabled = true;
+        if (icon) {
+            icon.innerText = 'sync';
+            icon.classList.add('animate-spin');
+        }
+        if (label) label.innerText = 'Queuing...';
+
+        // Extract current active filters
+        const activeFilters = {
+            search: currentSearch,
+            location: filters.location,
+            branch_type: filters.branch_type,
+            branch_status: filters.branch_status,
+            business_head: filters.business_head,
+            state: filters.state,
+            purity: filters.purity,
+            classification: filters.classification,
+            make: filters.make,
+            collection: filters.collection,
+            section: filters.section,
+            prov_type: filters.prov_type,
+            provision_mode: filters.provision_mode
+        };
+
+        const response = await fetch('/api/provision-allocation-summary/export', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            },
+            body: JSON.stringify({
+                filters: activeFilters,
+                socket_id: window.socket?.id
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.message || 'Failed to queue export');
+        }
+
+        showToast('Success', 'Export job enqueued. You will be notified when the file is ready.', 'success');
+
+    } catch (error) {
+        console.error('Export error:', error);
+        showToast('Error', error.message || 'Failed to trigger export', 'error');
+    } finally {
+        // Restore button state
+        btn.disabled = false;
+        if (icon) {
+            icon.innerText = originalIcon;
+            icon.classList.remove('animate-spin');
+        }
+        if (label) label.innerText = originalLabel;
+    }
+}
+
 
