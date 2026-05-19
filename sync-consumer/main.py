@@ -495,22 +495,37 @@ def _handle_export_provision_allocation(task_data: dict):
 # ─────────────────────────────────────────────────────────────────────────────
 def setup_scheduler():
     """Initializes and starts the background scheduler for automated tasks."""
-    scheduler = BackgroundScheduler()
+    from datetime import timezone as datetime_timezone, timedelta
+    IST = datetime_timezone(timedelta(hours=5, minutes=30))
+    scheduler = BackgroundScheduler(timezone=IST)
 
-    # Schedule "Provision & Stock Status Sync" every day at 6 AM
+    # Schedule "Provision & Stock Status Sync" every day at 11 AM IST
     # Task type 'provision_stock_status' matches sync_manager.py
     scheduler.add_job(
         func=enqueue_sync_task,
         trigger='cron',
-        hour=6,
+        hour=11,
         minute=0,
         args=['provision_stock_status'],
         id='daily_provision_stock_sync',
         replace_existing=True
     )
 
+    # Schedule "Branch Authority Sync" every day at 9:00 AM and 4:00 PM IST
+    # Task type 'branch_authority' matches sync_manager.py
+    scheduler.add_job(
+        func=enqueue_sync_task,
+        trigger='cron',
+        hour='9,16',
+        minute=0,
+        args=['branch_authority'],
+        id='branch_authority_sync',
+        replace_existing=True
+    )
+
     scheduler.start()
-    logger.info("Background Scheduler started. 'Provision & Stock Status Sync' scheduled for 06:00 daily.")
+    logger.info("Background Scheduler started. 'Provision & Stock Status Sync' scheduled for 11:00 IST daily.")
+    logger.info("Branch Authority Sync scheduled for 09:00 IST and 16:00 IST daily.")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Entry point — run workers and scheduler
