@@ -511,12 +511,12 @@ def setup_scheduler():
         replace_existing=True
     )
 
-    # Schedule "Branch Authority Sync" every day at 9:00 AM and 4:00 PM IST
+    # Schedule "Branch Authority Sync" every day at 10:00 AM and 4:00 PM IST
     # Task type 'branch_authority' matches sync_manager.py
     scheduler.add_job(
         func=enqueue_sync_task,
         trigger='cron',
-        hour='9,16',
+        hour='10,16',
         minute=0,
         args=['branch_authority'],
         id='branch_authority_sync',
@@ -525,7 +525,7 @@ def setup_scheduler():
 
     scheduler.start()
     logger.info("Background Scheduler started. 'Provision & Stock Status Sync' scheduled for 11:00 IST daily.")
-    logger.info("Branch Authority Sync scheduled for 09:00 IST and 16:00 IST daily.")
+    logger.info("Branch Authority Sync scheduled for 10:00 IST and 16:00 IST daily.")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Entry point — run workers and scheduler
