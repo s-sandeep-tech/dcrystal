@@ -48,7 +48,7 @@
                             <span class="text-red-500 font-bold">{{ item.summary.delayed_qc_issue_completed_receipt_pending_piece }}</span>
                         </div>
                         {% set s1_pcs_pct = (item.summary.delayed_qc_issue_completed_receipt_pending_piece|float / item.summary.qc_issue_completed_receipt_pending_piece|float * 100) if item.summary.qc_issue_completed_receipt_pending_piece|float > 0 else 0 %}
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-1 rounded-full overflow-hidden mt-1">
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1" style="height: 0.1rem;">
                             <div class="bg-red-500 h-full rounded-full" style="width: {{ s1_pcs_pct }}%;"></div>
                         </div>
                     </div>
@@ -61,7 +61,7 @@
                             <span class="text-red-400">{{ "%.3f"|format(item.summary.delayed_qc_issue_completed_receipt_pending_weight) }}</span>
                         </div>
                         {% set s1_wt_pct = (item.summary.delayed_qc_issue_completed_receipt_pending_weight|float / item.summary.qc_issue_completed_receipt_pending_weight|float * 100) if item.summary.qc_issue_completed_receipt_pending_weight|float > 0 else 0 %}
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-1 rounded-full overflow-hidden mt-1">
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1" style="height: 0.1rem;">
                             <div class="bg-red-400 h-full rounded-full" style="width: {{ s1_wt_pct }}%;"></div>
                         </div>
                     </div>
@@ -100,7 +100,7 @@
                             <span class="text-red-500 font-bold">{{ item.summary.delayed_qc_receipt_completed_qc_pending_piece }}</span>
                         </div>
                         {% set s2_pcs_pct = (item.summary.delayed_qc_receipt_completed_qc_pending_piece|float / item.summary.qc_receipt_completed_qc_pending_piece|float * 100) if item.summary.qc_receipt_completed_qc_pending_piece|float > 0 else 0 %}
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-1 rounded-full overflow-hidden mt-1">
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1" style="height: 0.1rem;">
                             <div class="bg-red-500 h-full rounded-full" style="width: {{ s2_pcs_pct }}%;"></div>
                         </div>
                     </div>
@@ -113,7 +113,7 @@
                             <span class="text-red-400">{{ "%.3f"|format(item.summary.delayed_qc_receipt_completed_qc_pending_weight) }}</span>
                         </div>
                         {% set s2_wt_pct = (item.summary.delayed_qc_receipt_completed_qc_pending_weight|float / item.summary.qc_receipt_completed_qc_pending_weight|float * 100) if item.summary.qc_receipt_completed_qc_pending_weight|float > 0 else 0 %}
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-1 rounded-full overflow-hidden mt-1">
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1" style="height: 0.1rem;">
                             <div class="bg-red-400 h-full rounded-full" style="width: {{ s2_wt_pct }}%;"></div>
                         </div>
                     </div>
@@ -152,7 +152,7 @@
                             <span class="text-red-500 font-bold">{{ item.summary.delayed_qc_completed_invoice_request_pending_piece }}</span>
                         </div>
                         {% set s3_pcs_pct = (item.summary.delayed_qc_completed_invoice_request_pending_piece|float / item.summary.qc_completed_invoice_request_pending_piece|float * 100) if item.summary.qc_completed_invoice_request_pending_piece|float > 0 else 0 %}
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-1 rounded-full overflow-hidden mt-1">
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1" style="height: 0.1rem;">
                             <div class="bg-red-500 h-full rounded-full" style="width: {{ s3_pcs_pct }}%;"></div>
                         </div>
                     </div>
@@ -165,7 +165,7 @@
                             <span class="text-red-400">{{ "%.3f"|format(item.summary.delayed_qc_completed_invoice_request_pending_weight) }}</span>
                         </div>
                         {% set s3_wt_pct = (item.summary.delayed_qc_completed_invoice_request_pending_weight|float / item.summary.qc_completed_invoice_request_pending_weight|float * 100) if item.summary.qc_completed_invoice_request_pending_weight|float > 0 else 0 %}
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-1 rounded-full overflow-hidden mt-1">
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1" style="height: 0.1rem;">
                             <div class="bg-red-400 h-full rounded-full" style="width: {{ s3_wt_pct }}%;"></div>
                         </div>
                     </div>
