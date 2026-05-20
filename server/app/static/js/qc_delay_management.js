@@ -40,6 +40,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Set default values of 1 if no delay parameter is specified in the URL at all
+    let hasDelayParams = false;
+    ['delay_s1', 'delay_s2', 'delay_s3'].forEach(d => {
+        if (urlParams.has(d)) hasDelayParams = true;
+    });
+
+    if (!hasDelayParams) {
+        urlParams.set('delay_s1', '1');
+        urlParams.set('delay_s2', '1');
+        urlParams.set('delay_s3', '1');
+        const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+        window.history.replaceState({path: newUrl}, '', newUrl);
+    }
+
     ['delay_s1', 'delay_s2', 'delay_s3'].forEach(d => {
         const val = urlParams.get(d);
         if (val) {
