@@ -43,10 +43,17 @@ def qc_delay_management():
         makes_query = makes_query.filter(QCDelayManagementSnapshot.snapshot_date == latest_date)
     makes = [m[0] for m in makes_query.all() if m[0]]
 
+    # Get unique parties for filter
+    parties_query = db.session.query(QCDelayManagementSnapshot.party).distinct()
+    if latest_date:
+        parties_query = parties_query.filter(QCDelayManagementSnapshot.snapshot_date == latest_date)
+    parties = [p[0] for p in parties_query.all() if p[0]]
+
     return render_template(
         'qc_delay_management.html',
         offices=sorted(offices),
         makes=sorted(makes),
+        parties=sorted(parties),
         sync_time=sync_time,
         current_username=session.get('username'),
         initial_load=True
@@ -57,17 +64,21 @@ def qc_delay_management():
 def partial_qc_delay_management_report():
     search = request.args.get('search', '')
     office = request.args.get('office', '')
+    
+    # Parse multiselect lists
     make_filter = request.args.get('make', '')
+    makes_selected = [m.strip() for m in make_filter.split(',') if m.strip()]
+    
+    party_filter = request.args.get('party', '')
+    parties_selected = [p.strip() for p in party_filter.split(',') if p.strip()]
     
     # Days delay filters
     delay_s1 = request.args.get('delay_s1', type=int)
     delay_s2 = request.args.get('delay_s2', type=int)
     delay_s3 = request.args.get('delay_s3', type=int)
     
-    # Determine grouping
-    group_by_party = True
-    if delay_s1 is not None or delay_s2 is not None or delay_s3 is not None:
-        group_by_party = False
+    # Determine grouping (always False now so we always group by qc_ro)
+    group_by_party = False
         
     latest_date = db.session.query(func.max(QCDelayManagementSnapshot.snapshot_date)).scalar()
     
@@ -195,8 +206,11 @@ def partial_qc_delay_management_report():
     if office:
         query = query.filter(QCDelayManagementSnapshot.qc_ro == office)
         
-    if make_filter:
-        query = query.filter(QCDelayManagementSnapshot.make == make_filter)
+    if makes_selected:
+        query = query.filter(QCDelayManagementSnapshot.make.in_(makes_selected))
+        
+    if parties_selected:
+        query = query.filter(QCDelayManagementSnapshot.party.in_(parties_selected))
 
     # Group by
     if group_by_party:

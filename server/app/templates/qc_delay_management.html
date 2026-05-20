@@ -515,16 +515,62 @@
                 </select>
             </div>
 
-            <!-- Make Filter -->
-            <div class="space-y-1.5" data-filter-id="make">
-                <label class="text-[9px] font-bold text-gray-400 uppercase text-xs">Make</label>
-                <select id="filter-make"
-                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
-                    <option value="">All Makes</option>
-                    {% for mk in makes %}
-                    <option value="{{ mk }}">{{ mk }}</option>
-                    {% endfor %}
-                </select>
+            <!-- Party Filter (Multiselect) -->
+            <div class="space-y-1.5 relative" id="filter-party-wrapper">
+                <label class="text-[9px] font-bold text-gray-400 uppercase text-xs flex justify-between">
+                    <span>Party</span>
+                    <span id="party-select-count" class="text-primary normal-case font-bold hidden">0 selected</span>
+                </label>
+                <button type="button" onclick="toggleDropdown('party')" id="btn-filter-party"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2 text-left flex items-center justify-between shadow-sm focus:outline-none focus:ring-1 focus:ring-primary">
+                    <span id="party-selected-label" class="text-gray-500 dark:text-gray-400 truncate">All Parties</span>
+                    <span class="material-symbols-outlined text-[16px] text-gray-400 transition-transform duration-200" id="arrow-party">keyboard_arrow_down</span>
+                </button>
+                <div id="dropdown-party" class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-xl hidden flex-col overflow-hidden max-h-60">
+                    <div class="p-2 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between gap-2 shrink-0">
+                        <input type="text" placeholder="Search Party..." oninput="filterDropdownOptions('party', this.value)"
+                            class="bg-transparent border-none focus:ring-0 text-[10px] w-full placeholder:text-gray-400 text-gray-700 dark:text-white p-0">
+                        <button type="button" onclick="clearDropdown('party')" class="text-[9px] font-bold text-primary uppercase hover:underline shrink-0">Clear</button>
+                    </div>
+                    <div class="overflow-y-auto no-scrollbar p-2 flex flex-col gap-1.5 max-h-44" id="options-party">
+                        {% for pt in parties %}
+                        <label class="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors group">
+                            <input type="checkbox" value="{{ pt }}" onchange="onCheckboxChange('party')"
+                                class="rounded border-gray-300 dark:border-gray-700 text-primary focus:ring-primary size-3.5">
+                            <span class="text-[11px] text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white font-medium truncate">{{ pt }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Make Filter (Multiselect) -->
+            <div class="space-y-1.5 relative" id="filter-make-wrapper">
+                <label class="text-[9px] font-bold text-gray-400 uppercase text-xs flex justify-between">
+                    <span>Make</span>
+                    <span id="make-select-count" class="text-primary normal-case font-bold hidden">0 selected</span>
+                </label>
+                <button type="button" onclick="toggleDropdown('make')" id="btn-filter-make"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2 text-left flex items-center justify-between shadow-sm focus:outline-none focus:ring-1 focus:ring-primary">
+                    <span id="make-selected-label" class="text-gray-500 dark:text-gray-400 truncate">All Makes</span>
+                    <span class="material-symbols-outlined text-[16px] text-gray-400 transition-transform duration-200" id="arrow-make">keyboard_arrow_down</span>
+                </button>
+                <div id="dropdown-make" class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-xl hidden flex-col overflow-hidden max-h-60">
+                    <div class="p-2 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between gap-2 shrink-0">
+                        <input type="text" placeholder="Search Make..." oninput="filterDropdownOptions('make', this.value)"
+                            class="bg-transparent border-none focus:ring-0 text-[10px] w-full placeholder:text-gray-400 text-gray-700 dark:text-white p-0">
+                        <button type="button" onclick="clearDropdown('make')" class="text-[9px] font-bold text-primary uppercase hover:underline shrink-0">Clear</button>
+                    </div>
+                    <div class="overflow-y-auto no-scrollbar p-2 flex flex-col gap-1.5 max-h-44" id="options-make">
+                        {% for mk in makes %}
+                        <label class="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors group">
+                            <input type="checkbox" value="{{ mk }}" onchange="onCheckboxChange('make')"
+                                class="rounded border-gray-300 dark:border-gray-700 text-primary focus:ring-primary size-3.5">
+                            <span class="text-[11px] text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white font-medium truncate">{{ mk }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
 
             <div class="py-2 -mx-4">

@@ -15,12 +15,28 @@ document.addEventListener('DOMContentLoaded', function() {
         if (s) s.value = urlParams.get('search');
     }
 
-    // Auto-fill filters
-    ['office', 'make', 'status'].forEach(f => {
+    // Auto-fill simple select filters
+    ['office', 'status'].forEach(f => {
         const val = urlParams.get(f);
         if (val) {
             const el = document.getElementById(`filter-${f.replace(/_/g, '-')}`);
             if (el) el.value = val;
+        }
+    });
+
+    // Auto-fill multiselect checkbox filters
+    ['party', 'make'].forEach(f => {
+        const val = urlParams.get(f);
+        if (val) {
+            const selectedVals = val.split(',').map(s => s.trim()).filter(s => s);
+            const optionsDiv = document.getElementById(`options-${f}`);
+            if (optionsDiv) {
+                selectedVals.forEach(v => {
+                    const cb = optionsDiv.querySelector(`input[value="${v}"]`);
+                    if (cb) cb.checked = true;
+                });
+                onCheckboxChange(f);
+            }
         }
     });
 
@@ -35,6 +51,114 @@ document.addEventListener('DOMContentLoaded', function() {
     setupDynamicTooltips();
     loadReport();
 });
+
+// Generic custom dropdown controls
+function toggleDropdown(type) {
+    const dropdown = document.getElementById(`dropdown-${type}`);
+    const arrow = document.getElementById(`arrow-${type}`);
+    if (!dropdown || !arrow) return;
+    
+    // Close other dropdowns first
+    ['party', 'make'].forEach(t => {
+        if (t !== type) {
+            const d = document.getElementById(`dropdown-${t}`);
+            const a = document.getElementById(`arrow-${t}`);
+            if (d) d.classList.add('hidden');
+            if (a) a.classList.remove('rotate-180');
+        }
+    });
+
+    const isHidden = dropdown.classList.contains('hidden');
+    if (isHidden) {
+        dropdown.classList.remove('hidden');
+        arrow.classList.add('rotate-180');
+        
+        // Add click-away handler to document
+        setTimeout(() => {
+            const closeHandler = (e) => {
+                const wrapper = document.getElementById(`filter-${type}-wrapper`);
+                if (wrapper && !wrapper.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                    arrow.classList.remove('rotate-180');
+                    document.removeEventListener('click', closeHandler);
+                }
+            };
+            document.addEventListener('click', closeHandler);
+        }, 50);
+    } else {
+        dropdown.classList.add('hidden');
+        arrow.classList.remove('rotate-180');
+    }
+}
+
+function filterDropdownOptions(type, query) {
+    const optionsDiv = document.getElementById(`options-${type}`);
+    if (!optionsDiv) return;
+    
+    const labels = optionsDiv.getElementsByTagName('label');
+    const cleanQuery = query.toLowerCase().trim();
+    
+    for (let i = 0; i < labels.length; i++) {
+        const text = labels[i].textContent || labels[i].innerText;
+        if (text.toLowerCase().includes(cleanQuery)) {
+            labels[i].style.display = '';
+        } else {
+            labels[i].style.display = 'none';
+        }
+    }
+}
+
+function clearDropdown(type) {
+    const optionsDiv = document.getElementById(`options-${type}`);
+    if (!optionsDiv) return;
+    
+    const checkboxes = optionsDiv.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(cb => cb.checked = false);
+    
+    // Clear search input
+    const wrapper = document.getElementById(`filter-${type}-wrapper`);
+    if (wrapper) {
+        const searchInput = wrapper.querySelector('input[type="text"]');
+        if (searchInput) {
+            searchInput.value = '';
+            filterDropdownOptions(type, '');
+        }
+    }
+    
+    onCheckboxChange(type);
+}
+
+function onCheckboxChange(type) {
+    const optionsDiv = document.getElementById(`options-${type}`);
+    if (!optionsDiv) return;
+    
+    const checkedBoxes = optionsDiv.querySelectorAll('input[type="checkbox"]:checked');
+    const selectCountSpan = document.getElementById(`${type}-select-count`);
+    const selectedLabelSpan = document.getElementById(`${type}-selected-label`);
+    
+    if (checkedBoxes.length > 0) {
+        if (selectCountSpan) {
+            selectCountSpan.textContent = `${checkedBoxes.length} selected`;
+            selectCountSpan.classList.remove('hidden');
+        }
+        
+        const names = Array.from(checkedBoxes).map(cb => cb.value);
+        if (selectedLabelSpan) {
+            selectedLabelSpan.textContent = names.join(', ');
+            selectedLabelSpan.classList.remove('text-gray-500', 'dark:text-gray-400');
+            selectedLabelSpan.classList.add('text-gray-900', 'dark:text-white', 'font-semibold');
+        }
+    } else {
+        if (selectCountSpan) {
+            selectCountSpan.classList.add('hidden');
+        }
+        if (selectedLabelSpan) {
+            selectedLabelSpan.textContent = type === 'party' ? 'All Parties' : 'All Makes';
+            selectedLabelSpan.classList.remove('text-gray-900', 'dark:text-white', 'font-semibold');
+            selectedLabelSpan.classList.add('text-gray-500', 'dark:text-gray-400');
+        }
+    }
+}
 
 function loadReport() {
     const loader = document.getElementById('loader-overlay');
@@ -84,10 +208,24 @@ function applyFilters() {
     const searchVal = document.getElementById('hierarchy-search')?.value;
     if (searchVal) urlParams.set('search', searchVal); else urlParams.delete('search');
 
-    const fields = ['office', 'make', 'status'];
-    fields.forEach(f => {
+    // Office & Status (simple select)
+    ['office', 'status'].forEach(f => {
         const el = document.getElementById(`filter-${f.replace(/_/g, '-')}`);
         if (el && el.value) urlParams.set(f, el.value); else if (f !== 'status') urlParams.delete(f);
+    });
+
+    // Party & Make (multiselect checkboxes)
+    ['party', 'make'].forEach(f => {
+        const optionsDiv = document.getElementById(`options-${f}`);
+        if (optionsDiv) {
+            const checked = optionsDiv.querySelectorAll('input[type="checkbox"]:checked');
+            if (checked.length > 0) {
+                const vals = Array.from(checked).map(cb => cb.value);
+                urlParams.set(f, vals.join(','));
+            } else {
+                urlParams.delete(f);
+            }
+        }
     });
 
     const delays = ['delay_s1', 'delay_s2', 'delay_s3'];
@@ -109,10 +247,16 @@ function resetFilters() {
     // Reset DOM elements
     const s = document.getElementById('hierarchy-search');
     if (s) s.value = '';
-    ['office', 'make', 'status'].forEach(f => {
+    
+    ['office', 'status'].forEach(f => {
         const el = document.getElementById(`filter-${f.replace(/_/g, '-')}`);
         if (el) el.value = (f === 'status' ? 'segment_1' : '');
     });
+
+    ['party', 'make'].forEach(f => {
+        clearDropdown(f);
+    });
+    
     ['delay_s1', 'delay_s2', 'delay_s3'].forEach(d => {
         const el = document.getElementById(`filter-${d.replace(/_/g, '-')}`);
         if (el) el.value = '';

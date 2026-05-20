@@ -1,11 +1,7 @@
 <table class="excel-table">
     <thead>
         <tr>
-            {% if group_by_party %}
-            <th rowspan="2" style="vertical-align: bottom;">PARTY</th>
-            {% else %}
             <th rowspan="2" style="vertical-align: bottom;">QC OFFICE</th>
-            {% endif %}
             <th colspan="4" class="top-header" style="background-color: #f0f9ff;">QC ISSUE COMPLETED - RECEIPT PENDING</th>
             <th colspan="4" class="top-header" style="background-color: #fff7ed;">QC RECEIPT COMPLETED-QC PENDING</th>
             <th colspan="4" class="top-header" style="background-color: #f5f3ff;">QC COMPLETED-INVOICE REQUEST PENDING</th>
@@ -31,15 +27,11 @@
     <tbody>
         {% if rows %}
             {% for item in rows %}
-            {% set row_id = item.summary.party if group_by_party else item.summary.qc_ro %}
+            {% set row_id = item.summary.qc_ro %}
             <tr>
                 <td style="font-weight: 600;">
                     <div class="flex items-center justify-between gap-2">
-                        {% if group_by_party %}
-                        <span class="truncate" title="{{ item.summary.party }}">{{ item.summary.party }}</span>
-                        {% else %}
                         <span class="truncate" title="{{ item.summary.qc_ro }}">{{ item.summary.qc_ro }}</span>
-                        {% endif %}
                         <button onclick='openContactModal({{ item.summary|tojson|safe }})' class="text-primary hover:text-primary/70 transition-all p-0.5 rounded hover:bg-primary/5 flex items-center justify-center shrink-0" title="View Office Contact Info">
                             <span class="material-symbols-outlined text-[15px]">contact_support</span>
                         </button>
@@ -77,7 +69,7 @@
                                 title="{{ 'Add Feedback' if s1_has_data else 'No data available' }}">
                             <span class="material-symbols-outlined text-[12px]">comment</span>
                         </button>
-                        <button onclick="openDetailsModal('{{ item.summary.party if group_by_party else '' }}', '{{ '' if group_by_party else item.summary.qc_ro }}', 1)" 
+                        <button onclick="openDetailsModal('', '{{ item.summary.qc_ro }}', 1)" 
                                 class="p-1 rounded text-blue-500 {{ 'hover:bg-gray-100' if s1_has_data else 'opacity-20 cursor-not-allowed' }}" 
                                 {{ '' if s1_has_data else 'disabled' }}
                                 title="{{ 'View Details' if s1_has_data else 'No data available' }}">
@@ -117,7 +109,7 @@
                                 title="{{ 'Add Feedback' if s2_has_data else 'No data available' }}">
                             <span class="material-symbols-outlined text-[12px]">comment</span>
                         </button>
-                        <button onclick="openDetailsModal('{{ item.summary.party if group_by_party else '' }}', '{{ '' if group_by_party else item.summary.qc_ro }}', 2)" 
+                        <button onclick="openDetailsModal('', '{{ item.summary.qc_ro }}', 2)" 
                                 class="p-1 rounded text-blue-500 {{ 'hover:bg-gray-100' if s2_has_data else 'opacity-20 cursor-not-allowed' }}" 
                                 {{ '' if s2_has_data else 'disabled' }}
                                 title="{{ 'View Details' if s2_has_data else 'No data available' }}">
@@ -157,7 +149,7 @@
                                 title="{{ 'Add Feedback' if s3_has_data else 'No data available' }}">
                             <span class="material-symbols-outlined text-[12px]">comment</span>
                         </button>
-                        <button onclick="openDetailsModal('{{ item.summary.party if group_by_party else '' }}', '{{ '' if group_by_party else item.summary.qc_ro }}', 3)" 
+                        <button onclick="openDetailsModal('', '{{ item.summary.qc_ro }}', 3)" 
                                 class="p-1 rounded text-blue-500 {{ 'hover:bg-gray-100' if s3_has_data else 'opacity-20 cursor-not-allowed' }}" 
                                 {{ '' if s3_has_data else 'disabled' }}
                                 title="{{ 'View Details' if s3_has_data else 'No data available' }}">
