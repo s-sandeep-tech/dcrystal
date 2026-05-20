@@ -41,17 +41,29 @@
                 <!-- Segment 1 -->
                 {% set s1_has_data = (item.summary.qc_issue_completed_receipt_pending_piece|int > 0 or item.summary.qc_issue_completed_receipt_pending_weight|float > 0) %}
                 <td style="background-color: #f8fafc;">
-                    <div class="flex items-center gap-1">
-                        <span>{{ item.summary.qc_issue_completed_receipt_pending_piece }}</span>
-                        <span class="text-gray-300">/</span>
-                        <span class="text-red-500 font-bold">{{ item.summary.delayed_qc_issue_completed_receipt_pending_piece }}</span>
+                    <div class="flex flex-col gap-0.5">
+                        <div class="flex items-center gap-1">
+                            <span>{{ item.summary.qc_issue_completed_receipt_pending_piece }}</span>
+                            <span class="text-gray-300">/</span>
+                            <span class="text-red-500 font-bold">{{ item.summary.delayed_qc_issue_completed_receipt_pending_piece }}</span>
+                        </div>
+                        {% set s1_pcs_pct = (item.summary.delayed_qc_issue_completed_receipt_pending_piece|float / item.summary.qc_issue_completed_receipt_pending_piece|float * 100) if item.summary.qc_issue_completed_receipt_pending_piece|float > 0 else 0 %}
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-1 rounded-full overflow-hidden mt-1">
+                            <div class="bg-red-500 h-full rounded-full" style="width: {{ s1_pcs_pct }}%;"></div>
+                        </div>
                     </div>
                 </td>
                 <td style="background-color: #f8fafc;">
-                    <div class="flex items-center gap-1 text-[10px]">
-                        <span>{{ "%.3f"|format(item.summary.qc_issue_completed_receipt_pending_weight) }}</span>
-                        <span class="text-gray-300">/</span>
-                        <span class="text-red-400">{{ "%.3f"|format(item.summary.delayed_qc_issue_completed_receipt_pending_weight) }}</span>
+                    <div class="flex flex-col gap-0.5">
+                        <div class="flex items-center gap-1 text-[10px]">
+                            <span>{{ "%.3f"|format(item.summary.qc_issue_completed_receipt_pending_weight) }}</span>
+                            <span class="text-gray-300">/</span>
+                            <span class="text-red-400">{{ "%.3f"|format(item.summary.delayed_qc_issue_completed_receipt_pending_weight) }}</span>
+                        </div>
+                        {% set s1_wt_pct = (item.summary.delayed_qc_issue_completed_receipt_pending_weight|float / item.summary.qc_issue_completed_receipt_pending_weight|float * 100) if item.summary.qc_issue_completed_receipt_pending_weight|float > 0 else 0 %}
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-1 rounded-full overflow-hidden mt-1">
+                            <div class="bg-red-400 h-full rounded-full" style="width: {{ s1_wt_pct }}%;"></div>
+                        </div>
                     </div>
                 </td>
                 <td class="w-px whitespace-nowrap px-1 text-center relative group cursor-help" style="background-color: #f8fafc;">
@@ -81,17 +93,29 @@
                 <!-- Segment 2 -->
                 {% set s2_has_data = (item.summary.qc_receipt_completed_qc_pending_piece|int > 0 or item.summary.qc_receipt_completed_qc_pending_weight|float > 0) %}
                 <td style="background-color: #fffbeb;">
-                    <div class="flex items-center gap-1">
-                        <span>{{ item.summary.qc_receipt_completed_qc_pending_piece }}</span>
-                        <span class="text-gray-300">/</span>
-                        <span class="text-red-500 font-bold">{{ item.summary.delayed_qc_receipt_completed_qc_pending_piece }}</span>
+                    <div class="flex flex-col gap-0.5">
+                        <div class="flex items-center gap-1">
+                            <span>{{ item.summary.qc_receipt_completed_qc_pending_piece }}</span>
+                            <span class="text-gray-300">/</span>
+                            <span class="text-red-500 font-bold">{{ item.summary.delayed_qc_receipt_completed_qc_pending_piece }}</span>
+                        </div>
+                        {% set s2_pcs_pct = (item.summary.delayed_qc_receipt_completed_qc_pending_piece|float / item.summary.qc_receipt_completed_qc_pending_piece|float * 100) if item.summary.qc_receipt_completed_qc_pending_piece|float > 0 else 0 %}
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-1 rounded-full overflow-hidden mt-1">
+                            <div class="bg-red-500 h-full rounded-full" style="width: {{ s2_pcs_pct }}%;"></div>
+                        </div>
                     </div>
                 </td>
                 <td style="background-color: #fffbeb;">
-                    <div class="flex items-center gap-1 text-[10px]">
-                        <span>{{ "%.3f"|format(item.summary.qc_receipt_completed_qc_pending_weight) }}</span>
-                        <span class="text-gray-300">/</span>
-                        <span class="text-red-400">{{ "%.3f"|format(item.summary.delayed_qc_receipt_completed_qc_pending_weight) }}</span>
+                    <div class="flex flex-col gap-0.5">
+                        <div class="flex items-center gap-1 text-[10px]">
+                            <span>{{ "%.3f"|format(item.summary.qc_receipt_completed_qc_pending_weight) }}</span>
+                            <span class="text-gray-300">/</span>
+                            <span class="text-red-400">{{ "%.3f"|format(item.summary.delayed_qc_receipt_completed_qc_pending_weight) }}</span>
+                        </div>
+                        {% set s2_wt_pct = (item.summary.delayed_qc_receipt_completed_qc_pending_weight|float / item.summary.qc_receipt_completed_qc_pending_weight|float * 100) if item.summary.qc_receipt_completed_qc_pending_weight|float > 0 else 0 %}
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-1 rounded-full overflow-hidden mt-1">
+                            <div class="bg-red-400 h-full rounded-full" style="width: {{ s2_wt_pct }}%;"></div>
+                        </div>
                     </div>
                 </td>
                 <td class="w-px whitespace-nowrap px-1 text-center relative group cursor-help" style="background-color: #fffbeb;">
@@ -121,17 +145,29 @@
                 <!-- Segment 3 -->
                 {% set s3_has_data = (item.summary.qc_completed_invoice_request_pending_piece|int > 0 or item.summary.qc_completed_invoice_request_pending_weight|float > 0) %}
                 <td style="background-color: #fdf4ff;">
-                    <div class="flex items-center gap-1">
-                        <span>{{ item.summary.qc_completed_invoice_request_pending_piece }}</span>
-                        <span class="text-gray-300">/</span>
-                        <span class="text-red-500 font-bold">{{ item.summary.delayed_qc_completed_invoice_request_pending_piece }}</span>
+                    <div class="flex flex-col gap-0.5">
+                        <div class="flex items-center gap-1">
+                            <span>{{ item.summary.qc_completed_invoice_request_pending_piece }}</span>
+                            <span class="text-gray-300">/</span>
+                            <span class="text-red-500 font-bold">{{ item.summary.delayed_qc_completed_invoice_request_pending_piece }}</span>
+                        </div>
+                        {% set s3_pcs_pct = (item.summary.delayed_qc_completed_invoice_request_pending_piece|float / item.summary.qc_completed_invoice_request_pending_piece|float * 100) if item.summary.qc_completed_invoice_request_pending_piece|float > 0 else 0 %}
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-1 rounded-full overflow-hidden mt-1">
+                            <div class="bg-red-500 h-full rounded-full" style="width: {{ s3_pcs_pct }}%;"></div>
+                        </div>
                     </div>
                 </td>
                 <td style="background-color: #fdf4ff;">
-                    <div class="flex items-center gap-1 text-[10px]">
-                        <span>{{ "%.3f"|format(item.summary.qc_completed_invoice_request_pending_weight) }}</span>
-                        <span class="text-gray-300">/</span>
-                        <span class="text-red-400">{{ "%.3f"|format(item.summary.delayed_qc_completed_invoice_request_pending_weight) }}</span>
+                    <div class="flex flex-col gap-0.5">
+                        <div class="flex items-center gap-1 text-[10px]">
+                            <span>{{ "%.3f"|format(item.summary.qc_completed_invoice_request_pending_weight) }}</span>
+                            <span class="text-gray-300">/</span>
+                            <span class="text-red-400">{{ "%.3f"|format(item.summary.delayed_qc_completed_invoice_request_pending_weight) }}</span>
+                        </div>
+                        {% set s3_wt_pct = (item.summary.delayed_qc_completed_invoice_request_pending_weight|float / item.summary.qc_completed_invoice_request_pending_weight|float * 100) if item.summary.qc_completed_invoice_request_pending_weight|float > 0 else 0 %}
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 h-1 rounded-full overflow-hidden mt-1">
+                            <div class="bg-red-400 h-full rounded-full" style="width: {{ s3_wt_pct }}%;"></div>
+                        </div>
                     </div>
                 </td>
                 <td class="w-px whitespace-nowrap px-1 text-center relative group cursor-help" style="background-color: #fdf4ff;">
