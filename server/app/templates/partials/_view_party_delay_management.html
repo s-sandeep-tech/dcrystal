@@ -10,6 +10,8 @@
             <th colspan="4" class="top-header" style="background-color: #fff1f2;">HM RECEIPT RETURN COMPLETED-QC ISSUE PENDING</th>
             <th colspan="4" class="top-header" style="background-color: #eef2ff;">INVOICE GENERATED- INVOICE APPROVE PENDING</th>
             <th colspan="4" class="top-header" style="background-color: #fdf2f8;">INVOICE APPROVE COMPLETED- NOT SYNCHED TO MUZIRIS</th>
+            <th rowspan="2" class="top-header" style="background-color: #e2e8f0; color: #334155; vertical-align: bottom; border-left: 2px solid #cbd5e1; font-weight: bold;">TOTAL PCS</th>
+            <th rowspan="2" class="top-header" style="background-color: #e2e8f0; color: #334155; vertical-align: bottom; font-weight: bold;">TOTAL WT</th>
         </tr>
         <tr>
             <!-- S1 -->
@@ -112,11 +114,13 @@
                         </div>
                     </td>
                 {% endfor %}
+                <td style="background-color: #f1f5f9; font-weight: bold; text-align: center; border-left: 2px solid #cbd5e1; font-size: 10px; color: #334155;">{{ item.summary.total_pieces }}</td>
+                <td style="background-color: #f1f5f9; font-weight: bold; text-align: right; font-size: 10px; color: #334155;">{{ "%.3f"|format(item.summary.total_weight) }}</td>
             </tr>
             {% endfor %}
         {% else %}
             <tr>
-                <td colspan="33" class="py-20 text-center text-gray-500 bg-white">
+                <td colspan="35" class="py-20 text-center text-gray-500 bg-white">
                     <p class="text-[9px] font-medium">No party delay data available. Try adjusting filters or syncing data.</p>
                 </td>
             </tr>

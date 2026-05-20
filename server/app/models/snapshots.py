@@ -2445,6 +2445,9 @@ class PartyDelayManagementSnapshot(db.Model):
     invoice_approved_not_synched_to_muziris = db.Column(db.Integer, default=0)
     invoice_approved_not_synched_to_muziris_weight = db.Column(db.Numeric(12, 3), default=0)
     
+    total_pieces = db.Column(db.Integer, default=0)
+    total_weight = db.Column(db.Numeric(12, 3), default=0)
+    
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
@@ -2471,7 +2474,9 @@ class PartyDelayManagementSnapshot(db.Model):
             'invoice_generated_invoice_approve_pending': self.invoice_generated_invoice_approve_pending,
             'invoice_generated_invoice_approve_pending_weight': float(self.invoice_generated_invoice_approve_pending_weight or 0),
             'invoice_approved_not_synched_to_muziris': self.invoice_approved_not_synched_to_muziris,
-            'invoice_approved_not_synched_to_muziris_weight': float(self.invoice_approved_not_synched_to_muziris_weight or 0)
+            'invoice_approved_not_synched_to_muziris_weight': float(self.invoice_approved_not_synched_to_muziris_weight or 0),
+            'total_pieces': self.total_pieces or 0,
+            'total_weight': float(self.total_weight or 0)
         }
 
 class PartyDelayManagementFeedback(db.Model):

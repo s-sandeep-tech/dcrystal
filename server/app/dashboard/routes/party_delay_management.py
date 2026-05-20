@@ -110,7 +110,9 @@ def partial_party_delay_management_report():
         func.sum(PartyDelayManagementSnapshot.invoice_generated_invoice_approve_pending).label('invoice_generated_invoice_approve_pending'),
         func.sum(PartyDelayManagementSnapshot.invoice_generated_invoice_approve_pending_weight).label('invoice_generated_invoice_approve_pending_weight'),
         func.sum(PartyDelayManagementSnapshot.invoice_approved_not_synched_to_muziris).label('invoice_approved_not_synched_to_muziris'),
-        func.sum(PartyDelayManagementSnapshot.invoice_approved_not_synched_to_muziris_weight).label('invoice_approved_not_synched_to_muziris_weight')
+        func.sum(PartyDelayManagementSnapshot.invoice_approved_not_synched_to_muziris_weight).label('invoice_approved_not_synched_to_muziris_weight'),
+        func.sum(PartyDelayManagementSnapshot.total_pieces).label('total_pieces'),
+        func.sum(PartyDelayManagementSnapshot.total_weight).label('total_weight')
     ]
     
     snapshot_q = db.session.query(*subq_selection)
@@ -153,7 +155,9 @@ def partial_party_delay_management_report():
         snapshot_subq.c.invoice_generated_invoice_approve_pending,
         snapshot_subq.c.invoice_generated_invoice_approve_pending_weight,
         snapshot_subq.c.invoice_approved_not_synched_to_muziris,
-        snapshot_subq.c.invoice_approved_not_synched_to_muziris_weight
+        snapshot_subq.c.invoice_approved_not_synched_to_muziris_weight,
+        snapshot_subq.c.total_pieces,
+        snapshot_subq.c.total_weight
     ]
     
     for subq in f_subqs:
@@ -191,12 +195,14 @@ def partial_party_delay_management_report():
             'invoice_generated_invoice_approve_pending': r[15] or 0,
             'invoice_generated_invoice_approve_pending_weight': float(r[16] or 0),
             'invoice_approved_not_synched_to_muziris': r[17] or 0,
-            'invoice_approved_not_synched_to_muziris_weight': float(r[18] or 0)
+            'invoice_approved_not_synched_to_muziris_weight': float(r[18] or 0),
+            'total_pieces': r[19] or 0,
+            'total_weight': float(r[20] or 0)
         }
         
         feedbacks = {}
         for i in range(1, 9):
-            idx = 19 + (i-1)*4
+            idx = 21 + (i-1)*4
             f_t, f_c, f_u, f_d = r[idx], r[idx+1], r[idx+2], r[idx+3]
             feedbacks[f'segment{i}'] = {
                 'feedback_text': f_t, 

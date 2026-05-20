@@ -3356,12 +3356,34 @@ def sync_party_delay_management_data_task():
                    bis_request_completed_hm_issue_pending_orders, bis_request_completed_hm_issue_pending_weight, 
                    hm_receipt_return_completed_qc_issue_pending, hm_receipt_return_completed_qc_issue_pending_weight, 
                    invoice_generated_invoice_approve_pending, invoice_generated_invoice_approve_pending_weight, 
-                   invoice_approved_not_synched_to_muziris, invoice_approved_not_synched_to_muziris_weight 
+                   invoice_approved_not_synched_to_muziris, invoice_approved_not_synched_to_muziris_weight,
+                   total_pieces, total_weight
             FROM ext_view.vw_party_summary
             """
             cur.execute(summary_query)
             summary_rows = cur.fetchall()
             
+            # Ensure required columns exist in party_delay_management_snapshots table
+            from sqlalchemy import inspect
+            try:
+                inspector = inspect(db.engine)
+                columns = [c['name'] for c in inspector.get_columns('party_delay_management_snapshots')]
+                if 'bis_request_completed_hm_issue_pending_weig' in columns and 'bis_request_completed_hm_issue_pending_weight' not in columns:
+                    db.session.execute(text("ALTER TABLE party_delay_management_snapshots RENAME COLUMN bis_request_completed_hm_issue_pending_weig TO bis_request_completed_hm_issue_pending_weight"))
+                elif 'bis_request_completed_hm_issue_pending_weight' not in columns:
+                    db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN bis_request_completed_hm_issue_pending_weight NUMERIC(12, 3) DEFAULT 0"))
+                
+                if 'party_address' not in columns:
+                    db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN party_address TEXT"))
+                if 'total_pieces' not in columns:
+                    db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN total_pieces INTEGER DEFAULT 0"))
+                if 'total_weight' not in columns:
+                    db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN total_weight NUMERIC(12, 3) DEFAULT 0"))
+                db.session.commit()
+            except Exception as migrate_err:
+                db.session.rollback()
+                logger.warning(f"Auto-migration for total_pieces/total_weight failed (or already exist): {migrate_err}")
+
             db.session.execute(text("TRUNCATE TABLE party_delay_management_snapshots"))
             snapshot_date = datetime.now()
             summary_objects = [
@@ -3387,7 +3409,9 @@ def sync_party_delay_management_data_task():
                     invoice_generated_invoice_approve_pending=row[17],
                     invoice_generated_invoice_approve_pending_weight=row[18],
                     invoice_approved_not_synched_to_muziris=row[19],
-                    invoice_approved_not_synched_to_muziris_weight=row[20]
+                    invoice_approved_not_synched_to_muziris_weight=row[20],
+                    total_pieces=row[21],
+                    total_weight=row[22]
                 ) for row in summary_rows
             ]
             db.session.bulk_save_objects(summary_objects)
