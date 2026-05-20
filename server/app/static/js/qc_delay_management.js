@@ -385,6 +385,18 @@ function openDetailsModal(party, qc_ro, segment_id) {
     if (party) queryParams += `&party=${encodeURIComponent(party)}`;
     if (qc_ro) queryParams += `&qc_ro=${encodeURIComponent(qc_ro)}`;
 
+    const delayS1 = document.getElementById('filter-delay-s1')?.value;
+    const delayS2 = document.getElementById('filter-delay-s2')?.value;
+    const delayS3 = document.getElementById('filter-delay-s3')?.value;
+
+    if (segment_id === 1 && delayS1) {
+        queryParams += `&delay=${encodeURIComponent(delayS1)}`;
+    } else if (segment_id === 2 && delayS2) {
+        queryParams += `&delay=${encodeURIComponent(delayS2)}`;
+    } else if (segment_id === 3 && delayS3) {
+        queryParams += `&delay=${encodeURIComponent(delayS3)}`;
+    }
+
     fetch(`/api/qc-delay-management/details/${segment_id}?${queryParams}`, {
         headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`

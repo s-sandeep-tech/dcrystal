@@ -2034,6 +2034,7 @@ class QCReceiptCompletedQCPendingSnapshot(db.Model):
             'qc_issue_challan_date': self.qc_issue_challan_date.isoformat() if self.qc_issue_challan_date else None,
             'qc_req_no': self.receipt_no,
             'qc_date': self.receipt_date.isoformat() if self.receipt_date else None,
+            'receipt_date': self.receipt_date.isoformat() if self.receipt_date else None,
             'net_weight': float(self.net_weight) if self.net_weight else 0,
             'gross_weight': float(self.gross_weight) if self.gross_weight else 0,
             'stone_weight': float(self.stone_weight) if self.stone_weight else 0,

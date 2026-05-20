@@ -290,6 +290,7 @@ def save_qc_delay_feedback():
 def get_qc_delay_details(segment_id):
     qc_ro = request.args.get('qc_ro')
     party = request.args.get('party')
+    delay = request.args.get('delay', type=int)
     
     if segment_id == 1:
         model = SupplierQCIssueReceiptPendingSnapshot
@@ -311,6 +312,14 @@ def get_qc_delay_details(segment_id):
     if latest_date:
         query = query.filter(model.snapshot_date == latest_date)
         
+    if delay is not None:
+        if segment_id == 1:
+            query = query.filter((func.current_date() - func.date(model.qc_issue_receipt_date)) >= delay)
+        elif segment_id == 2:
+            query = query.filter((func.current_date() - func.date(model.receipt_date)) >= delay)
+        elif segment_id == 3:
+            query = query.filter((func.current_date() - func.date(model.qc_completed_date)) >= delay)
+
     rows = query.all()
     return jsonify([r.to_dict() for r in rows])
 
