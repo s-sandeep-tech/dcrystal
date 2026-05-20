@@ -2838,11 +2838,11 @@ def sync_qc_delay_management_data_task():
     while retry_count < max_retries:
         start_time = time.time()
         conn = None
+        current_view = "initialization"
         try:
             emit_sync_update('processing', f'Connecting to external database (Attempt {retry_count + 1}/{max_retries})...', 5, DATA_TYPE)
             conn = get_external_db_connection()
             cur = conn.cursor()
-            current_view = "initialization"
             
             # 1. Sync Summary Data
             emit_sync_update('processing', 'Fetching QC Summary data...', 10, DATA_TYPE)
