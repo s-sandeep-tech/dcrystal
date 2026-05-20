@@ -86,8 +86,8 @@
                     {% endif %}
 
                     {% set has_data = (pcs|int > 0 or wt|float > 0) %}
-                    <td style="background-color: {{ bg }};">{% if has_data %}{{ pcs }}{% endif %}</td>
-                    <td style="background-color: {{ bg }};">{% if has_data %}{{ "%.3f"|format(wt) }}{% endif %}</td>
+                    <td style="background-color: {{ bg }};">{{ pcs }}</td>
+                    <td style="background-color: {{ bg }};">{{ "%.3f"|format(wt) }}</td>
                     <td class="w-px whitespace-nowrap px-1 text-center relative group cursor-help" style="background-color: {{ bg }};">
                         {% if item.feedbacks.get('segment' ~ i, {}).get('feedback_text') %}
                             <div class="feedback-trigger" data-party="{{ item.summary.party }}" data-segment-id="{{ i }}">
