@@ -290,6 +290,7 @@ def save_qc_delay_feedback():
 def get_qc_delay_details(segment_id):
     qc_ro = request.args.get('qc_ro')
     party = request.args.get('party')
+    make = request.args.get('make')
     delay = request.args.get('delay', type=int)
     
     if segment_id == 1:
@@ -304,8 +305,19 @@ def get_qc_delay_details(segment_id):
     query = model.query
     if qc_ro:
         query = query.filter(model.qc_ro == qc_ro)
+        
     if party:
-        query = query.filter(model.party == party)
+        parties_list = [p.strip() for p in party.split(',') if p.strip()]
+        if parties_list:
+            query = query.filter(model.party.in_(parties_list))
+            
+    if make:
+        makes_list = [m.strip() for m in make.split(',') if m.strip()]
+        if makes_list:
+            if hasattr(model, 'make'):
+                query = query.filter(model.make.in_(makes_list))
+            elif hasattr(model, 'make_owner'):
+                query = query.filter(model.make_owner.in_(makes_list))
         
     # Get latest date for the detail model
     latest_date = db.session.query(func.max(model.snapshot_date)).scalar()

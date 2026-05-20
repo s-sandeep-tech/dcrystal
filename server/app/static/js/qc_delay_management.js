@@ -396,8 +396,29 @@ function openDetailsModal(party, qc_ro, segment_id) {
     modal.classList.remove('hidden');
 
     let queryParams = `segment_id=${segment_id}`;
-    if (party) queryParams += `&party=${encodeURIComponent(party)}`;
     if (qc_ro) queryParams += `&qc_ro=${encodeURIComponent(qc_ro)}`;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let selectedParty = party;
+    if (!selectedParty) {
+        selectedParty = urlParams.get('party');
+        if (!selectedParty) {
+            const checkedBoxes = document.querySelectorAll('#options-party input[type="checkbox"]:checked');
+            if (checkedBoxes.length > 0) {
+                selectedParty = Array.from(checkedBoxes).map(cb => cb.value).join(',');
+            }
+        }
+    }
+    if (selectedParty) queryParams += `&party=${encodeURIComponent(selectedParty)}`;
+
+    let selectedMake = urlParams.get('make');
+    if (!selectedMake) {
+        const checkedBoxes = document.querySelectorAll('#options-make input[type="checkbox"]:checked');
+        if (checkedBoxes.length > 0) {
+            selectedMake = Array.from(checkedBoxes).map(cb => cb.value).join(',');
+        }
+    }
+    if (selectedMake) queryParams += `&make=${encodeURIComponent(selectedMake)}`;
 
     const delayS1 = document.getElementById('filter-delay-s1')?.value;
     const delayS2 = document.getElementById('filter-delay-s2')?.value;
