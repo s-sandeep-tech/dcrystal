@@ -5,9 +5,11 @@
             <th colspan="4" class="top-header" style="background-color: #f0f9ff;">ACCEPT PENDING</th>
             <th colspan="4" class="top-header" style="background-color: #fffbeb;">PROCESS PENDING</th>
             <th colspan="4" class="top-header" style="background-color: #f5f3ff;">PROCESS COMPLETED- BARCODE PENDING</th>
-            <th colspan="4" class="top-header" style="background-color: #f0fdf4;">BARCODE COMPLETED-HM ISSUE PENDING</th>
-            <th colspan="4" class="top-header" style="background-color: #fff1f2;">HM RECEIPT COMPLETED-QC ISSUE PENDING</th>
-            <th colspan="4" class="top-header" style="background-color: #eef2ff;">INVOICE REQUEST COMPLETED-INVOICE PENDING</th>
+            <th colspan="4" class="top-header" style="background-color: #e6fffa;">BARCODE COMPLETED - BIS REQUEST PENDING</th>
+            <th colspan="4" class="top-header" style="background-color: #f0fdf4;">BIS REQUEST COMPLETED - HM ISSUE PENDING</th>
+            <th colspan="4" class="top-header" style="background-color: #fff1f2;">HM RECEIPT RETURN COMPLETED-QC ISSUE PENDING</th>
+            <th colspan="4" class="top-header" style="background-color: #eef2ff;">INVOICE GENERATED- INVOICE APPROVE PENDING</th>
+            <th colspan="4" class="top-header" style="background-color: #fdf2f8;">INVOICE APPROVE COMPLETED- NOT SYNCHED TO MUZIRIS</th>
         </tr>
         <tr>
             <!-- S1 -->
@@ -17,11 +19,15 @@
             <!-- S3 -->
             <th style="background-color: #f5f3ff;">PCS</th> <th style="background-color: #f5f3ff;">WT</th> <th style="background-color: #f5f3ff;">FB</th> <th style="background-color: #f5f3ff;">ACT</th>
             <!-- S4 -->
-            <th style="background-color: #f0fdf4;">PCS</th> <th style="background-color: #f0fdf4;">WT</th> <th style="background-color: #f0fdf4;">FB</th> <th style="background-color: #f0fdf4;">ACT</th>
+            <th style="background-color: #e6fffa;">PCS</th> <th style="background-color: #e6fffa;">WT</th> <th style="background-color: #e6fffa;">FB</th> <th style="background-color: #e6fffa;">ACT</th>
             <!-- S5 -->
-            <th style="background-color: #fff1f2;">PCS</th> <th style="background-color: #fff1f2;">WT</th> <th style="background-color: #fff1f2;">FB</th> <th style="background-color: #fff1f2;">ACT</th>
+            <th style="background-color: #f0fdf4;">PCS</th> <th style="background-color: #f0fdf4;">WT</th> <th style="background-color: #f0fdf4;">FB</th> <th style="background-color: #f0fdf4;">ACT</th>
             <!-- S6 -->
+            <th style="background-color: #fff1f2;">PCS</th> <th style="background-color: #fff1f2;">WT</th> <th style="background-color: #fff1f2;">FB</th> <th style="background-color: #fff1f2;">ACT</th>
+            <!-- S7 -->
             <th style="background-color: #eef2ff;">PCS</th> <th style="background-color: #eef2ff;">WT</th> <th style="background-color: #eef2ff;">FB</th> <th style="background-color: #eef2ff;">ACT</th>
+            <!-- S8 -->
+            <th style="background-color: #fdf2f8;">PCS</th> <th style="background-color: #fdf2f8;">WT</th> <th style="background-color: #fdf2f8;">FB</th> <th style="background-color: #fdf2f8;">ACT</th>
         </tr>
     </thead>
     <tbody>
@@ -35,31 +41,39 @@
                     </div>
                 </td>
                 
-                {% for i in range(1, 7) %}
+                {% for i in range(1, 9) %}
                     {% if i == 1 %}
-                        {% set pcs = item.summary.pending_to_accept_pcs %}
-                        {% set wt = item.summary.pending_to_accept_wt %}
+                        {% set pcs = item.summary.invited_pending_orders %}
+                        {% set wt = item.summary.invited_pending_weight %}
                         {% set bg = '#f8fafc' %}
                     {% elif i == 2 %}
-                        {% set pcs = item.summary.process_pending_pieces %}
+                        {% set pcs = item.summary.process_pending_orders %}
                         {% set wt = item.summary.process_pending_weight %}
                         {% set bg = '#fffdfa' %}
                     {% elif i == 3 %}
-                        {% set pcs = item.summary.accepted_and_barcode_pending_piece %}
-                        {% set wt = item.summary.accepted_and_barcode_pending_weight %}
+                        {% set pcs = item.summary.process_completed_barcode_pending_orders %}
+                        {% set wt = item.summary.process_completed_barcode_pending_weight %}
                         {% set bg = '#fcfaff' %}
                     {% elif i == 4 %}
-                        {% set pcs = item.summary.barcoded_and_hm_issue_pending_piece %}
-                        {% set wt = item.summary.barcoded_and_hm_issue_pending_weight %}
-                        {% set bg = '#fafffa' %}
+                        {% set pcs = item.summary.barcode_completed_bis_request_pending_orders %}
+                        {% set wt = item.summary.barcode_completed_bis_request_pending_weight %}
+                        {% set bg = '#f2fffd' %}
                     {% elif i == 5 %}
-                        {% set pcs = item.summary.hm_receipt_completed_and_qc_issue_pending_piece %}
-                        {% set wt = item.summary.hm_receipt_completed_and_qc_issue_pending_weight %}
-                        {% set bg = '#fffafa' %}
+                        {% set pcs = item.summary.bis_request_completed_hm_issue_pending_orders %}
+                        {% set wt = item.summary.bis_request_completed_hm_issue_pending_weig %}
+                        {% set bg = '#f6fff9' %}
                     {% elif i == 6 %}
-                        {% set pcs = item.summary.invoice_request_completed_and_invoice_pending_piece %}
-                        {% set wt = item.summary.invoice_request_completed_and_invoice_pending_weight %}
-                        {% set bg = '#fafaff' %}
+                        {% set pcs = item.summary.hm_receipt_return_completed_qc_issue_pending %}
+                        {% set wt = item.summary.hm_receipt_return_completed_qc_issue_pending_weight %}
+                        {% set bg = '#fffafb' %}
+                    {% elif i == 7 %}
+                        {% set pcs = item.summary.invoice_generated_invoice_approve_pending %}
+                        {% set wt = item.summary.invoice_generated_invoice_approve_pending_weight %}
+                        {% set bg = '#f5f7ff' %}
+                    {% elif i == 8 %}
+                        {% set pcs = item.summary.invoice_approved_not_synched_to_muziris %}
+                        {% set wt = item.summary.invoice_approved_not_synched_to_muziris_weight %}
+                        {% set bg = '#fef6fa' %}
                     {% endif %}
 
                     {% set has_data = (pcs|int > 0 or wt|float > 0) %}
@@ -93,7 +107,7 @@
             {% endfor %}
         {% else %}
             <tr>
-                <td colspan="25" class="py-20 text-center text-gray-500 bg-white">
+                <td colspan="33" class="py-20 text-center text-gray-500 bg-white">
                     <p class="text-[9px] font-medium">No party delay data available. Try adjusting filters or syncing data.</p>
                 </td>
             </tr>

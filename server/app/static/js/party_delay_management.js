@@ -104,9 +104,11 @@ function openFeedbackModal(party, segment_id) {
         1: "Accept Pending",
         2: "Process Pending",
         3: "Barcode Pending",
-        4: "HM Issue Pending",
-        5: "QC Issue Pending",
-        6: "Invoice Pending"
+        4: "Barcode Completed - BIS Request Pending",
+        5: "BIS Request Completed - HM Issue Pending",
+        6: "HM Receipt Return Completed - QC Issue Pending",
+        7: "Invoice Generated - Invoice Approve Pending",
+        8: "Invoice Approve Completed - Not Synched to Muziris"
     };
     
     document.getElementById('fb_display_info').textContent = `${party} | ${segmentNames[segment_id]}`;
@@ -170,9 +172,11 @@ function openDetailsModal(party, segment_id) {
         1: "Accept Pending Details",
         2: "Process Pending Details",
         3: "Barcode Pending Details",
-        4: "HM Issue Pending Details",
-        5: "QC Issue Pending Details",
-        6: "Invoice Pending Details"
+        4: "Barcode Completed - BIS Request Pending Details",
+        5: "BIS Request Completed - HM Issue Pending Details",
+        6: "HM Receipt Return Completed - QC Issue Pending Details",
+        7: "Invoice Generated - Invoice Approve Pending Details",
+        8: "Invoice Approve Completed - Not Synched to Muziris Details"
     };
     
     title.textContent = `${party}`;
@@ -220,27 +224,22 @@ function renderRichModalContent(data, segment_id) {
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">Status</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-right">Weights</th>
         `;
-    } else if (segment_id === 4) {
+    } else if (segment_id === 4 || segment_id === 5 || segment_id === 7 || segment_id === 8) {
         headers = `
-            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">PO / HM Req</th>
-            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Party / Agent</th>
-            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">HM Receipt</th>
-            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-right">Pending HM Issue</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">PO Info</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Party / BH</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Design / Set</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">${segment_id === 4 || segment_id === 5 ? 'Barcode Date' : 'Invoice Info'}</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">Delay</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-right">Metrics (Pcs/Wt)</th>
         `;
-    } else if (segment_id === 5) {
+    } else if (segment_id === 6) {
         headers = `
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">PO Info</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Party Info</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">Hallmark Info</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Design / Set</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-right">Weight</th>
-        `;
-    } else {
-        headers = `
-            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">PO / Invoice Req</th>
-            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Party / RO</th>
-            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">QC Receipt</th>
-            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-right">Net / Stone</th>
         `;
     }
 
@@ -283,7 +282,13 @@ function renderRichModalContent(data, segment_id) {
                 pending_to_hallmark_issue_piece: 0,
                 pending_to_hallmark_issue_wt: 0,
                 pending_to_final_qc_issue_pcs: 0,
-                pending_to_final_qc_issue_weight: 0
+                pending_to_final_qc_issue_weight: 0,
+                
+                // Segments 4, 5, 7, 8:
+                order_pieces: 0,
+                order_wt: 0,
+                pending_piece: 0,
+                pending_weight: 0
             };
         }
         
@@ -299,6 +304,11 @@ function renderRichModalContent(data, segment_id) {
         
         g.pending_to_final_qc_issue_pcs += parseInt(row.pending_to_final_qc_issue_pcs || 0);
         g.pending_to_final_qc_issue_weight += parseFloat(row.pending_to_final_qc_issue_weight || 0);
+
+        g.order_pieces += parseInt(row.order_pieces || 0);
+        g.order_wt += parseFloat(row.order_wt || 0);
+        g.pending_piece += parseInt(row.pending_piece || 0);
+        g.pending_weight += parseFloat(row.pending_weight || 0);
 
         if (row.set_design_no) g._designs.add(row.set_design_no);
         else if (row.design_no) g._designs.add(row.design_no);
@@ -402,38 +412,76 @@ function renderRichModalContent(data, segment_id) {
                     </td>
                 </tr>
             `;
-        } else if (segment_id === 4) {
+        } else if (segment_id === 4 || segment_id === 5 || segment_id === 7 || segment_id === 8) {
+            const poDate = row.po_date ? row.po_date.split('T')[0] : '-';
+            
+            let eventCol = "";
+            if (segment_id === 4 || segment_id === 5) {
+                const barcodeDate = row.barcode_completion_date ? row.barcode_completion_date.split('T')[0] : '-';
+                eventCol = `
+                    <div class="flex flex-col text-center">
+                        <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${barcodeDate}</span>
+                    </div>
+                `;
+            } else {
+                const invDate = row.invoice_generated_date ? row.invoice_generated_date.split('T')[0] : 
+                                (row.invoice_approved_date ? row.invoice_approved_date.split('T')[0] : '-');
+                eventCol = `
+                    <div class="flex flex-col text-center gap-0.5">
+                        <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">${row.invoice_no || '-'}</span>
+                        <span class="text-[9px] text-gray-400">${segment_id === 7 ? 'Generated' : 'Approved'}</span>
+                        <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${invDate}</span>
+                    </div>
+                `;
+            }
+
             html += `
-                <tr class="hover:bg-amber-50/30 dark:hover:bg-amber-900/10 transition-colors">
+                <tr class="hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-colors">
                     <td class="px-4 py-4">
                         <div class="flex flex-col gap-0.5">
                             <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.po_number || '-'}</span>
-                            <span class="text-[10px] text-amber-600 dark:text-amber-400 font-bold cursor-help" title="${row.hm_req_id.full}">${row.hm_req_id.display}</span>
-                            <span class="text-[10px] text-gray-400 font-medium break-words max-w-[150px] cursor-help" title="${row.order_no.full}">${row.order_no.display}</span>
+                            <span class="text-[10px] text-gray-500 flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[12px]">calendar_today</span> ${poDate}
+                            </span>
+                            <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">${row.order_branch || '-'}</span>
+                            <span class="text-[9px] text-gray-400">${row.order_type || '-'} (${row.order_request_type || '-'})</span>
                         </div>
                     </td>
                     <td class="px-4 py-4">
-                        <div class="flex flex-col">
+                        <div class="flex flex-col gap-0.5">
                             <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.party || '-'}</span>
-                            <span class="text-[10px] text-gray-500 cursor-help" title="${row.hallmark_agent.full}">Agent: ${row.hallmark_agent.display}</span>
-                            <span class="text-[9px] text-gray-400 italic cursor-help" title="${row.hm_agent_email.full}">${row.hm_agent_email.display}</span>
+                            <span class="text-[10px] text-gray-500">${row.party_mobile_no || '-'}</span>
+                            <span class="text-[9px] text-gray-400 mt-1 leading-tight">BH: ${row.business_head_name || '-'}</span>
+                            <span class="text-[8px] text-gray-400">Owner: ${row.make_owner || '-'} / ${row.collection_owner || '-'}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4">
+                        <div class="flex flex-col gap-0.5">
+                            <span class="text-xs font-bold text-gray-900 dark:text-gray-100 break-words max-w-[150px] cursor-help" title="${row.set_design_no.full}">${row.set_design_no.display}</span>
+                            <span class="text-[9px] text-gray-400 italic break-words max-w-[150px] cursor-help" title="${row.collection.full}">${row.collection.display}</span>
+                            <span class="text-[10px] text-gray-500 flex items-center gap-1 mt-1 cursor-help" title="${row.target_date.full}">
+                                <span class="material-symbols-outlined text-[12px] text-rose-500">event</span> Target: ${row.target_date.display}
+                            </span>
                         </div>
                     </td>
                     <td class="px-4 py-4 text-center">
-                        <div class="flex flex-col">
-                            <span class="text-[10px] text-gray-400 uppercase font-black tracking-tighter cursor-help" title="${row.hm_issue_receipt_no.full}">${row.hm_issue_receipt_no.full !== '-' ? row.hm_issue_receipt_no.display : 'No Receipt'}</span>
-                            <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${row.hm_issue_receipt_date ? row.hm_issue_receipt_date.split('T')[0] : '-'}</span>
-                        </div>
+                        ${eventCol}
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <span class="px-2.5 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[11px] font-bold border border-red-200 dark:border-red-800/50">
+                            ${row.delay_days || 0} Days
+                        </span>
                     </td>
                     <td class="px-4 py-4 text-right">
                         <div class="flex flex-col">
-                            <span class="text-xs font-black text-rose-600">${row.pending_to_hallmark_issue_piece || 0} Pcs</span>
-                            <span class="text-[10px] text-gray-400 font-bold">${formatWeight(row.pending_to_hallmark_issue_wt)} Gms</span>
+                            <span class="text-xs font-black text-rose-600 mb-0.5">${row.pending_piece || 0} Pcs <span class="text-[9px] font-normal text-gray-400">/ ${row.order_pieces || 0}</span></span>
+                            <span class="text-xs font-black text-gray-900 dark:text-gray-100">${formatWeight(row.pending_weight)} <span class="text-[9px] font-normal text-gray-400">Gms</span></span>
+                            <span class="text-[9px] text-gray-400 mt-1">Order Wt: ${formatWeight(row.order_wt)}</span>
                         </div>
                     </td>
                 </tr>
             `;
-        } else if (segment_id === 5) {
+        } else if (segment_id === 6) {
             const poDate = row.po_date ? row.po_date.split('T')[0] : '-';
             const hmReceiptDate = row.hm_agent_invoice_receipt_date ? row.hm_agent_invoice_receipt_date.split('T')[0] : '-';
             const hmCompletedAt = row.hm_completed_at ? row.hm_completed_at.split('T')[0] : '-';
@@ -485,50 +533,6 @@ function renderRichModalContent(data, segment_id) {
                         <div class="flex flex-col">
                             <span class="text-xs font-black text-orange-600">${row.pending_to_final_qc_issue_pcs || 0} Pcs</span>
                             <span class="text-[10px] text-gray-400 font-bold">${formatWeight(row.pending_to_final_qc_issue_weight)} Gms</span>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        } else {
-            html += `
-                <tr class="hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-colors">
-                    <td class="px-4 py-4">
-                        <div class="flex flex-col gap-0.5">
-                            <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.po_number || '-'}</span>
-                            <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold break-words max-w-[150px] cursor-help" title="${row.invoice_request_number.full}">${row.invoice_request_number.full !== '-' ? row.invoice_request_number.display : 'No Inv Req'}</span>
-                            <span class="text-[10px] text-gray-500">${row.invoice_request_date ? row.invoice_request_date.split('T')[0] : '-'}</span>
-                            <span class="text-[9px] text-gray-400 mt-1 font-medium break-words max-w-[150px] cursor-help" title="${row.order_no.full}">Ord: ${row.order_no.display}</span>
-                        </div>
-                    </td>
-                    <td class="px-4 py-4">
-                        <div class="flex flex-col">
-                            <span class="text-xs font-bold text-gray-900 dark:text-gray-100">${row.party || '-'}</span>
-                            <span class="text-[10px] text-gray-500">${row.party_mobile_no || '-'}</span>
-                            <div class="flex flex-col mt-1">
-                                <span class="text-[9px] text-gray-400 leading-tight">BH: ${row.business_head_name || '-'}</span>
-                                <span class="text-[9px] text-gray-400">Owner: ${row.make_owner || '-'} / ${row.collection_owner || '-'}</span>
-                            </div>
-                            <div class="mt-1 flex flex-col gap-0.5">
-                                <span class="text-[10px] font-bold text-indigo-600 break-words max-w-[150px] cursor-help" title="${row.set_design_no.full}">${row.set_design_no.display}</span>
-                                <span class="text-[9px] text-gray-400 break-words max-w-[150px] cursor-help" title="${row.collection.full}">${row.collection.display}</span>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="px-4 py-4 text-center">
-                        <div class="flex flex-col">
-                            <span class="text-[10px] text-gray-400 uppercase font-black tracking-tighter">Final QC</span>
-                            <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${row.final_qc_receipt_date ? row.final_qc_receipt_date.split('T')[0] : '-'}</span>
-                            <span class="text-[9px] text-gray-400 mt-1 break-words max-w-[100px] cursor-help" title="${row.final_qc_receipt_no.full}">${row.final_qc_receipt_no.display}</span>
-                        </div>
-                    </td>
-                    <td class="px-4 py-4 text-right">
-                        <div class="flex flex-col">
-                            <span class="text-xs font-black text-emerald-600 mb-0.5">${row.piece_count || 0} Pcs</span>
-                            <span class="text-[10px] text-gray-400 font-bold">${formatWeight(row.barcoded_weight)} Gms</span>
-                            <div class="flex flex-col mt-1 border-t border-gray-100 pt-1">
-                                <span class="text-[8px] text-gray-400">Net: ${formatWeight(row.net_weight)}</span>
-                                <span class="text-[8px] text-gray-400">Stone: ${formatWeight(row.stone_weight)}</span>
-                            </div>
                         </div>
                     </td>
                 </tr>

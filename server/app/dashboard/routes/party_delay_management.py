@@ -7,9 +7,11 @@ from app.models.snapshots import (
     PartyAcceptPendingSnapshot,
     PartyProcessPendingSnapshot,
     PartyBarcodePendingSnapshot,
-    PartyHMIssuePendingSnapshot,
+    PartyBarcodeCompletedBISRequestPendingSnapshot,
+    PartyBISRequestCompletedHMIssuePendingSnapshot,
     PartyHMReceiptCompletedQCIssuePendingSnapshot,
-    PartyInvoiceRequestCompletedInvoicePendingSnapshot
+    PartyInvoiceGeneratedInvoiceApprovePendingSnapshot,
+    PartyInvoiceApprovedNotSynchedToMuzirisSnapshot
 )
 from app.models.auth import User
 from app.extensions import db, redis_client
@@ -75,7 +77,7 @@ def partial_party_delay_management_report():
             )
         ).filter(PartyDelayManagementFeedback.segment_id == segment_id).subquery()
 
-    f_subqs = [get_latest_feedback_subq(i) for i in range(1, 7)]
+    f_subqs = [get_latest_feedback_subq(i) for i in range(1, 9)]
 
     query = db.session.query(PartyDelayManagementSnapshot)
     for i, subq in enumerate(f_subqs):
@@ -110,7 +112,7 @@ def partial_party_delay_management_report():
     for r in rows:
         snapshot = r[0]
         feedbacks = {}
-        for i in range(1, 7):
+        for i in range(1, 9):
             idx = 1 + (i-1)*4
             f_t, f_c, f_u, f_d = r[idx], r[idx+1], r[idx+2], r[idx+3]
             feedbacks[f'segment{i}'] = {
@@ -164,9 +166,11 @@ def get_party_delay_details(segment_id):
         1: PartyAcceptPendingSnapshot,
         2: PartyProcessPendingSnapshot,
         3: PartyBarcodePendingSnapshot,
-        4: PartyHMIssuePendingSnapshot,
-        5: PartyHMReceiptCompletedQCIssuePendingSnapshot,
-        6: PartyInvoiceRequestCompletedInvoicePendingSnapshot
+        4: PartyBarcodeCompletedBISRequestPendingSnapshot,
+        5: PartyBISRequestCompletedHMIssuePendingSnapshot,
+        6: PartyHMReceiptCompletedQCIssuePendingSnapshot,
+        7: PartyInvoiceGeneratedInvoiceApprovePendingSnapshot,
+        8: PartyInvoiceApprovedNotSynchedToMuzirisSnapshot
     }
     
     model = models.get(segment_id)

@@ -2408,31 +2408,40 @@ class PartyDelayManagementSnapshot(db.Model):
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     party = db.Column(db.String(200))
     party_code = db.Column(db.String(50))
-    address = db.Column(db.Text)
+    make = db.Column(db.String(150))
+    make_owner = db.Column(db.String(150))
     
     # Segment 1: ACCEPT PENDING
-    pending_to_accept_pcs = db.Column(db.Integer, default=0)
-    pending_to_accept_wt = db.Column(db.Numeric(12, 3), default=0)
+    invited_pending_orders = db.Column(db.Integer, default=0)
+    invited_pending_weight = db.Column(db.Numeric(12, 3), default=0)
     
     # Segment 2: PROCESS PENDING
-    process_pending_pieces = db.Column(db.Integer, default=0)
+    process_pending_orders = db.Column(db.Integer, default=0)
     process_pending_weight = db.Column(db.Numeric(12, 3), default=0)
     
     # Segment 3: PROCESS COMPLETED- BARCODE PENDING
-    accepted_and_barcode_pending_piece = db.Column(db.Integer, default=0)
-    accepted_and_barcode_pending_weight = db.Column(db.Numeric(12, 3), default=0)
+    process_completed_barcode_pending_orders = db.Column(db.Integer, default=0)
+    process_completed_barcode_pending_weight = db.Column(db.Numeric(12, 3), default=0)
     
-    # Segment 4: BARCODE COMPLETED-HALLMARK ISSUE PENDING
-    barcoded_and_hm_issue_pending_piece = db.Column(db.Integer, default=0)
-    barcoded_and_hm_issue_pending_weight = db.Column(db.Numeric(12, 3), default=0)
+    # Segment 4: BARCODE COMPLETED - BIS REQUEST PENDING
+    barcode_completed_bis_request_pending_orders = db.Column(db.Integer, default=0)
+    barcode_completed_bis_request_pending_weight = db.Column(db.Numeric(12, 3), default=0)
     
-    # Segment 5: HALLMARK RECEIPT COMPLETED-QC ISSUE PENDING
-    hm_receipt_completed_and_qc_issue_pending_piece = db.Column(db.Integer, default=0)
-    hm_receipt_completed_and_qc_issue_pending_weight = db.Column(db.Numeric(12, 3), default=0)
+    # Segment 5: BIS REQUEST COMPLETED - HM ISSUE PENDING
+    bis_request_completed_hm_issue_pending_orders = db.Column(db.Integer, default=0)
+    bis_request_completed_hm_issue_pending_weig = db.Column(db.Numeric(12, 3), default=0)
     
-    # Segment 6: INVOICE REQUEST COMPLETED-INVOICE PENDING
-    invoice_request_completed_and_invoice_pending_piece = db.Column(db.Integer, default=0)
-    invoice_request_completed_and_invoice_pending_weight = db.Column(db.Numeric(12, 3), default=0)
+    # Segment 6: HM RECEIPT RETURN COMPLETED-QC ISSUE PENDING
+    hm_receipt_return_completed_qc_issue_pending = db.Column(db.Integer, default=0)
+    hm_receipt_return_completed_qc_issue_pending_weight = db.Column(db.Numeric(12, 3), default=0)
+    
+    # Segment 7: INVOICE GENERATED- INVOICE APPROVE PENDING
+    invoice_generated_invoice_approve_pending = db.Column(db.Integer, default=0)
+    invoice_generated_invoice_approve_pending_weight = db.Column(db.Numeric(12, 3), default=0)
+    
+    # Segment 8: INVOICE APPROVE COMPLETED- NOT SYNCHED TO MUZIRIS
+    invoice_approved_not_synched_to_muziris = db.Column(db.Integer, default=0)
+    invoice_approved_not_synched_to_muziris_weight = db.Column(db.Numeric(12, 3), default=0)
     
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -2442,19 +2451,24 @@ class PartyDelayManagementSnapshot(db.Model):
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
             'party': self.party,
             'party_code': self.party_code,
-            'address': self.address,
-            'pending_to_accept_pcs': self.pending_to_accept_pcs,
-            'pending_to_accept_wt': float(self.pending_to_accept_wt or 0),
-            'process_pending_pieces': self.process_pending_pieces,
+            'make': self.make,
+            'make_owner': self.make_owner,
+            'invited_pending_orders': self.invited_pending_orders,
+            'invited_pending_weight': float(self.invited_pending_weight or 0),
+            'process_pending_orders': self.process_pending_orders,
             'process_pending_weight': float(self.process_pending_weight or 0),
-            'accepted_and_barcode_pending_piece': self.accepted_and_barcode_pending_piece,
-            'accepted_and_barcode_pending_weight': float(self.accepted_and_barcode_pending_weight or 0),
-            'barcoded_and_hm_issue_pending_piece': self.barcoded_and_hm_issue_pending_piece,
-            'barcoded_and_hm_issue_pending_weight': float(self.barcoded_and_hm_issue_pending_weight or 0),
-            'hm_receipt_completed_and_qc_issue_pending_piece': self.hm_receipt_completed_and_qc_issue_pending_piece,
-            'hm_receipt_completed_and_qc_issue_pending_weight': float(self.hm_receipt_completed_and_qc_issue_pending_weight or 0),
-            'invoice_request_completed_and_invoice_pending_piece': self.invoice_request_completed_and_invoice_pending_piece,
-            'invoice_request_completed_and_invoice_pending_weight': float(self.invoice_request_completed_and_invoice_pending_weight or 0)
+            'process_completed_barcode_pending_orders': self.process_completed_barcode_pending_orders,
+            'process_completed_barcode_pending_weight': float(self.process_completed_barcode_pending_weight or 0),
+            'barcode_completed_bis_request_pending_orders': self.barcode_completed_bis_request_pending_orders,
+            'barcode_completed_bis_request_pending_weight': float(self.barcode_completed_bis_request_pending_weight or 0),
+            'bis_request_completed_hm_issue_pending_orders': self.bis_request_completed_hm_issue_pending_orders,
+            'bis_request_completed_hm_issue_pending_weig': float(self.bis_request_completed_hm_issue_pending_weig or 0),
+            'hm_receipt_return_completed_qc_issue_pending': self.hm_receipt_return_completed_qc_issue_pending,
+            'hm_receipt_return_completed_qc_issue_pending_weight': float(self.hm_receipt_return_completed_qc_issue_pending_weight or 0),
+            'invoice_generated_invoice_approve_pending': self.invoice_generated_invoice_approve_pending,
+            'invoice_generated_invoice_approve_pending_weight': float(self.invoice_generated_invoice_approve_pending_weight or 0),
+            'invoice_approved_not_synched_to_muziris': self.invoice_approved_not_synched_to_muziris,
+            'invoice_approved_not_synched_to_muziris_weight': float(self.invoice_approved_not_synched_to_muziris_weight or 0)
         }
 
 class PartyDelayManagementFeedback(db.Model):
@@ -2462,7 +2476,7 @@ class PartyDelayManagementFeedback(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     party = db.Column(db.String(200))
-    segment_id = db.Column(db.Integer) # 1-6
+    segment_id = db.Column(db.Integer) # 1-8
     feedback_text = db.Column(db.Text)
     feedback_category = db.Column(db.String(100))
     username = db.Column(db.String(80))
@@ -2572,48 +2586,63 @@ class PartyBarcodePendingSnapshot(db.Model):
     def to_dict(self):
         return {c.name: getattr(self, c.name).isoformat() if isinstance(getattr(self, c.name), (datetime, date)) else getattr(self, c.name) for c in self.__table__.columns}
 
-class PartyHMIssuePendingSnapshot(db.Model):
-    __tablename__ = 'party_hm_issue_pending_snapshots'
+class PartyBarcodeCompletedBISRequestPendingSnapshot(db.Model):
+    __tablename__ = 'party_barcode_completed_bis_request_pending_snapshots'
     id = db.Column(db.Integer, primary_key=True)
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
-    
-    orderid = db.Column(db.BigInteger)
     make_owner = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
-    order_ro = db.Column(db.String(150))
     order_branch = db.Column(db.String(150))
+    order_branch_id = db.Column(db.BigInteger)
+    po_date = db.Column(db.Date)
+    po_number = db.Column(db.String(100))
+    order_pieces = db.Column(db.Integer)
+    order_wt = db.Column(db.Numeric(12, 3))
+    order_status = db.Column(db.String(100))
     party = db.Column(db.String(200))
     party_mobile_no = db.Column(db.String(50))
-    po_date = db.Column(db.Date)
-    target_date = db.Column(db.Date)
-    po_number = db.Column(db.String(100))
-    order_type = db.Column(db.String(100))
-    order_request_type = db.Column(db.String(100))
-    order_no = db.Column(db.String(100))
-    required_weight = db.Column(db.Numeric(12, 3))
-    design_no = db.Column(db.String(100))
     set_identifier = db.Column(db.String(100))
     set_design_no = db.Column(db.String(100))
-    barcode = db.Column(db.String(100))
-    is_barcoded = db.Column(db.Boolean)
-    barcoded_weight = db.Column(db.Numeric(12, 3))
+    order_type = db.Column(db.String(100))
+    order_request_type = db.Column(db.String(100))
+    target_date = db.Column(db.Date)
+    business_head_name = db.Column(db.String(150))
     barcode_completion_date = db.Column(db.DateTime)
+    pending_piece = db.Column(db.Integer)
+    pending_weight = db.Column(db.Numeric(12, 3))
+    delay_days = db.Column(db.Integer)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {c.name: getattr(self, c.name).isoformat() if isinstance(getattr(self, c.name), (datetime, date)) else getattr(self, c.name) for c in self.__table__.columns}
+
+class PartyBISRequestCompletedHMIssuePendingSnapshot(db.Model):
+    __tablename__ = 'party_bis_request_completed_hm_issue_pending_snapshots'
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    order_branch = db.Column(db.String(150))
+    order_branch_id = db.Column(db.BigInteger)
+    po_date = db.Column(db.Date)
+    po_number = db.Column(db.String(100))
+    order_pieces = db.Column(db.Integer)
+    order_wt = db.Column(db.Numeric(12, 3))
     order_status = db.Column(db.String(100))
-    current_stage = db.Column(db.String(150))
-    hm_req_id = db.Column(db.BigInteger)
-    hm_issue_receipt_no = db.Column(db.String(100))
-    hm_issue_receipt_date = db.Column(db.DateTime)
-    hallmark_agent = db.Column(db.String(200))
-    hm_ro = db.Column(db.String(150))
-    hm_agent_email = db.Column(db.String(150))
-    hm_agent_pnone_no = db.Column(db.String(50))
-    net_weight = db.Column(db.Numeric(12, 3))
-    gross_weight = db.Column(db.Numeric(12, 3))
-    stone_weight = db.Column(db.Numeric(12, 3))
-    pending_to_hallmark_issue_piece = db.Column(db.Integer)
-    pending_to_hallmark_issue_wt = db.Column(db.Numeric(12, 3))
-    
+    party = db.Column(db.String(200))
+    party_mobile_no = db.Column(db.String(50))
+    set_identifier = db.Column(db.String(100))
+    set_design_no = db.Column(db.String(100))
+    order_type = db.Column(db.String(100))
+    order_request_type = db.Column(db.String(100))
+    target_date = db.Column(db.Date)
+    business_head_name = db.Column(db.String(150))
+    barcode_completion_date = db.Column(db.DateTime)
+    pending_piece = db.Column(db.Integer)
+    pending_weight = db.Column(db.Numeric(12, 3))
+    delay_days = db.Column(db.Integer)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
@@ -2670,46 +2699,65 @@ class PartyHMReceiptCompletedQCIssuePendingSnapshot(db.Model):
     def to_dict(self):
         return {c.name: getattr(self, c.name).isoformat() if isinstance(getattr(self, c.name), (datetime, date)) else getattr(self, c.name) for c in self.__table__.columns}
 
-class PartyInvoiceRequestCompletedInvoicePendingSnapshot(db.Model):
-    __tablename__ = 'party_invoice_pending_snapshots'
+class PartyInvoiceGeneratedInvoiceApprovePendingSnapshot(db.Model):
+    __tablename__ = 'party_invoice_generated_invoice_approve_pending_snapshots'
     id = db.Column(db.Integer, primary_key=True)
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
-    order_id = db.Column(db.BigInteger)
-    order_no = db.Column(db.String(100))
-    qc_ro_id = db.Column(db.Integer)
-    qc_ro = db.Column(db.String(150))
-    qc_ro_incharge = db.Column(db.String(150))
-    qc_ro_incharge_email = db.Column(db.String(150))
-    qc_ro_incharge_phone_no = db.Column(db.String(50))
     make_owner = db.Column(db.String(150))
-    make = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
+    order_branch = db.Column(db.String(150))
+    order_branch_id = db.Column(db.BigInteger)
+    po_date = db.Column(db.Date)
+    po_number = db.Column(db.String(100))
+    order_pieces = db.Column(db.Integer)
+    order_wt = db.Column(db.Numeric(12, 3))
+    order_status = db.Column(db.String(100))
     party = db.Column(db.String(200))
     party_mobile_no = db.Column(db.String(50))
-    po_date = db.Column(db.Date)
-    delivery_target_date = db.Column(db.Date)
-    po_number = db.Column(db.String(100))
-    order_type = db.Column(db.String(100))
-    order_request_type = db.Column(db.String(100))
-    design_no = db.Column(db.String(100))
     set_identifier = db.Column(db.String(100))
     set_design_no = db.Column(db.String(100))
-    order_ro = db.Column(db.String(150))
-    order_branch = db.Column(db.String(150))
+    order_type = db.Column(db.String(100))
+    order_request_type = db.Column(db.String(100))
+    target_date = db.Column(db.Date)
     business_head_name = db.Column(db.String(150))
-    order_incharge_email = db.Column(db.String(150))
-    order_incharge_phone_no = db.Column(db.String(50))
-    barcoded_weight = db.Column(db.Numeric(12, 3))
-    barcode_completion_date = db.Column(db.DateTime)
-    hm_completed_date = db.Column(db.DateTime)
-    final_qc_receipt_no = db.Column(db.String(100))
-    final_qc_receipt_date = db.Column(db.DateTime)
-    net_weight = db.Column(db.Numeric(12, 3))
-    gross_weight = db.Column(db.Numeric(12, 3))
-    stone_weight = db.Column(db.Numeric(12, 3))
-    invoice_request_number = db.Column(db.String(100))
-    invoice_request_date = db.Column(db.DateTime)
+    invoice_no = db.Column(db.String(100))
+    invoice_generated_date = db.Column(db.DateTime)
+    pending_piece = db.Column(db.Integer)
+    pending_weight = db.Column(db.Numeric(12, 3))
+    delay_days = db.Column(db.Integer)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {c.name: getattr(self, c.name).isoformat() if isinstance(getattr(self, c.name), (datetime, date)) else getattr(self, c.name) for c in self.__table__.columns}
+
+class PartyInvoiceApprovedNotSynchedToMuzirisSnapshot(db.Model):
+    __tablename__ = 'party_invoice_approved_not_synched_to_muziris_snapshots'
+    id = db.Column(db.Integer, primary_key=True)
+    snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    make_owner = db.Column(db.String(150))
+    collection_owner = db.Column(db.String(150))
+    collection = db.Column(db.String(200))
+    order_branch = db.Column(db.String(150))
+    order_branch_id = db.Column(db.BigInteger)
+    po_date = db.Column(db.Date)
+    po_number = db.Column(db.String(100))
+    order_pieces = db.Column(db.Integer)
+    order_wt = db.Column(db.Numeric(12, 3))
+    order_status = db.Column(db.String(100))
+    party = db.Column(db.String(200))
+    party_mobile_no = db.Column(db.String(50))
+    set_identifier = db.Column(db.String(100))
+    set_design_no = db.Column(db.String(100))
+    order_type = db.Column(db.String(100))
+    order_request_type = db.Column(db.String(100))
+    target_date = db.Column(db.Date)
+    business_head_name = db.Column(db.String(150))
+    invoice_no = db.Column(db.String(100))
+    invoice_approved_date = db.Column(db.DateTime)
+    pending_piece = db.Column(db.Integer)
+    pending_weight = db.Column(db.Numeric(12, 3))
+    delay_days = db.Column(db.Integer)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
