@@ -90,12 +90,72 @@ def partial_party_delay_management_report():
 
     f_subqs = [get_latest_feedback_subq(i) for i in range(1, 9)]
 
-    query = db.session.query(PartyDelayManagementSnapshot)
-    for i, subq in enumerate(f_subqs):
-        query = query.outerjoin(subq, PartyDelayManagementSnapshot.party == subq.c.party)
+    # Grouped snapshots subquery to sum metrics and aggregate addresses
+    subq_selection = [
+        PartyDelayManagementSnapshot.party,
+        PartyDelayManagementSnapshot.party_code,
+        func.max(PartyDelayManagementSnapshot.party_address).label('party_address'),
+        func.sum(PartyDelayManagementSnapshot.invited_pending_orders).label('invited_pending_orders'),
+        func.sum(PartyDelayManagementSnapshot.invited_pending_weight).label('invited_pending_weight'),
+        func.sum(PartyDelayManagementSnapshot.process_pending_orders).label('process_pending_orders'),
+        func.sum(PartyDelayManagementSnapshot.process_pending_weight).label('process_pending_weight'),
+        func.sum(PartyDelayManagementSnapshot.process_completed_barcode_pending_orders).label('process_completed_barcode_pending_orders'),
+        func.sum(PartyDelayManagementSnapshot.process_completed_barcode_pending_weight).label('process_completed_barcode_pending_weight'),
+        func.sum(PartyDelayManagementSnapshot.barcode_completed_bis_request_pending_orders).label('barcode_completed_bis_request_pending_orders'),
+        func.sum(PartyDelayManagementSnapshot.barcode_completed_bis_request_pending_weight).label('barcode_completed_bis_request_pending_weight'),
+        func.sum(PartyDelayManagementSnapshot.bis_request_completed_hm_issue_pending_orders).label('bis_request_completed_hm_issue_pending_orders'),
+        func.sum(PartyDelayManagementSnapshot.bis_request_completed_hm_issue_pending_weight).label('bis_request_completed_hm_issue_pending_weight'),
+        func.sum(PartyDelayManagementSnapshot.hm_receipt_return_completed_qc_issue_pending).label('hm_receipt_return_completed_qc_issue_pending'),
+        func.sum(PartyDelayManagementSnapshot.hm_receipt_return_completed_qc_issue_pending_weight).label('hm_receipt_return_completed_qc_issue_pending_weight'),
+        func.sum(PartyDelayManagementSnapshot.invoice_generated_invoice_approve_pending).label('invoice_generated_invoice_approve_pending'),
+        func.sum(PartyDelayManagementSnapshot.invoice_generated_invoice_approve_pending_weight).label('invoice_generated_invoice_approve_pending_weight'),
+        func.sum(PartyDelayManagementSnapshot.invoice_approved_not_synched_to_muziris).label('invoice_approved_not_synched_to_muziris'),
+        func.sum(PartyDelayManagementSnapshot.invoice_approved_not_synched_to_muziris_weight).label('invoice_approved_not_synched_to_muziris_weight')
+    ]
+    
+    snapshot_q = db.session.query(*subq_selection)
+    if latest_date:
+        snapshot_q = snapshot_q.filter(PartyDelayManagementSnapshot.snapshot_date == latest_date)
+    
+    if search:
+        snapshot_q = snapshot_q.filter(PartyDelayManagementSnapshot.party.ilike(f"%{search}%"))
+        
+    if party_filter:
+        snapshot_q = snapshot_q.filter(PartyDelayManagementSnapshot.party == party_filter)
+        
+    if makes_selected:
+        snapshot_q = snapshot_q.filter(PartyDelayManagementSnapshot.make.in_(makes_selected))
+        
+    snapshot_q = snapshot_q.group_by(
+        PartyDelayManagementSnapshot.party,
+        PartyDelayManagementSnapshot.party_code
+    )
+    
+    snapshot_subq = snapshot_q.subquery('snapshot_subq')
 
-    # Re-build selection to include feedback columns
-    selection = [PartyDelayManagementSnapshot]
+    # Re-build selection to include feedback columns joined on the grouped party
+    selection = [
+        snapshot_subq.c.party,
+        snapshot_subq.c.party_code,
+        snapshot_subq.c.party_address,
+        snapshot_subq.c.invited_pending_orders,
+        snapshot_subq.c.invited_pending_weight,
+        snapshot_subq.c.process_pending_orders,
+        snapshot_subq.c.process_pending_weight,
+        snapshot_subq.c.process_completed_barcode_pending_orders,
+        snapshot_subq.c.process_completed_barcode_pending_weight,
+        snapshot_subq.c.barcode_completed_bis_request_pending_orders,
+        snapshot_subq.c.barcode_completed_bis_request_pending_weight,
+        snapshot_subq.c.bis_request_completed_hm_issue_pending_orders,
+        snapshot_subq.c.bis_request_completed_hm_issue_pending_weight,
+        snapshot_subq.c.hm_receipt_return_completed_qc_issue_pending,
+        snapshot_subq.c.hm_receipt_return_completed_qc_issue_pending_weight,
+        snapshot_subq.c.invoice_generated_invoice_approve_pending,
+        snapshot_subq.c.invoice_generated_invoice_approve_pending_weight,
+        snapshot_subq.c.invoice_approved_not_synched_to_muziris,
+        snapshot_subq.c.invoice_approved_not_synched_to_muziris_weight
+    ]
+    
     for subq in f_subqs:
         selection.extend([
             subq.c.feedback_text.label(f'f{f_subqs.index(subq)+1}_text'),
@@ -106,28 +166,37 @@ def partial_party_delay_management_report():
     
     query = db.session.query(*selection)
     for subq in f_subqs:
-        query = query.outerjoin(subq, PartyDelayManagementSnapshot.party == subq.c.party)
-
-    if latest_date:
-        query = query.filter(PartyDelayManagementSnapshot.snapshot_date == latest_date)
-    
-    if search:
-        query = query.filter(PartyDelayManagementSnapshot.party.ilike(f"%{search}%"))
-    
-    if party_filter:
-        query = query.filter(PartyDelayManagementSnapshot.party == party_filter)
-
-    if makes_selected:
-        query = query.filter(PartyDelayManagementSnapshot.make.in_(makes_selected))
-
-    rows = query.order_by(PartyDelayManagementSnapshot.party).all()
+        query = query.outerjoin(subq, snapshot_subq.c.party == subq.c.party)
+        
+    rows = query.order_by(snapshot_subq.c.party).all()
     
     processed_rows = []
     for r in rows:
-        snapshot = r[0]
+        summary_dict = {
+            'party': r[0],
+            'party_code': r[1],
+            'party_address': r[2],
+            'invited_pending_orders': r[3] or 0,
+            'invited_pending_weight': float(r[4] or 0),
+            'process_pending_orders': r[5] or 0,
+            'process_pending_weight': float(r[6] or 0),
+            'process_completed_barcode_pending_orders': r[7] or 0,
+            'process_completed_barcode_pending_weight': float(r[8] or 0),
+            'barcode_completed_bis_request_pending_orders': r[9] or 0,
+            'barcode_completed_bis_request_pending_weight': float(r[10] or 0),
+            'bis_request_completed_hm_issue_pending_orders': r[11] or 0,
+            'bis_request_completed_hm_issue_pending_weight': float(r[12] or 0),
+            'hm_receipt_return_completed_qc_issue_pending': r[13] or 0,
+            'hm_receipt_return_completed_qc_issue_pending_weight': float(r[14] or 0),
+            'invoice_generated_invoice_approve_pending': r[15] or 0,
+            'invoice_generated_invoice_approve_pending_weight': float(r[16] or 0),
+            'invoice_approved_not_synched_to_muziris': r[17] or 0,
+            'invoice_approved_not_synched_to_muziris_weight': float(r[18] or 0)
+        }
+        
         feedbacks = {}
         for i in range(1, 9):
-            idx = 1 + (i-1)*4
+            idx = 19 + (i-1)*4
             f_t, f_c, f_u, f_d = r[idx], r[idx+1], r[idx+2], r[idx+3]
             feedbacks[f'segment{i}'] = {
                 'feedback_text': f_t, 
@@ -137,7 +206,7 @@ def partial_party_delay_management_report():
             }
         
         processed_rows.append({
-            'summary': snapshot.to_dict(),
+            'summary': summary_dict,
             'feedbacks': feedbacks
         })
 
