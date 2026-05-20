@@ -255,7 +255,7 @@ function applyFilters() {
 }
 
 function resetFilters() {
-    const newUrl = window.location.pathname + '?status=segment_1&page=1';
+    const newUrl = window.location.pathname + '?status=segment_1&page=1&delay_s1=1&delay_s2=1&delay_s3=1';
     window.history.pushState({path: newUrl}, '', newUrl);
     
     // Reset DOM elements
@@ -273,7 +273,7 @@ function resetFilters() {
     
     ['delay_s1', 'delay_s2', 'delay_s3'].forEach(d => {
         const el = document.getElementById(`filter-${d.replace(/_/g, '-')}`);
-        if (el) el.value = '';
+        if (el) el.value = '1';
     });
     
     loadReport();
