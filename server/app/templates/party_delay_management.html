@@ -336,6 +336,41 @@
             </div>
         </div>
     </div>
+
+    <!-- Address Modal -->
+    <div id="addressModal" class="fixed inset-0 z-[100] hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeAddressModal()"></div>
+            <div class="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all border border-gray-200 dark:border-gray-800 flex flex-col">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0 bg-primary/5">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-primary/10 rounded-lg">
+                            <span class="material-symbols-outlined text-primary">location_on</span>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">Party Address Details</h3>
+                            <p class="text-[10px] font-bold text-primary mt-0.5" id="addressModalTitle">Loading...</p>
+                        </div>
+                    </div>
+                    <button onclick="closeAddressModal()" class="size-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 transition-all">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="flex items-start gap-4">
+                        <span class="material-symbols-outlined text-gray-400 text-lg mt-0.5">home</span>
+                        <div class="flex-1">
+                            <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Full Address</label>
+                            <p id="addressModalContent" class="text-xs font-bold text-gray-800 dark:text-gray-200 leading-relaxed italic whitespace-pre-wrap pr-2">-</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 flex justify-end">
+                    <button onclick="closeAddressModal()" class="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-[11px] font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-50 transition-colors">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
 {% endblock %}
 
@@ -360,6 +395,11 @@
                     {% endfor %}
                 </select>
             </div>
+
+            <!-- Make Filter -->
+            <div id="filter-make-container">
+                <!-- Reused CustomMultiSelect will inject content here -->
+            </div>
         </div>
     </div>
     <div class="p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-background-dark">
@@ -371,5 +411,9 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
+<script>
+    window.availableMakes = {{ makes | tojson | safe }};
+</script>
 <script src="{{ url_for('static', filename='js/party_delay_management.js') }}"></script>
 {% endblock %}

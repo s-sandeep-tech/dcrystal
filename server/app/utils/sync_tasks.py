@@ -3348,7 +3348,7 @@ def sync_party_delay_management_data_task():
             # 1. Sync Summary Data
             emit_sync_update('processing', 'Fetching Party Summary data...', 10, DATA_TYPE)
             summary_query = """
-            SELECT party, party_code, make, make_owner, 
+            SELECT party, party_code, make, make_owner, party_address,
                    invited_pending_orders, invited_pending_weight, 
                    process_pending_orders, process_pending_weight, 
                    process_completed_barcode_pending_orders, process_completed_barcode_pending_weight, 
@@ -3371,22 +3371,23 @@ def sync_party_delay_management_data_task():
                     party_code=row[1],
                     make=row[2],
                     make_owner=row[3],
-                    invited_pending_orders=row[4],
-                    invited_pending_weight=row[5],
-                    process_pending_orders=row[6],
-                    process_pending_weight=row[7],
-                    process_completed_barcode_pending_orders=row[8],
-                    process_completed_barcode_pending_weight=row[9],
-                    barcode_completed_bis_request_pending_orders=row[10],
-                    barcode_completed_bis_request_pending_weight=row[11],
-                    bis_request_completed_hm_issue_pending_orders=row[12],
-                    bis_request_completed_hm_issue_pending_weight=row[13],
-                    hm_receipt_return_completed_qc_issue_pending=row[14],
-                    hm_receipt_return_completed_qc_issue_pending_weight=row[15],
-                    invoice_generated_invoice_approve_pending=row[16],
-                    invoice_generated_invoice_approve_pending_weight=row[17],
-                    invoice_approved_not_synched_to_muziris=row[18],
-                    invoice_approved_not_synched_to_muziris_weight=row[19]
+                    party_address=row[4],
+                    invited_pending_orders=row[5],
+                    invited_pending_weight=row[6],
+                    process_pending_orders=row[7],
+                    process_pending_weight=row[8],
+                    process_completed_barcode_pending_orders=row[9],
+                    process_completed_barcode_pending_weight=row[10],
+                    barcode_completed_bis_request_pending_orders=row[11],
+                    barcode_completed_bis_request_pending_weight=row[12],
+                    bis_request_completed_hm_issue_pending_orders=row[13],
+                    bis_request_completed_hm_issue_pending_weight=row[14],
+                    hm_receipt_return_completed_qc_issue_pending=row[15],
+                    hm_receipt_return_completed_qc_issue_pending_weight=row[16],
+                    invoice_generated_invoice_approve_pending=row[17],
+                    invoice_generated_invoice_approve_pending_weight=row[18],
+                    invoice_approved_not_synched_to_muziris=row[19],
+                    invoice_approved_not_synched_to_muziris_weight=row[20]
                 ) for row in summary_rows
             ]
             db.session.bulk_save_objects(summary_objects)

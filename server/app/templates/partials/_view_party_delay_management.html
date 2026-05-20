@@ -35,9 +35,18 @@
             {% for item in rows %}
             <tr>
                 <td style="font-weight: 600;">
-                    <div class="flex flex-col">
-                        <span class="truncate font-bold" title="{{ item.summary.party }}">{{ item.summary.party }}</span>
-                        <span class="text-[8px] text-gray-400">{{ item.summary.party_code }}</span>
+                    <div class="flex items-center justify-between gap-1">
+                        <div class="flex flex-col truncate">
+                            <span class="truncate font-bold" title="{{ item.summary.party }}">{{ item.summary.party }}</span>
+                            <span class="text-[8px] text-gray-400">{{ item.summary.party_code }}</span>
+                        </div>
+                        {% if item.summary.party_address %}
+                        <button onclick="showAddressModal('{{ item.summary.party | replace("'", "\\'") }}', '{{ item.summary.party_address | replace("'", "\\'") }}')" 
+                                class="p-0.5 rounded text-primary hover:bg-primary/10 transition-colors flex items-center justify-center shrink-0" 
+                                title="View Address">
+                            <span class="material-symbols-outlined text-[14px]">location_on</span>
+                        </button>
+                        {% endif %}
                     </div>
                 </td>
                 

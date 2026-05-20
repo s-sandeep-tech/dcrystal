@@ -1,6 +1,7 @@
 let currentZoom = parseFloat(localStorage.getItem('party-delay-report-zoom')) || 1.0;
 let allModalRows = [];
 let currentModalSegmentId = null;
+let makeMultiSelect;
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Party Delay Management JS Initialized');
@@ -22,6 +23,26 @@ document.addEventListener('DOMContentLoaded', function() {
             if (el) el.value = val;
         }
     });
+
+    // Initialize Make multiselect dropdown
+    makeMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-make-container',
+        label: 'Make',
+        defaultText: 'All Makes',
+        options: window.availableMakes || []
+    });
+
+    // Auto-fill Make multiselect from query parameter
+    const makeVal = urlParams.get('make');
+    if (makeVal && makeMultiSelect) {
+        const selectedMakes = makeVal.split(',').map(m => m.trim());
+        document.querySelectorAll(`.filter-make-container-checkbox`).forEach(cb => {
+            if (selectedMakes.includes(cb.value)) {
+                cb.checked = true;
+            }
+        });
+        makeMultiSelect.updateTriggerText();
+    }
 
     setupDynamicTooltips();
     loadReport();
@@ -78,6 +99,9 @@ function applyFilters() {
     const partyVal = document.getElementById('filter-party')?.value;
     if (partyVal) urlParams.set('party', partyVal); else urlParams.delete('party');
 
+    const makeVal = makeMultiSelect ? makeMultiSelect.getValues().join(',') : '';
+    if (makeVal) urlParams.set('make', makeVal); else urlParams.delete('make');
+
     urlParams.set('page', 1);
     const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
     window.history.pushState({path: newUrl}, '', newUrl);
@@ -93,7 +117,26 @@ function resetFilters() {
     const p = document.getElementById('filter-party');
     if (p) p.value = '';
     
+    if (makeMultiSelect) {
+        makeMultiSelect.reset();
+    }
+    
     loadReport();
+}
+
+function showAddressModal(party, address) {
+    const titleEl = document.getElementById('addressModalTitle');
+    const contentEl = document.getElementById('addressModalContent');
+    if (titleEl) titleEl.textContent = party;
+    if (contentEl) contentEl.textContent = address || 'No address details found.';
+    
+    const modalEl = document.getElementById('addressModal');
+    if (modalEl) modalEl.classList.remove('hidden');
+}
+
+function closeAddressModal() {
+    const modalEl = document.getElementById('addressModal');
+    if (modalEl) modalEl.classList.add('hidden');
 }
 
 function openFeedbackModal(party, segment_id) {

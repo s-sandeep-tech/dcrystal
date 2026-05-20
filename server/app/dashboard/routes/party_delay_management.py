@@ -43,9 +43,16 @@ def party_delay_management():
         parties_query = parties_query.filter(PartyDelayManagementSnapshot.snapshot_date == latest_date)
     parties = [p[0] for p in parties_query.all() if p[0]]
 
+    # Get unique makes for filter
+    makes_query = db.session.query(PartyDelayManagementSnapshot.make).distinct()
+    if latest_date:
+        makes_query = makes_query.filter(PartyDelayManagementSnapshot.snapshot_date == latest_date)
+    makes = [m[0] for m in makes_query.all() if m[0]]
+
     return render_template(
         'party_delay_management.html',
         parties=sorted(parties),
+        makes=sorted(makes),
         sync_time=sync_time,
         current_username=session.get('username'),
         initial_load=True
@@ -56,6 +63,10 @@ def party_delay_management():
 def partial_party_delay_management_report():
     search = request.args.get('search', '')
     party_filter = request.args.get('party', '')
+    
+    # Parse multiselect lists for make
+    make_filter = request.args.get('make', '')
+    makes_selected = [m.strip() for m in make_filter.split(',') if m.strip()]
     
     # Get latest snapshot date
     latest_date = db.session.query(func.max(PartyDelayManagementSnapshot.snapshot_date)).scalar()
@@ -105,6 +116,9 @@ def partial_party_delay_management_report():
     
     if party_filter:
         query = query.filter(PartyDelayManagementSnapshot.party == party_filter)
+
+    if makes_selected:
+        query = query.filter(PartyDelayManagementSnapshot.make.in_(makes_selected))
 
     rows = query.order_by(PartyDelayManagementSnapshot.party).all()
     

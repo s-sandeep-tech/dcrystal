@@ -2410,6 +2410,7 @@ class PartyDelayManagementSnapshot(db.Model):
     party_code = db.Column(db.String(50))
     make = db.Column(db.String(150))
     make_owner = db.Column(db.String(150))
+    party_address = db.Column(db.Text)
     
     # Segment 1: ACCEPT PENDING
     invited_pending_orders = db.Column(db.Integer, default=0)
@@ -2453,6 +2454,7 @@ class PartyDelayManagementSnapshot(db.Model):
             'party_code': self.party_code,
             'make': self.make,
             'make_owner': self.make_owner,
+            'party_address': self.party_address,
             'invited_pending_orders': self.invited_pending_orders,
             'invited_pending_weight': float(self.invited_pending_weight or 0),
             'process_pending_orders': self.process_pending_orders,
