@@ -3353,7 +3353,7 @@ def sync_party_delay_management_data_task():
                    process_pending_orders, process_pending_weight, 
                    process_completed_barcode_pending_orders, process_completed_barcode_pending_weight, 
                    barcode_completed_bis_request_pending_orders, barcode_completed_bis_request_pending_weight, 
-                   bis_request_completed_hm_issue_pending_orders, bis_request_completed_hm_issue_pending_weig, 
+                   bis_request_completed_hm_issue_pending_orders, bis_request_completed_hm_issue_pending_weight, 
                    hm_receipt_return_completed_qc_issue_pending, hm_receipt_return_completed_qc_issue_pending_weight, 
                    invoice_generated_invoice_approve_pending, invoice_generated_invoice_approve_pending_weight, 
                    invoice_approved_not_synched_to_muziris, invoice_approved_not_synched_to_muziris_weight 
@@ -3380,7 +3380,7 @@ def sync_party_delay_management_data_task():
                     barcode_completed_bis_request_pending_orders=row[10],
                     barcode_completed_bis_request_pending_weight=row[11],
                     bis_request_completed_hm_issue_pending_orders=row[12],
-                    bis_request_completed_hm_issue_pending_weig=row[13],
+                    bis_request_completed_hm_issue_pending_weight=row[13],
                     hm_receipt_return_completed_qc_issue_pending=row[14],
                     hm_receipt_return_completed_qc_issue_pending_weight=row[15],
                     invoice_generated_invoice_approve_pending=row[16],

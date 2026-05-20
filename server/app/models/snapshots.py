@@ -2429,7 +2429,7 @@ class PartyDelayManagementSnapshot(db.Model):
     
     # Segment 5: BIS REQUEST COMPLETED - HM ISSUE PENDING
     bis_request_completed_hm_issue_pending_orders = db.Column(db.Integer, default=0)
-    bis_request_completed_hm_issue_pending_weig = db.Column(db.Numeric(12, 3), default=0)
+    bis_request_completed_hm_issue_pending_weight = db.Column(db.Numeric(12, 3), default=0)
     
     # Segment 6: HM RECEIPT RETURN COMPLETED-QC ISSUE PENDING
     hm_receipt_return_completed_qc_issue_pending = db.Column(db.Integer, default=0)
@@ -2462,7 +2462,7 @@ class PartyDelayManagementSnapshot(db.Model):
             'barcode_completed_bis_request_pending_orders': self.barcode_completed_bis_request_pending_orders,
             'barcode_completed_bis_request_pending_weight': float(self.barcode_completed_bis_request_pending_weight or 0),
             'bis_request_completed_hm_issue_pending_orders': self.bis_request_completed_hm_issue_pending_orders,
-            'bis_request_completed_hm_issue_pending_weig': float(self.bis_request_completed_hm_issue_pending_weig or 0),
+            'bis_request_completed_hm_issue_pending_weight': float(self.bis_request_completed_hm_issue_pending_weight or 0),
             'hm_receipt_return_completed_qc_issue_pending': self.hm_receipt_return_completed_qc_issue_pending,
             'hm_receipt_return_completed_qc_issue_pending_weight': float(self.hm_receipt_return_completed_qc_issue_pending_weight or 0),
             'invoice_generated_invoice_approve_pending': self.invoice_generated_invoice_approve_pending,
