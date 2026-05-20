@@ -16,10 +16,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Auto-fill filters
-    ['office', 'status'].forEach(f => {
+    ['office', 'make', 'status'].forEach(f => {
         const val = urlParams.get(f);
         if (val) {
             const el = document.getElementById(`filter-${f.replace(/_/g, '-')}`);
+            if (el) el.value = val;
+        }
+    });
+
+    ['delay_s1', 'delay_s2', 'delay_s3'].forEach(d => {
+        const val = urlParams.get(d);
+        if (val) {
+            const el = document.getElementById(`filter-${d.replace(/_/g, '-')}`);
             if (el) el.value = val;
         }
     });
@@ -76,10 +84,16 @@ function applyFilters() {
     const searchVal = document.getElementById('hierarchy-search')?.value;
     if (searchVal) urlParams.set('search', searchVal); else urlParams.delete('search');
 
-    const fields = ['office', 'status'];
+    const fields = ['office', 'make', 'status'];
     fields.forEach(f => {
         const el = document.getElementById(`filter-${f.replace(/_/g, '-')}`);
         if (el && el.value) urlParams.set(f, el.value); else if (f !== 'status') urlParams.delete(f);
+    });
+
+    const delays = ['delay_s1', 'delay_s2', 'delay_s3'];
+    delays.forEach(d => {
+        const el = document.getElementById(`filter-${d.replace(/_/g, '-')}`);
+        if (el && el.value) urlParams.set(d, el.value); else urlParams.delete(d);
     });
 
     urlParams.set('page', 1);
@@ -95,9 +109,13 @@ function resetFilters() {
     // Reset DOM elements
     const s = document.getElementById('hierarchy-search');
     if (s) s.value = '';
-    ['office', 'status'].forEach(f => {
+    ['office', 'make', 'status'].forEach(f => {
         const el = document.getElementById(`filter-${f.replace(/_/g, '-')}`);
         if (el) el.value = (f === 'status' ? 'segment_1' : '');
+    });
+    ['delay_s1', 'delay_s2', 'delay_s3'].forEach(d => {
+        const el = document.getElementById(`filter-${d.replace(/_/g, '-')}`);
+        if (el) el.value = '';
     });
     
     loadReport();
@@ -195,7 +213,7 @@ document.getElementById('feedbackForm').addEventListener('submit', function(e) {
     });
 });
 
-function openDetailsModal(qc_ro, segment_id) {
+function openDetailsModal(party, qc_ro, segment_id) {
     const modal = document.getElementById('detailsModal');
     const content = document.getElementById('modalContent');
     const title = document.getElementById('modalTitle');
@@ -206,7 +224,8 @@ function openDetailsModal(qc_ro, segment_id) {
     else if (segment_id === 2) segmentName = "QC Receipt Completed - QC Pending";
     else if (segment_id === 3) segmentName = "QC Completed - Invoice Request Pending";
     
-    title.textContent = `Purchase Order Details - ${qc_ro}`;
+    const displayIdentifier = party || qc_ro;
+    title.textContent = `Purchase Order Details - ${displayIdentifier}`;
     subtitle.textContent = segmentName;
     content.innerHTML = '<div class="flex justify-center p-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>';
     
@@ -218,7 +237,11 @@ function openDetailsModal(qc_ro, segment_id) {
     
     modal.classList.remove('hidden');
 
-    fetch(`/api/qc-delay-management/details/${segment_id}?qc_ro=${encodeURIComponent(qc_ro)}`, {
+    let queryParams = `segment_id=${segment_id}`;
+    if (party) queryParams += `&party=${encodeURIComponent(party)}`;
+    if (qc_ro) queryParams += `&qc_ro=${encodeURIComponent(qc_ro)}`;
+
+    fetch(`/api/qc-delay-management/details/${segment_id}?${queryParams}`, {
         headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
@@ -226,7 +249,7 @@ function openDetailsModal(qc_ro, segment_id) {
         .then(response => response.json())
         .then(data => {
             if (data.length === 0) {
-                content.innerHTML = '<div class="p-12 text-center text-gray-500">No detailed records found for this office and segment.</div>';
+                content.innerHTML = '<div class="p-12 text-center text-gray-500">No detailed records found for this office/party and segment.</div>';
                 return;
             }
             allModalRows = data;

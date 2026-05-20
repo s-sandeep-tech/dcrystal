@@ -1850,6 +1850,14 @@ class QCDelayManagementSnapshot(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
+    
+    # New grouping / filter columns
+    make = db.Column(db.String(150))
+    make_owner = db.Column(db.String(150))
+    order_id = db.Column(db.BigInteger)
+    party_code = db.Column(db.String(50))
+    party = db.Column(db.String(255))
+    
     qc_ro_id = db.Column(db.Integer)
     qc_ro = db.Column(db.String(150))
     qc_ro_code = db.Column(db.String(50))
@@ -1877,6 +1885,11 @@ class QCDelayManagementSnapshot(db.Model):
     qc_ro_incharge_email = db.Column(db.String(150))
     qc_ro_incharge_phone_number = db.Column(db.String(50))
     qc_ro_address = db.Column(db.Text)
+
+    # Date filters denormalized
+    qc_issue_completed_date = db.Column(db.DateTime)
+    qc_receipt_completed_date = db.Column(db.DateTime)
+    qc_completed_date = db.Column(db.DateTime)
     
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -1884,6 +1897,11 @@ class QCDelayManagementSnapshot(db.Model):
         return {
             'id': self.id,
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
+            'make': self.make,
+            'make_owner': self.make_owner,
+            'order_id': self.order_id,
+            'party_code': self.party_code,
+            'party': self.party,
             'qc_ro_id': self.qc_ro_id,
             'qc_ro': self.qc_ro,
             'qc_ro_code': self.qc_ro_code,
@@ -1902,7 +1920,10 @@ class QCDelayManagementSnapshot(db.Model):
             'qc_ro_incharge': self.qc_ro_incharge,
             'qc_ro_incharge_email': self.qc_ro_incharge_email,
             'qc_ro_incharge_phone_number': self.qc_ro_incharge_phone_number,
-            'qc_ro_address': self.qc_ro_address
+            'qc_ro_address': self.qc_ro_address,
+            'qc_issue_completed_date': self.qc_issue_completed_date.isoformat() if self.qc_issue_completed_date else None,
+            'qc_receipt_completed_date': self.qc_receipt_completed_date.isoformat() if self.qc_receipt_completed_date else None,
+            'qc_completed_date': self.qc_completed_date.isoformat() if self.qc_completed_date else None,
         }
 
 class QCDelayManagementFeedback(db.Model):
