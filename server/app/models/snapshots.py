@@ -1667,7 +1667,7 @@ class QCCompletedInvoiceRequestPendingSnapshot(db.Model):
     set_design_no = db.Column(db.String(100))
     order_ro = db.Column(db.String(150))
     order_branch = db.Column(db.String(150))
-    branch_id = db.Column(db.BigInteger)
+    # branch_id = db.Column(db.BigInteger)
     business_head_name = db.Column(db.String(150))
     order_incharge_email = db.Column(db.String(150))
     order_incharge_phone_no = db.Column(db.String(50))
@@ -1983,7 +1983,7 @@ class QCReceiptCompletedQCPendingSnapshot(db.Model):
     
     order_ro = db.Column(db.String(150))
     order_branch = db.Column(db.String(150))
-    branch_id = db.Column(db.BigInteger)
+    # branch_id = db.Column(db.BigInteger)
     business_head_name = db.Column(db.String(150))
     order_incharge_email = db.Column(db.String(150))
     order_incharge_phone_no = db.Column(db.String(50))
