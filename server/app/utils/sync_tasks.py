@@ -3334,7 +3334,7 @@ def sync_hm_delay_management_data_task():
             if conn: conn.close()
 def sync_party_delay_management_data_task():
     DATA_TYPE = 'party_delay_management'
-    max_retries = 2
+    max_retries = 5
     retry_count = 0
     
     while retry_count < max_retries:
