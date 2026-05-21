@@ -8,10 +8,10 @@ from app.services.auth_service import auth_service
 
 class AuthSecurityTestCase(unittest.TestCase):
     def setUp(self):
+        import os
+        os.environ['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         self.app = create_app()
         self.app.config['TESTING'] = True
-        self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-        # Clear pooling options that are incompatible with SQLite
         self.app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {}
         self.client = self.app.test_client()
         
@@ -26,6 +26,9 @@ class AuthSecurityTestCase(unittest.TestCase):
         with self.app.app_context():
             db.session.remove()
             db.drop_all()
+        import os
+        if 'SQLALCHEMY_DATABASE_URI' in os.environ:
+            del os.environ['SQLALCHEMY_DATABASE_URI']
 
     def test_failed_login_increments_counter(self):
         with self.app.app_context():
@@ -107,10 +110,14 @@ class AuthSecurityTestCase(unittest.TestCase):
             
             from flask_jwt_extended import create_access_token
             admin_user = User(user_id='admin', username='admin', email='admin@example.com', is_admin=True)
+            admin_user.set_password('admin123')
             db.session.add(admin_user)
             db.session.commit()
             
-            access_token = create_access_token(identity=str(admin_user.id))
+            access_token = create_access_token(
+                identity=str(admin_user.id),
+                additional_claims={'session_version': admin_user.session_version}
+            )
             headers = {'Authorization': f'Bearer {access_token}'}
             
             response = self.client.post(f'/api/admin/users/{user.id}/clear-lockout', headers=headers)

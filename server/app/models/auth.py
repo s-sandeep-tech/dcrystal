@@ -73,3 +73,28 @@ class LoginAttemptLog(db.Model):
             'failure_reason': self.failure_reason,
             'timestamp': self.timestamp.isoformat() + 'Z'
         }
+
+class ThirdPartyApiClient(db.Model):
+    __tablename__ = 'thirdpartyapiclients'
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    client_name = db.Column(db.String(100), nullable=False)
+    token_hash = db.Column(db.String(255), nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=True)
+
+    def set_token(self, raw_token):
+        """Hashes the plain text token using SHA-256 before database storage."""
+        import hashlib
+        self.token_hash = hashlib.sha256(raw_token.encode('utf-8')).hexdigest()
+
+    def check_token(self, raw_token):
+        """Verifies the plain text token against the stored SHA-256 hash."""
+        import hashlib
+        import hmac
+        incoming_hash = hashlib.sha256(raw_token.encode('utf-8')).hexdigest()
+        return hmac.compare_digest(self.token_hash, incoming_hash)
+
+

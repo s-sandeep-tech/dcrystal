@@ -27,14 +27,16 @@ def create_app():
         # Fallback to main DB for local development to avoid resolution errors
         app.config['SQLALCHEMY_BINDS'] = {'akt_db': app.config['SQLALCHEMY_DATABASE_URI']}
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        "pool_pre_ping": True,
-        "pool_recycle": 3600,
-        "pool_timeout": 900, # 15 minutes
-        "connect_args": {
-            "connect_timeout": 60
+    db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    if not db_uri.startswith('sqlite:'):
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+            "pool_pre_ping": True,
+            "pool_recycle": 3600,
+            "pool_timeout": 900, # 15 minutes
+            "connect_args": {
+                "connect_timeout": 60
+            }
         }
-    }
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'super-secret-key-change-me')
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-123')
     app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
@@ -126,19 +128,23 @@ def create_app():
         # db.create_all() # Handled by migrations
         
         # Create a default user if none exists
-        from app.models import User
-        admin = User.query.filter_by(username='admin').first()
-        if admin is None:
-            admin = User(user_id='U001', username='admin', email='admin@example.com', is_admin=True)
-            admin.set_password('admin123')
-            db.session.add(admin)
-            db.session.commit()
-            print("Default user 'admin' with password 'admin123' and is_admin=True created.")
-        else:
-            if not admin.is_admin:
-                admin.is_admin = True
+        try:
+            from app.models import User
+            admin = User.query.filter_by(username='admin').first()
+            if admin is None:
+                admin = User(user_id='U001', username='admin', email='admin@example.com', is_admin=True)
+                admin.set_password('admin123')
+                db.session.add(admin)
                 db.session.commit()
-                print("Existing 'admin' user updated to is_admin=True.")
+                print("Default user 'admin' with password 'admin123' and is_admin=True created.")
+            else:
+                if not admin.is_admin:
+                    admin.is_admin = True
+                    db.session.commit()
+                    print("Existing 'admin' user updated to is_admin=True.")
+        except Exception as e:
+            app.logger.warning(f"Could not seed default user: {e}")
+            db.session.rollback()
 
         # Sync offline reports to Redis on startup
         try:

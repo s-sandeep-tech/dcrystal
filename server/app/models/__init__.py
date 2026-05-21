@@ -1,4 +1,4 @@
-from .auth import User, LoginAttemptLog
+from .auth import User, LoginAttemptLog, ThirdPartyApiClient
 from .core import Order, DashboardStats, Notification, ExportDownloadLog
 from .inventory import LocationWiseStockSnapshot, AllocatedBarcodesSnapshot
 from .snapshots import (
@@ -23,6 +23,8 @@ from .akt_report import AKTTransactionPerformance
 __all__ = [
     'User',
     'LoginAttemptLog',
+    'ThirdPartyApiClient',
+
     'Order',
     'DashboardStats',
     'Notification',
