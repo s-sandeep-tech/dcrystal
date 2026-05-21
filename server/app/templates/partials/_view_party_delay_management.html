@@ -2,7 +2,8 @@
     <thead>
         <tr>
             <th rowspan="2" style="vertical-align: bottom;">PARTY</th>
-            <th colspan="4" class="top-header" style="background-color: #f0f9ff;">ACCEPT PENDING</th>
+            <th colspan="2" class="top-header" style="background-color: #e2e8f0; color: #334155; border-left: 2px solid #cbd5e1; font-weight: bold; text-align: center;">TOTAL</th>
+            <th colspan="4" class="top-header" style="background-color: #f0f9ff; border-left: 2px solid #cbd5e1;">ACCEPT PENDING</th>
             <th colspan="4" class="top-header" style="background-color: #fffbeb;">PROCESS PENDING</th>
             <th colspan="4" class="top-header" style="background-color: #f5f3ff;">PROCESS COMPLETED- BARCODE PENDING</th>
             <th colspan="4" class="top-header" style="background-color: #e6fffa;">BARCODE COMPLETED - BIS REQUEST PENDING</th>
@@ -10,11 +11,13 @@
             <th colspan="4" class="top-header" style="background-color: #fff1f2;">HM RECEIPT RETURN COMPLETED-QC ISSUE PENDING</th>
             <th colspan="4" class="top-header" style="background-color: #eef2ff;">INVOICE GENERATED- INVOICE APPROVE PENDING</th>
             <th colspan="4" class="top-header" style="background-color: #fdf2f8;">INVOICE APPROVE COMPLETED- NOT SYNCHED TO MUZIRIS</th>
-            <th colspan="2" class="top-header" style="background-color: #e2e8f0; color: #334155; border-left: 2px solid #cbd5e1; font-weight: bold; text-align: center;">TOTAL</th>
         </tr>
         <tr>
+            <!-- Total subheaders -->
+            <th style="background-color: #e2e8f0; color: #334155; border-left: 2px solid #cbd5e1; font-weight: bold;">PCS</th>
+            <th style="background-color: #e2e8f0; color: #334155; font-weight: bold;">WEIGHT</th>
             <!-- S1 -->
-            <th style="background-color: #f0f9ff;">PCS</th> <th style="background-color: #f0f9ff;">WT</th> <th style="background-color: #f0f9ff;">FB</th> <th style="background-color: #f0f9ff;">ACT</th>
+            <th style="background-color: #f0f9ff; border-left: 2px solid #cbd5e1;">PCS</th> <th style="background-color: #f0f9ff;">WT</th> <th style="background-color: #f0f9ff;">FB</th> <th style="background-color: #f0f9ff;">ACT</th>
             <!-- S2 -->
             <th style="background-color: #fffbeb;">PCS</th> <th style="background-color: #fffbeb;">WT</th> <th style="background-color: #fffbeb;">FB</th> <th style="background-color: #fffbeb;">ACT</th>
             <!-- S3 -->
@@ -29,9 +32,6 @@
             <th style="background-color: #eef2ff;">PCS</th> <th style="background-color: #eef2ff;">WT</th> <th style="background-color: #eef2ff;">FB</th> <th style="background-color: #eef2ff;">ACT</th>
             <!-- S8 -->
             <th style="background-color: #fdf2f8;">PCS</th> <th style="background-color: #fdf2f8;">WT</th> <th style="background-color: #fdf2f8;">FB</th> <th style="background-color: #fdf2f8;">ACT</th>
-            <!-- Total subheaders -->
-            <th style="background-color: #e2e8f0; color: #334155; border-left: 2px solid #cbd5e1; font-weight: bold;">PCS</th>
-            <th style="background-color: #e2e8f0; color: #334155; font-weight: bold;">WEIGHT</th>
         </tr>
     </thead>
     <tbody>
@@ -54,6 +54,9 @@
                     </div>
                 </td>
                 
+                <td style="background-color: #f1f5f9; font-weight: bold; text-align: center; border-left: 2px solid #cbd5e1; font-size: 10px; color: #334155;">{{ item.summary.total_pieces }}</td>
+                <td style="background-color: #f1f5f9; font-weight: bold; text-align: right; font-size: 10px; color: #334155;">{{ "%.3f"|format(item.summary.total_weight) }}</td>
+
                 {% for i in range(1, 9) %}
                     {% if i == 1 %}
                         {% set pcs = item.summary.invited_pending_orders %}
@@ -90,7 +93,7 @@
                     {% endif %}
 
                     {% set has_data = (pcs|int > 0 or wt|float > 0) %}
-                    <td style="background-color: {{ bg }};">{{ pcs }}</td>
+                    <td style="background-color: {{ bg }};{% if i == 1 %} border-left: 2px solid #cbd5e1;{% endif %}">{{ pcs }}</td>
                     <td style="background-color: {{ bg }};">{{ "%.3f"|format(wt) }}</td>
                     <td class="w-px whitespace-nowrap px-1 text-center relative group cursor-help" style="background-color: {{ bg }};">
                         {% if item.feedbacks.get('segment' ~ i, {}).get('feedback_text') %}
@@ -116,8 +119,6 @@
                         </div>
                     </td>
                 {% endfor %}
-                <td style="background-color: #f1f5f9; font-weight: bold; text-align: center; border-left: 2px solid #cbd5e1; font-size: 10px; color: #334155;">{{ item.summary.total_pieces }}</td>
-                <td style="background-color: #f1f5f9; font-weight: bold; text-align: right; font-size: 10px; color: #334155;">{{ "%.3f"|format(item.summary.total_weight) }}</td>
             </tr>
             {% endfor %}
         {% else %}
