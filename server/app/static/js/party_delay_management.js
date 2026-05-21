@@ -3,6 +3,9 @@ let allModalRows = [];
 let currentModalSegmentId = null;
 let makeMultiSelect;
 
+let currentSortCol = null;
+let currentSortDir = 'desc';
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Party Delay Management JS Initialized');
     adjustZoom(0);
@@ -63,6 +66,9 @@ function loadReport() {
     .then(res => res.text())
     .then(html => {
         container.innerHTML = html;
+        if (currentSortCol !== null) {
+            applyCurrentSort();
+        }
         setupDynamicTooltips();
     })
     .catch(err => {
@@ -650,4 +656,66 @@ function updateTooltipPosition(e, tooltip) {
     
     tooltip.style.left = x + 'px';
     tooltip.style.top = y + 'px';
+}
+
+function sortPartyDelayTable(headerEl, colIndex) {
+    if (currentSortCol === colIndex) {
+        currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortCol = colIndex;
+        currentSortDir = 'desc'; // default to desc for weight
+    }
+    applyCurrentSort();
+}
+
+function applyCurrentSort() {
+    if (currentSortCol === null) return;
+    
+    const table = document.querySelector('#view-container table');
+    if (!table) return;
+    
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Check if it's the empty state row
+    if (rows.length === 1 && rows[0].querySelector('td') && rows[0].querySelector('td').colSpan > 1) {
+        return;
+    }
+
+    // Update icons
+    const allIcons = table.querySelectorAll('.sort-icon');
+    allIcons.forEach(icon => {
+        icon.textContent = 'unfold_more';
+        icon.classList.remove('opacity-100', 'text-primary');
+        icon.classList.add('opacity-30');
+    });
+
+    const activeHeader = table.querySelector(`th[data-col-index="${currentSortCol}"]`);
+    if (activeHeader) {
+        const activeIcon = activeHeader.querySelector('.sort-icon');
+        if (activeIcon) {
+            activeIcon.textContent = currentSortDir === 'asc' ? 'arrow_upward' : 'arrow_downward';
+            activeIcon.classList.add('opacity-100', 'text-primary');
+            activeIcon.classList.remove('opacity-30');
+        }
+    }
+
+    // Sort rows
+    rows.sort((a, b) => {
+        const tdsA = a.querySelectorAll('td');
+        const tdsB = b.querySelectorAll('td');
+        
+        const tdA = tdsA[currentSortCol];
+        const tdB = tdsB[currentSortCol];
+        
+        let valA = tdA ? parseFloat(tdA.textContent.trim().replace(/,/g, '')) || 0 : 0;
+        let valB = tdB ? parseFloat(tdB.textContent.trim().replace(/,/g, '')) || 0 : 0;
+
+        return currentSortDir === 'asc' ? (valA - valB) : (valB - valA);
+    });
+
+    // Re-append
+    rows.forEach(row => tbody.appendChild(row));
 }

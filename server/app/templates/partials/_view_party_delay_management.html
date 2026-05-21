@@ -2,15 +2,15 @@
     <thead>
         <tr>
             <th rowspan="2" style="vertical-align: bottom;">PARTY</th>
-            <th colspan="2" class="top-header" style="background-color: #e2e8f0; color: #334155; border-left: 2px solid #cbd5e1; font-weight: bold; text-align: center;">TOTAL</th>
-            <th colspan="4" class="top-header" style="background-color: #f0f9ff; border-left: 2px solid #cbd5e1;">ACCEPT PENDING</th>
-            <th colspan="4" class="top-header" style="background-color: #fffbeb;">PROCESS PENDING</th>
-            <th colspan="4" class="top-header" style="background-color: #f5f3ff;">PROCESS COMPLETED- BARCODE PENDING</th>
-            <th colspan="4" class="top-header" style="background-color: #e6fffa;">BARCODE COMPLETED - BIS REQUEST PENDING</th>
-            <th colspan="4" class="top-header" style="background-color: #f0fdf4;">BIS REQUEST COMPLETED - HM ISSUE PENDING</th>
-            <th colspan="4" class="top-header" style="background-color: #fff1f2;">HM RECEIPT RETURN COMPLETED-QC ISSUE PENDING</th>
-            <th colspan="4" class="top-header" style="background-color: #eef2ff;">INVOICE GENERATED- INVOICE APPROVE PENDING</th>
-            <th colspan="4" class="top-header" style="background-color: #fdf2f8;">INVOICE APPROVE COMPLETED- NOT SYNCHED TO MUZIRIS</th>
+            <th colspan="2" class="top-header cursor-pointer select-none" data-col-index="2" style="background-color: #e2e8f0; color: #334155; border-left: 2px solid #cbd5e1; font-weight: bold; text-align: center;" onclick="sortPartyDelayTable(this, 2)">TOTAL <span class="sort-icon material-symbols-outlined text-[12px] opacity-30 ml-0.5 align-middle">unfold_more</span></th>
+            <th colspan="4" class="top-header cursor-pointer select-none" data-col-index="4" style="background-color: #f0f9ff; border-left: 2px solid #cbd5e1;" onclick="sortPartyDelayTable(this, 4)">ACCEPT PENDING <span class="sort-icon material-symbols-outlined text-[12px] opacity-30 ml-0.5 align-middle">unfold_more</span></th>
+            <th colspan="4" class="top-header cursor-pointer select-none" data-col-index="8" style="background-color: #fffbeb;" onclick="sortPartyDelayTable(this, 8)">PROCESS PENDING <span class="sort-icon material-symbols-outlined text-[12px] opacity-30 ml-0.5 align-middle">unfold_more</span></th>
+            <th colspan="4" class="top-header cursor-pointer select-none" data-col-index="12" style="background-color: #f5f3ff;" onclick="sortPartyDelayTable(this, 12)">PROCESS COMPLETED- BARCODE PENDING <span class="sort-icon material-symbols-outlined text-[12px] opacity-30 ml-0.5 align-middle">unfold_more</span></th>
+            <th colspan="4" class="top-header cursor-pointer select-none" data-col-index="16" style="background-color: #e6fffa;" onclick="sortPartyDelayTable(this, 16)">BARCODE COMPLETED - BIS REQUEST PENDING <span class="sort-icon material-symbols-outlined text-[12px] opacity-30 ml-0.5 align-middle">unfold_more</span></th>
+            <th colspan="4" class="top-header cursor-pointer select-none" data-col-index="20" style="background-color: #f0fdf4;" onclick="sortPartyDelayTable(this, 20)">BIS REQUEST COMPLETED - HM ISSUE PENDING <span class="sort-icon material-symbols-outlined text-[12px] opacity-30 ml-0.5 align-middle">unfold_more</span></th>
+            <th colspan="4" class="top-header cursor-pointer select-none" data-col-index="24" style="background-color: #fff1f2;" onclick="sortPartyDelayTable(this, 24)">HM RECEIPT RETURN COMPLETED-QC ISSUE PENDING <span class="sort-icon material-symbols-outlined text-[12px] opacity-30 ml-0.5 align-middle">unfold_more</span></th>
+            <th colspan="4" class="top-header cursor-pointer select-none" data-col-index="28" style="background-color: #eef2ff;" onclick="sortPartyDelayTable(this, 28)">INVOICE GENERATED- INVOICE APPROVE PENDING <span class="sort-icon material-symbols-outlined text-[12px] opacity-30 ml-0.5 align-middle">unfold_more</span></th>
+            <th colspan="4" class="top-header cursor-pointer select-none" data-col-index="32" style="background-color: #fdf2f8;" onclick="sortPartyDelayTable(this, 32)">INVOICE APPROVE COMPLETED- NOT SYNCHED TO MUZIRIS <span class="sort-icon material-symbols-outlined text-[12px] opacity-30 ml-0.5 align-middle">unfold_more</span></th>
         </tr>
         <tr>
             <!-- Total subheaders -->
