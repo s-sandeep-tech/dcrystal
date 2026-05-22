@@ -535,18 +535,127 @@ function renderRichModalContent(data, segment_id) {
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
     `;
 
+    // Group data by PO Number
+    const groupedData = {};
     data.forEach(row => {
+        const po = row.po_number || 'UNKNOWN_PO';
+        if (!groupedData[po]) {
+            groupedData[po] = {
+                ...row,
+                _qc_numbers: new Set(),
+                _qc_dates: new Set(),
+                _snapshot_dates: new Set(),
+                _qc_ros: new Set(),
+                _qc_ro_incharges: new Set(),
+                
+                _po_dates: new Set(),
+                _order_nos: new Set(),
+                _party_mobile_nos: new Set(),
+                _business_head_names: new Set(),
+                
+                _designs: new Set(),
+                _set_identifiers: new Set(),
+                _set_designs: new Set(),
+                _barcode_dates: new Set(),
+                _target_dates: new Set(),
+                
+                _final_qc_receipts: new Set(),
+                _order_ros: new Set(),
+                
+                piece_count: 0,
+                gross_weight: 0,
+                net_weight: 0,
+                stone_weight: 0,
+                barcoded_weight: 0
+            };
+        }
+        
+        const g = groupedData[po];
+        g.piece_count += 1;
+        g.gross_weight += parseFloat(row.gross_weight || 0);
+        g.net_weight += parseFloat(row.net_weight || row.weight || 0);
+        g.stone_weight += parseFloat(row.stone_weight || 0);
+        g.barcoded_weight += parseFloat(row.barcoded_weight || 0);
+        
+        // Col 1
+        const qcNo = segment_id === 3 ? (row.qc_number || 'N/A') : (row.qc_req_no || row.id || 'N/A');
+        g._qc_numbers.add(qcNo);
+        
+        const qcDt = row.qc_completed_date ? row.qc_completed_date.split('T')[0] : (row.qc_date ? row.qc_date.split('T')[0] : 'N/A');
+        g._qc_dates.add(qcDt);
+        
+        if (row.snapshot_date) g._snapshot_dates.add(row.snapshot_date.split('T')[0]);
+        if (row.qc_ro) g._qc_ros.add(row.qc_ro);
+        if (row.qc_ro_incharge) g._qc_ro_incharges.add(row.qc_ro_incharge);
+        
+        // Col 2
+        if (row.po_date) g._po_dates.add(row.po_date.split('T')[0]);
+        if (row.order_no) g._order_nos.add(row.order_no);
+        if (row.party_mobile_no) g._party_mobile_nos.add(row.party_mobile_no);
+        if (row.business_head_name) g._business_head_names.add(row.business_head_name);
+        
+        // Col 3
+        if (row.design_no) g._designs.add(row.design_no);
+        if (row.set_identifier) g._set_identifiers.add(row.set_identifier);
+        if (row.set_design_no) g._set_designs.add(row.set_design_no);
+        
+        const bcDt = row.barcode_date ? row.barcode_date.split('T')[0] : (row.barcode_completion_date ? row.barcode_completion_date.split('T')[0] : 'N/A');
+        g._barcode_dates.add(bcDt);
+        
+        const targetDt = row.delivery_target_date ? row.delivery_target_date.split('T')[0] : (row.target_date ? row.target_date.split('T')[0] : 'N/A');
+        g._target_dates.add(targetDt);
+        
+        // Col 4
+        if (row.final_qc_receipt_no) g._final_qc_receipts.add(row.final_qc_receipt_no);
+        if (row.order_ro) g._order_ros.add(row.order_ro);
+    });
+
+    const processedData = Object.values(groupedData).map(g => {
+        const formatArr = (set, limit=3) => {
+            const arr = Array.from(set).filter(Boolean);
+            if (!arr.length) return { full: '-', display: '-' };
+            return {
+                full: arr.join(', '),
+                display: arr.length > limit ? arr.slice(0, limit).join(', ') + ` ... (+${arr.length - limit})` : arr.join(', ')
+            };
+        };
+
+        return {
+            ...g,
+            qc_number_fmt: formatArr(g._qc_numbers, 3),
+            qc_date_fmt: formatArr(g._qc_dates, 3),
+            snapshot_date_fmt: formatArr(g._snapshot_dates, 3),
+            qc_ro_fmt: formatArr(g._qc_ros, 3),
+            qc_ro_incharge_fmt: formatArr(g._qc_ro_incharges, 3),
+            
+            po_date_fmt: formatArr(g._po_dates, 3),
+            order_no_fmt: formatArr(g._order_nos, 3),
+            party_mobile_no_fmt: formatArr(g._party_mobile_nos, 3),
+            business_head_name_fmt: formatArr(g._business_head_names, 3),
+            
+            design_no_fmt: formatArr(g._designs, 3),
+            set_identifier_fmt: formatArr(g._set_identifiers, 3),
+            set_design_no_fmt: formatArr(g._set_designs, 3),
+            barcode_date_fmt: formatArr(g._barcode_dates, 3),
+            target_date_fmt: formatArr(g._target_dates, 3),
+            
+            final_qc_receipt_no_fmt: formatArr(g._final_qc_receipts, 3),
+            order_ro_fmt: formatArr(g._order_ros, 3)
+        };
+    });
+
+    processedData.forEach(row => {
         const isSegment3 = segment_id === 3;
         html += `
             <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
                 <!-- QC INFO -->
                 <td class="px-4 py-4 align-top">
                     <div class="flex flex-col gap-0.5">
-                        <span class="text-xs font-bold text-orange-600">No: ${isSegment3 ? (row.qc_number || 'N/A') : (row.qc_req_no || row.id)}</span>
-                        <span class="text-[10px] text-gray-400">QC Date: ${row.qc_completed_date ? row.qc_completed_date.split('T')[0] : (row.qc_date ? row.qc_date.split('T')[0] : 'N/A')}</span>
-                        <span class="text-[10px] font-bold text-emerald-600">Comp: ${row.snapshot_date ? row.snapshot_date.split('T')[0] : 'N/A'}</span>
-                        <span class="text-[10px] text-gray-500">RO: ${row.qc_ro}</span>
-                        ${isSegment3 ? `<span class="text-[10px] text-indigo-600 font-bold">RO Incharge: ${row.qc_ro_incharge || 'N/A'}</span>` : ''}
+                        <span class="text-xs font-bold text-orange-600 cursor-help" title="${row.qc_number_fmt.full}">No: ${row.qc_number_fmt.display}</span>
+                        <span class="text-[10px] text-gray-400 cursor-help" title="${row.qc_date_fmt.full}">QC Date: ${row.qc_date_fmt.display}</span>
+                        <span class="text-[10px] font-bold text-emerald-600 cursor-help" title="${row.snapshot_date_fmt.full}">Comp: ${row.snapshot_date_fmt.display}</span>
+                        <span class="text-[10px] text-gray-500 cursor-help" title="${row.qc_ro_fmt.full}">RO: ${row.qc_ro_fmt.display}</span>
+                        ${isSegment3 ? `<span class="text-[10px] text-indigo-600 font-bold cursor-help" title="${row.qc_ro_incharge_fmt.full}">RO Incharge: ${row.qc_ro_incharge_fmt.display}</span>` : ''}
                     </div>
                 </td>
 
@@ -554,22 +663,22 @@ function renderRichModalContent(data, segment_id) {
                 <td class="px-4 py-4 align-top">
                     <div class="flex flex-col gap-0.5">
                         <span class="text-xs font-bold text-blue-600">${row.po_number || 'N/A'}</span>
-                        <span class="text-[10px] text-gray-400">${row.po_date ? row.po_date.split('T')[0] : 'N/A'}</span>
-                        <span class="text-[10px] text-gray-500 font-bold">Order No: ${row.order_no || 'N/A'}</span>
-                        <span class="text-[10px] text-gray-400 flex items-center gap-1">
-                            <span class="material-symbols-outlined text-[12px]">phone</span> ${row.party_mobile_no || 'N/A'}
+                        <span class="text-[10px] text-gray-400 cursor-help" title="${row.po_date_fmt.full}">${row.po_date_fmt.display}</span>
+                        <span class="text-[10px] text-gray-500 font-bold cursor-help" title="${row.order_no_fmt.full}">Order No: ${row.order_no_fmt.display}</span>
+                        <span class="text-[10px] text-gray-400 flex items-center gap-1 cursor-help" title="${row.party_mobile_no_fmt.full}">
+                            <span class="material-symbols-outlined text-[12px]">phone</span> ${row.party_mobile_no_fmt.display}
                         </span>
-                        <span class="text-[10px] font-bold text-blue-700">BH: ${row.business_head_name || 'N/A'}</span>
+                        <span class="text-[10px] font-bold text-blue-700 cursor-help" title="${row.business_head_name_fmt.full}">BH: ${row.business_head_name_fmt.display}</span>
                     </div>
                 </td>
 
                 <!-- DESIGN / SET -->
                 <td class="px-4 py-4 align-top">
                     <div class="flex flex-col gap-0.5">
-                        <span class="text-xs font-bold text-gray-700 dark:text-gray-300">Design: ${row.design_no || '-'}</span>
-                        <span class="text-[10px] text-gray-400">Set: ${row.set_identifier || '-'} (${row.set_design_no || '-'})</span>
-                        <span class="text-[10px] font-bold text-blue-600">BC Date: ${row.barcode_date ? row.barcode_date.split('T')[0] : (row.barcode_completion_date ? row.barcode_completion_date.split('T')[0] : 'N/A')}</span>
-                        <span class="text-[10px] font-bold text-red-500">Target: ${row.delivery_target_date ? row.delivery_target_date.split('T')[0] : (row.target_date ? row.target_date.split('T')[0] : 'N/A')}</span>
+                        <span class="text-xs font-bold text-gray-700 dark:text-gray-300 cursor-help" title="${row.design_no_fmt.full}">Design: ${row.design_no_fmt.display}</span>
+                        <span class="text-[10px] text-gray-400 cursor-help" title="Set ID: ${row.set_identifier_fmt.full} / Set Design: ${row.set_design_no_fmt.full}">Set: ${row.set_identifier_fmt.display} (${row.set_design_no_fmt.display})</span>
+                        <span class="text-[10px] font-bold text-blue-600 cursor-help" title="${row.barcode_date_fmt.full}">BC Date: ${row.barcode_date_fmt.display}</span>
+                        <span class="text-[10px] font-bold text-red-500 cursor-help" title="${row.target_date_fmt.full}">Target: ${row.target_date_fmt.display}</span>
                     </div>
                 </td>
 
@@ -589,8 +698,8 @@ function renderRichModalContent(data, segment_id) {
                             <span class="text-[10px] font-bold text-gray-600 dark:text-gray-400">INVOICED</span>
                         </div>
                         <div class="mt-1 flex flex-col gap-0.5">
-                            <span class="text-[10px] font-bold text-blue-600">Receipt: ${row.final_qc_receipt_no || '-'}</span>
-                            <span class="text-[10px] text-gray-400">Order RO: ${row.order_ro || '-'}</span>
+                            <span class="text-[10px] font-bold text-blue-600 cursor-help" title="${row.final_qc_receipt_no_fmt.full}">Receipt: ${row.final_qc_receipt_no_fmt.display}</span>
+                            <span class="text-[10px] text-gray-400 cursor-help" title="${row.order_ro_fmt.full}">Order RO: ${row.order_ro_fmt.display}</span>
                         </div>
                     </div>
                 </td>
@@ -608,8 +717,8 @@ function renderRichModalContent(data, segment_id) {
                 <!-- SUMMARY -->
                 <td class="px-4 py-4 align-top text-right">
                     <div class="flex flex-col items-end">
-                        <span class="text-lg font-black text-emerald-600 leading-tight">${formatWeight(row.net_weight || row.weight)}</span>
-                        <span class="text-[10px] font-bold text-gray-400">1 PCS</span>
+                        <span class="text-lg font-black text-emerald-600 leading-tight">${formatWeight(row.net_weight)}</span>
+                        <span class="text-[10px] font-bold text-gray-400">${row.piece_count} PCS</span>
                     </div>
                 </td>
             </tr>
