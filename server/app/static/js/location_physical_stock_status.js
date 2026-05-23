@@ -516,7 +516,7 @@ async function exportToExcel() {
     const icon = document.getElementById('export-btn-icon');
     const label = document.getElementById('export-btn-label');
     const originalIcon = icon ? icon.innerText : 'download';
-    const originalLabel = label ? label.innerText : 'Export Excel';
+    const originalLabel = label ? label.innerText : 'Export';
 
     try {
         // Disable button and show loading state
