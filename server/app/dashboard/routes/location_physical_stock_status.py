@@ -8,6 +8,7 @@ from app.utils.cache_utils import generate_cache_key
 from sqlalchemy import func, text, cast, Integer
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from app.utils.decorators import require_perm
 import logging
 import json
 
@@ -900,3 +901,57 @@ ORDER BY section, type NULLS FIRST, wide_range NULLS FIRST, range_weight NULLS F
 def sync_location_physical_stock_status():
     user_id = get_jwt_identity()
     return jsonify(sync_provision_stock_status_data(user_id))
+
+
+@dashboard_bp.route('/api/location-physical-stock-status/export', methods=['POST'])
+@jwt_required()
+@require_perm('report.export')
+def queue_location_physical_stock_status_export():
+    try:
+        data = request.get_json() or {}
+        filters = data.get('filters', {})
+        socket_id = data.get('socket_id')
+        user_id = get_jwt_identity()
+
+        # Role-based filtering resolution
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(r in roles for r in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        is_business_head = 'BUSINESS_HEAD' in roles
+        is_showroom_manager = 'SHOWROOM_MANAGER' in roles
+        session_user_id = session.get('user_id')
+
+        bh_emp_code = None
+        authorized_branch_ids = None
+        if not is_admin and not is_manager:
+            if is_business_head and session_user_id:
+                bh_emp_code = session_user_id
+            elif is_showroom_manager and session_user_id:
+                try:
+                    emp_code_int = int(session_user_id)
+                    auth_records = BranchAuthoritySnapshot.query.filter_by(emp_code=emp_code_int).all()
+                    branch_ids = [r.branch_id for r in auth_records]
+                    if branch_ids:
+                        authorized_branch_ids = ','.join(map(str, branch_ids))
+                    else:
+                        authorized_branch_ids = '-1' # Force empty
+                except (ValueError, TypeError):
+                    authorized_branch_ids = '-1'
+
+        filters['bh_emp_code'] = bh_emp_code
+        filters['authorized_branch_ids'] = authorized_branch_ids
+
+        task_payload = {
+            'type': 'export_location_physical_stock_status',
+            'filters': filters,
+            'socket_id': socket_id,
+            'user_id': user_id
+        }
+
+        redis_client.rpush('export_queue', json.dumps(task_payload))
+        logger.info(f"Queued location_physical_stock_status export for user {user_id}")
+
+        return jsonify({'status': 'success', 'message': 'Export job enqueued.'}), 200
+    except Exception as e:
+        logger.error(f"Failed to queue location_physical_stock_status export: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500

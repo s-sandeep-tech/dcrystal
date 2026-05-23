@@ -509,3 +509,72 @@ function closeDrillDownModal() {
         modal.classList.add('hidden');
     }, 300);
 }
+
+async function exportToExcel() {
+    const btn = document.getElementById('btn-export-excel');
+    if (!btn) return;
+    const icon = document.getElementById('export-btn-icon');
+    const label = document.getElementById('export-btn-label');
+    const originalIcon = icon ? icon.innerText : 'download';
+    const originalLabel = label ? label.innerText : 'Export Excel';
+
+    try {
+        // Disable button and show loading state
+        btn.disabled = true;
+        if (icon) {
+            icon.innerText = 'sync';
+            icon.classList.add('animate-spin');
+        }
+        if (label) label.innerText = 'Queuing...';
+
+        // Extract current active filters
+        const activeFilters = {
+            search: currentSearch,
+            location: filterValues.location,
+            purity: filterValues.purity,
+            classification: filterValues.classification,
+            make: filterValues.make,
+            collection: filterValues.collection,
+            section: filterValues.section,
+            prov_type: filterValues.prov_type,
+            provision_mode: filterValues.provision_mode,
+            branch_type: filterValues.branch_type,
+            branch_status: filterValues.branch_status,
+            business_head: filterValues.business_head,
+            state: filterValues.state,
+            sort_by: filterValues.sort_by,
+            sort_order: filterValues.sort_order
+        };
+
+        const response = await fetch('/api/location-physical-stock-status/export', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            },
+            body: JSON.stringify({
+                filters: activeFilters,
+                socket_id: window.socket?.id
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.message || 'Failed to queue export');
+        }
+
+        showToast('Success', 'Export job enqueued. You will be notified when the file is ready.', 'success');
+
+    } catch (error) {
+        console.error('Export error:', error);
+        showToast('Error', error.message || 'Failed to trigger export', 'error');
+    } finally {
+        // Restore button state
+        btn.disabled = false;
+        if (icon) {
+            icon.innerText = originalIcon;
+            icon.classList.remove('animate-spin');
+        }
+        if (label) label.innerText = originalLabel;
+    }
+}

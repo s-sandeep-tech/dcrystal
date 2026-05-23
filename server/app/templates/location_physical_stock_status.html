@@ -14,6 +14,16 @@
             <h2 class="text-sm font-bold tracking-tight">Provision and Stock – Location Physical Stock Status <span class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded uppercase tracking-widest text-gray-500">v1.0</span></h2>
         </div>
         <div class="flex items-center gap-3">
+            {% if 'report.export' in permissions or 'ADMIN' in permissions %}
+            <!-- Export Button -->
+            <button id="btn-export-excel" onclick="exportToExcel()"
+                title="Export all filtered data to Excel"
+                class="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded transition-colors shadow-sm uppercase tracking-wider">
+                <span id="export-btn-icon" class="material-symbols-outlined text-[14px]">download</span>
+                <span id="export-btn-label">Export Excel</span>
+            </button>
+            {% endif %}
+
             <!-- Zoom Controls -->
             <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
                 <button onclick="adjustZoom(-0.1)" class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors" title="Zoom Out">-</button>

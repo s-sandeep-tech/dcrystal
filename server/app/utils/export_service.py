@@ -1437,3 +1437,863 @@ ORDER BY
 
     logger.info(f'Provision Allocation Summary export saved: {filepath}')
     return filename
+
+
+def generate_location_physical_stock_status_export(filters: dict) -> str:
+    """
+    Generate Location Physical Stock Status Excel export based on filters and search,
+    rendering it in a beautiful, multi-column grid dashboard layout matching the UI.
+    """
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+    except ImportError as e:
+        raise RuntimeError("openpyxl not installed: " + str(e))
+
+    from app.extensions import db
+    from sqlalchemy import text
+
+    _ensure_exports_dir()
+
+    # 1. Parse and build query params
+    location = filters.get('location', '')
+    state = filters.get('state', '')
+    purity = filters.get('purity', '')
+    classification = filters.get('classification', '')
+    make = filters.get('make', '')
+    collection = filters.get('collection', '')
+    section = filters.get('section', '')
+    prov_type = filters.get('prov_type', '')
+    provision_mode = filters.get('provision_mode', '')
+    branch_type = filters.get('branch_type', '')
+    branch_status = filters.get('branch_status', '')
+    business_head = filters.get('business_head', '')
+    bh_emp_code = filters.get('bh_emp_code')
+    authorized_branch_ids = filters.get('authorized_branch_ids')
+    search = filters.get('search', '').strip()
+    sort_by = filters.get('sort_by', '')
+    sort_order = filters.get('sort_order', 'asc')
+
+    params = {
+        'location': location if location else None,
+        'state': state if state else None,
+        'purity': purity if purity else None,
+        'classification': classification if classification else None,
+        'make': make if make else None,
+        'collection': collection if collection else None,
+        'section': section if section else None,
+        'prov_type': prov_type if prov_type else None,
+        'provision_mode': provision_mode if provision_mode else None,
+        'branch_type': branch_type if branch_type else None,
+        'branch_status': branch_status if branch_status else None,
+        'business_head': business_head if business_head else None,
+        'bh_emp_code': bh_emp_code,
+        'authorized_branch_ids': authorized_branch_ids
+    }
+
+    # Query matching routes/location_physical_stock_status.py
+    query = """
+WITH base AS (
+    SELECT *
+    FROM provision_stock_raw_snapshot
+    WHERE 
+        (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
+        AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
+        AND (:purity IS NULL OR purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
+        AND (:classification IS NULL OR classification = ANY(string_to_array(CAST(:classification AS text), ',')))
+        AND (:make IS NULL OR make = ANY(string_to_array(CAST(:make AS text), ',')))
+        AND (:collection IS NULL OR collection = ANY(string_to_array(CAST(:collection AS text), ',')))
+        AND (:section IS NULL OR section = ANY(string_to_array(CAST(:section AS text), ',')))
+        AND (:prov_type IS NULL OR prov_type = ANY(string_to_array(CAST(:prov_type AS text), ',')))
+        AND (:provision_mode IS NULL OR provision_mode_filter = ANY(string_to_array(CAST(:provision_mode AS text), ',')))
+        AND (:branch_type IS NULL OR branch_type = ANY(string_to_array(CAST(:branch_type AS text), ',')))
+        AND (:branch_status IS NULL OR branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
+        AND (:business_head IS NULL OR business_head_name = ANY(string_to_array(CAST(:business_head AS text), ',')))
+        AND (:bh_emp_code IS NULL OR business_head_emp_code = :bh_emp_code)
+        AND (:authorized_branch_ids IS NULL OR branch_id = ANY(string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]))
+),
+location_summary AS (
+    SELECT
+        location::text AS location,
+        'Location Summary'::text AS report_section,
+        location::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        1 AS is_parent,
+        SUM(prov_pieces) AS prov_pcs,
+        SUM(prov_gr_wt) AS prov_gr_wt,
+        SUM(in_shop_wt) AS in_shop_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(in_transit_wt) AS in_transit_wt,
+        SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+        ROUND(
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+        ) AS percent,
+        1 AS section_sort,
+        1 AS row_sort
+    FROM base
+    GROUP BY location
+),
+purity_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        'Purity Wise'::text AS report_section,
+        purity::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        1 AS is_parent,
+        NULL::numeric AS prov_pcs,
+        SUM(prov_gr_wt) AS prov_gr_wt,
+        SUM(in_shop_wt) AS in_shop_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(in_transit_wt) AS in_transit_wt,
+        SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+        ROUND(
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+        ) AS percent,
+        2 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY purity) AS row_sort
+    FROM base
+    GROUP BY purity
+),
+classification_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        x.report_section,
+        x.report_label,
+        x.classification,
+        x.sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        x.is_parent,
+        x.prov_pcs,
+        x.prov_gr_wt,
+        x.in_shop_wt,
+        x.ordered_wt,
+        x.in_transit_wt,
+        x.short_excess_wt,
+        x.percent,
+        3 AS section_sort,
+        ROW_NUMBER() OVER (
+            ORDER BY x.classification, x.level_order, x.sub_classification NULLS FIRST
+        ) AS row_sort
+    FROM (
+        SELECT
+            'Classification Wise'::text AS report_section,
+            classification::text AS report_label,
+            classification::text AS classification,
+            NULL::text AS sub_classification,
+            1 AS is_parent,
+            NULL::numeric AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            0 AS level_order
+        FROM base
+        GROUP BY classification
+ 
+        UNION ALL
+ 
+        SELECT
+            'Classification Wise'::text AS report_section,
+            '   ' || COALESCE(sub_classification::text, 'Unknown') AS report_label,
+            classification::text AS classification,
+            COALESCE(sub_classification::text, 'Unknown') AS sub_classification,
+            0 AS is_parent,
+            NULL::numeric AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            1 AS level_order
+        FROM base
+        GROUP BY classification, sub_classification
+    ) x
+),
+collection_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        x.report_section,
+        x.report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        x.collection,
+        x.sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        x.is_parent,
+        x.prov_pcs,
+        x.prov_gr_wt,
+        x.in_shop_wt,
+        x.ordered_wt,
+        x.in_transit_wt,
+        x.short_excess_wt,
+        x.percent,
+        10 AS section_sort,
+        ROW_NUMBER() OVER (
+            ORDER BY x.collection, x.level_order, x.sub_section NULLS FIRST
+        ) AS row_sort
+    FROM (
+        SELECT
+            'Collection Wise'::text AS report_section,
+            collection::text AS report_label,
+            collection::text AS collection,
+            NULL::text AS sub_section,
+            1 AS is_parent,
+            NULL::numeric AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            0 AS level_order
+        FROM base
+        GROUP BY collection
+ 
+        UNION ALL
+ 
+        SELECT
+            'Collection Wise'::text AS report_section,
+            '   ' || COALESCE(sub_section::text, 'Unknown') AS report_label,
+            collection::text AS collection,
+            COALESCE(sub_section::text, 'Unknown') AS sub_section,
+            0 AS is_parent,
+            NULL::numeric AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            1 AS level_order
+        FROM base
+        GROUP BY collection, sub_section
+    ) x
+),
+section_details_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        x.report_section,
+        x.report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        x.sec_name,
+        x.typ_name,
+        x.is_parent,
+        x.prov_pcs,
+        x.prov_gr_wt,
+        x.in_shop_wt,
+        x.ordered_wt,
+        x.in_transit_wt,
+        x.short_excess_wt,
+        x.percent,
+        9 AS section_sort,
+        ROW_NUMBER() OVER (
+            ORDER BY x.sec_name, x.level_order, x.typ_name NULLS FIRST
+        ) AS row_sort
+    FROM (
+        SELECT
+            'Section Details'::text AS report_section,
+            section::text AS report_label,
+            section::text AS sec_name,
+            NULL::text AS typ_name,
+            1 AS is_parent,
+            SUM(prov_pieces) AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            0 AS level_order
+        FROM base
+        GROUP BY section
+ 
+        UNION ALL
+ 
+        SELECT
+            'Section Details'::text AS report_section,
+            '   ' || COALESCE(type::text, 'Unknown') AS report_label,
+            section::text AS sec_name,
+            COALESCE(type::text, 'Unknown') AS typ_name,
+            0 AS is_parent,
+            SUM(prov_pieces) AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            1 AS level_order
+        FROM base
+        GROUP BY section, type
+    ) x
+),
+make_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        'Make Wise'::text AS report_section,
+        make::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        1 AS is_parent,
+        NULL::numeric AS prov_pcs,
+        SUM(prov_gr_wt) AS prov_gr_wt,
+        SUM(in_shop_wt) AS in_shop_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(in_transit_wt) AS in_transit_wt,
+        SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+        ROUND(
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+        ) AS percent,
+        5 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY make) AS row_sort
+    FROM base
+    GROUP BY make
+),
+prov_type_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        'Provision Type Wise'::text AS report_section,
+        prov_type::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        1 AS is_parent,
+        NULL::numeric AS prov_pcs,
+        SUM(prov_gr_wt) AS prov_gr_wt,
+        SUM(in_shop_wt) AS in_shop_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(in_transit_wt) AS in_transit_wt,
+        SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+        ROUND(
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+        ) AS percent,
+        6 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY prov_type) AS row_sort
+    FROM base
+    GROUP BY prov_type
+),
+section_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        'Section Wise'::text AS report_section,
+        section::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        1 AS is_parent,
+        SUM(prov_pieces) AS prov_pcs,
+        SUM(prov_gr_wt) AS prov_gr_wt,
+        SUM(in_shop_wt) AS in_shop_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(in_transit_wt) AS in_transit_wt,
+        SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+        ROUND(
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+        ) AS percent,
+        7 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY section) AS row_sort
+    FROM base
+    GROUP BY section
+),
+provision_mode_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        'Provision Mode Wise'::text AS report_section,
+        provision_mode_filter::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        1 AS is_parent,
+        NULL::numeric AS prov_pcs,
+        SUM(prov_gr_wt) AS prov_gr_wt,
+        SUM(in_shop_wt) AS in_shop_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(in_transit_wt) AS in_transit_wt,
+        SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+        ROUND(
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+        ) AS percent,
+        8 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY provision_mode_filter) AS row_sort
+    FROM base
+    GROUP BY provision_mode_filter
+),
+combined_report AS (
+    SELECT * FROM location_summary
+    UNION ALL
+    SELECT * FROM purity_wise
+    UNION ALL
+    SELECT * FROM classification_wise
+    UNION ALL
+    SELECT * FROM collection_wise
+    UNION ALL
+    SELECT * FROM make_wise
+    UNION ALL
+    SELECT * FROM prov_type_wise
+    UNION ALL
+    SELECT * FROM section_wise
+    UNION ALL
+    SELECT * FROM provision_mode_wise
+    UNION ALL
+    SELECT * FROM section_details_wise
+)
+SELECT
+    location,
+    report_section,
+    report_label,
+    classification,
+    sub_classification,
+    collection,
+    sub_section,
+    sec_name,
+    typ_name,
+    is_parent,
+    prov_pcs,
+    prov_gr_wt,
+    in_shop_wt,
+    ordered_wt,
+    in_transit_wt,
+    short_excess_wt,
+    percent,
+    section_sort,
+    row_sort
+FROM combined_report
+ORDER BY
+    location,
+    section_sort,
+    row_sort
+    """
+
+    result = db.session.execute(text(query), params)
+    all_rows = [dict(r._mapping) for r in result]
+
+    # In-memory search filter
+    if search:
+        s_lower = search.lower()
+        all_rows = [
+            r for r in all_rows
+            if (s_lower in (r.get('report_label') or '').lower() or
+                s_lower in (r.get('report_section') or '').lower())
+        ]
+
+    # In-memory sorting (copy exactly from partial route)
+    numeric_cols = ['prov_pcs', 'prov_gr_wt', 'in_shop_wt', 'ordered_wt', 'in_transit_wt', 'short_excess_wt', 'percent']
+    if sort_by in numeric_cols:
+        sections = {}
+        for row in all_rows:
+            section_name = row['report_section']
+            if section_name not in sections:
+                sections[section_name] = []
+            sections[section_name].append(row)
+        
+        all_sorted_rows = []
+        sorted_section_names = sorted(sections.keys(), key=lambda s: sections[s][0]['section_sort'])
+        
+        for s in sorted_section_names:
+            sec_rows = sections[s]
+            if s in ['Classification Wise', 'Collection Wise', 'Section Details']:
+                key = 'classification' if s == 'Classification Wise' else ('collection' if s == 'Collection Wise' else 'sec_name')
+                parents = [r for r in sec_rows if r['is_parent'] == 1]
+                parents.sort(key=lambda r: float(r.get(sort_by) or 0), reverse=(sort_order == 'desc'))
+                
+                for p in parents:
+                    all_sorted_rows.append(p)
+                    children = [r for r in sec_rows if r['is_parent'] == 0 and r.get(key) == p.get(key)]
+                    children.sort(key=lambda r: float(r.get(sort_by) or 0), reverse=(sort_order == 'desc'))
+                    all_sorted_rows.extend(children)
+            else:
+                sec_rows.sort(key=lambda r: float(r.get(sort_by) or 0), reverse=(sort_order == 'desc'))
+                all_sorted_rows.extend(sec_rows)
+        
+        all_rows = all_sorted_rows
+
+    # Group into segments
+    segments = {}
+    for row in all_rows:
+        if row.get('report_label') == 'Grand Total':
+            continue
+        section_name = row.get('report_section')
+        if not section_name:
+            continue
+        if section_name not in segments:
+            segments[section_name] = []
+        segments[section_name].append(row)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Location Stock Status'
+    ws.views.sheetView[0].showGridLines = True
+
+    # Styling colors
+    PRIMARY_FILL = PatternFill('solid', fgColor='1E3A5F') # Navy
+    HEADER_FILL = PatternFill('solid', fgColor='FCE4EC') # Light pink as in UI
+    TOTAL_FILL = PatternFill('solid', fgColor='D6D6D6') # Gray
+    CAT_FILL = PatternFill('solid', fgColor='E3F2FD') # Light blue
+    ALT_FILL = PatternFill('solid', fgColor='F8FAFC')
+
+    TITLE_FONT = Font(name='Calibri', bold=True, size=14, color='FFFFFF')
+    SECTION_HEADER_FONT = Font(name='Calibri', bold=True, size=11, color='1E3A5F')
+    HEADER_FONT = Font(name='Calibri', bold=True, size=9, color='374151')
+    DATA_FONT = Font(name='Calibri', size=9, color='1F2937')
+    BOLD_FONT = Font(name='Calibri', bold=True, size=9, color='111827')
+
+    THIN_BORDER = Border(
+        left=Side(style='thin', color='D1D5DB'),
+        right=Side(style='thin', color='D1D5DB'),
+        top=Side(style='thin', color='D1D5DB'),
+        bottom=Side(style='thin', color='D1D5DB')
+    )
+
+    # Column setups
+    # Column 1: A to G
+    ws.column_dimensions['A'].width = 25
+    ws.column_dimensions['B'].width = 14
+    ws.column_dimensions['C'].width = 14
+    ws.column_dimensions['D'].width = 14
+    ws.column_dimensions['E'].width = 14
+    ws.column_dimensions['F'].width = 10
+    ws.column_dimensions['G'].width = 14
+    
+    # Spacer
+    ws.column_dimensions['H'].width = 4
+    
+    # Column 2: I to P
+    ws.column_dimensions['I'].width = 25
+    ws.column_dimensions['J'].width = 12
+    ws.column_dimensions['K'].width = 14
+    ws.column_dimensions['L'].width = 14
+    ws.column_dimensions['M'].width = 14
+    ws.column_dimensions['N'].width = 14
+    ws.column_dimensions['O'].width = 10
+    ws.column_dimensions['P'].width = 14
+    
+    # Spacer
+    ws.column_dimensions['Q'].width = 4
+    
+    # Column 3: R to X
+    ws.column_dimensions['R'].width = 25
+    ws.column_dimensions['S'].width = 14
+    ws.column_dimensions['T'].width = 14
+    ws.column_dimensions['U'].width = 14
+    ws.column_dimensions['V'].width = 14
+    ws.column_dimensions['W'].width = 10
+    ws.column_dimensions['X'].width = 14
+
+    # Title Block
+    ws.merge_cells('A1:X1')
+    title_cell = ws['A1']
+    title_cell.value = 'Location Physical Stock Status Report'
+    title_cell.font = TITLE_FONT
+    title_cell.fill = PRIMARY_FILL
+    title_cell.alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[1].height = 35
+
+    # 3 vertical tracking cursors for columns
+    col_1_row = 4
+    col_2_row = 4
+    col_3_row = 4
+
+    # Helper function to render a table in Excel
+    def render_excel_table(start_row, start_col, title, rows, show_pcs=False, category_labels=None):
+        col_span = 7 if show_pcs else 6
+        # Title row
+        ws.merge_cells(start_row=start_row, start_column=start_col, end_row=start_row, end_column=start_col+col_span)
+        title_cell = ws.cell(row=start_row, column=start_col, value=title)
+        title_cell.font = SECTION_HEADER_FONT
+        title_cell.alignment = Alignment(horizontal='left', vertical='center')
+        
+        # Border & Fill on title merged cells
+        for c in range(start_col, start_col + col_span + 1):
+            ws.cell(row=start_row, column=c).border = THIN_BORDER
+            ws.cell(row=start_row, column=c).fill = CAT_FILL
+        start_row += 1
+
+        # Table Column Headers
+        if show_pcs:
+            headers = [title, 'Prov Pcs', 'Prov Gr.Wt', 'In Shop Wt', 'Transit Wt', 'Short/Excess', '%', 'Ordered Wt']
+        else:
+            headers = [title, 'Prov Gr.Wt', 'In Shop Wt', 'Transit Wt', 'Short/Excess', '%', 'Ordered Wt']
+
+        for offset, h in enumerate(headers):
+            cell = ws.cell(row=start_row, column=start_col+offset, value=h)
+            cell.font = HEADER_FONT
+            cell.fill = HEADER_FILL
+            cell.alignment = Alignment(horizontal='left' if offset==0 else 'right', vertical='center')
+            cell.border = THIN_BORDER
+        start_row += 1
+
+        # Data rows
+        totals = {
+            'pcs': 0,
+            'prov_gr_wt': 0.0,
+            'in_shop_wt': 0.0,
+            'in_transit_wt': 0.0,
+            'short_excess_wt': 0.0,
+            'ordered_wt': 0.0
+        }
+        has_grand = False
+        use_cats = False
+
+        if category_labels:
+            for r in rows:
+                if r.get('report_label') in category_labels:
+                    use_cats = True
+                    break
+
+        curr_row = start_row
+        for idx, r in enumerate(rows):
+            label = r.get('report_label') or ''
+            is_parent = r.get('is_parent') if r.get('is_parent') is not None else 1
+
+            is_gt = label == 'Grand Total'
+            is_cat = category_labels is not None and label in category_labels
+
+            pcs = _safe_int(r.get('prov_pcs')) if show_pcs else None
+            prov_gr_wt = _safe_float(r.get('prov_gr_wt'))
+            in_shop_wt = _safe_float(r.get('in_shop_wt'))
+            in_transit_wt = _safe_float(r.get('in_transit_wt'))
+            short_excess_wt = _safe_float(r.get('short_excess_wt'))
+            percent = _safe_float(r.get('percent'))
+            ordered_wt = _safe_float(r.get('ordered_wt'))
+
+            if is_gt:
+                has_grand = True
+                row_fill = TOTAL_FILL
+                row_font = BOLD_FONT
+            else:
+                row_font = BOLD_FONT if is_cat else DATA_FONT
+                alt = (idx % 2 == 1)
+                row_fill = ALT_FILL if alt else PatternFill(fill_type=None)
+                if is_cat:
+                    row_fill = CAT_FILL
+
+                # Sum up totals
+                if use_cats:
+                    if is_cat:
+                        if show_pcs:
+                            totals['pcs'] += pcs
+                        totals['prov_gr_wt'] += prov_gr_wt
+                        totals['in_shop_wt'] += in_shop_wt
+                        totals['in_transit_wt'] += in_transit_wt
+                        totals['short_excess_wt'] += short_excess_wt
+                        totals['ordered_wt'] += ordered_wt
+                else:
+                    if is_parent != 0:
+                        if show_pcs:
+                            totals['pcs'] += pcs
+                        totals['prov_gr_wt'] += prov_gr_wt
+                        totals['in_shop_wt'] += in_shop_wt
+                        totals['in_transit_wt'] += in_transit_wt
+                        totals['short_excess_wt'] += short_excess_wt
+                        totals['ordered_wt'] += ordered_wt
+
+            # Write cells
+            col_idx = start_col
+            
+            # Label cell
+            cell_lbl = ws.cell(row=curr_row, column=col_idx, value=label)
+            cell_lbl.font = row_font
+            cell_lbl.border = THIN_BORDER
+            if row_fill.fill_type:
+                cell_lbl.fill = row_fill
+            if is_parent == 0:
+                cell_lbl.alignment = Alignment(horizontal='left', vertical='center', indent=1)
+            else:
+                cell_lbl.alignment = Alignment(horizontal='left', vertical='center')
+            col_idx += 1
+
+            # Values
+            vals = []
+            if show_pcs:
+                vals.append((pcs, '#,##0', 'pcs'))
+            vals.append((prov_gr_wt, '#,##0.000', 'prov_gr_wt'))
+            vals.append((in_shop_wt, '#,##0.000', 'in_shop_wt'))
+            vals.append((in_transit_wt, '#,##0.000', 'in_transit_wt'))
+            vals.append((short_excess_wt, '#,##0.000', 'short_excess_wt'))
+            vals.append((percent / 100.0, '0.0%', 'percent'))
+            vals.append((ordered_wt, '#,##0.000', 'ordered_wt'))
+
+            for val, num_fmt, key in vals:
+                cell = ws.cell(row=curr_row, column=col_idx, value=val)
+                cell.font = row_font
+                cell.border = THIN_BORDER
+                if row_fill.fill_type:
+                    cell.fill = row_fill
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+                cell.number_format = num_fmt
+                
+                # Text highlight for short/excess negative/positive
+                if key == 'short_excess_wt' and not is_gt and not is_cat:
+                    if val < 0:
+                        cell.font = Font(name='Calibri', color='EF4444', size=9, bold=True) # Red
+                    elif val > 0:
+                        cell.font = Font(name='Calibri', color='16A34A', size=9) # Green
+                        
+                col_idx += 1
+
+            curr_row += 1
+
+        # Render Grand Total if not present
+        if not has_grand and len(rows) > 0:
+            row_fill = TOTAL_FILL
+            row_font = BOLD_FONT
+            
+            # Label cell
+            cell_lbl = ws.cell(row=curr_row, column=start_col, value='Grand Total')
+            cell_lbl.font = row_font
+            cell_lbl.border = THIN_BORDER
+            cell_lbl.fill = row_fill
+            cell_lbl.alignment = Alignment(horizontal='left', vertical='center')
+            
+            col_idx = start_col + 1
+            
+            # Values
+            gt_percent = (totals['short_excess_wt'] * 100 / totals['prov_gr_wt']) if totals['prov_gr_wt'] != 0 else 0
+            vals = []
+            if show_pcs:
+                vals.append((totals['pcs'], '#,##0'))
+            vals.append((totals['prov_gr_wt'], '#,##0.000'))
+            vals.append((totals['in_shop_wt'], '#,##0.000'))
+            vals.append((totals['in_transit_wt'], '#,##0.000'))
+            vals.append((totals['short_excess_wt'], '#,##0.000'))
+            vals.append((gt_percent / 100.0, '0.0%'))
+            vals.append((totals['ordered_wt'], '#,##0.000'))
+
+            for val, num_fmt in vals:
+                cell = ws.cell(row=curr_row, column=col_idx, value=val)
+                cell.font = row_font
+                cell.border = THIN_BORDER
+                cell.fill = row_fill
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+                cell.number_format = num_fmt
+                col_idx += 1
+                
+            curr_row += 1
+
+        return curr_row
+
+    # ── Render Location Summary (at the top of Column 2) ─────────────────────────
+    if 'Location Summary' in segments and segments['Location Summary']:
+        col_2_row = render_excel_table(
+            col_2_row, 9, 'Location Summary', segments['Location Summary'], show_pcs=True
+        )
+        col_2_row += 2
+
+    # ── Grid Column 1 (Left Side: A-G) ──────────────────────────────────────────
+    
+    # 1. Purity Wise
+    if 'Purity Wise' in segments:
+        col_1_row = render_excel_table(
+            col_1_row, 1, 'Purity Wise', segments['Purity Wise'], show_pcs=False
+        )
+        col_1_row += 2
+
+    # 2. Classification Wise
+    if 'Classification Wise' in segments:
+        col_1_row = render_excel_table(
+            col_1_row, 1, 'Classification Wise', segments['Classification Wise'],
+            show_pcs=False, category_labels=['BRAND', 'GENERIC', 'LIFE STYLE']
+        )
+        col_1_row += 2
+
+    # 3. Provision Mode Wise
+    if 'Provision Mode Wise' in segments:
+        col_1_row = render_excel_table(
+            col_1_row, 1, 'Provision Mode Wise', segments['Provision Mode Wise'], show_pcs=False
+        )
+        col_1_row += 2
+
+    # ── Grid Column 2 (Middle Side: I-P) ────────────────────────────────────────
+
+    # 4. Section Wise
+    if 'Section Wise' in segments:
+        col_2_row = render_excel_table(
+            col_2_row, 9, 'Section Wise', segments['Section Wise'], show_pcs=True
+        )
+        col_2_row += 2
+
+    # 5. Section Details
+    if 'Section Details' in segments:
+        col_2_row = render_excel_table(
+            col_2_row, 9, 'Section Details', segments['Section Details'], show_pcs=True
+        )
+        col_2_row += 2
+
+    # ── Grid Column 3 (Right Side: R-X) ─────────────────────────────────────────
+
+    # 6. Make Wise
+    if 'Make Wise' in segments:
+        col_3_row = render_excel_table(
+            col_3_row, 18, 'Make Wise', segments['Make Wise'], show_pcs=False
+        )
+        col_3_row += 2
+
+    # 7. Provision Type Wise
+    if 'Provision Type Wise' in segments:
+        col_3_row = render_excel_table(
+            col_3_row, 18, 'Provision Type Wise', segments['Provision Type Wise'], show_pcs=False
+        )
+        col_3_row += 2
+
+    # 8. Collection Wise
+    if 'Collection Wise' in segments:
+        col_3_row = render_excel_table(
+            col_3_row, 18, 'Collection Wise', segments['Collection Wise'], show_pcs=False
+        )
+        col_3_row += 2
+
+    # 9. Save
+    now_ist = datetime.now(IST)
+    timestamp = now_ist.strftime('%Y%m%d_%H%M%S')
+    filename = f'location_physical_stock_status_{timestamp}.xlsx'
+    filepath = os.path.join(EXPORTS_DIR, filename)
+    wb.save(filepath)
+
+    logger.info(f'Location Physical Stock Status export saved: {filepath}')
+    return filename
