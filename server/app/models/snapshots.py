@@ -2448,6 +2448,14 @@ class PartyDelayManagementSnapshot(db.Model):
     total_pieces = db.Column(db.Integer, default=0)
     total_weight = db.Column(db.Numeric(12, 3), default=0)
     
+    order_date = db.Column(db.Date)
+    accepted_date = db.Column(db.Date)
+    barcoded_completed_date = db.Column(db.Date)
+    bis_request_complete_date = db.Column(db.Date)
+    hm_receipt_return_completed_date = db.Column(db.Date)
+    invoice_generated_date = db.Column(db.Date)
+    invoice_approved_date = db.Column(db.Date)
+    
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
@@ -2476,7 +2484,14 @@ class PartyDelayManagementSnapshot(db.Model):
             'invoice_approved_not_synched_to_muziris': self.invoice_approved_not_synched_to_muziris,
             'invoice_approved_not_synched_to_muziris_weight': float(self.invoice_approved_not_synched_to_muziris_weight or 0),
             'total_pieces': self.total_pieces or 0,
-            'total_weight': float(self.total_weight or 0)
+            'total_weight': float(self.total_weight or 0),
+            'order_date': self.order_date.isoformat() if self.order_date else None,
+            'accepted_date': self.accepted_date.isoformat() if self.accepted_date else None,
+            'barcoded_completed_date': self.barcoded_completed_date.isoformat() if self.barcoded_completed_date else None,
+            'bis_request_complete_date': self.bis_request_complete_date.isoformat() if self.bis_request_complete_date else None,
+            'hm_receipt_return_completed_date': self.hm_receipt_return_completed_date.isoformat() if self.hm_receipt_return_completed_date else None,
+            'invoice_generated_date': self.invoice_generated_date.isoformat() if self.invoice_generated_date else None,
+            'invoice_approved_date': self.invoice_approved_date.isoformat() if self.invoice_approved_date else None
         }
 
 class PartyDelayManagementFeedback(db.Model):

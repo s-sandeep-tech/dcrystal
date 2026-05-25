@@ -27,6 +27,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Check if delay parameters are completely missing (initial load scenario)
+    let hasDelayParam = false;
+    for (let i = 1; i <= 8; i++) {
+        if (urlParams.has(`delay_s${i}`)) {
+            hasDelayParam = true;
+            break;
+        }
+    }
+    if (!hasDelayParam) {
+        for (let i = 1; i <= 8; i++) {
+            urlParams.set(`delay_s${i}`, '1');
+        }
+        const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+        window.history.replaceState({path: newUrl}, '', newUrl);
+    }
+
+    // Auto-fill delay filters
+    for (let i = 1; i <= 8; i++) {
+        const val = urlParams.get(`delay_s${i}`);
+        if (val) {
+            const el = document.getElementById(`filter-delay-s${i}`);
+            if (el) el.value = val;
+        }
+    }
+
     // Initialize Make multiselect dropdown
     makeMultiSelect = new CustomMultiSelect({
         containerId: 'filter-make-container',
@@ -108,6 +133,12 @@ function applyFilters() {
     const makeVal = makeMultiSelect ? makeMultiSelect.getValues().join(',') : '';
     if (makeVal) urlParams.set('make', makeVal); else urlParams.delete('make');
 
+    // Add delay filters
+    for (let i = 1; i <= 8; i++) {
+        const val = document.getElementById(`filter-delay-s${i}`)?.value;
+        if (val) urlParams.set(`delay_s${i}`, val); else urlParams.delete(`delay_s${i}`);
+    }
+
     urlParams.set('page', 1);
     const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
     window.history.pushState({path: newUrl}, '', newUrl);
@@ -125,6 +156,12 @@ function resetFilters() {
     
     if (makeMultiSelect) {
         makeMultiSelect.reset();
+    }
+
+    // Reset delay filters
+    for (let i = 1; i <= 8; i++) {
+        const el = document.getElementById(`filter-delay-s${i}`);
+        if (el) el.value = '';
     }
     
     loadReport();
@@ -235,7 +272,13 @@ function openDetailsModal(party, segment_id) {
     currentModalSegmentId = segment_id;
     modal.classList.remove('hidden');
 
-    fetch(`/api/party-delay-management/details/${segment_id}?party=${encodeURIComponent(party)}`, {
+    const delayVal = document.getElementById(`filter-delay-s${segment_id}`)?.value || '';
+    let url = `/api/party-delay-management/details/${segment_id}?party=${encodeURIComponent(party)}`;
+    if (delayVal) {
+        url += `&delay=${encodeURIComponent(delayVal)}`;
+    }
+
+    fetch(url, {
         headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }

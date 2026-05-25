@@ -90,29 +90,117 @@ def partial_party_delay_management_report():
 
     f_subqs = [get_latest_feedback_subq(i) for i in range(1, 9)]
 
+    # Days delay filters
+    delay_s1 = request.args.get('delay_s1', type=int)
+    delay_s2 = request.args.get('delay_s2', type=int)
+    delay_s3 = request.args.get('delay_s3', type=int)
+    delay_s4 = request.args.get('delay_s4', type=int)
+    delay_s5 = request.args.get('delay_s5', type=int)
+    delay_s6 = request.args.get('delay_s6', type=int)
+    delay_s7 = request.args.get('delay_s7', type=int)
+    delay_s8 = request.args.get('delay_s8', type=int)
+
+    current_date = func.current_date()
+
+    # Dynamic delayed columns
+    # Segment 1 Delayed
+    if delay_s1 is not None:
+        s1_cond = (current_date - func.date(PartyDelayManagementSnapshot.order_date)) >= delay_s1
+        s1_pcs = func.sum(case((s1_cond, PartyDelayManagementSnapshot.invited_pending_orders), else_=0))
+        s1_wt = func.sum(case((s1_cond, PartyDelayManagementSnapshot.invited_pending_weight), else_=0))
+    else:
+        s1_pcs = func.sum(PartyDelayManagementSnapshot.invited_pending_orders)
+        s1_wt = func.sum(PartyDelayManagementSnapshot.invited_pending_weight)
+
+    # Segment 2 Delayed
+    if delay_s2 is not None:
+        s2_cond = (current_date - func.date(PartyDelayManagementSnapshot.accepted_date)) >= delay_s2
+        s2_pcs = func.sum(case((s2_cond, PartyDelayManagementSnapshot.process_pending_orders), else_=0))
+        s2_wt = func.sum(case((s2_cond, PartyDelayManagementSnapshot.process_pending_weight), else_=0))
+    else:
+        s2_pcs = func.sum(PartyDelayManagementSnapshot.process_pending_orders)
+        s2_wt = func.sum(PartyDelayManagementSnapshot.process_pending_weight)
+
+    # Segment 3 Delayed
+    if delay_s3 is not None:
+        s3_cond = (current_date - func.date(PartyDelayManagementSnapshot.accepted_date)) >= delay_s3
+        s3_pcs = func.sum(case((s3_cond, PartyDelayManagementSnapshot.process_completed_barcode_pending_orders), else_=0))
+        s3_wt = func.sum(case((s3_cond, PartyDelayManagementSnapshot.process_completed_barcode_pending_weight), else_=0))
+    else:
+        s3_pcs = func.sum(PartyDelayManagementSnapshot.process_completed_barcode_pending_orders)
+        s3_wt = func.sum(PartyDelayManagementSnapshot.process_completed_barcode_pending_weight)
+
+    # Segment 4 Delayed
+    if delay_s4 is not None:
+        s4_cond = (current_date - func.date(PartyDelayManagementSnapshot.barcoded_completed_date)) >= delay_s4
+        s4_pcs = func.sum(case((s4_cond, PartyDelayManagementSnapshot.barcode_completed_bis_request_pending_orders), else_=0))
+        s4_wt = func.sum(case((s4_cond, PartyDelayManagementSnapshot.barcode_completed_bis_request_pending_weight), else_=0))
+    else:
+        s4_pcs = func.sum(PartyDelayManagementSnapshot.barcode_completed_bis_request_pending_orders)
+        s4_wt = func.sum(PartyDelayManagementSnapshot.barcode_completed_bis_request_pending_weight)
+
+    # Segment 5 Delayed
+    if delay_s5 is not None:
+        s5_cond = (current_date - func.date(PartyDelayManagementSnapshot.bis_request_complete_date)) >= delay_s5
+        s5_pcs = func.sum(case((s5_cond, PartyDelayManagementSnapshot.bis_request_completed_hm_issue_pending_orders), else_=0))
+        s5_wt = func.sum(case((s5_cond, PartyDelayManagementSnapshot.bis_request_completed_hm_issue_pending_weight), else_=0))
+    else:
+        s5_pcs = func.sum(PartyDelayManagementSnapshot.bis_request_completed_hm_issue_pending_orders)
+        s5_wt = func.sum(PartyDelayManagementSnapshot.bis_request_completed_hm_issue_pending_weight)
+
+    # Segment 6 Delayed
+    if delay_s6 is not None:
+        s6_cond = (current_date - func.date(PartyDelayManagementSnapshot.hm_receipt_return_completed_date)) >= delay_s6
+        s6_pcs = func.sum(case((s6_cond, PartyDelayManagementSnapshot.hm_receipt_return_completed_qc_issue_pending), else_=0))
+        s6_wt = func.sum(case((s6_cond, PartyDelayManagementSnapshot.hm_receipt_return_completed_qc_issue_pending_weight), else_=0))
+    else:
+        s6_pcs = func.sum(PartyDelayManagementSnapshot.hm_receipt_return_completed_qc_issue_pending)
+        s6_wt = func.sum(PartyDelayManagementSnapshot.hm_receipt_return_completed_qc_issue_pending_weight)
+
+    # Segment 7 Delayed
+    if delay_s7 is not None:
+        s7_cond = (current_date - func.date(PartyDelayManagementSnapshot.invoice_generated_date)) >= delay_s7
+        s7_pcs = func.sum(case((s7_cond, PartyDelayManagementSnapshot.invoice_generated_invoice_approve_pending), else_=0))
+        s7_wt = func.sum(case((s7_cond, PartyDelayManagementSnapshot.invoice_generated_invoice_approve_pending_weight), else_=0))
+    else:
+        s7_pcs = func.sum(PartyDelayManagementSnapshot.invoice_generated_invoice_approve_pending)
+        s7_wt = func.sum(PartyDelayManagementSnapshot.invoice_generated_invoice_approve_pending_weight)
+
+    # Segment 8 Delayed
+    if delay_s8 is not None:
+        s8_cond = (current_date - func.date(PartyDelayManagementSnapshot.invoice_approved_date)) >= delay_s8
+        s8_pcs = func.sum(case((s8_cond, PartyDelayManagementSnapshot.invoice_approved_not_synched_to_muziris), else_=0))
+        s8_wt = func.sum(case((s8_cond, PartyDelayManagementSnapshot.invoice_approved_not_synched_to_muziris_weight), else_=0))
+    else:
+        s8_pcs = func.sum(PartyDelayManagementSnapshot.invoice_approved_not_synched_to_muziris)
+        s8_wt = func.sum(PartyDelayManagementSnapshot.invoice_approved_not_synched_to_muziris_weight)
+
+    total_pieces = s1_pcs + s2_pcs + s3_pcs + s4_pcs + s5_pcs + s6_pcs + s7_pcs + s8_pcs
+    total_weight = s1_wt + s2_wt + s3_wt + s4_wt + s5_wt + s6_wt + s7_wt + s8_wt
+
     # Grouped snapshots subquery to sum metrics and aggregate addresses
     subq_selection = [
         PartyDelayManagementSnapshot.party,
         PartyDelayManagementSnapshot.party_code,
         func.max(PartyDelayManagementSnapshot.party_address).label('party_address'),
-        func.sum(PartyDelayManagementSnapshot.invited_pending_orders).label('invited_pending_orders'),
-        func.sum(PartyDelayManagementSnapshot.invited_pending_weight).label('invited_pending_weight'),
-        func.sum(PartyDelayManagementSnapshot.process_pending_orders).label('process_pending_orders'),
-        func.sum(PartyDelayManagementSnapshot.process_pending_weight).label('process_pending_weight'),
-        func.sum(PartyDelayManagementSnapshot.process_completed_barcode_pending_orders).label('process_completed_barcode_pending_orders'),
-        func.sum(PartyDelayManagementSnapshot.process_completed_barcode_pending_weight).label('process_completed_barcode_pending_weight'),
-        func.sum(PartyDelayManagementSnapshot.barcode_completed_bis_request_pending_orders).label('barcode_completed_bis_request_pending_orders'),
-        func.sum(PartyDelayManagementSnapshot.barcode_completed_bis_request_pending_weight).label('barcode_completed_bis_request_pending_weight'),
-        func.sum(PartyDelayManagementSnapshot.bis_request_completed_hm_issue_pending_orders).label('bis_request_completed_hm_issue_pending_orders'),
-        func.sum(PartyDelayManagementSnapshot.bis_request_completed_hm_issue_pending_weight).label('bis_request_completed_hm_issue_pending_weight'),
-        func.sum(PartyDelayManagementSnapshot.hm_receipt_return_completed_qc_issue_pending).label('hm_receipt_return_completed_qc_issue_pending'),
-        func.sum(PartyDelayManagementSnapshot.hm_receipt_return_completed_qc_issue_pending_weight).label('hm_receipt_return_completed_qc_issue_pending_weight'),
-        func.sum(PartyDelayManagementSnapshot.invoice_generated_invoice_approve_pending).label('invoice_generated_invoice_approve_pending'),
-        func.sum(PartyDelayManagementSnapshot.invoice_generated_invoice_approve_pending_weight).label('invoice_generated_invoice_approve_pending_weight'),
-        func.sum(PartyDelayManagementSnapshot.invoice_approved_not_synched_to_muziris).label('invoice_approved_not_synched_to_muziris'),
-        func.sum(PartyDelayManagementSnapshot.invoice_approved_not_synched_to_muziris_weight).label('invoice_approved_not_synched_to_muziris_weight'),
-        func.sum(PartyDelayManagementSnapshot.total_pieces).label('total_pieces'),
-        func.sum(PartyDelayManagementSnapshot.total_weight).label('total_weight')
+        s1_pcs.label('invited_pending_orders'),
+        s1_wt.label('invited_pending_weight'),
+        s2_pcs.label('process_pending_orders'),
+        s2_wt.label('process_pending_weight'),
+        s3_pcs.label('process_completed_barcode_pending_orders'),
+        s3_wt.label('process_completed_barcode_pending_weight'),
+        s4_pcs.label('barcode_completed_bis_request_pending_orders'),
+        s4_wt.label('barcode_completed_bis_request_pending_weight'),
+        s5_pcs.label('bis_request_completed_hm_issue_pending_orders'),
+        s5_wt.label('bis_request_completed_hm_issue_pending_weight'),
+        s6_pcs.label('hm_receipt_return_completed_qc_issue_pending'),
+        s6_wt.label('hm_receipt_return_completed_qc_issue_pending_weight'),
+        s7_pcs.label('invoice_generated_invoice_approve_pending'),
+        s7_wt.label('invoice_generated_invoice_approve_pending_weight'),
+        s8_pcs.label('invoice_approved_not_synched_to_muziris'),
+        s8_wt.label('invoice_approved_not_synched_to_muziris_weight'),
+        total_pieces.label('total_pieces'),
+        total_weight.label('total_weight')
     ]
     
     snapshot_q = db.session.query(*subq_selection)
@@ -250,6 +338,7 @@ def save_party_delay_feedback():
 @jwt_required()
 def get_party_delay_details(segment_id):
     party = request.args.get('party')
+    delay = request.args.get('delay', type=int)
     
     models = {
         1: PartyAcceptPendingSnapshot,
@@ -272,6 +361,24 @@ def get_party_delay_details(segment_id):
     if latest_date:
         query = query.filter(model.snapshot_date == latest_date)
         
+    if delay is not None:
+        if segment_id == 1:
+            query = query.filter((func.current_date() - func.date(model.po_date)) >= delay)
+        elif segment_id == 2:
+            query = query.filter((func.current_date() - func.date(model.po_date)) >= delay)
+        elif segment_id == 3:
+            query = query.filter((func.current_date() - func.date(model.po_date)) >= delay)
+        elif segment_id == 4:
+            query = query.filter((func.current_date() - func.date(model.barcode_completion_date)) >= delay)
+        elif segment_id == 5:
+            query = query.filter((func.current_date() - func.date(model.barcode_completion_date)) >= delay)
+        elif segment_id == 6:
+            query = query.filter((func.current_date() - func.date(model.hm_completed_at)) >= delay)
+        elif segment_id == 7:
+            query = query.filter((func.current_date() - func.date(model.invoice_generated_date)) >= delay)
+        elif segment_id == 8:
+            query = query.filter((func.current_date() - func.date(model.invoice_approved_date)) >= delay)
+
     rows = query.all()
     return jsonify([r.to_dict() for r in rows])
 

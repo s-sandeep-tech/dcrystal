@@ -3357,7 +3357,9 @@ def sync_party_delay_management_data_task():
                    hm_receipt_return_completed_qc_issue_pending, hm_receipt_return_completed_qc_issue_pending_weight, 
                    invoice_generated_invoice_approve_pending, invoice_generated_invoice_approve_pending_weight, 
                    invoice_approved_not_synched_to_muziris, invoice_approved_not_synched_to_muziris_weight,
-                   total_pieces, total_weight
+                   total_pieces, total_weight,
+                   order_date, accepted_date, barcoded_completed_date, bis_request_complete_date,
+                   hm_receipt_return_completed_date, invoice_generated_date, invoice_approved_date
             FROM ext_view.vw_party_summary
             """
             cur.execute(summary_query)
@@ -3379,10 +3381,14 @@ def sync_party_delay_management_data_task():
                     db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN total_pieces INTEGER DEFAULT 0"))
                 if 'total_weight' not in columns:
                     db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN total_weight NUMERIC(12, 3) DEFAULT 0"))
+                
+                for col_name in ['order_date', 'accepted_date', 'barcoded_completed_date', 'bis_request_complete_date', 'hm_receipt_return_completed_date', 'invoice_generated_date', 'invoice_approved_date']:
+                    if col_name not in columns:
+                        db.session.execute(text(f"ALTER TABLE party_delay_management_snapshots ADD COLUMN {col_name} TIMESTAMP"))
                 db.session.commit()
             except Exception as migrate_err:
                 db.session.rollback()
-                logger.warning(f"Auto-migration for total_pieces/total_weight failed (or already exist): {migrate_err}")
+                logger.warning(f"Auto-migration failed: {migrate_err}")
 
             db.session.execute(text("TRUNCATE TABLE party_delay_management_snapshots"))
             snapshot_date = datetime.now()
@@ -3411,7 +3417,14 @@ def sync_party_delay_management_data_task():
                     invoice_approved_not_synched_to_muziris=row[19],
                     invoice_approved_not_synched_to_muziris_weight=row[20],
                     total_pieces=row[21],
-                    total_weight=row[22]
+                    total_weight=row[22],
+                    order_date=row[23],
+                    accepted_date=row[24],
+                    barcoded_completed_date=row[25],
+                    bis_request_complete_date=row[26],
+                    hm_receipt_return_completed_date=row[27],
+                    invoice_generated_date=row[28],
+                    invoice_approved_date=row[29]
                 ) for row in summary_rows
             ]
             db.session.bulk_save_objects(summary_objects)
