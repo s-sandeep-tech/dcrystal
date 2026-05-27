@@ -2,9 +2,42 @@
     <thead>
         <tr>
             <th rowspan="2" style="vertical-align: bottom;">QC OFFICE</th>
-            <th colspan="4" class="top-header" style="background-color: #f0f9ff;">QC ISSUE COMPLETED - RECEIPT PENDING</th>
-            <th colspan="4" class="top-header" style="background-color: #fff7ed;">QC RECEIPT COMPLETED-QC PENDING</th>
-            <th colspan="4" class="top-header" style="background-color: #f5f3ff;">QC COMPLETED-INVOICE REQUEST PENDING</th>
+            <th colspan="4" class="top-header cursor-pointer select-none hover:bg-sky-100 dark:hover:bg-sky-950 transition-colors" style="background-color: #f0f9ff;" onclick="toggleSort('s1_wt')">
+    <div class="flex items-center justify-center gap-1">
+        <span>QC ISSUE COMPLETED - RECEIPT PENDING</span>
+        <span class="material-symbols-outlined text-[14px]">
+            {% if sort_by == 's1_wt' %}
+                {{ 'arrow_downward' if sort_dir == 'desc' else 'arrow_upward' }}
+            {% else %}
+                unfold_more
+            {% endif %}
+        </span>
+    </div>
+</th>
+            <th colspan="4" class="top-header cursor-pointer select-none hover:bg-sky-100 dark:hover:bg-sky-950 transition-colors" style="background-color: #fff7ed;" onclick="toggleSort('s2_wt')">
+    <div class="flex items-center justify-center gap-1">
+        <span>QC RECEIPT COMPLETED-QC PENDING</span>
+        <span class="material-symbols-outlined text-[14px]">
+            {% if sort_by == 's2_wt' %}
+                {{ 'arrow_downward' if sort_dir == 'desc' else 'arrow_upward' }}
+            {% else %}
+                unfold_more
+            {% endif %}
+        </span>
+    </div>
+</th>
+            <th colspan="4" class="top-header cursor-pointer select-none hover:bg-sky-100 dark:hover:bg-sky-950 transition-colors" style="background-color: #f5f3ff;" onclick="toggleSort('s3_wt')">
+    <div class="flex items-center justify-center gap-1">
+        <span>QC COMPLETED-INVOICE REQUEST PENDING</span>
+        <span class="material-symbols-outlined text-[14px]">
+            {% if sort_by == 's3_wt' %}
+                {{ 'arrow_downward' if sort_dir == 'desc' else 'arrow_upward' }}
+            {% else %}
+                unfold_more
+            {% endif %}
+        </span>
+    </div>
+</th>
         </tr>
         <tr>
             <!-- Segment 1 -->
