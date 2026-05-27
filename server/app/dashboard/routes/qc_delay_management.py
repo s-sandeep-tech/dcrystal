@@ -212,13 +212,28 @@ def partial_qc_delay_management_report():
     if parties_selected:
         query = query.filter(QCDelayManagementSnapshot.party.in_(parties_selected))
 
+
     # Group by
     if group_by_party:
         query = query.group_by(QCDelayManagementSnapshot.party)
-        query = query.order_by(QCDelayManagementSnapshot.party)
     else:
         query = query.group_by(QCDelayManagementSnapshot.qc_ro)
-        query = query.order_by(QCDelayManagementSnapshot.qc_ro)
+
+    # Sorting based on request parameters
+    sort_by = request.args.get('sort_by')
+    sort_dir = request.args.get('sort_dir', 'desc')
+    if sort_by:
+        # Use raw SQL ordering on the alias column
+        try:
+            query = query.order_by(db.text(f"{sort_by} {sort_dir.upper()}"))
+        except Exception as e:
+            logger.warning(f"Invalid sort parameters: {e}")
+    else:
+        # Default ordering
+        if group_by_party:
+            query = query.order_by(QCDelayManagementSnapshot.party)
+        else:
+            query = query.order_by(QCDelayManagementSnapshot.qc_ro)
 
     rows = query.all()
     
