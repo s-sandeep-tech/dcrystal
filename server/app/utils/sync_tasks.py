@@ -3366,29 +3366,29 @@ def sync_party_delay_management_data_task():
             summary_rows = cur.fetchall()
             
             # Ensure required columns exist in party_delay_management_snapshots table
-            from sqlalchemy import inspect
-            try:
-                inspector = inspect(db.engine)
-                columns = [c['name'] for c in inspector.get_columns('party_delay_management_snapshots')]
-                if 'bis_request_completed_hm_issue_pending_weig' in columns and 'bis_request_completed_hm_issue_pending_weight' not in columns:
-                    db.session.execute(text("ALTER TABLE party_delay_management_snapshots RENAME COLUMN bis_request_completed_hm_issue_pending_weig TO bis_request_completed_hm_issue_pending_weight"))
-                elif 'bis_request_completed_hm_issue_pending_weight' not in columns:
-                    db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN bis_request_completed_hm_issue_pending_weight NUMERIC(12, 3) DEFAULT 0"))
+            # from sqlalchemy import inspect
+            # try:
+            #     inspector = inspect(db.engine)
+            #     columns = [c['name'] for c in inspector.get_columns('party_delay_management_snapshots')]
+            #     if 'bis_request_completed_hm_issue_pending_weig' in columns and 'bis_request_completed_hm_issue_pending_weight' not in columns:
+            #         db.session.execute(text("ALTER TABLE party_delay_management_snapshots RENAME COLUMN bis_request_completed_hm_issue_pending_weig TO bis_request_completed_hm_issue_pending_weight"))
+            #     elif 'bis_request_completed_hm_issue_pending_weight' not in columns:
+            #         db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN bis_request_completed_hm_issue_pending_weight NUMERIC(12, 3) DEFAULT 0"))
                 
-                if 'party_address' not in columns:
-                    db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN party_address TEXT"))
-                if 'total_pieces' not in columns:
-                    db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN total_pieces INTEGER DEFAULT 0"))
-                if 'total_weight' not in columns:
-                    db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN total_weight NUMERIC(12, 3) DEFAULT 0"))
+            #     if 'party_address' not in columns:
+            #         db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN party_address TEXT"))
+            #     if 'total_pieces' not in columns:
+            #         db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN total_pieces INTEGER DEFAULT 0"))
+            #     if 'total_weight' not in columns:
+            #         db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN total_weight NUMERIC(12, 3) DEFAULT 0"))
                 
-                for col_name in ['order_date', 'accepted_date', 'barcoded_completed_date', 'bis_request_complete_date', 'hm_receipt_return_completed_date', 'invoice_generated_date', 'invoice_approved_date']:
-                    if col_name not in columns:
-                        db.session.execute(text(f"ALTER TABLE party_delay_management_snapshots ADD COLUMN {col_name} TIMESTAMP"))
-                db.session.commit()
-            except Exception as migrate_err:
-                db.session.rollback()
-                logger.warning(f"Auto-migration failed: {migrate_err}")
+            #     for col_name in ['order_date', 'accepted_date', 'barcoded_completed_date', 'bis_request_complete_date', 'hm_receipt_return_completed_date', 'invoice_generated_date', 'invoice_approved_date']:
+            #         if col_name not in columns:
+            #             db.session.execute(text(f"ALTER TABLE party_delay_management_snapshots ADD COLUMN {col_name} TIMESTAMP"))
+            #     db.session.commit()
+            # except Exception as migrate_err:
+            #     db.session.rollback()
+            #     logger.warning(f"Auto-migration failed: {migrate_err}")
 
             db.session.execute(text("TRUNCATE TABLE party_delay_management_snapshots"))
             snapshot_date = datetime.now()

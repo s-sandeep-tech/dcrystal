@@ -54,19 +54,19 @@ def partial_hm_delay_management_report():
     # Get latest snapshot date
     latest_date = db.session.query(func.max(HallmarkingDelayManagementSnapshot.snapshot_date)).scalar()
     
-    # Subqueries for feedback (latest for each center/segment)
+    # Subqueries for feedback (latest for each center/segment based on hallmarking_center_id)
     def get_latest_feedback_subq(segment_id):
         subq = db.session.query(
-            HallmarkingDelayManagementFeedback.hallmarking_center,
+            HallmarkingDelayManagementFeedback.hallmarking_center_id,
             func.max(HallmarkingDelayManagementFeedback.created_at).label('max_date')
         ).filter(HallmarkingDelayManagementFeedback.segment_id == segment_id).group_by(
-            HallmarkingDelayManagementFeedback.hallmarking_center
+            HallmarkingDelayManagementFeedback.hallmarking_center_id
         ).subquery()
         
         return db.session.query(HallmarkingDelayManagementFeedback).join(
             subq,
             db.and_(
-                HallmarkingDelayManagementFeedback.hallmarking_center == subq.c.hallmarking_center,
+                HallmarkingDelayManagementFeedback.hallmarking_center_id == subq.c.hallmarking_center_id,
                 HallmarkingDelayManagementFeedback.created_at == subq.c.max_date
             )
         ).filter(HallmarkingDelayManagementFeedback.segment_id == segment_id).subquery()
@@ -76,7 +76,15 @@ def partial_hm_delay_management_report():
     f3_subq = get_latest_feedback_subq(3)
 
     query = db.session.query(
-        HallmarkingDelayManagementSnapshot,
+        HallmarkingDelayManagementSnapshot.hallmarking_center,
+        HallmarkingDelayManagementSnapshot.hallmarking_center_id,
+        func.max(HallmarkingDelayManagementSnapshot.hallmarking_center_code).label('hallmarking_center_code'),
+        func.sum(HallmarkingDelayManagementSnapshot.hm_issue_completed_receipt_pending_piece).label('hm_issue_completed_receipt_pending_piece'),
+        func.sum(HallmarkingDelayManagementSnapshot.hm_issue_completed_receipt_pending_weight).label('hm_issue_completed_receipt_pending_weight'),
+        func.sum(HallmarkingDelayManagementSnapshot.hm_receipt_completed_hm_pending_piece).label('hm_receipt_completed_hm_pending_piece'),
+        func.sum(HallmarkingDelayManagementSnapshot.hm_receipt_completed_hm_pending_weight).label('hm_receipt_completed_hm_pending_weight'),
+        func.sum(HallmarkingDelayManagementSnapshot.hm_completed_return_pending_piece).label('hm_completed_return_pending_piece'),
+        func.sum(HallmarkingDelayManagementSnapshot.hm_completed_return_pending_weight).label('hm_completed_return_pending_weight'),
         f1_subq.c.feedback_text.label('f1_text'),
         f1_subq.c.feedback_category.label('f1_category'),
         f1_subq.c.username.label('f1_username'),
@@ -89,9 +97,9 @@ def partial_hm_delay_management_report():
         f3_subq.c.feedback_category.label('f3_category'),
         f3_subq.c.username.label('f3_username'),
         f3_subq.c.created_at.label('f3_date')
-    ).outerjoin(f1_subq, HallmarkingDelayManagementSnapshot.hallmarking_center == f1_subq.c.hallmarking_center)\
-     .outerjoin(f2_subq, HallmarkingDelayManagementSnapshot.hallmarking_center == f2_subq.c.hallmarking_center)\
-     .outerjoin(f3_subq, HallmarkingDelayManagementSnapshot.hallmarking_center == f3_subq.c.hallmarking_center)
+    ).outerjoin(f1_subq, HallmarkingDelayManagementSnapshot.hallmarking_center_id == f1_subq.c.hallmarking_center_id)\
+     .outerjoin(f2_subq, HallmarkingDelayManagementSnapshot.hallmarking_center_id == f2_subq.c.hallmarking_center_id)\
+     .outerjoin(f3_subq, HallmarkingDelayManagementSnapshot.hallmarking_center_id == f3_subq.c.hallmarking_center_id)
 
     if latest_date:
         query = query.filter(HallmarkingDelayManagementSnapshot.snapshot_date == latest_date)
@@ -102,12 +110,39 @@ def partial_hm_delay_management_report():
     if center:
         query = query.filter(HallmarkingDelayManagementSnapshot.hallmarking_center == center)
 
+    query = query.group_by(
+        HallmarkingDelayManagementSnapshot.hallmarking_center,
+        HallmarkingDelayManagementSnapshot.hallmarking_center_id,
+        f1_subq.c.feedback_text,
+        f1_subq.c.feedback_category,
+        f1_subq.c.username,
+        f1_subq.c.created_at,
+        f2_subq.c.feedback_text,
+        f2_subq.c.feedback_category,
+        f2_subq.c.username,
+        f2_subq.c.created_at,
+        f3_subq.c.feedback_text,
+        f3_subq.c.feedback_category,
+        f3_subq.c.username,
+        f3_subq.c.created_at
+    )
+
     rows = query.order_by(HallmarkingDelayManagementSnapshot.hallmarking_center).all()
     
     processed_rows = []
-    for r, f1_t, f1_c, f1_u, f1_d, f2_t, f2_c, f2_u, f2_d, f3_t, f3_c, f3_u, f3_d in rows:
+    for center_name, center_id, center_code, s1_pcs, s1_wt, s2_pcs, s2_wt, s3_pcs, s3_wt, f1_t, f1_c, f1_u, f1_d, f2_t, f2_c, f2_u, f2_d, f3_t, f3_c, f3_u, f3_d in rows:
         processed_rows.append({
-            'summary': r.to_dict(),
+            'summary': {
+                'hallmarking_center': center_name,
+                'hallmarking_center_id': center_id,
+                'hallmarking_center_code': center_code,
+                'hm_issue_completed_receipt_pending_piece': s1_pcs or 0,
+                'hm_issue_completed_receipt_pending_weight': float(s1_wt or 0),
+                'hm_receipt_completed_hm_pending_piece': s2_pcs or 0,
+                'hm_receipt_completed_hm_pending_weight': float(s2_wt or 0),
+                'hm_completed_return_pending_piece': s3_pcs or 0,
+                'hm_completed_return_pending_weight': float(s3_wt or 0)
+            },
             'feedbacks': {
                 'segment1': {'feedback_text': f1_t, 'category': f1_c, 'username': f1_u, 'date': f1_d.strftime("%Y-%m-%d %H:%M") if f1_d else ''},
                 'segment2': {'feedback_text': f2_t, 'category': f2_c, 'username': f2_u, 'date': f2_d.strftime("%Y-%m-%d %H:%M") if f2_d else ''},
@@ -125,15 +160,17 @@ def partial_hm_delay_management_report():
 def save_hm_delay_feedback():
     data = request.json
     hallmark_center = data.get('hallmark_center')
+    hallmarking_center_id = data.get('hallmarking_center_id')
     segment_id = data.get('segment_id')
     feedback_text = data.get('feedback_text')
     category = data.get('category')
     username = session.get('username')
 
-    if not all([hallmark_center, segment_id, feedback_text]):
+    if not all([hallmark_center, segment_id, feedback_text]) or hallmarking_center_id is None:
         return jsonify({"status": "error", "message": "Missing required fields"}), 400
 
     feedback = HallmarkingDelayManagementFeedback(
+        hallmarking_center_id=int(hallmarking_center_id),
         hallmarking_center=hallmark_center,
         segment_id=segment_id,
         feedback_text=feedback_text,
@@ -171,11 +208,11 @@ def get_hm_delay_details(segment_id):
 @dashboard_bp.route('/api/hm-delay-management/feedback-info')
 @jwt_required()
 def get_hm_feedback_info():
-    hallmark_center = request.args.get('hallmark_center')
+    hallmarking_center_id = request.args.get('hallmarking_center_id', type=int)
     segment_id = request.args.get('segment_id', type=int)
     
     feedback = HallmarkingDelayManagementFeedback.query.filter_by(
-        hallmarking_center=hallmark_center, 
+        hallmarking_center_id=hallmarking_center_id, 
         segment_id=segment_id
     ).order_by(HallmarkingDelayManagementFeedback.created_at.desc()).first()
     

@@ -2085,6 +2085,7 @@ class HallmarkingDelayManagementFeedback(db.Model):
     __tablename__ = 'hm_delay_management_feedbacks'
 
     id = db.Column(db.Integer, primary_key=True)
+    hallmarking_center_id = db.Column(db.Integer)
     hallmarking_center = db.Column(db.String(150))
     segment_id = db.Column(db.Integer) # 1, 2, or 3
     
@@ -2096,6 +2097,7 @@ class HallmarkingDelayManagementFeedback(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'hallmarking_center_id': self.hallmarking_center_id,
             'hallmarking_center': self.hallmarking_center,
             'segment_id': self.segment_id,
             'feedback_text': self.feedback_text,

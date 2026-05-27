@@ -129,8 +129,9 @@ function changePage(page) {
     loadReport();
 }
 
-function openFeedbackModal(hallmark_center, segment_id) {
+function openFeedbackModal(hallmark_center, hallmark_center_id, segment_id) {
     document.getElementById('fb_hallmark_center').value = hallmark_center;
+    document.getElementById('fb_hallmark_center_id').value = hallmark_center_id;
     document.getElementById('fb_segment_id').value = segment_id;
     
     let segmentName = "";
@@ -165,6 +166,7 @@ document.getElementById('feedbackForm').addEventListener('submit', function(e) {
     const formData = new FormData(this);
     const data = {
         hallmark_center: formData.get('hallmark_center'),
+        hallmarking_center_id: parseInt(formData.get('hallmark_center_id')),
         segment_id: parseInt(formData.get('segment_id')),
         feedback_text: formData.get('feedback_text'),
         category: formData.get('category')
@@ -194,7 +196,7 @@ document.getElementById('feedbackForm').addEventListener('submit', function(e) {
     });
 });
 
-function openDetailsModal(hallmark_center, segment_id) {
+function openDetailsModal(hallmark_center, hallmark_center_id, segment_id) {
     const modal = document.getElementById('detailsModal');
     const content = document.getElementById('modalContent');
     const title = document.getElementById('modalTitle');
@@ -212,7 +214,7 @@ function openDetailsModal(hallmark_center, segment_id) {
     currentModalSegmentId = segment_id;
     modal.classList.remove('hidden');
 
-    fetch(`/api/hm-delay-management/details/${segment_id}?hallmark_center=${encodeURIComponent(hallmark_center)}`, {
+    fetch(`/api/hm-delay-management/details/${segment_id}?hallmark_center=${encodeURIComponent(hallmark_center)}&hallmark_center_id=${hallmark_center_id}`, {
         headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
@@ -374,6 +376,7 @@ function setupDynamicTooltips() {
     triggers.forEach(trigger => {
         trigger.addEventListener('mouseenter', function(e) {
             const hallmark_center = this.getAttribute('data-hallmark-center');
+            const hallmark_center_id = this.getAttribute('data-hallmark-center-id');
             const segment_id = this.getAttribute('data-segment-id');
             
             // Show loading state
@@ -386,7 +389,7 @@ function setupDynamicTooltips() {
             tooltip.classList.add('opacity-100');
             updateTooltipPosition(e, tooltip);
             
-            fetch(`/api/hm-delay-management/feedback-info?hallmark_center=${encodeURIComponent(hallmark_center)}&segment_id=${segment_id}`, {
+            fetch(`/api/hm-delay-management/feedback-info?hallmarking_center_id=${hallmark_center_id}&segment_id=${segment_id}`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}`
                 }
