@@ -76,6 +76,10 @@ def partial_qc_delay_management_report():
     delay_s1 = request.args.get('delay_s1', type=int)
     delay_s2 = request.args.get('delay_s2', type=int)
     delay_s3 = request.args.get('delay_s3', type=int)
+
+    # Sort params
+    sort_by = request.args.get('sort_by', '')
+    sort_dir = request.args.get('sort_dir', 'desc')
     
     # Determine grouping (always False now so we always group by qc_ro)
     group_by_party = False
@@ -215,10 +219,24 @@ def partial_qc_delay_management_report():
     # Group by
     if group_by_party:
         query = query.group_by(QCDelayManagementSnapshot.party)
-        query = query.order_by(QCDelayManagementSnapshot.party)
     else:
         query = query.group_by(QCDelayManagementSnapshot.qc_ro)
-        query = query.order_by(QCDelayManagementSnapshot.qc_ro)
+
+    # Sort order — map sort_by key to aggregated column expression
+    sort_col_map = {
+        's1_wt': func.sum(QCDelayManagementSnapshot.qc_issue_completed_receipt_pending_weight),
+        's2_wt': func.sum(QCDelayManagementSnapshot.qc_receipt_completed_qc_pending_weight),
+        's3_wt': func.sum(QCDelayManagementSnapshot.qc_completed_invoice_request_pending_weight),
+    }
+    if sort_by in sort_col_map:
+        col_expr = sort_col_map[sort_by]
+        query = query.order_by(col_expr.desc() if sort_dir == 'desc' else col_expr.asc())
+    else:
+        # Default: alphabetical by office name
+        if group_by_party:
+            query = query.order_by(QCDelayManagementSnapshot.party)
+        else:
+            query = query.order_by(QCDelayManagementSnapshot.qc_ro)
 
     rows = query.all()
     
@@ -257,7 +275,9 @@ def partial_qc_delay_management_report():
     return render_template(
         'partials/_view_qc_delay_management.html',
         rows=processed_rows,
-        group_by_party=group_by_party
+        group_by_party=group_by_party,
+        sort_by=sort_by,
+        sort_dir=sort_dir
     )
 
 @dashboard_bp.route('/api/qc-delay-management/feedback', methods=['POST'])
