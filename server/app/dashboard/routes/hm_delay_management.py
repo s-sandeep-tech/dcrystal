@@ -50,6 +50,8 @@ def hm_delay_management():
 def partial_hm_delay_management_report():
     search = request.args.get('search', '')
     center = request.args.get('center', '')
+    sort_by = request.args.get('sort_by', '')      # s1_wt, s2_wt, s3_wt
+    sort_dir = request.args.get('sort_dir', 'desc') # asc, desc
     
     # Get latest snapshot date
     latest_date = db.session.query(func.max(HallmarkingDelayManagementSnapshot.snapshot_date)).scalar()
@@ -127,7 +129,27 @@ def partial_hm_delay_management_report():
         f3_subq.c.created_at
     )
 
-    rows = query.order_by(HallmarkingDelayManagementSnapshot.hallmarking_center).all()
+    # Apply sorting dynamically based on segment weight
+    s1_wt_col = func.sum(HallmarkingDelayManagementSnapshot.hm_issue_completed_receipt_pending_weight)
+    s2_wt_col = func.sum(HallmarkingDelayManagementSnapshot.hm_receipt_completed_hm_pending_weight)
+    s3_wt_col = func.sum(HallmarkingDelayManagementSnapshot.hm_completed_return_pending_weight)
+    
+    order_col = HallmarkingDelayManagementSnapshot.hallmarking_center
+    if sort_by == 's1_wt':
+        order_col = s1_wt_col
+    elif sort_by == 's2_wt':
+        order_col = s2_wt_col
+    elif sort_by == 's3_wt':
+        order_col = s3_wt_col
+
+    if sort_dir == 'desc' and sort_by in ['s1_wt', 's2_wt', 's3_wt']:
+        query = query.order_by(order_col.desc())
+    elif sort_by in ['s1_wt', 's2_wt', 's3_wt']:
+        query = query.order_by(order_col.asc())
+    else:
+        query = query.order_by(HallmarkingDelayManagementSnapshot.hallmarking_center)
+
+    rows = query.all()
     
     processed_rows = []
     for center_name, center_id, center_code, s1_pcs, s1_wt, s2_pcs, s2_wt, s3_pcs, s3_wt, f1_t, f1_c, f1_u, f1_d, f2_t, f2_c, f2_u, f2_d, f3_t, f3_c, f3_u, f3_d in rows:
@@ -152,7 +174,9 @@ def partial_hm_delay_management_report():
 
     return render_template(
         'partials/_view_hm_delay_management.html',
-        rows=processed_rows
+        rows=processed_rows,
+        sort_by=sort_by,
+        sort_dir=sort_dir
     )
 
 @dashboard_bp.route('/api/hm-delay-management/feedback', methods=['POST'])

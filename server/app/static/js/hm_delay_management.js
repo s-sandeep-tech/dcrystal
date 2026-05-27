@@ -435,3 +435,20 @@ function updateTooltipPosition(e, tooltip) {
     tooltip.style.left = x + 'px';
     tooltip.style.top = y + 'px';
 }
+
+function toggleSort(column) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentSort = urlParams.get('sort_by');
+    const currentDir = urlParams.get('sort_dir') || 'desc';
+    
+    if (currentSort === column) {
+        urlParams.set('sort_dir', currentDir === 'desc' ? 'asc' : 'desc');
+    } else {
+        urlParams.set('sort_by', column);
+        urlParams.set('sort_dir', 'desc');
+    }
+    
+    const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+    window.history.pushState({path: newUrl}, '', newUrl);
+    loadReport();
+}
