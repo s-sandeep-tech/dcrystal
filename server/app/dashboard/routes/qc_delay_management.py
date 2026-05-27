@@ -10,7 +10,7 @@ from app.models.snapshots import (
 )
 from app.models.auth import User
 from app.extensions import db, redis_client
-from sqlalchemy import func, case
+from sqlalchemy import func, case, or_
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import logging
@@ -31,22 +31,53 @@ def qc_delay_management():
     # Get latest snapshot date
     latest_date = db.session.query(func.max(QCDelayManagementSnapshot.snapshot_date)).scalar()
     
+    roles = [r.upper() for r in session.get('roles', [])]
+    is_admin = 'ADMIN' in roles
+    is_manager_2 = 'MANAGER_2' in roles
+
     # Get unique offices for filter
     offices_query = db.session.query(QCDelayManagementSnapshot.qc_ro).distinct()
     if latest_date:
         offices_query = offices_query.filter(QCDelayManagementSnapshot.snapshot_date == latest_date)
+    if not is_admin and not is_manager_2:
+        if 'MANAGER_KMU' in roles:
+            offices_query = offices_query.filter(QCDelayManagementSnapshot.make.in_([
+                'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
+                'KMU MH', 'KMU-COIN', 'KMU-TN'
+            ]))
+        elif session.get('username'):
+            u = session.get('username').strip().lower()
+            offices_query = offices_query.filter(func.lower(func.trim(QCDelayManagementSnapshot.make_owner)) == u)
     offices = [o[0] for o in offices_query.all() if o[0]]
 
     # Get unique makes for filter
     makes_query = db.session.query(QCDelayManagementSnapshot.make).distinct()
     if latest_date:
         makes_query = makes_query.filter(QCDelayManagementSnapshot.snapshot_date == latest_date)
+    if not is_admin and not is_manager_2:
+        if 'MANAGER_KMU' in roles:
+            makes_query = makes_query.filter(QCDelayManagementSnapshot.make.in_([
+                'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
+                'KMU MH', 'KMU-COIN', 'KMU-TN'
+            ]))
+        elif session.get('username'):
+            u = session.get('username').strip().lower()
+            makes_query = makes_query.filter(func.lower(func.trim(QCDelayManagementSnapshot.make_owner)) == u)
     makes = [m[0] for m in makes_query.all() if m[0]]
 
     # Get unique parties for filter
     parties_query = db.session.query(QCDelayManagementSnapshot.party).distinct()
     if latest_date:
         parties_query = parties_query.filter(QCDelayManagementSnapshot.snapshot_date == latest_date)
+    if not is_admin and not is_manager_2:
+        if 'MANAGER_KMU' in roles:
+            parties_query = parties_query.filter(QCDelayManagementSnapshot.make.in_([
+                'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
+                'KMU MH', 'KMU-COIN', 'KMU-TN'
+            ]))
+        elif session.get('username'):
+            u = session.get('username').strip().lower()
+            parties_query = parties_query.filter(func.lower(func.trim(QCDelayManagementSnapshot.make_owner)) == u)
     parties = [p[0] for p in parties_query.all() if p[0]]
 
     return render_template(
@@ -216,6 +247,20 @@ def partial_qc_delay_management_report():
     if parties_selected:
         query = query.filter(QCDelayManagementSnapshot.party.in_(parties_selected))
 
+    # Apply user-based filtering
+    roles = [r.upper() for r in session.get('roles', [])]
+    is_admin = 'ADMIN' in roles
+    is_manager_2 = 'MANAGER_2' in roles
+    if not is_admin and not is_manager_2:
+        if 'MANAGER_KMU' in roles:
+            query = query.filter(QCDelayManagementSnapshot.make.in_([
+                'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
+                'KMU MH', 'KMU-COIN', 'KMU-TN'
+            ]))
+        elif session.get('username'):
+            u = session.get('username').strip().lower()
+            query = query.filter(func.lower(func.trim(QCDelayManagementSnapshot.make_owner)) == u)
+
     # Group by
     if group_by_party:
         query = query.group_by(QCDelayManagementSnapshot.party)
@@ -351,6 +396,28 @@ def get_qc_delay_details(segment_id):
             query = query.filter((func.current_date() - func.date(model.receipt_date)) >= delay)
         elif segment_id == 3:
             query = query.filter((func.current_date() - func.date(model.qc_completed_date)) >= delay)
+
+    # Apply user-based filtering
+    roles = [r.upper() for r in session.get('roles', [])]
+    is_admin = 'ADMIN' in roles
+    is_manager_2 = 'MANAGER_2' in roles
+    if not is_admin and not is_manager_2:
+        if 'MANAGER_KMU' in roles:
+            query = query.filter(model.make.in_([
+                'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
+                'KMU MH', 'KMU-COIN', 'KMU-TN'
+            ]))
+        elif session.get('username'):
+            u = session.get('username').strip().lower()
+            conds = []
+            if hasattr(model, 'make_owner'):
+                conds.append(func.lower(func.trim(model.make_owner)) == u)
+            if hasattr(model, 'collection_owner'):
+                conds.append(func.lower(func.trim(model.collection_owner)) == u)
+            if hasattr(model, 'classification_owner'):
+                conds.append(func.lower(func.trim(model.classification_owner)) == u)
+            if conds:
+                query = query.filter(or_(*conds))
 
     rows = query.all()
     return jsonify([r.to_dict() for r in rows])
