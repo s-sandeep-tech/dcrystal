@@ -2288,8 +2288,67 @@ ORDER BY
         )
         col_3_row += 2
 
-    # 9. Save
+    # ── Filter Footer ────────────────────────────────────────────────────────────
+    # Build a human-readable summary of active filters
+    filter_label_map = [
+        ('location', 'Location'),
+        ('state', 'State'),
+        ('purity', 'Purity'),
+        ('classification', 'Classification'),
+        ('make', 'Make'),
+        ('collection', 'Collection'),
+        ('section', 'Section'),
+        ('prov_type', 'Provision Type'),
+        ('provision_mode', 'Provision Mode'),
+        ('branch_type', 'Branch Type'),
+        ('branch_status', 'Branch Status'),
+        ('business_head', 'Business Head'),
+        ('search', 'Search'),
+    ]
+
+    active_parts = []
+    for key, label in filter_label_map:
+        val = filters.get(key, '')
+        if isinstance(val, str):
+            val = val.strip()
+        if val:
+            # Replace commas with ", " for readability
+            display_val = str(val).replace(',', ', ')
+            active_parts.append(f'{label}: {display_val}')
+
+    # Sort info
+    f_sort_by = filters.get('sort_by', '')
+    f_sort_order = filters.get('sort_order', '')
+    if f_sort_by and f_sort_order and f_sort_order != 'none':
+        sort_label = f_sort_by.replace('_', ' ').title()
+        active_parts.append(f'Sorted By: {sort_label} ({f_sort_order.upper()})')
+
+    if active_parts:
+        filter_text = 'Filters Applied:  ' + '  |  '.join(active_parts)
+    else:
+        filter_text = 'Filters Applied: None (All Data)'
+
+    FOOTER_FONT = Font(name='Calibri', size=8, italic=True, color='6B7280')
+
+    # Find the last used row across all 3 column cursors
+    footer_row = max(col_1_row, col_2_row, col_3_row) + 2
+
+    # Row 1: Filter summary (merged A:X)
+    ws.merge_cells(start_row=footer_row, start_column=1, end_row=footer_row, end_column=24)
+    filter_cell = ws.cell(row=footer_row, column=1, value=filter_text)
+    filter_cell.font = FOOTER_FONT
+    filter_cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+
+    # Row 2: Generated on timestamp
+    footer_row += 1
     now_ist = datetime.now(IST)
+    generated_text = f'Generated on: {now_ist.strftime("%d-%b-%Y %I:%M %p")} IST'
+    ws.merge_cells(start_row=footer_row, start_column=1, end_row=footer_row, end_column=24)
+    gen_cell = ws.cell(row=footer_row, column=1, value=generated_text)
+    gen_cell.font = FOOTER_FONT
+    gen_cell.alignment = Alignment(horizontal='left', vertical='center')
+
+    # 9. Save
     timestamp = now_ist.strftime('%Y%m%d_%H%M%S')
     filename = f'location_physical_stock_status_{timestamp}.xlsx'
     filepath = os.path.join(EXPORTS_DIR, filename)
