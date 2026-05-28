@@ -33,7 +33,7 @@ def qc_delay_management():
     
     roles = [r.upper() for r in session.get('roles', [])]
     is_admin = 'ADMIN' in roles
-    is_manager_2 = 'MANAGER_2' in roles
+    is_manager_2 = 'MANAGER_2' in roles or 'MANAGER-BIC' in roles
 
     # Get unique offices for filter
     offices_query = db.session.query(QCDelayManagementSnapshot.qc_ro).distinct()
@@ -250,7 +250,7 @@ def partial_qc_delay_management_report():
     # Apply user-based filtering
     roles = [r.upper() for r in session.get('roles', [])]
     is_admin = 'ADMIN' in roles
-    is_manager_2 = 'MANAGER_2' in roles
+    is_manager_2 = 'MANAGER_2' in roles or 'MANAGER-BIC' in roles
     if not is_admin and not is_manager_2:
         if 'MANAGER_KMU' in roles:
             query = query.filter(QCDelayManagementSnapshot.make.in_([
@@ -400,7 +400,7 @@ def get_qc_delay_details(segment_id):
     # Apply user-based filtering
     roles = [r.upper() for r in session.get('roles', [])]
     is_admin = 'ADMIN' in roles
-    is_manager_2 = 'MANAGER_2' in roles
+    is_manager_2 = 'MANAGER_2' in roles or 'MANAGER-BIC' in roles
     if not is_admin and not is_manager_2:
         if 'MANAGER_KMU' in roles:
             query = query.filter(model.make.in_([

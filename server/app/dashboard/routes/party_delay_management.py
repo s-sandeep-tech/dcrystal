@@ -44,7 +44,7 @@ def party_delay_management():
     
     roles = [r.upper() for r in session.get('roles', [])]
     is_admin = 'ADMIN' in roles
-    is_manager_2 = 'MANAGER_2' in roles
+    is_manager_2 = 'MANAGER_2' in roles or 'MANAGER-BIC' in roles
     if not is_admin and not is_manager_2:
         if 'MANAGER_KMU' in roles:
             parties_query = parties_query.filter(PartyDelayManagementSnapshot.make.in_([
@@ -244,7 +244,7 @@ def partial_party_delay_management_report():
     # Apply user-based filtering
     roles = [r.upper() for r in session.get('roles', [])]
     is_admin = 'ADMIN' in roles
-    is_manager_2 = 'MANAGER_2' in roles
+    is_manager_2 = 'MANAGER_2' in roles or 'MANAGER-BIC' in roles
     if not is_admin and not is_manager_2:
         if 'MANAGER_KMU' in roles:
             snapshot_q = snapshot_q.filter(PartyDelayManagementSnapshot.make.in_([
@@ -421,7 +421,7 @@ def get_party_delay_details(segment_id):
     # Apply user-based filtering
     roles = [r.upper() for r in session.get('roles', [])]
     is_admin = 'ADMIN' in roles
-    is_manager_2 = 'MANAGER_2' in roles
+    is_manager_2 = 'MANAGER_2' in roles or 'MANAGER-BIC' in roles
     if not is_admin and not is_manager_2:
         if 'MANAGER_KMU' in roles:
             query = query.filter(model.make.in_([
