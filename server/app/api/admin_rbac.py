@@ -566,6 +566,47 @@ def get_download_logs():
         "current_page": pagination.page
     }), 200
 
+@admin_rbac_bp.route('/user-role-mappings', methods=['GET'])
+@jwt_required()
+@require_role('ADMIN')
+def get_user_role_mappings():
+    """Get paginated users with their assigned roles for the mappings overview table."""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    search = request.args.get('search', '')
+
+    # Only users who have at least one role
+    query = User.query.filter(
+        User.id.in_(db.session.query(UserRole.user_id).distinct())
+    )
+
+    if search:
+        query = query.filter(
+            (User.username.ilike(f'%{search}%')) |
+            (User.email.ilike(f'%{search}%')) |
+            (User.user_id.ilike(f'%{search}%'))
+        )
+
+    query = query.order_by(User.username.asc())
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    mappings = []
+    for u in pagination.items:
+        mappings.append({
+            "id": u.id,
+            "user_id": u.user_id,
+            "username": u.username,
+            "email": u.email,
+            "roles": [{"id": r.id, "name": r.name} for r in u.roles]
+        })
+
+    return jsonify({
+        "mappings": mappings,
+        "total": pagination.total,
+        "pages": pagination.pages,
+        "current_page": pagination.page
+    })
+
 @admin_rbac_bp.route('/users/batch', methods=['POST'])
 @jwt_required()
 @require_role('ADMIN')

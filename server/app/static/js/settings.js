@@ -1366,18 +1366,152 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // === MAPPINGS LOGIC ===
+    let mappingsCurrentPage = 1;
+    let originalRoleIds = []; // Track original roles for diff
+
+    // --- Overview Table ---
+    async function fetchUserRoleMappings(page = 1) {
+        mappingsCurrentPage = page;
+        const searchInput = document.getElementById('mappingsTableSearch');
+        const search = searchInput ? searchInput.value : '';
+        const tbody = document.getElementById('mappingsTableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-gray-400 text-[11px]"><span class="material-symbols-outlined block text-xl mb-1 animate-spin">sync</span>Loading mappings...</td></tr>`;
+
+        try {
+            const res = await fetch(`/api/admin/user-role-mappings?page=${page}&per_page=8&search=${encodeURIComponent(search)}`, {
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                renderMappingsTable(data);
+                renderMappingsPagination(data);
+                const badge = document.getElementById('mappingsCountBadge');
+                if (badge) badge.innerText = data.total;
+            } else {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-red-400 text-[11px]">Failed to load mappings.</td></tr>`;
+            }
+        } catch (e) {
+            console.error(e);
+            tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-red-400 text-[11px]">Network error.</td></tr>`;
+        }
+    }
+    window.refreshMappingsTable = () => fetchUserRoleMappings(mappingsCurrentPage);
+    window.filterMappingsTable = () => fetchUserRoleMappings(1);
+
+    function renderMappingsTable(data) {
+        const tbody = document.getElementById('mappingsTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (!data.mappings || data.mappings.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 text-[11px]">
+                <span class="material-symbols-outlined block text-2xl mb-2 text-gray-300">group_off</span>
+                No user-role mappings found.</td></tr>`;
+            return;
+        }
+
+        const startIdx = (data.current_page - 1) * 8;
+        data.mappings.forEach((m, i) => {
+            const roleBadges = m.roles.map(r => {
+                const colors = getRoleBadgeColor(r.name);
+                return `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${colors} border">${r.name}</span>`;
+            }).join('');
+
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-blue-50/30 dark:hover:bg-gray-800/30 transition-colors cursor-pointer';
+            tr.onclick = () => {
+                window.loadUserForMapping(m);
+            };
+            tr.innerHTML = `
+                <td class="px-3 py-2.5 text-[10px] text-gray-400 font-mono">${startIdx + i + 1}</td>
+                <td class="px-3 py-2.5 text-[10px] font-mono text-gray-500">${m.user_id}</td>
+                <td class="px-3 py-2.5 font-semibold text-gray-900 dark:text-white">
+                    <div class="flex items-center gap-2">
+                        <div class="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[9px] font-bold shrink-0">
+                            ${m.username.substring(0, 2).toUpperCase()}
+                        </div>
+                        ${m.username}
+                    </div>
+                </td>
+                <td class="px-3 py-2.5 text-gray-500">${m.email}</td>
+                <td class="px-3 py-2.5"><div class="flex flex-wrap gap-1">${roleBadges}</div></td>
+                <td class="px-3 py-2.5 text-right">
+                    <button onclick="event.stopPropagation(); window.loadUserForMapping(${JSON.stringify(m).replace(/"/g, '&quot;')})" class="text-gray-400 hover:text-primary transition-colors p-1" title="Edit Roles">
+                        <span class="material-symbols-outlined text-[16px]">edit</span>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function getRoleBadgeColor(roleName) {
+        const colorMap = {
+            'ADMIN': 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-800/30',
+            'MANAGER': 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-800/30',
+            'DATA_SYNC': 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 border-teal-100 dark:border-teal-800/30',
+            'PASSWORD_RESET': 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800/30',
+        };
+        return colorMap[roleName] || 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800/30';
+    }
+
+    function renderMappingsPagination(data) {
+        const info = document.getElementById('mappingsTablePaginationInfo');
+        if (!info) return;
+        const start = data.total > 0 ? (data.current_page - 1) * 8 + 1 : 0;
+        const end = Math.min(data.current_page * 8, data.total);
+        info.innerText = `Showing ${start} to ${end} of ${data.total} users`;
+
+        const buttons = document.getElementById('mappingsTablePaginationButtons');
+        if (!buttons) return;
+        buttons.innerHTML = '';
+
+        const prevBtn = document.createElement('button');
+        prevBtn.className = `px-2 py-1 rounded border text-[10px] font-bold transition-colors ${data.current_page > 1 ? 'border-gray-200 hover:bg-gray-100 text-gray-600' : 'border-gray-100 text-gray-300 cursor-not-allowed'}`;
+        prevBtn.innerHTML = '<span class="material-symbols-outlined text-xs">chevron_left</span>';
+        if (data.current_page > 1) prevBtn.onclick = () => fetchUserRoleMappings(data.current_page - 1);
+        buttons.appendChild(prevBtn);
+
+        for (let i = 1; i <= data.pages; i++) {
+            if (i === 1 || i === data.pages || (i >= data.current_page - 1 && i <= data.current_page + 1)) {
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1 rounded border text-[10px] font-bold transition-colors ${i === data.current_page ? 'bg-primary border-primary text-white' : 'border-gray-200 hover:bg-gray-100 text-gray-600'}`;
+                btn.innerText = i;
+                btn.onclick = () => fetchUserRoleMappings(i);
+                buttons.appendChild(btn);
+            } else if (i === data.current_page - 2 || i === data.current_page + 2) {
+                const dots = document.createElement('span');
+                dots.className = 'px-1 text-gray-400';
+                dots.innerText = '...';
+                buttons.appendChild(dots);
+            }
+        }
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = `px-2 py-1 rounded border text-[10px] font-bold transition-colors ${data.current_page < data.pages ? 'border-gray-200 hover:bg-gray-100 text-gray-600' : 'border-gray-100 text-gray-300 cursor-not-allowed'}`;
+        nextBtn.innerHTML = '<span class="material-symbols-outlined text-xs">chevron_right</span>';
+        if (data.current_page < data.pages) nextBtn.onclick = () => fetchUserRoleMappings(data.current_page + 1);
+        buttons.appendChild(nextBtn);
+    }
+
+    // --- Enhanced Role Checkboxes (2-col with descriptions) ---
     function renderRoleCheckboxes() {
         const grid = document.getElementById('rolesGrid');
         if (!grid) return;
         grid.innerHTML = '';
         gRoles.forEach(r => {
+            const permCount = r.permission_count || 0;
             grid.innerHTML += `
-                <label class="flex items-start p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded cursor-pointer hover:border-primary transition-colors shadow-sm">
+                <label class="flex items-start p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg cursor-pointer hover:border-primary hover:shadow-sm transition-all group">
                     <div class="flex items-center h-5">
-                        <input type="checkbox" value="${r.id}" class="role-checkbox form-checkbox h-4 w-4 text-primary bg-gray-50 border-gray-300 rounded focus:ring-primary focus:ring-2">
+                        <input type="checkbox" value="${r.id}" class="role-checkbox form-checkbox h-4 w-4 text-primary bg-gray-50 border-gray-300 rounded focus:ring-primary focus:ring-2" onchange="window.updateRoleDiffPreview()">
                     </div>
                     <div class="ml-3 text-sm flex-1">
-                        <label class="font-bold text-[11px] uppercase tracking-wider text-gray-900 dark:text-white cursor-pointer">${r.name}</label>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-[11px] uppercase tracking-wider text-gray-900 dark:text-white cursor-pointer group-hover:text-primary transition-colors">${r.name}</span>
+                        </div>
                         <p class="text-gray-500 text-[10px] mt-0.5 leading-tight">${r.description || 'No description'}</p>
                     </div>
                 </label>
@@ -1385,9 +1519,90 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Live Autocomplete Search ---
+    window.liveSearchUsers = async function () {
+        const input = document.getElementById('userInput');
+        const dropdown = document.getElementById('userSearchDropdown');
+        if (!input || !dropdown) return;
+
+        const query = input.value.trim();
+        if (query.length < 2) {
+            dropdown.classList.add('hidden');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/admin/users/search?q=${encodeURIComponent(query)}`, {
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            const users = await res.json();
+
+            if (users.length === 0) {
+                dropdown.innerHTML = `<div class="px-4 py-3 text-[11px] text-gray-400 text-center">No users found</div>`;
+                dropdown.classList.remove('hidden');
+                return;
+            }
+
+            dropdown.innerHTML = '';
+            users.forEach((user, idx) => {
+                const item = document.createElement('div');
+                item.className = `px-3 py-2.5 flex items-center gap-3 hover:bg-blue-50/50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors ${idx === 0 ? 'bg-blue-50/30 dark:bg-gray-800/30' : ''} ${idx < users.length - 1 ? 'border-b border-gray-100 dark:border-gray-800' : ''}`;
+                item.setAttribute('data-idx', idx);
+                item.innerHTML = `
+                    <div class="size-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
+                        ${user.username.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold text-[12px] text-gray-900 dark:text-white truncate">${user.username}</div>
+                        <div class="text-[10px] text-gray-500 truncate">${user.email} · <span class="font-mono">${user.user_id}</span></div>
+                    </div>
+                `;
+                item.onclick = () => {
+                    selectUser(user);
+                    dropdown.classList.add('hidden');
+                    input.value = user.username;
+                };
+                dropdown.appendChild(item);
+            });
+            dropdown.classList.remove('hidden');
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    window.handleSearchKeydown = function (e) {
+        const dropdown = document.getElementById('userSearchDropdown');
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // If dropdown is visible with items, select first
+            if (dropdown && !dropdown.classList.contains('hidden')) {
+                const firstItem = dropdown.querySelector('[data-idx]');
+                if (firstItem) {
+                    firstItem.click();
+                    return;
+                }
+            }
+            window.searchUser();
+        } else if (e.key === 'Escape') {
+            if (dropdown) dropdown.classList.add('hidden');
+        }
+    };
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        const wrapper = document.getElementById('userSearchWrapper');
+        const dropdown = document.getElementById('userSearchDropdown');
+        if (wrapper && dropdown && !wrapper.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+
     window.searchUser = async function () {
         const input = document.getElementById('userInput').value;
         if (!input || input.length < 2) return showToast('Enter at least 2 characters', 'warning');
+
+        const dropdown = document.getElementById('userSearchDropdown');
+        if (dropdown) dropdown.classList.add('hidden');
 
         try {
             const res = await fetch(`/api/admin/users/search?q=${encodeURIComponent(input)}`, {
@@ -1400,7 +1615,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // For simplicity, we auto-select the first one if it's an exact match or only one result
             const user = users[0];
             selectUser(user);
         } catch (e) {
@@ -1409,6 +1623,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- Load user from table row ---
+    window.loadUserForMapping = function (mappingData) {
+        selectUser({
+            id: mappingData.id,
+            username: mappingData.username,
+            email: mappingData.email,
+            user_id: mappingData.user_id
+        });
+        // Scroll to the roles section
+        const rolesSection = document.getElementById('rolesSection');
+        if (rolesSection) rolesSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+
+    // --- Select User (Enhanced) ---
     async function selectUser(user) {
         const selectedUsername = document.getElementById('selectedUsername');
         const selectedUserEmail = document.getElementById('selectedUserEmail');
@@ -1432,18 +1660,113 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const roleIds = await res.json();
 
+            originalRoleIds = [...roleIds]; // Store for diff
+
             document.querySelectorAll('.role-checkbox').forEach(cb => {
                 cb.checked = roleIds.includes(parseInt(cb.value));
             });
+
+            // Show current roles as badges on the card
+            renderSelectedUserRoles(roleIds);
+            updateRoleDiffPreview();
         } catch (e) {
             console.error(e);
         }
     }
 
+    function renderSelectedUserRoles(roleIds) {
+        const container = document.getElementById('selectedUserRoles');
+        if (!container) return;
+        container.innerHTML = '';
+        if (roleIds.length === 0) {
+            container.innerHTML = '<span class="text-[9px] text-gray-400 italic">No roles assigned</span>';
+            return;
+        }
+        roleIds.forEach(rid => {
+            const role = gRoles.find(r => r.id === rid);
+            if (role) {
+                const colors = getRoleBadgeColor(role.name);
+                container.innerHTML += `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${colors} border">${role.name}</span>`;
+            }
+        });
+    }
+
+    // --- Clear Selection ---
+    window.clearUserSelection = function () {
+        currentUserTarget = null;
+        originalRoleIds = [];
+
+        const selectedUserBox = document.getElementById('selectedUserBox');
+        const rolesSection = document.getElementById('rolesSection');
+        const userInput = document.getElementById('userInput');
+        const diffPreview = document.getElementById('roleDiffPreview');
+
+        if (selectedUserBox) selectedUserBox.classList.add('hidden');
+        if (rolesSection) {
+            rolesSection.classList.add('opacity-50', 'pointer-events-none');
+        }
+        if (userInput) userInput.value = '';
+        if (diffPreview) diffPreview.classList.add('hidden');
+
+        document.querySelectorAll('.role-checkbox').forEach(cb => cb.checked = false);
+    };
+
+    // --- Select All / Deselect All ---
+    window.toggleAllRoles = function () {
+        const checkboxes = document.querySelectorAll('.role-checkbox');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        checkboxes.forEach(cb => cb.checked = !allChecked);
+
+        const btn = document.getElementById('toggleAllRolesBtn');
+        if (btn) btn.innerText = allChecked ? 'Select All' : 'Deselect All';
+        updateRoleDiffPreview();
+    };
+
+    // --- Diff Preview ---
+    window.updateRoleDiffPreview = function () {
+        const diffPreview = document.getElementById('roleDiffPreview');
+        const diffContent = document.getElementById('roleDiffContent');
+        if (!diffPreview || !diffContent) return;
+
+        const currentIds = Array.from(document.querySelectorAll('.role-checkbox:checked')).map(cb => parseInt(cb.value));
+        const added = currentIds.filter(id => !originalRoleIds.includes(id));
+        const removed = originalRoleIds.filter(id => !currentIds.includes(id));
+
+        if (added.length === 0 && removed.length === 0) {
+            diffPreview.classList.add('hidden');
+            return;
+        }
+
+        diffPreview.classList.remove('hidden');
+        diffContent.innerHTML = '';
+
+        added.forEach(id => {
+            const role = gRoles.find(r => r.id === id);
+            if (role) {
+                diffContent.innerHTML += `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/30"><span class="text-[10px]">+</span>${role.name}</span>`;
+            }
+        });
+        removed.forEach(id => {
+            const role = gRoles.find(r => r.id === id);
+            if (role) {
+                diffContent.innerHTML += `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/30"><span class="text-[10px]">−</span>${role.name}</span>`;
+            }
+        });
+
+        // Update toggle button text
+        const checkboxes = document.querySelectorAll('.role-checkbox');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        const btn = document.getElementById('toggleAllRolesBtn');
+        if (btn) btn.innerText = allChecked ? 'Deselect All' : 'Select All';
+    };
+
+    // --- Save with Diff Toast ---
     window.saveUserRoles = async function () {
         if (!currentUserTarget) return;
 
         const selectedRoleIds = Array.from(document.querySelectorAll('.role-checkbox:checked')).map(cb => parseInt(cb.value));
+        const added = selectedRoleIds.filter(id => !originalRoleIds.includes(id));
+        const removed = originalRoleIds.filter(id => !selectedRoleIds.includes(id));
 
         try {
             const res = await fetch(`/api/admin/users/${currentUserTarget}/roles`, {
@@ -1453,7 +1776,28 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (res.ok) {
-                showToast('User roles updated successfully', 'success');
+                // Build descriptive toast
+                let msg = 'User roles updated.';
+                const parts = [];
+                if (added.length > 0) {
+                    const names = added.map(id => gRoles.find(r => r.id === id)?.name).filter(Boolean).join(', ');
+                    parts.push(`Added: ${names}`);
+                }
+                if (removed.length > 0) {
+                    const names = removed.map(id => gRoles.find(r => r.id === id)?.name).filter(Boolean).join(', ');
+                    parts.push(`Removed: ${names}`);
+                }
+                if (parts.length > 0) msg += ' ' + parts.join(' · ');
+
+                showToast(msg, 'success');
+
+                // Update original tracking
+                originalRoleIds = [...selectedRoleIds];
+                renderSelectedUserRoles(selectedRoleIds);
+                updateRoleDiffPreview();
+
+                // Auto-refresh the overview table
+                fetchUserRoleMappings(mappingsCurrentPage);
             } else {
                 const data = await res.json();
                 showToast(data.msg || 'Error updating roles', 'error');
@@ -1527,6 +1871,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 'mappings':
                 if (gRoles.length === 0) fetchRoles();
+                fetchUserRoleMappings(1);
                 break;
             case 'permissions':
                 fetchPermissions();
