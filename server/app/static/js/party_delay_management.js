@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Auto-fill filters
-    ['party'].forEach(f => {
+    ['party', 'feedback'].forEach(f => {
         const val = urlParams.get(f);
         if (val) {
             const el = document.getElementById(`filter-${f}`);
@@ -133,6 +133,9 @@ function applyFilters() {
     const makeVal = makeMultiSelect ? makeMultiSelect.getValues().join(',') : '';
     if (makeVal) urlParams.set('make', makeVal); else urlParams.delete('make');
 
+    const feedbackVal = document.getElementById('filter-feedback')?.value;
+    if (feedbackVal) urlParams.set('feedback', feedbackVal); else urlParams.delete('feedback');
+
     // Add delay filters
     for (let i = 1; i <= 8; i++) {
         const val = document.getElementById(`filter-delay-s${i}`)?.value;
@@ -157,6 +160,9 @@ function resetFilters() {
     if (makeMultiSelect) {
         makeMultiSelect.reset();
     }
+
+    const fb = document.getElementById('filter-feedback');
+    if (fb) fb.value = '';
 
     // Reset delay filters
     for (let i = 1; i <= 8; i++) {

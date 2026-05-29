@@ -15,7 +15,7 @@ from app.models.snapshots import (
 )
 from app.models.auth import User
 from app.extensions import db, redis_client
-from sqlalchemy import func, case, or_
+from sqlalchemy import func, case, or_, and_
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import logging
@@ -92,6 +92,8 @@ def partial_party_delay_management_report():
     # Parse multiselect lists for make
     make_filter = request.args.get('make', '')
     makes_selected = [m.strip() for m in make_filter.split(',') if m.strip()]
+    
+    feedback_filter = request.args.get('feedback', '')
     
     # Get latest snapshot date
     latest_date = db.session.query(func.max(PartyDelayManagementSnapshot.snapshot_date)).scalar()
@@ -299,6 +301,15 @@ def partial_party_delay_management_report():
     for subq in f_subqs:
         query = query.outerjoin(subq, snapshot_subq.c.party == subq.c.party)
         
+    # Apply feedback filter
+    if feedback_filter == 'with_feedback':
+        query = query.filter(or_(*(subq.c.feedback_text.isnot(None) for subq in f_subqs)))
+    elif feedback_filter == 'without_feedback':
+        query = query.filter(and_(*(subq.c.feedback_text.is_(None) for subq in f_subqs)))
+    elif feedback_filter.startswith('category_'):
+        cat_val = feedback_filter[len('category_'):]
+        query = query.filter(or_(*(subq.c.feedback_category == cat_val for subq in f_subqs)))
+
     rows = query.order_by(snapshot_subq.c.party).all()
     
     processed_rows = []

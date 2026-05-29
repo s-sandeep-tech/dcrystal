@@ -401,6 +401,21 @@
                 <!-- Reused CustomMultiSelect will inject content here -->
             </div>
 
+            <!-- Feedback Status Filter -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase text-xs">Feedback Status</label>
+                <select id="filter-feedback" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                    <option value="">All</option>
+                    <option value="with_feedback">With Feedback</option>
+                    <option value="without_feedback">Without Feedback</option>
+                    <option value="category_Production Delay">Category: Production Delay</option>
+                    <option value="category_Logistics Delay">Category: Logistics Delay</option>
+                    <option value="category_Quality Issue">Category: Quality Issue</option>
+                    <option value="category_Documentation Pending">Category: Documentation Pending</option>
+                    <option value="category_Other">Category: Other</option>
+                </select>
+            </div>
+
             <div class="py-2 -mx-4">
                 <div class="h-px bg-gray-100 dark:bg-gray-800"></div>
             </div>
