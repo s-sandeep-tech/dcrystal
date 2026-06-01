@@ -3176,7 +3176,7 @@ def sync_hm_delay_management_data_task():
                 hm_issue_completed_receipt_pending_piece, hm_issue_completed_receipt_pending_weight, 
                 hm_receipt_completed_hm_pending_piece, hm_receipt_completed_hm_pending_weight, 
                 hm_completed_return_pending_piece, hm_completed_return_pending_weight
-            FROM ext_view.hm_summary_data
+            FROM ext_view.vw_hm_summary_data
             """
             cur.execute(summary_query)
             summary_rows = cur.fetchall()
@@ -3445,7 +3445,7 @@ def sync_party_delay_management_data_task():
             emit_sync_update('processing', 'Segment 1 synced. Syncing Segment 2...', 25, DATA_TYPE)
 
             # 3. Segment 2 Details (Process Pending)
-            s2_query = "SELECT make_owner, collection_owner, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_process_pending_order_details"
+            s2_query = "SELECT make_owner, collection_owner, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no, accepted_date FROM ext_view.vw_process_pending_order_details"
             try:
                 cur.execute(s2_query)
                 s2_rows = cur.fetchall()
@@ -3458,7 +3458,7 @@ def sync_party_delay_management_data_task():
             emit_sync_update('processing', 'Segment 2 synced. Syncing Segment 3...', 35, DATA_TYPE)
 
             # 4. Segment 3 Details (Barcode Pending)
-            s3_query = "SELECT make_owner, collection_owner, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_barcode_pending_order_details"
+            s3_query = "SELECT make_owner, collection_owner, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no, accepted_date FROM ext_view.vw_barcode_pending_order_details"
             try:
                 cur.execute(s3_query)
                 s3_rows = cur.fetchall()
