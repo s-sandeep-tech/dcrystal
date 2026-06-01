@@ -717,7 +717,7 @@ function renderRichModalContent(data, segment_id) {
                 <!-- SUMMARY -->
                 <td class="px-4 py-4 align-top text-right">
                     <div class="flex flex-col items-end">
-                        <span class="text-lg font-black text-emerald-600 leading-tight">${formatWeight(row.net_weight)}</span>
+                        <span class="text-lg font-black text-emerald-600 leading-tight">${formatWeight(row.gross_weight)}</span>
                         <span class="text-[10px] font-bold text-gray-400">${row.piece_count} PCS</span>
                     </div>
                 </td>
