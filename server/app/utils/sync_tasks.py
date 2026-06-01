@@ -2860,7 +2860,7 @@ def sync_qc_delay_management_data_task():
                 qc_ro_incharge, qc_ro_incharge_email, qc_ro_incharge_phone_number, qc_ro_address,
                 make, make_owner, order_id, party_code, party,
                 qc_issue_completed_date, qc_receipt_completed_date, qc_completed_date
-            FROM ext_view.qc_summary_data
+            FROM ext_view.vw_qc_summary_data
             """
             current_view = "ext_view.qc_summary_data"
             cur.execute(summary_query)
