@@ -610,6 +610,39 @@ def setup_scheduler():
         replace_existing=True
     )
 
+    # Schedule "QC Delay Summary Sync" every day at 9:00 AM IST
+    scheduler.add_job(
+        func=enqueue_sync_task,
+        trigger='cron',
+        hour=9,
+        minute=0,
+        args=['qc_delay_management'],
+        id='qc_delay_management_sync',
+        replace_existing=True
+    )
+
+    # Schedule "HM Delay Management Sync" every day at 9:05 AM IST (5-min gap)
+    scheduler.add_job(
+        func=enqueue_sync_task,
+        trigger='cron',
+        hour=9,
+        minute=5,
+        args=['hm_delay_management'],
+        id='hm_delay_management_sync',
+        replace_existing=True
+    )
+
+    # Schedule "Vendor Delay Management Sync" every day at 9:10 AM IST (5-min gap)
+    scheduler.add_job(
+        func=enqueue_sync_task,
+        trigger='cron',
+        hour=9,
+        minute=10,
+        args=['party_delay_management'],
+        id='party_delay_management_sync',
+        replace_existing=True
+    )
+
     # Schedule "Owner & Showroom Wise Order Summary Sync" daily at 10:30 AM and 2:30 PM IST
     # Task type 'owner_showroom_combined' matches sync_manager.py
     scheduler.add_job(
@@ -626,6 +659,9 @@ def setup_scheduler():
     logger.info("Background Scheduler started. 'Provision & Stock Status Sync' scheduled for 11:00 IST daily.")
     logger.info("Branch Authority Sync scheduled for 10:00 IST and 16:00 IST daily.")
     logger.info("Owner & Showroom Wise Order Summary Sync scheduled for 10:30 IST and 14:30 IST daily.")
+    logger.info("QC Delay Summary Sync scheduled for 9:00 IST daily.")
+    logger.info("HM Delay Management Sync scheduled for 9:05 IST daily.")
+    logger.info("Vendor Delay Management Sync scheduled for 9:10 IST daily.")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Entry point — run workers and scheduler
