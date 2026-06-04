@@ -241,6 +241,11 @@
             ('branch_type', 'Branch Type')
             ] %}
             {% for id, label in filter_list %}
+            {% if id == 'make' %}
+            <div id="filter-make-container"></div>
+            {% elif id == 'location' %}
+            <div id="filter-location-container"></div>
+            {% else %}
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{{ label }}</label>
                 <select id="filter-{{ id }}"
@@ -248,6 +253,7 @@
                     <option value="">All {{ label }}s</option>
                 </select>
             </div>
+            {% endif %}
             {% endfor %}
 
             <!-- Date Filter Section -->
@@ -287,5 +293,6 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script src="{{ url_for('static', filename='js/showroom_wise_order_summary.js') }}"></script>
 {% endblock %}

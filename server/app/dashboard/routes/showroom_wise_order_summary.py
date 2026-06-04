@@ -62,7 +62,12 @@ def apply_showroom_filters(query, latest_date_query=None, search=None, business_
     if make_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.make_owner == make_owner)
     if collection_owner: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection_owner == collection_owner)
     if party: query = query.filter(ShowroomWiseOrderSummarySnapshot.party == party)
-    if location: query = query.filter(ShowroomWiseOrderSummarySnapshot.location == location)
+    if location:
+        if ',' in location:
+            locs = [l.strip() for l in location.split(',') if l.strip()]
+            query = query.filter(ShowroomWiseOrderSummarySnapshot.location.in_(locs))
+        else:
+            query = query.filter(ShowroomWiseOrderSummarySnapshot.location == location)
     if purchase_ro: query = query.filter(ShowroomWiseOrderSummarySnapshot.purchase_ro == purchase_ro)
     if order_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_type == order_type)
     if order_request_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.order_request_type == order_request_type)
@@ -70,7 +75,12 @@ def apply_showroom_filters(query, latest_date_query=None, search=None, business_
     if group_name: query = query.filter(ShowroomWiseOrderSummarySnapshot.group_name == group_name)
     if purity: query = query.filter(ShowroomWiseOrderSummarySnapshot.purity == purity)
     if classification: query = query.filter(ShowroomWiseOrderSummarySnapshot.classification == classification)
-    if make: query = query.filter(ShowroomWiseOrderSummarySnapshot.make == make)
+    if make:
+        if ',' in make:
+            makes = [m.strip() for m in make.split(',') if m.strip()]
+            query = query.filter(ShowroomWiseOrderSummarySnapshot.make.in_(makes))
+        else:
+            query = query.filter(ShowroomWiseOrderSummarySnapshot.make == make)
     if collection: query = query.filter(ShowroomWiseOrderSummarySnapshot.collection == collection)
     if branch_type: query = query.filter(ShowroomWiseOrderSummarySnapshot.branch_type == branch_type)
     
@@ -306,7 +316,11 @@ def get_showroom_partial():
                 else:
                     base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
             if location:
-                base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.location == location)
+                if ',' in location:
+                    locs = [l.strip() for l in location.split(',') if l.strip()]
+                    base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.location.in_(locs))
+                else:
+                    base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.location == location)
         elif parent_level == 'make_owner':
             group_cols = [ShowroomWiseOrderSummarySnapshot.business_head, ShowroomWiseOrderSummarySnapshot.location, ShowroomWiseOrderSummarySnapshot.classification_owner, ShowroomWiseOrderSummarySnapshot.make_owner, ShowroomWiseOrderSummarySnapshot.collection_owner]
             level = 'collection_owner'
@@ -321,7 +335,11 @@ def get_showroom_partial():
                 else:
                     base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.business_head == business_head)
             if location:
-                base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.location == location)
+                if ',' in location:
+                    locs = [l.strip() for l in location.split(',') if l.strip()]
+                    base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.location.in_(locs))
+                else:
+                    base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.location == location)
             if classification_owner:
                 base_query = base_query.filter(ShowroomWiseOrderSummarySnapshot.classification_owner == classification_owner)
         else:
