@@ -405,29 +405,29 @@ def get_party_delay_details(segment_id):
     if not model:
         return jsonify({"status": "error", "message": "Invalid segment"}), 400
 
-    query = model.query.filter(model.party == party)
+    # Define stage starting date mappings for database-side calculations
+    date_mappings = {
+        1: PartyAcceptPendingSnapshot.po_date,
+        2: PartyProcessPendingSnapshot.accepted_date,
+        3: PartyBarcodePendingSnapshot.accepted_date,
+        4: PartyBarcodeCompletedBISRequestPendingSnapshot.barcode_completion_date,
+        5: PartyBISRequestCompletedHMIssuePendingSnapshot.barcode_completion_date,
+        6: PartyHMReceiptCompletedQCIssuePendingSnapshot.hm_agent_invoice_receipt_date,
+        7: PartyInvoiceGeneratedInvoiceApprovePendingSnapshot.invoice_generated_date,
+        8: PartyInvoiceApprovedNotSynchedToMuzirisSnapshot.invoice_approved_date
+    }
+    
+    target_date_col = date_mappings.get(segment_id)
+    delay_col = (func.current_date() - func.date(target_date_col)).label('calculated_delay')
+
+    query = db.session.query(model, delay_col).filter(model.party == party)
     # Get latest date for the detail model
     latest_date = db.session.query(func.max(model.snapshot_date)).scalar()
     if latest_date:
         query = query.filter(model.snapshot_date == latest_date)
         
     if delay is not None:
-        if segment_id == 1:
-            query = query.filter((func.current_date() - func.date(model.po_date)) >= delay)
-        elif segment_id == 2:
-            query = query.filter((func.current_date() - func.date(model.po_date)) >= delay)
-        elif segment_id == 3:
-            query = query.filter((func.current_date() - func.date(model.po_date)) >= delay)
-        elif segment_id == 4:
-            query = query.filter((func.current_date() - func.date(model.barcode_completion_date)) >= delay)
-        elif segment_id == 5:
-            query = query.filter((func.current_date() - func.date(model.barcode_completion_date)) >= delay)
-        elif segment_id == 6:
-            query = query.filter((func.current_date() - func.date(model.hm_completed_at)) >= delay)
-        elif segment_id == 7:
-            query = query.filter((func.current_date() - func.date(model.invoice_generated_date)) >= delay)
-        elif segment_id == 8:
-            query = query.filter((func.current_date() - func.date(model.invoice_approved_date)) >= delay)
+        query = query.filter((func.current_date() - func.date(target_date_col)) >= delay)
 
     # Apply user-based filtering
     roles = [r.upper() for r in session.get('roles', [])]
@@ -452,7 +452,14 @@ def get_party_delay_details(segment_id):
                 query = query.filter(or_(*conds))
 
     rows = query.all()
-    return jsonify([r.to_dict() for r in rows])
+    
+    res_list = []
+    for r_model, r_delay in rows:
+        d = r_model.to_dict()
+        d['calculated_delay'] = r_delay if r_delay is not None else 0
+        res_list.append(d)
+        
+    return jsonify(res_list)
 
 @dashboard_bp.route('/api/party-delay-management/feedback-info')
 @jwt_required()

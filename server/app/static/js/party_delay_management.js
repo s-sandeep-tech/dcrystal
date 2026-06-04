@@ -315,19 +315,23 @@ function renderRichModalContent(data, segment_id) {
     
     let headers = "";
     if (segment_id === 1 || segment_id === 2 || segment_id === 3) {
+        const dateHeader = segment_id === 1 ? "PO Date" : "Accepted Date";
         headers = `
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">PO Info</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Party Info</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Design / Set</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">${dateHeader}</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">Delay</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">Status</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-right">Weights</th>
         `;
     } else if (segment_id === 4 || segment_id === 5 || segment_id === 7 || segment_id === 8) {
+        const dateHeader = (segment_id === 4 || segment_id === 5) ? 'Barcode Date' : 'Invoice Date';
         headers = `
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">PO Info</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Party / BH</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Design / Set</th>
-            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">${segment_id === 4 || segment_id === 5 ? 'Barcode Date' : 'Invoice Info'}</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">${dateHeader}</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">Delay</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-right">Metrics (Pcs/Wt)</th>
         `;
@@ -337,6 +341,7 @@ function renderRichModalContent(data, segment_id) {
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Party Info</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">Hallmark Info</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Design / Set</th>
+            <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-center">Delay</th>
             <th class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-right">Weight</th>
         `;
     }
@@ -458,6 +463,8 @@ function renderRichModalContent(data, segment_id) {
     processedData.forEach(row => {
         if (segment_id === 1 || segment_id === 2 || segment_id === 3) {
             const poDate = row.po_date ? row.po_date.split('T')[0] : '-';
+            const acceptedDate = row.accepted_date ? row.accepted_date.split('T')[0] : '-';
+            const displayDate = segment_id === 1 ? poDate : acceptedDate;
             
             html += `
                 <tr class="hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-colors">
@@ -492,6 +499,14 @@ function renderRichModalContent(data, segment_id) {
                             </span>
                             <span class="text-[9px] text-gray-400 italic break-words max-w-[150px] cursor-help" title="${row.collection.full}">${row.collection.display}</span>
                         </div>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${displayDate}</span>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <span class="px-2.5 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[11px] font-bold border border-red-200 dark:border-red-800/50">
+                            ${row.calculated_delay || 0} Days
+                        </span>
                     </td>
                     <td class="px-4 py-4 text-center">
                         <span class="px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold border border-amber-200 dark:border-amber-800/50 italic break-words max-w-[100px] cursor-help" title="${row.order_status.full}">
@@ -567,7 +582,7 @@ function renderRichModalContent(data, segment_id) {
                     </td>
                     <td class="px-4 py-4 text-center">
                         <span class="px-2.5 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[11px] font-bold border border-red-200 dark:border-red-800/50">
-                            ${row.delay_days || 0} Days
+                            ${row.calculated_delay || 0} Days
                         </span>
                     </td>
                     <td class="px-4 py-4 text-right">
@@ -626,6 +641,11 @@ function renderRichModalContent(data, segment_id) {
                                 <span class="material-symbols-outlined text-[12px] text-rose-500">event</span> Target: ${row.target_date.display}
                             </span>
                         </div>
+                    </td>
+                    <td class="px-4 py-4 text-center align-top">
+                        <span class="px-2.5 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[11px] font-bold border border-red-200 dark:border-red-800/50">
+                            ${row.calculated_delay || 0} Days
+                        </span>
                     </td>
                     <td class="px-4 py-4 text-right align-top">
                         <div class="flex flex-col">

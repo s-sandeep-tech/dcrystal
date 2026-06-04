@@ -2544,6 +2544,7 @@ class PartyAcceptPendingSnapshot(db.Model):
     stone_weight = db.Column(db.Numeric(12, 3))
     net_weight = db.Column(db.Numeric(12, 3))
     order_no = db.Column(db.String(100))
+    accepted_date = db.Column(db.Date)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
@@ -2575,6 +2576,7 @@ class PartyProcessPendingSnapshot(db.Model):
     stone_weight = db.Column(db.Numeric(12, 3))
     net_weight = db.Column(db.Numeric(12, 3))
     order_no = db.Column(db.String(100))
+    accepted_date = db.Column(db.Date)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
@@ -2606,6 +2608,7 @@ class PartyBarcodePendingSnapshot(db.Model):
     stone_weight = db.Column(db.Numeric(12, 3))
     net_weight = db.Column(db.Numeric(12, 3))
     order_no = db.Column(db.String(100))
+    accepted_date = db.Column(db.Date)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
