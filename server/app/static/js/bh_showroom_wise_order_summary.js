@@ -1,4 +1,7 @@
 let currentZoom = parseFloat(localStorage.getItem('bh-showroom-zoom')) || 1.0;
+let locationMultiSelect;
+let makeMultiSelect;
+
 
 function adjustZoom(delta, reset = false) {
     const tableArea = document.getElementById('table-area');
@@ -192,7 +195,14 @@ function applyGlobalFilters() {
     ];
 
     filterIds.forEach(id => {
-        const val = document.getElementById(`filter-${id}`)?.value;
+        let val;
+        if (id === 'location' && locationMultiSelect) {
+            val = locationMultiSelect.getValues().join(',');
+        } else if (id === 'make' && makeMultiSelect) {
+            val = makeMultiSelect.getValues().join(',');
+        } else {
+            val = document.getElementById(`filter-${id}`)?.value;
+        }
         if (val) urlParams.set(id, val);
         else urlParams.delete(id);
     });
@@ -213,8 +223,14 @@ function resetGlobalFilters() {
     ];
 
     filterIds.forEach(id => {
-        const el = document.getElementById(`filter-${id}`);
-        if (el) el.value = '';
+        if (id === 'location' && locationMultiSelect) {
+            locationMultiSelect.reset();
+        } else if (id === 'make' && makeMultiSelect) {
+            makeMultiSelect.reset();
+        } else {
+            const el = document.getElementById(`filter-${id}`);
+            if (el) el.value = '';
+        }
     });
 
     const search = document.getElementById('hierarchy-search');
@@ -306,7 +322,39 @@ async function loadFilterOptions() {
         ];
 
         mappings.forEach(m => {
-            populateSelect(m.id, m.list, `All ${m.label}s`, urlParams.get(m.id.replace('filter-', '')));
+            if (m.id === 'filter-location') {
+                if (locationMultiSelect) {
+                    locationMultiSelect.populateOptions(m.list || []);
+                    // Restore selection from URL
+                    const selectedVals = urlParams.get('location');
+                    if (selectedVals) {
+                        const vals = selectedVals.split(',');
+                        document.querySelectorAll(`.filter-location-container-checkbox`).forEach(cb => {
+                            if (vals.includes(cb.value)) {
+                                cb.checked = true;
+                            }
+                        });
+                        locationMultiSelect.updateTriggerText();
+                    }
+                }
+            } else if (m.id === 'filter-make') {
+                if (makeMultiSelect) {
+                    makeMultiSelect.populateOptions(m.list || []);
+                    // Restore selection from URL
+                    const selectedVals = urlParams.get('make');
+                    if (selectedVals) {
+                        const vals = selectedVals.split(',');
+                        document.querySelectorAll(`.filter-make-container-checkbox`).forEach(cb => {
+                            if (vals.includes(cb.value)) {
+                                cb.checked = true;
+                            }
+                        });
+                        makeMultiSelect.updateTriggerText();
+                    }
+                }
+            } else {
+                populateSelect(m.id, m.list, `All ${m.label}s`, urlParams.get(m.id.replace('filter-', '')));
+            }
         });
 
     } catch (e) {
@@ -470,6 +518,21 @@ async function toggleModalRow(btn, currentLevel, value) {
 document.addEventListener('DOMContentLoaded', () => {
     const tableArea = document.getElementById('table-area');
     if (tableArea) tableArea.style.zoom = currentZoom;
+
+    // Initialize custom multiselect components
+    locationMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-location-container',
+        label: 'Location',
+        defaultText: 'All Locations',
+        options: []
+    });
+
+    makeMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-make-container',
+        label: 'Make',
+        defaultText: 'All Makes',
+        options: []
+    });
 
     const activeView = document.getElementById('view-bh-showroom');
     if (activeView && activeView.querySelector('.enterprise-grid')) {
