@@ -31,68 +31,68 @@
     <!-- Stats Grid -->
     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
         <!-- Total Order Amount -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Order Amount</p>
-            <p id="stat-total-order-amount" class="text-sm font-bold text-primary mt-1">0.00 L</p>
-            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div class="h-full bg-primary" style="width: 100%"></div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center flex flex-col items-center justify-center">
+            <div class="flex items-center gap-1 justify-center">
+                <span class="material-symbols-outlined text-[13px] text-primary">shopping_cart</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Total Order Amount</p>
             </div>
+            <p id="stat-total-order-amount" class="text-sm font-bold text-primary mt-1">0.00 L</p>
         </div>
         <!-- Total Delivered Amount -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Delivered Amount</p>
-            <p id="stat-total-delivered-amount" class="text-sm font-bold text-emerald-600 mt-1">0.00 L</p>
-            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div class="h-full bg-emerald-500" style="width: 100%"></div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center flex flex-col items-center justify-center">
+            <div class="flex items-center gap-1 justify-center">
+                <span class="material-symbols-outlined text-[13px] text-emerald-500">local_shipping</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Total Delivered Amount</p>
             </div>
+            <p id="stat-total-delivered-amount" class="text-sm font-bold text-emerald-600 mt-1">0.00 L</p>
         </div>
         <!-- Total Net Weight -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Net Wt (g)</p>
-            <p id="stat-total-net-weight" class="text-sm font-bold text-indigo-600 mt-1">0.00 g</p>
-            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div class="h-full bg-indigo-500" style="width: 100%"></div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center flex flex-col items-center justify-center">
+            <div class="flex items-center gap-1 justify-center">
+                <span class="material-symbols-outlined text-[13px] text-indigo-500">scale</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Total Net Wt (g)</p>
             </div>
+            <p id="stat-total-net-weight" class="text-sm font-bold text-indigo-600 mt-1">0.00 g</p>
         </div>
         <!-- Total Gross Weight -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Gross Wt (g)</p>
-            <p id="stat-total-gross-weight" class="text-sm font-bold text-teal-600 mt-1">0.00 g</p>
-            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div class="h-full bg-teal-500" style="width: 100%"></div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center flex flex-col items-center justify-center">
+            <div class="flex items-center gap-1 justify-center">
+                <span class="material-symbols-outlined text-[13px] text-teal-500">monitor_weight</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Total Gross Wt (g)</p>
             </div>
+            <p id="stat-total-gross-weight" class="text-sm font-bold text-teal-600 mt-1">0.00 g</p>
         </div>
         <!-- Total Diamond Carat -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Diamond Cts</p>
-            <p id="stat-total-diamond-carat" class="text-sm font-bold text-cyan-600 mt-1">0.00 Cts</p>
-            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div class="h-full bg-cyan-500" style="width: 100%"></div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center flex flex-col items-center justify-center">
+            <div class="flex items-center gap-1 justify-center">
+                <span class="material-symbols-outlined text-[13px] text-cyan-500">diamond</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Total Diamond Cts</p>
             </div>
+            <p id="stat-total-diamond-carat" class="text-sm font-bold text-cyan-600 mt-1">0.00 Cts</p>
         </div>
         <!-- Total Colorstone Carat -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Colorstone Cts</p>
-            <p id="stat-total-colour-stone-carat" class="text-sm font-bold text-amber-600 mt-1">0.00 Cts</p>
-            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div class="h-full bg-amber-500" style="width: 100%"></div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center flex flex-col items-center justify-center">
+            <div class="flex items-center gap-1 justify-center">
+                <span class="material-symbols-outlined text-[13px] text-amber-500">category</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Total Colorstone Cts</p>
             </div>
+            <p id="stat-total-colour-stone-carat" class="text-sm font-bold text-amber-600 mt-1">0.00 Cts</p>
         </div>
         <!-- Order Buckets -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Order Buckets</p>
-            <p id="stat-num-order-buckets" class="text-sm font-bold text-blue-600 mt-1">0</p>
-            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div class="h-full bg-blue-500" style="width: 100%"></div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center flex flex-col items-center justify-center">
+            <div class="flex items-center gap-1 justify-center">
+                <span class="material-symbols-outlined text-[13px] text-blue-500">calendar_view_week</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Order Buckets</p>
             </div>
+            <p id="stat-num-order-buckets" class="text-sm font-bold text-blue-600 mt-1">0</p>
         </div>
         <!-- Highest Delivery Bucket -->
-        <div class="p-2 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Highest Delivery Bucket</p>
-            <p id="stat-highest-delivery-bucket" class="text-[11px] font-bold text-purple-600 mt-1">N/A</p>
-            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div class="h-full bg-purple-500" style="width: 100%"></div>
+        <div class="p-2 text-center flex flex-col items-center justify-center">
+            <div class="flex items-center gap-1 justify-center">
+                <span class="material-symbols-outlined text-[13px] text-purple-500">trending_up</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Highest Delivery Bucket</p>
             </div>
+            <p id="stat-highest-delivery-bucket" class="text-[11px] font-bold text-purple-600 mt-1">N/A</p>
         </div>
     </div>
 
