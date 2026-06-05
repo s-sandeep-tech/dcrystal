@@ -3594,7 +3594,7 @@ def sync_order_fulfillment_aging_matrix_task(task_type_override=None, progress_r
         query = """
             SELECT *,
                    regexp_replace(purity::text, '\\.0+$|(\\.[0-9]*[1-9])0+$', '\\1') AS normalized_purity
-            FROM Muziris.DmdInvoiceSummary_KJCH
+            FROM Muziris."DmdInvoiceDateWiseSummary"
         """
         
         start_time = time.time()
