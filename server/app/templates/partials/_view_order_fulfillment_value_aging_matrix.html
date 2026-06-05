@@ -1,0 +1,135 @@
+{% macro format_indian(val) %}
+  {% if val is none or val == 0 %}
+    0.00
+  {% else %}
+    {% set val_float = val|float %}
+    {% set s = "{:.2f}".format(val_float) %}
+    {% set parts = s.split('.') %}
+    {% set dec = parts[1] %}
+    {% set integer = parts[0] %}
+    {% if integer|length <= 3 %}
+      {{ s }}
+    {% else %}
+      {% set last_three = integer[-3:] %}
+      {% set remaining = integer[:-3] %}
+      {# Simple recursive grouping not needed if we split manually or if remaining is small #}
+      {# In JS/Python it is easier, but in Jinja we can do basic slice logic #}
+      {% if remaining|length <= 2 %}
+        {{ remaining }},{{ last_three }}.{{ dec }}
+      {% elif remaining|length <= 4 %}
+        {{ remaining[:-2] }},{{ remaining[-2:] }},{{ last_three }}.{{ dec }}
+      {% else %}
+        {{ remaining[:-4] }},{{ remaining[-4:-2] }},{{ remaining[-2:] }},{{ last_three }}.{{ dec }}
+      {% endif %}
+    {% endif %}
+  {% endif %}
+{% endmacro %}
+
+<!-- Update dashboard stats via JSON if needed, or JS will extract them from hidden fields -->
+<div id="matrix-metadata" class="hidden"
+     data-total-order-amount="{{ format_indian(stats.total_order_amount) }}"
+     data-total-delivered-amount="{{ format_indian(stats.total_delivered_amount) }}"
+     data-num-order-buckets="{{ stats.num_order_buckets }}"
+     data-highest-delivery-bucket="{{ stats.highest_delivery_bucket }}"
+     data-total-net-weight="{{ format_indian(stats.total_net_weight) }}"
+     data-total-gross-weight="{{ format_indian(stats.total_gross_weight) }}"
+     data-total-diamond-carat="{{ format_indian(stats.total_diamond_carat) }}"
+     data-total-colour-stone-carat="{{ format_indian(stats.total_colour_stone_carat) }}">
+</div>
+
+<div class="overflow-x-auto w-full">
+    <table class="w-full text-left border-collapse text-[10px] bg-white dark:bg-gray-900">
+        <thead>
+            <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                {% for h in headers %}
+                <th class="p-2.5 font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-center text-[8px] whitespace-nowrap {% if loop.first %}text-left sticky left-0 bg-gray-50 dark:bg-gray-800 z-10{% endif %}">
+                    {{ h }}
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            {% if rows %}
+                {# Find max delivery value for heatmap scaling #}
+                {% set ns = namespace(max_val=1.0) %}
+                {% for row in rows %}
+                    {% for h in delivery_headers %}
+                        {% if row.get(h)|float > ns.max_val %}
+                            {% set ns.max_val = row.get(h)|float %}
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+
+                {% for row in rows %}
+                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition-colors">
+                    {% for h in headers %}
+                        {% set val = row.get(h) %}
+                        {% if loop.first %}
+                            <!-- Row header: Order Date -->
+                            <td class="p-2.5 font-medium text-gray-900 dark:text-white sticky left-0 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                                {{ val }}
+                            </td>
+                        {% elif h == 'Order Amount' %}
+                            <!-- Order Amount -->
+                            <td class="p-2.5 text-right font-bold text-gray-900 dark:text-white border-r border-gray-100 dark:border-gray-800">
+                                {{ format_indian(val) }}
+                            </td>
+                        {% elif h == 'Grand Total' %}
+                            <!-- Grand Total -->
+                            <td class="p-2.5 text-right font-bold text-emerald-600 dark:text-emerald-400 border-l border-gray-100 dark:border-gray-800">
+                                {{ format_indian(val) }}
+                            </td>
+                        {% else %}
+                            <!-- Delivery Buckets with heatmap and mute for zero -->
+                            {% set val_float = val|float %}
+                            {% set opacity = 0.0 %}
+                            {% if val_float > 0 %}
+                                {% set opacity = (val_float / ns.max_val) * 0.45 + 0.05 %}
+                            {% endif %}
+                            <td class="p-2.5 text-right font-semibold {% if val_float == 0 %}text-gray-300 dark:text-gray-700{% else %}text-primary-dark dark:text-white{% endif %}"
+                                style="{% if val_float > 0 %}background-color: rgba(14, 165, 233, {{ opacity }}); color: #0284c7;{% endif %}">
+                                {{ format_indian(val) }}
+                            </td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="{{ headers|length }}" class="p-8 text-center text-gray-500 font-bold uppercase tracking-wider">
+                        No report data found. Try adjusting your filters.
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+        
+        <!-- Footer Row -->
+        {% if rows %}
+        <tfoot
+            class="sticky bottom-0 z-10 bg-gray-50 dark:bg-gray-800/90 backdrop-blur-sm border-t-2 border-gray-300 dark:border-gray-600 shadow-[0_-2px_5px_rgba(0,0,0,0.05)]">
+            <tr class="font-bold text-gray-900 dark:text-white">
+                {% for h in headers %}
+                    {% set total_val = footer_totals.get(h) %}
+                    {% if loop.first %}
+                        <td class="p-2.5 sticky left-0 bg-gray-50 dark:bg-gray-800 z-10 text-left text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            Grand Total
+                        </td>
+                    {% elif h == 'Order Amount' %}
+                        <td class="p-2.5 text-right text-[11px] border-r border-gray-200 dark:border-gray-700">
+                            {{ format_indian(total_val) }}
+                        </td>
+                    {% elif h == 'Grand Total' %}
+                        <td class="p-2.5 text-right text-[11px] text-emerald-600 dark:text-emerald-400 border-l border-gray-200 dark:border-gray-700">
+                            {{ format_indian(total_val) }}
+                        </td>
+                    {% else %}
+                        <td class="p-2.5 text-right text-[11px]">
+                            {{ format_indian(total_val) }}
+                        </td>
+                    {% endif %}
+                {% endfor %}
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+</div>

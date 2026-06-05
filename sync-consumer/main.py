@@ -50,10 +50,12 @@ try:
         sync_qc_receipt_completed_pending_data_task,
         sync_qc_completed_invoice_request_pending_data_task,
         sync_party_delay_management_data_task,
+        sync_order_fulfillment_aging_matrix_task,
         emit_sync_update
     )
     from apscheduler.schedulers.background import BackgroundScheduler
     from app.utils.sync_manager import enqueue_sync_task
+    from app.utils.sync_manager import sync_order_fulfillment_aging_matrix_data
 except Exception as e:
     # We can't log to the logger yet as it's defined later, but we can print
     print(f"CRITICAL IMPORT ERROR: {str(e)}")
@@ -161,10 +163,13 @@ def process_sync_queue():
                         res = sync_qc_receipt_completed_pending_data_task()
                     elif task_type == 'party_delay_management':
                         res = sync_party_delay_management_data_task()
+                    elif task_type == 'order_fulfillment_aging_matrix':
+                        res = sync_order_fulfillment_aging_matrix_task()
                     else:
                         logger.error(f"Unknown sync task type: {task_type}")
                         emit_sync_update('error', f'Unknown task type: {task_type}')
                         res = {"status": "error", "message": f"Unknown task type: {task_type}"}
+                        
                         
                     sync_log.end_time = datetime.utcnow()
                     sync_log.duration = time.time() - start_t

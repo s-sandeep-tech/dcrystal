@@ -40,7 +40,8 @@ from ..models.snapshots import (
     PartyBISRequestCompletedHMIssuePendingSnapshot,
     PartyHMReceiptCompletedQCIssuePendingSnapshot,
     PartyInvoiceGeneratedInvoiceApprovePendingSnapshot,
-    PartyInvoiceApprovedNotSynchedToMuzirisSnapshot
+    PartyInvoiceApprovedNotSynchedToMuzirisSnapshot,
+    OrderFulfillmentValueAgingMatrixSnapshot
 )
 from flask import current_app
 import os
@@ -126,6 +127,29 @@ def get_external_db_connection():
         return conn
     except Exception as e:
         logger.error(f"Failed to connect to external DB: {str(e)}")
+        raise e
+
+def get_kjch_db_connection():
+    """Establishes a connection to the external KJCH database."""
+    host = "kj-az1-prod1-dexcd-psql-db1.postgres.database.azure.com"
+    
+    try:
+        conn = psycopg2.connect(
+            host=host,
+            database="KJCHPilotDB",
+            user="reportuser",
+            password="rEp@eP@mU@20_78",
+            port=5432,
+            sslmode="require",
+            connect_timeout=60,
+            keepalives=1,
+            keepalives_idle=30,
+            keepalives_interval=10,
+            keepalives_count=5
+        )
+        return conn
+    except Exception as e:
+        logger.error(f"Failed to connect to KJCH DB: {str(e)}")
         raise e
 
 def sync_owner_wise_data_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
@@ -3552,3 +3576,111 @@ def sync_party_delay_management_data_task():
             time.sleep(5)
         finally:
             if conn: conn.close()
+
+
+def sync_order_fulfillment_aging_matrix_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+    conn = None
+    TASK_TYPE = task_type_override or 'order_fulfillment_aging_matrix'
+    
+    def emit(status, message, progress):
+        emit_combined_sync_update(status, message, progress, TASK_TYPE, progress_range, is_subtask)
+
+    try:
+        emit('processing', 'Starting Order Fulfillment Value Aging Matrix Sync...', 5)
+        conn = get_kjch_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        emit('processing', 'Fetching data from Muziris.DmdInvoiceSummary_KJCH...', 20)
+        query = """
+            SELECT *,
+                   regexp_replace(purity::text, '\\.0+$|(\\.[0-9]*[1-9])0+$', '\\1') AS normalized_purity
+            FROM Muziris.DmdInvoiceSummary_KJCH
+        """
+        
+        start_time = time.time()
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        duration = time.time() - start_time
+        
+        logger.info(f"OrderFulfillmentValueAgingMatrix query took {duration:.2f} seconds.")
+        emit('processing', f'Fetched {len(rows)} records in {int(duration)}s. Processing and updating local database...', 50)
+        
+        # Clear existing
+        db.session.query(OrderFulfillmentValueAgingMatrixSnapshot).delete()
+        
+        # Helper to format bucket label
+        from datetime import timedelta, date
+        def get_bucket_label(dt):
+            if not dt:
+                return ""
+            month_str = dt.strftime("%b") # e.g. "Jan"
+            day = dt.day
+            if day <= 15:
+                return f"{month_str} 1 to 15"
+            else:
+                if dt.month == 12:
+                    last_day = 31
+                else:
+                    last_day = (date(dt.year, dt.month + 1, 1) - timedelta(days=1)).day
+                return f"{month_str} 16 to {last_day}"
+
+        # Insert new using high-performance bulk mappings
+        new_records = []
+        for row in rows:
+            inv_date = row.get('transdate')
+            if isinstance(inv_date, str):
+                try:
+                    inv_date = datetime.strptime(inv_date, "%Y-%m-%d").date()
+                except:
+                    inv_date = None
+            elif isinstance(inv_date, datetime):
+                inv_date = inv_date.date()
+            
+            order_date = None
+            if inv_date:
+                order_date = inv_date - timedelta(days=20)
+            
+            inv_date_range = get_bucket_label(inv_date)
+            order_date_range = get_bucket_label(order_date)
+            
+            inv_netvalue = float(row.get('netcalc') or 0.0)
+            ordervalue = float(row.get('netcalc') or 0.0)
+            
+            new_records.append({
+                'invoiceno': row.get('invoiceno'),
+                'invoicedate': inv_date,
+                'purchaseoffice': row.get('divisionname') or 'Unknown',
+                'suppliername': row.get('ownershipname') or row.get('customername') or 'Unknown',
+                'groupname': row.get('groupname') or 'Unknown',
+                'sectionname': row.get('sectionname') or 'Unknown',
+                'purity': row.get('normalized_purity') or 'Unknown',
+                'invoicegrwt': float(row.get('grossweight') or 0.0),
+                'diamondcarat': float(row.get('diamondcarat') or 0.0),
+                'colourstonecarat': float(row.get('colourstonecarat') or 0.0),
+                'netweight': float(row.get('netweight') or 0.0),
+                'inv_netvalue': inv_netvalue,
+                'orderno': row.get('advanceno') or row.get('invoiceno') or 'Unknown',
+                'inv_date_range': inv_date_range,
+                'order_date_range': order_date_range,
+                'ordervalue': ordervalue,
+                'locationtype': row.get('regionname') or 'Unknown',
+                'locationid': row.get('locationname') or 'Unknown',
+                'locationname': row.get('locationname') or 'Unknown',
+                'snapshot_date': date.today()
+            })
+        
+        db.session.bulk_insert_mappings(OrderFulfillmentValueAgingMatrixSnapshot, new_records)
+        db.session.commit()
+        
+        emit('success', f'Sync completed! {len(rows)} records updated.', 100)
+        return {"status": "success", "count": len(rows)}
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        logger.error(f"OrderFulfillmentValueAgingMatrix Sync error: {error_msg}")
+        emit('error', f'Sync failed: {error_msg}', 0)
+        return {"status": "error", "message": error_msg}
+    finally:
+        if conn: conn.close()
+

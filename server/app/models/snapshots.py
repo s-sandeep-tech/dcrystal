@@ -2791,3 +2791,34 @@ class PartyInvoiceApprovedNotSynchedToMuzirisSnapshot(db.Model):
     def to_dict(self):
         return {c.name: getattr(self, c.name).isoformat() if isinstance(getattr(self, c.name), (datetime, date)) else getattr(self, c.name) for c in self.__table__.columns}
 
+
+class OrderFulfillmentValueAgingMatrixSnapshot(db.Model):
+    __tablename__ = 'order_fulfillment_value_aging_matrix_snapshot'
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    invoiceno = db.Column(db.String(100))
+    invoicedate = db.Column(db.Date)
+    purchaseoffice = db.Column(db.String(150))
+    suppliername = db.Column(db.String(250))
+    groupname = db.Column(db.String(150))
+    sectionname = db.Column(db.String(150))
+    purity = db.Column(db.String(100))
+    invoicegrwt = db.Column(db.Numeric(18, 3))
+    diamondcarat = db.Column(db.Numeric(18, 3))
+    colourstonecarat = db.Column(db.Numeric(18, 3))
+    netweight = db.Column(db.Numeric(18, 3))
+    inv_netvalue = db.Column(db.Numeric(18, 2))
+    orderno = db.Column(db.String(100))
+    inv_date_range = db.Column(db.String(100))
+    order_date_range = db.Column(db.String(100))
+    ordervalue = db.Column(db.Numeric(18, 2))
+    locationtype = db.Column(db.String(100))
+    locationid = db.Column(db.String(100))
+    locationname = db.Column(db.String(250))
+    snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {c.name: getattr(self, c.name).isoformat() if isinstance(getattr(self, c.name), (datetime, date)) else getattr(self, c.name) for c in self.__table__.columns}
+
+

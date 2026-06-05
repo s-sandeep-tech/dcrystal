@@ -91,3 +91,8 @@ def sync_qc_receipt_completed_pending_data(user_id=None):
 
 def sync_party_delay_management_data(user_id=None):
     return enqueue_sync_task('party_delay_management', user_id)
+
+
+def sync_order_fulfillment_aging_matrix_data(user_id=None):
+    return enqueue_sync_task('order_fulfillment_aging_matrix', user_id)
+

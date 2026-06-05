@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Order Fulfillment Value Aging Matrix{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
+{% endblock %}
+
+{% block content %}
+<main id="matrix-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    <!-- Header -->
+    <div class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <h2 class="text-sm font-bold tracking-tight">Order Fulfillment Value Aging Matrix (in Lakhs)</h2>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
+                <button onclick="adjustZoom(-0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom Out">-</button>
+                <button id="zoom-level" onclick="adjustZoom(0, true)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700"
+                    title="Reset Zoom">100%</button>
+                <button onclick="adjustZoom(0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom In">+</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+        <!-- Total Order Amount -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Order Amount</p>
+            <p id="stat-total-order-amount" class="text-sm font-bold text-primary mt-1">0.00 L</p>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div class="h-full bg-primary" style="width: 100%"></div>
+            </div>
+        </div>
+        <!-- Total Delivered Amount -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Delivered Amount</p>
+            <p id="stat-total-delivered-amount" class="text-sm font-bold text-emerald-600 mt-1">0.00 L</p>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-500" style="width: 100%"></div>
+            </div>
+        </div>
+        <!-- Total Net Weight -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Net Wt (g)</p>
+            <p id="stat-total-net-weight" class="text-sm font-bold text-indigo-600 mt-1">0.00 g</p>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div class="h-full bg-indigo-500" style="width: 100%"></div>
+            </div>
+        </div>
+        <!-- Total Gross Weight -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Gross Wt (g)</p>
+            <p id="stat-total-gross-weight" class="text-sm font-bold text-teal-600 mt-1">0.00 g</p>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div class="h-full bg-teal-500" style="width: 100%"></div>
+            </div>
+        </div>
+        <!-- Total Diamond Carat -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Diamond Cts</p>
+            <p id="stat-total-diamond-carat" class="text-sm font-bold text-cyan-600 mt-1">0.00 Cts</p>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div class="h-full bg-cyan-500" style="width: 100%"></div>
+            </div>
+        </div>
+        <!-- Total Colorstone Carat -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Colorstone Cts</p>
+            <p id="stat-total-colour-stone-carat" class="text-sm font-bold text-amber-600 mt-1">0.00 Cts</p>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div class="h-full bg-amber-500" style="width: 100%"></div>
+            </div>
+        </div>
+        <!-- Order Buckets -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Order Buckets</p>
+            <p id="stat-num-order-buckets" class="text-sm font-bold text-blue-600 mt-1">0</p>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div class="h-full bg-blue-500" style="width: 100%"></div>
+            </div>
+        </div>
+        <!-- Highest Delivery Bucket -->
+        <div class="p-2 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Highest Delivery Bucket</p>
+            <p id="stat-highest-delivery-bucket" class="text-[11px] font-bold text-purple-600 mt-1">N/A</p>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div class="h-full bg-purple-500" style="width: 100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Container -->
+    <div id="table-area" class="flex-1 overflow-auto relative">
+        <div id="view-matrix" class="dashboard-view">
+            <div class="flex flex-col items-center justify-center py-24 text-gray-500">
+                <div class="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p class="text-[10px] font-bold uppercase tracking-widest">Loading matrix data...</p>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block sidebar %}
+<aside class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+    <!-- Sidebar Header -->
+    <div class="p-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
+        <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> FILTERS
+            </h2>
+            <button onclick="resetGlobalFilters()"
+                class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+        </div>
+    </div>
+
+    <!-- Scrollable Filter Content -->
+    <div class="p-4 flex-1 overflow-y-auto no-scrollbar">
+        <div class="space-y-4">
+            <!-- Purchase Office -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Purchase Office</label>
+                <select id="filter-purchase_office" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Purchase Offices</option>
+                </select>
+            </div>
+
+            <!-- Supplier Name -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Supplier Name</label>
+                <select id="filter-supplier_name" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Suppliers</option>
+                </select>
+            </div>
+
+            <!-- Group Name -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Group Name</label>
+                <select id="filter-group_name" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Groups</option>
+                </select>
+            </div>
+
+            <!-- Section Name -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Section Name</label>
+                <select id="filter-section_name" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Sections</option>
+                </select>
+            </div>
+
+            <!-- Purity -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Purity</label>
+                <select id="filter-purity" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Purities</option>
+                </select>
+            </div>
+
+            <!-- Location Type -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Location Type</label>
+                <select id="filter-location_type" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Types</option>
+                </select>
+            </div>
+
+            <!-- Location -->
+            <div id="filter-location-container"></div>
+        </div>
+    </div>
+
+    <!-- Sidebar Footer -->
+    <div class="p-4 border-t border-gray-200 dark:border-gray-800 shrink-0 bg-white dark:bg-background-dark">
+        <button onclick="applyGlobalFilters()"
+            class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2 transition-all">
+            <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
+        </button>
+    </div>
+</aside>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
+<script src="{{ url_for('static', filename='js/order_fulfillment_value_aging_matrix.js') }}"></script>
+{% endblock %}
