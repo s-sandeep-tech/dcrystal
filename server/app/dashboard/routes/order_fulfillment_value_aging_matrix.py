@@ -40,19 +40,6 @@ def order_fulfillment_aging_options():
         def get_distinct(col):
             return [r[0] for r in db.session.query(col.distinct()).order_by(col).all() if r[0]]
 
-        # Locations query mapping locationid and locationname
-        locs_raw = db.session.query(
-            OrderFulfillmentValueAgingMatrixSnapshot.locationid,
-            OrderFulfillmentValueAgingMatrixSnapshot.locationname
-        ).distinct().order_by(OrderFulfillmentValueAgingMatrixSnapshot.locationname).all()
-        
-        locations = []
-        seen_ids = set()
-        for lid, lname in locs_raw:
-            if lid and lid not in seen_ids:
-                seen_ids.add(lid)
-                locations.append({'id': lid, 'name': lname or lid})
-
         options = {
             'purchase_offices': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.purchaseoffice),
             'supplier_names': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.suppliername),
@@ -60,7 +47,7 @@ def order_fulfillment_aging_options():
             'sections': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.sectionname),
             'purities': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.purity),
             'location_types': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.locationtype),
-            'locations': locations
+            'locations': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.locationid)
         }
         return jsonify(options)
     except Exception as e:
