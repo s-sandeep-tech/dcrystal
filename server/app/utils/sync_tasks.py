@@ -3637,12 +3637,8 @@ def sync_order_fulfillment_aging_matrix_task(task_type_override=None, progress_r
             elif isinstance(inv_date, datetime):
                 inv_date = inv_date.date()
             
-            order_date = None
-            if inv_date:
-                order_date = inv_date - timedelta(days=20)
-            
-            inv_date_range = get_bucket_label(inv_date)
-            order_date_range = get_bucket_label(order_date)
+            inv_date_range = row.get('inv_date_range')
+            order_date_range = row.get('order_date_range')
             
             inv_netvalue = float(row.get('inv_netvalue') or 0.0)
             ordervalue = float(row.get('ordervalue') or 0.0)
