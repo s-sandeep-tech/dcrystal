@@ -3628,7 +3628,7 @@ def sync_order_fulfillment_aging_matrix_task(task_type_override=None, progress_r
         # Insert new using high-performance bulk mappings
         new_records = []
         for row in rows:
-            inv_date = row.get('transdate')
+            inv_date = row.get('invoicedate')
             if isinstance(inv_date, str):
                 try:
                     inv_date = datetime.strptime(inv_date, "%Y-%m-%d").date()
@@ -3644,28 +3644,28 @@ def sync_order_fulfillment_aging_matrix_task(task_type_override=None, progress_r
             inv_date_range = get_bucket_label(inv_date)
             order_date_range = get_bucket_label(order_date)
             
-            inv_netvalue = float(row.get('netcalc') or 0.0)
-            ordervalue = float(row.get('netcalc') or 0.0)
+            inv_netvalue = float(row.get('inv_netvalue') or 0.0)
+            ordervalue = float(row.get('ordervalue') or 0.0)
             
             new_records.append({
                 'invoiceno': row.get('invoiceno'),
                 'invoicedate': inv_date,
-                'purchaseoffice': row.get('divisionname') or 'Unknown',
-                'suppliername': row.get('ownershipname') or row.get('customername') or 'Unknown',
+                'purchaseoffice': row.get('purchaseoffice') or 'Unknown',
+                'suppliername': row.get('suppliername') or 'Unknown',
                 'groupname': row.get('groupname') or 'Unknown',
                 'sectionname': row.get('sectionname') or 'Unknown',
                 'purity': row.get('normalized_purity') or 'Unknown',
-                'invoicegrwt': float(row.get('grossweight') or 0.0),
+                'invoicegrwt': float(row.get('invoicegrwt') or 0.0),
                 'diamondcarat': float(row.get('diamondcarat') or 0.0),
                 'colourstonecarat': float(row.get('colourstonecarat') or 0.0),
                 'netweight': float(row.get('netweight') or 0.0),
                 'inv_netvalue': inv_netvalue,
-                'orderno': row.get('advanceno') or row.get('invoiceno') or 'Unknown',
+                'orderno': row.get('orderno') or row.get('invoiceno') or 'Unknown',
                 'inv_date_range': inv_date_range,
                 'order_date_range': order_date_range,
                 'ordervalue': ordervalue,
-                'locationtype': row.get('regionname') or 'Unknown',
-                'locationid': row.get('locationname') or 'Unknown',
+                'locationtype': row.get('locationtype') or 'Unknown',
+                'locationid': row.get('locationid') or 'Unknown',
                 'locationname': row.get('locationname') or 'Unknown',
                 'snapshot_date': date.today()
             })
