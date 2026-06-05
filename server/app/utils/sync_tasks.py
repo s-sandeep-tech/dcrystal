@@ -3669,7 +3669,14 @@ def sync_order_fulfillment_aging_matrix_task(task_type_override=None, progress_r
         db.session.bulk_insert_mappings(OrderFulfillmentValueAgingMatrixSnapshot, new_records)
         db.session.commit()
         
-        emit('success', f'Sync completed! {len(rows)} records updated.', 100)
+        try:
+            redis_client.flushdb()
+            cache_msg = " Cache cleared."
+        except Exception as ce:
+            logger.error(f"Failed to clear cache during Order Fulfillment sync: {ce}")
+            cache_msg = " Cache clear failed."
+        
+        emit('success', f'Sync completed! {len(rows)} records updated.{cache_msg}', 100)
         return {"status": "success", "count": len(rows)}
     except Exception as e:
         db.session.rollback()

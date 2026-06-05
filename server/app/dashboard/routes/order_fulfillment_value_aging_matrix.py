@@ -2,7 +2,8 @@ from flask import render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
 from app.models import Notification, OrderFulfillmentValueAgingMatrixSnapshot
-from app.extensions import db
+from app.extensions import db, redis_client
+from app.utils.cache_utils import generate_cache_key
 from sqlalchemy import func, text
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -65,6 +66,24 @@ def get_order_fulfillment_partial():
         purity = request.args.get('purity', '')
         location_type = request.args.get('location_type', '')
         location = request.args.get('location', '')
+
+        # Redis Caching Logic
+        params = {
+            'purchase_office': purchase_office if purchase_office else None,
+            'supplier_name': supplier_name if supplier_name else None,
+            'group_name': group_name if group_name else None,
+            'section_name': section_name if section_name else None,
+            'purity': purity if purity else None,
+            'location_type': location_type if location_type else None,
+            'location': location if location else None
+        }
+        snapshot_date = db.session.query(func.max(OrderFulfillmentValueAgingMatrixSnapshot.snapshot_date)).scalar()
+        cache_key = generate_cache_key("order_fulfillment_aging_matrix_partial", snapshot_date, **params)
+        
+        cached_html = redis_client.get(cache_key)
+        if cached_html:
+            redis_client.expire(cache_key, 14400)  # Sliding expiry (4 hours)
+            return cached_html
 
         # Build filter SQL clause
         filter_sql = ""
@@ -298,12 +317,14 @@ FROM delivery_report_last_6_months;
             'total_colour_stone_carat': total_colour_stone_carat
         }
 
-        return render_template('partials/_view_order_fulfillment_value_aging_matrix.html', 
+        rendered_html = render_template('partials/_view_order_fulfillment_value_aging_matrix.html', 
                              headers=headers, 
                              rows=rows, 
                              stats=stats,
                              footer_totals=footer_totals,
                              delivery_headers=delivery_headers)
+        redis_client.setex(cache_key, 14400, rendered_html)
+        return rendered_html
     except Exception as e:
         logger.error(f"Error in get_order_fulfillment_partial: {str(e)}")
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
