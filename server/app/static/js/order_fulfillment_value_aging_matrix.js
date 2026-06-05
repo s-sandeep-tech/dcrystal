@@ -1,5 +1,9 @@
 let currentZoom = parseFloat(localStorage.getItem('matrix-zoom')) || 1.0;
 let locationMultiSelect;
+let purchaseOfficeMultiSelect;
+let supplierNameMultiSelect;
+let sectionNameMultiSelect;
+let purityMultiSelect;
 
 function adjustZoom(delta, reset = false) {
     const tableArea = document.getElementById('table-area');
@@ -81,6 +85,7 @@ function updateDashboardStats(stats) {
     }
 }
 
+// Helper function to decode commas and ensure they match url search params correctly
 function updateUrlAndLoad(params) {
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
@@ -98,6 +103,14 @@ function applyGlobalFilters() {
         let val;
         if (id === 'location' && locationMultiSelect) {
             val = locationMultiSelect.getValues().join(',');
+        } else if (id === 'purchase_office' && purchaseOfficeMultiSelect) {
+            val = purchaseOfficeMultiSelect.getValues().join(',');
+        } else if (id === 'supplier_name' && supplierNameMultiSelect) {
+            val = supplierNameMultiSelect.getValues().join(',');
+        } else if (id === 'section_name' && sectionNameMultiSelect) {
+            val = sectionNameMultiSelect.getValues().join(',');
+        } else if (id === 'purity' && purityMultiSelect) {
+            val = purityMultiSelect.getValues().join(',');
         } else {
             val = document.getElementById(`filter-${id}`)?.value;
         }
@@ -116,6 +129,14 @@ function resetGlobalFilters() {
     filterIds.forEach(id => {
         if (id === 'location' && locationMultiSelect) {
             locationMultiSelect.reset();
+        } else if (id === 'purchase_office' && purchaseOfficeMultiSelect) {
+            purchaseOfficeMultiSelect.reset();
+        } else if (id === 'supplier_name' && supplierNameMultiSelect) {
+            supplierNameMultiSelect.reset();
+        } else if (id === 'section_name' && sectionNameMultiSelect) {
+            sectionNameMultiSelect.reset();
+        } else if (id === 'purity' && purityMultiSelect) {
+            purityMultiSelect.reset();
         } else {
             const el = document.getElementById(`filter-${id}`);
             if (el) el.value = '';
@@ -138,30 +159,28 @@ async function loadFilterOptions() {
         const urlParams = new URLSearchParams(window.location.search);
 
         const mappings = [
-            { id: 'filter-purchase_office', list: options.purchase_offices, label: 'Purchase Office' },
-            { id: 'filter-supplier_name', list: options.supplier_names, label: 'Supplier Name' },
+            { id: 'filter-purchase_office', list: options.purchase_offices, label: 'Purchase Office', ms: purchaseOfficeMultiSelect, param: 'purchase_office', checkboxClass: 'filter-purchase_office-container-checkbox' },
+            { id: 'filter-supplier_name', list: options.supplier_names, label: 'Supplier Name', ms: supplierNameMultiSelect, param: 'supplier_name', checkboxClass: 'filter-supplier_name-container-checkbox' },
             { id: 'filter-group_name', list: options.groups, label: 'Group Name' },
-            { id: 'filter-section_name', list: options.sections, label: 'Section Name' },
-            { id: 'filter-purity', list: options.purities, label: 'Purity' },
+            { id: 'filter-section_name', list: options.sections, label: 'Section Name', ms: sectionNameMultiSelect, param: 'section_name', checkboxClass: 'filter-section_name-container-checkbox' },
+            { id: 'filter-purity', list: options.purities, label: 'Purity', ms: purityMultiSelect, param: 'purity', checkboxClass: 'filter-purity-container-checkbox' },
             { id: 'filter-location_type', list: options.location_types, label: 'Location Type' },
-            { id: 'filter-location', list: options.locations, label: 'Location' }
+            { id: 'filter-location', list: options.locations, label: 'Location', ms: locationMultiSelect, param: 'location', checkboxClass: 'filter-location-container-checkbox' }
         ];
 
         mappings.forEach(m => {
-            if (m.id === 'filter-location') {
-                if (locationMultiSelect) {
-                    locationMultiSelect.populateOptions(m.list || []);
-                    // Restore selection from URL
-                    const selectedVals = urlParams.get('location');
-                    if (selectedVals) {
-                        const vals = selectedVals.split(',');
-                        document.querySelectorAll(`.filter-location-container-checkbox`).forEach(cb => {
-                            if (vals.includes(cb.value)) {
-                                cb.checked = true;
-                            }
-                        });
-                        locationMultiSelect.updateTriggerText();
-                    }
+            if (m.ms) {
+                m.ms.populateOptions(m.list || []);
+                // Restore selection from URL
+                const selectedVals = urlParams.get(m.param);
+                if (selectedVals) {
+                    const vals = selectedVals.split(',').map(v => v.trim());
+                    document.querySelectorAll(`.${m.checkboxClass}`).forEach(cb => {
+                        if (vals.includes(cb.value.toString().trim())) {
+                            cb.checked = true;
+                        }
+                    });
+                    m.ms.updateTriggerText();
                 }
             } else {
                 populateSelect(m.id, m.list, `All ${m.label}s`, urlParams.get(m.id.replace('filter-', '')));
@@ -187,7 +206,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const tableArea = document.getElementById('table-area');
     if (tableArea) tableArea.style.zoom = currentZoom;
 
-    // Initialize custom multiselect component for locations
+    // Initialize custom multiselect components
+    purchaseOfficeMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-purchase_office-container',
+        label: 'Purchase Office',
+        defaultText: 'All Purchase Offices',
+        options: []
+    });
+
+    supplierNameMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-supplier_name-container',
+        label: 'Supplier Name',
+        defaultText: 'All Suppliers',
+        options: []
+    });
+
+    sectionNameMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-section_name-container',
+        label: 'Section Name',
+        defaultText: 'All Sections',
+        options: []
+    });
+
+    purityMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-purity-container',
+        label: 'Purity',
+        defaultText: 'All Purities',
+        options: []
+    });
+
     locationMultiSelect = new CustomMultiSelect({
         containerId: 'filter-location-container',
         label: 'Location',

@@ -88,17 +88,39 @@ def get_order_fulfillment_partial():
         # Build filter SQL clause
         filter_sql = ""
         if purchase_office:
-            filter_sql += f" AND purchaseoffice = '{escape_val(purchase_office)}'"
+            if ',' in purchase_office:
+                offs = [f"'{escape_val(o.strip())}'" for o in purchase_office.split(',') if o.strip()]
+                filter_sql += f" AND purchaseoffice IN ({','.join(offs)})"
+            else:
+                filter_sql += f" AND purchaseoffice = '{escape_val(purchase_office)}'"
+
         if supplier_name:
-            filter_sql += f" AND suppliername = '{escape_val(supplier_name)}'"
+            if ',' in supplier_name:
+                sups = [f"'{escape_val(s.strip())}'" for s in supplier_name.split(',') if s.strip()]
+                filter_sql += f" AND suppliername IN ({','.join(sups)})"
+            else:
+                filter_sql += f" AND suppliername = '{escape_val(supplier_name)}'"
+
         if group_name:
             filter_sql += f" AND groupname = '{escape_val(group_name)}'"
+
         if section_name:
-            filter_sql += f" AND sectionname = '{escape_val(section_name)}'"
+            if ',' in section_name:
+                secs = [f"'{escape_val(s.strip())}'" for s in section_name.split(',') if s.strip()]
+                filter_sql += f" AND sectionname IN ({','.join(secs)})"
+            else:
+                filter_sql += f" AND sectionname = '{escape_val(section_name)}'"
+
         if purity:
-            filter_sql += f" AND purity = '{escape_val(purity)}'"
+            if ',' in purity:
+                purs = [f"'{escape_val(p.strip())}'" for p in purity.split(',') if p.strip()]
+                filter_sql += f" AND purity IN ({','.join(purs)})"
+            else:
+                filter_sql += f" AND purity = '{escape_val(purity)}'"
+
         if location_type:
             filter_sql += f" AND locationtype = '{escape_val(location_type)}'"
+
         if location:
             if ',' in location:
                 locs = [f"'{escape_val(l.strip())}'" for l in location.split(',') if l.strip()]
@@ -268,17 +290,39 @@ FROM delivery_report_last_6_months;
         )
         
         if purchase_office:
-            stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.purchaseoffice == purchase_office)
+            if ',' in purchase_office:
+                offs = [o.strip() for o in purchase_office.split(',') if o.strip()]
+                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.purchaseoffice.in_(offs))
+            else:
+                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.purchaseoffice == purchase_office)
+
         if supplier_name:
-            stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.suppliername == supplier_name)
+            if ',' in supplier_name:
+                sups = [s.strip() for s in supplier_name.split(',') if s.strip()]
+                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.suppliername.in_(sups))
+            else:
+                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.suppliername == supplier_name)
+
         if group_name:
             stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.groupname == group_name)
+
         if section_name:
-            stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.sectionname == section_name)
+            if ',' in section_name:
+                secs = [s.strip() for s in section_name.split(',') if s.strip()]
+                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.sectionname.in_(secs))
+            else:
+                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.sectionname == section_name)
+
         if purity:
-            stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.purity == purity)
+            if ',' in purity:
+                purs = [p.strip() for p in purity.split(',') if p.strip()]
+                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.purity.in_(purs))
+            else:
+                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.purity == purity)
+
         if location_type:
             stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.locationtype == location_type)
+
         if location:
             if ',' in location:
                 locs = [l.strip() for l in location.split(',') if l.strip()]
