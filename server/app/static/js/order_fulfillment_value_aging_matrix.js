@@ -5,6 +5,31 @@ let supplierNameMultiSelect;
 let sectionNameMultiSelect;
 let purityMultiSelect;
 
+function getMatrixMode() {
+    return new URLSearchParams(window.location.search).get('matrix_mode') || 'order_to_delivery';
+}
+
+function updateMatrixModeButtons() {
+    const activeMode = getMatrixMode();
+    document.querySelectorAll('.matrix-mode-btn').forEach(btn => {
+        btn.classList.remove('bg-white', 'dark:bg-gray-700', 'shadow-sm', 'text-primary');
+        btn.classList.add('text-gray-500', 'hover:text-gray-700');
+    });
+
+    const activeBtn = document.getElementById(`btn-${activeMode.replace(/_/g, '-')}`);
+    if (activeBtn) {
+        activeBtn.classList.add('bg-white', 'dark:bg-gray-700', 'shadow-sm', 'text-primary');
+        activeBtn.classList.remove('text-gray-500', 'hover:text-gray-700');
+    }
+}
+
+function setMatrixMode(mode) {
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('matrix_mode', mode);
+    updateUrlAndLoad(urlParams);
+    updateMatrixModeButtons();
+}
+
 function adjustZoom(delta, reset = false) {
     const tableArea = document.getElementById('table-area');
     if (!tableArea) return;
@@ -144,6 +169,7 @@ function resetGlobalFilters() {
     });
 
     const urlParams = new URLSearchParams();
+    urlParams.set('matrix_mode', getMatrixMode());
     updateUrlAndLoad(urlParams);
     loadFilterOptions();
 }
@@ -205,6 +231,7 @@ function populateSelect(id, list, placeholder, selectedValue) {
 document.addEventListener('DOMContentLoaded', () => {
     const tableArea = document.getElementById('table-area');
     if (tableArea) tableArea.style.zoom = currentZoom;
+    updateMatrixModeButtons();
 
     // Initialize custom multiselect components
     purchaseOfficeMultiSelect = new CustomMultiSelect({

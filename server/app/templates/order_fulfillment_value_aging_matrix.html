@@ -12,6 +12,14 @@
     <div class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
         <div class="flex items-center gap-4">
             <h2 class="text-sm font-bold tracking-tight">Order Fulfillment Value Aging Matrix (in Lakhs)</h2>
+            <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 ml-4">
+                <button id="btn-order-to-delivery" onclick="setMatrixMode('order_to_delivery')"
+                    class="matrix-mode-btn px-3 py-1 text-[10px] font-bold rounded bg-white dark:bg-gray-700 shadow-sm text-primary flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px]">receipt_long</span>Order-to-Delivery</button>
+                <button id="btn-delivery-to-order" onclick="setMatrixMode('delivery_to_order')"
+                    class="matrix-mode-btn px-3 py-1 text-[10px] font-bold text-gray-500 hover:text-gray-700 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px]">local_shipping</span>Delivery-to-Order</button>
+            </div>
         </div>
         <div class="flex items-center gap-3">
             <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
