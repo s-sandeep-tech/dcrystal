@@ -1,7 +1,7 @@
 from flask import render_template, request, jsonify, session
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from app.dashboard import dashboard_bp
-from app.models import Notification, OrderFulfillmentValueAgingMatrixSnapshot
+from app.models import Notification, OrderFulfillmentValueAgingMatrixSnapshot, User
 from app.extensions import db, redis_client
 from app.utils.cache_utils import generate_cache_key
 from sqlalchemy import func, text
@@ -32,7 +32,11 @@ def order_fulfillment_value_aging_matrix():
 @jwt_required()
 def sync_order_fulfillment_value_aging_matrix():
     from app.utils.sync_manager import sync_order_fulfillment_aging_matrix_data
-    user_id = get_jwt_identity() or session.get('user_id')
+    user_id = session.get('user_id')
+    if not user_id:
+        jwt_identity = get_jwt_identity()
+        user = db.session.get(User, int(jwt_identity)) if jwt_identity else None
+        user_id = user.user_id if user else None
     return jsonify(sync_order_fulfillment_aging_matrix_data(user_id))
 
 @dashboard_bp.route('/api/order_fulfillment_value_aging_matrix/options')
