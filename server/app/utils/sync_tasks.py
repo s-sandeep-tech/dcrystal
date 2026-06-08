@@ -3627,6 +3627,7 @@ def sync_order_fulfillment_aging_matrix_task(task_type_override=None, progress_r
 
         # Insert new using high-performance bulk mappings
         new_records = []
+        updated_at = datetime.utcnow()
         for row in rows:
             inv_date = row.get('invoicedate')
             if isinstance(inv_date, str):
@@ -3663,7 +3664,8 @@ def sync_order_fulfillment_aging_matrix_task(task_type_override=None, progress_r
                 'locationtype': row.get('locationtype') or 'Unknown',
                 'locationid': row.get('locationid') or 'Unknown',
                 'locationname': row.get('locationname') or 'Unknown',
-                'snapshot_date': date.today()
+                'snapshot_date': date.today(),
+                'updated_at': updated_at
             })
         
         db.session.bulk_insert_mappings(OrderFulfillmentValueAgingMatrixSnapshot, new_records)
@@ -3686,4 +3688,3 @@ def sync_order_fulfillment_aging_matrix_task(task_type_override=None, progress_r
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
-

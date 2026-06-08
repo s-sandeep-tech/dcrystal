@@ -1,5 +1,5 @@
 from flask import render_template, request, jsonify, session
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from app.dashboard import dashboard_bp
 from app.models import Notification, OrderFulfillmentValueAgingMatrixSnapshot
 from app.extensions import db, redis_client
@@ -32,7 +32,8 @@ def order_fulfillment_value_aging_matrix():
 @jwt_required()
 def sync_order_fulfillment_value_aging_matrix():
     from app.utils.sync_manager import sync_order_fulfillment_aging_matrix_data
-    return jsonify(sync_order_fulfillment_aging_matrix_data())
+    user_id = get_jwt_identity() or session.get('user_id')
+    return jsonify(sync_order_fulfillment_aging_matrix_data(user_id))
 
 @dashboard_bp.route('/api/order_fulfillment_value_aging_matrix/options')
 @jwt_required()
@@ -372,4 +373,3 @@ FROM delivery_report_last_6_months;
     except Exception as e:
         logger.error(f"Error in get_order_fulfillment_partial: {str(e)}")
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
-
