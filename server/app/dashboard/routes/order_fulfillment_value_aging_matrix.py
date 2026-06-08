@@ -11,132 +11,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def escape_val(v):
     if v is None:
         return ""
     return str(v).replace("'", "''")
 
-@dashboard_bp.route('/order_fulfillment_value_aging_matrix')
-def order_fulfillment_value_aging_matrix():
-    try:
-        unread_count = Notification.query.filter_by(is_read=False).count()
-        sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
-        return render_template('order_fulfillment_value_aging_matrix.html', 
-                             unread_count=unread_count, 
-                             sync_time=sync_time)
-    except Exception as e:
-        logger.error(f"Error in order_fulfillment_value_aging_matrix: {str(e)}")
-        return f"Error: {str(e)}", 500
 
-@dashboard_bp.route('/sync/order_fulfillment_value_aging_matrix', methods=['POST'])
-@jwt_required()
-def sync_order_fulfillment_value_aging_matrix():
-    from app.utils.sync_manager import sync_order_fulfillment_aging_matrix_data
-    user_id = session.get('user_id')
-    if not user_id:
-        jwt_identity = get_jwt_identity()
-        user = db.session.get(User, int(jwt_identity)) if jwt_identity else None
-        user_id = user.user_id if user else None
-    return jsonify(sync_order_fulfillment_aging_matrix_data(user_id))
-
-@dashboard_bp.route('/api/order_fulfillment_value_aging_matrix/options')
-@jwt_required()
-def order_fulfillment_aging_options():
-    try:
-        def get_distinct(col):
-            return [r[0] for r in db.session.query(col.distinct()).order_by(col).all() if r[0]]
-
-        options = {
-            'purchase_offices': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.purchaseoffice),
-            'supplier_names': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.suppliername),
-            'groups': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.groupname),
-            'sections': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.sectionname),
-            'purities': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.purity),
-            'location_types': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.locationtype),
-            'locations': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.locationid)
-        }
-        return jsonify(options)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@dashboard_bp.route('/partial/order_fulfillment_value_aging_matrix')
-@jwt_required()
-def get_order_fulfillment_partial():
-    try:
-        # Retrieve filters
-        purchase_office = request.args.get('purchase_office', '')
-        supplier_name = request.args.get('supplier_name', '')
-        group_name = request.args.get('group_name', '')
-        section_name = request.args.get('section_name', '')
-        purity = request.args.get('purity', '')
-        location_type = request.args.get('location_type', '')
-        location = request.args.get('location', '')
-
-        # Redis Caching Logic
-        params = {
-            'purchase_office': purchase_office if purchase_office else None,
-            'supplier_name': supplier_name if supplier_name else None,
-            'group_name': group_name if group_name else None,
-            'section_name': section_name if section_name else None,
-            'purity': purity if purity else None,
-            'location_type': location_type if location_type else None,
-            'location': location if location else None
-        }
-        snapshot_date = db.session.query(func.max(OrderFulfillmentValueAgingMatrixSnapshot.snapshot_date)).scalar()
-        cache_key = generate_cache_key("order_fulfillment_aging_matrix_partial", snapshot_date, **params)
-        
-        cached_html = redis_client.get(cache_key)
-        if cached_html:
-            redis_client.expire(cache_key, 14400)  # Sliding expiry (4 hours)
-            return cached_html
-
-        # Build filter SQL clause
-        filter_sql = ""
-        if purchase_office:
-            if ',' in purchase_office:
-                offs = [f"'{escape_val(o.strip())}'" for o in purchase_office.split(',') if o.strip()]
-                filter_sql += f" AND purchaseoffice IN ({','.join(offs)})"
-            else:
-                filter_sql += f" AND purchaseoffice = '{escape_val(purchase_office)}'"
-
-        if supplier_name:
-            if ',' in supplier_name:
-                sups = [f"'{escape_val(s.strip())}'" for s in supplier_name.split(',') if s.strip()]
-                filter_sql += f" AND suppliername IN ({','.join(sups)})"
-            else:
-                filter_sql += f" AND suppliername = '{escape_val(supplier_name)}'"
-
-        if group_name:
-            filter_sql += f" AND groupname = '{escape_val(group_name)}'"
-
-        if section_name:
-            if ',' in section_name:
-                secs = [f"'{escape_val(s.strip())}'" for s in section_name.split(',') if s.strip()]
-                filter_sql += f" AND sectionname IN ({','.join(secs)})"
-            else:
-                filter_sql += f" AND sectionname = '{escape_val(section_name)}'"
-
-        if purity:
-            if ',' in purity:
-                purs = [f"'{escape_val(p.strip())}'" for p in purity.split(',') if p.strip()]
-                filter_sql += f" AND purity IN ({','.join(purs)})"
-            else:
-                filter_sql += f" AND purity = '{escape_val(purity)}'"
-
-        if location_type:
-            filter_sql += f" AND locationtype = '{escape_val(location_type)}'"
-
-        if location:
-            if ',' in location:
-                locs = [f"'{escape_val(l.strip())}'" for l in location.split(',') if l.strip()]
-                filter_sql += f" AND locationid IN ({','.join(locs)})"
-            else:
-                filter_sql += f" AND locationid = '{escape_val(location)}'"
-
-        table_expression = f"(SELECT * FROM order_fulfillment_value_aging_matrix_snapshot WHERE 1=1{filter_sql}) AS tbl"
-
-        # SQL template as requested
-        query = f"""
+def build_order_to_delivery_query(table_expression):
+    return f"""
 DROP VIEW IF EXISTS delivery_report_last_6_months;
 
 DO $$
@@ -256,99 +139,324 @@ END $$;
 
 SELECT *
 FROM delivery_report_last_6_months;
-        """
+    """
 
-        # Execute PL/pgSQL DO block to generate temp view and select results
+
+def build_delivery_to_order_query(table_expression):
+    return f"""
+DROP VIEW IF EXISTS delivery_report_last_6_months;
+
+DO $$
+DECLARE
+    column_sql text;
+    select_column_sql text;
+    final_sql text;
+BEGIN
+    SELECT
+        string_agg(
+            format(
+                'ROUND(SUM(CASE WHEN b.order_date_range = %L THEN b.inv_netvalue ELSE 0 END) / 100000.0, 2) AS %I',
+                order_date_range,
+                display_label
+            ),
+            ', ' ORDER BY bucket_start
+        ),
+        string_agg(
+            format('%I', display_label),
+            ', ' ORDER BY bucket_start
+        )
+    INTO column_sql, select_column_sql
+    FROM (
+        SELECT
+            order_date_range,
+            replace(order_date_range, ' - ', ' to ') AS display_label,
+            CASE
+                WHEN EXTRACT(MONTH FROM TO_DATE(split_part(order_date_range, ' ', 1), 'Mon'))
+                     > EXTRACT(MONTH FROM CURRENT_DATE)
+                THEN TO_DATE(
+                    split_part(order_date_range, ' ', 1) || ' ' ||
+                    split_part(order_date_range, ' ', 2) || ' ' ||
+                    (EXTRACT(YEAR FROM CURRENT_DATE)::int - 1),
+                    'Mon DD YYYY'
+                )
+                ELSE TO_DATE(
+                    split_part(order_date_range, ' ', 1) || ' ' ||
+                    split_part(order_date_range, ' ', 2) || ' ' ||
+                    EXTRACT(YEAR FROM CURRENT_DATE)::int,
+                    'Mon DD YYYY'
+                )
+            END AS bucket_start
+        FROM (
+            SELECT DISTINCT order_date_range
+            FROM {table_expression}
+            WHERE invoicedate >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'
+              AND invoicedate <  DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
+              AND order_date_range IS NOT NULL
+              AND order_date_range <> ''
+        ) distinct_ranges
+    ) order_buckets;
+
+    final_sql := format($sql$
+        CREATE TEMP VIEW delivery_report_last_6_months AS
+        WITH base AS (
+            SELECT *
+            FROM {table_expression}
+            WHERE invoicedate >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'
+              AND invoicedate <  DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
+        ),
+
+        report AS (
+            SELECT
+                b.inv_date_range AS "Deliver Date",
+
+                CASE
+                    WHEN EXTRACT(MONTH FROM TO_DATE(split_part(b.inv_date_range, ' ', 1), 'Mon'))
+                         > EXTRACT(MONTH FROM CURRENT_DATE)
+                    THEN TO_DATE(
+                        split_part(b.inv_date_range, ' ', 1) || ' ' ||
+                        split_part(b.inv_date_range, ' ', 2) || ' ' ||
+                        (EXTRACT(YEAR FROM CURRENT_DATE)::int - 1),
+                        'Mon DD YYYY'
+                    )
+                    ELSE TO_DATE(
+                        split_part(b.inv_date_range, ' ', 1) || ' ' ||
+                        split_part(b.inv_date_range, ' ', 2) || ' ' ||
+                        EXTRACT(YEAR FROM CURRENT_DATE)::int,
+                        'Mon DD YYYY'
+                    )
+                END AS sort_date,
+
+                %s,
+                ROUND(SUM(b.inv_netvalue) / 100000.0, 2) AS "Grand Total"
+
+            FROM base b
+            WHERE b.inv_date_range IS NOT NULL AND b.inv_date_range <> ''
+            GROUP BY b.inv_date_range
+        )
+
+        SELECT
+            "Deliver Date",
+            %s,
+            "Grand Total"
+        FROM report
+        ORDER BY sort_date;
+    $sql$, column_sql, select_column_sql);
+
+    EXECUTE final_sql;
+END $$;
+
+SELECT *
+FROM delivery_report_last_6_months;
+    """
+
+
+@dashboard_bp.route('/order_fulfillment_value_aging_matrix')
+def order_fulfillment_value_aging_matrix():
+    try:
+        unread_count = Notification.query.filter_by(is_read=False).count()
+        sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
+        return render_template('order_fulfillment_value_aging_matrix.html',
+                             unread_count=unread_count,
+                             sync_time=sync_time)
+    except Exception as e:
+        logger.error(f"Error in order_fulfillment_value_aging_matrix: {str(e)}")
+        return f"Error: {str(e)}", 500
+
+
+@dashboard_bp.route('/sync/order_fulfillment_value_aging_matrix', methods=['POST'])
+@jwt_required()
+def sync_order_fulfillment_value_aging_matrix():
+    from app.utils.sync_manager import sync_order_fulfillment_aging_matrix_data
+    user_id = session.get('user_id')
+    if not user_id:
+        jwt_identity = get_jwt_identity()
+        user = db.session.get(User, int(jwt_identity)) if jwt_identity else None
+        user_id = user.user_id if user else None
+    return jsonify(sync_order_fulfillment_aging_matrix_data(user_id))
+
+
+@dashboard_bp.route('/api/order_fulfillment_value_aging_matrix/options')
+@jwt_required()
+def order_fulfillment_aging_options():
+    try:
+        def get_distinct(col):
+            return [r[0] for r in db.session.query(col.distinct()).order_by(col).all() if r[0]]
+
+        options = {
+            'purchase_offices': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.purchaseoffice),
+            'supplier_names': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.suppliername),
+            'groups': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.groupname),
+            'sections': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.sectionname),
+            'purities': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.purity),
+            'location_types': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.locationtype),
+            'locations': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.locationid)
+        }
+        return jsonify(options)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@dashboard_bp.route('/partial/order_fulfillment_value_aging_matrix')
+@jwt_required()
+def get_order_fulfillment_partial():
+    try:
+        purchase_office = request.args.get('purchase_office', '')
+        supplier_name = request.args.get('supplier_name', '')
+        group_name = request.args.get('group_name', '')
+        section_name = request.args.get('section_name', '')
+        purity = request.args.get('purity', '')
+        location_type = request.args.get('location_type', '')
+        location = request.args.get('location', '')
+        matrix_mode = request.args.get('matrix_mode', 'order_to_delivery')
+
+        params = {
+            'matrix_mode': matrix_mode,
+            'matrix_version': '2026_06_08_02',
+            'purchase_office': purchase_office if purchase_office else None,
+            'supplier_name': supplier_name if supplier_name else None,
+            'group_name': group_name if group_name else None,
+            'section_name': section_name if section_name else None,
+            'purity': purity if purity else None,
+            'location_type': location_type if location_type else None,
+            'location': location if location else None
+        }
+        snapshot_date = db.session.query(func.max(OrderFulfillmentValueAgingMatrixSnapshot.snapshot_date)).scalar()
+        cache_key = generate_cache_key("order_fulfillment_aging_matrix_partial", snapshot_date, **params)
+
+        cached_html = redis_client.get(cache_key)
+        if cached_html:
+            redis_client.expire(cache_key, 14400)
+            return cached_html
+
+        filter_sql = ""
+        if purchase_office:
+            if ',' in purchase_office:
+                offs = [f"'{escape_val(o.strip())}'" for o in purchase_office.split(',') if o.strip()]
+                filter_sql += f" AND purchaseoffice IN ({','.join(offs)})"
+            else:
+                filter_sql += f" AND purchaseoffice = '{escape_val(purchase_office)}'"
+
+        if supplier_name:
+            if ',' in supplier_name:
+                sups = [f"'{escape_val(s.strip())}'" for s in supplier_name.split(',') if s.strip()]
+                filter_sql += f" AND suppliername IN ({','.join(sups)})"
+            else:
+                filter_sql += f" AND suppliername = '{escape_val(supplier_name)}'"
+
+        if group_name:
+            filter_sql += f" AND groupname = '{escape_val(group_name)}'"
+
+        if section_name:
+            if ',' in section_name:
+                secs = [f"'{escape_val(s.strip())}'" for s in section_name.split(',') if s.strip()]
+                filter_sql += f" AND sectionname IN ({','.join(secs)})"
+            else:
+                filter_sql += f" AND sectionname = '{escape_val(section_name)}'"
+
+        if purity:
+            if ',' in purity:
+                purs = [f"'{escape_val(p.strip())}'" for p in purity.split(',') if p.strip()]
+                filter_sql += f" AND purity IN ({','.join(purs)})"
+            else:
+                filter_sql += f" AND purity = '{escape_val(purity)}'"
+
+        if location_type:
+            filter_sql += f" AND locationtype = '{escape_val(location_type)}'"
+
+        if location:
+            if ',' in location:
+                locs = [f"'{escape_val(l.strip())}'" for l in location.split(',') if l.strip()]
+                filter_sql += f" AND locationid IN ({','.join(locs)})"
+            else:
+                filter_sql += f" AND locationid = '{escape_val(location)}'"
+
+        table_expression = f"(SELECT * FROM order_fulfillment_value_aging_matrix_snapshot WHERE 1=1{filter_sql}) AS tbl"
+        if matrix_mode == 'delivery_to_order':
+            query = build_delivery_to_order_query(table_expression)
+        else:
+            query = build_order_to_delivery_query(table_expression)
+
         db.session.execute(text(query))
         res = db.session.execute(text("SELECT * FROM delivery_report_last_6_months"))
-        
+
         headers = list(res.keys())
         rows = [dict(zip(headers, row)) for row in res.fetchall()]
-        
-        # Calculate summary statistics:
-        # 1. Total Order Amount = SUM of "Order Amount" across rows
-        # 2. Total Delivered Amount = SUM of "Grand Total" across rows
-        # 3. Number of Order Buckets = count of rows
-        # 4. Highest Delivery Bucket = bucket with the highest value sum
+
         total_order_amount = sum(float(row.get('Order Amount') or 0.0) for row in rows)
+        if 'Order Amount' not in headers:
+            total_order_amount_res = db.session.execute(text(f"""
+                SELECT COALESCE(SUM(order_amount), 0) / 100000.0 AS total_order_amount
+                FROM (
+                    SELECT
+                        orderno,
+                        order_date_range,
+                        MAX(ordervalue) AS order_amount
+                    FROM {table_expression}
+                    WHERE invoicedate >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'
+                      AND invoicedate <  DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
+                    GROUP BY orderno, order_date_range
+                ) x
+            """)).scalar()
+            total_order_amount = float(total_order_amount_res or 0.0)
+
         total_delivered_amount = sum(float(row.get('Grand Total') or 0.0) for row in rows)
         num_order_buckets = len(rows)
-        
-        # Find highest delivery bucket
-        delivery_totals = {}
-        delivery_headers = headers[2:-1] # columns between Order Amount and Grand Total
-        for h in delivery_headers:
-            delivery_totals[h] = sum(float(row.get(h) or 0.0) for row in rows)
-        
+        delivery_headers = headers[2:-1] if 'Order Amount' in headers else headers[1:-1]
+        delivery_totals = {h: sum(float(row.get(h) or 0.0) for row in rows) for h in delivery_headers}
+
         highest_delivery_bucket = "N/A"
         if delivery_totals:
             max_bucket = max(delivery_totals, key=delivery_totals.get)
             if delivery_totals[max_bucket] > 0:
                 highest_delivery_bucket = f"{max_bucket} ({delivery_totals[max_bucket]:,.2f} L)"
 
-        # Calculate extra stats using SQLAlchemy
         stats_query = db.session.query(
             func.sum(OrderFulfillmentValueAgingMatrixSnapshot.netweight).label('total_net_weight'),
             func.sum(OrderFulfillmentValueAgingMatrixSnapshot.invoicegrwt).label('total_gross_weight'),
             func.sum(OrderFulfillmentValueAgingMatrixSnapshot.diamondcarat).label('total_diamond_carat'),
             func.sum(OrderFulfillmentValueAgingMatrixSnapshot.colourstonecarat).label('total_colour_stone_carat')
         )
-        
+
         if purchase_office:
-            if ',' in purchase_office:
-                offs = [o.strip() for o in purchase_office.split(',') if o.strip()]
-                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.purchaseoffice.in_(offs))
-            else:
-                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.purchaseoffice == purchase_office)
+            offs = [o.strip() for o in purchase_office.split(',') if o.strip()]
+            stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.purchaseoffice.in_(offs)) if len(offs) > 1 else stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.purchaseoffice == purchase_office)
 
         if supplier_name:
-            if ',' in supplier_name:
-                sups = [s.strip() for s in supplier_name.split(',') if s.strip()]
-                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.suppliername.in_(sups))
-            else:
-                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.suppliername == supplier_name)
+            sups = [s.strip() for s in supplier_name.split(',') if s.strip()]
+            stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.suppliername.in_(sups)) if len(sups) > 1 else stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.suppliername == supplier_name)
 
         if group_name:
             stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.groupname == group_name)
 
         if section_name:
-            if ',' in section_name:
-                secs = [s.strip() for s in section_name.split(',') if s.strip()]
-                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.sectionname.in_(secs))
-            else:
-                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.sectionname == section_name)
+            secs = [s.strip() for s in section_name.split(',') if s.strip()]
+            stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.sectionname.in_(secs)) if len(secs) > 1 else stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.sectionname == section_name)
 
         if purity:
-            if ',' in purity:
-                purs = [p.strip() for p in purity.split(',') if p.strip()]
-                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.purity.in_(purs))
-            else:
-                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.purity == purity)
+            purs = [p.strip() for p in purity.split(',') if p.strip()]
+            stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.purity.in_(purs)) if len(purs) > 1 else stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.purity == purity)
 
         if location_type:
             stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.locationtype == location_type)
 
         if location:
-            if ',' in location:
-                locs = [l.strip() for l in location.split(',') if l.strip()]
-                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.locationid.in_(locs))
-            else:
-                stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.locationid == location)
-                
+            locs = [l.strip() for l in location.split(',') if l.strip()]
+            stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.locationid.in_(locs)) if len(locs) > 1 else stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.locationid == location)
+
         stats_query = stats_query.filter(
             OrderFulfillmentValueAgingMatrixSnapshot.invoicedate >= func.date_trunc('month', func.current_date()) - text("INTERVAL '5 months'"),
             OrderFulfillmentValueAgingMatrixSnapshot.invoicedate < func.date_trunc('month', func.current_date()) + text("INTERVAL '1 month'")
         )
-        
+
         extra_stats = stats_query.first()
         total_net_weight = float(extra_stats.total_net_weight or 0.0)
         total_gross_weight = float(extra_stats.total_gross_weight or 0.0)
         total_diamond_carat = float(extra_stats.total_diamond_carat or 0.0)
         total_colour_stone_carat = float(extra_stats.total_colour_stone_carat or 0.0)
 
-        # Calculate column totals for footer row
+        first_header = headers[0] if headers else 'Order Date'
         footer_totals = {
-            'Order Date': 'Grand Total',
+            first_header: 'Grand Total',
             'Order Amount': total_order_amount,
             'Grand Total': total_delivered_amount
         }
@@ -366,9 +474,14 @@ FROM delivery_report_last_6_months;
             'total_colour_stone_carat': total_colour_stone_carat
         }
 
-        rendered_html = render_template('partials/_view_order_fulfillment_value_aging_matrix.html', 
-                             headers=headers, 
-                             rows=rows, 
+        partial_template = (
+            'partials/_view_order_fulfillment_delivery_to_order_matrix.html'
+            if matrix_mode == 'delivery_to_order'
+            else 'partials/_view_order_fulfillment_value_aging_matrix.html'
+        )
+        rendered_html = render_template(partial_template,
+                             headers=headers,
+                             rows=rows,
                              stats=stats,
                              footer_totals=footer_totals,
                              delivery_headers=delivery_headers)
