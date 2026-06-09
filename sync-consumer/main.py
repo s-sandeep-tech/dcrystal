@@ -118,7 +118,21 @@ def process_sync_queue():
                     elif task_type == 'showroom_wise_order':
                         res = sync_showroom_wise_order_summary_task()
                     elif task_type == 'owner_showroom_combined':
-                        res = sync_owner_and_showroom_wise_task()
+                        max_retries = 5
+                        for attempt in range(max_retries):
+                            try:
+                                res = sync_owner_and_showroom_wise_task()
+                            except Exception as retry_error:
+                                res = {"status": "error", "message": str(retry_error)}
+
+                            if res and res.get('status') == 'success':
+                                break
+
+                            if attempt < max_retries - 1:
+                                retry_msg = f"Task {task_type} failed (Attempt {attempt + 1}/{max_retries}). Retrying in 5s..."
+                                logger.warning(retry_msg)
+                                emit_sync_update('processing', retry_msg, data_type=task_type)
+                                time.sleep(5)
                     elif task_type == 'provision_stock_status':
                         res = sync_provision_stock_status_data_task()
                     elif task_type == 'hallmarking_delayed':
