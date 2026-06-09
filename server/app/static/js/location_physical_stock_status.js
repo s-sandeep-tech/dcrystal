@@ -162,6 +162,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadOptions();
     loadReport();
+
+    // Reset export cooldown flag when export completes (success or failure)
+    if (window.socket) {
+        window.socket.on('new_notification', function (data) {
+            if (data.title && data.title.includes('Location Physical Stock Status')) {
+                localStorage.removeItem('last_stock_export_time');
+            }
+        });
+    }
 });
 
 async function loadOptions() {
