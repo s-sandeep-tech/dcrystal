@@ -513,6 +513,19 @@ function closeDrillDownModal() {
 async function exportToExcel() {
     const btn = document.getElementById('btn-export-excel');
     if (!btn) return;
+
+    const COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
+    const lastExportTime = localStorage.getItem('last_stock_export_time');
+    const now = Date.now();
+
+    if (lastExportTime) {
+        const timePassed = now - parseInt(lastExportTime, 10);
+        if (timePassed < COOLDOWN_MS) {
+            showToast('Warning', 'Already export is in progress...', 'warning');
+            return;
+        }
+    }
+
     const icon = document.getElementById('export-btn-icon');
     const label = document.getElementById('export-btn-label');
     const originalIcon = icon ? icon.innerText : 'download';
@@ -563,6 +576,7 @@ async function exportToExcel() {
             throw new Error(err.message || 'Failed to queue export');
         }
 
+        localStorage.setItem('last_stock_export_time', Date.now().toString());
         showToast('Success', 'Export job enqueued. You will be notified when the file is ready.', 'success');
 
     } catch (error) {
