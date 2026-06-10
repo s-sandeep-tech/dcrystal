@@ -34,8 +34,17 @@
     <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.in_transit_wt|float) if
         row.in_transit_wt else '0.000' }}</td>
     <td
-        class="px-3 py-2 text-right text-[11px] font-mono {% if row.short_excess_wt < 0 %}text-red-500 font-bold{% elif row.short_excess_wt > 0 %}text-green-600{% endif %}">
-        {{ "{:,.3f}".format(row.short_excess_wt|float) if row.short_excess_wt else '0.000' }}
+        class="px-3 py-2 text-[11px] font-mono {% if row.short_excess_wt < 0 %}text-red-500 font-bold{% elif row.short_excess_wt > 0 %}text-green-600{% endif %}">
+        <div class="flex items-center justify-end gap-1">
+            {% if row.short_excess_wt %}
+                {% if row.short_excess_wt|float < 0 %}
+                    <span class="text-[9px] font-normal">↓</span>
+                {% elif row.short_excess_wt|float > 0 %}
+                    <span class="text-[9px] font-normal">↑</span>
+                {% endif %}
+            {% endif %}
+            <span>{{ "{:,.3f}".format(row.short_excess_wt|float) if row.short_excess_wt else '0.000' }}</span>
+        </div>
     </td>
     <td class="px-3 py-2 text-right text-[11px] font-mono">
         <span
@@ -85,8 +94,17 @@
                     <td class="px-3 py-3 text-right font-mono">{{ "{:,.3f}".format(modal_totals.in_transit_wt|float) }}
                     </td>
                     <td
-                        class="px-3 py-3 text-right font-mono {% if modal_totals.short_excess_wt < 0 %}text-red-500{% elif modal_totals.short_excess_wt > 0 %}text-green-600{% endif %}">
-                        {{ "{:,.3f}".format(modal_totals.short_excess_wt|float) }}
+                        class="px-3 py-3 font-mono {% if modal_totals.short_excess_wt < 0 %}text-red-500{% elif modal_totals.short_excess_wt > 0 %}text-green-600{% endif %}">
+                        <div class="flex items-center justify-end gap-1">
+                            {% if modal_totals.short_excess_wt %}
+                                {% if modal_totals.short_excess_wt|float < 0 %}
+                                    <span class="text-[9px] font-normal">↓</span>
+                                {% elif modal_totals.short_excess_wt|float > 0 %}
+                                    <span class="text-[9px] font-normal">↑</span>
+                                {% endif %}
+                            {% endif %}
+                            <span>{{ "{:,.3f}".format(modal_totals.short_excess_wt|float) }}</span>
+                        </div>
                     </td>
                     <td class="px-3 py-3 text-right font-mono">
                         {{ "{:,.1f}%".format(modal_totals.percent|float) }}

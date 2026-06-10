@@ -40,8 +40,17 @@
     <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.3f}".format(in_shop_wt) if in_shop_wt is not none else '0' }}</td>
     <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.3f}".format(ordered_wt) if ordered_wt is not none else '0' }}</td>
     <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.3f}".format(in_transit_wt) if in_transit_wt is not none else '0' }}</td>
-    <td class="px-2 py-0.5 border border-gray-300 text-right {% if short_excess_wt < 0 %}text-red-500 font-bold{% elif short_excess_wt > 0 %}text-green-600{% endif %}">
-        {{ "{:,.3f}".format(short_excess_wt) if short_excess_wt is not none else '0' }}
+    <td class="px-2 py-0.5 border border-gray-300 {% if short_excess_wt < 0 %}text-red-500 font-bold{% elif short_excess_wt > 0 %}text-green-600{% endif %}">
+        <div class="flex items-center justify-end gap-1">
+            {% if short_excess_wt is not none %}
+                {% if short_excess_wt < 0 %}
+                    <span class="text-[8px] font-normal">↓</span>
+                {% elif short_excess_wt > 0 %}
+                    <span class="text-[8px] font-normal">↑</span>
+                {% endif %}
+            {% endif %}
+            <span>{{ "{:,.3f}".format(short_excess_wt) if short_excess_wt is not none else '0' }}</span>
+        </div>
     </td>
     <td class="px-2 py-0.5 border border-gray-300 text-right relative min-w-[50px]">
         {% if percent is not none and not is_grand_total %}
