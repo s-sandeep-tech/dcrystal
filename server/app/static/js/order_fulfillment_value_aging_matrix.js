@@ -191,7 +191,7 @@ async function loadFilterOptions() {
             { id: 'filter-section_name', list: options.sections, label: 'Section Name', ms: sectionNameMultiSelect, param: 'section_name', checkboxClass: 'filter-section_name-container-checkbox' },
             { id: 'filter-purity', list: options.purities, label: 'Purity', ms: purityMultiSelect, param: 'purity', checkboxClass: 'filter-purity-container-checkbox' },
             { id: 'filter-location_type', list: options.location_types, label: 'Location Type' },
-            { id: 'filter-location', list: options.locations, label: 'Location', ms: locationMultiSelect, param: 'location', checkboxClass: 'filter-location-container-checkbox' }
+            { id: 'filter-location', list: (options.locations || []).map(l => ({ value: l.id, label: l.name })), label: 'Location', ms: locationMultiSelect, param: 'location', checkboxClass: 'filter-location-container-checkbox' }
         ];
 
         mappings.forEach(m => {

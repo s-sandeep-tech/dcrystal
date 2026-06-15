@@ -75,22 +75,28 @@ class CustomMultiSelect {
         const fragment = document.createDocumentFragment();
         
         this.options.forEach(optVal => {
-            const label = document.createElement('label');
-            label.className = 'flex items-center gap-2 px-2 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-sm';
-            label.dataset.text = optVal.toLowerCase();
-            
+            // Support both plain strings and {value, label} objects
+            const isObj = optVal !== null && typeof optVal === 'object';
+            const cbValue = isObj ? optVal.value : optVal;
+            const cbLabel = isObj ? (optVal.label || optVal.value) : optVal;
+
+            const labelEl = document.createElement('label');
+            labelEl.className = 'flex items-center gap-2 px-2 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-sm';
+            labelEl.dataset.text = String(cbLabel).toLowerCase();
+
             const cb = document.createElement('input');
             cb.type = 'checkbox';
-            cb.value = optVal;
+            cb.value = cbValue;
+            cb.dataset.label = cbLabel;
             cb.className = `rounded border-gray-300 text-primary focus:ring-primary w-3 h-3 ${this.containerId}-checkbox`;
-            
+
             const span = document.createElement('span');
             span.className = 'text-[11px] text-gray-700 dark:text-gray-300 select-none';
-            span.textContent = optVal;
-            
-            label.appendChild(cb);
-            label.appendChild(span);
-            fragment.appendChild(label);
+            span.textContent = cbLabel;
+
+            labelEl.appendChild(cb);
+            labelEl.appendChild(span);
+            fragment.appendChild(labelEl);
         });
         
         locContainer.innerHTML = '';
@@ -201,7 +207,8 @@ class CustomMultiSelect {
         if (checked.length === 0) {
             textEl.textContent = this.defaultText;
         } else if (checked.length === 1) {
-            textEl.textContent = checked[0].value;
+            // Use data-label (human-readable name) if available, else fall back to value
+            textEl.textContent = checked[0].dataset.label || checked[0].value;
         } else {
             textEl.textContent = `${checked.length} Selected`;
         }
