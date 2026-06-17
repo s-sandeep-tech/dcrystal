@@ -24,6 +24,40 @@ from app.utils.decorators import require_perm
 
 logger = logging.getLogger(__name__)
 
+KMU_MAKES = [
+    'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA',
+    'KMU MH', 'KMU-COIN', 'KMU-TN'
+]
+
+
+def apply_party_delay_user_filter(query, model):
+    roles = [r.upper() for r in session.get('roles', [])]
+    is_admin = 'ADMIN' in roles
+    is_manager_2 = 'MANAGER_2' in roles or 'MANAGER-BIC' in roles
+    if is_admin or is_manager_2:
+        return query
+
+    if 'MANAGER_KMU' in roles:
+        if hasattr(model, 'make'):
+            return query.filter(model.make.in_(KMU_MAKES))
+        if hasattr(model, 'party'):
+            latest_date = db.session.query(func.max(PartyDelayManagementSnapshot.snapshot_date)).scalar()
+            allowed_parties = db.session.query(PartyDelayManagementSnapshot.party).filter(
+                PartyDelayManagementSnapshot.make.in_(KMU_MAKES)
+            )
+            if latest_date:
+                allowed_parties = allowed_parties.filter(PartyDelayManagementSnapshot.snapshot_date == latest_date)
+            return query.filter(model.party.in_(allowed_parties))
+        return query
+
+    user_id = str(session.get('user_id') or '').strip()
+    conditions = []
+    if user_id:
+        if hasattr(model, 'make_owner_emp_code'):
+            conditions.append(func.trim(model.make_owner_emp_code) == user_id)
+
+    return query.filter(or_(*conditions)) if conditions else query
+
 @dashboard_bp.route('/party-delay-management')
 @jwt_required()
 def party_delay_management():
@@ -42,18 +76,7 @@ def party_delay_management():
     if latest_date:
         parties_query = parties_query.filter(PartyDelayManagementSnapshot.snapshot_date == latest_date)
     
-    roles = [r.upper() for r in session.get('roles', [])]
-    is_admin = 'ADMIN' in roles
-    is_manager_2 = 'MANAGER_2' in roles or 'MANAGER-BIC' in roles
-    if not is_admin and not is_manager_2:
-        if 'MANAGER_KMU' in roles:
-            parties_query = parties_query.filter(PartyDelayManagementSnapshot.make.in_([
-                'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
-                'KMU MH', 'KMU-COIN', 'KMU-TN'
-            ]))
-        elif session.get('username'):
-            u = session.get('username').strip().lower()
-            parties_query = parties_query.filter(func.lower(func.trim(PartyDelayManagementSnapshot.make_owner)) == u)
+    parties_query = apply_party_delay_user_filter(parties_query, PartyDelayManagementSnapshot)
             
     parties = [p[0] for p in parties_query.all() if p[0]]
 
@@ -62,15 +85,7 @@ def party_delay_management():
     if latest_date:
         makes_query = makes_query.filter(PartyDelayManagementSnapshot.snapshot_date == latest_date)
     
-    if not is_admin and not is_manager_2:
-        if 'MANAGER_KMU' in roles:
-            makes_query = makes_query.filter(PartyDelayManagementSnapshot.make.in_([
-                'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
-                'KMU MH', 'KMU-COIN', 'KMU-TN'
-            ]))
-        elif session.get('username'):
-            u = session.get('username').strip().lower()
-            makes_query = makes_query.filter(func.lower(func.trim(PartyDelayManagementSnapshot.make_owner)) == u)
+    makes_query = apply_party_delay_user_filter(makes_query, PartyDelayManagementSnapshot)
             
     makes = [m[0] for m in makes_query.all() if m[0]]
 
@@ -243,19 +258,7 @@ def partial_party_delay_management_report():
     if makes_selected:
         snapshot_q = snapshot_q.filter(PartyDelayManagementSnapshot.make.in_(makes_selected))
         
-    # Apply user-based filtering
-    roles = [r.upper() for r in session.get('roles', [])]
-    is_admin = 'ADMIN' in roles
-    is_manager_2 = 'MANAGER_2' in roles or 'MANAGER-BIC' in roles
-    if not is_admin and not is_manager_2:
-        if 'MANAGER_KMU' in roles:
-            snapshot_q = snapshot_q.filter(PartyDelayManagementSnapshot.make.in_([
-                'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
-                'KMU MH', 'KMU-COIN', 'KMU-TN'
-            ]))
-        elif session.get('username'):
-            u = session.get('username').strip().lower()
-            snapshot_q = snapshot_q.filter(func.lower(func.trim(PartyDelayManagementSnapshot.make_owner)) == u)
+    snapshot_q = apply_party_delay_user_filter(snapshot_q, PartyDelayManagementSnapshot)
 
     snapshot_q = snapshot_q.group_by(
         PartyDelayManagementSnapshot.party,
@@ -429,27 +432,7 @@ def get_party_delay_details(segment_id):
     if delay is not None:
         query = query.filter((func.current_date() - func.date(target_date_col)) >= delay)
 
-    # Apply user-based filtering
-    roles = [r.upper() for r in session.get('roles', [])]
-    is_admin = 'ADMIN' in roles
-    is_manager_2 = 'MANAGER_2' in roles or 'MANAGER-BIC' in roles
-    if not is_admin and not is_manager_2:
-        if 'MANAGER_KMU' in roles:
-            query = query.filter(model.make.in_([
-                'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
-                'KMU MH', 'KMU-COIN', 'KMU-TN'
-            ]))
-        elif session.get('username'):
-            u = session.get('username').strip().lower()
-            conds = []
-            if hasattr(model, 'make_owner'):
-                conds.append(func.lower(func.trim(model.make_owner)) == u)
-            if hasattr(model, 'collection_owner'):
-                conds.append(func.lower(func.trim(model.collection_owner)) == u)
-            if hasattr(model, 'classification_owner'):
-                conds.append(func.lower(func.trim(model.classification_owner)) == u)
-            if conds:
-                query = query.filter(or_(*conds))
+    query = apply_party_delay_user_filter(query, model)
 
     rows = query.all()
     

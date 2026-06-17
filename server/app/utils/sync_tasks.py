@@ -3374,7 +3374,7 @@ def sync_party_delay_management_data_task():
             # 1. Sync Summary Data
             emit_sync_update('processing', 'Fetching Party Summary data...', 10, DATA_TYPE)
             summary_query = """
-            SELECT party, party_code, make, make_owner, party_address,
+            SELECT party, party_code, make, make_owner, make_owner_emp_code, party_address,
                    invited_pending_orders, invited_pending_weight, 
                    process_pending_orders, process_pending_weight, 
                    process_completed_barcode_pending_orders, process_completed_barcode_pending_weight, 
@@ -3425,32 +3425,33 @@ def sync_party_delay_management_data_task():
                     party_code=row[1],
                     make=row[2],
                     make_owner=row[3],
-                    party_address=row[4],
-                    invited_pending_orders=row[5],
-                    invited_pending_weight=row[6],
-                    process_pending_orders=row[7],
-                    process_pending_weight=row[8],
-                    process_completed_barcode_pending_orders=row[9],
-                    process_completed_barcode_pending_weight=row[10],
-                    barcode_completed_bis_request_pending_orders=row[11],
-                    barcode_completed_bis_request_pending_weight=row[12],
-                    bis_request_completed_hm_issue_pending_orders=row[13],
-                    bis_request_completed_hm_issue_pending_weight=row[14],
-                    hm_receipt_return_completed_qc_issue_pending=row[15],
-                    hm_receipt_return_completed_qc_issue_pending_weight=row[16],
-                    invoice_generated_invoice_approve_pending=row[17],
-                    invoice_generated_invoice_approve_pending_weight=row[18],
-                    invoice_approved_not_synched_to_muziris=row[19],
-                    invoice_approved_not_synched_to_muziris_weight=row[20],
-                    total_pieces=row[21],
-                    total_weight=row[22],
-                    order_date=row[23],
-                    accepted_date=row[24],
-                    barcoded_completed_date=row[25],
-                    bis_request_complete_date=row[26],
-                    hm_receipt_return_completed_date=row[27],
-                    invoice_generated_date=row[28],
-                    invoice_approved_date=row[29]
+                    make_owner_emp_code=row[4],
+                    party_address=row[5],
+                    invited_pending_orders=row[6],
+                    invited_pending_weight=row[7],
+                    process_pending_orders=row[8],
+                    process_pending_weight=row[9],
+                    process_completed_barcode_pending_orders=row[10],
+                    process_completed_barcode_pending_weight=row[11],
+                    barcode_completed_bis_request_pending_orders=row[12],
+                    barcode_completed_bis_request_pending_weight=row[13],
+                    bis_request_completed_hm_issue_pending_orders=row[14],
+                    bis_request_completed_hm_issue_pending_weight=row[15],
+                    hm_receipt_return_completed_qc_issue_pending=row[16],
+                    hm_receipt_return_completed_qc_issue_pending_weight=row[17],
+                    invoice_generated_invoice_approve_pending=row[18],
+                    invoice_generated_invoice_approve_pending_weight=row[19],
+                    invoice_approved_not_synched_to_muziris=row[20],
+                    invoice_approved_not_synched_to_muziris_weight=row[21],
+                    total_pieces=row[22],
+                    total_weight=row[23],
+                    order_date=row[24],
+                    accepted_date=row[25],
+                    barcoded_completed_date=row[26],
+                    bis_request_complete_date=row[27],
+                    hm_receipt_return_completed_date=row[28],
+                    invoice_generated_date=row[29],
+                    invoice_approved_date=row[30]
                 ) for row in summary_rows
             ]
             db.session.bulk_save_objects(summary_objects)
@@ -3458,7 +3459,7 @@ def sync_party_delay_management_data_task():
             emit_sync_update('processing', 'Summary synced. Syncing Segment 1 details...', 15, DATA_TYPE)
 
             # 2. Segment 1 Details (Accept Pending)
-            s1_query = "SELECT make_owner, collection_owner, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_invited_order_details"
+            s1_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_invited_order_details"
             try:
                 cur.execute(s1_query)
                 s1_rows = cur.fetchall()
@@ -3471,7 +3472,7 @@ def sync_party_delay_management_data_task():
             emit_sync_update('processing', 'Segment 1 synced. Syncing Segment 2...', 25, DATA_TYPE)
 
             # 3. Segment 2 Details (Process Pending)
-            s2_query = "SELECT make_owner, collection_owner, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no, accepted_date FROM ext_view.vw_process_pending_order_details"
+            s2_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no, accepted_date FROM ext_view.vw_process_pending_order_details"
             try:
                 cur.execute(s2_query)
                 s2_rows = cur.fetchall()
@@ -3484,7 +3485,7 @@ def sync_party_delay_management_data_task():
             emit_sync_update('processing', 'Segment 2 synced. Syncing Segment 3...', 35, DATA_TYPE)
 
             # 4. Segment 3 Details (Barcode Pending)
-            s3_query = "SELECT make_owner, collection_owner, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no, accepted_date FROM ext_view.vw_barcode_pending_order_details"
+            s3_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no, accepted_date FROM ext_view.vw_barcode_pending_order_details"
             try:
                 cur.execute(s3_query)
                 s3_rows = cur.fetchall()
@@ -3497,7 +3498,7 @@ def sync_party_delay_management_data_task():
             emit_sync_update('processing', 'Segment 3 synced. Syncing Segment 4...', 45, DATA_TYPE)
 
             # 5. Segment 4 Details (Barcode Completed - BIS Request Pending)
-            s4_query = "SELECT make_owner, collection_owner, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, barcode_completion_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_barcode_completed_bis_request_delay"
+            s4_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, barcode_completion_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_barcode_completed_bis_request_delay"
             try:
                 cur.execute(s4_query)
                 s4_rows = cur.fetchall()
@@ -3510,7 +3511,7 @@ def sync_party_delay_management_data_task():
             emit_sync_update('processing', 'Segment 4 synced. Syncing Segment 5...', 55, DATA_TYPE)
 
             # 6. Segment 5 Details (BIS Request Completed - HM Issue Pending)
-            s5_query = "SELECT make_owner, collection_owner, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, barcode_completion_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_bis_request_completed_hm_issue_delay"
+            s5_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, barcode_completion_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_bis_request_completed_hm_issue_delay"
             try:
                 cur.execute(s5_query)
                 s5_rows = cur.fetchall()
@@ -3523,7 +3524,7 @@ def sync_party_delay_management_data_task():
             emit_sync_update('processing', 'Segment 5 synced. Syncing Segment 6...', 65, DATA_TYPE)
 
             # 7. Segment 6 Details (HM Receipt Return Completed - QC Issue Pending)
-            s6_query = "SELECT order_id, make_owner, collection_owner, collection, order_ro, order_branch, party, party_mobile_no, po_date, target_date, po_number, order_type, order_request_type, order_no, required_weight, design_no, set_identifier, set_design_no, barcode, is_hm_agent_received, barcoded_weight, barcode_completion_date, order_status, current_stage, hallmar_req_id, hm_request_no, hallmark_agent, hallmark_status, hm_ro, hm_agent_email, hm_agent_pnone_no, hm_completed_at, hallmark_info_id, net_weight, gross_weight, stone_weight, business_head_name, '+91' as business_head_phone_number, hm_agent_invoice_receipt_no, hm_agent_invoice_receipt_date, pending_to_final_qc_issue_pcs, pending_to_final_qc_issue_weight FROM ext_view.vw_hm_return_received_qc_issue_pending"
+            s6_query = "SELECT order_id, make_owner, collection_owner, make_owner_emp_code, collection, order_ro, order_branch, party, party_mobile_no, po_date, target_date, po_number, order_type, order_request_type, order_no, required_weight, design_no, set_identifier, set_design_no, barcode, is_hm_agent_received, barcoded_weight, barcode_completion_date, order_status, current_stage, hallmar_req_id, hm_request_no, hallmark_agent, hallmark_status, hm_ro, hm_agent_email, hm_agent_pnone_no, hm_completed_at, hallmark_info_id, net_weight, gross_weight, stone_weight, business_head_name, '+91' as business_head_phone_number, hm_agent_invoice_receipt_no, hm_agent_invoice_receipt_date, pending_to_final_qc_issue_pcs, pending_to_final_qc_issue_weight FROM ext_view.vw_hm_return_received_qc_issue_pending"
             try:
                 cur.execute(s6_query)
                 s6_rows = cur.fetchall()
@@ -3536,7 +3537,7 @@ def sync_party_delay_management_data_task():
             emit_sync_update('processing', 'Segment 6 synced. Syncing Segment 7...', 75, DATA_TYPE)
 
             # 8. Segment 7 Details (Invoice Generated - Invoice Approve Pending)
-            s7_query = "SELECT make_owner, collection_owner, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, invoice_no, invoice_generated_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_invoice_generated_invoice_approve_delay"
+            s7_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, invoice_no, invoice_generated_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_invoice_generated_invoice_approve_delay"
             try:
                 cur.execute(s7_query)
                 s7_rows = cur.fetchall()
@@ -3549,7 +3550,7 @@ def sync_party_delay_management_data_task():
             emit_sync_update('processing', 'Segment 7 synced. Syncing Segment 8...', 85, DATA_TYPE)
 
             # 9. Segment 8 Details (Invoice Approved - Not Synched to Muziris)
-            s8_query = "SELECT make_owner, collection_owner, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, invoice_no, invoice_approved_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_invoice_approved_not_synched_delay"
+            s8_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, invoice_no, invoice_approved_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_invoice_approved_not_synched_delay"
             try:
                 cur.execute(s8_query)
                 s8_rows = cur.fetchall()

@@ -2415,6 +2415,7 @@ class PartyDelayManagementSnapshot(db.Model):
     party_code = db.Column(db.String(50))
     make = db.Column(db.String(150))
     make_owner = db.Column(db.String(150))
+    make_owner_emp_code = db.Column(db.String(100))
     party_address = db.Column(db.Text)
     
     # Segment 1: ACCEPT PENDING
@@ -2470,6 +2471,7 @@ class PartyDelayManagementSnapshot(db.Model):
             'party_code': self.party_code,
             'make': self.make,
             'make_owner': self.make_owner,
+            'make_owner_emp_code': self.make_owner_emp_code,
             'party_address': self.party_address,
             'invited_pending_orders': self.invited_pending_orders,
             'invited_pending_weight': float(self.invited_pending_weight or 0),
@@ -2526,6 +2528,7 @@ class PartyAcceptPendingSnapshot(db.Model):
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     make_owner = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
+    make_owner_emp_code = db.Column(db.String(100))
     collection = db.Column(db.String(200))
     order_branch = db.Column(db.String(150))
     branch_id = db.Column(db.BigInteger)
@@ -2559,6 +2562,7 @@ class PartyProcessPendingSnapshot(db.Model):
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     make_owner = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
+    make_owner_emp_code = db.Column(db.String(100))
     collection = db.Column(db.String(200))
     order_branch = db.Column(db.String(150))
     branch_id = db.Column(db.BigInteger)
@@ -2591,6 +2595,7 @@ class PartyBarcodePendingSnapshot(db.Model):
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     make_owner = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
+    make_owner_emp_code = db.Column(db.String(100))
     collection = db.Column(db.String(200))
     order_branch = db.Column(db.String(150))
     branch_id = db.Column(db.BigInteger)
@@ -2623,6 +2628,7 @@ class PartyBarcodeCompletedBISRequestPendingSnapshot(db.Model):
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     make_owner = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
+    make_owner_emp_code = db.Column(db.String(100))
     collection = db.Column(db.String(200))
     order_branch = db.Column(db.String(150))
     order_branch_id = db.Column(db.BigInteger)
@@ -2654,6 +2660,7 @@ class PartyBISRequestCompletedHMIssuePendingSnapshot(db.Model):
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     make_owner = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
+    make_owner_emp_code = db.Column(db.String(100))
     collection = db.Column(db.String(200))
     order_branch = db.Column(db.String(150))
     order_branch_id = db.Column(db.BigInteger)
@@ -2686,6 +2693,7 @@ class PartyHMReceiptCompletedQCIssuePendingSnapshot(db.Model):
     order_id = db.Column(db.BigInteger)
     make_owner = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
+    make_owner_emp_code = db.Column(db.String(100))
     collection = db.Column(db.String(200))
     order_ro = db.Column(db.String(150))
     order_branch = db.Column(db.String(150))
@@ -2736,6 +2744,7 @@ class PartyInvoiceGeneratedInvoiceApprovePendingSnapshot(db.Model):
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     make_owner = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
+    make_owner_emp_code = db.Column(db.String(100))
     collection = db.Column(db.String(200))
     order_branch = db.Column(db.String(150))
     order_branch_id = db.Column(db.BigInteger)
@@ -2768,6 +2777,7 @@ class PartyInvoiceApprovedNotSynchedToMuzirisSnapshot(db.Model):
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     make_owner = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
+    make_owner_emp_code = db.Column(db.String(100))
     collection = db.Column(db.String(200))
     order_branch = db.Column(db.String(150))
     order_branch_id = db.Column(db.BigInteger)
