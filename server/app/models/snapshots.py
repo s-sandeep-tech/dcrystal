@@ -209,6 +209,8 @@ class OwnerWiseOrderSummarySnapshot(db.Model):
     classification_owner = db.Column('Classification Owner', db.Text, primary_key=True)
     collection_owner = db.Column('Collection Owner', db.Text, primary_key=True)
     make_owner = db.Column('Make Owner', db.Text, primary_key=True)
+    collection_owner_emp_code = db.Column('collection_owner_emp_code', db.Text)
+    make_owner_emp_code = db.Column('make_owner_emp_code', db.Text)
     
     ordered_pcs = db.Column('Ordered Pcs', db.Numeric(18, 3))
     ordered_wt = db.Column('Ordered Wt', db.Numeric(18, 3))
@@ -2550,6 +2552,7 @@ class PartyAcceptPendingSnapshot(db.Model):
     def to_dict(self):
         return {c.name: getattr(self, c.name).isoformat() if isinstance(getattr(self, c.name), (datetime, date)) else getattr(self, c.name) for c in self.__table__.columns}
 
+
 class PartyProcessPendingSnapshot(db.Model):
     __tablename__ = 'party_process_pending_snapshots'
     id = db.Column(db.Integer, primary_key=True)
@@ -2820,5 +2823,3 @@ class OrderFulfillmentValueAgingMatrixSnapshot(db.Model):
 
     def to_dict(self):
         return {c.name: getattr(self, c.name).isoformat() if isinstance(getattr(self, c.name), (datetime, date)) else getattr(self, c.name) for c in self.__table__.columns}
-
-

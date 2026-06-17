@@ -10,6 +10,31 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def current_user_owner_filter():
+    user_id = str(session.get('user_id') or '').strip()
+
+    conditions = []
+    if user_id:
+        conditions.extend([
+            func.trim(OwnerWiseOrderSummarySnapshot.make_owner_emp_code) == user_id,
+            func.trim(OwnerWiseOrderSummarySnapshot.collection_owner_emp_code) == user_id
+        ])
+
+    if not conditions:
+        return None
+
+    condition = conditions[0]
+    for next_condition in conditions[1:]:
+        condition = condition | next_condition
+    return condition
+
+
+def apply_owner_visibility_filter(query):
+    owner_filter = current_user_owner_filter()
+    return query.filter(owner_filter) if owner_filter is not None else query
+
+
 @dashboard_bp.route('/ownerwiseordersummary')
 def owner_wise_order_summary():
     try:
@@ -100,13 +125,8 @@ def owner_wise_order_summary():
                         'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
                         'KMU MH', 'KMU-COIN', 'KMU-TN'
                     ]))
-                elif session.get('username'):
-                    u = session.get('username').strip().lower()
-                    query = query.filter(
-                        (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
-                        (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
-                        (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
-                    )
+                else:
+                    query = apply_owner_visibility_filter(query)
 
                 
             return query
@@ -123,14 +143,7 @@ def owner_wise_order_summary():
                     'KMU MH', 'KMU-COIN', 'KMU-TN'
                 ]))
             
-            if session.get('username'):
-                u = session.get('username').strip().lower()
-                return q.filter(
-                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
-                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
-                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
-                )
-            return q
+            return apply_owner_visibility_filter(q)
 
         filter_options = {
             'divisions': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.division)).distinct().order_by(OwnerWiseOrderSummarySnapshot.division).all() if r[0]],
@@ -359,13 +372,8 @@ def get_owner_wise_partial():
                         'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
                         'KMU MH', 'KMU-COIN', 'KMU-TN'
                     ]))
-                elif session.get('username'):
-                    u = session.get('username').strip().lower()
-                    query = query.filter(
-                        (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
-                        (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
-                        (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
-                    )
+                else:
+                    query = apply_owner_visibility_filter(query)
 
                 
             return query
@@ -576,13 +584,8 @@ def get_leaf_detail():
                     'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
                     'KMU MH', 'KMU-COIN', 'KMU-TN'
                 ]))
-            elif session.get('username'):
-                u = session.get('username').strip().lower()
-                query = query.filter(
-                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.make_owner)) == u) |
-                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.collection_owner)) == u) |
-                    (func.lower(func.trim(OwnerWiseOrderSummarySnapshot.classification_owner)) == u)
-                )
+            else:
+                query = apply_owner_visibility_filter(query)
 
             
         results = query.all()
