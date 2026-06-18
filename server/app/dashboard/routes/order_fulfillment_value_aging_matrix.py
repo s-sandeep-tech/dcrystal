@@ -85,7 +85,7 @@ BEGIN
                 SELECT
                     orderno,
                     order_date_range,
-                    MAX(ordervalue) AS order_amount
+                    SUM(ordervalue) AS order_amount
                 FROM base
                 GROUP BY orderno, order_date_range
             ) x
@@ -403,7 +403,7 @@ def get_order_fulfillment_partial():
                     SELECT
                         orderno,
                         order_date_range,
-                        MAX(ordervalue) AS order_amount
+                        SUM(ordervalue) AS order_amount
                     FROM {table_expression}
                     WHERE invoicedate >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'
                       AND invoicedate <  DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
