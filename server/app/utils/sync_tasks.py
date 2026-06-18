@@ -2884,7 +2884,7 @@ def sync_qc_delay_management_data_task():
                 qc_completed_invoice_request_pending_piece, qc_completed_invoice_request_pending_weight,
                 delayed_qc_completed_invoice_request_pending_piece, delayed_qc_completed_invoice_request_pending_weight,
                 qc_ro_incharge, qc_ro_incharge_email, qc_ro_incharge_phone_number, qc_ro_address,
-                make, make_owner, order_id, party_code, party,
+                make, make_owner, make_owner_emp_code, order_id, party_code, party,
                 qc_issue_completed_date, qc_receipt_completed_date, qc_completed_date
             FROM ext_view.vw_qc_summary_data
             """
@@ -2918,12 +2918,13 @@ def sync_qc_delay_management_data_task():
                     qc_ro_address=row[18],
                     make=row[19],
                     make_owner=row[20],
-                    order_id=row[21],
-                    party_code=row[22],
-                    party=row[23],
-                    qc_issue_completed_date=row[24],
-                    qc_receipt_completed_date=row[25],
-                    qc_completed_date=row[26]
+                    make_owner_emp_code=row[21],
+                    order_id=row[22],
+                    party_code=row[23],
+                    party=row[24],
+                    qc_issue_completed_date=row[25],
+                    qc_receipt_completed_date=row[26],
+                    qc_completed_date=row[27]
                 ) for row in summary_rows
             ]
             db.session.bulk_save_objects(summary_objects)
@@ -2933,7 +2934,7 @@ def sync_qc_delay_management_data_task():
             # 2. Segment 1 Details (QC issue completed - KJ receipt pending)
             s1_query = """
             SELECT 
-                make_owner, collection_owner, collection, order_branch, '' as business_head_name, 
+                make_owner, make_owner_emp_code, collection_owner, collection, order_branch, '' as business_head_name, 
                 party, po_date, po_number, order_type, order_request_type, 
                 party_mobile_no, barcode_completion_date, barcoded_weight, 
                 set_identifier, set_design_no, target_date, hm_request_no, 
@@ -2952,38 +2953,39 @@ def sync_qc_delay_management_data_task():
                 SupplierQCIssueReceiptPendingSnapshot(
                     snapshot_date=snapshot_date,
                     make_owner=row[0],
-                    collection_owner=row[1],
-                    collection=row[2],
-                    order_branch=row[3],
-                    business_head_name=row[4],
-                    party=row[5],
-                    po_date=row[6],
-                    po_number=row[7],
-                    order_type=row[8],
-                    order_request_type=row[9],
-                    party_mobile_no=row[10],
-                    barcode_completion_date=row[11],
-                    barcoded_weight=row[12],
-                    set_identifier=row[13],
-                    set_design_no=row[14],
-                    target_date=row[15],
-                    hm_request_no=row[16],
-                    hm_ro=row[17],
-                    hallmark_agent=row[18],
-                    hm_agent_email=row[19],
-                    hm_agent_pnone_no=row[20],
-                    hm_completed_at=row[21],
-                    qc_issue_receipt_no=row[22],
-                    qc_issue_receipt_date=row[23],
-                    qc_ro=row[24],
-                    qc_ro_incharge=row[25],
-                    net_weight=row[26],
-                    gross_weight=row[27],
-                    stone_weight=row[28],
-                    pieces=row[29],
-                    weight=row[30],
-                    order_no=row[31],
-                    design_no=row[32]
+                    make_owner_emp_code=row[1],
+                    collection_owner=row[2],
+                    collection=row[3],
+                    order_branch=row[4],
+                    business_head_name=row[5],
+                    party=row[6],
+                    po_date=row[7],
+                    po_number=row[8],
+                    order_type=row[9],
+                    order_request_type=row[10],
+                    party_mobile_no=row[11],
+                    barcode_completion_date=row[12],
+                    barcoded_weight=row[13],
+                    set_identifier=row[14],
+                    set_design_no=row[15],
+                    target_date=row[16],
+                    hm_request_no=row[17],
+                    hm_ro=row[18],
+                    hallmark_agent=row[19],
+                    hm_agent_email=row[20],
+                    hm_agent_pnone_no=row[21],
+                    hm_completed_at=row[22],
+                    qc_issue_receipt_no=row[23],
+                    qc_issue_receipt_date=row[24],
+                    qc_ro=row[25],
+                    qc_ro_incharge=row[26],
+                    net_weight=row[27],
+                    gross_weight=row[28],
+                    stone_weight=row[29],
+                    pieces=row[30],
+                    weight=row[31],
+                    order_no=row[32],
+                    design_no=row[33]
                 ) for row in s1_rows
             ]
             db.session.bulk_save_objects(s1_objects)
@@ -2994,7 +2996,7 @@ def sync_qc_delay_management_data_task():
             s2_query = """
             SELECT 
                 order_id, order_no, qc_ro_id, qc_ro, qc_ro_incharge, qc_ro_incharge_email, qc_ro_incharge_phone_no,
-                make_owner, make, collection_owner, collection, party, party_mobile_no, po_date,
+                make_owner, make_owner_emp_code, make, collection_owner, collection, party, party_mobile_no, po_date,
                 delivery_target_date, po_number, order_type, order_request_type, design_no,
                 set_identifier, set_design_no, order_ro, order_branch, business_head_name,
                 order_incharge_email, order_incharge_phone_no, barcoded_weight, barcode_completion_date,
@@ -3010,15 +3012,16 @@ def sync_qc_delay_management_data_task():
                 QCReceiptCompletedQCPendingSnapshot(
                     snapshot_date=snapshot_date,
                     order_id=row[0], order_no=row[1], qc_ro_id=row[2], qc_ro=row[3], qc_ro_incharge=row[4],
-                    qc_ro_incharge_email=row[5], qc_ro_incharge_phone_no=row[6], make_owner=row[7], make=row[8],
-                    collection_owner=row[9], collection=row[10], party=row[11], party_mobile_no=row[12],
-                    po_date=row[13], delivery_target_date=row[14], po_number=row[15], order_type=row[16],
-                    order_request_type=row[17], design_no=row[18], set_identifier=row[19], set_design_no=row[20],
-                    order_ro=row[21], order_branch=row[22], business_head_name=row[23], order_incharge_email=row[24],
-                    order_incharge_phone_no=row[25], barcoded_weight=row[26], barcode_completion_date=row[27],
-                    hm_completed_date=row[28], qc_issue_challan_no=row[29], qc_issue_challan_date=row[30],
-                    receipt_no=row[31], receipt_date=row[32], net_weight=row[33], gross_weight=row[34],
-                    stone_weight=row[35], weight=row[34], piece=1
+                    qc_ro_incharge_email=row[5], qc_ro_incharge_phone_no=row[6], make_owner=row[7],
+                    make_owner_emp_code=row[8], make=row[9], collection_owner=row[10], collection=row[11],
+                    party=row[12], party_mobile_no=row[13], po_date=row[14], delivery_target_date=row[15],
+                    po_number=row[16], order_type=row[17], order_request_type=row[18], design_no=row[19],
+                    set_identifier=row[20], set_design_no=row[21], order_ro=row[22], order_branch=row[23],
+                    business_head_name=row[24], order_incharge_email=row[25], order_incharge_phone_no=row[26],
+                    barcoded_weight=row[27], barcode_completion_date=row[28], hm_completed_date=row[29],
+                    qc_issue_challan_no=row[30], qc_issue_challan_date=row[31], receipt_no=row[32],
+                    receipt_date=row[33], net_weight=row[34], gross_weight=row[35],
+                    stone_weight=row[36], weight=row[35], piece=1
                 ) for row in s2_rows
             ]
             db.session.bulk_save_objects(s2_objects)
@@ -3029,7 +3032,7 @@ def sync_qc_delay_management_data_task():
             s3_query = """
             SELECT 
                 order_id, order_no, qc_ro_id, qc_ro, qc_ro_incharge, qc_ro_incharge_email, 
-                qc_ro_incharge_phone_no, make_owner, make, collection_owner, collection, 
+                qc_ro_incharge_phone_no, make_owner, make_owner_emp_code, make, collection_owner, collection, 
                 party, party_mobile_no, po_date, delivery_target_date, po_number, 
                 order_type, order_request_type, design_no, set_identifier, set_design_no, 
                 order_ro, order_branch, business_head_name, order_incharge_email, 
@@ -3046,15 +3049,16 @@ def sync_qc_delay_management_data_task():
                 QCCompletedInvoiceRequestPendingSnapshot(
                     snapshot_date=snapshot_date,
                     order_id=row[0], order_no=row[1], qc_ro_id=row[2], qc_ro=row[3], qc_ro_incharge=row[4],
-                    qc_ro_incharge_email=row[5], qc_ro_incharge_phone_no=row[6], make_owner=row[7], make=row[8],
-                    collection_owner=row[9], collection=row[10], party=row[11], party_mobile_no=row[12],
-                    po_date=row[13], delivery_target_date=row[14], po_number=row[15], order_type=row[16],
-                    order_request_type=row[17], design_no=row[18], set_identifier=row[19], set_design_no=row[20],
-                    order_ro=row[21], order_branch=row[22], business_head_name=row[23], order_incharge_email=row[24],
-                    order_incharge_phone_no=row[25], barcoded_weight=row[26], barcode_completion_date=row[27],
-                    hm_completed_date=row[28], final_qc_receipt_no=row[29], final_qc_receipt_date=row[30],
-                    qc_number=row[31], qc_completed_date=row[32], net_weight=row[33], gross_weight=row[34],
-                    stone_weight=row[35]
+                    qc_ro_incharge_email=row[5], qc_ro_incharge_phone_no=row[6], make_owner=row[7],
+                    make_owner_emp_code=row[8], make=row[9], collection_owner=row[10], collection=row[11],
+                    party=row[12], party_mobile_no=row[13], po_date=row[14], delivery_target_date=row[15],
+                    po_number=row[16], order_type=row[17], order_request_type=row[18], design_no=row[19],
+                    set_identifier=row[20], set_design_no=row[21], order_ro=row[22], order_branch=row[23],
+                    business_head_name=row[24], order_incharge_email=row[25], order_incharge_phone_no=row[26],
+                    barcoded_weight=row[27], barcode_completion_date=row[28], hm_completed_date=row[29],
+                    final_qc_receipt_no=row[30], final_qc_receipt_date=row[31], qc_number=row[32],
+                    qc_completed_date=row[33], net_weight=row[34], gross_weight=row[35],
+                    stone_weight=row[36]
                 ) for row in s3_rows
             ]
             db.session.bulk_save_objects(s3_objects)

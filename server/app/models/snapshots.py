@@ -1493,6 +1493,7 @@ class SupplierQCIssueReceiptPendingSnapshot(db.Model):
     # Core grouping / drill-down
     qc_ro = db.Column(db.String(150))
     make_owner = db.Column(db.String(150))
+    make_owner_emp_code = db.Column(db.String(100))
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
     party = db.Column(db.String(200))
@@ -1654,6 +1655,7 @@ class QCCompletedInvoiceRequestPendingSnapshot(db.Model):
     qc_ro_incharge_email = db.Column(db.String(150))
     qc_ro_incharge_phone_no = db.Column(db.String(50))
     make_owner = db.Column(db.String(150))
+    make_owner_emp_code = db.Column(db.String(100))
     make = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
@@ -1856,6 +1858,7 @@ class QCDelayManagementSnapshot(db.Model):
     # New grouping / filter columns
     make = db.Column(db.String(150))
     make_owner = db.Column(db.String(150))
+    make_owner_emp_code = db.Column(db.String(100))
     order_id = db.Column(db.BigInteger)
     party_code = db.Column(db.String(50))
     party = db.Column(db.String(255))
@@ -1901,6 +1904,7 @@ class QCDelayManagementSnapshot(db.Model):
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
             'make': self.make,
             'make_owner': self.make_owner,
+            'make_owner_emp_code': self.make_owner_emp_code,
             'order_id': self.order_id,
             'party_code': self.party_code,
             'party': self.party,
@@ -1966,6 +1970,7 @@ class QCReceiptCompletedQCPendingSnapshot(db.Model):
     qc_ro_incharge_phone_no = db.Column(db.String(50))
     
     make_owner = db.Column(db.String(150))
+    make_owner_emp_code = db.Column(db.String(100))
     make = db.Column(db.String(150))
     collection_owner = db.Column(db.String(150))
     collection = db.Column(db.String(200))
