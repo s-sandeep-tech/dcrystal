@@ -45,6 +45,11 @@
                 <th class="p-2.5 font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-center text-[8px] whitespace-nowrap {% if loop.first %}text-left sticky left-0 bg-gray-50 dark:bg-gray-800 z-10{% endif %}">
                     {{ h }}
                 </th>
+                {% if h == 'Grand Total' and 'Order Amount' in headers %}
+                <th class="p-2.5 font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-center text-[8px] whitespace-nowrap">
+                    Variance
+                </th>
+                {% endif %}
                 {% endfor %}
             </tr>
         </thead>
@@ -79,6 +84,21 @@
                             <td class="p-2.5 text-right font-bold text-emerald-600 dark:text-emerald-400 border-l border-gray-100 dark:border-gray-800">
                                 {{ format_indian(val) }}
                             </td>
+                            {% if 'Order Amount' in headers %}
+                                {% set order_amount = row.get('Order Amount')|float %}
+                                {% set grand_total = row.get('Grand Total')|float %}
+                                {% if order_amount != 0 %}
+                                    {% set pct = ((grand_total - order_amount) / order_amount) * 100 %}
+                                    <td class="p-2.5 font-bold whitespace-nowrap {% if pct >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+                                        <span class="flex items-center justify-end gap-1">
+                                            <span>{% if pct >= 0 %}+{{ "%.0f"|format(pct) }}{% else %}{{ "%.0f"|format(pct) }}{% endif %}</span>
+                                            <span>{% if pct >= 0 %}↑{% else %}↓{% endif %}</span>
+                                        </span>
+                                    </td>
+                                {% else %}
+                                    <td class="p-2.5 text-right font-bold text-gray-400 dark:text-gray-600 whitespace-nowrap">N/A</td>
+                                {% endif %}
+                            {% endif %}
                         {% else %}
                             <!-- Delivery Buckets with heatmap and mute for zero -->
                             {% set val_float = val|float %}
@@ -96,7 +116,7 @@
                 {% endfor %}
             {% else %}
                 <tr>
-                    <td colspan="{{ headers|length }}" class="p-8 text-center text-gray-500 font-bold uppercase tracking-wider">
+                    <td colspan="{{ headers|length + (1 if 'Order Amount' in headers else 0) }}" class="p-8 text-center text-gray-500 font-bold uppercase tracking-wider">
                         No report data found. Try adjusting your filters.
                     </td>
                 </tr>
@@ -122,6 +142,21 @@
                         <td class="p-2.5 text-right text-[11px] text-emerald-600 dark:text-emerald-400 border-l border-gray-200 dark:border-gray-700">
                             {{ format_indian(total_val) }}
                         </td>
+                        {% if 'Order Amount' in headers %}
+                            {% set total_order_amount = footer_totals.get('Order Amount')|float %}
+                            {% set total_grand_total = footer_totals.get('Grand Total')|float %}
+                            {% if total_order_amount != 0 %}
+                                {% set total_pct = ((total_grand_total - total_order_amount) / total_order_amount) * 100 %}
+                                <td class="p-2.5 text-[11px] whitespace-nowrap {% if total_pct >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+                                    <span class="flex items-center justify-end gap-1">
+                                        <span>{% if total_pct >= 0 %}+{{ "%.0f"|format(total_pct) }}{% else %}{{ "%.0f"|format(total_pct) }}{% endif %}</span>
+                                        <span>{% if total_pct >= 0 %}↑{% else %}↓{% endif %}</span>
+                                    </span>
+                                </td>
+                            {% else %}
+                                <td class="p-2.5 text-right text-[11px] text-gray-400 dark:text-gray-600 whitespace-nowrap">N/A</td>
+                            {% endif %}
+                        {% endif %}
                     {% else %}
                         <td class="p-2.5 text-right text-[11px]">
                             {{ format_indian(total_val) }}
