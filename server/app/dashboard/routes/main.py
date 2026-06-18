@@ -49,6 +49,13 @@ def settings():
                          unread_count=unread_count,
                          sync_time=sync_time)
 
+@dashboard_bp.route('/report-menu')
+@dashboard_bp.route('/report_menu')
+def report_menu():
+    sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
+    unread_count = Notification.query.filter_by(is_read=False).count()
+    return render_template('report_menu.html', sync_time=sync_time, unread_count=unread_count)
+
 @dashboard_bp.route('/settings/sync-data', methods=['POST'])
 def sync_data():
     if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):

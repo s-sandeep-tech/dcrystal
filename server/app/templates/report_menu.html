@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Report Menu{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/report_menu.css') }}">
+{% endblock %}
+
+{% block content %}
+<main class="report-menu-page flex-1 overflow-y-auto">
+    <section class="report-menu-shell">
+        <div class="report-menu-panel" aria-labelledby="report-menu-title">
+            <div class="report-menu-toolbar">
+                <div class="report-menu-eyebrow">
+                    <span class="material-symbols-outlined">apps</span>
+                    Report Center
+                </div>
+                <label class="report-search" for="reportSearch">
+                    <span class="material-symbols-outlined">search</span>
+                    <input id="reportSearch" type="search" placeholder="Search reports..." autocomplete="off" />
+                </label>
+                <div class="report-toolbar-actions">
+                    <div class="report-count" id="reportCount">0 reports</div>
+                    <span class="report-toolbar-divider"></span>
+                    <button class="report-filter-button" type="button" aria-label="Filter reports">
+                        <span class="material-symbols-outlined">filter_list</span>
+                    </button>
+                    <div class="report-menu-meta">
+                        <span class="material-symbols-outlined">schedule</span>
+                        <span>{{ sync_time }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-menu-content" id="reportMenuContent" aria-live="polite"></div>
+
+            <div class="report-empty-state hidden" id="reportEmptyState">
+                <span class="material-symbols-outlined">search_off</span>
+                <h2>No reports found</h2>
+                <p>Try a different report name, category, or keyword.</p>
+            </div>
+        </div>
+    </section>
+    <button class="report-add-button" type="button" aria-label="Add report">
+        <span class="material-symbols-outlined">add</span>
+    </button>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/report_menu_data.js') }}"></script>
+<script src="{{ url_for('static', filename='js/report_menu.js') }}"></script>
+{% endblock %}
