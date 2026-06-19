@@ -709,7 +709,9 @@ class ShowroomWiseOrderSummarySnapshot(db.Model):
     branch_provision_type = db.Column(db.Text)
     classification_owner = db.Column(db.Text)
     make_owner = db.Column(db.Text)
+    make_owner_emp_code = db.Column(db.Text)
     collection_owner = db.Column(db.Text)
+    collection_owner_emp_code = db.Column(db.Text)
     order_ro = db.Column(db.Text)
     batch = db.Column(db.Text)
     branch_type = db.Column(db.Text)
@@ -779,7 +781,9 @@ class ShowroomWiseOrderSummarySnapshot(db.Model):
             'branch_provision_type': self.branch_provision_type,
             'classification_owner': self.classification_owner,
             'make_owner': self.make_owner,
+            'make_owner_emp_code': self.make_owner_emp_code or '',
             'collection_owner': self.collection_owner,
+            'collection_owner_emp_code': self.collection_owner_emp_code or '',
             'order_ro': self.order_ro,
             'batch': self.batch,
             'branch_type': self.branch_type or '',

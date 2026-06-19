@@ -1389,7 +1389,9 @@ SELECT
 
     ownershippo.classification_owner,
     ownershippo.make_owner,
+    ownershippo.make_owner_emp_code,
     ownershippo.collection_owner,
+    ownershippo.collection_owner_emp_code,
 
     ownershippo.supplier,
     ownershippo.po_number,
@@ -1484,7 +1486,9 @@ FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS
                 'branch_provision_type': row.get('branch_provision_type'),
                 'classification_owner': row.get('classification_owner'),
                 'make_owner': row.get('make_owner'),
+                'make_owner_emp_code': row.get('make_owner_emp_code'),
                 'collection_owner': row.get('collection_owner'),
+                'collection_owner_emp_code': row.get('collection_owner_emp_code'),
                 'supplier': row.get('supplier'),
                 'po_number': row.get('po_number'),
                 'po_id': row.get('po_id'),

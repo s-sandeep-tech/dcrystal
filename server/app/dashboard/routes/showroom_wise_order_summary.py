@@ -13,6 +13,27 @@ from app.utils.sync_manager import sync_showroom_wise_order_summary_data
 
 logger = logging.getLogger(__name__)
 
+KMU_MAKES = [
+    'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA',
+    'KMU MH', 'KMU-COIN', 'KMU-TN'
+]
+
+
+def current_user_showroom_owner_filter():
+    user_id = str(session.get('user_id') or '').strip()
+    if not user_id:
+        return None
+
+    return (
+        (func.trim(ShowroomWiseOrderSummarySnapshot.make_owner_emp_code) == user_id) |
+        (func.trim(ShowroomWiseOrderSummarySnapshot.collection_owner_emp_code) == user_id)
+    )
+
+
+def apply_showroom_visibility_filter(query):
+    owner_filter = current_user_showroom_owner_filter()
+    return query.filter(owner_filter) if owner_filter is not None else query
+
 # Helper class to mimic Flask-SQLAlchemy Pagination for templates
 class CachedPagination:
     def __init__(self, items, page, per_page, total):
@@ -94,32 +115,23 @@ def apply_showroom_filters(query, latest_date_query=None, search=None, business_
     if latest_date_query:
         query = query.filter(ShowroomWiseOrderSummarySnapshot.snapshot_date == latest_date_query)
 
-    # User-based filtering: 
+    # User-based filtering:
     # 1. BUSINESS_HEAD: Restrict to bh_emp_code = user_id
-    # 2. Others (not admin/manager): Restrict to owners (make, collection, classification)
+    # 2. Others (not admin/manager): Restrict to owner employee codes
     roles = [r.upper() for r in session.get('roles', [])]
     is_admin = 'ADMIN' in roles
     is_manager_2 = 'MANAGER_2' in roles
     is_business_head = 'BUSINESS_HEAD' in roles
     is_manager_kmu = 'MANAGER_KMU' in roles
     user_id = session.get('user_id')
-    username = session.get('username')
     
     if not is_admin and not is_manager_2:
         if is_business_head and user_id:
             query = query.filter(ShowroomWiseOrderSummarySnapshot.bh_emp_code == user_id)
         elif is_manager_kmu:
-            query = query.filter(ShowroomWiseOrderSummarySnapshot.make.in_([
-                'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
-                'KMU MH', 'KMU-COIN', 'KMU-TN'
-            ]))
-        elif username:
-            u = (username or '').strip().lower()
-            query = query.filter(
-                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.make_owner)) == u) |
-                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.collection_owner)) == u) |
-                (func.lower(func.trim(ShowroomWiseOrderSummarySnapshot.classification_owner)) == u)
-            )
+            query = query.filter(ShowroomWiseOrderSummarySnapshot.make.in_(KMU_MAKES))
+        else:
+            query = apply_showroom_visibility_filter(query)
 
 
     return query
@@ -197,11 +209,6 @@ def sync_showroom_wise_order_summary():
 @jwt_required()
 def showroom_options():
     try:
-        roles = [r.upper() for r in session.get('roles', [])]
-        is_manager_2 = 'MANAGER_2' in roles
-        is_admin = 'ADMIN' in roles
-        username = session.get('username')
-        
         def apply_options_filter(q):
             return apply_showroom_filters(q)
 
