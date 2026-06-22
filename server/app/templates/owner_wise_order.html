@@ -346,6 +346,17 @@
                 </select>
             </div>
             <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Branch Type</label>
+                <select id="filter-branch-type"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Branch Types</option>
+                    {% for bt in filter_options.branch_types %}
+                    <option value="{{ bt }}" {% if request.args.get('branch_type')==bt %}selected{% endif %}>{{ bt }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-1">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Supplier</label>
                 <select id="filter-supplier"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">

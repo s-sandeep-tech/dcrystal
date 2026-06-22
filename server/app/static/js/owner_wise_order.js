@@ -258,6 +258,7 @@ function applyGlobalFilters() {
         'order_request_type': 'filter-order-request-type',
         'provision_type': 'filter-provision-type',
         'branch_provision_type': 'filter-branch-provision-type',
+        'branch_type': 'filter-branch-type',
         'age': 'filter-age'
     };
 
@@ -282,19 +283,33 @@ function applyGlobalFilters() {
 
 function resetGlobalFilters() {
     const urlParams = new URLSearchParams(window.location.search);
-    const ids = [
-        'filter-division', 'filter-group', 'filter-purity', 'filter-classification', 'filter-order-type', 'filter-supplier',
-        'filter-class-owner', 'filter-coll-owner', 'filter-make-owner', 'hierarchy-search',
-        'filter-from-date', 'filter-to-date', 'enable-date-filter', 'filter-order-ro', 'filter-order-request-type', 'filter-provision-type', 'filter-branch-provision-type', 'filter-age'
-    ];
+    const configs = {
+        'division': 'filter-division',
+        'group': 'filter-group',
+        'purity': 'filter-purity',
+        'classification': 'filter-classification',
+        'order_type': 'filter-order-type',
+        'supplier': 'filter-supplier',
+        'classification_owner': 'filter-class-owner',
+        'collection_owner': 'filter-coll-owner',
+        'make_owner': 'filter-make-owner',
+        'search': 'hierarchy-search',
+        'from_date': 'filter-from-date',
+        'to_date': 'filter-to-date',
+        'enable_date_filter': 'enable-date-filter',
+        'order_ro': 'filter-order-ro',
+        'order_request_type': 'filter-order-request-type',
+        'provision_type': 'filter-provision-type',
+        'branch_provision_type': 'filter-branch-provision-type',
+        'branch_type': 'filter-branch-type',
+        'age': 'filter-age'
+    };
 
-    ids.forEach(id => {
+    Object.entries(configs).forEach(([param, id]) => {
         const el = document.getElementById(id);
         if (!el) return;
         if (el.type === 'checkbox') el.checked = false;
         else el.value = '';
-
-        let param = id.replace('filter-', '').replace('class-', 'classification_').replace('coll-', 'collection_').replace('hierarchy-', '').replace('enable-', 'enable_');
         urlParams.delete(param);
     });
 
