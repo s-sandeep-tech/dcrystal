@@ -10,6 +10,26 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+ORDER_STATUS_FILTERS = {'all_rejected', 'active_orders', 'received_orders'}
+
+
+def get_order_status_filter():
+    if request.args.get('all_rejected', 'false') == 'true':
+        return 'all_rejected'
+
+    status_filter = request.args.get('order_status_filter', '').strip()
+    return status_filter if status_filter in ORDER_STATUS_FILTERS else ''
+
+
+def apply_order_status_filter(query, status_filter):
+    if status_filter == 'all_rejected':
+        return query.filter(OwnerWiseOrderSummarySnapshot.ordered_pcs == OwnerWiseOrderSummarySnapshot.rejected_pcs)
+    if status_filter == 'active_orders':
+        return query.filter(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs > 0)
+    if status_filter == 'received_orders':
+        return query.filter(OwnerWiseOrderSummarySnapshot.delivered_pcs > 0)
+    return query
+
 
 def current_user_owner_filter():
     user_id = str(session.get('user_id') or '').strip()
@@ -52,7 +72,7 @@ def owner_wise_order_summary():
         make_owner = request.args.get('make_owner', '')
         classification = request.args.get('classification', '')
         order_type = request.args.get('order_type', '')
-        all_rejected = request.args.get('all_rejected', 'false') == 'true'
+        order_status_filter = get_order_status_filter()
         from_date = request.args.get('from_date', '')
         to_date = request.args.get('to_date', '')
         enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
@@ -67,8 +87,7 @@ def owner_wise_order_summary():
         per_page = request.args.get('per_page', 50, type=int)
 
         def apply_filters(query):
-            if all_rejected:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.ordered_pcs == OwnerWiseOrderSummarySnapshot.rejected_pcs)
+            query = apply_order_status_filter(query, order_status_filter)
             if search:
                 query = query.filter(
                     (OwnerWiseOrderSummarySnapshot.classification_owner.ilike(f"%{search}%")) |
@@ -298,7 +317,7 @@ def get_owner_wise_partial():
         make_owner = request.args.get('make_owner', '')
         classification = request.args.get('classification', '')
         order_type = request.args.get('order_type', '')
-        all_rejected = request.args.get('all_rejected', 'false') == 'true'
+        order_status_filter = get_order_status_filter()
         from_date = request.args.get('from_date', '')
         to_date = request.args.get('to_date', '')
         enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
@@ -319,8 +338,7 @@ def get_owner_wise_partial():
         is_child_rows = bool(parent_level)
 
         def apply_filters(query):
-            if all_rejected:
-                query = query.filter(OwnerWiseOrderSummarySnapshot.ordered_pcs == OwnerWiseOrderSummarySnapshot.rejected_pcs)
+            query = apply_order_status_filter(query, order_status_filter)
             if search:
                 query = query.filter(
                     (OwnerWiseOrderSummarySnapshot.classification_owner.ilike(f"%{search}%")) |
@@ -520,7 +538,7 @@ def get_leaf_detail():
         make_owner = request.args.get('make_owner', '')
         classification = request.args.get('classification', '')
         order_type = request.args.get('order_type', '')
-        all_rejected = request.args.get('all_rejected', 'false') == 'true'
+        order_status_filter = get_order_status_filter()
         from_date = request.args.get('from_date', '')
         to_date = request.args.get('to_date', '')
         enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
@@ -533,8 +551,7 @@ def get_leaf_detail():
 
         query = db.session.query(OwnerWiseOrderSummarySnapshot)
 
-        if all_rejected:
-            query = query.filter(OwnerWiseOrderSummarySnapshot.ordered_pcs == OwnerWiseOrderSummarySnapshot.rejected_pcs)
+        query = apply_order_status_filter(query, order_status_filter)
         if search:
             query = query.filter(
                 (OwnerWiseOrderSummarySnapshot.classification_owner.ilike(f"%{search}%")) |

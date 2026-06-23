@@ -57,7 +57,7 @@ async function loadViewData() {
             }
         }
 
-        updateAllRejectedBtnState();
+        updateOrderStatusFilterBtnState();
 
     } catch (error) {
         console.error('Error loading view:', error);
@@ -207,34 +207,58 @@ async function toggleRow(btn, level, value, grandparentValue = null) {
     }
 }
 
-function toggleAllRejected() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const isAllRejected = urlParams.get('all_rejected') === 'true';
+const ownerStatusFilterButtons = {
+    all_rejected: {
+        id: 'btn-all-rejected',
+        activeClasses: ['bg-red-50', 'dark:bg-red-900/20', 'text-red-600', 'border-red-200', 'dark:border-red-800']
+    },
+    active_orders: {
+        id: 'btn-active-orders',
+        activeClasses: ['bg-orange-50', 'dark:bg-orange-900/20', 'text-orange-600', 'border-orange-200', 'dark:border-orange-800']
+    },
+    received_orders: {
+        id: 'btn-received-orders',
+        activeClasses: ['bg-emerald-50', 'dark:bg-emerald-900/20', 'text-emerald-600', 'border-emerald-200', 'dark:border-emerald-800']
+    }
+};
 
-    if (isAllRejected) {
-        urlParams.delete('all_rejected');
+const ownerStatusInactiveClasses = ['bg-white', 'dark:bg-gray-800', 'text-gray-500', 'border-gray-200', 'dark:border-gray-700'];
+
+function getCurrentOrderStatusFilter(urlParams) {
+    if (urlParams.get('all_rejected') === 'true') return 'all_rejected';
+    return urlParams.get('order_status_filter') || '';
+}
+
+function toggleOrderStatusFilter(filterName) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentFilter = getCurrentOrderStatusFilter(urlParams);
+
+    urlParams.delete('all_rejected');
+    if (currentFilter === filterName) {
+        urlParams.delete('order_status_filter');
     } else {
-        urlParams.set('all_rejected', 'true');
+        urlParams.set('order_status_filter', filterName);
     }
 
     urlParams.set('page', 1);
     updateUrlAndLoad(urlParams);
 }
 
-function updateAllRejectedBtnState() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const isAllRejected = urlParams.get('all_rejected') === 'true';
-    const btn = document.getElementById('btn-all-rejected');
+function toggleAllRejected() {
+    toggleOrderStatusFilter('all_rejected');
+}
 
-    if (btn) {
-        if (isAllRejected) {
-            btn.classList.remove('bg-white', 'dark:bg-gray-800', 'text-gray-500', 'border-gray-200', 'dark:border-gray-700');
-            btn.classList.add('bg-red-50', 'dark:bg-red-900/20', 'text-red-600', 'border-red-200', 'dark:border-red-800');
-        } else {
-            btn.classList.add('bg-white', 'dark:bg-gray-800', 'text-gray-500', 'border-gray-200', 'dark:border-gray-700');
-            btn.classList.remove('bg-red-50', 'dark:bg-red-900/20', 'text-red-600', 'border-red-200', 'dark:border-red-800');
-        }
-    }
+function updateOrderStatusFilterBtnState() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeFilter = getCurrentOrderStatusFilter(urlParams);
+
+    Object.entries(ownerStatusFilterButtons).forEach(([filterName, config]) => {
+        const btn = document.getElementById(config.id);
+        if (!btn) return;
+        const activeClasses = config.activeClasses;
+        btn.classList.remove(...ownerStatusInactiveClasses, ...activeClasses);
+        btn.classList.add(...(activeFilter === filterName ? activeClasses : ownerStatusInactiveClasses));
+    });
 }
 
 function applyGlobalFilters() {
@@ -315,6 +339,7 @@ function resetGlobalFilters() {
 
     toggleDateInputs();
     urlParams.delete('all_rejected');
+    urlParams.delete('order_status_filter');
 
     urlParams.set('page', 1);
     updateUrlAndLoad(urlParams);
@@ -415,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadViewData();
     loadFilterOptions();
-    updateAllRejectedBtnState();
+    updateOrderStatusFilterBtnState();
 });
 
 function toggleDateInputs() {
