@@ -6,7 +6,7 @@ from app.extensions import db
 from sqlalchemy import func, cast, Numeric
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from werkzeug.security import safe_join
+from werkzeug.utils import safe_join
 import logging
 import os
 from decimal import Decimal

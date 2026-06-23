@@ -4,7 +4,7 @@ from app.models import Order, DashboardStats, Notification, User
 from app.extensions import db
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from werkzeug.security import safe_join, secure_filename
+from werkzeug.utils import safe_join, secure_filename
 from app.utils.decorators import require_perm
 from app.models.rbac import Menu
 import json
