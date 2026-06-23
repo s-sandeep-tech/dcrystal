@@ -6,7 +6,9 @@ from app.extensions import db
 from sqlalchemy import func, cast, Numeric
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from werkzeug.security import safe_join
 import logging
+import os
 from decimal import Decimal
 import json
 from app.extensions import redis_client
@@ -597,9 +599,10 @@ def queue_outstanding_orders_export():
 
 
 @dashboard_bp.route('/exports/download/<path:filename>')
+@jwt_required()
+@require_perm('report.export')
 def download_export_file(filename):
     """Serve a generated export file for download with logging."""
-    import os
     from datetime import datetime
     
     # Consistent path to exports directory
@@ -610,7 +613,14 @@ def download_export_file(filename):
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
             'uploads', 'exports'
         )
-    filepath = os.path.join(exports_dir, filename)
+    if not filename or os.path.basename(filename) != filename:
+        logger.warning(f"Rejected unsafe export download filename: {filename}")
+        abort(400)
+
+    filepath = safe_join(exports_dir, filename)
+    if not filepath:
+        logger.warning(f"Rejected export download path outside exports dir: {filename}")
+        abort(400)
 
     # 1. Existence Check
     if not os.path.exists(filepath) or not os.path.isfile(filepath):
