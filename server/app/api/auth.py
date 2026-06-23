@@ -95,6 +95,8 @@ def login():
     return jsonify({"msg": "Bad user id or password"}), 401
 
 @auth_bp.route('/register', methods=['POST'])
+@jwt_required()
+@require_role('ADMIN')
 def register():
     data = request.json
     user_id = data.get('user_id')
