@@ -4,9 +4,11 @@ from app.models import Order, DashboardStats, Notification, User
 from app.extensions import db
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from werkzeug.security import safe_join, secure_filename
 from app.utils.decorators import require_perm
 from app.models.rbac import Menu
 import json
+import os
 
 @dashboard_bp.route('/my_account')
 def my_account():
@@ -582,7 +584,6 @@ def upload_file():
         return {"error": "No selected file"}, 400
         
     if file:
-        import os
         # Use UPLOAD_FOLDER env var for Docker-friendly configuration; default to /app/uploads
         upload_folder = os.environ.get('UPLOAD_FOLDER', '/app/uploads')
         try:
@@ -591,13 +592,22 @@ def upload_file():
             current_app.logger.error(f"Failed to create upload folder {upload_folder}: {str(e)}")
             return {"error": f"Failed to create upload directory: {str(e)}"}, 500
 
-        file_path = os.path.join(upload_folder, file.filename)
+        original_filename = file.filename
+        filename = secure_filename(original_filename)
+        if not filename:
+            return {"error": "Invalid filename"}, 400
+
+        file_path = safe_join(upload_folder, filename)
+        if not file_path:
+            current_app.logger.warning(f"Rejected unsafe upload filename: {original_filename}")
+            return {"error": "Invalid filename"}, 400
+
         try:
             file.save(file_path)
-            current_app.logger.info(f"File {file.filename} uploaded successfully to {file_path}")
-            return {"message": f"File {file.filename} uploaded successfully"}, 200
+            current_app.logger.info(f"File {filename} uploaded successfully to {file_path}")
+            return {"message": f"File {filename} uploaded successfully"}, 200
         except Exception as e:
-            current_app.logger.error(f"Failed to save file {file.filename} to {file_path}: {str(e)}")
+            current_app.logger.error(f"Failed to save file {filename} to {file_path}: {str(e)}")
             return {"error": f"Failed to save file: {str(e)}"}, 500
 
 @dashboard_bp.route('/login')
