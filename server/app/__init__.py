@@ -127,25 +127,6 @@ def create_app():
     with app.app_context():
         # db.create_all() # Handled by migrations
         
-        # Create a default user if none exists
-        try:
-            from app.models import User
-            admin = User.query.filter_by(username='admin').first()
-            if admin is None:
-                admin = User(user_id='U001', username='admin', email='admin@example.com', is_admin=True)
-                admin.set_password('admin123')
-                db.session.add(admin)
-                db.session.commit()
-                print("Default user 'admin' with password 'admin123' and is_admin=True created.")
-            else:
-                if not admin.is_admin:
-                    admin.is_admin = True
-                    db.session.commit()
-                    print("Existing 'admin' user updated to is_admin=True.")
-        except Exception as e:
-            app.logger.warning(f"Could not seed default user: {e}")
-            db.session.rollback()
-
         # Sync offline reports to Redis on startup
         try:
             from .models.rbac import Menu
