@@ -27,7 +27,15 @@ def apply_order_status_filter(query, status_filter):
     if status_filter == 'active_orders':
         return query.filter(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs > 0)
     if status_filter == 'received_orders':
-        return query.filter(OwnerWiseOrderSummarySnapshot.delivered_pcs > 0)
+        effective_ordered_pcs = (
+            OwnerWiseOrderSummarySnapshot.ordered_pcs
+            - OwnerWiseOrderSummarySnapshot.cancelled_pcs
+            - OwnerWiseOrderSummarySnapshot.rejected_pcs
+        )
+        return query.filter(
+            OwnerWiseOrderSummarySnapshot.ordered_pcs > 0,
+            OwnerWiseOrderSummarySnapshot.delivered_pcs >= effective_ordered_pcs
+        )
     return query
 
 
