@@ -1,4 +1,5 @@
 let currentZoom = parseFloat(localStorage.getItem('ownerwise-zoom')) || 1.0;
+let makeMultiSelect;
 
 function adjustZoom(delta, reset = false) {
     const tableArea = document.getElementById('table-area');
@@ -301,6 +302,12 @@ function applyGlobalFilters() {
         else urlParams.delete(param);
     }
 
+    if (makeMultiSelect) {
+        const makeVal = makeMultiSelect.getValues().join(',');
+        if (makeVal) urlParams.set('make', makeVal);
+        else urlParams.delete('make');
+    }
+
     urlParams.set('page', 1);
     updateUrlAndLoad(urlParams);
 }
@@ -336,6 +343,9 @@ function resetGlobalFilters() {
         else el.value = '';
         urlParams.delete(param);
     });
+
+    if (makeMultiSelect) makeMultiSelect.reset();
+    urlParams.delete('make');
 
     toggleDateInputs();
     urlParams.delete('all_rejected');
@@ -437,6 +447,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('search')) document.getElementById('hierarchy-search').value = urlParams.get('search');
+
+    makeMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-make-container',
+        label: 'Make',
+        defaultText: 'All Makes',
+        options: window.ownerWiseAvailableMakes || []
+    });
+
+    const makeVal = urlParams.get('make');
+    if (makeVal && makeMultiSelect) {
+        const selectedMakes = makeVal.split(',').map(value => value.trim()).filter(Boolean);
+        document.querySelectorAll('.filter-make-container-checkbox').forEach(cb => {
+            cb.checked = selectedMakes.includes(cb.value);
+        });
+        makeMultiSelect.updateTriggerText();
+    }
 
     loadViewData();
     loadFilterOptions();

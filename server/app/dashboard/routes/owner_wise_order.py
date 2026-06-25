@@ -39,6 +39,19 @@ def apply_order_status_filter(query, status_filter):
     return query
 
 
+def split_filter_values(value):
+    return [v.strip() for v in (value or '').split(',') if v.strip()]
+
+
+def apply_make_filter(query, make):
+    makes = split_filter_values(make)
+    if not makes:
+        return query
+    if len(makes) == 1:
+        return query.filter(OwnerWiseOrderSummarySnapshot.make == makes[0])
+    return query.filter(OwnerWiseOrderSummarySnapshot.make.in_(makes))
+
+
 def current_user_owner_filter():
     user_id = str(session.get('user_id') or '').strip()
 
@@ -79,6 +92,7 @@ def owner_wise_order_summary():
         collection_owner = request.args.get('collection_owner', '')
         make_owner = request.args.get('make_owner', '')
         classification = request.args.get('classification', '')
+        make = request.args.get('make', '')
         order_type = request.args.get('order_type', '')
         order_status_filter = get_order_status_filter()
         from_date = request.args.get('from_date', '')
@@ -119,6 +133,7 @@ def owner_wise_order_summary():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == make_owner)
             if classification:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.classification == classification)
+            query = apply_make_filter(query, make)
             if order_type:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
             if order_ro:
@@ -184,6 +199,7 @@ def owner_wise_order_summary():
             'collection_owners': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.collection_owner)).distinct().order_by(OwnerWiseOrderSummarySnapshot.collection_owner).all() if r[0]],
             'make_owners': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.make_owner)).distinct().order_by(OwnerWiseOrderSummarySnapshot.make_owner).all() if r[0]],
             'classifications': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.classification)).distinct().order_by(OwnerWiseOrderSummarySnapshot.classification).all() if r[0]],
+            'makes': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.make)).distinct().order_by(OwnerWiseOrderSummarySnapshot.make).all() if r[0]],
             'order_types': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.order_type)).distinct().order_by(OwnerWiseOrderSummarySnapshot.order_type).all() if r[0]],
             'order_request_types': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.order_request_type)).distinct().order_by(OwnerWiseOrderSummarySnapshot.order_request_type).all() if r[0]],
             'provision_types': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.provision_type)).distinct().order_by(OwnerWiseOrderSummarySnapshot.provision_type).all() if r[0]],
@@ -324,6 +340,7 @@ def get_owner_wise_partial():
         collection_owner = request.args.get('collection_owner', '')
         make_owner = request.args.get('make_owner', '')
         classification = request.args.get('classification', '')
+        make = request.args.get('make', '')
         order_type = request.args.get('order_type', '')
         order_status_filter = get_order_status_filter()
         from_date = request.args.get('from_date', '')
@@ -369,6 +386,7 @@ def get_owner_wise_partial():
                 query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == make_owner)
             if classification:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.classification == classification)
+            query = apply_make_filter(query, make)
             if order_type:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
             if order_ro:
@@ -545,6 +563,7 @@ def get_leaf_detail():
         collection_owner = request.args.get('collection_owner', '')
         make_owner = request.args.get('make_owner', '')
         classification = request.args.get('classification', '')
+        make = request.args.get('make', '')
         order_type = request.args.get('order_type', '')
         order_status_filter = get_order_status_filter()
         from_date = request.args.get('from_date', '')
@@ -583,6 +602,7 @@ def get_leaf_detail():
             query = query.filter(OwnerWiseOrderSummarySnapshot.make_owner == make_owner)
         if classification:
             query = query.filter(OwnerWiseOrderSummarySnapshot.classification == classification)
+        query = apply_make_filter(query, make)
         if order_type:
             query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
         if order_ro:

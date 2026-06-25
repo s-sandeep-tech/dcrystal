@@ -313,6 +313,9 @@
                 </select>
             </div>
             <div class="space-y-1">
+                <div id="filter-make-container"></div>
+            </div>
+            <div class="space-y-1">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order Type</label>
                 <select id="filter-order-type"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
@@ -468,6 +471,10 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
+<script>
+    window.ownerWiseAvailableMakes = {{ filter_options.makes | tojson | safe }};
+</script>
 <script src="{{ url_for('static', filename='js/owner_wise_order.js') }}"></script>
 <script src="{{ url_for('static', filename='js/leaf_node_modal.js') }}"></script>
 {% endblock %}
