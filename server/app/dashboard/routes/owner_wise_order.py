@@ -10,7 +10,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-ORDER_STATUS_FILTERS = {'all_rejected', 'active_orders', 'received_orders'}
+ORDER_STATUS_FILTERS = {'all_rejected', 'active_orders', 'delivery_in_progress', 'received_orders'}
 
 
 def get_order_status_filter():
@@ -26,6 +26,11 @@ def apply_order_status_filter(query, status_filter):
         return query.filter(OwnerWiseOrderSummarySnapshot.ordered_pcs == OwnerWiseOrderSummarySnapshot.rejected_pcs)
     if status_filter == 'active_orders':
         return query.filter(OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs > 0)
+    if status_filter == 'delivery_in_progress':
+        return query.filter(
+            OwnerWiseOrderSummarySnapshot.delivered_pcs > 0,
+            OwnerWiseOrderSummarySnapshot.pending_to_be_delv_pcs > 0
+        )
     if status_filter == 'received_orders':
         effective_ordered_pcs = (
             OwnerWiseOrderSummarySnapshot.ordered_pcs

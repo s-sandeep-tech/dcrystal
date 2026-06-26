@@ -217,6 +217,10 @@ const ownerStatusFilterButtons = {
         id: 'btn-active-orders',
         activeClasses: ['bg-orange-50', 'dark:bg-orange-900/20', 'text-orange-600', 'border-orange-200', 'dark:border-orange-800']
     },
+    delivery_in_progress: {
+        id: 'btn-delivery-in-progress',
+        activeClasses: ['bg-blue-50', 'dark:bg-blue-900/20', 'text-blue-600', 'border-blue-200', 'dark:border-blue-800']
+    },
     received_orders: {
         id: 'btn-received-orders',
         activeClasses: ['bg-emerald-50', 'dark:bg-emerald-900/20', 'text-emerald-600', 'border-emerald-200', 'dark:border-emerald-800']
