@@ -101,7 +101,7 @@ def emit_combined_sync_update(status, message, progress, task_type, progress_ran
 
 def get_external_db_connection():
     """Establishes a connection to the external Azure PostgreSQL database."""
-    host = "kj-az1-prod1-crystal-psql-db2.postgres.database.azure.com"
+    host = "kj-az1-prod1-crystal-psql-db2-a.postgres.database.azure.com"
     ip_fallback = "10.150.76.133"
     
     try:
