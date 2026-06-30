@@ -198,6 +198,151 @@
         </div>
     </div>
 
+    <!-- Stats Grid -->
+    <div
+        class="grid grid-cols-10 gap-1 py-1 px-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+        <!-- Card 1: Vendor Count -->
+        <div class="py-1 px-2 border-r border-gray-100 dark:border-gray-800 flex flex-col justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[24px] text-teal-600 shrink-0">corporate_fare</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[9px] text-gray-500 font-bold uppercase truncate" title="Vendors">Vendors</p>
+                    <p id="stat-vendor-count" class="text-sm font-bold text-teal-600 leading-tight">0</p>
+                    <p class="text-[9px] text-gray-500 font-medium leading-none">Active</p>
+                </div>
+            </div>
+            <div class="mt-1 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div class="h-full bg-teal-600" style="width: 100%"></div>
+            </div>
+        </div>
+        <!-- Card 2: Total Pending -->
+        <div class="py-1 px-2 border-r border-gray-100 dark:border-gray-800 flex flex-col justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[24px] text-blue-600 shrink-0">assessment</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[9px] text-gray-500 font-bold uppercase truncate" title="Total Pending">Total Pending</p>
+                    <p id="stat-total-wt" class="text-sm font-bold text-blue-premium leading-tight">0.000</p>
+                    <p id="stat-total-pcs" class="text-[9px] text-gray-500 font-medium leading-none">0 Pcs</p>
+                </div>
+            </div>
+            <div class="mt-1 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div class="h-full bg-blue-600" style="width: 100%"></div>
+            </div>
+        </div>
+        <!-- Card 3: S1 -->
+        <div class="py-1 px-2 border-r border-gray-100 dark:border-gray-800 flex flex-col justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[24px] text-blue-600 shrink-0">assignment</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[9px] text-gray-500 font-bold uppercase truncate" title="S1: Accept Pending">S1: Accept Pend.</p>
+                    <p id="stat-s1-wt" class="text-sm font-bold text-blue-premium leading-tight">0.000</p>
+                    <p id="stat-s1-pcs" class="text-[9px] text-gray-500 font-medium leading-none">0 Pcs</p>
+                </div>
+            </div>
+            <div class="mt-1 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-s1-bar" class="h-full bg-blue-600 transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+        <!-- Card 4: S2 -->
+        <div class="py-1 px-2 border-r border-gray-100 dark:border-gray-800 flex flex-col justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[24px] text-orange-500 shrink-0">engineering</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[9px] text-gray-500 font-bold uppercase truncate" title="S2: Process Pending">S2: Process Pend.</p>
+                    <p id="stat-s2-wt" class="text-sm font-bold text-orange-premium leading-tight">0.000</p>
+                    <p id="stat-s2-pcs" class="text-[9px] text-gray-500 font-medium leading-none">0 Pcs</p>
+                </div>
+            </div>
+            <div class="mt-1 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-s2-bar" class="h-full bg-orange-500 transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+        <!-- Card 5: S3 -->
+        <div class="py-1 px-2 border-r border-gray-100 dark:border-gray-800 flex flex-col justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[24px] text-indigo-600 shrink-0">barcode_scanner</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[9px] text-gray-500 font-bold uppercase truncate" title="S3: Barcode Pending">S3: Barcode Pend.</p>
+                    <p id="stat-s3-wt" class="text-sm font-bold text-indigo-premium leading-tight">0.000</p>
+                    <p id="stat-s3-pcs" class="text-[9px] text-gray-500 font-medium leading-none">0 Pcs</p>
+                </div>
+            </div>
+            <div class="mt-1 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-s3-bar" class="h-full bg-indigo-600 transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+        <!-- Card 6: S4 -->
+        <div class="py-1 px-2 border-r border-gray-100 dark:border-gray-800 flex flex-col justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[24px] text-pink-600 shrink-0">request_quote</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[9px] text-gray-500 font-bold uppercase truncate" title="S4: BIS Request Pending">S4: BIS Req. Pend.</p>
+                    <p id="stat-s4-wt" class="text-sm font-bold text-pink-600 leading-tight">0.000</p>
+                    <p id="stat-s4-pcs" class="text-[9px] text-pink-600/70 font-medium leading-none">0 Pcs</p>
+                </div>
+            </div>
+            <div class="mt-1 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-s4-bar" class="h-full bg-pink-500 transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+        <!-- Card 7: S5 -->
+        <div class="py-1 px-2 border-r border-gray-100 dark:border-gray-800 flex flex-col justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[24px] text-emerald-600 shrink-0">outbox</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[9px] text-gray-500 font-bold uppercase truncate" title="S5: HM Issue Pending">S5: HM Issue Pend.</p>
+                    <p id="stat-s5-wt" class="text-sm font-bold text-emerald-600 leading-tight">0.000</p>
+                    <p id="stat-s5-pcs" class="text-[9px] text-emerald-600/70 font-medium leading-none">0 Pcs</p>
+                </div>
+            </div>
+            <div class="mt-1 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-s5-bar" class="h-full bg-emerald-500 transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+        <!-- Card 8: S6 -->
+        <div class="py-1 px-2 border-r border-gray-100 dark:border-gray-800 flex flex-col justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[24px] text-purple-600 shrink-0">fact_check</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[9px] text-gray-500 font-bold uppercase truncate" title="S6: QC Issue Pending">S6: QC Issue Pend.</p>
+                    <p id="stat-s6-wt" class="text-sm font-bold text-purple-600 leading-tight">0.000</p>
+                    <p id="stat-s6-pcs" class="text-[9px] text-purple-600/70 font-medium leading-none">0 Pcs</p>
+                </div>
+            </div>
+            <div class="mt-1 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-s6-bar" class="h-full bg-purple-500 transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+        <!-- Card 9: S7 -->
+        <div class="py-1 px-2 border-r border-gray-100 dark:border-gray-800 flex flex-col justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[24px] text-violet-600 shrink-0">receipt_long</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[9px] text-gray-500 font-bold uppercase truncate" title="S7: Invoice Approve Pending">S7: Inv. Appr. Pend.</p>
+                    <p id="stat-s7-wt" class="text-sm font-bold text-violet-600 leading-tight">0.000</p>
+                    <p id="stat-s7-pcs" class="text-[9px] text-violet-600/70 font-medium leading-none">0 Pcs</p>
+                </div>
+            </div>
+            <div class="mt-1 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-s7-bar" class="h-full bg-violet-500 transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+        <!-- Card 10: S8 -->
+        <div class="py-1 px-2 flex flex-col justify-between">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[24px] text-fuchsia-600 shrink-0">cloud_sync</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[9px] text-gray-500 font-bold uppercase truncate" title="S8: Muziris Sync Pending">S8: Muziris Sync Pend.</p>
+                    <p id="stat-s8-wt" class="text-sm font-bold text-fuchsia-600 leading-tight">0.000</p>
+                    <p id="stat-s8-pcs" class="text-[9px] text-fuchsia-600/70 font-medium leading-none">0 Pcs</p>
+                </div>
+            </div>
+            <div class="mt-1 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-s8-bar" class="h-full bg-fuchsia-500 transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Pagination Strip -->
     <div class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-4 text-[10px] text-gray-500">

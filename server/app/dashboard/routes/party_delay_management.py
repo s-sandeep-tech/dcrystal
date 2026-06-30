@@ -357,9 +357,104 @@ def partial_party_delay_management_report():
             'feedbacks': feedbacks
         })
 
+    # Calculate global stats based on filters
+    stats_query = db.session.query(
+        func.count(PartyDelayManagementSnapshot.party.distinct()).label('vendor_count'),
+        func.sum(PartyDelayManagementSnapshot.invited_pending_orders).label('s1_pcs'),
+        func.sum(PartyDelayManagementSnapshot.invited_pending_weight).label('s1_wt'),
+        func.sum(PartyDelayManagementSnapshot.process_pending_orders).label('s2_pcs'),
+        func.sum(PartyDelayManagementSnapshot.process_pending_weight).label('s2_wt'),
+        func.sum(PartyDelayManagementSnapshot.process_completed_barcode_pending_orders).label('s3_pcs'),
+        func.sum(PartyDelayManagementSnapshot.process_completed_barcode_pending_weight).label('s3_wt'),
+        func.sum(PartyDelayManagementSnapshot.barcode_completed_bis_request_pending_orders).label('s4_pcs'),
+        func.sum(PartyDelayManagementSnapshot.barcode_completed_bis_request_pending_weight).label('s4_wt'),
+        func.sum(PartyDelayManagementSnapshot.bis_request_completed_hm_issue_pending_orders).label('s5_pcs'),
+        func.sum(PartyDelayManagementSnapshot.bis_request_completed_hm_issue_pending_weight).label('s5_wt'),
+        func.sum(PartyDelayManagementSnapshot.hm_receipt_return_completed_qc_issue_pending).label('s6_pcs'),
+        func.sum(PartyDelayManagementSnapshot.hm_receipt_return_completed_qc_issue_pending_weight).label('s6_wt'),
+        func.sum(PartyDelayManagementSnapshot.invoice_generated_invoice_approve_pending).label('s7_pcs'),
+        func.sum(PartyDelayManagementSnapshot.invoice_generated_invoice_approve_pending_weight).label('s7_wt'),
+        func.sum(PartyDelayManagementSnapshot.invoice_approved_not_synched_to_muziris).label('s8_pcs'),
+        func.sum(PartyDelayManagementSnapshot.invoice_approved_not_synched_to_muziris_weight).label('s8_wt'),
+    )
+    
+    if latest_date:
+        stats_query = stats_query.filter(PartyDelayManagementSnapshot.snapshot_date == latest_date)
+    if search:
+        stats_query = stats_query.filter(PartyDelayManagementSnapshot.party.ilike(f"%{search}%"))
+    if party_filter:
+        stats_query = stats_query.filter(PartyDelayManagementSnapshot.party == party_filter)
+    if makes_selected:
+        stats_query = stats_query.filter(PartyDelayManagementSnapshot.make.in_(makes_selected))
+    stats_query = apply_party_delay_user_filter(stats_query, PartyDelayManagementSnapshot)
+    
+    stats_row = stats_query.first()
+    
+    s1_wt = float(stats_row.s1_wt or 0) if stats_row else 0.0
+    s2_wt = float(stats_row.s2_wt or 0) if stats_row else 0.0
+    s3_wt = float(stats_row.s3_wt or 0) if stats_row else 0.0
+    s4_wt = float(stats_row.s4_wt or 0) if stats_row else 0.0
+    s5_wt = float(stats_row.s5_wt or 0) if stats_row else 0.0
+    s6_wt = float(stats_row.s6_wt or 0) if stats_row else 0.0
+    s7_wt = float(stats_row.s7_wt or 0) if stats_row else 0.0
+    s8_wt = float(stats_row.s8_wt or 0) if stats_row else 0.0
+    
+    total_pcs = (
+        int(stats_row.s1_pcs or 0) + int(stats_row.s2_pcs or 0) + int(stats_row.s3_pcs or 0) +
+        int(stats_row.s4_pcs or 0) + int(stats_row.s5_pcs or 0) + int(stats_row.s6_pcs or 0) +
+        int(stats_row.s7_pcs or 0) + int(stats_row.s8_pcs or 0)
+    ) if stats_row else 0
+    
+    total_wt = s1_wt + s2_wt + s3_wt + s4_wt + s5_wt + s6_wt + s7_wt + s8_wt
+    
+    def get_perc(val):
+        if total_wt <= 0: return 0
+        return min(100, round((float(val or 0) / total_wt) * 100, 1))
+        
+    stats_dict = {}
+    if stats_row:
+        stats_dict = {
+            'vendor_count': f"{int(stats_row.vendor_count or 0):,}",
+            'total_wt': f"{total_wt:,.3f}",
+            'total_pcs': f"{total_pcs:,}",
+            
+            's1_pcs': f"{int(stats_row.s1_pcs or 0):,}",
+            's1_wt': f"{s1_wt:,.3f}",
+            's1_perc': get_perc(s1_wt),
+            
+            's2_pcs': f"{int(stats_row.s2_pcs or 0):,}",
+            's2_wt': f"{s2_wt:,.3f}",
+            's2_perc': get_perc(s2_wt),
+            
+            's3_pcs': f"{int(stats_row.s3_pcs or 0):,}",
+            's3_wt': f"{s3_wt:,.3f}",
+            's3_perc': get_perc(s3_wt),
+            
+            's4_pcs': f"{int(stats_row.s4_pcs or 0):,}",
+            's4_wt': f"{s4_wt:,.3f}",
+            's4_perc': get_perc(s4_wt),
+            
+            's5_pcs': f"{int(stats_row.s5_pcs or 0):,}",
+            's5_wt': f"{s5_wt:,.3f}",
+            's5_perc': get_perc(s5_wt),
+            
+            's6_pcs': f"{int(stats_row.s6_pcs or 0):,}",
+            's6_wt': f"{s6_wt:,.3f}",
+            's6_perc': get_perc(s6_wt),
+            
+            's7_pcs': f"{int(stats_row.s7_pcs or 0):,}",
+            's7_wt': f"{s7_wt:,.3f}",
+            's7_perc': get_perc(s7_wt),
+            
+            's8_pcs': f"{int(stats_row.s8_pcs or 0):,}",
+            's8_wt': f"{s8_wt:,.3f}",
+            's8_perc': get_perc(s8_wt),
+        }
+
     return render_template(
         'partials/_view_party_delay_management.html',
-        rows=processed_rows
+        rows=processed_rows,
+        stats=stats_dict
     )
 
 @dashboard_bp.route('/api/party-delay-management/feedback', methods=['POST'])

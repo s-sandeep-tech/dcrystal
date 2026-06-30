@@ -95,6 +95,17 @@ function loadReport() {
             applyCurrentSort();
         }
         setupDynamicTooltips();
+        
+        // Parse and update stats
+        const statsScript = container.querySelector('#stats-metadata');
+        if (statsScript) {
+            try {
+                const stats = JSON.parse(statsScript.textContent);
+                updateHeaderStats(stats);
+            } catch (e) {
+                console.error("Error parsing stats metadata:", e);
+            }
+        }
     })
     .catch(err => {
         console.error('Error loading report:', err);
@@ -787,4 +798,51 @@ function applyCurrentSort() {
 
     // Re-append
     rows.forEach(row => tbody.appendChild(row));
+}
+
+function updateHeaderStats(stats) {
+    if (!stats) return;
+    const mappings = {
+        'stat-vendor-count': stats.vendor_count,
+        'stat-total-wt': stats.total_wt,
+        'stat-total-pcs': stats.total_pcs,
+        'stat-s1-wt': stats.s1_wt,
+        'stat-s1-pcs': stats.s1_pcs,
+        'stat-s2-wt': stats.s2_wt,
+        'stat-s2-pcs': stats.s2_pcs,
+        'stat-s3-wt': stats.s3_wt,
+        'stat-s3-pcs': stats.s3_pcs,
+        'stat-s4-wt': stats.s4_wt,
+        'stat-s4-pcs': stats.s4_pcs,
+        'stat-s5-wt': stats.s5_wt,
+        'stat-s5-pcs': stats.s5_pcs,
+        'stat-s6-wt': stats.s6_wt,
+        'stat-s6-pcs': stats.s6_pcs,
+        'stat-s7-wt': stats.s7_wt,
+        'stat-s7-pcs': stats.s7_pcs,
+        'stat-s8-wt': stats.s8_wt,
+        'stat-s8-pcs': stats.s8_pcs
+    };
+
+    for (const [id, value] of Object.entries(mappings)) {
+        const el = document.getElementById(id);
+        if (el) {
+            if (id.endsWith('-pcs')) {
+                const cleanValue = value ? value.toString().replace(/ Pcs/gi, '') : '0';
+                el.textContent = cleanValue + ' Pcs';
+            } else if (id === 'stat-vendor-count') {
+                el.textContent = value || '0';
+            } else {
+                el.textContent = value || '0.000';
+            }
+        }
+    }
+
+    // Update bars
+    for (let i = 1; i <= 8; i++) {
+        const bar = document.getElementById(`stat-s${i}-bar`);
+        if (bar) {
+            bar.style.width = (stats[`s${i}_perc`] || 0) + '%';
+        }
+    }
 }
