@@ -190,6 +190,17 @@ function loadReport() {
     .then(html => {
         container.innerHTML = html;
         setupDynamicTooltips(); // Re-init tooltips for new rows
+        
+        // Parse and update stats
+        const statsScript = container.querySelector('#stats-metadata');
+        if (statsScript) {
+            try {
+                const stats = JSON.parse(statsScript.textContent);
+                updateHeaderStats(stats);
+            } catch (e) {
+                console.error("Error parsing stats metadata:", e);
+            }
+        }
     })
     .catch(err => {
         console.error('Error loading report:', err);
@@ -884,4 +895,44 @@ function toggleSort(column) {
     const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
     window.history.pushState({path: newUrl}, '', newUrl);
     loadReport();
+}
+
+function updateHeaderStats(stats) {
+    if (!stats) return;
+    const mappings = {
+        'stat-s1-wt': stats.s1_wt,
+        'stat-s1-pcs': stats.s1_pcs,
+        'stat-s1-delayed-wt': stats.s1_delayed_wt,
+        'stat-s1-delayed-pcs': stats.s1_delayed_pcs,
+        'stat-s2-wt': stats.s2_wt,
+        'stat-s2-pcs': stats.s2_pcs,
+        'stat-s2-delayed-wt': stats.s2_delayed_wt,
+        'stat-s2-delayed-pcs': stats.s2_delayed_pcs,
+        'stat-s3-wt': stats.s3_wt,
+        'stat-s3-pcs': stats.s3_pcs,
+        'stat-s3-delayed-wt': stats.s3_delayed_wt,
+        'stat-s3-delayed-pcs': stats.s3_delayed_pcs
+    };
+
+    for (const [id, value] of Object.entries(mappings)) {
+        const el = document.getElementById(id);
+        if (el) {
+            if (id.endsWith('-pcs')) {
+                const cleanValue = value ? value.toString().replace(/ Pcs/gi, '') : '0';
+                el.textContent = cleanValue + ' Pcs';
+            } else {
+                el.textContent = value || '0.000';
+            }
+        }
+    }
+
+    // Update bars
+    const s1Bar = document.getElementById('stat-s1-delayed-bar');
+    if (s1Bar) s1Bar.style.width = (stats.s1_delayed_perc || 0) + '%';
+    
+    const s2Bar = document.getElementById('stat-s2-delayed-bar');
+    if (s2Bar) s2Bar.style.width = (stats.s2_delayed_perc || 0) + '%';
+    
+    const s3Bar = document.getElementById('stat-s3-delayed-bar');
+    if (s3Bar) s3Bar.style.width = (stats.s3_delayed_perc || 0) + '%';
 }

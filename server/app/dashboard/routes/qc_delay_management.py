@@ -299,12 +299,80 @@ def partial_qc_delay_management_report():
             }
         })
 
+    # Calculate global stats based on filters
+    stats_query = db.session.query(
+        func.sum(QCDelayManagementSnapshot.qc_issue_completed_receipt_pending_piece).label('s1_pcs'),
+        func.sum(QCDelayManagementSnapshot.qc_issue_completed_receipt_pending_weight).label('s1_wt'),
+        s1_del_pcs.label('s1_delayed_pcs'),
+        s1_del_wt.label('s1_delayed_wt'),
+        
+        func.sum(QCDelayManagementSnapshot.qc_receipt_completed_qc_pending_piece).label('s2_pcs'),
+        func.sum(QCDelayManagementSnapshot.qc_receipt_completed_qc_pending_weight).label('s2_wt'),
+        s2_del_pcs.label('s2_delayed_pcs'),
+        s2_del_wt.label('s2_delayed_wt'),
+        
+        func.sum(QCDelayManagementSnapshot.qc_completed_invoice_request_pending_piece).label('s3_pcs'),
+        func.sum(QCDelayManagementSnapshot.qc_completed_invoice_request_pending_weight).label('s3_wt'),
+        s3_del_pcs.label('s3_delayed_pcs'),
+        s3_del_wt.label('s3_delayed_wt'),
+    )
+    
+    if latest_date:
+        stats_query = stats_query.filter(QCDelayManagementSnapshot.snapshot_date == latest_date)
+    if search:
+        stats_query = stats_query.filter(
+            db.or_(
+                QCDelayManagementSnapshot.party.ilike(f"%{search}%"),
+                QCDelayManagementSnapshot.qc_ro.ilike(f"%{search}%")
+            )
+        )
+    if office:
+        stats_query = stats_query.filter(QCDelayManagementSnapshot.qc_ro == office)
+    if makes_selected:
+        stats_query = stats_query.filter(QCDelayManagementSnapshot.make.in_(makes_selected))
+    if parties_selected:
+        stats_query = stats_query.filter(QCDelayManagementSnapshot.party.in_(parties_selected))
+    stats_query = apply_qc_delay_user_filter(stats_query, QCDelayManagementSnapshot)
+    
+    stats_row = stats_query.first()
+    
+    s1_total_wt = float(stats_row.s1_wt or 0) if stats_row else 0.0
+    s2_total_wt = float(stats_row.s2_wt or 0) if stats_row else 0.0
+    s3_total_wt = float(stats_row.s3_wt or 0) if stats_row else 0.0
+    
+    def get_perc(delayed, total):
+        if total <= 0: return 0
+        return min(100, round((float(delayed or 0) / total) * 100, 1))
+        
+    stats_dict = {}
+    if stats_row:
+        stats_dict = {
+            's1_pcs': f"{int(stats_row.s1_pcs or 0):,}",
+            's1_wt': f"{s1_total_wt:,.3f}",
+            's1_delayed_pcs': f"{int(stats_row.s1_delayed_pcs or 0):,}",
+            's1_delayed_wt': f"{float(stats_row.s1_delayed_wt or 0):,.3f}",
+            's1_delayed_perc': get_perc(stats_row.s1_delayed_wt, s1_total_wt),
+            
+            's2_pcs': f"{int(stats_row.s2_pcs or 0):,}",
+            's2_wt': f"{s2_total_wt:,.3f}",
+            's2_delayed_pcs': f"{int(stats_row.s2_delayed_pcs or 0):,}",
+            's2_delayed_wt': f"{float(stats_row.s2_delayed_wt or 0):,.3f}",
+            's2_delayed_perc': get_perc(stats_row.s2_delayed_wt, s2_total_wt),
+            
+            's3_pcs': f"{int(stats_row.s3_pcs or 0):,}",
+            's3_wt': f"{s3_total_wt:,.3f}",
+            's3_delayed_pcs': f"{int(stats_row.s3_delayed_pcs or 0):,}",
+            's3_delayed_wt': f"{float(stats_row.s3_delayed_wt or 0):,.3f}",
+            's3_delayed_perc': get_perc(stats_row.s3_delayed_wt, s3_total_wt),
+        }
+
     return render_template(
         'partials/_view_qc_delay_management.html',
         rows=processed_rows,
         group_by_party=group_by_party,
         sort_by=sort_by,
-        sort_dir=sort_dir
+        sort_dir=sort_dir,
+        stats=stats_dict
     )
 
 @dashboard_bp.route('/api/qc-delay-management/feedback', methods=['POST'])
