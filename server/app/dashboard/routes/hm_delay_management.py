@@ -172,11 +172,46 @@ def partial_hm_delay_management_report():
             }
         })
 
+    # Calculate global stats based on filters
+    stats_query = db.session.query(
+        func.sum(HallmarkingDelayManagementSnapshot.hm_issue_completed_receipt_pending_piece).label('s1_pcs'),
+        func.sum(HallmarkingDelayManagementSnapshot.hm_issue_completed_receipt_pending_weight).label('s1_wt'),
+        func.sum(HallmarkingDelayManagementSnapshot.hm_receipt_completed_hm_pending_piece).label('s2_pcs'),
+        func.sum(HallmarkingDelayManagementSnapshot.hm_receipt_completed_hm_pending_weight).label('s2_wt'),
+        func.sum(HallmarkingDelayManagementSnapshot.hm_completed_return_pending_piece).label('s3_pcs'),
+        func.sum(HallmarkingDelayManagementSnapshot.hm_completed_return_pending_weight).label('s3_wt'),
+    )
+    
+    if latest_date:
+        stats_query = stats_query.filter(HallmarkingDelayManagementSnapshot.snapshot_date == latest_date)
+    if search:
+        stats_query = stats_query.filter(HallmarkingDelayManagementSnapshot.hallmarking_center.ilike(f"%{search}%"))
+    if center:
+        stats_query = stats_query.filter(HallmarkingDelayManagementSnapshot.hallmarking_center == center)
+        
+    stats_row = stats_query.first()
+    
+    s1_total_wt = float(stats_row.s1_wt or 0) if stats_row else 0.0
+    s2_total_wt = float(stats_row.s2_wt or 0) if stats_row else 0.0
+    s3_total_wt = float(stats_row.s3_wt or 0) if stats_row else 0.0
+    
+    stats_dict = {}
+    if stats_row:
+        stats_dict = {
+            's1_pcs': f"{int(stats_row.s1_pcs or 0):,}",
+            's1_wt': f"{s1_total_wt:,.3f}",
+            's2_pcs': f"{int(stats_row.s2_pcs or 0):,}",
+            's2_wt': f"{s2_total_wt:,.3f}",
+            's3_pcs': f"{int(stats_row.s3_pcs or 0):,}",
+            's3_wt': f"{s3_total_wt:,.3f}",
+        }
+
     return render_template(
         'partials/_view_hm_delay_management.html',
         rows=processed_rows,
         sort_by=sort_by,
-        sort_dir=sort_dir
+        sort_dir=sort_dir,
+        stats=stats_dict
     )
 
 @dashboard_bp.route('/api/hm-delay-management/feedback', methods=['POST'])
