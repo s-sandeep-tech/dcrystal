@@ -106,6 +106,19 @@
 
     <!-- Table Container -->
     <div id="table-area" class="flex-1 overflow-auto relative">
+        <div id="loader-overlay"
+            class="absolute inset-0 bg-white/60 dark:bg-gray-900/60 backdrop-blur-[2px] z-[60] flex flex-col items-center justify-center hidden">
+            <div
+                class="flex flex-col items-center gap-4 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700">
+                <div class="relative">
+                    <div class="size-12 border-4 border-gray-100 dark:border-gray-700 rounded-full"></div>
+                    <div
+                        class="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0">
+                    </div>
+                </div>
+                <p class="text-[11px] font-black uppercase tracking-[2px]">Loading Matrix...</p>
+            </div>
+        </div>
         <div id="view-matrix" class="dashboard-view">
             <div class="flex flex-col items-center justify-center py-24 text-gray-500">
                 <div class="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>

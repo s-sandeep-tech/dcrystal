@@ -53,6 +53,9 @@ async function loadViewData() {
     const activeView = document.getElementById('view-matrix');
     if (!activeView) return;
 
+    const loader = document.getElementById('loader-overlay');
+    if (loader) loader.classList.remove('hidden');
+
     const urlParams = new URLSearchParams(window.location.search);
     const searchParams = urlParams.toString();
 
@@ -74,6 +77,8 @@ async function loadViewData() {
     } catch (error) {
         console.error('Error loading view:', error);
         activeView.innerHTML = `<div class="p-8 text-center text-red-500">Error loading data.</div>`;
+    } finally {
+        if (loader) loader.classList.add('hidden');
     }
 }
 
