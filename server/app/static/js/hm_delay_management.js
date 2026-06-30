@@ -467,6 +467,7 @@ function toggleSort(column) {
 function updateHeaderStats(stats) {
     if (!stats) return;
     const mappings = {
+        'stat-agency-count': stats.agency_count,
         'stat-s1-wt': stats.s1_wt,
         'stat-s1-pcs': stats.s1_pcs,
         'stat-s2-wt': stats.s2_wt,
@@ -481,6 +482,8 @@ function updateHeaderStats(stats) {
             if (id.endsWith('-pcs')) {
                 const cleanValue = value ? value.toString().replace(/ Pcs/gi, '') : '0';
                 el.textContent = cleanValue + ' Pcs';
+            } else if (id === 'stat-agency-count') {
+                el.textContent = value || '0';
             } else {
                 el.textContent = value || '0.000';
             }

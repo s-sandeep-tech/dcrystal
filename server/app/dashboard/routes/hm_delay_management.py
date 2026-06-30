@@ -174,6 +174,7 @@ def partial_hm_delay_management_report():
 
     # Calculate global stats based on filters
     stats_query = db.session.query(
+        func.count(HallmarkingDelayManagementSnapshot.hallmarking_center.distinct()).label('agency_count'),
         func.sum(HallmarkingDelayManagementSnapshot.hm_issue_completed_receipt_pending_piece).label('s1_pcs'),
         func.sum(HallmarkingDelayManagementSnapshot.hm_issue_completed_receipt_pending_weight).label('s1_wt'),
         func.sum(HallmarkingDelayManagementSnapshot.hm_receipt_completed_hm_pending_piece).label('s2_pcs'),
@@ -198,6 +199,7 @@ def partial_hm_delay_management_report():
     stats_dict = {}
     if stats_row:
         stats_dict = {
+            'agency_count': f"{int(stats_row.agency_count or 0):,}",
             's1_pcs': f"{int(stats_row.s1_pcs or 0):,}",
             's1_wt': f"{s1_total_wt:,.3f}",
             's2_pcs': f"{int(stats_row.s2_pcs or 0):,}",
