@@ -64,8 +64,12 @@
                             <td class="p-2.5 font-medium text-gray-900 dark:text-white sticky left-0 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                                 {{ val }}
                             </td>
-                        {% elif h == 'Grand Total' %}
+                        {% elif h in ['Delivery Amount', 'Grand Total'] %}
                             <td class="p-2.5 text-right font-bold text-emerald-600 dark:text-emerald-400 border-l border-gray-100 dark:border-gray-800">
+                                {{ format_indian(val) }}
+                            </td>
+                        {% elif h in ['Order Amount', 'Total Order Amount'] %}
+                            <td class="p-2.5 text-right font-bold text-gray-900 dark:text-white border-l border-gray-100 dark:border-gray-800">
                                 {{ format_indian(val) }}
                             </td>
                         {% else %}
@@ -101,8 +105,12 @@
                         <td class="p-2.5 sticky left-0 bg-gray-50 dark:bg-gray-800 z-10 text-left text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
                             Grand Total
                         </td>
-                    {% elif h == 'Grand Total' %}
+                    {% elif h in ['Delivery Amount', 'Grand Total'] %}
                         <td class="p-2.5 text-right text-[11px] text-emerald-600 dark:text-emerald-400 border-l border-gray-200 dark:border-gray-700">
+                            {{ format_indian(total_val) }}
+                        </td>
+                    {% elif h in ['Order Amount', 'Total Order Amount'] %}
+                        <td class="p-2.5 text-right text-[11px] border-l border-gray-200 dark:border-gray-700">
                             {{ format_indian(total_val) }}
                         </td>
                     {% else %}

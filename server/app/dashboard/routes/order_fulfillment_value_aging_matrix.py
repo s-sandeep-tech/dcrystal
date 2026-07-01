@@ -148,21 +148,30 @@ DROP VIEW IF EXISTS delivery_report_last_6_months;
 
 DO $$
 DECLARE
-    column_sql text;
+    column_sql        text;
     select_column_sql text;
-    final_sql text;
+    final_sql         text;
 BEGIN
     SELECT
         string_agg(
             format(
-                'ROUND(SUM(CASE WHEN b.order_date_range = %L THEN b.inv_netvalue ELSE 0 END) / 100000.0, 2) AS %I',
+                'ROUND(
+                    SUM(
+                        CASE
+                            WHEN ob.order_date_range = %L
+                            THEN ob.order_amount
+                            ELSE 0
+                        END
+                    ) / 100000.0,
+                    2
+                ) AS %I',
                 order_date_range,
-                display_label
+                'Order ' || display_label
             ),
             ', ' ORDER BY bucket_start
         ),
         string_agg(
-            format('%I', display_label),
+            format('%I', 'Order ' || display_label),
             ', ' ORDER BY bucket_start
         )
     INTO column_sql, select_column_sql
@@ -198,6 +207,7 @@ BEGIN
 
     final_sql := format($sql$
         CREATE TEMP VIEW delivery_report_last_6_months AS
+
         WITH base AS (
             SELECT *
             FROM {table_expression}
@@ -205,39 +215,93 @@ BEGIN
               AND invoicedate <  DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
         ),
 
+        order_bucket_base AS (
+            SELECT
+                orderno,
+                inv_date_range,
+                order_date_range,
+                SUM(ordervalue) AS order_amount
+            FROM base
+            WHERE inv_date_range IS NOT NULL
+              AND inv_date_range <> ''
+              AND order_date_range IS NOT NULL
+              AND order_date_range <> ''
+            GROUP BY
+                orderno,
+                inv_date_range,
+                order_date_range
+        ),
+
+        delivery_summary AS (
+            SELECT
+                inv_date_range,
+                SUM(delivery_amount) AS delivery_amount
+            FROM (
+                SELECT
+                    orderno,
+                    inv_date_range,
+                    SUM(inv_netvalue) AS delivery_amount
+                FROM base
+                WHERE inv_date_range IS NOT NULL
+                  AND inv_date_range <> ''
+                GROUP BY
+                    orderno,
+                    inv_date_range
+            ) AS x
+            GROUP BY inv_date_range
+        ),
+
+        total_order_summary AS (
+            SELECT
+                inv_date_range,
+                SUM(order_amount) AS total_order_amount
+            FROM order_bucket_base
+            GROUP BY inv_date_range
+        ),
+
         report AS (
             SELECT
-                b.inv_date_range AS "Deliver Date",
+                ob.inv_date_range AS "Deliver Date",
 
                 CASE
-                    WHEN EXTRACT(MONTH FROM TO_DATE(split_part(b.inv_date_range, ' ', 1), 'Mon'))
+                    WHEN EXTRACT(MONTH FROM TO_DATE(split_part(ob.inv_date_range, ' ', 1), 'Mon'))
                          > EXTRACT(MONTH FROM CURRENT_DATE)
                     THEN TO_DATE(
-                        split_part(b.inv_date_range, ' ', 1) || ' ' ||
-                        split_part(b.inv_date_range, ' ', 2) || ' ' ||
+                        split_part(ob.inv_date_range, ' ', 1) || ' ' ||
+                        split_part(ob.inv_date_range, ' ', 2) || ' ' ||
                         (EXTRACT(YEAR FROM CURRENT_DATE)::int - 1),
                         'Mon DD YYYY'
                     )
                     ELSE TO_DATE(
-                        split_part(b.inv_date_range, ' ', 1) || ' ' ||
-                        split_part(b.inv_date_range, ' ', 2) || ' ' ||
+                        split_part(ob.inv_date_range, ' ', 1) || ' ' ||
+                        split_part(ob.inv_date_range, ' ', 2) || ' ' ||
                         EXTRACT(YEAR FROM CURRENT_DATE)::int,
                         'Mon DD YYYY'
                     )
                 END AS sort_date,
 
-                %s,
-                ROUND(SUM(b.inv_netvalue) / 100000.0, 2) AS "Grand Total"
+                ROUND(COALESCE(d.delivery_amount, 0) / 100000.0, 2) AS "Delivery Amount",
 
-            FROM base b
-            WHERE b.inv_date_range IS NOT NULL AND b.inv_date_range <> ''
-            GROUP BY b.inv_date_range
+                %s,
+
+                ROUND(COALESCE(t.total_order_amount, 0) / 100000.0, 2) AS "Total Order Amount"
+
+            FROM order_bucket_base ob
+            LEFT JOIN delivery_summary d
+                ON d.inv_date_range = ob.inv_date_range
+            LEFT JOIN total_order_summary t
+                ON t.inv_date_range = ob.inv_date_range
+            GROUP BY
+                ob.inv_date_range,
+                d.delivery_amount,
+                t.total_order_amount
         )
 
         SELECT
             "Deliver Date",
+            "Delivery Amount",
             %s,
-            "Grand Total"
+            "Total Order Amount"
         FROM report
         ORDER BY sort_date;
     $sql$, column_sql, select_column_sql);
@@ -324,7 +388,7 @@ def get_order_fulfillment_partial():
 
         params = {
             'matrix_mode': matrix_mode,
-            'matrix_version': '2026_06_08_02',
+            'matrix_version': '2026_07_01_01',
             'purchase_office': purchase_office if purchase_office else None,
             'supplier_name': supplier_name if supplier_name else None,
             'group_name': group_name if group_name else None,
@@ -395,8 +459,14 @@ def get_order_fulfillment_partial():
         headers = list(res.keys())
         rows = [dict(zip(headers, row)) for row in res.fetchall()]
 
-        total_order_amount = sum(float(row.get('Order Amount') or 0.0) for row in rows)
-        if 'Order Amount' not in headers:
+        amount_headers = {'Order Amount', 'Delivery Amount', 'Grand Total', 'Total Order Amount'}
+        delivery_headers = [h for h in headers[1:] if h not in amount_headers]
+
+        if 'Total Order Amount' in headers:
+            total_order_amount = sum(float(row.get('Total Order Amount') or 0.0) for row in rows)
+        elif 'Order Amount' in headers:
+            total_order_amount = sum(float(row.get('Order Amount') or 0.0) for row in rows)
+        else:
             total_order_amount_res = db.session.execute(text(f"""
                 SELECT COALESCE(SUM(order_amount), 0) / 100000.0 AS total_order_amount
                 FROM (
@@ -412,9 +482,12 @@ def get_order_fulfillment_partial():
             """)).scalar()
             total_order_amount = float(total_order_amount_res or 0.0)
 
-        total_delivered_amount = sum(float(row.get('Grand Total') or 0.0) for row in rows)
+        if 'Delivery Amount' in headers:
+            total_delivered_amount = sum(float(row.get('Delivery Amount') or 0.0) for row in rows)
+        else:
+            total_delivered_amount = sum(float(row.get('Grand Total') or 0.0) for row in rows)
+
         num_order_buckets = len(rows)
-        delivery_headers = headers[2:-1] if 'Order Amount' in headers else headers[1:-1]
         delivery_totals = {h: sum(float(row.get(h) or 0.0) for row in rows) for h in delivery_headers}
 
         highest_delivery_bucket = "N/A"
@@ -471,7 +544,9 @@ def get_order_fulfillment_partial():
         footer_totals = {
             first_header: 'Grand Total',
             'Order Amount': total_order_amount,
-            'Grand Total': total_delivered_amount
+            'Delivery Amount': total_delivered_amount,
+            'Grand Total': total_delivered_amount,
+            'Total Order Amount': total_order_amount
         }
         for h in delivery_headers:
             footer_totals[h] = delivery_totals[h]
