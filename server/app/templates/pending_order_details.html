@@ -272,8 +272,7 @@
                 </select>
             </div>
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make</label>
-                <input id="filter-make" type="text" value="{{ request.args.get('make', '') }}" placeholder="Comma separated makes..." class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2"/>
+                <div id="filter-make-container"></div>
             </div>
             <div class="space-y-1">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order Type</label>
@@ -336,5 +335,9 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
+<script>
+    window.pendingOrderDetailsAvailableMakes = {{ filter_options.makes | tojson | safe }};
+</script>
 <script src="{{ url_for('static', filename='js/pending_order_details.js') }}"></script>
 {% endblock %}

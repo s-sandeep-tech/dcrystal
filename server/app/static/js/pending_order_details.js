@@ -1,7 +1,25 @@
 let currentZoom = parseFloat(localStorage.getItem('pendingdetails-zoom')) || 1.0;
+let makeMultiSelect;
 
 document.addEventListener('DOMContentLoaded', () => {
     adjustZoom(0);
+
+    makeMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-make-container',
+        label: 'Make',
+        defaultText: 'All Makes',
+        options: window.pendingOrderDetailsAvailableMakes || []
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const makeVal = urlParams.get('make');
+    if (makeVal && makeMultiSelect) {
+        const selectedMakes = makeVal.split(',').map(v => v.trim()).filter(Boolean);
+        document.querySelectorAll('.filter-make-container-checkbox').forEach(cb => {
+            cb.checked = selectedMakes.includes(cb.value);
+        });
+        makeMultiSelect.updateTriggerText();
+    }
 });
 
 function adjustZoom(delta, reset = false) {
@@ -33,7 +51,7 @@ function getFilterValues() {
         collection_owner: document.getElementById('filter-collection-owner')?.value || '',
         make_owner: document.getElementById('filter-make-owner')?.value || '',
         classification: document.getElementById('filter-classification')?.value || '',
-        make: document.getElementById('filter-make')?.value || '',
+        make: makeMultiSelect ? makeMultiSelect.getValues().join(',') : '',
         order_type: document.getElementById('filter-order-type')?.value || '',
         order_ro: document.getElementById('filter-order-ro')?.value || '',
         order_request_type: document.getElementById('filter-order-request-type')?.value || '',
