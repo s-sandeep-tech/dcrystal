@@ -2,8 +2,7 @@
 <table class="enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
     <thead>
         <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider">
-            <th class="col-expander text-center px-0 w-8"></th>
-            <th class="text-left px-2">Owner Detail</th>
+            <th class="text-left px-3 py-2">Supplier</th>
             <th class="text-right px-2 bg-gray-100/30">Accept Pending</th>
             <th class="text-right px-2 bg-yellow-50/20">Process Pending</th>
             <th class="text-right px-2 bg-blue-50/20">Barcode Pending</th>
@@ -18,34 +17,12 @@
         {% endif %}
 
         {% for r in rows %}
-        <tr class="parent-row hover:bg-blue-50/30 group animate-fade-in {{ 'cursor-pointer' if r.level == 'collection_owner' else '' }}"
-            data-level="{{ r.level }}" {% if r.level == 'collection_owner' %}
-            onclick="openLeafModal('{{ r.classification_owner|e }}', '{{ r.make_owner|e }}', '{{ r.collection_owner|e }}')"
-            {% endif %}>
-            <td class="text-center px-0">
-                {% if r.level != 'collection_owner' %}
-                <button
-                    onclick="toggleRow(this, '{{ r.level }}', '{{ (r.level == 'classification_owner' and r.classification_owner or r.make_owner)|e }}', '{{ (r.level == 'make_owner' and r.classification_owner or '')|e }}')"
-                    class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
-                    <span class="material-symbols-outlined text-[14px]">add_circle</span>
-                </button>
-                {% else %}
-                <span class="material-symbols-outlined text-[8px] text-gray-200">fiber_manual_record</span>
-                {% endif %}
-            </td>
-            <td class="px-2 font-bold">
-                <div class="flex items-center gap-1"
-                    style="padding-left: {{ '0px' if r.level == 'classification_owner' else ('12px' if r.level == 'make_owner' else '24px') }}">
-                    <span class="material-symbols-outlined text-[12px] text-gray-300">
-                        {% if r.level == 'classification_owner' %}shield_person{% elif r.level == 'make_owner' %}precision_manufacturing{% else %}category{% endif %}
-                    </span>
-                    {% if r.level == 'classification_owner' %}
-                    {{ r.classification_owner }}
-                    {% elif r.level == 'make_owner' %}
-                    {{ r.make_owner }}
-                    {% else %}
-                    {{ r.collection_owner }}
-                    {% endif %}
+        <tr class="hover:bg-blue-50/30 cursor-pointer group animate-fade-in"
+            onclick="openLeafModal('{{ r.supplier|e }}')">
+            <td class="px-3 py-2 font-bold text-gray-900 dark:text-white">
+                <div class="flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px] text-primary">store</span>
+                    {{ r.supplier }}
                 </div>
             </td>
             <!-- Accept Pending -->
@@ -111,7 +88,6 @@
     </tbody>
 </table>
 {% if pagination %}
-<!-- Pagination component copied from template pattern -->
 <div class="flex items-center justify-between p-2 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 shrink-0">
     <div class="text-[10px] text-gray-500 font-medium">
         Showing Page {{ pagination.page }} of {{ pagination.pages }}
