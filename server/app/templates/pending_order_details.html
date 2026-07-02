@@ -329,7 +329,11 @@
                 </select>
             </div>
         </div>
-        <button onclick="applyFilters()" class="w-full mt-4 bg-primary text-white text-xs font-bold py-2 rounded shadow-md hover:bg-primary-dark transition-all duration-200">APPLY FILTERS</button>
+    </div>
+    <div class="p-4 bg-white dark:bg-background-dark border-t border-gray-200 dark:border-gray-800 shrink-0">
+        <button onclick="applyFilters()" class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
+        </button>
     </div>
 </aside>
 {% endblock %}
