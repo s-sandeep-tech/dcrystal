@@ -186,7 +186,7 @@ def process_sync_queue():
                     else:
                         logger.error(f"Unknown sync task type: {task_type}")
 
-                        emit_sync_update('error', f'Unknown task type: {task_type}')
+                        emit_sync_update('error', f'Unknown task type: {task_type}', data_type=task_type)
                         res = {"status": "error", "message": f"Unknown task type: {task_type}"}
                         
                         
