@@ -37,7 +37,7 @@
         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
             {% for s in supplier_summaries %}
             <!-- Supplier Summary Row -->
-            <tr class="bg-gray-50/50 hover:bg-blue-50/30 transition-all font-bold">
+            <tr class="bg-gray-50/50 hover:bg-blue-50/30 transition-all font-bold border-t-2 border-gray-200 dark:border-gray-800">
                 <td class="px-3 py-2 text-gray-900 dark:text-white flex items-center gap-1.5">
                     <button onclick="toggleModalSupplier(this, '{{ s.id }}')" class="flex items-center justify-center text-gray-400 hover:text-primary transition-colors focus:outline-none">
                         <span class="material-symbols-outlined text-[14px]">add_circle</span>
