@@ -285,6 +285,7 @@ def pending_order_details():
         return f"Error: {str(e)}", 500
 
 @dashboard_bp.route('/partial/pendingorderdetails')
+@jwt_required()
 def get_pending_order_details_partial():
     try:
         search = request.args.get('search', '').strip()
@@ -464,6 +465,7 @@ def get_pending_order_details_partial():
         return f"Error: {str(e)}", 500
 
 @dashboard_bp.route('/partial/pendingorderdetails/leaf_detail')
+@jwt_required()
 def get_pending_order_details_leaf_detail():
     try:
         search = request.args.get('search', '').strip()

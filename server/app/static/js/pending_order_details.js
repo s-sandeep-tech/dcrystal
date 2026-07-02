@@ -79,49 +79,65 @@ function onSearchInput(val) {
     });
 }
 
-// Tree / Row Toggling
-async function toggleRow(btn, level, value, grandparentValue) {
-    const row = btn.closest('tr');
-    const isExpanded = btn.querySelector('span').textContent === 'remove_circle';
+// Tree-Grid Toggle Action
+async function toggleRow(btn, level, value, grandparentValue = null) {
+    const tr = btn.closest('tr');
+    if (!tr) return;
+
+    const icon = btn.querySelector('.material-symbols-outlined');
+    const isExpanded = icon.textContent === 'remove_circle';
 
     if (isExpanded) {
-        // Collapse all children
-        btn.querySelector('span').textContent = 'add_circle';
-        let next = row.nextElementSibling;
-        while (next && !next.classList.contains('parent-row')) {
-            next.remove();
-            next = row.nextElementSibling;
+        let nextTr = tr.nextElementSibling;
+        while (nextTr) {
+            const nextLevel = nextTr.dataset.level;
+            if (level === 'classification_owner' && nextLevel === 'classification_owner') break;
+            if (level === 'make_owner' && (nextLevel === 'make_owner' || nextLevel === 'classification_owner')) break;
+
+            const toRemove = nextTr;
+            nextTr = nextTr.nextElementSibling;
+            toRemove.remove();
         }
-        return;
-    }
+        icon.textContent = 'add_circle';
+        tr.classList.remove('bg-blue-50/50');
+    } else {
+        icon.textContent = 'hourglass_empty';
 
-    // Expand
-    btn.querySelector('span').textContent = 'remove_circle';
-    const params = new URLSearchParams(getFilterValues());
-    params.set('parent_level', level);
-    params.set('parent_value', value);
-    if (grandparentValue) {
-        params.set('grandparent_value', grandparentValue);
-    }
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const params = new URLSearchParams(urlParams);
+            params.set('parent_level', level);
+            params.set('parent_value', value);
+            if (grandparentValue) params.set('grandparent_value', grandparentValue);
 
-    try {
-        const response = await fetch(`/partial/pendingorderdetails?${params.toString()}`);
-        if (!response.ok) throw new Error('Failed to load child rows');
-        
-        const html = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const childRows = doc.querySelectorAll('tr');
+            const response = await fetch(`/partial/pendingorderdetails?${params.toString()}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                }
+            });
 
-        // Insert after current row
-        let insertRef = row;
-        childRows.forEach(child => {
-            insertRef.after(child);
-            insertRef = child;
-        });
-    } catch (e) {
-        console.error(e);
-        alert('Error loading child rows');
+            if (!response.ok) throw new Error("Failed to load children");
+            const html = await response.text();
+
+            const template = document.createElement('template');
+            template.innerHTML = html;
+            const newRows = template.content.querySelectorAll('tr');
+
+            let referenceNode = tr;
+            newRows.forEach(newRow => {
+                newRow.classList.add('child-row');
+                newRow.classList.add('animate-fade-in');
+                referenceNode.parentNode.insertBefore(newRow, referenceNode.nextSibling);
+                referenceNode = newRow;
+            });
+
+            icon.textContent = 'remove_circle';
+            tr.classList.add('bg-blue-50/50');
+
+        } catch (e) {
+            console.error(e);
+            icon.textContent = 'error';
+        }
     }
 }
 
