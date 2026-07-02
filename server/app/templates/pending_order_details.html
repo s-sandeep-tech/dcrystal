@@ -99,7 +99,13 @@
         </div>
 
         <!-- QC Issue Pending -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center relative">
+            <div class="absolute top-1 right-1">
+                <span class="material-symbols-outlined text-[11px] text-gray-400 hover:text-red-500 transition-colors cursor-help"
+                    onmouseenter="showInfoTooltip(event, 'Ornaments returned for QC repair are also counted in this stage — items flagged with quality issues pending rework or correction are included in this total.')"
+                    onmouseleave="hideInfoTooltip()">info</span>
+            </div>
+
             <p class="text-[9px] text-gray-500 font-bold uppercase">QC Issue Pending Wt</p>
             <div class="flex flex-col">
                 <p id="stat-qc-issue-wt" class="text-sm font-bold text-red-600">{{ stats.qc_issue_wt if stats else '0.00' }}</p>
@@ -344,4 +350,50 @@
     window.pendingOrderDetailsAvailableMakes = {{ filter_options.makes | tojson | safe }};
 </script>
 <script src="{{ url_for('static', filename='js/pending_order_details.js') }}"></script>
+
+<!-- Global fixed tooltip (escapes overflow:hidden containers) -->
+<div id="global-info-tooltip"
+    class="fixed hidden z-[99999] max-w-[260px] pointer-events-none transition-opacity duration-150 opacity-0">
+    <div class="bg-gray-900 border border-gray-700 shadow-2xl rounded-lg p-3 text-white">
+        <p id="global-info-tooltip-text" class="text-[10px] leading-relaxed text-gray-200"></p>
+    </div>
+</div>
+<script>
+    function showInfoTooltip(event, message) {
+        const tooltip = document.getElementById('global-info-tooltip');
+        const text = document.getElementById('global-info-tooltip-text');
+        if (!tooltip || !text) return;
+        text.textContent = message;
+        tooltip.classList.remove('hidden');
+        positionInfoTooltip(event, tooltip);
+        requestAnimationFrame(() => tooltip.classList.add('opacity-100'));
+    }
+
+    function positionInfoTooltip(event, tooltip) {
+        const margin = 12;
+        const rect = event.target.getBoundingClientRect();
+        const ttW = tooltip.offsetWidth || 260;
+        const ttH = tooltip.offsetHeight || 80;
+
+        // Prefer below the icon; fall back to above if not enough room
+        let top = rect.bottom + margin;
+        let left = rect.left + rect.width / 2 - ttW / 2;
+
+        if (top + ttH > window.innerHeight - 8) {
+            top = rect.top - ttH - margin;
+        }
+        left = Math.max(8, Math.min(left, window.innerWidth - ttW - 8));
+
+        tooltip.style.top = top + 'px';
+        tooltip.style.left = left + 'px';
+    }
+
+    function hideInfoTooltip() {
+        const tooltip = document.getElementById('global-info-tooltip');
+        if (!tooltip) return;
+        tooltip.classList.remove('opacity-100');
+        setTimeout(() => tooltip.classList.add('hidden'), 150);
+    }
+</script>
 {% endblock %}
+
