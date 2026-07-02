@@ -166,12 +166,12 @@ BEGIN
                     2
                 ) AS %I',
                 order_date_range,
-                'Order ' || display_label
+                'Ord ' || display_label
             ),
             ', ' ORDER BY bucket_start
         ),
         string_agg(
-            format('%I', 'Order ' || display_label),
+            format('%I', 'Ord ' || display_label),
             ', ' ORDER BY bucket_start
         )
     INTO column_sql, select_column_sql
@@ -388,7 +388,7 @@ def get_order_fulfillment_partial():
 
         params = {
             'matrix_mode': matrix_mode,
-            'matrix_version': '2026_07_01_01',
+            'matrix_version': '2026_07_02_01',
             'purchase_office': purchase_office if purchase_office else None,
             'supplier_name': supplier_name if supplier_name else None,
             'group_name': group_name if group_name else None,
