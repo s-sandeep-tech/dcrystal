@@ -2,7 +2,7 @@
     <div>
         <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <span class="material-symbols-outlined text-primary">analytics</span>
-            Detailed Analysis: {{ owner_name }}
+            Detailed Analysis: Pending Order Details
         </h3>
         <p class="text-[10px] text-gray-500 mt-0.5 font-medium tracking-tight">Comprehensive hierarchical breakdown with itemized metrics.</p>
     </div>
@@ -15,114 +15,62 @@
 <div class="modal-body overflow-auto max-h-[75vh] p-0 scrollbar-thin hover:scrollbar-thumb-gray-300 dark:hover:scrollbar-thumb-gray-700">
     <table class="modal-grid w-full text-left border-collapse table-auto border-spacing-0 bg-white dark:bg-gray-900 text-[10px]">
         <thead class="sticky top-0 z-30">
-            <!-- Grouped Header Row -->
             <tr class="bg-gray-50 dark:bg-gray-800 text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 shadow-sm">
-                <th rowspan="2" class="px-4 py-3 border-r min-w-[220px] bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white">Level Detail</th>
-                <th colspan="2" class="px-2 py-1.5 text-center border-r bg-gray-100/30">Accept Pending</th>
-                <th colspan="2" class="px-2 py-1.5 text-center border-r bg-yellow-50/30 text-yellow-700">Process Pending</th>
-                <th colspan="2" class="px-2 py-1.5 text-center border-r bg-blue-50/30 text-blue-700">Barcode Pending</th>
-                <th colspan="2" class="px-2 py-1.5 text-center border-r bg-indigo-50/30 text-indigo-700">Hallmark Pending</th>
-                <th colspan="2" class="px-2 py-1.5 text-center border-r bg-red-50/30 text-red-700">QC Issue Pending</th>
-                <th colspan="2" class="px-2 py-1.5 text-center border-r bg-purple-50/30 text-purple-700">QC Complete Pending</th>
-                <th colspan="2" class="px-2 py-1.5 text-center border-r bg-cyan-50/30 text-cyan-700">Invoice Pending</th>
-                <th colspan="2" class="px-2 py-1.5 text-center bg-emerald-50/30 text-emerald-700 font-bold">Total Pending</th>
-            </tr>
-            <!-- Specific Column Row -->
-            <tr class="bg-gray-50/95 dark:bg-gray-800/95 text-[8px] font-bold text-gray-500 dark:text-gray-400 uppercase border-b border-gray-200 dark:border-gray-700 shadow-sm">
-                <th class="px-2 py-2 text-right border-r">Pcs</th><th class="px-2 py-2 text-right border-r">Wt</th>
-                <th class="px-2 py-2 text-right border-r">Pcs</th><th class="px-2 py-2 text-right border-r">Wt</th>
-                <th class="px-2 py-2 text-right border-r">Pcs</th><th class="px-2 py-2 text-right border-r">Wt</th>
-                <th class="px-2 py-2 text-right border-r">Pcs</th><th class="px-2 py-2 text-right border-r">Wt</th>
-                <th class="px-2 py-2 text-right border-r">Pcs</th><th class="px-2 py-2 text-right border-r">Wt</th>
-                <th class="px-2 py-2 text-right border-r">Pcs</th><th class="px-2 py-2 text-right border-r">Wt</th>
-                <th class="px-2 py-2 text-right border-r">Pcs</th><th class="px-2 py-2 text-right border-r">Wt</th>
-                <th class="px-2 py-2 text-right border-r">Pcs</th><th class="px-2 py-2 text-right">Wt</th>
+                <th class="px-3 py-2">Supplier</th>
+                <th class="px-2 py-2">Order Type</th>
+                <th class="px-2 py-2">Order RO</th>
+                <th class="px-2 py-2">Make</th>
+                <th class="px-2 py-2">Collection</th>
+                <th class="px-2 py-2">Classification</th>
+                <th class="px-2 py-2">Provision Type</th>
+                <th class="px-2 py-2">Branch Type</th>
+                <th class="px-2 py-2 text-right">Accept Pend Pcs/Wt</th>
+                <th class="px-2 py-2 text-right">Process Pend Pcs/Wt</th>
+                <th class="px-2 py-2 text-right">Barcode Pend Pcs/Wt</th>
+                <th class="px-2 py-2 text-right">Hallmark Pend Pcs/Wt</th>
+                <th class="px-2 py-2 text-right">QC Issue Pend Pcs/Wt</th>
+                <th class="px-2 py-2 text-right">QC Complete Pend Pcs/Wt</th>
+                <th class="px-2 py-2 text-right">Invoice Pend Pcs/Wt</th>
+                <th class="px-2 py-2 text-right font-bold text-emerald-600">Total Pend Pcs/Wt</th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
-            {% macro render_node(node, level_depth, parent_id, index) %}
-            {% set current_id = (parent_id ~ '-' ~ index) if parent_id else index|string %}
-            <tr class="hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors group modal-row {{ 'hidden' if level_depth > 0 else '' }}"
-                data-id="{{ current_id }}" data-parent-id="{{ parent_id or '' }}" data-depth="{{ level_depth }}">
-                <td class="px-4 py-2.5 border-r font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 transition-colors">
-                    <div class="flex items-center gap-2" style="padding-left: {{ level_depth * 20 }}px">
-                        {% if node.children %}
-                        <button onclick="toggleModalRow(this)"
-                            class="flex items-center justify-center w-5 h-5 text-primary hover:bg-primary/20 rounded-full transition-all hover:scale-110 active:scale-95 shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
-                            <span class="material-symbols-outlined text-[14px] toggle-icon font-bold">add_circle</span>
-                        </button>
-                        {% else %}
-                        <span class="w-5"></span>
-                        {% endif %}
-                        <span class="truncate max-w-[200px] py-1 font-bold tracking-tight text-gray-800 dark:text-gray-200" title="{{ node.label }}">{{ node.label }}</span>
-                    </div>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            {% for rec in records %}
+            <tr class="hover:bg-blue-50/20 transition-all duration-150">
+                <td class="px-3 py-2 font-medium text-gray-900 dark:text-white">{{ rec.supplier or '' }}</td>
+                <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.order_type or '' }}</td>
+                <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.order_ro or '' }}</td>
+                <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.make or '' }}</td>
+                <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.collection or '' }}</td>
+                <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.classification or '' }}</td>
+                <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.provision_type or '' }}</td>
+                <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.branch_type or '' }}</td>
+                <td class="px-2 py-2 text-right font-medium text-gray-700">
+                    {{ rec.accept_pending_pcs|int }} / {{ "%.3f"|format(rec.accept_pending_wt) }}
                 </td>
-                <!-- Accept Pending -->
-                <td class="px-2 py-2 text-right border-r text-gray-500 font-medium bg-gray-100/10">{{ node.metrics.accept_pcs|int }}</td>
-                <td class="px-2 py-2 text-right border-r text-gray-700 font-bold bg-gray-100/10">{{ "%.3f"|format(node.metrics.accept_wt) }}</td>
-                <!-- Process Pending -->
-                <td class="px-2 py-2 text-right border-r text-yellow-600 bg-yellow-50/10">{{ node.metrics.process_pcs|int }}</td>
-                <td class="px-2 py-2 text-right border-r text-yellow-600 font-bold bg-yellow-50/10">{{ "%.3f"|format(node.metrics.process_wt) }}</td>
-                <!-- Barcode Pending -->
-                <td class="px-2 py-2 text-right border-r text-blue-600 bg-blue-50/10">{{ node.metrics.barcode_pcs|int }}</td>
-                <td class="px-2 py-2 text-right border-r text-blue-600 font-bold bg-blue-50/10">{{ "%.3f"|format(node.metrics.barcode_wt) }}</td>
-                <!-- Hallmark Pending -->
-                <td class="px-2 py-2 text-right border-r text-indigo-600 bg-indigo-50/10">{{ node.metrics.hallmark_pcs|int }}</td>
-                <td class="px-2 py-2 text-right border-r text-indigo-600 font-bold bg-indigo-50/10">{{ "%.3f"|format(node.metrics.hallmark_wt) }}</td>
-                <!-- QC Issue Pending -->
-                <td class="px-2 py-2 text-right border-r text-red-600 bg-red-50/10">{{ node.metrics.qc_issue_pcs|int }}</td>
-                <td class="px-2 py-2 text-right border-r text-red-600 font-bold bg-red-50/10">{{ "%.3f"|format(node.metrics.qc_issue_wt) }}</td>
-                <!-- QC Complete Pending -->
-                <td class="px-2 py-2 text-right border-r text-purple-600 bg-purple-50/10">{{ node.metrics.qc_complete_pcs|int }}</td>
-                <td class="px-2 py-2 text-right border-r text-purple-600 font-bold bg-purple-50/10">{{ "%.3f"|format(node.metrics.qc_complete_wt) }}</td>
-                <!-- Invoice Pending -->
-                <td class="px-2 py-2 text-right border-r text-cyan-600 bg-cyan-50/10">{{ node.metrics.invoice_pcs|int }}</td>
-                <td class="px-2 py-2 text-right border-r text-cyan-600 font-bold bg-cyan-50/10">{{ "%.3f"|format(node.metrics.invoice_wt) }}</td>
-                <!-- Total Pending -->
-                <td class="px-2 py-2 text-right border-r text-emerald-600 font-bold bg-emerald-50/20">{{ node.metrics.total_pcs|int }}</td>
-                <td class="px-2 py-2 text-right text-emerald-600 font-black bg-emerald-50/20">{{ "%.3f"|format(node.metrics.total_wt) }}</td>
+                <td class="px-2 py-2 text-right font-medium text-yellow-600">
+                    {{ rec.process_pending_pcs|int }} / {{ "%.3f"|format(rec.process_pending_wt) }}
+                </td>
+                <td class="px-2 py-2 text-right font-medium text-blue-600">
+                    {{ rec.barcode_pending_pcs|int }} / {{ "%.3f"|format(rec.barcode_pending_wt) }}
+                </td>
+                <td class="px-2 py-2 text-right font-medium text-indigo-600">
+                    {{ rec.hallmark_pending_pcs|int }} / {{ "%.3f"|format(rec.hallmark_pending_wt) }}
+                </td>
+                <td class="px-2 py-2 text-right font-medium text-red-600">
+                    {{ rec.qc_issue_pending_pcs|int }} / {{ "%.3f"|format(rec.qc_issue_pending_wt) }}
+                </td>
+                <td class="px-2 py-2 text-right font-medium text-purple-600">
+                    {{ rec.qc_complete_pending_pcs|int }} / {{ "%.3f"|format(rec.qc_complete_pending_wt) }}
+                </td>
+                <td class="px-2 py-2 text-right font-medium text-cyan-600">
+                    {{ rec.invoice_pending_pcs|int }} / {{ "%.3f"|format(rec.invoice_pending_wt) }}
+                </td>
+                <td class="px-2 py-2 text-right font-bold text-emerald-600 bg-emerald-50/10">
+                    {{ rec.total_pcs|int }} / {{ "%.3f"|format(rec.total_weight) }}
+                </td>
             </tr>
-            {% if node.children %}
-            {% for child in node.children %}
-            {{ render_node(child, level_depth + 1, current_id, loop.index) }}
-            {% endfor %}
-            {% endif %}
-            {% endmacro %}
-
-            {% for node in data %}
-            {{ render_node(node, 0, "", loop.index) }}
             {% endfor %}
         </tbody>
-        <tfoot class="font-bold text-black dark:text-white uppercase tracking-tighter bg-gray-100 dark:bg-gray-800 border-t-2 border-gray-400 dark:border-gray-600">
-            <tr class="h-10">
-                <td class="px-4 py-2 border-r bg-gray-200 dark:bg-gray-700 min-w-[220px]">
-                    <span class="text-[12px] font-black tracking-widest text-gray-900 dark:text-white">GRAND TOTAL</span>
-                </td>
-                <!-- Accept Pending -->
-                <td class="px-2 py-2 text-right border-r text-[13px] text-gray-600">{{ grand_total.accept_pcs|int }}</td>
-                <td class="px-2 py-2 text-right border-r text-[13px] text-gray-700 font-black">{{ "%.3f"|format(grand_total.accept_wt) }}</td>
-                <!-- Process Pending -->
-                <td class="px-2 py-2 text-right border-r text-[13px] text-yellow-600">{{ grand_total.process_pcs|int }}</td>
-                <td class="px-2 py-2 text-right border-r text-[13px] text-yellow-600 font-black">{{ "%.3f"|format(grand_total.process_wt) }}</td>
-                <!-- Barcode Pending -->
-                <td class="px-2 py-2 text-right border-r text-[13px] text-blue-600">{{ grand_total.barcode_pcs|int }}</td>
-                <td class="px-2 py-2 text-right border-r text-[13px] text-blue-600 font-black">{{ "%.3f"|format(grand_total.barcode_wt) }}</td>
-                <!-- Hallmark Pending -->
-                <td class="px-2 py-2 text-right border-r text-[13px] text-indigo-600">{{ grand_total.hallmark_pcs|int }}</td>
-                <td class="px-2 py-2 text-right border-r text-[13px] text-indigo-600 font-black">{{ "%.3f"|format(grand_total.hallmark_wt) }}</td>
-                <!-- QC Issue Pending -->
-                <td class="px-2 py-2 text-right border-r text-[13px] text-red-600">{{ grand_total.qc_issue_pcs|int }}</td>
-                <td class="px-2 py-2 text-right border-r text-[13px] text-red-600 font-black">{{ "%.3f"|format(grand_total.qc_issue_wt) }}</td>
-                <!-- QC Complete Pending -->
-                <td class="px-2 py-2 text-right border-r text-[13px] text-purple-600">{{ grand_total.qc_complete_pcs|int }}</td>
-                <td class="px-2 py-2 text-right border-r text-[13px] text-purple-600 font-black">{{ "%.3f"|format(grand_total.qc_complete_wt) }}</td>
-                <!-- Invoice Pending -->
-                <td class="px-2 py-2 text-right border-r text-[13px] text-cyan-600">{{ grand_total.invoice_pcs|int }}</td>
-                <td class="px-2 py-2 text-right border-r text-[13px] text-cyan-600 font-black">{{ "%.3f"|format(grand_total.invoice_wt) }}</td>
-                <!-- Total Pending -->
-                <td class="px-2 py-2 text-right border-r text-[13px] text-emerald-600 font-bold bg-emerald-50/10">{{ grand_total.total_pcs|int }}</td>
-                <td class="px-2 py-2 text-right text-[13px] text-emerald-600 font-black bg-emerald-50/10">{{ "%.3f"|format(grand_total.total_wt) }}</td>
-            </tr>
-        </tfoot>
     </table>
 </div>
