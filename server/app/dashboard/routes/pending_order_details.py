@@ -80,11 +80,11 @@ def pending_order_details():
         def apply_filters(query):
             if search:
                 query = query.filter(
-                    (PendingOrderDetailsSnapshot.supplier.ilike(f"%{search}%")) |
                     (PendingOrderDetailsSnapshot.classification_owner.ilike(f"%{search}%")) |
                     (PendingOrderDetailsSnapshot.collection_owner.ilike(f"%{search}%")) |
                     (PendingOrderDetailsSnapshot.make_owner.ilike(f"%{search}%")) |
-                    (PendingOrderDetailsSnapshot.collection.ilike(f"%{search}%"))
+                    (PendingOrderDetailsSnapshot.collection.ilike(f"%{search}%")) |
+                    (PendingOrderDetailsSnapshot.supplier.ilike(f"%{search}%"))
                 )
             if division:
                 query = query.filter(PendingOrderDetailsSnapshot.division == division)
@@ -217,9 +217,18 @@ def pending_order_details():
             'invoice_perc': get_perc(aggs.total_invoice_wt)
         }
 
-        # Main Report: Group by Supplier
-        group_cols = [PendingOrderDetailsSnapshot.supplier]
+        # Drill-down level
+        if not classification_owner:
+            group_cols = [PendingOrderDetailsSnapshot.classification_owner]
+            level = 'classification_owner'
+        elif classification_owner and not make_owner:
+            group_cols = [PendingOrderDetailsSnapshot.classification_owner, PendingOrderDetailsSnapshot.make_owner]
+            level = 'make_owner'
+        else:
+            group_cols = [PendingOrderDetailsSnapshot.classification_owner, PendingOrderDetailsSnapshot.make_owner, PendingOrderDetailsSnapshot.collection_owner]
+            level = 'collection_owner'
 
+        # Row Aggregates
         row_agg_cols = [
             func.sum(PendingOrderDetailsSnapshot.accept_pending_pcs).label('accept_pcs'),
             func.sum(PendingOrderDetailsSnapshot.accept_pending_wt).label('accept_wt'),
@@ -248,7 +257,9 @@ def pending_order_details():
         processed_rows = []
         for r in pagination.items:
             row_dict = {
-                'supplier': r[0] or 'Unknown',
+                'classification_owner': r[0] or 'Unknown',
+                'make_owner': r[1] if level in ['make_owner', 'collection_owner'] else '',
+                'collection_owner': r[2] if level == 'collection_owner' else '',
                 'accept_pcs': int(r.accept_pcs or 0), 'accept_wt': float(r.accept_wt or 0),
                 'process_pcs': int(r.process_pcs or 0), 'process_wt': float(r.process_wt or 0),
                 'barcode_pcs': int(r.barcode_pcs or 0), 'barcode_wt': float(r.barcode_wt or 0),
@@ -256,7 +267,8 @@ def pending_order_details():
                 'qc_issue_pcs': int(r.qc_issue_pcs or 0), 'qc_issue_wt': float(r.qc_issue_wt or 0),
                 'qc_complete_pcs': int(r.qc_complete_pcs or 0), 'qc_complete_wt': float(r.qc_complete_wt or 0),
                 'invoice_pcs': int(r.invoice_pcs or 0), 'invoice_wt': float(r.invoice_wt or 0),
-                'total_pcs': int(r.tot_pcs or 0), 'total_weight': float(r.tot_wt or 0)
+                'total_pcs': int(r.tot_pcs or 0), 'total_weight': float(r.tot_wt or 0),
+                'level': level
             }
             processed_rows.append(row_dict)
 
@@ -266,6 +278,7 @@ def pending_order_details():
                              stats=stats, 
                              rows=processed_rows, 
                              pagination=pagination, 
+                             current_level=level,
                              filter_options=filter_options)
     except Exception as e:
         logger.error(f"Error in pending_order_details: {str(e)}")
@@ -292,17 +305,23 @@ def get_pending_order_details_partial():
         branch_provision_type = request.args.get('branch_provision_type', '')
         branch_type = request.args.get('branch_type', '')
         
+        parent_level = request.args.get('parent_level')
+        parent_value = request.args.get('parent_value')
+        grandparent_value = request.args.get('grandparent_value')
+
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
+        
+        is_child_rows = bool(parent_level)
 
         def apply_filters(query):
             if search:
                 query = query.filter(
-                    (PendingOrderDetailsSnapshot.supplier.ilike(f"%{search}%")) |
                     (PendingOrderDetailsSnapshot.classification_owner.ilike(f"%{search}%")) |
                     (PendingOrderDetailsSnapshot.collection_owner.ilike(f"%{search}%")) |
                     (PendingOrderDetailsSnapshot.make_owner.ilike(f"%{search}%")) |
-                    (PendingOrderDetailsSnapshot.collection.ilike(f"%{search}%"))
+                    (PendingOrderDetailsSnapshot.collection.ilike(f"%{search}%")) |
+                    (PendingOrderDetailsSnapshot.supplier.ilike(f"%{search}%"))
                 )
             if division:
                 query = query.filter(PendingOrderDetailsSnapshot.division == division)
@@ -312,12 +331,22 @@ def get_pending_order_details_partial():
                 query = query.filter(PendingOrderDetailsSnapshot.purity == purity)
             if supplier:
                 query = query.filter(PendingOrderDetailsSnapshot.supplier == supplier)
-            if classification_owner:
-                query = query.filter(PendingOrderDetailsSnapshot.classification_owner == classification_owner)
-            if collection_owner:
-                query = query.filter(PendingOrderDetailsSnapshot.collection_owner == collection_owner)
-            if make_owner:
-                query = query.filter(PendingOrderDetailsSnapshot.make_owner == make_owner)
+            
+            if parent_level == 'classification_owner':
+                query = query.filter(PendingOrderDetailsSnapshot.classification_owner == parent_value)
+            elif parent_level == 'make_owner':
+                query = query.filter(
+                    PendingOrderDetailsSnapshot.classification_owner == grandparent_value,
+                    PendingOrderDetailsSnapshot.make_owner == parent_value
+                )
+            else:
+                if classification_owner:
+                    query = query.filter(PendingOrderDetailsSnapshot.classification_owner == classification_owner)
+                if make_owner:
+                    query = query.filter(PendingOrderDetailsSnapshot.make_owner == make_owner)
+                if collection_owner:
+                    query = query.filter(PendingOrderDetailsSnapshot.collection_owner == collection_owner)
+
             if classification:
                 query = query.filter(PendingOrderDetailsSnapshot.classification == classification)
             query = apply_make_filter(query, make)
@@ -349,7 +378,23 @@ def get_pending_order_details_partial():
 
             return query
 
-        group_cols = [PendingOrderDetailsSnapshot.supplier]
+        if is_child_rows:
+            if parent_level == 'classification_owner':
+                group_cols = [PendingOrderDetailsSnapshot.classification_owner, PendingOrderDetailsSnapshot.make_owner]
+                level = 'make_owner'
+            else:
+                group_cols = [PendingOrderDetailsSnapshot.classification_owner, PendingOrderDetailsSnapshot.make_owner, PendingOrderDetailsSnapshot.collection_owner]
+                level = 'collection_owner'
+        else:
+            if not classification_owner:
+                group_cols = [PendingOrderDetailsSnapshot.classification_owner]
+                level = 'classification_owner'
+            elif classification_owner and not make_owner:
+                group_cols = [PendingOrderDetailsSnapshot.classification_owner, PendingOrderDetailsSnapshot.make_owner]
+                level = 'make_owner'
+            else:
+                group_cols = [PendingOrderDetailsSnapshot.classification_owner, PendingOrderDetailsSnapshot.make_owner, PendingOrderDetailsSnapshot.collection_owner]
+                level = 'collection_owner'
 
         row_agg_cols = [
             func.sum(PendingOrderDetailsSnapshot.accept_pending_pcs).label('accept_pcs'),
@@ -374,11 +419,34 @@ def get_pending_order_details_partial():
         main_q = apply_filters(main_q)
         main_q = main_q.group_by(*group_cols).order_by(*group_cols)
 
+        if is_child_rows:
+            items = main_q.all()
+            processed_rows = []
+            for r in items:
+                row_dict = {
+                    'classification_owner': r[0] or 'Unknown',
+                    'make_owner': r[1] if level in ['make_owner', 'collection_owner'] else '',
+                    'collection_owner': r[2] if level == 'collection_owner' else '',
+                    'accept_pcs': int(r.accept_pcs or 0), 'accept_wt': float(r.accept_wt or 0),
+                    'process_pcs': int(r.process_pcs or 0), 'process_wt': float(r.process_wt or 0),
+                    'barcode_pcs': int(r.barcode_pcs or 0), 'barcode_wt': float(r.barcode_wt or 0),
+                    'hallmark_pcs': int(r.hallmark_pcs or 0), 'hallmark_wt': float(r.hallmark_wt or 0),
+                    'qc_issue_pcs': int(r.qc_issue_pcs or 0), 'qc_issue_wt': float(r.qc_issue_wt or 0),
+                    'qc_complete_pcs': int(r.qc_complete_pcs or 0), 'qc_complete_wt': float(r.qc_complete_wt or 0),
+                    'invoice_pcs': int(r.invoice_pcs or 0), 'invoice_wt': float(r.invoice_wt or 0),
+                    'total_pcs': int(r.tot_pcs or 0), 'total_weight': float(r.tot_wt or 0),
+                    'level': level
+                }
+                processed_rows.append(row_dict)
+            return render_template('partials/_view_pending_order_details.html', rows=processed_rows, is_child=True, parent_level=parent_level)
+
         pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
         processed_rows = []
         for r in pagination.items:
             row_dict = {
-                'supplier': r[0] or 'Unknown',
+                'classification_owner': r[0] or 'Unknown',
+                'make_owner': r[1] if level in ['make_owner', 'collection_owner'] else '',
+                'collection_owner': r[2] if level == 'collection_owner' else '',
                 'accept_pcs': int(r.accept_pcs or 0), 'accept_wt': float(r.accept_wt or 0),
                 'process_pcs': int(r.process_pcs or 0), 'process_wt': float(r.process_wt or 0),
                 'barcode_pcs': int(r.barcode_pcs or 0), 'barcode_wt': float(r.barcode_wt or 0),
@@ -386,7 +454,8 @@ def get_pending_order_details_partial():
                 'qc_issue_pcs': int(r.qc_issue_pcs or 0), 'qc_issue_wt': float(r.qc_issue_wt or 0),
                 'qc_complete_pcs': int(r.qc_complete_pcs or 0), 'qc_complete_wt': float(r.qc_complete_wt or 0),
                 'invoice_pcs': int(r.invoice_pcs or 0), 'invoice_wt': float(r.invoice_wt or 0),
-                'total_pcs': int(r.tot_pcs or 0), 'total_weight': float(r.tot_wt or 0)
+                'total_pcs': int(r.tot_pcs or 0), 'total_weight': float(r.tot_wt or 0),
+                'level': level
             }
             processed_rows.append(row_dict)
 
@@ -416,17 +485,23 @@ def get_pending_order_details_leaf_detail():
         branch_provision_type = request.args.get('branch_provision_type', '')
         branch_type = request.args.get('branch_type', '')
 
-        parent_supplier = request.args.get('parent_supplier', '')
+        # Leaf filters
+        parent_classification_owner = request.args.get('parent_classification_owner', '')
+        parent_make_owner = request.args.get('parent_make_owner', '')
+        parent_collection_owner = request.args.get('parent_collection_owner', '')
 
         query = PendingOrderDetailsSnapshot.query.filter(
-            PendingOrderDetailsSnapshot.supplier == parent_supplier
+            PendingOrderDetailsSnapshot.classification_owner == parent_classification_owner,
+            PendingOrderDetailsSnapshot.make_owner == parent_make_owner,
+            PendingOrderDetailsSnapshot.collection_owner == parent_collection_owner
         )
 
         if search:
             query = query.filter(
                 (PendingOrderDetailsSnapshot.classification.ilike(f"%{search}%")) |
                 (PendingOrderDetailsSnapshot.make.ilike(f"%{search}%")) |
-                (PendingOrderDetailsSnapshot.collection.ilike(f"%{search}%"))
+                (PendingOrderDetailsSnapshot.collection.ilike(f"%{search}%")) |
+                (PendingOrderDetailsSnapshot.supplier.ilike(f"%{search}%"))
             )
         if division:
             query = query.filter(PendingOrderDetailsSnapshot.division == division)
@@ -466,7 +541,7 @@ def get_pending_order_details_leaf_detail():
                 query = apply_owner_visibility_filter(query)
 
         records = query.all()
-        return render_template('partials/_view_pending_order_details_leaf.html', records=records, owner_name=parent_supplier)
+        return render_template('partials/_view_pending_order_details_leaf.html', records=records)
     except Exception as e:
         logger.error(f"Error in get_pending_order_details_leaf_detail: {str(e)}")
         return f"Error: {str(e)}", 500

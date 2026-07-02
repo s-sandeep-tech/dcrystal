@@ -142,7 +142,7 @@ async function toggleRow(btn, level, value, grandparentValue = null) {
 }
 
 // Leaf Modal Handler
-async function openLeafModal(parentSupplier) {
+async function openLeafModal(classificationOwner, makeOwner, collectionOwner) {
     const modal = document.getElementById('leaf-detail-modal');
     const overlay = document.getElementById('modal-overlay');
     const content = document.getElementById('leaf-detail-content');
@@ -157,14 +157,12 @@ async function openLeafModal(parentSupplier) {
     </div>`;
 
     const params = new URLSearchParams(getFilterValues());
-    params.set('parent_supplier', parentSupplier);
+    params.set('parent_classification_owner', classificationOwner);
+    params.set('parent_make_owner', makeOwner);
+    params.set('parent_collection_owner', collectionOwner);
 
     try {
-        const response = await fetch(`/partial/pendingorderdetails/leaf_detail?${params.toString()}`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-            }
-        });
+        const response = await fetch(`/partial/pendingorderdetails/leaf_detail?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch details');
         content.innerHTML = await response.text();
     } catch (e) {

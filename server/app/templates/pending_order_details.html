@@ -152,7 +152,8 @@
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
             <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Hierarchy:</span>
             <span id="current-level-badge"
-                class="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-bold rounded uppercase">Supplier</span>
+                class="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-bold rounded uppercase">{{
+                current_level|replace('_', ' ') }}</span>
         </div>
 
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
