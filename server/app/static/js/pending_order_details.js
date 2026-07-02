@@ -177,3 +177,18 @@ function closeLeafModal() {
     if (modal) modal.classList.add('hidden');
     if (overlay) overlay.classList.add('hidden');
 }
+
+function toggleModalSupplier(btn, supplierId) {
+    const icon = btn.querySelector('.material-symbols-outlined');
+    const rows = document.querySelectorAll(`tr.modal-detail-row[data-supplier-id="${supplierId}"]`);
+    const isExpanded = icon.textContent === 'remove_circle';
+
+    if (isExpanded) {
+        icon.textContent = 'add_circle';
+        rows.forEach(r => r.classList.add('hidden'));
+    } else {
+        icon.textContent = 'remove_circle';
+        rows.forEach(r => r.classList.remove('hidden'));
+    }
+}
+

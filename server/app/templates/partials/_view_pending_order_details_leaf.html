@@ -4,7 +4,7 @@
             <span class="material-symbols-outlined text-primary">analytics</span>
             Detailed Analysis: Pending Order Details
         </h3>
-        <p class="text-[10px] text-gray-500 mt-0.5 font-medium tracking-tight">Comprehensive hierarchical breakdown with itemized metrics.</p>
+        <p class="text-[10px] text-gray-500 mt-0.5 font-medium tracking-tight">Supplier level summary. Click expand (+) to view detailed branch breakdowns.</p>
     </div>
     <button onclick="closeLeafModal()"
         class="group flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-all duration-200">
@@ -16,7 +16,7 @@
     <table class="modal-grid w-full text-left border-collapse table-auto border-spacing-0 bg-white dark:bg-gray-900 text-[10px]">
         <thead class="sticky top-0 z-30">
             <tr class="bg-gray-50 dark:bg-gray-800 text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 shadow-sm">
-                <th class="px-3 py-2">Supplier</th>
+                <th class="px-3 py-2">Supplier / Detail</th>
                 <th class="px-2 py-2">Order Type</th>
                 <th class="px-2 py-2">Order RO</th>
                 <th class="px-2 py-2">Make</th>
@@ -35,9 +35,56 @@
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-            {% for rec in records %}
-            <tr class="hover:bg-blue-50/20 transition-all duration-150">
-                <td class="px-3 py-2 font-medium text-gray-900 dark:text-white">{{ rec.supplier or '' }}</td>
+            {% for s in supplier_summaries %}
+            <!-- Supplier Summary Row -->
+            <tr class="bg-gray-50/50 hover:bg-blue-50/30 transition-all font-bold">
+                <td class="px-3 py-2 text-gray-900 dark:text-white flex items-center gap-1.5">
+                    <button onclick="toggleModalSupplier(this, '{{ s.id }}')" class="flex items-center justify-center text-gray-400 hover:text-primary transition-colors focus:outline-none">
+                        <span class="material-symbols-outlined text-[14px]">add_circle</span>
+                    </button>
+                    <span>{{ s.supplier }}</span>
+                </td>
+                <td class="px-2 py-2 text-gray-400 font-normal">--</td>
+                <td class="px-2 py-2 text-gray-400 font-normal">--</td>
+                <td class="px-2 py-2 text-gray-400 font-normal">--</td>
+                <td class="px-2 py-2 text-gray-400 font-normal">--</td>
+                <td class="px-2 py-2 text-gray-400 font-normal">--</td>
+                <td class="px-2 py-2 text-gray-400 font-normal">--</td>
+                <td class="px-2 py-2 text-gray-400 font-normal">--</td>
+                
+                <td class="px-2 py-2 text-right text-gray-800">
+                    {{ s.accept_pending_pcs|int }} / {{ "%.3f"|format(s.accept_pending_wt) }}
+                </td>
+                <td class="px-2 py-2 text-right text-yellow-600">
+                    {{ s.process_pending_pcs|int }} / {{ "%.3f"|format(s.process_pending_wt) }}
+                </td>
+                <td class="px-2 py-2 text-right text-blue-600">
+                    {{ s.barcode_pending_pcs|int }} / {{ "%.3f"|format(s.barcode_pending_wt) }}
+                </td>
+                <td class="px-2 py-2 text-right text-indigo-600">
+                    {{ s.hallmark_pending_pcs|int }} / {{ "%.3f"|format(s.hallmark_pending_wt) }}
+                </td>
+                <td class="px-2 py-2 text-right text-red-600">
+                    {{ s.qc_issue_pending_pcs|int }} / {{ "%.3f"|format(s.qc_issue_pending_wt) }}
+                </td>
+                <td class="px-2 py-2 text-right text-purple-600">
+                    {{ s.qc_complete_pending_pcs|int }} / {{ "%.3f"|format(s.qc_complete_pending_wt) }}
+                </td>
+                <td class="px-2 py-2 text-right text-cyan-600">
+                    {{ s.invoice_pending_pcs|int }} / {{ "%.3f"|format(s.invoice_pending_wt) }}
+                </td>
+                <td class="px-2 py-2 text-right font-bold text-emerald-600 bg-emerald-50/10">
+                    {{ s.total_pcs|int }} / {{ "%.3f"|format(s.total_weight) }}
+                </td>
+            </tr>
+
+            <!-- Supplier Detail Child Rows -->
+            {% for rec in s.details %}
+            <tr class="modal-detail-row hidden hover:bg-blue-50/20 transition-all duration-150" data-supplier-id="{{ s.id }}">
+                <td class="px-3 py-2 text-gray-400 pl-8 font-normal">
+                    <span class="material-symbols-outlined text-[10px] align-middle mr-1">subdirectory_arrow_right</span>
+                </td>
+
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.order_type or '' }}</td>
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.order_ro or '' }}</td>
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.make or '' }}</td>
@@ -45,31 +92,33 @@
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.classification or '' }}</td>
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.provision_type or '' }}</td>
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.branch_type or '' }}</td>
-                <td class="px-2 py-2 text-right font-medium text-gray-700">
+                
+                <td class="px-2 py-2 text-right text-gray-500 font-medium">
                     {{ rec.accept_pending_pcs|int }} / {{ "%.3f"|format(rec.accept_pending_wt) }}
                 </td>
-                <td class="px-2 py-2 text-right font-medium text-yellow-600">
+                <td class="px-2 py-2 text-right text-yellow-600/80 font-medium">
                     {{ rec.process_pending_pcs|int }} / {{ "%.3f"|format(rec.process_pending_wt) }}
                 </td>
-                <td class="px-2 py-2 text-right font-medium text-blue-600">
+                <td class="px-2 py-2 text-right text-blue-600/80 font-medium">
                     {{ rec.barcode_pending_pcs|int }} / {{ "%.3f"|format(rec.barcode_pending_wt) }}
                 </td>
-                <td class="px-2 py-2 text-right font-medium text-indigo-600">
+                <td class="px-2 py-2 text-right text-indigo-600/80 font-medium">
                     {{ rec.hallmark_pending_pcs|int }} / {{ "%.3f"|format(rec.hallmark_pending_wt) }}
                 </td>
-                <td class="px-2 py-2 text-right font-medium text-red-600">
+                <td class="px-2 py-2 text-right text-red-600/80 font-medium">
                     {{ rec.qc_issue_pending_pcs|int }} / {{ "%.3f"|format(rec.qc_issue_pending_wt) }}
                 </td>
-                <td class="px-2 py-2 text-right font-medium text-purple-600">
+                <td class="px-2 py-2 text-right text-purple-600/80 font-medium">
                     {{ rec.qc_complete_pending_pcs|int }} / {{ "%.3f"|format(rec.qc_complete_pending_wt) }}
                 </td>
-                <td class="px-2 py-2 text-right font-medium text-cyan-600">
+                <td class="px-2 py-2 text-right text-cyan-600/80 font-medium">
                     {{ rec.invoice_pending_pcs|int }} / {{ "%.3f"|format(rec.invoice_pending_wt) }}
                 </td>
-                <td class="px-2 py-2 text-right font-bold text-emerald-600 bg-emerald-50/10">
+                <td class="px-2 py-2 text-right font-bold text-emerald-600 bg-emerald-50/5">
                     {{ rec.total_pcs|int }} / {{ "%.3f"|format(rec.total_weight) }}
                 </td>
             </tr>
+            {% endfor %}
             {% endfor %}
         </tbody>
     </table>

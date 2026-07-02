@@ -541,7 +541,40 @@ def get_pending_order_details_leaf_detail():
                 query = apply_owner_visibility_filter(query)
 
         records = query.all()
-        return render_template('partials/_view_pending_order_details_leaf.html', records=records)
+        
+        # Group by supplier
+        from collections import defaultdict
+        grouped_records = defaultdict(list)
+        for rec in records:
+            supplier_key = rec.supplier or 'Unknown Supplier'
+            grouped_records[supplier_key].append(rec)
+            
+        supplier_summaries = []
+        for idx, (sup_name, items) in enumerate(grouped_records.items()):
+            summary = {
+                'id': f"sup_{idx}",
+                'supplier': sup_name,
+                'accept_pending_pcs': sum(float(x.accept_pending_pcs or 0) for x in items),
+                'accept_pending_wt': sum(float(x.accept_pending_wt or 0) for x in items),
+                'process_pending_pcs': sum(float(x.process_pending_pcs or 0) for x in items),
+                'process_pending_wt': sum(float(x.process_pending_wt or 0) for x in items),
+                'barcode_pending_pcs': sum(float(x.barcode_pending_pcs or 0) for x in items),
+                'barcode_pending_wt': sum(float(x.barcode_pending_wt or 0) for x in items),
+                'hallmark_pending_pcs': sum(float(x.hallmark_pending_pcs or 0) for x in items),
+                'hallmark_pending_wt': sum(float(x.hallmark_pending_wt or 0) for x in items),
+                'qc_issue_pending_pcs': sum(float(x.qc_issue_pending_pcs or 0) for x in items),
+                'qc_issue_pending_wt': sum(float(x.qc_issue_pending_wt or 0) for x in items),
+                'qc_complete_pending_pcs': sum(float(x.qc_complete_pending_pcs or 0) for x in items),
+                'qc_complete_pending_wt': sum(float(x.qc_complete_pending_wt or 0) for x in items),
+                'invoice_pending_pcs': sum(float(x.invoice_pending_pcs or 0) for x in items),
+                'invoice_pending_wt': sum(float(x.invoice_pending_wt or 0) for x in items),
+                'total_pcs': sum(float(x.total_pcs or 0) for x in items),
+                'total_weight': sum(float(x.total_weight or 0) for x in items),
+                'details': items
+            }
+            supplier_summaries.append(summary)
+
+        return render_template('partials/_view_pending_order_details_leaf.html', supplier_summaries=supplier_summaries)
     except Exception as e:
         logger.error(f"Error in get_pending_order_details_leaf_detail: {str(e)}")
         return f"Error: {str(e)}", 500
