@@ -26,6 +26,7 @@
         <thead class="sticky top-0 z-30">
             <tr class="bg-gray-50 dark:bg-gray-800 text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 shadow-sm">
                 <th class="px-3 py-2">Supplier / Detail</th>
+                <th class="px-2 py-2 text-right font-bold text-emerald-600">Total Pend Pcs/Wt</th>
                 <th class="px-2 py-2">Order Type</th>
                 <th class="px-2 py-2">Order RO</th>
                 <th class="px-2 py-2">Make</th>
@@ -40,7 +41,6 @@
                 <th class="px-2 py-2 text-right">QC Issue Pend Pcs/Wt</th>
                 <th class="px-2 py-2 text-right">QC Complete Pend Pcs/Wt</th>
                 <th class="px-2 py-2 text-right">Invoice Pend Pcs/Wt</th>
-                <th class="px-2 py-2 text-right font-bold text-emerald-600">Total Pend Pcs/Wt</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -52,6 +52,9 @@
                         <span class="material-symbols-outlined text-[14px]">add_circle</span>
                     </button>
                     <span>{{ s.supplier }}</span>
+                </td>
+                <td class="px-2 py-2 text-right font-bold text-emerald-600 bg-emerald-50/10">
+                    {{ s.total_pcs|int }} / {{ "%.3f"|format(s.total_weight) }}
                 </td>
                 <td class="px-2 py-2 text-gray-400 font-normal">--</td>
                 <td class="px-2 py-2 text-gray-400 font-normal">--</td>
@@ -82,9 +85,6 @@
                 <td class="px-2 py-2 text-right text-cyan-600">
                     {{ s.invoice_pending_pcs|int }} / {{ "%.3f"|format(s.invoice_pending_wt) }}
                 </td>
-                <td class="px-2 py-2 text-right font-bold text-emerald-600 bg-emerald-50/10">
-                    {{ s.total_pcs|int }} / {{ "%.3f"|format(s.total_weight) }}
-                </td>
             </tr>
 
             <!-- Supplier Detail Child Rows -->
@@ -93,7 +93,9 @@
                 <td class="px-3 py-2 text-gray-400 pl-8 font-normal">
                     <span class="material-symbols-outlined text-[10px] align-middle mr-1">subdirectory_arrow_right</span>
                 </td>
-
+                <td class="px-2 py-2 text-right font-bold text-emerald-600 bg-emerald-50/5">
+                    {{ rec.total_pcs|int }} / {{ "%.3f"|format(rec.total_weight) }}
+                </td>
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.order_type or '' }}</td>
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.order_ro or '' }}</td>
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.make or '' }}</td>
@@ -122,9 +124,6 @@
                 </td>
                 <td class="px-2 py-2 text-right text-cyan-600/80 font-medium">
                     {{ rec.invoice_pending_pcs|int }} / {{ "%.3f"|format(rec.invoice_pending_wt) }}
-                </td>
-                <td class="px-2 py-2 text-right font-bold text-emerald-600 bg-emerald-50/5">
-                    {{ rec.total_pcs|int }} / {{ "%.3f"|format(rec.total_weight) }}
                 </td>
             </tr>
             {% endfor %}
