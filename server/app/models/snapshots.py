@@ -2843,3 +2843,49 @@ class OrderFulfillmentValueAgingMatrixSnapshot(db.Model):
 
     def to_dict(self):
         return {c.name: getattr(self, c.name).isoformat() if isinstance(getattr(self, c.name), (datetime, date)) else getattr(self, c.name) for c in self.__table__.columns}
+
+
+class PendingOrderDetailsSnapshot(db.Model):
+    __tablename__ = 'pending_order_details_snapshot'
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    supplier = db.Column('supplier', db.Text)
+    order_type = db.Column('order_type', db.Text)
+    order_request_type = db.Column('order_request_type', db.Text)
+    order_ro = db.Column('order_ro', db.Text)
+    division = db.Column('division', db.Text)
+    group_name = db.Column('group', db.Text)
+    purity = db.Column('purity', db.Numeric(10, 2))
+    classification = db.Column('classification', db.Text)
+    make = db.Column('make', db.Text)
+    collection = db.Column('collection', db.Text)
+    classification_owner = db.Column('classification_owner', db.Text)
+    collection_owner = db.Column('collection_owner', db.Text)
+    make_owner = db.Column('make_owner', db.Text)
+    provision_type = db.Column('provision_type', db.Text)
+    branch_type = db.Column('branch_type', db.Text)
+    branch_provision_type = db.Column('branch_provision_type', db.Text)
+
+    accept_pending_pcs = db.Column('accept_pending_pcs', db.Numeric(18, 3))
+    accept_pending_wt = db.Column('accept_pending_wt', db.Numeric(18, 3))
+    process_pending_pcs = db.Column('process_pending_pcs', db.Numeric(18, 3))
+    process_pending_wt = db.Column('process_pending_wt', db.Numeric(18, 3))
+    barcode_pending_pcs = db.Column('barcode_pending_pcs', db.Numeric(18, 3))
+    barcode_pending_wt = db.Column('barcode_pending_wt', db.Numeric(18, 3))
+    hallmark_pending_pcs = db.Column('hallmark_pending_pcs', db.Numeric(18, 3))
+    hallmark_pending_wt = db.Column('hallmark_pending_wt', db.Numeric(18, 3))
+    qc_issue_pending_pcs = db.Column('qc_issue_pending_pcs', db.Numeric(18, 3))
+    qc_issue_pending_wt = db.Column('qc_issue_pending_wt', db.Numeric(18, 3))
+    qc_complete_pending_pcs = db.Column('qc_complete_pending_pcs', db.Numeric(18, 3))
+    qc_complete_pending_wt = db.Column('qc_complete_pending_wt', db.Numeric(18, 3))
+    invoice_pending_pcs = db.Column('invoice_pending_pcs', db.Numeric(18, 3))
+    invoice_pending_wt = db.Column('invoice_pending_wt', db.Numeric(18, 3))
+    total_pcs = db.Column('total_pcs', db.Numeric(18, 3))
+    total_weight = db.Column('total_weight', db.Numeric(18, 3))
+
+    snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {c.name: getattr(self, c.name).isoformat() if isinstance(getattr(self, c.name), (datetime, date)) else getattr(self, c.name) for c in self.__table__.columns}
+

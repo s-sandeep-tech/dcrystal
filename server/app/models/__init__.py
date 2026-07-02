@@ -16,7 +16,8 @@ from .snapshots import (
     ShowroomWiseOrderSummarySnapshot,
     PendingAcceptanceAction,
     ProvisionStockRawSnapshot,
-    OrderFulfillmentValueAgingMatrixSnapshot
+    OrderFulfillmentValueAgingMatrixSnapshot,
+    PendingOrderDetailsSnapshot
 )
 from .rbac import Role, Permission, Menu, RoleMenu, RolePermission, UserRole, AuditLog, UserPasswordHistory
 from .akt_report import AKTTransactionPerformance
@@ -55,6 +56,8 @@ __all__ = [
     'PendingAcceptanceAction',
     'ProvisionStockRawSnapshot',
     'OrderFulfillmentValueAgingMatrixSnapshot',
+    'PendingOrderDetailsSnapshot',
     'AKTTransactionPerformance'
 ]
+
 

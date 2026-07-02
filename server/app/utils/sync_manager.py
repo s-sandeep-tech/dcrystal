@@ -96,3 +96,7 @@ def sync_party_delay_management_data(user_id=None):
 def sync_order_fulfillment_aging_matrix_data(user_id=None):
     return enqueue_sync_task('order_fulfillment_aging_matrix', user_id)
 
+def sync_pending_order_details_data(user_id=None):
+    return enqueue_sync_task('pending_order_details', user_id)
+
+

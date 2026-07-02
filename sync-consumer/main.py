@@ -51,10 +51,12 @@ try:
         sync_qc_completed_invoice_request_pending_data_task,
         sync_party_delay_management_data_task,
         sync_order_fulfillment_aging_matrix_task,
+        sync_pending_order_details_task,
         emit_sync_update
     )
     from apscheduler.schedulers.background import BackgroundScheduler
-    from app.utils.sync_manager import enqueue_sync_task
+    from app.utils.sync_manager import enqueue_sync_task, sync_pending_order_details_data
+
     from app.utils.sync_manager import sync_order_fulfillment_aging_matrix_data
 except Exception as e:
     # We can't log to the logger yet as it's defined later, but we can print
@@ -179,8 +181,11 @@ def process_sync_queue():
                         res = sync_party_delay_management_data_task()
                     elif task_type == 'order_fulfillment_aging_matrix':
                         res = sync_order_fulfillment_aging_matrix_task()
+                    elif task_type == 'pending_order_details':
+                        res = sync_pending_order_details_task()
                     else:
                         logger.error(f"Unknown sync task type: {task_type}")
+
                         emit_sync_update('error', f'Unknown task type: {task_type}')
                         res = {"status": "error", "message": f"Unknown task type: {task_type}"}
                         

@@ -46,6 +46,14 @@ window.REPORT_MENU_DATA = [
         accent: "emerald",
         reports: [
             {
+                id: "pending-order-details",
+                title: "Pending Order Details Report",
+                href: "/pendingorderdetails",
+                icon: "pending_actions",
+                description: "Hierarchical summary of pending counts and weights across production stages.",
+                tags: ["pending", "order", "details", "owner"]
+            },
+            {
                 id: "owner-wise-order",
                 title: "Owner Wise Order Summary",
                 href: "/ownerwiseordersummary",
@@ -53,6 +61,7 @@ window.REPORT_MENU_DATA = [
                 description: "Ownership-level order summary by make, collection, and classification.",
                 tags: ["owner", "summary", "orders"]
             },
+
             {
                 id: "showroom-wise-order",
                 title: "Showroom Wise Order Summary",

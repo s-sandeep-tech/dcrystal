@@ -1,0 +1,136 @@
+{% if not is_child %}
+<table class="enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider">
+            <th class="col-expander text-center px-0 w-8"></th>
+            <th class="text-left px-2">Owner Detail</th>
+            <th class="text-right px-2 bg-gray-100/30">Accept Pending</th>
+            <th class="text-right px-2 bg-yellow-50/20">Process Pending</th>
+            <th class="text-right px-2 bg-blue-50/20">Barcode Pending</th>
+            <th class="text-right px-2 bg-indigo-50/20">Hallmark Pending</th>
+            <th class="text-right px-2 bg-red-50/20">QC Issue Pending</th>
+            <th class="text-right px-2 bg-purple-50/20">QC Complete Pending</th>
+            <th class="text-right px-2 bg-cyan-50/20">Invoice Pending</th>
+            <th class="text-right px-2 bg-emerald-50/20 font-bold">Total Pending</th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        {% endif %}
+
+        {% for r in rows %}
+        <tr class="parent-row hover:bg-blue-50/30 group animate-fade-in {{ 'cursor-pointer' if r.level == 'collection_owner' else '' }}"
+            data-level="{{ r.level }}" {% if r.level == 'collection_owner' %}
+            onclick="openLeafModal('{{ r.classification_owner|e }}', '{{ r.make_owner|e }}', '{{ r.collection_owner|e }}')"
+            {% endif %}>
+            <td class="text-center px-0">
+                {% if r.level != 'collection_owner' %}
+                <button
+                    onclick="toggleRow(this, '{{ r.level }}', '{{ (r.level == 'classification_owner' and r.classification_owner or r.make_owner)|e }}', '{{ (r.level == 'make_owner' and r.classification_owner or '')|e }}')"
+                    class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
+                    <span class="material-symbols-outlined text-[14px]">add_circle</span>
+                </button>
+                {% else %}
+                <span class="material-symbols-outlined text-[8px] text-gray-200">fiber_manual_record</span>
+                {% endif %}
+            </td>
+            <td class="px-2 font-bold">
+                <div class="flex items-center gap-1"
+                    style="padding-left: {{ '0px' if r.level == 'classification_owner' else ('12px' if r.level == 'make_owner' else '24px') }}">
+                    <span class="material-symbols-outlined text-[12px] text-gray-300">
+                        {% if r.level == 'classification_owner' %}shield_person{% elif r.level == 'make_owner' %}precision_manufacturing{% else %}category{% endif %}
+                    </span>
+                    {% if r.level == 'classification_owner' %}
+                    {{ r.classification_owner }}
+                    {% elif r.level == 'make_owner' %}
+                    {{ r.make_owner }}
+                    {% else %}
+                    {{ r.collection_owner }}
+                    {% endif %}
+                </div>
+            </td>
+            <!-- Accept Pending -->
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="font-bold text-gray-700">{{ "%.3f"|format(r.accept_wt) }}</span>
+                    <span class="text-[9px] text-gray-500">{{ r.accept_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Process Pending -->
+            <td class="text-right px-2 bg-yellow-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-yellow-600">{{ "%.3f"|format(r.process_wt) }}</span>
+                    <span class="text-[9px] text-yellow-600/70">{{ r.process_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Barcode Pending -->
+            <td class="text-right px-2 bg-blue-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-blue-600">{{ "%.3f"|format(r.barcode_wt) }}</span>
+                    <span class="text-[9px] text-blue-600/70">{{ r.barcode_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Hallmark Pending -->
+            <td class="text-right px-2 bg-indigo-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-indigo-600">{{ "%.3f"|format(r.hallmark_wt) }}</span>
+                    <span class="text-[9px] text-indigo-600/70">{{ r.hallmark_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- QC Issue Pending -->
+            <td class="text-right px-2 bg-red-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-red-600">{{ "%.3f"|format(r.qc_issue_wt) }}</span>
+                    <span class="text-[9px] text-red-600/70">{{ r.qc_issue_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- QC Complete Pending -->
+            <td class="text-right px-2 bg-purple-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-purple-600">{{ "%.3f"|format(r.qc_complete_wt) }}</span>
+                    <span class="text-[9px] text-purple-600/70">{{ r.qc_complete_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Invoice Pending -->
+            <td class="text-right px-2 bg-cyan-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-cyan-600">{{ "%.3f"|format(r.invoice_wt) }}</span>
+                    <span class="text-[9px] text-cyan-600/70">{{ r.invoice_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Total Pending -->
+            <td class="text-right px-2 bg-emerald-50/20 font-bold">
+                <div class="flex flex-col">
+                    <span class="font-bold text-emerald-600">{{ "%.3f"|format(r.total_weight) }}</span>
+                    <span class="text-[9px] text-emerald-600/70">{{ r.total_pcs }} Pcs</span>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+
+        {% if not is_child %}
+    </tbody>
+</table>
+{% if pagination %}
+<!-- Pagination component copied from template pattern -->
+<div class="flex items-center justify-between p-2 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 shrink-0">
+    <div class="text-[10px] text-gray-500 font-medium">
+        Showing Page {{ pagination.page }} of {{ pagination.pages }}
+    </div>
+    <div class="flex items-center gap-1">
+        {% if pagination.has_prev %}
+        <button onclick="changePage({{ pagination.prev_num }})" class="p-1 px-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded text-[10px] font-bold text-gray-600 hover:text-primary transition-all">Prev</button>
+        {% else %}
+        <button class="p-1 px-2 border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 rounded text-[10px] font-bold text-gray-300 cursor-not-allowed" disabled>Prev</button>
+        {% endif %}
+        
+        <span class="px-2 text-[10px] font-bold text-gray-500">{{ pagination.page }}</span>
+        
+        {% if pagination.has_next %}
+        <button onclick="changePage({{ pagination.next_num }})" class="p-1 px-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded text-[10px] font-bold text-gray-600 hover:text-primary transition-all">Next</button>
+        {% else %}
+        <button class="p-1 px-2 border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 rounded text-[10px] font-bold text-gray-300 cursor-not-allowed" disabled>Next</button>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endif %}
