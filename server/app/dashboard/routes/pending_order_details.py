@@ -541,7 +541,133 @@ def get_pending_order_details_leaf_detail():
                 query = apply_owner_visibility_filter(query)
 
         records = query.all()
-        return render_template('partials/_view_pending_order_details_leaf.html', records=records)
+        
+        # Build the 8-level hierarchy
+        # Supplier -> Division -> Group -> Purity -> Classification -> Make -> Collection -> Order RO
+        hierarchy = {}
+        
+        for r in records:
+            s_val = r.supplier or 'Unknown'
+            d_val = r.division or 'Unknown'
+            g_val = r.group_name or 'Unknown'
+            p_val = str(r.purity or 0)
+            cl_val = r.classification or 'Unknown'
+            m_val = r.make or 'Unknown'
+            co_val = r.collection or 'Unknown'
+            ro_val = r.order_ro or 'Unknown'
+            
+            def get_or_create_node(parent, key, label):
+                if key not in parent:
+                    parent[key] = {
+                        'label': label,
+                        'children': {},
+                        'metrics': {
+                            'accept_pcs': 0, 'accept_wt': 0.0,
+                            'process_pcs': 0, 'process_wt': 0.0,
+                            'barcode_pcs': 0, 'barcode_wt': 0.0,
+                            'hallmark_pcs': 0, 'hallmark_wt': 0.0,
+                            'qc_issue_pcs': 0, 'qc_issue_wt': 0.0,
+                            'qc_complete_pcs': 0, 'qc_complete_wt': 0.0,
+                            'invoice_pcs': 0, 'invoice_wt': 0.0,
+                            'total_pcs': 0, 'total_wt': 0.0
+                        }
+                    }
+                return parent[key]
+                
+            node = get_or_create_node(hierarchy, s_val, s_val)
+            node = get_or_create_node(node['children'], d_val, d_val)
+            node = get_or_create_node(node['children'], g_val, g_val)
+            node = get_or_create_node(node['children'], p_val, p_val)
+            node = get_or_create_node(node['children'], cl_val, cl_val)
+            node = get_or_create_node(node['children'], m_val, m_val)
+            node = get_or_create_node(node['children'], co_val, co_val)
+            node = get_or_create_node(node['children'], ro_val, ro_val)
+            
+            levels = []
+            curr = hierarchy[s_val]
+            levels.append(curr)
+            curr = curr['children'][d_val]
+            levels.append(curr)
+            curr = curr['children'][g_val]
+            levels.append(curr)
+            curr = curr['children'][p_val]
+            levels.append(curr)
+            curr = curr['children'][cl_val]
+            levels.append(curr)
+            curr = curr['children'][m_val]
+            levels.append(curr)
+            curr = curr['children'][co_val]
+            levels.append(curr)
+            curr = curr['children'][ro_val]
+            levels.append(curr)
+            
+            for n in levels:
+                m = n['metrics']
+                m['accept_pcs'] += int(r.accept_pending_pcs or 0)
+                m['accept_wt'] += float(r.accept_pending_wt or 0.0)
+                m['process_pcs'] += int(r.process_pending_pcs or 0)
+                m['process_wt'] += float(r.process_pending_wt or 0.0)
+                m['barcode_pcs'] += int(r.barcode_pending_pcs or 0)
+                m['barcode_wt'] += float(r.barcode_pending_wt or 0.0)
+                m['hallmark_pcs'] += int(r.hallmark_pending_pcs or 0)
+                m['hallmark_wt'] += float(r.hallmark_pending_wt or 0.0)
+                m['qc_issue_pcs'] += int(r.qc_issue_pending_pcs or 0)
+                m['qc_issue_wt'] += float(r.qc_issue_pending_wt or 0.0)
+                m['qc_complete_pcs'] += int(r.qc_complete_pending_pcs or 0)
+                m['qc_complete_wt'] += float(r.qc_complete_pending_wt or 0.0)
+                m['invoice_pcs'] += int(r.invoice_pending_pcs or 0)
+                m['invoice_wt'] += float(r.invoice_pending_wt or 0.0)
+                m['total_pcs'] += int(r.total_pcs or 0)
+                m['total_wt'] += float(r.total_weight or 0.0)
+                
+        def dict_to_list(d, level_idx):
+            level_names = ['Supplier', 'Division', 'Group', 'Purity', 'Classification', 'Make', 'Collection', 'Order RO']
+            l = []
+            for key, val in d.items():
+                node = {
+                    'label': val['label'],
+                    'level_name': level_names[level_idx],
+                    'metrics': val['metrics'],
+                    'children': dict_to_list(val['children'], level_idx + 1) if level_idx < 7 else []
+                }
+                l.append(node)
+            return sorted(l, key=lambda x: x['label'])
+            
+        grand_total = {
+            'accept_pcs': 0, 'accept_wt': 0.0,
+            'process_pcs': 0, 'process_wt': 0.0,
+            'barcode_pcs': 0, 'barcode_wt': 0.0,
+            'hallmark_pcs': 0, 'hallmark_wt': 0.0,
+            'qc_issue_pcs': 0, 'qc_issue_wt': 0.0,
+            'qc_complete_pcs': 0, 'qc_complete_wt': 0.0,
+            'invoice_pcs': 0, 'invoice_wt': 0.0,
+            'total_pcs': 0, 'total_wt': 0.0
+        }
+        
+        for r in records:
+            grand_total['accept_pcs'] += int(r.accept_pending_pcs or 0)
+            grand_total['accept_wt'] += float(r.accept_pending_wt or 0.0)
+            grand_total['process_pcs'] += int(r.process_pending_pcs or 0)
+            grand_total['process_wt'] += float(r.process_pending_wt or 0.0)
+            grand_total['barcode_pcs'] += int(r.barcode_pending_pcs or 0)
+            grand_total['barcode_wt'] += float(r.barcode_pending_wt or 0.0)
+            grand_total['hallmark_pcs'] += int(r.hallmark_pending_pcs or 0)
+            grand_total['hallmark_wt'] += float(r.hallmark_pending_wt or 0.0)
+            grand_total['qc_issue_pcs'] += int(r.qc_issue_pending_pcs or 0)
+            grand_total['qc_issue_wt'] += float(r.qc_issue_pending_wt or 0.0)
+            grand_total['qc_complete_pcs'] += int(r.qc_complete_pending_pcs or 0)
+            grand_total['qc_complete_wt'] += float(r.qc_complete_pending_wt or 0.0)
+            grand_total['invoice_pcs'] += int(r.invoice_pending_pcs or 0)
+            grand_total['invoice_wt'] += float(r.invoice_pending_wt or 0.0)
+            grand_total['total_pcs'] += int(r.total_pcs or 0)
+            grand_total['total_wt'] += float(r.total_weight or 0.0)
+            
+        data_tree = dict_to_list(hierarchy, 0)
+        
+        return render_template('partials/_view_pending_order_details_leaf.html', 
+                               data=data_tree, 
+                               grand_total=grand_total, 
+                               owner_name=f"{parent_classification_owner} > {parent_make_owner} > {parent_collection_owner}")
     except Exception as e:
         logger.error(f"Error in get_pending_order_details_leaf_detail: {str(e)}")
         return f"Error: {str(e)}", 500
