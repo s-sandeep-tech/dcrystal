@@ -4,9 +4,41 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+ALLOWED_SYNC_TASKS = {
+    'owner_wise',
+    'process_delay',
+    'outstanding_po',
+    'stage_delay',
+    'order_delay_tracking',
+    'pending_acceptance',
+    'rejected_weight',
+    'showroom_wise_order',
+    'owner_showroom_combined',
+    'provision_stock_status',
+    'hallmarking_delayed',
+    'qc_delayed',
+    'order_processing_pending',
+    'supplier_hm_issue',
+    'hm_return_pending',
+    'hm_qc_issue_pending',
+    'supplier_qc_issue_receipt_pending',
+    'qc_completed_invoice_pending',
+    'qc_completed_invoice_request_pending',
+    'invoice_completed_pending_deliver',
+    'branch_authority',
+    'qc_delay_management',
+    'hm_delay_management',
+    'qc_receipt_completed_pending',
+    'party_delay_management',
+    'order_fulfillment_aging_matrix',
+    'pending_order_details',
+}
+
 def enqueue_sync_task(task_type, user_id=None):
     """Pushes a sync task to the Redis queue."""
     try:
+        if task_type not in ALLOWED_SYNC_TASKS:
+            return {"status": "error", "message": f"Unsupported sync task: {task_type}"}
         task_data = json.dumps({"type": task_type, "user_id": user_id})
         redis_client.rpush('sync_queue', task_data)
         logger.info(f"Enqueued sync task: {task_type}")
@@ -98,5 +130,4 @@ def sync_order_fulfillment_aging_matrix_data(user_id=None):
 
 def sync_pending_order_details_data(user_id=None):
     return enqueue_sync_task('pending_order_details', user_id)
-
 

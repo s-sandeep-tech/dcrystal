@@ -72,14 +72,23 @@ def emit_sync_update(status, message, progress=0, data_type=None):
     try:
         redis_client.publish('sync_updates', json.dumps(payload))
         
-        # 3. Global notification for all users on success
-        if status == 'success':
+        # 3. Global notification for all users on terminal sync states
+        if status in ('success', 'error'):
             sync_name = data_type.replace('_', ' ').capitalize() if data_type else "Data"
+        if status == 'success':
             global_payload = {
                 "title": f"Sync Successful: {sync_name}",
                 "message": f"The {sync_name} synchronization has completed successfully.",
                 "type": "success",
                 "icon": "sync"
+            }
+            redis_client.publish('global_notifications', json.dumps(global_payload))
+        elif status == 'error':
+            global_payload = {
+                "title": f"Sync Failed: {sync_name}",
+                "message": message,
+                "type": "error",
+                "icon": "error"
             }
             redis_client.publish('global_notifications', json.dumps(global_payload))
     except Exception as e:
@@ -320,135 +329,9 @@ def sync_pending_order_details_task(task_type_override=None, progress_range=(0, 
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
-        logger.warning(f"Failed to fetch from external DB, using local mock data fallback: {error_msg}")
-        
-        emit('processing', 'External DB not accessible. Seeding local snapshot with sample data...', 60)
-        try:
-            db.session.query(PendingOrderDetailsSnapshot).delete()
-            
-            sample_data = [
-                {
-                    "supplier": "7R GOLD", "order_type": "Individual", "order_request_type": "Refill",
-                    "order_ro": "KALYAN INDIA BUSINESS CENTRE", "division": "Gold", "group_name": "NEW GOLD ORNAMENTS",
-                    "purity": 920.00, "classification": "BRAND", "make": "MANGAL SUTRA", "collection": "MOKSHA",
-                    "classification_owner": "MANI T.S", "collection_owner": "COLLINS CHACKO", "make_owner": "COLLINS CHACKO",
-                    "provision_type": "INDIVIDUAL PROVISION", "branch_type": "FRANCHISE_SHOP", "branch_provision_type": "NORMAL",
-                    "accept_pending_pcs": 0, "accept_pending_wt": 0, "process_pending_pcs": 0, "process_pending_wt": 0,
-                    "barcode_pending_pcs": 0, "barcode_pending_wt": 0, "hallmark_pending_pcs": 0, "hallmark_pending_wt": 0,
-                    "qc_issue_pending_pcs": 0, "qc_issue_pending_wt": 0, "qc_complete_pending_pcs": 0, "qc_complete_pending_wt": 0,
-                    "invoice_pending_pcs": 0, "invoice_pending_wt": 0, "total_pcs": 0, "total_weight": 0
-                },
-                {
-                    "supplier": "AABHUSHAN JEWELLERS PVT LTD", "order_type": "Individual", "order_request_type": "Refill",
-                    "order_ro": "KOLKATA RO", "division": "Gold", "group_name": "NEW GOLD ORNAMENTS",
-                    "purity": 750.00, "classification": "BRAND", "make": "CALCUTTA", "collection": "ROYALS",
-                    "classification_owner": "MANI T.S", "collection_owner": "RANJITH KANNAN T R", "make_owner": "RANJITH KANNAN T R",
-                    "provision_type": "INDIVIDUAL PROVISION", "branch_type": "FRANCHISE_SHOP", "branch_provision_type": "NORMAL",
-                    "accept_pending_pcs": 0, "accept_pending_wt": 0, "process_pending_pcs": 4, "process_pending_wt": 32.000,
-                    "barcode_pending_pcs": 0, "barcode_pending_wt": 0, "hallmark_pending_pcs": 20, "hallmark_pending_wt": 360.000,
-                    "qc_issue_pending_pcs": 0, "qc_issue_pending_wt": 0, "qc_complete_pending_pcs": 0, "qc_complete_pending_wt": 0,
-                    "invoice_pending_pcs": 0, "invoice_pending_wt": 0, "total_pcs": 24, "total_weight": 392.000
-                },
-                {
-                    "supplier": "AABHUSHAN JEWELLERS PVT LTD", "order_type": "Individual", "order_request_type": "Refill",
-                    "order_ro": "KOLKATA RO", "division": "Gold", "group_name": "NEW GOLD ORNAMENTS",
-                    "purity": 750.00, "classification": "BRAND", "make": "CALCUTTA", "collection": "ROYALS",
-                    "classification_owner": "MANI T.S", "collection_owner": "RANJITH KANNAN T R", "make_owner": "RANJITH KANNAN T R",
-                    "provision_type": "INDIVIDUAL PROVISION", "branch_type": "SHOP", "branch_provision_type": "NORMAL",
-                    "accept_pending_pcs": 0, "accept_pending_wt": 0, "process_pending_pcs": 0, "process_pending_wt": 0,
-                    "barcode_pending_pcs": 0, "barcode_pending_wt": 0, "hallmark_pending_pcs": 0, "hallmark_pending_wt": 0,
-                    "qc_issue_pending_pcs": 0, "qc_issue_pending_wt": 0, "qc_complete_pending_pcs": 0, "qc_complete_pending_wt": 0,
-                    "invoice_pending_pcs": 0, "invoice_pending_wt": 0, "total_pcs": 0, "total_weight": 0
-                },
-                {
-                    "supplier": "AABHUSHAN JEWELLERS PVT LTD", "order_type": "Individual", "order_request_type": "Refill",
-                    "order_ro": "KOLKATA RO", "division": "Gold", "group_name": "NEW GOLD ORNAMENTS",
-                    "purity": 750.00, "classification": "BRAND", "make": "CALCUTTA", "collection": "ROYALS",
-                    "classification_owner": "MANI T.S", "collection_owner": "RANJITH KANNAN T R", "make_owner": "RANJITH KANNAN T R",
-                    "provision_type": "MANAGER PROVISION", "branch_type": "FRANCHISE_SHOP", "branch_provision_type": "NORMAL",
-                    "accept_pending_pcs": 0, "accept_pending_wt": 0, "process_pending_pcs": 0, "process_pending_wt": 0,
-                    "barcode_pending_pcs": 0, "barcode_pending_wt": 0, "hallmark_pending_pcs": 9, "hallmark_pending_wt": 67.000,
-                    "qc_issue_pending_pcs": 0, "qc_issue_pending_wt": 0, "qc_complete_pending_pcs": 0, "qc_complete_pending_wt": 0,
-                    "invoice_pending_pcs": 0, "invoice_pending_wt": 0, "total_pcs": 9, "total_weight": 67.000
-                },
-                {
-                    "supplier": "AABHUSHAN JEWELLERS PVT LTD", "order_type": "Individual", "order_request_type": "Refill",
-                    "order_ro": "KOLKATA RO", "division": "Gold", "group_name": "NEW GOLD ORNAMENTS",
-                    "purity": 750.00, "classification": "BRAND", "make": "CALCUTTA", "collection": "ROYALS",
-                    "classification_owner": "MANI T.S", "collection_owner": "RANJITH KANNAN T R", "make_owner": "RANJITH KANNAN T R",
-                    "provision_type": "MANAGER PROVISION", "branch_type": "SHOP", "branch_provision_type": "NORMAL",
-                    "accept_pending_pcs": 0, "accept_pending_wt": 0, "process_pending_pcs": 0, "process_pending_wt": 0,
-                    "barcode_pending_pcs": 0, "barcode_pending_wt": 0, "hallmark_pending_pcs": 0, "hallmark_pending_wt": 0,
-                    "qc_issue_pending_pcs": 0, "qc_issue_pending_wt": 0, "qc_complete_pending_pcs": 0, "qc_complete_pending_wt": 0,
-                    "invoice_pending_pcs": 0, "invoice_pending_wt": 0, "total_pcs": 0, "total_weight": 0
-                },
-                {
-                    "supplier": "AABHUSHAN JEWELLERS PVT LTD", "order_type": "Individual", "order_request_type": "Refill",
-                    "order_ro": "KOLKATA RO", "division": "Gold", "group_name": "NEW GOLD ORNAMENTS",
-                    "purity": 750.00, "classification": "BRAND", "make": "CALCUTTA", "collection": "ROYALS",
-                    "classification_owner": "MANI T.S", "collection_owner": "RANJITH KANNAN T R", "make_owner": "RANJITH KANNAN T R",
-                    "provision_type": "MANAGER PROVISION", "branch_type": "FRANCHISE_SHOP", "branch_provision_type": "SEASONAL",
-                    "accept_pending_pcs": 0, "accept_pending_wt": 0, "process_pending_pcs": 0, "process_pending_wt": 0,
-                    "barcode_pending_pcs": 0, "barcode_pending_wt": 0, "hallmark_pending_pcs": 11, "hallmark_pending_wt": 91.000,
-                    "qc_issue_pending_pcs": 0, "qc_issue_pending_wt": 0, "qc_complete_pending_pcs": 0, "qc_complete_pending_wt": 0,
-                    "invoice_pending_pcs": 0, "invoice_pending_wt": 0, "total_pcs": 11, "total_weight": 91.000
-                },
-                {
-                    "supplier": "AABHUSHAN JEWELLERS PVT LTD", "order_type": "Individual", "order_request_type": "Refill",
-                    "order_ro": "KOLKATA RO", "division": "Gold", "group_name": "NEW GOLD ORNAMENTS",
-                    "purity": 920.00, "classification": "BRAND", "make": "CALCUTTA", "collection": "ROYALS",
-                    "classification_owner": "MANI T.S", "collection_owner": "RANJITH KANNAN T R", "make_owner": "RANJITH KANNAN T R",
-                    "provision_type": "INDIVIDUAL PROVISION", "branch_type": "FRANCHISE_SHOP", "branch_provision_type": "NORMAL",
-                    "accept_pending_pcs": 0, "accept_pending_wt": 0, "process_pending_pcs": 30, "process_pending_wt": 316.000,
-                    "barcode_pending_pcs": 0, "barcode_pending_wt": 0, "hallmark_pending_pcs": 8, "hallmark_pending_wt": 120.000,
-                    "qc_issue_pending_pcs": 0, "qc_issue_pending_wt": 0, "qc_complete_pending_pcs": 3, "qc_complete_pending_wt": 144.000,
-                    "invoice_pending_pcs": 0, "invoice_pending_wt": 0, "total_pcs": 41, "total_weight": 580.000
-                },
-                {
-                    "supplier": "AABHUSHAN JEWELLERS PVT LTD", "order_type": "Individual", "order_request_type": "Refill",
-                    "order_ro": "KOLKATA RO", "division": "Gold", "group_name": "NEW GOLD ORNAMENTS",
-                    "purity": 920.00, "classification": "BRAND", "make": "CALCUTTA", "collection": "ROYALS",
-                    "classification_owner": "MANI T.S", "collection_owner": "RANJITH KANNAN T R", "make_owner": "RANJITH KANNAN T R",
-                    "provision_type": "INDIVIDUAL PROVISION", "branch_type": "SHOP", "branch_provision_type": "NORMAL",
-                    "accept_pending_pcs": 0, "accept_pending_wt": 0, "process_pending_pcs": 22, "process_pending_wt": 400.000,
-                    "barcode_pending_pcs": 0, "barcode_pending_wt": 0, "hallmark_pending_pcs": 4, "hallmark_pending_wt": 104.000,
-                    "qc_issue_pending_pcs": 0, "qc_issue_pending_wt": 0, "qc_complete_pending_pcs": 19, "qc_complete_pending_wt": 718.000,
-                    "invoice_pending_pcs": 0, "invoice_pending_wt": 0, "total_pcs": 45, "total_weight": 1222.000
-                },
-                {
-                    "supplier": "AABHUSHAN JEWELLERS PVT LTD", "order_type": "Individual", "order_request_type": "Refill",
-                    "order_ro": "KOLKATA RO", "division": "Gold", "group_name": "NEW GOLD ORNAMENTS",
-                    "purity": 920.00, "classification": "BRAND", "make": "CALCUTTA", "collection": "ROYALS",
-                    "classification_owner": "MANI T.S", "collection_owner": "RANJITH KANNAN T R", "make_owner": "RANJITH KANNAN T R",
-                    "provision_type": "MANAGER PROVISION", "branch_type": "FRANCHISE_SHOP", "branch_provision_type": "NORMAL",
-                    "accept_pending_pcs": 0, "accept_pending_wt": 0, "process_pending_pcs": 0, "process_pending_wt": 0,
-                    "barcode_pending_pcs": 0, "barcode_pending_wt": 0, "hallmark_pending_pcs": 0, "hallmark_pending_wt": 0,
-                    "qc_issue_pending_pcs": 0, "qc_issue_pending_wt": 0, "qc_complete_pending_pcs": 1, "qc_complete_pending_wt": 24.000,
-                    "invoice_pending_pcs": 0, "invoice_pending_wt": 0, "total_pcs": 1, "total_weight": 24.000
-                },
-                {
-                    "supplier": "AABHUSHAN JEWELLERS PVT LTD", "order_type": "Individual", "order_request_type": "Refill",
-                    "order_ro": "KOLKATA RO", "division": "Gold", "group_name": "NEW GOLD ORNAMENTS",
-                    "purity": 920.00, "classification": "BRAND", "make": "CALCUTTA", "collection": "ROYALS",
-                    "classification_owner": "MANI T.S", "collection_owner": "RANJITH KANNAN T R", "make_owner": "RANJITH KANNAN T R",
-                    "provision_type": "MANAGER PROVISION", "branch_type": "SHOP", "branch_provision_type": "NORMAL",
-                    "accept_pending_pcs": 0, "accept_pending_wt": 0, "process_pending_pcs": 0, "process_pending_wt": 0,
-                    "barcode_pending_pcs": 0, "barcode_pending_wt": 0, "hallmark_pending_pcs": 0, "hallmark_pending_wt": 0,
-                    "qc_issue_pending_pcs": 0, "qc_issue_pending_wt": 0, "qc_complete_pending_pcs": 4, "qc_complete_pending_wt": 176.000,
-                    "invoice_pending_pcs": 0, "invoice_pending_wt": 0, "total_pcs": 4, "total_weight": 176.000
-                }
-            ]
-            
-            db.session.bulk_insert_mappings(PendingOrderDetailsSnapshot, sample_data)
-            db.session.commit()
-            
-            emit('success', f'Sync completed with {len(sample_data)} local mock records.', 100)
-            return {"status": "success", "count": len(sample_data)}
-        except Exception as seed_err:
-            db.session.rollback()
-            logger.error(f"Fallback seeding failed: {seed_err}")
-            emit('error', f'Sync failed: {error_msg}', 0)
-            return {"status": "error", "message": error_msg}
+        logger.error(f"Pending Order Details sync failed: {error_msg}")
+        emit('error', f'Sync failed: {error_msg}', 0)
+        return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
 
