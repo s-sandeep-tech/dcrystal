@@ -317,7 +317,7 @@ def sync_pending_order_details_task(task_type_override=None, progress_range=(0, 
                 'invoice_pending_pcs': row.get('invoice_pending_pcs') or 0,
                 'invoice_pending_wt': row.get('invoice_pending_wt') or 0.0,
                 'total_pcs': row.get('total_pcs') or 0,
-                'total_weight': row.get('total_weight') or 0.0
+                'total_weight': row.get('total_wt') or 0.0
             })
             
         db.session.bulk_insert_mappings(PendingOrderDetailsSnapshot, new_records)
