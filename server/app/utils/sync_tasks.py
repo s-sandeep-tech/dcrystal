@@ -1648,26 +1648,26 @@ def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
     try:
         emit_sync_update('processing', 'Starting combined Owner, Showroom & Pending Order Details Sync...', 2, TASK_TYPE)
 
-        # ── Step 1: Owner Wise ────────────────────────────────────────────
-        emit_sync_update('processing', '[1/3] Syncing Owner Wise Order Summary...', 5, TASK_TYPE)
-        result_owner = sync_owner_wise_data_task(task_type_override=TASK_TYPE, progress_range=(5, 35), is_subtask=True)
+        # ── Step 1: Pending Order Details ─────────────────────────────────
+        emit_sync_update('processing', '[1/3] Syncing Pending Order Details...', 5, TASK_TYPE)
+        result_pending = sync_pending_order_details_task(task_type_override=TASK_TYPE, progress_range=(5, 35), is_subtask=True)
+        if not result_pending or result_pending.get('status') == 'error':
+            error_msg = result_pending.get('message') if result_pending else "Unknown error (result is None)"
+            raise Exception(f"Pending Order Details sync failed: {error_msg}")
+
+        # ── Step 2: Owner Wise ────────────────────────────────────────────
+        emit_sync_update('processing', '[2/3] Syncing Owner Wise Order Summary...', 35, TASK_TYPE)
+        result_owner = sync_owner_wise_data_task(task_type_override=TASK_TYPE, progress_range=(35, 65), is_subtask=True)
         if not result_owner or result_owner.get('status') == 'error':
             error_msg = result_owner.get('message') if result_owner else "Unknown error (result is None)"
             raise Exception(f"Owner Wise sync failed: {error_msg}")
 
-        # ── Step 2: Showroom Wise ─────────────────────────────────────────
-        emit_sync_update('processing', '[2/3] Syncing Showroom Wise Order Summary...', 35, TASK_TYPE)
-        result_showroom = sync_showroom_wise_order_summary_task(task_type_override=TASK_TYPE, progress_range=(35, 65), is_subtask=True)
+        # ── Step 3: Showroom Wise ─────────────────────────────────────────
+        emit_sync_update('processing', '[3/3] Syncing Showroom Wise Order Summary...', 65, TASK_TYPE)
+        result_showroom = sync_showroom_wise_order_summary_task(task_type_override=TASK_TYPE, progress_range=(65, 95), is_subtask=True)
         if not result_showroom or result_showroom.get('status') == 'error':
             error_msg = result_showroom.get('message') if result_showroom else "Unknown error (result is None)"
             raise Exception(f"Showroom Wise sync failed: {error_msg}")
-            
-        # ── Step 3: Pending Order Details ─────────────────────────────────
-        emit_sync_update('processing', '[3/3] Syncing Pending Order Details...', 65, TASK_TYPE)
-        result_pending = sync_pending_order_details_task(task_type_override=TASK_TYPE, progress_range=(65, 95), is_subtask=True)
-        if not result_pending or result_pending.get('status') == 'error':
-            error_msg = result_pending.get('message') if result_pending else "Unknown error (result is None)"
-            raise Exception(f"Pending Order Details sync failed: {error_msg}")
 
         # ── Step 4: Clear Cache ───────────────────────────────────────────
         emit_sync_update('processing', 'Clearing application cache...', 95, TASK_TYPE)
