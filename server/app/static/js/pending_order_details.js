@@ -54,6 +54,7 @@ function getFilterValues() {
         make: makeMultiSelect ? makeMultiSelect.getValues().join(',') : '',
         order_type: document.getElementById('filter-order-type')?.value || '',
         order_ro: document.getElementById('filter-order-ro')?.value || '',
+        qc_ro: document.getElementById('filter-qc-ro')?.value || '',
         order_request_type: document.getElementById('filter-order-request-type')?.value || '',
         provision_type: document.getElementById('filter-provision-type')?.value || '',
         branch_provision_type: document.getElementById('filter-branch-provision-type')?.value || '',
@@ -209,4 +210,3 @@ function toggleModalSupplier(btn, supplierId) {
         rows.forEach(r => r.classList.remove('hidden'));
     }
 }
-

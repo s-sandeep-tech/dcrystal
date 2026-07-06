@@ -73,6 +73,7 @@ def pending_order_details():
         provision_type = request.args.get('provision_type', '')
         branch_provision_type = request.args.get('branch_provision_type', '')
         branch_type = request.args.get('branch_type', '')
+        qc_ro = request.args.get('qc_ro', '')
 
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
@@ -115,6 +116,8 @@ def pending_order_details():
                 query = query.filter(PendingOrderDetailsSnapshot.branch_provision_type == branch_provision_type)
             if branch_type:
                 query = query.filter(PendingOrderDetailsSnapshot.branch_type == branch_type)
+            if qc_ro:
+                query = query.filter(PendingOrderDetailsSnapshot.qc_ro == qc_ro)
             
             roles = [r.upper() for r in session.get('roles', [])]
             is_admin = 'ADMIN' in roles
@@ -159,7 +162,8 @@ def pending_order_details():
             'provision_types': [r[0] for r in apply_options_filter(db.session.query(PendingOrderDetailsSnapshot.provision_type)).distinct().order_by(PendingOrderDetailsSnapshot.provision_type).all() if r[0]],
             'branch_provision_types': [r[0] for r in apply_options_filter(db.session.query(PendingOrderDetailsSnapshot.branch_provision_type)).distinct().order_by(PendingOrderDetailsSnapshot.branch_provision_type).all() if r[0]],
             'branch_types': [r[0] for r in apply_options_filter(db.session.query(PendingOrderDetailsSnapshot.branch_type)).distinct().order_by(PendingOrderDetailsSnapshot.branch_type).all() if r[0]],
-            'order_ros': [r[0] for r in apply_options_filter(db.session.query(PendingOrderDetailsSnapshot.order_ro)).distinct().order_by(PendingOrderDetailsSnapshot.order_ro).all() if r[0]]
+            'order_ros': [r[0] for r in apply_options_filter(db.session.query(PendingOrderDetailsSnapshot.order_ro)).distinct().order_by(PendingOrderDetailsSnapshot.order_ro).all() if r[0]],
+            'qc_ros': [r[0] for r in apply_options_filter(db.session.query(PendingOrderDetailsSnapshot.qc_ro)).distinct().order_by(PendingOrderDetailsSnapshot.qc_ro).all() if r[0]]
         }
 
         # Global Stats (Using total pcs/weight)
@@ -304,6 +308,7 @@ def get_pending_order_details_partial():
         provision_type = request.args.get('provision_type', '')
         branch_provision_type = request.args.get('branch_provision_type', '')
         branch_type = request.args.get('branch_type', '')
+        qc_ro = request.args.get('qc_ro', '')
         
         parent_level = request.args.get('parent_level')
         parent_value = request.args.get('parent_value')
@@ -362,6 +367,8 @@ def get_pending_order_details_partial():
                 query = query.filter(PendingOrderDetailsSnapshot.branch_provision_type == branch_provision_type)
             if branch_type:
                 query = query.filter(PendingOrderDetailsSnapshot.branch_type == branch_type)
+            if qc_ro:
+                query = query.filter(PendingOrderDetailsSnapshot.qc_ro == qc_ro)
             
             roles = [r.upper() for r in session.get('roles', [])]
             is_admin = 'ADMIN' in roles
@@ -484,6 +491,7 @@ def get_pending_order_details_leaf_detail():
         provision_type = request.args.get('provision_type', '')
         branch_provision_type = request.args.get('branch_provision_type', '')
         branch_type = request.args.get('branch_type', '')
+        qc_ro = request.args.get('qc_ro', '')
 
         # Leaf filters
         parent_classification_owner = request.args.get('parent_classification_owner', '')
@@ -526,6 +534,8 @@ def get_pending_order_details_leaf_detail():
             query = query.filter(PendingOrderDetailsSnapshot.branch_provision_type == branch_provision_type)
         if branch_type:
             query = query.filter(PendingOrderDetailsSnapshot.branch_type == branch_type)
+        if qc_ro:
+            query = query.filter(PendingOrderDetailsSnapshot.qc_ro == qc_ro)
 
         roles = [r.upper() for r in session.get('roles', [])]
         is_admin = 'ADMIN' in roles

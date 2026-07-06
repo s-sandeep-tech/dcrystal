@@ -2865,6 +2865,7 @@ class PendingOrderDetailsSnapshot(db.Model):
     provision_type = db.Column('provision_type', db.Text)
     branch_type = db.Column('branch_type', db.Text)
     branch_provision_type = db.Column('branch_provision_type', db.Text)
+    qc_ro = db.Column('qc_ro', db.Text)
 
     accept_pending_pcs = db.Column('accept_pending_pcs', db.Numeric(18, 3))
     accept_pending_wt = db.Column('accept_pending_wt', db.Numeric(18, 3))
@@ -2888,4 +2889,3 @@ class PendingOrderDetailsSnapshot(db.Model):
 
     def to_dict(self):
         return {c.name: getattr(self, c.name).isoformat() if isinstance(getattr(self, c.name), (datetime, date)) else getattr(self, c.name) for c in self.__table__.columns}
-

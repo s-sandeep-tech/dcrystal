@@ -299,6 +299,15 @@
                 </select>
             </div>
             <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">QC RO</label>
+                <select id="filter-qc-ro" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All QC ROs</option>
+                    {% for ro in filter_options.qc_ros %}
+                    <option value="{{ ro }}" {% if request.args.get('qc_ro') == ro %}selected{% endif %}>{{ ro }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-1">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order Request Type</label>
                 <select id="filter-order-request-type" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Request Types</option>
@@ -396,4 +405,3 @@
     }
 </script>
 {% endblock %}
-
