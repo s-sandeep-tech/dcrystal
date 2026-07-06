@@ -9,7 +9,7 @@
             <th class="text-right px-2 bg-blue-50/20">Barcode Pending</th>
             <th class="text-right px-2 bg-indigo-50/20">Hallmark Pending</th>
             <th class="text-right px-2 bg-red-50/20">QC Issue Pending</th>
-            <th class="text-right px-2 bg-purple-50/20">QC Complete Pending</th>
+            <th class="text-right px-2 bg-purple-50/20">QC Pending</th>
             <th class="text-right px-2 bg-cyan-50/20">Invoice Pending</th>
             <th class="text-right px-2 bg-emerald-50/20 font-bold">Total Pending</th>
         </tr>
@@ -83,7 +83,7 @@
                     <span class="text-[9px] text-red-600/70">{{ r.qc_issue_pcs }} Pcs</span>
                 </div>
             </td>
-            <!-- QC Complete Pending -->
+            <!-- QC Pending -->
             <td class="text-right px-2 bg-purple-50/10">
                 <div class="flex flex-col">
                     <span class="font-bold text-purple-600">{{ "%.3f"|format(r.qc_complete_wt) }}</span>
