@@ -1639,29 +1639,37 @@ FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS
         if conn: conn.close()
 
 def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
-    """Combined sync: runs Owner Wise Order Summary then Showroom Wise Order Summary in sequence."""
+    """Combined sync: runs Owner Wise Order Summary, Showroom Wise Order Summary, and Pending Order Details."""
     TASK_TYPE = 'owner_showroom_combined'
     result_owner: Dict[str, Any] = {}
     result_showroom: Dict[str, Any] = {}
+    result_pending: Dict[str, Any] = {}
     
     try:
-        emit_sync_update('processing', 'Starting combined Owner Wise & Showroom Wise Order Summary Sync...', 2, TASK_TYPE)
+        emit_sync_update('processing', 'Starting combined Owner, Showroom & Pending Order Details Sync...', 2, TASK_TYPE)
 
         # ── Step 1: Owner Wise ────────────────────────────────────────────
-        emit_sync_update('processing', '[1/2] Syncing Owner Wise Order Summary...', 5, TASK_TYPE)
-        result_owner = sync_owner_wise_data_task(task_type_override=TASK_TYPE, progress_range=(5, 45), is_subtask=True)
+        emit_sync_update('processing', '[1/3] Syncing Owner Wise Order Summary...', 5, TASK_TYPE)
+        result_owner = sync_owner_wise_data_task(task_type_override=TASK_TYPE, progress_range=(5, 35), is_subtask=True)
         if not result_owner or result_owner.get('status') == 'error':
             error_msg = result_owner.get('message') if result_owner else "Unknown error (result is None)"
             raise Exception(f"Owner Wise sync failed: {error_msg}")
 
         # ── Step 2: Showroom Wise ─────────────────────────────────────────
-        emit_sync_update('processing', '[2/2] Syncing Showroom Wise Order Summary...', 45, TASK_TYPE)
-        result_showroom = sync_showroom_wise_order_summary_task(task_type_override=TASK_TYPE, progress_range=(45, 90), is_subtask=True)
+        emit_sync_update('processing', '[2/3] Syncing Showroom Wise Order Summary...', 35, TASK_TYPE)
+        result_showroom = sync_showroom_wise_order_summary_task(task_type_override=TASK_TYPE, progress_range=(35, 65), is_subtask=True)
         if not result_showroom or result_showroom.get('status') == 'error':
             error_msg = result_showroom.get('message') if result_showroom else "Unknown error (result is None)"
             raise Exception(f"Showroom Wise sync failed: {error_msg}")
+            
+        # ── Step 3: Pending Order Details ─────────────────────────────────
+        emit_sync_update('processing', '[3/3] Syncing Pending Order Details...', 65, TASK_TYPE)
+        result_pending = sync_pending_order_details_task(task_type_override=TASK_TYPE, progress_range=(65, 95), is_subtask=True)
+        if not result_pending or result_pending.get('status') == 'error':
+            error_msg = result_pending.get('message') if result_pending else "Unknown error (result is None)"
+            raise Exception(f"Pending Order Details sync failed: {error_msg}")
 
-        # ── Step 3: Clear Cache ───────────────────────────────────────────
+        # ── Step 4: Clear Cache ───────────────────────────────────────────
         emit_sync_update('processing', 'Clearing application cache...', 95, TASK_TYPE)
         try:
             redis_client.flushdb()
@@ -1672,12 +1680,13 @@ def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
 
         owner_count = result_owner.get('count', 0)
         showroom_count = result_showroom.get('count', 0)
+        pending_count = result_pending.get('count', 0)
         emit_sync_update(
             'success',
-            f'Combined sync completed! {cache_msg} (Owner: {owner_count}, Showroom: {showroom_count})',
+            f'Combined sync completed! {cache_msg} (Owner: {owner_count}, Showroom: {showroom_count}, Pending: {pending_count})',
             100, TASK_TYPE
         )
-        return {"status": "success", "owner_count": owner_count, "showroom_count": showroom_count}
+        return {"status": "success", "owner_count": owner_count, "showroom_count": showroom_count, "pending_count": pending_count}
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Combined OwnerWise+ShowroomWise Sync error: {error_msg}")

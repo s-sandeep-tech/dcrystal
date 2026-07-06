@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Reset all sync buttons IF NOT in Sync All mode
                     if (!window.isSyncAllActive) {
                         [
-                            syncOwnerShowroomBtn, syncPendingOrderDetailsBtn, syncProcessBtn, syncOutstandingPOBtn, 
+                            syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, 
                             syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, 
                             syncProvisionStatusBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn, 
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, 
@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Reset all sync buttons
                     if (!window.isSyncAllActive) {
                         [
-                            syncOwnerShowroomBtn, syncPendingOrderDetailsBtn, syncProcessBtn, syncOutstandingPOBtn, 
+                            syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, 
                             syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, 
                             syncProvisionStatusBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn, 
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, 
@@ -142,7 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initSyncSocket();
 
     const syncOwnerShowroomBtn = document.getElementById('sync-owner-showroom-btn');
-    const syncPendingOrderDetailsBtn = document.getElementById('sync-pending-order-details-btn');
     const syncProcessBtn = document.getElementById('sync-process-delay-btn');
 
     const syncOutstandingPOBtn = document.getElementById('sync-outstanding-po-btn');
@@ -205,8 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (syncOwnerShowroomBtn) syncOwnerShowroomBtn.addEventListener('click', () => triggerSync(syncOwnerShowroomBtn, window.SETTINGS_CONFIG.syncOwnerShowroomUrl, 'Owner & Showroom Wise Order Summary Sync', 'owner_showroom_combined'));
-    if (syncPendingOrderDetailsBtn) syncPendingOrderDetailsBtn.addEventListener('click', () => triggerSync(syncPendingOrderDetailsBtn, window.SETTINGS_CONFIG.syncPendingOrderDetailsUrl, 'Pending Order Details Sync', 'pending_order_details'));
+    if (syncOwnerShowroomBtn) syncOwnerShowroomBtn.addEventListener('click', () => triggerSync(syncOwnerShowroomBtn, window.SETTINGS_CONFIG.syncOwnerShowroomUrl, 'Owner, Showroom & Pending Order Details Sync', 'owner_showroom_combined'));
     if (syncProcessBtn) syncProcessBtn.addEventListener('click', () => triggerSync(syncProcessBtn, window.SETTINGS_CONFIG.syncProcessDelayUrl, 'Process Delay Sync', 'process_delay'));
 
     if (syncOutstandingPOBtn) syncOutstandingPOBtn.addEventListener('click', () => triggerSync(syncOutstandingPOBtn, window.SETTINGS_CONFIG.syncOutstandingPOUrl, 'PO Sync', 'outstanding_po'));
