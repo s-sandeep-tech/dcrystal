@@ -212,8 +212,8 @@
                                                 class="material-symbols-outlined text-purple-500 text-xl">sync_alt</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Owner, Showroom &amp; Pending Order Details Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of Owner Wise, Showroom Wise &amp; Pending Order Details data</p>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Owner, Showroom, Pending Order Details &amp; Active Orders Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of Owner, Showroom, Pending Order Details &amp; Active Orders data</p>
                                             <span class="text-[9px] font-black text-purple-600 dark:text-purple-400/90 block mt-1 uppercase tracking-wider">Scheduled: Daily at 10:30 AM &amp; 2:30 PM IST</span>
                                         </div>
                                     </div>
@@ -1368,6 +1368,7 @@
             syncOwnerShowroomUrl: "{{ url_for('dashboard.sync_owner_and_showroom_wise') }}",
             syncOrderFulfillmentValueAgingMatrixUrl: "{{ url_for('dashboard.sync_order_fulfillment_value_aging_matrix') }}",
             syncPendingOrderDetailsUrl: "{{ url_for('dashboard.sync_pending_order_details') }}",
+            syncActiveOrderDetailsUrl: "{{ url_for('dashboard.sync_active_order_details') }}",
             syncLogsUrl: "{{ url_for('dashboard.get_sync_logs') }}",
 
             auditLogsUrl: "{{ url_for('admin_rbac.get_audit_logs') }}",

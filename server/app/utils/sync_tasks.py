@@ -337,6 +337,86 @@ def sync_pending_order_details_task(task_type_override=None, progress_range=(0, 
         if conn: conn.close()
 
 
+def sync_active_order_details_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+    from app.models.snapshots import ActiveOrderDetailsSnapshot
+    conn = None
+    TASK_TYPE = task_type_override or 'active_order_details'
+    
+    def emit(status, message, progress):
+        emit_combined_sync_update(status, message, progress, TASK_TYPE, progress_range, is_subtask)
+
+    try:
+        emit('processing', 'Starting Active Orders Sync...', 5)
+        conn = get_external_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        emit('processing', 'Fetching data from Azure PostgreSQL...', 20)
+        query = "SELECT * FROM ext_view.vw_active_order_details"
+        
+        start_time = time.time()
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        duration = time.time() - start_time
+        
+        logger.info(f"vw_active_order_details query took {duration:.2f} seconds.")
+        emit('processing', f'Fetched {len(rows)} records. Updating local database...', 50)
+        
+        db.session.query(ActiveOrderDetailsSnapshot).delete()
+        
+        new_records = []
+        for row in rows:
+            new_records.append({
+                'supplier': row.get('supplier'),
+                'order_type': row.get('order_type'),
+                'order_request_type': row.get('order_request_type'),
+                'order_ro': row.get('order_ro'),
+                'division': row.get('division'),
+                'group_name': row.get('group'),
+                'purity': row.get('purity'),
+                'classification': row.get('classification'),
+                'make': row.get('make'),
+                'collection': row.get('collection'),
+                'classification_owner': row.get('classification_owner'),
+                'collection_owner': row.get('collection_owner'),
+                'make_owner': row.get('make_owner'),
+                'provision_type': row.get('provision_type'),
+                'branch_type': row.get('branch_type'),
+                'branch_provision_type': row.get('branch_provision_type'),
+                'accepted_pcs': row.get('accepted_pcs') or 0,
+                'accepted_wt': row.get('accepted_wt') or 0.0,
+                'process_completed_pcs': row.get('process_completed_pcs') or 0,
+                'process_completed_wt': row.get('process_completed_wt') or 0.0,
+                'barcoded_pcs': row.get('barcoded_pcs') or 0,
+                'barcoded_wt': row.get('barcoded_wt') or 0.0,
+                'hallmarked_pcs': row.get('hallmarked_pcs') or 0,
+                'hallmarked_wt': row.get('hallmarked_wt') or 0.0,
+                'qc_issued_pcs': row.get('qc_issued_pcs') or 0,
+                'qc_issued_wt': row.get('qc_issued_wt') or 0.0,
+                'qc_completed_pcs': row.get('qc_completed_pcs') or 0,
+                'qc_completed_wt': row.get('qc_completed_wt') or 0.0,
+                'invoiced_pcs': row.get('invoiced_pcs') or 0,
+                'invoiced_wt': row.get('invoiced_wt') or 0.0,
+                'total_pcs': row.get('total_pcs') or 0,
+                'total_weight': row.get('total_weight') or 0.0
+            })
+            
+        db.session.bulk_insert_mappings(ActiveOrderDetailsSnapshot, new_records)
+        db.session.commit()
+        
+        emit('success', f'Sync completed! {len(rows)} records updated.', 100)
+        return {"status": "success", "count": len(rows)}
+        
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        logger.error(f"Active Orders sync failed: {error_msg}")
+        emit('error', f'Sync failed: {error_msg}', 0)
+        return {"status": "error", "message": error_msg}
+    finally:
+        if conn: conn.close()
+
+
 def sync_process_level_delay_data_task() -> Dict[str, Any]:
     conn = None
     try:
@@ -1639,37 +1719,45 @@ FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS
         if conn: conn.close()
 
 def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
-    """Combined sync: runs Owner Wise Order Summary, Showroom Wise Order Summary, and Pending Order Details."""
+    """Combined sync: runs Owner Wise, Showroom Wise, Pending Order Details, and Active Orders."""
     TASK_TYPE = 'owner_showroom_combined'
     result_owner: Dict[str, Any] = {}
     result_showroom: Dict[str, Any] = {}
     result_pending: Dict[str, Any] = {}
+    result_active: Dict[str, Any] = {}
     
     try:
-        emit_sync_update('processing', 'Starting combined Owner, Showroom & Pending Order Details Sync...', 2, TASK_TYPE)
+        emit_sync_update('processing', 'Starting combined Owner, Showroom, Pending Order Details & Active Orders Sync...', 2, TASK_TYPE)
 
         # ── Step 1: Pending Order Details ─────────────────────────────────
-        emit_sync_update('processing', '[1/3] Syncing Pending Order Details...', 5, TASK_TYPE)
-        result_pending = sync_pending_order_details_task(task_type_override=TASK_TYPE, progress_range=(5, 35), is_subtask=True)
+        emit_sync_update('processing', '[1/4] Syncing Pending Order Details...', 5, TASK_TYPE)
+        result_pending = sync_pending_order_details_task(task_type_override=TASK_TYPE, progress_range=(5, 25), is_subtask=True)
         if not result_pending or result_pending.get('status') == 'error':
             error_msg = result_pending.get('message') if result_pending else "Unknown error (result is None)"
             raise Exception(f"Pending Order Details sync failed: {error_msg}")
 
-        # ── Step 2: Owner Wise ────────────────────────────────────────────
-        emit_sync_update('processing', '[2/3] Syncing Owner Wise Order Summary...', 35, TASK_TYPE)
-        result_owner = sync_owner_wise_data_task(task_type_override=TASK_TYPE, progress_range=(35, 65), is_subtask=True)
+        # ── Step 2: Active Orders ─────────────────────────────────────────
+        emit_sync_update('processing', '[2/4] Syncing Active Orders...', 25, TASK_TYPE)
+        result_active = sync_active_order_details_task(task_type_override=TASK_TYPE, progress_range=(25, 45), is_subtask=True)
+        if not result_active or result_active.get('status') == 'error':
+            error_msg = result_active.get('message') if result_active else "Unknown error (result is None)"
+            raise Exception(f"Active Orders sync failed: {error_msg}")
+
+        # ── Step 3: Owner Wise ────────────────────────────────────────────
+        emit_sync_update('processing', '[3/4] Syncing Owner Wise Order Summary...', 45, TASK_TYPE)
+        result_owner = sync_owner_wise_data_task(task_type_override=TASK_TYPE, progress_range=(45, 70), is_subtask=True)
         if not result_owner or result_owner.get('status') == 'error':
             error_msg = result_owner.get('message') if result_owner else "Unknown error (result is None)"
             raise Exception(f"Owner Wise sync failed: {error_msg}")
 
-        # ── Step 3: Showroom Wise ─────────────────────────────────────────
-        emit_sync_update('processing', '[3/3] Syncing Showroom Wise Order Summary...', 65, TASK_TYPE)
-        result_showroom = sync_showroom_wise_order_summary_task(task_type_override=TASK_TYPE, progress_range=(65, 95), is_subtask=True)
+        # ── Step 4: Showroom Wise ─────────────────────────────────────────
+        emit_sync_update('processing', '[4/4] Syncing Showroom Wise Order Summary...', 70, TASK_TYPE)
+        result_showroom = sync_showroom_wise_order_summary_task(task_type_override=TASK_TYPE, progress_range=(70, 95), is_subtask=True)
         if not result_showroom or result_showroom.get('status') == 'error':
             error_msg = result_showroom.get('message') if result_showroom else "Unknown error (result is None)"
             raise Exception(f"Showroom Wise sync failed: {error_msg}")
 
-        # ── Step 4: Clear Cache ───────────────────────────────────────────
+        # ── Step 5: Clear Cache ───────────────────────────────────────────
         emit_sync_update('processing', 'Clearing application cache...', 95, TASK_TYPE)
         try:
             redis_client.flushdb()
@@ -1681,12 +1769,13 @@ def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
         owner_count = result_owner.get('count', 0)
         showroom_count = result_showroom.get('count', 0)
         pending_count = result_pending.get('count', 0)
+        active_count = result_active.get('count', 0)
         emit_sync_update(
             'success',
-            f'Combined sync completed! {cache_msg} (Owner: {owner_count}, Showroom: {showroom_count}, Pending: {pending_count})',
+            f'Combined sync completed! {cache_msg} (Owner: {owner_count}, Showroom: {showroom_count}, Pending: {pending_count}, Active: {active_count})',
             100, TASK_TYPE
         )
-        return {"status": "success", "owner_count": owner_count, "showroom_count": showroom_count, "pending_count": pending_count}
+        return {"status": "success", "owner_count": owner_count, "showroom_count": showroom_count, "pending_count": pending_count, "active_count": active_count}
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Combined OwnerWise+ShowroomWise Sync error: {error_msg}")

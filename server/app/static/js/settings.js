@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (syncOwnerShowroomBtn) syncOwnerShowroomBtn.addEventListener('click', () => triggerSync(syncOwnerShowroomBtn, window.SETTINGS_CONFIG.syncOwnerShowroomUrl, 'Owner, Showroom & Pending Order Details Sync', 'owner_showroom_combined'));
+    if (syncOwnerShowroomBtn) syncOwnerShowroomBtn.addEventListener('click', () => triggerSync(syncOwnerShowroomBtn, window.SETTINGS_CONFIG.syncOwnerShowroomUrl, 'Owner, Showroom, Pending Order Details & Active Orders Sync', 'owner_showroom_combined'));
     if (syncProcessBtn) syncProcessBtn.addEventListener('click', () => triggerSync(syncProcessBtn, window.SETTINGS_CONFIG.syncProcessDelayUrl, 'Process Delay Sync', 'process_delay'));
 
     if (syncOutstandingPOBtn) syncOutstandingPOBtn.addEventListener('click', () => triggerSync(syncOutstandingPOBtn, window.SETTINGS_CONFIG.syncOutstandingPOUrl, 'PO Sync', 'outstanding_po'));

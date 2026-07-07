@@ -32,6 +32,7 @@ ALLOWED_SYNC_TASKS = {
     'party_delay_management',
     'order_fulfillment_aging_matrix',
     'pending_order_details',
+    'active_order_details',
 }
 
 def enqueue_sync_task(task_type, user_id=None):
@@ -130,4 +131,7 @@ def sync_order_fulfillment_aging_matrix_data(user_id=None):
 
 def sync_pending_order_details_data(user_id=None):
     return enqueue_sync_task('pending_order_details', user_id)
+
+def sync_active_order_details_data(user_id=None):
+    return enqueue_sync_task('active_order_details', user_id)
 
