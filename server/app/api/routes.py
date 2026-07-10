@@ -98,3 +98,94 @@ def trigger_external_provision_stock_status():
 
     return authenticated_trigger()
 
+
+@api_bp.route('/sync/tasks', methods=['POST'])
+def trigger_external_sync_tasks():
+    """
+    Exposed endpoint for third parties to trigger one or more allowed sync tasks.
+
+    Payload examples:
+        {"task_key": "provision_stock_status", "status": "success"}
+        {"task_keys": ["provision_stock_status", "owner_showroom_combined"], "status": "completed"}
+    """
+    from app.utils.decorators import require_api_client
+    from app.utils.sync_manager import ALLOWED_SYNC_TASKS, enqueue_sync_task
+    from flask import current_app
+    import json
+
+    @require_api_client('ALLOWED_THIRD_PARTY_IPS')
+    def authenticated_trigger():
+        payload = {}
+        if request.data:
+            try:
+                payload = request.get_json(force=True) or {}
+            except Exception:
+                return jsonify({
+                    "status": "error",
+                    "message": "Invalid JSON format in request body."
+                }), 400
+
+        status = payload.get('status')
+        if status and status.lower() not in ['success', 'completed']:
+            current_app.logger.warning(f"Sync trigger aborted. External status reported as: {status}")
+            return jsonify({
+                "status": "error",
+                "message": f"Sync trigger aborted because external status is '{status}'."
+            }), 400
+
+        task_keys = payload.get('task_keys') or payload.get('tasks') or payload.get('task_key')
+        if isinstance(task_keys, str):
+            task_keys = [task_keys]
+
+        if not isinstance(task_keys, list) or not task_keys:
+            return jsonify({
+                "status": "error",
+                "message": "Payload must include task_key or task_keys."
+            }), 400
+
+        task_keys = [str(task_key).strip() for task_key in task_keys if str(task_key).strip()]
+        invalid_tasks = [task_key for task_key in task_keys if task_key not in ALLOWED_SYNC_TASKS]
+        if invalid_tasks:
+            return jsonify({
+                "status": "error",
+                "message": "Unsupported sync task key.",
+                "invalid_tasks": invalid_tasks,
+                "allowed_tasks": sorted(ALLOWED_SYNC_TASKS)
+            }), 400
+
+        queued_tasks = []
+        failed_tasks = []
+        for task_key in task_keys:
+            result = enqueue_sync_task(task_key, user_id='THIRD_PARTY')
+            if result.get('status') == 'success':
+                queued_tasks.append(task_key)
+                if payload:
+                    try:
+                        r.setex(
+                            f"sync_meta:{task_key}:last",
+                            3600,
+                            json.dumps(payload)
+                        )
+                    except Exception as e:
+                        current_app.logger.error(f"Failed to cache sync metadata for {task_key}: {e}")
+            else:
+                failed_tasks.append({
+                    "task": task_key,
+                    "message": result.get('message')
+                })
+
+        if failed_tasks:
+            return jsonify({
+                "status": "error",
+                "message": "One or more sync tasks failed to enqueue.",
+                "queued_tasks": queued_tasks,
+                "failed_tasks": failed_tasks
+            }), 500
+
+        return jsonify({
+            "status": "success",
+            "message": "Sync task(s) have been successfully enqueued.",
+            "tasks": queued_tasks
+        }), 202
+
+    return authenticated_trigger()
