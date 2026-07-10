@@ -687,6 +687,18 @@ def setup_scheduler():
         replace_existing=True
     )
 
+    # Schedule "Order Fulfillment Value Aging Matrix Sync" every day at 8:45 AM IST
+    # Task type 'order_fulfillment_aging_matrix' matches sync_manager.py
+    scheduler.add_job(
+        func=enqueue_sync_task,
+        trigger='cron',
+        hour=8,
+        minute=45,
+        args=['order_fulfillment_aging_matrix'],
+        id='order_fulfillment_aging_matrix_sync',
+        replace_existing=True
+    )
+
     scheduler.start()
     logger.info("Background Scheduler started. 'Provision & Stock Status Sync' scheduled for 11:00 IST daily.")
     logger.info("Branch Authority Sync scheduled for 10:00 IST and 16:00 IST daily.")
@@ -694,6 +706,7 @@ def setup_scheduler():
     logger.info("QC Delay Summary Sync scheduled for 9:00 IST daily.")
     logger.info("HM Delay Management Sync scheduled for 9:05 IST daily.")
     logger.info("Vendor Delay Management Sync scheduled for 9:10 IST daily.")
+    logger.info("Order Fulfillment Value Aging Matrix Sync scheduled for 8:45 IST daily.")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Entry point — run workers and scheduler
