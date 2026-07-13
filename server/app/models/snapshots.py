@@ -2838,6 +2838,7 @@ class OrderFulfillmentValueAgingMatrixSnapshot(db.Model):
     locationtype = db.Column(db.String(100))
     locationid = db.Column(db.String(100))
     locationname = db.Column(db.String(250))
+    locationstatus = db.Column(db.String(100))
     snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 

@@ -3857,6 +3857,7 @@ def sync_order_fulfillment_aging_matrix_task(task_type_override=None, progress_r
                 'locationtype': row.get('locationtype') or 'Unknown',
                 'locationid': row.get('locationid') or 'Unknown',
                 'locationname': row.get('locationname') or 'Unknown',
+                'locationstatus': row.get('locationstatus') or 'Unknown',
                 'snapshot_date': date.today(),
                 'updated_at': updated_at
             })

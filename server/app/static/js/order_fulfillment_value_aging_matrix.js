@@ -4,6 +4,7 @@ let purchaseOfficeMultiSelect;
 let supplierNameMultiSelect;
 let sectionNameMultiSelect;
 let purityMultiSelect;
+let matrixDetailRequest;
 
 function getMatrixMode() {
     return new URLSearchParams(window.location.search).get('matrix_mode') || 'order_to_delivery';
@@ -115,6 +116,66 @@ function updateDashboardStats(stats) {
     }
 }
 
+function closeMatrixDetailModal() {
+    const modal = document.getElementById('matrix-detail-modal');
+    if (!modal) return;
+
+    if (matrixDetailRequest) {
+        matrixDetailRequest.abort();
+        matrixDetailRequest = null;
+    }
+    modal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+async function openMatrixDetailModal(cell) {
+    const modal = document.getElementById('matrix-detail-modal');
+    const content = document.getElementById('matrix-detail-content');
+    const subtitle = document.getElementById('matrix-detail-subtitle');
+    if (!modal || !content || !subtitle) return;
+
+    const orderDateRange = cell.dataset.orderDateRange;
+    const invDateRange = cell.dataset.invDateRange;
+    subtitle.textContent = `Order ${orderDateRange} / Invoice ${invDateRange}`;
+    content.innerHTML = `
+        <div class="flex min-h-40 items-center justify-center gap-2 text-xs font-semibold text-gray-500">
+            <span class="size-4 animate-spin rounded-full border-2 border-gray-200 border-t-primary"></span>
+            Loading details...
+        </div>`;
+    modal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+
+    if (matrixDetailRequest) matrixDetailRequest.abort();
+    const requestController = new AbortController();
+    matrixDetailRequest = requestController;
+
+    const params = new URLSearchParams(window.location.search);
+    params.set('order_date_range', orderDateRange);
+    params.set('inv_date_range', invDateRange);
+
+    try {
+        const response = await fetch(`/partial/order_fulfillment_value_aging_matrix/cell_details?${params.toString()}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            },
+            signal: requestController.signal
+        });
+        const html = await response.text();
+        if (!response.ok) throw new Error(html || 'Unable to load invoice details.');
+        content.innerHTML = html;
+    } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.error('Error loading matrix cell details:', error);
+        content.innerHTML = `
+            <div class="flex min-h-48 flex-col items-center justify-center px-6 text-center">
+                <span class="material-symbols-outlined mb-2 text-3xl text-red-400">error</span>
+                <p class="text-xs font-bold text-red-600">Unable to load invoice details.</p>
+            </div>`;
+    } finally {
+        if (matrixDetailRequest === requestController) matrixDetailRequest = null;
+    }
+}
+
 // Helper function to decode commas and ensure they match url search params correctly
 function updateUrlAndLoad(params) {
     const newUrl = `${window.location.pathname}?${params.toString()}`;
@@ -126,7 +187,7 @@ function applyGlobalFilters() {
     const urlParams = new URLSearchParams(window.location.search);
 
     const filterIds = [
-        'purchase_office', 'supplier_name', 'group_name', 'section_name', 'purity', 'location_type', 'location'
+        'purchase_office', 'supplier_name', 'group_name', 'section_name', 'purity', 'location_type', 'location', 'locationstatus'
     ];
 
     filterIds.forEach(id => {
@@ -153,7 +214,7 @@ function applyGlobalFilters() {
 
 function resetGlobalFilters() {
     const filterIds = [
-        'purchase_office', 'supplier_name', 'group_name', 'section_name', 'purity', 'location_type', 'location'
+        'purchase_office', 'supplier_name', 'group_name', 'section_name', 'purity', 'location_type', 'location', 'locationstatus'
     ];
 
     filterIds.forEach(id => {
@@ -187,6 +248,9 @@ async function loadFilterOptions() {
             }
         });
         const options = await response.json();
+        if (!response.ok) {
+            throw new Error(options.error || 'Unable to load filter options.');
+        }
         const urlParams = new URLSearchParams(window.location.search);
 
         const mappings = [
@@ -196,7 +260,8 @@ async function loadFilterOptions() {
             { id: 'filter-section_name', list: options.sections, label: 'Section Name', ms: sectionNameMultiSelect, param: 'section_name', checkboxClass: 'filter-section_name-container-checkbox' },
             { id: 'filter-purity', list: options.purities, label: 'Purity', ms: purityMultiSelect, param: 'purity', checkboxClass: 'filter-purity-container-checkbox' },
             { id: 'filter-location_type', list: options.location_types, label: 'Location Type' },
-            { id: 'filter-location', list: (options.locations || []).map(l => ({ value: l.id, label: l.name })), label: 'Location', ms: locationMultiSelect, param: 'location', checkboxClass: 'filter-location-container-checkbox' }
+            { id: 'filter-location', list: (options.locations || []).map(l => ({ value: l.id, label: l.name })), label: 'Location', ms: locationMultiSelect, param: 'location', checkboxClass: 'filter-location-container-checkbox' },
+            { id: 'filter-locationstatus', list: options.location_statuses || [], label: 'Location Status', placeholder: 'All Location Statuses' }
         ];
 
         mappings.forEach(m => {
@@ -214,7 +279,7 @@ async function loadFilterOptions() {
                     m.ms.updateTriggerText();
                 }
             } else {
-                populateSelect(m.id, m.list, `All ${m.label}s`, urlParams.get(m.id.replace('filter-', '')));
+                populateSelect(m.id, m.list, m.placeholder || `All ${m.label}s`, urlParams.get(m.id.replace('filter-', '')));
             }
         });
 
@@ -227,7 +292,7 @@ function populateSelect(id, list, placeholder, selectedValue) {
     const el = document.getElementById(id);
     if (!el) return;
     let html = `<option value="">${placeholder}</option>`;
-    list.forEach(item => {
+    (list || []).forEach(item => {
         html += `<option value="${item}" ${item === selectedValue ? 'selected' : ''}>${item}</option>`;
     });
     el.innerHTML = html;
@@ -276,4 +341,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadViewData();
     loadFilterOptions();
+
+    document.addEventListener('click', event => {
+        const cell = event.target.closest('.matrix-detail-cell');
+        if (cell) openMatrixDetailModal(cell);
+        if (event.target.closest('[data-matrix-modal-close]')) closeMatrixDetailModal();
+    });
+
+    document.addEventListener('keydown', event => {
+        if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('.matrix-detail-cell')) {
+            event.preventDefault();
+            openMatrixDetailModal(event.target);
+        } else if (event.key === 'Escape') {
+            closeMatrixDetailModal();
+        }
+    });
 });

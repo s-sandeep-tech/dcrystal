@@ -1,0 +1,65 @@
+{% macro amount(value, decimals=2) -%}
+    {{ "{:,.{}f}".format(value|float, decimals) }}
+{%- endmacro %}
+
+<div class="flex h-full min-h-0 flex-col">
+    <div class="shrink-0 border-b border-gray-100 bg-gray-50 px-4 py-2 dark:border-gray-800 dark:bg-gray-800/50 sm:px-5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-[10px] font-semibold text-gray-500 dark:text-gray-400">
+                {{ details|length }} record{% if details|length != 1 %}s{% endif %}
+            </p>
+            <p class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                Invoice Total: {{ amount(invoice_total) }} L
+            </p>
+        </div>
+    </div>
+
+{% if details %}
+<div class="min-h-0 flex-1 overflow-auto">
+    <table class="w-full min-w-[1500px] border-collapse bg-white text-left text-[10px] dark:bg-gray-900">
+        <thead class="sticky top-0 z-10 bg-gray-50 text-[8px] uppercase text-gray-500 shadow-sm dark:bg-gray-800 dark:text-gray-300">
+            <tr>
+                <th class="px-3 py-2.5 font-bold">Order No</th>
+                <th class="px-3 py-2.5 font-bold">Invoice No</th>
+                <th class="px-3 py-2.5 font-bold">Invoice Date</th>
+                <th class="px-3 py-2.5 font-bold">Purchase Office</th>
+                <th class="px-3 py-2.5 font-bold">Supplier Name</th>
+                <th class="px-3 py-2.5 font-bold">Group Name</th>
+                <th class="px-3 py-2.5 font-bold">Section Name</th>
+                <th class="px-3 py-2.5 text-right font-bold">Purity</th>
+                <th class="px-3 py-2.5 text-right font-bold">Invoice Gr Wt</th>
+                <th class="px-3 py-2.5 text-right font-bold">Diamond Carat</th>
+                <th class="px-3 py-2.5 text-right font-bold">Colour Stone Carat</th>
+                <th class="px-3 py-2.5 text-right font-bold">Net Weight</th>
+                <th class="px-3 py-2.5 text-right font-bold">Inv Net Value</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            {% for detail in details %}
+            <tr class="hover:bg-blue-50/50 dark:hover:bg-gray-800/60">
+                <td class="whitespace-nowrap px-3 py-2 font-semibold text-gray-900 dark:text-white">{{ detail.orderno or '-' }}</td>
+                <td class="whitespace-nowrap px-3 py-2 font-semibold text-primary">{{ detail.invoiceno or '-' }}</td>
+                <td class="whitespace-nowrap px-3 py-2">{{ detail.invoicedate.strftime('%d %b %Y') if detail.invoicedate else '-' }}</td>
+                <td class="whitespace-nowrap px-3 py-2">{{ detail.purchaseoffice or '-' }}</td>
+                <td class="max-w-64 px-3 py-2">{{ detail.suppliername or '-' }}</td>
+                <td class="whitespace-nowrap px-3 py-2">{{ detail.groupname or '-' }}</td>
+                <td class="whitespace-nowrap px-3 py-2">{{ detail.sectionname or '-' }}</td>
+                <td class="whitespace-nowrap px-3 py-2 text-right">{{ detail.purity or '-' }}</td>
+                <td class="whitespace-nowrap px-3 py-2 text-right">{{ amount(detail.invoicegrwt, 3) }}</td>
+                <td class="whitespace-nowrap px-3 py-2 text-right">{{ amount(detail.diamondcarat, 3) }}</td>
+                <td class="whitespace-nowrap px-3 py-2 text-right">{{ amount(detail.colourstonecarat, 3) }}</td>
+                <td class="whitespace-nowrap px-3 py-2 text-right">{{ amount(detail.netweight, 3) }}</td>
+                <td class="whitespace-nowrap px-3 py-2 text-right font-bold text-emerald-600 dark:text-emerald-400">{{ amount(detail.inv_netvalue) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="flex min-h-48 flex-1 flex-col items-center justify-center px-6 text-center text-gray-500">
+    <span class="material-symbols-outlined mb-2 text-3xl text-gray-300">search_off</span>
+    <p class="text-xs font-bold text-gray-700 dark:text-gray-300">No invoice details found</p>
+    <p class="mt-1 text-[10px]">The selected matrix cell has no matching snapshot records.</p>
+</div>
+{% endif %}
+</div>

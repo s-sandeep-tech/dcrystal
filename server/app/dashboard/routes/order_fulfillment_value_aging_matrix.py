@@ -366,11 +366,73 @@ def order_fulfillment_aging_options():
             'sections': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.sectionname),
             'purities': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.purity),
             'location_types': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.locationtype),
+            'location_statuses': get_distinct(OrderFulfillmentValueAgingMatrixSnapshot.locationstatus),
             'locations': [{'id': r.locationid, 'name': r.locationname or r.locationid} for r in location_rows]
         }
         return jsonify(options)
     except Exception as e:
+        logger.error(f"Error loading order fulfillment filter options: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+
+def apply_matrix_detail_filters(query):
+    filter_columns = {
+        'purchase_office': OrderFulfillmentValueAgingMatrixSnapshot.purchaseoffice,
+        'supplier_name': OrderFulfillmentValueAgingMatrixSnapshot.suppliername,
+        'group_name': OrderFulfillmentValueAgingMatrixSnapshot.groupname,
+        'section_name': OrderFulfillmentValueAgingMatrixSnapshot.sectionname,
+        'purity': OrderFulfillmentValueAgingMatrixSnapshot.purity,
+        'location_type': OrderFulfillmentValueAgingMatrixSnapshot.locationtype,
+        'location': OrderFulfillmentValueAgingMatrixSnapshot.locationid,
+        'locationstatus': OrderFulfillmentValueAgingMatrixSnapshot.locationstatus,
+    }
+
+    for parameter, column in filter_columns.items():
+        values = [value.strip() for value in request.args.get(parameter, '').split(',') if value.strip()]
+        if values:
+            query = query.filter(column.in_(values))
+
+    return query
+
+
+@dashboard_bp.route('/partial/order_fulfillment_value_aging_matrix/cell_details')
+@jwt_required()
+def get_order_fulfillment_cell_details():
+    order_date_range = request.args.get('order_date_range', '').strip()
+    inv_date_range = request.args.get('inv_date_range', '').strip()
+
+    if not order_date_range or not inv_date_range:
+        return '<div class="p-6 text-center text-sm text-red-600">Order and invoice date buckets are required.</div>', 400
+
+    try:
+        query = OrderFulfillmentValueAgingMatrixSnapshot.query.filter(
+            OrderFulfillmentValueAgingMatrixSnapshot.order_date_range == order_date_range,
+            OrderFulfillmentValueAgingMatrixSnapshot.inv_date_range == inv_date_range,
+            OrderFulfillmentValueAgingMatrixSnapshot.invoicedate >= (
+                func.date_trunc('month', func.current_date()) - text("INTERVAL '5 months'")
+            ),
+            OrderFulfillmentValueAgingMatrixSnapshot.invoicedate < (
+                func.date_trunc('month', func.current_date()) + text("INTERVAL '1 month'")
+            ),
+        )
+        query = apply_matrix_detail_filters(query)
+        details = query.order_by(
+            OrderFulfillmentValueAgingMatrixSnapshot.invoicedate,
+            OrderFulfillmentValueAgingMatrixSnapshot.invoiceno,
+            OrderFulfillmentValueAgingMatrixSnapshot.orderno,
+        ).all()
+
+        invoice_total = sum(float(detail.inv_netvalue or 0) for detail in details) / 100000.0
+        return render_template(
+            'partials/_view_order_fulfillment_matrix_cell_details.html',
+            details=details,
+            order_date_range=order_date_range,
+            inv_date_range=inv_date_range,
+            invoice_total=invoice_total,
+        )
+    except Exception as e:
+        logger.error(f"Error loading order fulfillment cell details: {str(e)}")
+        return '<div class="p-6 text-center text-sm text-red-600">Unable to load invoice details.</div>', 500
 
 
 @dashboard_bp.route('/partial/order_fulfillment_value_aging_matrix')
@@ -384,18 +446,20 @@ def get_order_fulfillment_partial():
         purity = request.args.get('purity', '')
         location_type = request.args.get('location_type', '')
         location = request.args.get('location', '')
+        locationstatus = request.args.get('locationstatus', '')
         matrix_mode = request.args.get('matrix_mode', 'order_to_delivery')
 
         params = {
             'matrix_mode': matrix_mode,
-            'matrix_version': '2026_07_02_01',
+            'matrix_version': '2026_07_13_01',
             'purchase_office': purchase_office if purchase_office else None,
             'supplier_name': supplier_name if supplier_name else None,
             'group_name': group_name if group_name else None,
             'section_name': section_name if section_name else None,
             'purity': purity if purity else None,
             'location_type': location_type if location_type else None,
-            'location': location if location else None
+            'location': location if location else None,
+            'locationstatus': locationstatus if locationstatus else None
         }
         snapshot_date = db.session.query(func.max(OrderFulfillmentValueAgingMatrixSnapshot.snapshot_date)).scalar()
         cache_key = generate_cache_key("order_fulfillment_aging_matrix_partial", snapshot_date, **params)
@@ -446,6 +510,9 @@ def get_order_fulfillment_partial():
                 filter_sql += f" AND locationid IN ({','.join(locs)})"
             else:
                 filter_sql += f" AND locationid = '{escape_val(location)}'"
+
+        if locationstatus:
+            filter_sql += f" AND locationstatus = '{escape_val(locationstatus)}'"
 
         table_expression = f"(SELECT * FROM order_fulfillment_value_aging_matrix_snapshot WHERE 1=1{filter_sql}) AS tbl"
         if matrix_mode == 'delivery_to_order':
@@ -528,6 +595,9 @@ def get_order_fulfillment_partial():
         if location:
             locs = [l.strip() for l in location.split(',') if l.strip()]
             stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.locationid.in_(locs)) if len(locs) > 1 else stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.locationid == location)
+
+        if locationstatus:
+            stats_query = stats_query.filter(OrderFulfillmentValueAgingMatrixSnapshot.locationstatus == locationstatus)
 
         stats_query = stats_query.filter(
             OrderFulfillmentValueAgingMatrixSnapshot.invoicedate >= func.date_trunc('month', func.current_date()) - text("INTERVAL '5 months'"),
