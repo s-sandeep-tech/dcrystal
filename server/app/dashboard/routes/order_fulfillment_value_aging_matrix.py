@@ -5,9 +5,10 @@ from app.models import Notification, OrderFulfillmentValueAgingMatrixSnapshot, U
 from app.extensions import db, redis_client
 from app.utils.cache_utils import generate_cache_key
 from sqlalchemy import func, text
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -395,6 +396,30 @@ def apply_matrix_detail_filters(query):
     return query
 
 
+def get_invoice_bucket_dates(bucket_label):
+    match = re.fullmatch(r'([A-Za-z]{3})\s+(\d{1,2})\s*-\s*(\d{1,2})', bucket_label.strip())
+    if not match:
+        return None, None
+
+    try:
+        month = datetime.strptime(match.group(1).title(), '%b').month
+        start_day = int(match.group(2))
+        today = datetime.now(ZoneInfo('Asia/Kolkata')).date()
+        year = today.year - 1 if month > today.month else today.year
+        bucket_start = date(year, month, start_day)
+
+        if start_day <= 15:
+            bucket_end = date(year, month, 16)
+        elif month == 12:
+            bucket_end = date(year + 1, 1, 1)
+        else:
+            bucket_end = date(year, month + 1, 1)
+
+        return bucket_start, bucket_end
+    except ValueError:
+        return None, None
+
+
 @dashboard_bp.route('/partial/order_fulfillment_value_aging_matrix/cell_details')
 @jwt_required()
 def get_order_fulfillment_cell_details():
@@ -404,16 +429,15 @@ def get_order_fulfillment_cell_details():
     if not order_date_range or not inv_date_range:
         return '<div class="p-6 text-center text-sm text-red-600">Order and invoice date buckets are required.</div>', 400
 
+    bucket_start, bucket_end = get_invoice_bucket_dates(inv_date_range)
+    if not bucket_start or not bucket_end:
+        return '<div class="p-6 text-center text-sm text-red-600">Invalid invoice date bucket.</div>', 400
+
     try:
         query = OrderFulfillmentValueAgingMatrixSnapshot.query.filter(
             OrderFulfillmentValueAgingMatrixSnapshot.order_date_range == order_date_range,
-            OrderFulfillmentValueAgingMatrixSnapshot.inv_date_range == inv_date_range,
-            OrderFulfillmentValueAgingMatrixSnapshot.invoicedate >= (
-                func.date_trunc('month', func.current_date()) - text("INTERVAL '5 months'")
-            ),
-            OrderFulfillmentValueAgingMatrixSnapshot.invoicedate < (
-                func.date_trunc('month', func.current_date()) + text("INTERVAL '1 month'")
-            ),
+            OrderFulfillmentValueAgingMatrixSnapshot.invoicedate >= bucket_start,
+            OrderFulfillmentValueAgingMatrixSnapshot.invoicedate < bucket_end,
         )
         query = apply_matrix_detail_filters(query)
         details = query.order_by(
