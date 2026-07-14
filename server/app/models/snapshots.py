@@ -857,6 +857,23 @@ class ProvisionStockRawSnapshot(db.Model):
     size = db.Column(db.Text)
     screw_type = db.Column(db.String(200))
     prov_type = db.Column(db.Text)
+
+    # External hierarchy identifiers
+    division_id = db.Column(db.BigInteger)
+    group_id = db.Column(db.BigInteger)
+    purity_id = db.Column(db.BigInteger)
+    classification_id = db.Column(db.BigInteger)
+    sub_classification_id = db.Column(db.BigInteger)
+    section_id = db.Column(db.BigInteger)
+    type_id = db.Column(db.BigInteger)
+    make_id = db.Column(db.BigInteger)
+    collection_id = db.Column(db.BigInteger)
+    master_collection_id = db.Column(db.BigInteger)
+    sub_section_id = db.Column(db.BigInteger)
+    wide_range_id = db.Column(db.BigInteger)
+    gender_id = db.Column(db.BigInteger)
+    size_id = db.Column(db.BigInteger)
+    screw_type_id = db.Column(db.BigInteger)
     
     # Numeric Measures
     purity = db.Column(db.Numeric(10, 2))
@@ -930,6 +947,23 @@ class ProvisionStockRawStaging(db.Model):
     size = db.Column(db.Text)
     screw_type = db.Column(db.String(200))
     prov_type = db.Column(db.Text)
+
+    # External hierarchy identifiers
+    division_id = db.Column(db.BigInteger)
+    group_id = db.Column(db.BigInteger)
+    purity_id = db.Column(db.BigInteger)
+    classification_id = db.Column(db.BigInteger)
+    sub_classification_id = db.Column(db.BigInteger)
+    section_id = db.Column(db.BigInteger)
+    type_id = db.Column(db.BigInteger)
+    make_id = db.Column(db.BigInteger)
+    collection_id = db.Column(db.BigInteger)
+    master_collection_id = db.Column(db.BigInteger)
+    sub_section_id = db.Column(db.BigInteger)
+    wide_range_id = db.Column(db.BigInteger)
+    gender_id = db.Column(db.BigInteger)
+    size_id = db.Column(db.BigInteger)
+    screw_type_id = db.Column(db.BigInteger)
     
     # Numeric Measures
     purity = db.Column(db.Numeric(10, 2))
