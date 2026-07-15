@@ -2163,98 +2163,129 @@ SIZE_LEVEL_NIP_BARCODE_COLUMNS = (
 
 def sync_size_level_nip_barcode_task() -> Dict[str, Any]:
     """Atomically refresh barcode-level NIP and excess data from the external view."""
-    conn = None
-    cursor = None
     data_type = 'size_level_nip_barcode'
     batch_size = 50000
+    max_attempts = 3
+    retry_delay_seconds = 5
     quoted_columns = ', '.join(f'"{column}"' for column in SIZE_LEVEL_NIP_BARCODE_COLUMNS)
 
-    try:
-        emit_sync_update('processing', 'Starting Size Level NIP Barcode Sync...', 5, data_type)
-        conn = get_external_db_connection()
-
-        with conn.cursor() as count_cursor:
-            count_cursor.execute('SET statement_timeout = 0')
-            count_cursor.execute('SELECT COUNT(*) FROM ext_view.vw_size_level_nip_barcode_data')
-            total_records = count_cursor.fetchone()[0]
-
-        if not total_records:
-            raise ValueError('External view returned no records; existing snapshot was preserved.')
-
-        db.session.execute(text('TRUNCATE size_level_nip_barcode_staging'))
-        db.session.commit()
-
-        cursor = conn.cursor(name='size_level_nip_barcode_cursor', cursor_factory=RealDictCursor)
-        cursor.itersize = batch_size
-        cursor.execute(
-            f'SELECT {quoted_columns} FROM ext_view.vw_size_level_nip_barcode_data'
-        )
-
-        synced_records = 0
-        snapshot_date = datetime.utcnow()
-        while True:
-            rows = cursor.fetchmany(batch_size)
-            if not rows:
-                break
-
-            mappings = [
-                {
-                    **{column: row.get(column) for column in SIZE_LEVEL_NIP_BARCODE_COLUMNS},
-                    'snapshot_date': snapshot_date,
-                }
-                for row in rows
-            ]
-            db.session.bulk_insert_mappings(SizeLevelNIPBarcodeStaging, mappings)
-            db.session.commit()
-
-            synced_records += len(rows)
-            progress = 10 + int((synced_records / total_records) * 80)
+    for attempt in range(1, max_attempts + 1):
+        conn = None
+        cursor = None
+        try:
             emit_sync_update(
                 'processing',
-                f'Syncing barcode data... {synced_records:,} / {total_records:,} records',
-                min(progress, 90),
+                f'Starting Size Level NIP Barcode Sync (Attempt {attempt}/{max_attempts})...',
+                5,
                 data_type,
             )
+            conn = get_external_db_connection()
 
-        if synced_records != total_records:
-            raise ValueError(
-                f'Incomplete staging data: expected {total_records:,}, received {synced_records:,}.'
+            with conn.cursor() as count_cursor:
+                count_cursor.execute('SET statement_timeout = 0')
+                count_cursor.execute('SELECT COUNT(*) FROM ext_view.vw_size_level_nip_barcode_data')
+                total_records = count_cursor.fetchone()[0]
+
+            if not total_records:
+                raise ValueError('External view returned no records; existing snapshot was preserved.')
+
+            db.session.execute(text('TRUNCATE size_level_nip_barcode_staging'))
+            db.session.commit()
+
+            cursor = conn.cursor(name='size_level_nip_barcode_cursor', cursor_factory=RealDictCursor)
+            cursor.itersize = batch_size
+            cursor.execute(
+                f'SELECT {quoted_columns} FROM ext_view.vw_size_level_nip_barcode_data'
             )
 
-        copy_columns = f'{quoted_columns}, snapshot_date'
-        emit_sync_update('processing', 'Finalizing Size Level NIP Barcode Sync...', 95, data_type)
-        db.session.execute(text('TRUNCATE size_level_nip_barcode_snapshot'))
-        db.session.execute(text(
-            f'INSERT INTO size_level_nip_barcode_snapshot ({copy_columns}) '
-            f'SELECT {copy_columns} FROM size_level_nip_barcode_staging'
-        ))
-        db.session.execute(text('TRUNCATE size_level_nip_barcode_staging'))
-        db.session.commit()
+            synced_records = 0
+            snapshot_date = datetime.utcnow()
+            while True:
+                rows = cursor.fetchmany(batch_size)
+                if not rows:
+                    break
 
-        emit_sync_update(
-            'success',
-            f'Size Level NIP Barcode Sync completed: {synced_records:,} records.',
-            100,
-            data_type,
-        )
-        return {'status': 'success', 'count': synced_records}
-    except Exception as error:
-        db.session.rollback()
-        error_message = str(error)
-        logger.error(f'Size Level NIP Barcode Sync failed: {error_message}')
-        emit_sync_update('error', f'Sync failed: {error_message}', 0, data_type)
-        return {'status': 'error', 'message': error_message}
-    finally:
-        if cursor:
-            try:
-                cursor.close()
-            except Exception as cursor_close_error:
-                logger.warning(f'Failed to close Size Level NIP Barcode cursor: {cursor_close_error}')
-        if conn:
-            try:
-                conn.close()
-            except Exception as connection_close_error:
-                logger.warning(f'Failed to close Size Level NIP Barcode connection: {connection_close_error}')
+                mappings = [
+                    {
+                        **{column: row.get(column) for column in SIZE_LEVEL_NIP_BARCODE_COLUMNS},
+                        'snapshot_date': snapshot_date,
+                    }
+                    for row in rows
+                ]
+                db.session.bulk_insert_mappings(SizeLevelNIPBarcodeStaging, mappings)
+                db.session.commit()
+
+                synced_records += len(rows)
+                progress = 10 + int((synced_records / total_records) * 80)
+                emit_sync_update(
+                    'processing',
+                    f'Syncing barcode data... {synced_records:,} / {total_records:,} records',
+                    min(progress, 90),
+                    data_type,
+                )
+
+            if synced_records != total_records:
+                raise ValueError(
+                    f'Incomplete staging data: expected {total_records:,}, received {synced_records:,}.'
+                )
+
+            copy_columns = f'{quoted_columns}, snapshot_date'
+            emit_sync_update('processing', 'Finalizing Size Level NIP Barcode Sync...', 95, data_type)
+            db.session.execute(text('TRUNCATE size_level_nip_barcode_snapshot'))
+            db.session.execute(text(
+                f'INSERT INTO size_level_nip_barcode_snapshot ({copy_columns}) '
+                f'SELECT {copy_columns} FROM size_level_nip_barcode_staging'
+            ))
+            db.session.execute(text('TRUNCATE size_level_nip_barcode_staging'))
+            db.session.commit()
+
+            emit_sync_update(
+                'success',
+                f'Size Level NIP Barcode Sync completed: {synced_records:,} records.',
+                100,
+                data_type,
+            )
+            return {'status': 'success', 'count': synced_records}
+        except Exception as error:
+            db.session.rollback()
+            error_message = str(error)
+            logger.error(
+                f'Size Level NIP Barcode Sync failed '
+                f'(Attempt {attempt}/{max_attempts}): {error_message}'
+            )
+
+            if attempt == max_attempts:
+                emit_sync_update(
+                    'error',
+                    f'Sync failed after {max_attempts} attempts: {error_message}',
+                    0,
+                    data_type,
+                )
+                return {'status': 'error', 'message': error_message}
+
+            emit_sync_update(
+                'processing',
+                f'Sync failed; retrying in {retry_delay_seconds}s '
+                f'({attempt}/{max_attempts})...',
+                0,
+                data_type,
+            )
+            time.sleep(retry_delay_seconds)
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except Exception as cursor_close_error:
+                    logger.warning(
+                        f'Failed to close Size Level NIP Barcode cursor: {cursor_close_error}'
+                    )
+            if conn:
+                try:
+                    conn.close()
+                except Exception as connection_close_error:
+                    logger.warning(
+                        f'Failed to close Size Level NIP Barcode connection: {connection_close_error}'
+                    )
 
 
 def sync_qc_delayed_data_task() -> Dict[str, Any]:
