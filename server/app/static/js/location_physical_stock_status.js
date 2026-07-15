@@ -519,6 +519,91 @@ function closeDrillDownModal() {
     }, 300);
 }
 
+let activeInShopDetailParams = null;
+let inShopDetailsRequestController = null;
+
+async function openInShopDetailsModal(link) {
+    const modal = document.getElementById('inShopDetailsModal');
+    const path = document.getElementById('inShopDetailsPath');
+    if (!modal) return;
+
+    activeInShopDetailParams = new URLSearchParams({
+        ...filterValues,
+        drill_level: link.dataset.level,
+        drill_section: link.dataset.section,
+        drill_type: link.dataset.type,
+        drill_wide_range: link.dataset.wideRange,
+        drill_range_weight: link.dataset.rangeWeight,
+        page: '1'
+    });
+
+    const pathParts = [link.dataset.section];
+    if (Number(link.dataset.level) >= 2) pathParts.push(link.dataset.type || 'Unknown Type');
+    if (Number(link.dataset.level) >= 3) pathParts.push(link.dataset.wideRange || 'Unknown Range');
+    if (Number(link.dataset.level) >= 4) pathParts.push(link.dataset.rangeWeight || 'Unknown Weight');
+    path.textContent = pathParts.join(' / ');
+    modal.classList.remove('hidden');
+    await loadInShopDetails();
+}
+
+window.openInShopDetailsModal = openInShopDetailsModal;
+
+async function loadInShopDetails(page) {
+    if (!activeInShopDetailParams) return;
+    if (page) activeInShopDetailParams.set('page', String(page));
+
+    const loader = document.getElementById('inShopDetailsLoader');
+    const content = document.getElementById('inShopDetailsContent');
+    if (inShopDetailsRequestController) inShopDetailsRequestController.abort();
+    const requestController = new AbortController();
+    inShopDetailsRequestController = requestController;
+    loader.classList.remove('hidden');
+
+    try {
+        const response = await fetch(`/api/location-physical-stock-status/in-shop-details?${activeInShopDetailParams}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+            signal: requestController.signal
+        });
+        const html = await response.text();
+        content.innerHTML = html;
+        if (!response.ok) throw new Error('Failed to load in-shop barcode details');
+    } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.error('In-shop detail error:', error);
+        if (!content.innerHTML) {
+            content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">Unable to load barcode details.</div>';
+        }
+    } finally {
+        if (inShopDetailsRequestController === requestController) {
+            loader.classList.add('hidden');
+            inShopDetailsRequestController = null;
+        }
+    }
+}
+
+function closeInShopDetailsModal() {
+    const modal = document.getElementById('inShopDetailsModal');
+    if (inShopDetailsRequestController) inShopDetailsRequestController.abort();
+    if (modal) modal.classList.add('hidden');
+    inShopDetailsRequestController = null;
+    activeInShopDetailParams = null;
+}
+
+document.addEventListener('click', (event) => {
+    const pageButton = event.target.closest('[data-in-shop-page]');
+    if (pageButton && !pageButton.disabled) {
+        loadInShopDetails(Number(pageButton.dataset.inShopPage));
+    }
+});
+
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    const detailsModal = document.getElementById('inShopDetailsModal');
+    if (detailsModal && !detailsModal.classList.contains('hidden')) {
+        closeInShopDetailsModal();
+    }
+});
+
 async function exportToExcel() {
     const btn = document.getElementById('btn-export-excel');
     if (!btn) return;

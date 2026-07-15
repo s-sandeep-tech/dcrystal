@@ -2968,3 +2968,63 @@ class ActiveOrderDetailsSnapshot(db.Model):
 
     def to_dict(self):
         return {c.name: getattr(self, c.name).isoformat() if isinstance(getattr(self, c.name), (datetime, date)) else getattr(self, c.name) for c in self.__table__.columns}
+
+
+class SizeLevelNIPBarcodeColumns:
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    location = db.Column(db.Text)
+    division = db.Column(db.Text)
+    group_name = db.Column(db.Text)
+    purity = db.Column(db.Numeric(10, 2))
+    classification = db.Column(db.Text)
+    sub_classification = db.Column(db.Text)
+    make = db.Column(db.Text)
+    master_collection = db.Column(db.Text)
+    collection = db.Column(db.Text)
+    sub_section = db.Column(db.Text)
+    section = db.Column(db.Text)
+    type = db.Column(db.Text)
+    gender = db.Column(db.Text)
+    wide_range = db.Column(db.Text)
+    size = db.Column(db.Text)
+    screw_type = db.Column(db.Text)
+    weight = db.Column(db.Numeric(18, 3))
+    pieces = db.Column(db.Numeric(18, 3))
+    barcode_no = db.Column(db.Text)
+    gross_wt = db.Column(db.Numeric(18, 3))
+    prov_type = db.Column(db.Text)
+    prov_type_filter = db.Column(db.Integer)
+    design_no = db.Column(db.Text)
+    branch_id = db.Column(db.BigInteger)
+    division_id = db.Column(db.BigInteger)
+    group_id = db.Column(db.BigInteger)
+    purity_id = db.Column(db.BigInteger)
+    classification_id = db.Column(db.BigInteger)
+    sub_classification_id = db.Column(db.BigInteger)
+    make_id = db.Column(db.BigInteger)
+    master_collection_id = db.Column(db.BigInteger)
+    collection_id = db.Column(db.BigInteger)
+    sub_section_id = db.Column(db.BigInteger)
+    section_id = db.Column(db.BigInteger)
+    type_id = db.Column(db.BigInteger)
+    gender_id = db.Column(db.BigInteger)
+    wide_range_id = db.Column(db.BigInteger)
+    size_id = db.Column(db.BigInteger)
+    screw_type_id = db.Column(db.BigInteger)
+    design_id = db.Column(db.BigInteger)
+    last_updated_at = db.Column(db.DateTime)
+    uid = db.Column(db.Text)
+    is_nip = db.Column(db.Boolean)
+    is_excess = db.Column(db.Boolean)
+    item_definition_id = db.Column(db.BigInteger)
+    is_to_be_replaced = db.Column(db.Boolean)
+    branch_type = db.Column(db.Text)
+    snapshot_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+
+class SizeLevelNIPBarcodeSnapshot(SizeLevelNIPBarcodeColumns, db.Model):
+    __tablename__ = 'size_level_nip_barcode_snapshot'
+
+
+class SizeLevelNIPBarcodeStaging(SizeLevelNIPBarcodeColumns, db.Model):
+    __tablename__ = 'size_level_nip_barcode_staging'

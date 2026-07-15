@@ -1,7 +1,10 @@
 from flask import render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.dashboard import dashboard_bp
-from app.models.snapshots import ProvisionStockRawSnapshot, BranchAuthoritySnapshot
+from app.models.snapshots import (
+    ProvisionStockRawSnapshot,
+    BranchAuthoritySnapshot,
+)
 from app.extensions import db, redis_client
 from app.utils.sync_manager import sync_provision_stock_status_data
 from app.utils.cache_utils import generate_cache_key
@@ -13,6 +16,24 @@ import logging
 import json
 
 logger = logging.getLogger(__name__)
+
+FRANCHISE_INDIA_HEAD_ROLE = 'FRANCHISE_INDIA_HEAD'
+FRANCHISE_INDIA_BRANCH_TYPE = 'FRANCHISE_SHOP'
+
+
+def is_franchise_india_head(roles):
+    return FRANCHISE_INDIA_HEAD_ROLE in roles
+
+
+def apply_franchise_india_branch_filter(query, roles):
+    if is_franchise_india_head(roles):
+        return query.filter(ProvisionStockRawSnapshot.branch_type == FRANCHISE_INDIA_BRANCH_TYPE)
+    return query
+
+
+def apply_franchise_india_branch_param(params, roles):
+    if is_franchise_india_head(roles):
+        params['branch_type'] = FRANCHISE_INDIA_BRANCH_TYPE
 
 
 @dashboard_bp.route('/location-physical-stock-status')
@@ -64,7 +85,9 @@ def location_physical_stock_status_options():
         
         # Role-aware cache key
         cache_suffix = "all"
-        if not is_admin and not is_manager:
+        if is_franchise_india_head(roles):
+            cache_suffix = "franchise_india_head"
+        elif not is_admin and not is_manager:
             if is_business_head and user_id:
                 cache_suffix = f"bh_{user_id}"
             elif is_showroom_manager and user_id:
@@ -78,6 +101,7 @@ def location_physical_stock_status_options():
             return jsonify(json.loads(cached_data))
 
         base_q = db.session.query(ProvisionStockRawSnapshot)
+        base_q = apply_franchise_india_branch_filter(base_q, roles)
         if not is_admin and not is_manager:
             if is_business_head and user_id:
                 base_q = base_q.filter(ProvisionStockRawSnapshot.business_head_emp_code == user_id)
@@ -135,6 +159,7 @@ def location_physical_stock_status_collections_search():
         user_id = session.get('user_id')
 
         base_q = db.session.query(ProvisionStockRawSnapshot.collection.distinct())
+        base_q = apply_franchise_india_branch_filter(base_q, roles)
         
         if not is_admin and not is_manager:
             if is_business_head and user_id:
@@ -174,6 +199,7 @@ def location_physical_stock_status_makes_search():
         user_id = session.get('user_id')
 
         base_q = db.session.query(ProvisionStockRawSnapshot.make.distinct())
+        base_q = apply_franchise_india_branch_filter(base_q, roles)
         
         if not is_admin and not is_manager:
             if is_business_head and user_id:
@@ -244,6 +270,8 @@ def get_location_physical_stock_status_partial():
         is_business_head = 'BUSINESS_HEAD' in roles
         is_showroom_manager = 'SHOWROOM_MANAGER' in roles
         user_id = session.get('user_id')
+
+        apply_franchise_india_branch_param(params, roles)
 
         if not is_admin and not is_manager:
             if is_business_head and user_id:
@@ -785,6 +813,8 @@ def get_location_physical_stock_status_drilldown():
         is_showroom_manager = 'SHOWROOM_MANAGER' in roles
         user_id = session.get('user_id')
 
+        apply_franchise_india_branch_param(params, roles)
+
         if not is_admin and not is_manager:
             if is_business_head and user_id:
                 params['bh_emp_code'] = user_id
@@ -890,11 +920,145 @@ ORDER BY section, type NULLS FIRST, wide_range NULLS FIRST, range_weight NULLS F
         return render_template('partials/_view_provision_stock_drilldown.html', 
                                rows=rows, 
                                modal_totals=modal_totals,
-                               drill_section=drill_section)
+                               drill_section=drill_section,
+                               enable_in_shop_details=True)
 
     except Exception as e:
         logger.error(f"Error in get_location_physical_stock_status_drilldown: {str(e)}")
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
+
+
+@dashboard_bp.route('/api/location-physical-stock-status/in-shop-details')
+@jwt_required()
+def get_location_physical_stock_in_shop_details():
+    try:
+        page = max(request.args.get('page', 1, type=int), 1)
+        per_page = 100
+        drill_level = min(max(request.args.get('drill_level', 1, type=int), 1), 4)
+
+        params = {
+            'location': request.args.get('location') or None,
+            'purity': request.args.get('purity') or None,
+            'classification': request.args.get('classification') or None,
+            'make': request.args.get('make') or None,
+            'collection': request.args.get('collection') or None,
+            'section': request.args.get('section') or None,
+            'prov_type': request.args.get('prov_type') or None,
+            'provision_mode': request.args.get('provision_mode') or None,
+            'branch_type': request.args.get('branch_type') or None,
+            'branch_status': request.args.get('branch_status') or None,
+            'business_head': request.args.get('business_head') or None,
+            'state': request.args.get('state') or None,
+            'bh_emp_code': None,
+            'authorized_branch_ids': None,
+            'drill_level': drill_level,
+            'drill_section': request.args.get('drill_section') or None,
+            'drill_type': request.args.get('drill_type') or None,
+            'drill_wide_range': request.args.get('drill_wide_range') or None,
+            'drill_range_weight': request.args.get('drill_range_weight') or None,
+            'limit': per_page,
+            'offset': (page - 1) * per_page,
+        }
+
+        if not params['drill_section']:
+            return '<div class="p-8 text-center text-red-500">A section is required.</div>', 400
+
+        roles = [role.upper() for role in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(role in roles for role in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        user_id = session.get('user_id')
+
+        apply_franchise_india_branch_param(params, roles)
+
+        if not is_admin and not is_manager:
+            if 'BUSINESS_HEAD' in roles and user_id:
+                params['bh_emp_code'] = user_id
+            elif 'SHOWROOM_MANAGER' in roles and user_id:
+                try:
+                    branch_ids = [
+                        row.branch_id
+                        for row in BranchAuthoritySnapshot.query.filter_by(emp_code=int(user_id)).all()
+                    ]
+                    params['authorized_branch_ids'] = ','.join(map(str, branch_ids)) if branch_ids else '-1'
+                except (ValueError, TypeError):
+                    params['authorized_branch_ids'] = '-1'
+
+        id_match = '\n'.join(
+            f'AND p.{column} IS NOT DISTINCT FROM b.{column}'
+            for column in (
+                'division_id', 'group_id', 'purity_id', 'classification_id',
+                'sub_classification_id', 'section_id', 'type_id', 'make_id',
+                'collection_id', 'master_collection_id', 'sub_section_id',
+                'wide_range_id', 'gender_id', 'size_id', 'screw_type_id',
+            )
+        )
+
+        query = text(f'''
+WITH matched_barcodes AS (
+    SELECT b.*
+    FROM size_level_nip_barcode_snapshot AS b
+    WHERE EXISTS (
+        SELECT 1
+        FROM provision_stock_raw_snapshot AS p
+        WHERE (:location IS NULL OR p.location = ANY(string_to_array(CAST(:location AS text), ',')))
+          AND (:state IS NULL OR p.state = ANY(string_to_array(CAST(:state AS text), ',')))
+          AND (:purity IS NULL OR p.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
+          AND (:classification IS NULL OR p.classification = ANY(string_to_array(CAST(:classification AS text), ',')))
+          AND (:make IS NULL OR p.make = ANY(string_to_array(CAST(:make AS text), ',')))
+          AND (:collection IS NULL OR p.collection = ANY(string_to_array(CAST(:collection AS text), ',')))
+          AND (:section IS NULL OR p.section = ANY(string_to_array(CAST(:section AS text), ',')))
+          AND (:prov_type IS NULL OR p.prov_type = ANY(string_to_array(CAST(:prov_type AS text), ',')))
+          AND (:provision_mode IS NULL OR p.provision_mode_filter = ANY(string_to_array(CAST(:provision_mode AS text), ',')))
+          AND (:branch_type IS NULL OR p.branch_type = ANY(string_to_array(CAST(:branch_type AS text), ',')))
+          AND (:branch_status IS NULL OR p.branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
+          AND (:business_head IS NULL OR p.business_head_name = ANY(string_to_array(CAST(:business_head AS text), ',')))
+          AND (:bh_emp_code IS NULL OR p.business_head_emp_code = :bh_emp_code)
+          AND (:authorized_branch_ids IS NULL OR p.branch_id = ANY(string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]))
+          AND p.section IS NOT DISTINCT FROM CAST(:drill_section AS text)
+          AND (:drill_level < 2 OR p.type IS NOT DISTINCT FROM CAST(:drill_type AS text))
+          AND (:drill_level < 3 OR p.wide_range IS NOT DISTINCT FROM CAST(:drill_wide_range AS text))
+          AND (:drill_level < 4 OR p.range_weight IS NOT DISTINCT FROM CAST(:drill_range_weight AS numeric))
+          AND p.branch_id IS NOT DISTINCT FROM b.branch_id
+          {id_match}
+    )
+      AND (:drill_level < 4 OR b.weight IS NOT DISTINCT FROM CAST(:drill_range_weight AS numeric))
+)
+SELECT
+    b.*,
+    COUNT(*) OVER () AS total_records,
+    COALESCE(SUM(b.pieces) OVER (), 0) AS total_pieces,
+    COALESCE(SUM(b.gross_wt) OVER (), 0) AS total_gross_wt
+FROM matched_barcodes AS b
+ORDER BY b.barcode_no NULLS LAST, b.design_no NULLS LAST, b.id
+LIMIT :limit OFFSET :offset
+        ''')
+
+        result = db.session.execute(query, params)
+        rows = [dict(row._mapping) for row in result]
+        total_records = int(rows[0]['total_records']) if rows else 0
+        total_pages = max((total_records + per_page - 1) // per_page, 1)
+
+        return render_template(
+            'partials/_view_location_physical_stock_in_shop_details.html',
+            rows=rows,
+            page=page,
+            total_pages=total_pages,
+            total_records=total_records,
+            total_pieces=rows[0]['total_pieces'] if rows else 0,
+            total_gross_wt=rows[0]['total_gross_wt'] if rows else 0,
+        )
+    except Exception as e:
+        logger.exception('Error loading location physical in-shop details')
+        return render_template(
+            'partials/_view_location_physical_stock_in_shop_details.html',
+            rows=[],
+            page=1,
+            total_pages=1,
+            total_records=0,
+            total_pieces=0,
+            total_gross_wt=0,
+            error_message=str(e),
+        ), 500
 
 @dashboard_bp.route('/api/sync/location-physical-stock-status', methods=['POST'])
 @jwt_required()
@@ -923,6 +1087,9 @@ def queue_location_physical_stock_status_export():
 
         bh_emp_code = None
         authorized_branch_ids = None
+        if is_franchise_india_head(roles):
+            filters['branch_type'] = FRANCHISE_INDIA_BRANCH_TYPE
+
         if not is_admin and not is_manager:
             if is_business_head and session_user_id:
                 bh_emp_code = session_user_id

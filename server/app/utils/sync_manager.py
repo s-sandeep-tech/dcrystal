@@ -33,6 +33,7 @@ ALLOWED_SYNC_TASKS = {
     'order_fulfillment_aging_matrix',
     'pending_order_details',
     'active_order_details',
+    'size_level_nip_barcode',
 }
 
 def enqueue_sync_task(task_type, user_id=None):
@@ -135,3 +136,6 @@ def sync_pending_order_details_data(user_id=None):
 def sync_active_order_details_data(user_id=None):
     return enqueue_sync_task('active_order_details', user_id)
 
+
+def sync_size_level_nip_barcode_data(user_id=None):
+    return enqueue_sync_task('size_level_nip_barcode', user_id)

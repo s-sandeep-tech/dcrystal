@@ -18,7 +18,9 @@ from .snapshots import (
     ProvisionStockRawSnapshot,
     OrderFulfillmentValueAgingMatrixSnapshot,
     PendingOrderDetailsSnapshot,
-    ActiveOrderDetailsSnapshot
+    ActiveOrderDetailsSnapshot,
+    SizeLevelNIPBarcodeSnapshot,
+    SizeLevelNIPBarcodeStaging
 )
 from .rbac import Role, Permission, Menu, RoleMenu, RolePermission, UserRole, AuditLog, UserPasswordHistory
 from .akt_report import AKTTransactionPerformance
@@ -59,7 +61,8 @@ __all__ = [
     'OrderFulfillmentValueAgingMatrixSnapshot',
     'PendingOrderDetailsSnapshot',
     'ActiveOrderDetailsSnapshot',
+    'SizeLevelNIPBarcodeSnapshot',
+    'SizeLevelNIPBarcodeStaging',
     'AKTTransactionPerformance'
 ]
-
 

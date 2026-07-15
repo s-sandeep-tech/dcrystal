@@ -11,7 +11,8 @@ def create_app():
         User, Notification, Order, DashboardStats, ExportDownloadLog,
         OrderStatusReportSnapshot, ShortStatusReportSnapshot, OrderProvisionSummaryReport,
         LocationWiseOrderSnapshot, AllocatedBarcodesSnapshot, OwnerWiseOrderSummarySnapshot,
-        ProvisionStockRawSnapshot, AKTTransactionPerformance
+        ProvisionStockRawSnapshot, SizeLevelNIPBarcodeSnapshot,
+        SizeLevelNIPBarcodeStaging, AKTTransactionPerformance
     )
 
     # Database Configuration

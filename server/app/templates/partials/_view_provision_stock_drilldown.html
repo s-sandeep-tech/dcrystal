@@ -27,8 +27,23 @@
     </td>
     <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.prov_gr_wt|float) if row.prov_gr_wt
         else '0.000' }}</td>
-    <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.in_shop_wt|float) if row.in_shop_wt
-        else '0.000' }}</td>
+    <td class="px-3 py-2 text-right text-[11px] font-mono">
+        {% if enable_in_shop_details|default(false) and row.prov_gr_wt|float != row.in_shop_wt|float %}
+        <a href="#" data-in-shop-detail
+            onclick="openInShopDetailsModal(this); return false;"
+            data-level="{{ level }}"
+            data-section="{{ row.section or '' }}"
+            data-type="{{ row.type or '' }}"
+            data-wide-range="{{ row.wide_range or '' }}"
+            data-range-weight="{{ row.range_weight if row.range_weight is not none else '' }}"
+            class="font-semibold text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary focus:outline-none focus:ring-2 focus:ring-primary/30 rounded-sm"
+            title="View in-shop barcode details">
+            {{ "{:,.3f}".format(row.in_shop_wt|float) if row.in_shop_wt else '0.000' }}
+        </a>
+        {% else %}
+        {{ "{:,.3f}".format(row.in_shop_wt|float) if row.in_shop_wt else '0.000' }}
+        {% endif %}
+    </td>
     <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.ordered_wt|float) if row.ordered_wt
         else '0.000' }}</td>
     <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.in_transit_wt|float) if
