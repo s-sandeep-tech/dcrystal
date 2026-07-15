@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         [
                             syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, 
                             syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, 
-                            syncProvisionStatusBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn, 
+                            syncProvisionStatusBtn, syncSizeLevelNIPBarcodeBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn,
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, 
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, 
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         [
                             syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, 
                             syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, 
-                            syncProvisionStatusBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn, 
+                            syncProvisionStatusBtn, syncSizeLevelNIPBarcodeBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn,
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, 
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, 
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn
@@ -150,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncPendingAcceptanceBtn = document.getElementById('sync-pending-acceptance-btn');
     const syncRejectedWeightBtn = document.getElementById('sync-rejected-weight-btn');
     const syncProvisionStatusBtn = document.getElementById('sync-provision-status-btn');
+    const syncSizeLevelNIPBarcodeBtn = document.getElementById('sync-size-level-nip-barcode-btn');
     const syncHallmarkingDelayedBtn = document.getElementById('sync-hallmarking-delayed-btn');
     const syncQCDelayedBtn = document.getElementById('sync-qc-delayed-btn');
     const syncOrderProcessingPendingBtn = document.getElementById('sync-order-processing-pending-btn');
@@ -213,6 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncPendingAcceptanceBtn) syncPendingAcceptanceBtn.addEventListener('click', () => triggerSync(syncPendingAcceptanceBtn, window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, 'Pending Acceptance Sync', 'pending_acceptance'));
     if (syncRejectedWeightBtn) syncRejectedWeightBtn.addEventListener('click', () => triggerSync(syncRejectedWeightBtn, window.SETTINGS_CONFIG.syncRejectedWeightUrl, 'Rejected Weight Sync', 'rejected_weight'));
     if (syncProvisionStatusBtn) syncProvisionStatusBtn.addEventListener('click', () => triggerSync(syncProvisionStatusBtn, window.SETTINGS_CONFIG.syncProvisionStatusUrl, 'Provision & Stock Status Sync', 'provision_stock_status'));
+    if (syncSizeLevelNIPBarcodeBtn) syncSizeLevelNIPBarcodeBtn.addEventListener('click', () => triggerSync(syncSizeLevelNIPBarcodeBtn, window.SETTINGS_CONFIG.syncSizeLevelNIPBarcodeUrl, 'Size Level NIP Barcode Sync', 'size_level_nip_barcode'));
     if (syncHallmarkingDelayedBtn) syncHallmarkingDelayedBtn.addEventListener('click', () => triggerSync(syncHallmarkingDelayedBtn, window.SETTINGS_CONFIG.syncHallmarkingDelayedUrl, 'Hallmarking Delayed Sync', 'hallmarking_delayed'));
     if (syncQCDelayedBtn) syncQCDelayedBtn.addEventListener('click', () => triggerSync(syncQCDelayedBtn, window.SETTINGS_CONFIG.syncQCDelayedUrl, 'QC Pending Sync', 'qc_delayed'));
     if (syncOrderProcessingPendingBtn) syncOrderProcessingPendingBtn.addEventListener('click', () => triggerSync(syncOrderProcessingPendingBtn, window.SETTINGS_CONFIG.syncOrderProcessingPendingUrl, 'Barcode completed – HM issue pending Sync', 'order_processing_pending'));
@@ -284,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { url: window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, label: 'Pending Acceptance', type: 'pending_acceptance' },
                 { url: window.SETTINGS_CONFIG.syncRejectedWeightUrl, label: 'Rejected Weight', type: 'rejected_weight' },
                 { url: window.SETTINGS_CONFIG.syncProvisionStatusUrl, label: 'Provision & Stock Status', type: 'provision_stock_status' },
+                { url: window.SETTINGS_CONFIG.syncSizeLevelNIPBarcodeUrl, label: 'Size Level NIP Barcode', type: 'size_level_nip_barcode' },
                 { url: window.SETTINGS_CONFIG.syncHallmarkingDelayedUrl, label: 'Hallmarking Delayed', type: 'hallmarking_delayed' },
                 { url: window.SETTINGS_CONFIG.syncQCDelayedUrl, label: 'QC Pending', type: 'qc_delayed' },
                 { url: window.SETTINGS_CONFIG.syncOrderProcessingPendingUrl, label: 'Barcode completed – HM issue pending', type: 'order_processing_pending' },
@@ -3022,4 +3025,3 @@ document.addEventListener('DOMContentLoaded', () => {
         window.switchTab('status');
     }
 });
-
