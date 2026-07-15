@@ -2171,7 +2171,6 @@ def sync_size_level_nip_barcode_task() -> Dict[str, Any]:
 
     for attempt in range(1, max_attempts + 1):
         conn = None
-        cursor = None
         try:
             emit_sync_update(
                 'processing',
@@ -2186,22 +2185,36 @@ def sync_size_level_nip_barcode_task() -> Dict[str, Any]:
                 count_cursor.execute('SELECT COUNT(*) FROM ext_view.vw_size_level_nip_barcode_data')
                 total_records = count_cursor.fetchone()[0]
 
+            conn.close()
+            conn = None
+
             if not total_records:
                 raise ValueError('External view returned no records; existing snapshot was preserved.')
 
             db.session.execute(text('TRUNCATE size_level_nip_barcode_staging'))
             db.session.commit()
 
-            cursor = conn.cursor(name='size_level_nip_barcode_cursor', cursor_factory=RealDictCursor)
-            cursor.itersize = batch_size
-            cursor.execute(
-                f'SELECT {quoted_columns} FROM ext_view.vw_size_level_nip_barcode_data'
-            )
-
             synced_records = 0
             snapshot_date = datetime.utcnow()
-            while True:
-                rows = cursor.fetchmany(batch_size)
+            for offset in range(0, total_records, batch_size):
+                page_conn = None
+                rows = []
+                try:
+                    page_conn = get_external_db_connection()
+                    with page_conn.cursor(cursor_factory=RealDictCursor) as page_cursor:
+                        page_cursor.execute('SET statement_timeout = 0')
+                        page_cursor.execute(
+                            f'SELECT {quoted_columns} '
+                            'FROM ext_view.vw_size_level_nip_barcode_data '
+                            'ORDER BY "uid" '
+                            'LIMIT %s OFFSET %s',
+                            (batch_size, offset),
+                        )
+                        rows = page_cursor.fetchall()
+                finally:
+                    if page_conn:
+                        page_conn.close()
+
                 if not rows:
                     break
 
@@ -2227,6 +2240,21 @@ def sync_size_level_nip_barcode_task() -> Dict[str, Any]:
             if synced_records != total_records:
                 raise ValueError(
                     f'Incomplete staging data: expected {total_records:,}, received {synced_records:,}.'
+                )
+
+            staging_stats = db.session.execute(text('''
+                SELECT
+                    COUNT(*) AS total_rows,
+                    COUNT(DISTINCT uid) AS distinct_uids,
+                    COUNT(*) FILTER (WHERE uid IS NULL OR uid = '') AS missing_uids
+                FROM size_level_nip_barcode_staging
+            ''')).one()
+            if staging_stats.distinct_uids != total_records or staging_stats.missing_uids:
+                raise ValueError(
+                    'Pagination validation failed: '
+                    f'{staging_stats.distinct_uids:,} distinct UIDs and '
+                    f'{staging_stats.missing_uids:,} missing UIDs in '
+                    f'{staging_stats.total_rows:,} staged rows.'
                 )
 
             copy_columns = f'{quoted_columns}, snapshot_date'
@@ -2272,13 +2300,6 @@ def sync_size_level_nip_barcode_task() -> Dict[str, Any]:
             )
             time.sleep(retry_delay_seconds)
         finally:
-            if cursor:
-                try:
-                    cursor.close()
-                except Exception as cursor_close_error:
-                    logger.warning(
-                        f'Failed to close Size Level NIP Barcode cursor: {cursor_close_error}'
-                    )
             if conn:
                 try:
                     conn.close()
