@@ -2166,7 +2166,7 @@ def sync_size_level_nip_barcode_task() -> Dict[str, Any]:
     conn = None
     cursor = None
     data_type = 'size_level_nip_barcode'
-    batch_size = 5000
+    batch_size = 25000
     quoted_columns = ', '.join(f'"{column}"' for column in SIZE_LEVEL_NIP_BARCODE_COLUMNS)
 
     try:
