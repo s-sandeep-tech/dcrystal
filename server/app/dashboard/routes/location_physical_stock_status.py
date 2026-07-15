@@ -983,24 +983,26 @@ def get_location_physical_stock_in_shop_details():
                 except (ValueError, TypeError):
                     params['authorized_branch_ids'] = '-1'
 
-        id_match = '\n'.join(
-            f'AND p.{column} IS NOT DISTINCT FROM b.{column}'
-            for column in (
-                'division_id', 'group_id', 'purity_id', 'classification_id',
-                'sub_classification_id', 'section_id', 'type_id', 'make_id',
-                'collection_id', 'master_collection_id', 'sub_section_id',
-                'wide_range_id', 'gender_id', 'size_id', 'screw_type_id',
-            )
+        hierarchy_id_columns = (
+            'division_id', 'group_id', 'purity_id', 'classification_id',
+            'sub_classification_id', 'section_id', 'type_id', 'make_id',
+            'collection_id', 'master_collection_id', 'sub_section_id',
+            'wide_range_id', 'gender_id', 'size_id', 'screw_type_id',
+        )
+        stock_identity_columns = ',\n        '.join(
+            ('branch_id', *hierarchy_id_columns)
+        )
+        identity_join = '\n'.join(
+            f'AND p.{column} = b.{column}'
+            for column in ('branch_id', *hierarchy_id_columns)
         )
 
         query = text(f'''
-WITH matched_barcodes AS (
-    SELECT b.*
-    FROM size_level_nip_barcode_snapshot AS b
-    WHERE EXISTS (
-        SELECT 1
-        FROM provision_stock_raw_snapshot AS p
-        WHERE (:location IS NULL OR p.location = ANY(string_to_array(CAST(:location AS text), ',')))
+WITH matching_stock AS MATERIALIZED (
+    SELECT DISTINCT
+        {stock_identity_columns}
+    FROM provision_stock_raw_snapshot AS p
+    WHERE (:location IS NULL OR p.location = ANY(string_to_array(CAST(:location AS text), ',')))
           AND (:state IS NULL OR p.state = ANY(string_to_array(CAST(:state AS text), ',')))
           AND (:purity IS NULL OR p.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
           AND (:classification IS NULL OR p.classification = ANY(string_to_array(CAST(:classification AS text), ',')))
@@ -1014,14 +1016,18 @@ WITH matched_barcodes AS (
           AND (:business_head IS NULL OR p.business_head_name = ANY(string_to_array(CAST(:business_head AS text), ',')))
           AND (:bh_emp_code IS NULL OR p.business_head_emp_code = :bh_emp_code)
           AND (:authorized_branch_ids IS NULL OR p.branch_id = ANY(string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]))
-          AND p.section IS NOT DISTINCT FROM CAST(:drill_section AS text)
-          AND (:drill_level < 2 OR p.type IS NOT DISTINCT FROM CAST(:drill_type AS text))
-          AND (:drill_level < 3 OR p.wide_range IS NOT DISTINCT FROM CAST(:drill_wide_range AS text))
-          AND (:drill_level < 4 OR p.range_weight IS NOT DISTINCT FROM CAST(:drill_range_weight AS numeric))
-          AND p.branch_id IS NOT DISTINCT FROM b.branch_id
-          {id_match}
-    )
-      AND (:drill_level < 4 OR b.weight IS NOT DISTINCT FROM CAST(:drill_range_weight AS numeric))
+          AND p.section = CAST(:drill_section AS text)
+          AND (:drill_level < 2 OR p.type = CAST(:drill_type AS text))
+          AND (:drill_level < 3 OR p.wide_range = CAST(:drill_wide_range AS text))
+          AND (:drill_level < 4 OR p.range_weight = CAST(:drill_range_weight AS numeric))
+),
+matched_barcodes AS (
+    SELECT b.*
+    FROM matching_stock AS p
+    JOIN size_level_nip_barcode_snapshot AS b
+      ON TRUE
+      {identity_join}
+    WHERE (:drill_level < 4 OR b.weight = CAST(:drill_range_weight AS numeric))
 )
 SELECT
     b.*,

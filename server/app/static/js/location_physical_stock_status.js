@@ -521,6 +521,7 @@ function closeDrillDownModal() {
 
 let activeInShopDetailParams = null;
 let inShopDetailsRequestController = null;
+let inShopDetailsTimeout = null;
 
 async function openInShopDetailsModal(link) {
     const modal = document.getElementById('inShopDetailsModal');
@@ -558,6 +559,8 @@ async function loadInShopDetails(page) {
     const requestController = new AbortController();
     inShopDetailsRequestController = requestController;
     loader.classList.remove('hidden');
+    const requestTimeout = window.setTimeout(() => requestController.abort(), 30000);
+    inShopDetailsTimeout = requestTimeout;
 
     try {
         const response = await fetch(`/api/location-physical-stock-status/in-shop-details?${activeInShopDetailParams}`, {
@@ -568,12 +571,17 @@ async function loadInShopDetails(page) {
         content.innerHTML = html;
         if (!response.ok) throw new Error('Failed to load in-shop barcode details');
     } catch (error) {
-        if (error.name === 'AbortError') return;
-        console.error('In-shop detail error:', error);
-        if (!content.innerHTML) {
-            content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">Unable to load barcode details.</div>';
+        if (error.name === 'AbortError') {
+            if (inShopDetailsRequestController === requestController) {
+                content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">The barcode details request timed out. Please retry.</div>';
+            }
+            return;
         }
+        console.error('In-shop detail error:', error);
+        content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">Unable to load barcode details.</div>';
     } finally {
+        window.clearTimeout(requestTimeout);
+        if (inShopDetailsTimeout === requestTimeout) inShopDetailsTimeout = null;
         if (inShopDetailsRequestController === requestController) {
             loader.classList.add('hidden');
             inShopDetailsRequestController = null;
@@ -583,6 +591,8 @@ async function loadInShopDetails(page) {
 
 function closeInShopDetailsModal() {
     const modal = document.getElementById('inShopDetailsModal');
+    window.clearTimeout(inShopDetailsTimeout);
+    inShopDetailsTimeout = null;
     if (inShopDetailsRequestController) inShopDetailsRequestController.abort();
     if (modal) modal.classList.add('hidden');
     inShopDetailsRequestController = null;
@@ -590,6 +600,13 @@ function closeInShopDetailsModal() {
 }
 
 document.addEventListener('click', (event) => {
+    const detailLink = event.target.closest('[data-in-shop-detail]');
+    if (detailLink) {
+        event.preventDefault();
+        openInShopDetailsModal(detailLink);
+        return;
+    }
+
     const pageButton = event.target.closest('[data-in-shop-page]');
     if (pageButton && !pageButton.disabled) {
         loadInShopDetails(Number(pageButton.dataset.inShopPage));

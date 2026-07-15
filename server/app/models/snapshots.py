@@ -828,6 +828,12 @@ class ShowroomWiseOrderSummarySnapshot(db.Model):
 
 class ProvisionStockRawSnapshot(db.Model):
     __tablename__ = 'provision_stock_raw_snapshot'
+    __table_args__ = (
+        db.Index(
+            'idx_provision_stock_popup_path',
+            'section', 'type', 'wide_range', 'range_weight',
+        ),
+    )
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     
@@ -3024,6 +3030,16 @@ class SizeLevelNIPBarcodeColumns:
 
 class SizeLevelNIPBarcodeSnapshot(SizeLevelNIPBarcodeColumns, db.Model):
     __tablename__ = 'size_level_nip_barcode_snapshot'
+    __table_args__ = (
+        db.Index(
+            'idx_size_nip_barcode_popup_identity',
+            'branch_id', 'division_id', 'group_id', 'purity_id',
+            'classification_id', 'sub_classification_id', 'section_id',
+            'type_id', 'make_id', 'collection_id', 'master_collection_id',
+            'sub_section_id', 'wide_range_id', 'gender_id', 'size_id',
+            'screw_type_id', 'weight',
+        ),
+    )
 
 
 class SizeLevelNIPBarcodeStaging(SizeLevelNIPBarcodeColumns, db.Model):

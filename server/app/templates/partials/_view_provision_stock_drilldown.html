@@ -30,7 +30,6 @@
     <td class="px-3 py-2 text-right text-[11px] font-mono">
         {% if enable_in_shop_details|default(false) and row.prov_gr_wt|float != row.in_shop_wt|float %}
         <a href="#" data-in-shop-detail
-            onclick="openInShopDetailsModal(this); return false;"
             data-level="{{ level }}"
             data-section="{{ row.section or '' }}"
             data-type="{{ row.type or '' }}"
