@@ -1,9 +1,9 @@
-from flask import render_template, request, jsonify, session
+from flask import g, render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
 from app.models import Notification, PendingOrderDetailsSnapshot, OwnerWiseOrderSummarySnapshot
 from app.extensions import db
-from sqlalchemy import func
+from sqlalchemy import false, func
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import logging
@@ -23,32 +23,55 @@ def apply_make_filter(query, make):
 
 def get_owner_names_by_emp_code(emp_code):
     if not emp_code:
-        return []
-    names = []
+        return (), ()
+
+    cache_key = f'pending_order_owner_names:{emp_code}'
+    cached_names = getattr(g, cache_key, None)
+    if cached_names is not None:
+        return cached_names
+
+    make_owner_names = []
+    collection_owner_names = []
     try:
         rows = db.session.query(OwnerWiseOrderSummarySnapshot.make_owner).filter(
             func.trim(OwnerWiseOrderSummarySnapshot.make_owner_emp_code) == emp_code
         ).distinct().all()
-        names.extend([r[0] for r in rows if r[0]])
+        make_owner_names.extend([r[0] for r in rows if r[0]])
         
         rows2 = db.session.query(OwnerWiseOrderSummarySnapshot.collection_owner).filter(
             func.trim(OwnerWiseOrderSummarySnapshot.collection_owner_emp_code) == emp_code
         ).distinct().all()
-        names.extend([r[0] for r in rows2 if r[0]])
+        collection_owner_names.extend([r[0] for r in rows2 if r[0]])
     except Exception as e:
         logger.error(f"Error fetching owner names for user {emp_code}: {e}")
-    return list(set(names))
+        db.session.rollback()
+
+    owner_names = (
+        tuple(set(make_owner_names)),
+        tuple(set(collection_owner_names)),
+    )
+    setattr(g, cache_key, owner_names)
+    return owner_names
 
 def apply_owner_visibility_filter(query):
     user_id = str(session.get('user_id') or '').strip()
-    names = get_owner_names_by_emp_code(user_id)
-    if names:
-        return query.filter(
-            (PendingOrderDetailsSnapshot.make_owner.in_(names)) |
-            (PendingOrderDetailsSnapshot.collection_owner.in_(names)) |
-            (PendingOrderDetailsSnapshot.classification_owner.in_(names))
-        )
-    return query
+    if not user_id:
+        return query
+
+    make_owner_names, collection_owner_names = get_owner_names_by_emp_code(user_id)
+    conditions = []
+    if make_owner_names:
+        conditions.append(PendingOrderDetailsSnapshot.make_owner.in_(make_owner_names))
+    if collection_owner_names:
+        conditions.append(PendingOrderDetailsSnapshot.collection_owner.in_(collection_owner_names))
+
+    if not conditions:
+        return query.filter(false())
+
+    owner_filter = conditions[0]
+    for condition in conditions[1:]:
+        owner_filter = owner_filter | condition
+    return query.filter(owner_filter)
 
 @dashboard_bp.route('/pendingorderdetails')
 def pending_order_details():
