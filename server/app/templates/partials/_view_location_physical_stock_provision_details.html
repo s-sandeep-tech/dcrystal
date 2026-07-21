@@ -1,0 +1,84 @@
+<div class="h-full flex flex-col bg-white dark:bg-gray-900">
+    {% if error_message %}
+    <div class="h-full flex flex-col items-center justify-center p-8 text-center">
+        <span class="material-symbols-outlined text-3xl text-red-500 mb-2">error</span>
+        <p class="text-sm font-bold text-gray-800 dark:text-white">Unable to load provision details</p>
+        <p class="mt-1 text-xs text-gray-500 max-w-2xl break-words">{{ error_message }}</p>
+    </div>
+    {% elif not rows %}
+    <div class="h-full flex flex-col items-center justify-center p-8 text-center">
+        <span class="material-symbols-outlined text-3xl text-gray-300 mb-2">inventory</span>
+        <p class="text-sm font-bold text-gray-700 dark:text-gray-200">No matching provision records</p>
+        <p class="mt-1 text-xs text-gray-500">No provision snapshot rows match this hierarchy and the selected filters.</p>
+    </div>
+    {% else %}
+    <div class="px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex flex-wrap items-center gap-x-6 gap-y-1 shrink-0 text-[10px]">
+        <span class="font-bold text-gray-700 dark:text-gray-200">{{ "{:,}".format(total_records) }} records</span>
+        <span class="text-gray-500">Pieces <strong class="text-gray-800 dark:text-white">{{ "{:,.3f}".format(total_pieces|float) }}</strong></span>
+        <span class="text-gray-500">Gross Wt <strong class="text-gray-800 dark:text-white">{{ "{:,.3f}".format(total_gross_wt|float) }}</strong></span>
+    </div>
+    <div class="flex-1 min-h-0 overflow-auto custom-scrollbar">
+        <table class="w-full min-w-[1570px] border-collapse text-left">
+            <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <tr class="text-[9px] uppercase text-gray-500 font-bold tracking-wider">
+                    <th class="px-3 py-2.5">Location</th>
+                    <th class="px-3 py-2.5">Division</th>
+                    <th class="px-3 py-2.5">Group</th>
+                    <th class="px-3 py-2.5">Purity</th>
+                    <th class="px-3 py-2.5">Classification</th>
+                    <th class="px-3 py-2.5">Sub Classification</th>
+                    <th class="px-3 py-2.5">Make</th>
+                    <th class="px-3 py-2.5">Collection</th>
+                    <th class="px-3 py-2.5">Section</th>
+                    <th class="px-3 py-2.5">Sub Section</th>
+                    <th class="px-3 py-2.5">Type</th>
+                    <th class="px-3 py-2.5">Wide Range</th>
+                    <th class="px-3 py-2.5">Size / Length</th>
+                    <th class="px-3 py-2.5">Screw Type</th>
+                    <th class="px-3 py-2.5 text-right">Weight</th>
+                    <th class="px-3 py-2.5 text-right">Pieces</th>
+                    <th class="px-3 py-2.5 text-right">Gross Weight</th>
+                    <th class="px-3 py-2.5">Provision Type</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                {% for row in rows %}
+                <tr class="text-[10px] text-gray-700 dark:text-gray-300 hover:bg-blue-50/60 dark:hover:bg-blue-900/10">
+                    <td class="px-3 py-2 whitespace-nowrap">{{ row.location or '-' }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ row.division or '-' }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ row.group_name or '-' }}</td>
+                    <td class="px-3 py-2">{{ row.purity or '-' }}</td>
+                    <td class="px-3 py-2 font-semibold whitespace-nowrap">{{ row.classification or '-' }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ row.sub_classification or '-' }}</td>
+                    <td class="px-3 py-2 font-semibold whitespace-nowrap">{{ row.make or '-' }}</td>
+                    <td class="px-3 py-2 font-semibold whitespace-nowrap">{{ row.collection or '-' }}</td>
+                    <td class="px-3 py-2 font-semibold whitespace-nowrap">{{ row.section or '-' }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ row.sub_section or '-' }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ row.type or '-' }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ row.wide_range or '-' }}</td>
+                    <td class="px-3 py-2 font-semibold whitespace-nowrap">{{ row.size or '-' }}</td>
+                    <td class="px-3 py-2 font-semibold whitespace-nowrap">{{ row.screw_type or '-' }}</td>
+                    <td class="px-3 py-2 text-right font-mono">{{ "{:,.3f}".format(row.weight|float) if row.weight is not none else '-' }}</td>
+                    <td class="px-3 py-2 text-right font-mono">{{ "{:,.3f}".format(row.pieces|float) if row.pieces is not none else '-' }}</td>
+                    <td class="px-3 py-2 text-right font-mono font-bold text-emerald-700 dark:text-emerald-300">{{ "{:,.3f}".format(row.gross_weight|float) if row.gross_weight is not none else '-' }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ row.prov_type or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <footer class="px-4 py-2 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0 bg-white dark:bg-gray-900">
+        <span class="text-[10px] text-gray-500">Page {{ page }} of {{ total_pages }}</span>
+        <div class="flex items-center gap-1">
+            <button type="button" data-provision-page="{{ page - 1 }}" {% if page <= 1 %}disabled{% endif %}
+                class="size-7 flex items-center justify-center border border-gray-200 dark:border-gray-700 rounded text-gray-500 hover:text-primary disabled:opacity-40 disabled:pointer-events-none" title="Previous page">
+                <span class="material-symbols-outlined text-base">chevron_left</span>
+            </button>
+            <button type="button" data-provision-page="{{ page + 1 }}" {% if page >= total_pages %}disabled{% endif %}
+                class="size-7 flex items-center justify-center border border-gray-200 dark:border-gray-700 rounded text-gray-500 hover:text-primary disabled:opacity-40 disabled:pointer-events-none" title="Next page">
+                <span class="material-symbols-outlined text-base">chevron_right</span>
+            </button>
+        </div>
+    </footer>
+    {% endif %}
+</div>

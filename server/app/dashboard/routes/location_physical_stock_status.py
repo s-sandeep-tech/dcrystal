@@ -1108,6 +1108,149 @@ LIMIT :limit OFFSET :offset
             error_message=str(e),
         ), 500
 
+
+@dashboard_bp.route('/api/location-physical-stock-status/provision-details')
+@jwt_required()
+def get_location_physical_stock_provision_details():
+    try:
+        page = max(request.args.get('page', 1, type=int), 1)
+        per_page = 100
+        drill_level = min(max(request.args.get('drill_level', 1, type=int), 1), 5)
+
+        params = {
+            'location': request.args.get('location') or None,
+            'purity': request.args.get('purity') or None,
+            'classification': request.args.get('classification') or None,
+            'make': request.args.get('make') or None,
+            'collection': request.args.get('collection') or None,
+            'section': request.args.get('section') or None,
+            'prov_type': request.args.get('prov_type') or None,
+            'provision_mode': request.args.get('provision_mode') or None,
+            'branch_type': request.args.get('branch_type') or None,
+            'branch_status': request.args.get('branch_status') or None,
+            'business_head': request.args.get('business_head') or None,
+            'state': request.args.get('state') or None,
+            'bh_emp_code': None,
+            'authorized_branch_ids': None,
+            'drill_level': drill_level,
+            'drill_range_weight': request.args.get('drill_range_weight') or None,
+            'drill_section_ids': request.args.get('drill_section_ids') or None,
+            'drill_purity_ids': request.args.get('drill_purity_ids') or None,
+            'drill_type_ids': request.args.get('drill_type_ids') or None,
+            'drill_wide_range_ids': request.args.get('drill_wide_range_ids') or None,
+            'limit': per_page,
+            'offset': (page - 1) * per_page,
+        }
+
+        required_id_params = ['drill_section_ids']
+        if drill_level >= 2:
+            required_id_params.append('drill_purity_ids')
+        if drill_level >= 3:
+            required_id_params.append('drill_type_ids')
+        if drill_level >= 4:
+            required_id_params.append('drill_wide_range_ids')
+
+        if any(not params[param] for param in required_id_params):
+            return '<div class="p-8 text-center text-red-500">Required hierarchy IDs are missing.</div>', 400
+        if drill_level >= 5 and params['drill_range_weight'] is None:
+            return '<div class="p-8 text-center text-red-500">A range weight is required.</div>', 400
+
+        roles = [role.upper() for role in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(role in roles for role in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        user_id = session.get('user_id')
+
+        apply_franchise_india_branch_param(params, roles)
+
+        if not is_admin and not is_manager:
+            if 'BUSINESS_HEAD' in roles and user_id:
+                params['bh_emp_code'] = user_id
+            elif 'SHOWROOM_MANAGER' in roles and user_id:
+                try:
+                    branch_ids = [
+                        row.branch_id
+                        for row in BranchAuthoritySnapshot.query.filter_by(emp_code=int(user_id)).all()
+                    ]
+                    params['authorized_branch_ids'] = ','.join(map(str, branch_ids)) if branch_ids else '-1'
+                except (ValueError, TypeError):
+                    params['authorized_branch_ids'] = '-1'
+
+        query = text('''
+SELECT
+    p.location,
+    p.division,
+    p."group" AS group_name,
+    p.purity,
+    p.classification,
+    p.sub_classification,
+    p.make,
+    p.collection,
+    p.section,
+    p.sub_section,
+    p.type,
+    p.wide_range,
+    p.size,
+    p.screw_type,
+    p.range_weight AS weight,
+    p.prov_pieces AS pieces,
+    p.prov_gr_wt AS gross_weight,
+    p.prov_type,
+    COUNT(*) OVER () AS total_records,
+    COALESCE(SUM(p.prov_pieces) OVER (), 0) AS total_pieces,
+    COALESCE(SUM(p.prov_gr_wt) OVER (), 0) AS total_gross_wt
+FROM provision_stock_raw_snapshot AS p
+WHERE (:location IS NULL OR p.location = ANY(string_to_array(CAST(:location AS text), ',')))
+  AND (:state IS NULL OR p.state = ANY(string_to_array(CAST(:state AS text), ',')))
+  AND (:purity IS NULL OR p.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
+  AND (:classification IS NULL OR p.classification = ANY(string_to_array(CAST(:classification AS text), ',')))
+  AND (:make IS NULL OR p.make = ANY(string_to_array(CAST(:make AS text), ',')))
+  AND (:collection IS NULL OR p.collection = ANY(string_to_array(CAST(:collection AS text), ',')))
+  AND (:section IS NULL OR p.section = ANY(string_to_array(CAST(:section AS text), ',')))
+  AND (:prov_type IS NULL OR p.prov_type = ANY(string_to_array(CAST(:prov_type AS text), ',')))
+  AND (:provision_mode IS NULL OR p.provision_mode_filter = ANY(string_to_array(CAST(:provision_mode AS text), ',')))
+  AND (:branch_type IS NULL OR p.branch_type = ANY(string_to_array(CAST(:branch_type AS text), ',')))
+  AND (:branch_status IS NULL OR p.branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
+  AND (:business_head IS NULL OR p.business_head_name = ANY(string_to_array(CAST(:business_head AS text), ',')))
+  AND (:bh_emp_code IS NULL OR p.business_head_emp_code = :bh_emp_code)
+  AND (:authorized_branch_ids IS NULL OR p.branch_id = ANY(string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]))
+  AND p.section_id = ANY(string_to_array(CAST(:drill_section_ids AS text), ',')::bigint[])
+  AND (:drill_level < 2 OR p.purity_id = ANY(string_to_array(CAST(:drill_purity_ids AS text), ',')::bigint[]))
+  AND (:drill_level < 3 OR p.type_id = ANY(string_to_array(CAST(:drill_type_ids AS text), ',')::bigint[]))
+  AND (:drill_level < 4 OR p.wide_range_id = ANY(string_to_array(CAST(:drill_wide_range_ids AS text), ',')::bigint[]))
+  AND (:drill_level < 5 OR p.range_weight = CAST(:drill_range_weight AS numeric))
+ORDER BY p.location NULLS LAST, p.division NULLS LAST, p."group" NULLS LAST,
+         p.classification NULLS LAST, p.make NULLS LAST, p.collection NULLS LAST, p.id
+LIMIT :limit OFFSET :offset
+        ''')
+
+        result = db.session.execute(query, params)
+        rows = [dict(row._mapping) for row in result]
+        total_records = int(rows[0]['total_records']) if rows else 0
+        total_pages = max((total_records + per_page - 1) // per_page, 1)
+
+        return render_template(
+            'partials/_view_location_physical_stock_provision_details.html',
+            rows=rows,
+            page=page,
+            total_pages=total_pages,
+            total_records=total_records,
+            total_pieces=rows[0]['total_pieces'] if rows else 0,
+            total_gross_wt=rows[0]['total_gross_wt'] if rows else 0,
+        )
+    except Exception as e:
+        logger.exception('Error loading location physical provision details')
+        return render_template(
+            'partials/_view_location_physical_stock_provision_details.html',
+            rows=[],
+            page=1,
+            total_pages=1,
+            total_records=0,
+            total_pieces=0,
+            total_gross_wt=0,
+            error_message=str(e),
+        ), 500
+
+
 @dashboard_bp.route('/api/sync/location-physical-stock-status', methods=['POST'])
 @jwt_required()
 def sync_location_physical_stock_status():

@@ -519,16 +519,8 @@ function closeDrillDownModal() {
     }, 300);
 }
 
-let activeInShopDetailParams = null;
-let inShopDetailsRequestController = null;
-let inShopDetailsTimeout = null;
-
-async function openInShopDetailsModal(link) {
-    const modal = document.getElementById('inShopDetailsModal');
-    const path = document.getElementById('inShopDetailsPath');
-    if (!modal) return;
-
-    activeInShopDetailParams = new URLSearchParams({
+function buildHierarchyDetailParams(link) {
+    return new URLSearchParams({
         ...filterValues,
         drill_level: link.dataset.level,
         drill_section: link.dataset.section,
@@ -542,13 +534,28 @@ async function openInShopDetailsModal(link) {
         drill_wide_range_ids: link.dataset.wideRangeIds,
         page: '1'
     });
+}
 
+function setHierarchyDetailsPath(path, link) {
     const pathParts = [link.dataset.section];
     if (Number(link.dataset.level) >= 2) pathParts.push(link.dataset.purity || 'Unknown Purity');
     if (Number(link.dataset.level) >= 3) pathParts.push(link.dataset.type || 'Unknown Type');
     if (Number(link.dataset.level) >= 4) pathParts.push(link.dataset.wideRange || 'Unknown Range');
     if (Number(link.dataset.level) >= 5) pathParts.push(link.dataset.rangeWeight || 'Unknown Weight');
     path.textContent = pathParts.join(' / ');
+}
+
+let activeInShopDetailParams = null;
+let inShopDetailsRequestController = null;
+let inShopDetailsTimeout = null;
+
+async function openInShopDetailsModal(link) {
+    const modal = document.getElementById('inShopDetailsModal');
+    const path = document.getElementById('inShopDetailsPath');
+    if (!modal) return;
+
+    activeInShopDetailParams = buildHierarchyDetailParams(link);
+    setHierarchyDetailsPath(path, link);
     modal.classList.remove('hidden');
     await loadInShopDetails();
 }
@@ -605,7 +612,81 @@ function closeInShopDetailsModal() {
     activeInShopDetailParams = null;
 }
 
+let activeProvisionDetailParams = null;
+let provisionDetailsRequestController = null;
+let provisionDetailsTimeout = null;
+
+async function openProvisionDetailsModal(link) {
+    const modal = document.getElementById('provisionDetailsModal');
+    const path = document.getElementById('provisionDetailsPath');
+    if (!modal) return;
+
+    activeProvisionDetailParams = buildHierarchyDetailParams(link);
+    setHierarchyDetailsPath(path, link);
+    modal.classList.remove('hidden');
+    await loadProvisionDetails();
+}
+
+window.openProvisionDetailsModal = openProvisionDetailsModal;
+
+async function loadProvisionDetails(page) {
+    if (!activeProvisionDetailParams) return;
+    if (page) activeProvisionDetailParams.set('page', String(page));
+
+    const loader = document.getElementById('provisionDetailsLoader');
+    const content = document.getElementById('provisionDetailsContent');
+    if (provisionDetailsRequestController) provisionDetailsRequestController.abort();
+    const requestController = new AbortController();
+    provisionDetailsRequestController = requestController;
+    loader.classList.remove('hidden');
+    const requestTimeout = window.setTimeout(() => requestController.abort(), 30000);
+    provisionDetailsTimeout = requestTimeout;
+
+    try {
+        const response = await fetch(`/api/location-physical-stock-status/provision-details?${activeProvisionDetailParams}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+            signal: requestController.signal
+        });
+        const html = await response.text();
+        content.innerHTML = html;
+        if (!response.ok) throw new Error('Failed to load provision details');
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            if (provisionDetailsRequestController === requestController) {
+                content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">The provision details request timed out. Please retry.</div>';
+            }
+            return;
+        }
+        console.error('Provision detail error:', error);
+        content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">Unable to load provision details.</div>';
+    } finally {
+        window.clearTimeout(requestTimeout);
+        if (provisionDetailsTimeout === requestTimeout) provisionDetailsTimeout = null;
+        if (provisionDetailsRequestController === requestController) {
+            loader.classList.add('hidden');
+            provisionDetailsRequestController = null;
+        }
+    }
+}
+
+function closeProvisionDetailsModal() {
+    const modal = document.getElementById('provisionDetailsModal');
+    window.clearTimeout(provisionDetailsTimeout);
+    provisionDetailsTimeout = null;
+    if (provisionDetailsRequestController) provisionDetailsRequestController.abort();
+    if (modal) modal.classList.add('hidden');
+    provisionDetailsRequestController = null;
+    activeProvisionDetailParams = null;
+}
+
 document.addEventListener('click', (event) => {
+    const provisionLink = event.target.closest('[data-provision-detail]');
+    if (provisionLink) {
+        event.preventDefault();
+        openProvisionDetailsModal(provisionLink);
+        return;
+    }
+
     const detailLink = event.target.closest('[data-in-shop-detail]');
     if (detailLink) {
         event.preventDefault();
@@ -616,6 +697,12 @@ document.addEventListener('click', (event) => {
     const pageButton = event.target.closest('[data-in-shop-page]');
     if (pageButton && !pageButton.disabled) {
         loadInShopDetails(Number(pageButton.dataset.inShopPage));
+        return;
+    }
+
+    const provisionPageButton = event.target.closest('[data-provision-page]');
+    if (provisionPageButton && !provisionPageButton.disabled) {
+        loadProvisionDetails(Number(provisionPageButton.dataset.provisionPage));
     }
 });
 
@@ -624,6 +711,11 @@ document.addEventListener('keydown', (event) => {
     const detailsModal = document.getElementById('inShopDetailsModal');
     if (detailsModal && !detailsModal.classList.contains('hidden')) {
         closeInShopDetailsModal();
+        return;
+    }
+    const provisionModal = document.getElementById('provisionDetailsModal');
+    if (provisionModal && !provisionModal.classList.contains('hidden')) {
+        closeProvisionDetailsModal();
     }
 });
 
