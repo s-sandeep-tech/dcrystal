@@ -18,7 +18,7 @@
         <span class="text-gray-500">Gross Wt <strong class="text-gray-800 dark:text-white">{{ "{:,.3f}".format(total_gross_wt|float) }}</strong></span>
     </div>
     <div class="flex-1 min-h-0 overflow-auto custom-scrollbar">
-        <table class="w-full min-w-[1800px] border-collapse text-left">
+        <table class="w-full min-w-[1880px] border-collapse text-left">
             <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr class="text-[9px] uppercase text-gray-500 font-bold tracking-wider">
                     <th class="px-3 py-2.5 bg-blue-100/80 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-x border-blue-200/70 dark:border-blue-800/50">Barcode</th>
@@ -32,6 +32,7 @@
                     <th class="px-3 py-2.5 bg-indigo-100/80 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-l border-indigo-200/70 dark:border-indigo-800/50">Make</th>
                     <th class="px-3 py-2.5 bg-indigo-100/80 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">Collection</th>
                     <th class="px-3 py-2.5 bg-indigo-100/80 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-r border-indigo-200/70 dark:border-indigo-800/50">Section</th>
+                    <th class="px-3 py-2.5">Sub Section</th>
                     <th class="px-3 py-2.5">Type</th>
                     <th class="px-3 py-2.5">Wide Range</th>
                     <th class="px-3 py-2.5 bg-indigo-100/80 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-l border-indigo-200/70 dark:border-indigo-800/50">Size / Length</th>
@@ -58,6 +59,7 @@
                     <td class="px-3 py-2 font-bold text-indigo-800 dark:text-indigo-200 bg-indigo-50/70 dark:bg-indigo-950/20 border-l border-indigo-100/80 dark:border-indigo-900/40 whitespace-nowrap">{{ row.make or '-' }}</td>
                     <td class="px-3 py-2 font-bold text-indigo-800 dark:text-indigo-200 bg-indigo-50/70 dark:bg-indigo-950/20 whitespace-nowrap">{{ row.collection or '-' }}</td>
                     <td class="px-3 py-2 font-bold text-indigo-800 dark:text-indigo-200 bg-indigo-50/70 dark:bg-indigo-950/20 border-r border-indigo-100/80 dark:border-indigo-900/40 whitespace-nowrap">{{ row.section or '-' }}</td>
+                    <td class="px-3 py-2 whitespace-nowrap">{{ row.sub_section or '-' }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ row.type or '-' }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ row.wide_range or '-' }}</td>
                     <td class="px-3 py-2 font-bold text-indigo-800 dark:text-indigo-200 bg-indigo-50/70 dark:bg-indigo-950/20 border-l border-indigo-100/80 dark:border-indigo-900/40 whitespace-nowrap">{{ row.size or '-' }}</td>
