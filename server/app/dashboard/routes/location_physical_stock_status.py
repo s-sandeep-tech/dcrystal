@@ -982,10 +982,6 @@ def get_location_physical_stock_in_shop_details():
             'bh_emp_code': None,
             'authorized_branch_ids': None,
             'drill_level': drill_level,
-            'drill_section': request.args.get('drill_section') or None,
-            'drill_purity': request.args.get('drill_purity') or None,
-            'drill_type': request.args.get('drill_type') or None,
-            'drill_wide_range': request.args.get('drill_wide_range') or None,
             'drill_range_weight': request.args.get('drill_range_weight') or None,
             'drill_section_ids': request.args.get('drill_section_ids') or None,
             'drill_purity_ids': request.args.get('drill_purity_ids') or None,
@@ -995,8 +991,18 @@ def get_location_physical_stock_in_shop_details():
             'offset': (page - 1) * per_page,
         }
 
-        if not params['drill_section']:
-            return '<div class="p-8 text-center text-red-500">A section is required.</div>', 400
+        required_id_params = ['drill_section_ids']
+        if drill_level >= 2:
+            required_id_params.append('drill_purity_ids')
+        if drill_level >= 3:
+            required_id_params.append('drill_type_ids')
+        if drill_level >= 4:
+            required_id_params.append('drill_wide_range_ids')
+
+        if any(not params[param] for param in required_id_params):
+            return '<div class="p-8 text-center text-red-500">Required hierarchy IDs are missing.</div>', 400
+        if drill_level >= 5 and params['drill_range_weight'] is None:
+            return '<div class="p-8 text-center text-red-500">A range weight is required.</div>', 400
 
         roles = [role.upper() for role in session.get('roles', [])]
         is_admin = 'ADMIN' in roles
@@ -1051,14 +1057,10 @@ WITH matching_stock AS MATERIALIZED (
           AND (:business_head IS NULL OR p.business_head_name = ANY(string_to_array(CAST(:business_head AS text), ',')))
           AND (:bh_emp_code IS NULL OR p.business_head_emp_code = :bh_emp_code)
           AND (:authorized_branch_ids IS NULL OR p.branch_id = ANY(string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]))
-          AND p.section = CAST(:drill_section AS text)
-          AND (:drill_section_ids IS NULL OR p.section_id = ANY(string_to_array(CAST(:drill_section_ids AS text), ',')::bigint[]))
-          AND (:drill_level < 2 OR p.purity = CAST(:drill_purity AS numeric))
-          AND (:drill_purity_ids IS NULL OR p.purity_id = ANY(string_to_array(CAST(:drill_purity_ids AS text), ',')::bigint[]))
-          AND (:drill_level < 3 OR p.type = CAST(:drill_type AS text))
-          AND (:drill_type_ids IS NULL OR p.type_id = ANY(string_to_array(CAST(:drill_type_ids AS text), ',')::bigint[]))
-          AND (:drill_level < 4 OR p.wide_range = CAST(:drill_wide_range AS text))
-          AND (:drill_wide_range_ids IS NULL OR p.wide_range_id = ANY(string_to_array(CAST(:drill_wide_range_ids AS text), ',')::bigint[]))
+          AND p.section_id = ANY(string_to_array(CAST(:drill_section_ids AS text), ',')::bigint[])
+          AND (:drill_level < 2 OR p.purity_id = ANY(string_to_array(CAST(:drill_purity_ids AS text), ',')::bigint[]))
+          AND (:drill_level < 3 OR p.type_id = ANY(string_to_array(CAST(:drill_type_ids AS text), ',')::bigint[]))
+          AND (:drill_level < 4 OR p.wide_range_id = ANY(string_to_array(CAST(:drill_wide_range_ids AS text), ',')::bigint[]))
           AND (:drill_level < 5 OR p.range_weight = CAST(:drill_range_weight AS numeric))
 ),
 matched_barcodes AS (

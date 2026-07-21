@@ -22,6 +22,10 @@
 {% set label = (row.range_weight|string ~ ' ') if row.range_weight is not none else 'Unknown Weight' %}
 {% endif %}
 {% set max_level = 5 if include_purity_hierarchy|default(false) else 4 %}
+{% set has_detail_ids = row.section_ids is defined and row.section_ids
+    and (level < 2 or (row.purity_ids is defined and row.purity_ids))
+    and (level < 3 or (row.type_ids is defined and row.type_ids))
+    and (level < 4 or (row.wide_range_ids is defined and row.wide_range_ids)) %}
 
 <tr
     class="{% if level == 1 %}bg-gray-100 dark:bg-gray-800 font-bold{% elif level == 2 %}bg-gray-50 dark:bg-gray-800/50 font-semibold{% else %}bg-white dark:bg-gray-900{% endif %} hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-100 dark:border-gray-800/50">
@@ -39,7 +43,7 @@
     <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.prov_gr_wt|float) if row.prov_gr_wt
         else '0.000' }}</td>
     <td class="px-3 py-2 text-right text-[11px] font-mono">
-        {% if enable_in_shop_details|default(false) and row.prov_gr_wt|float != row.in_shop_wt|float %}
+        {% if enable_in_shop_details|default(false) and has_detail_ids and row.prov_gr_wt|float != row.in_shop_wt|float %}
         <a href="#" data-in-shop-detail
             data-level="{{ level }}"
             data-section="{{ row.section or '' }}"
