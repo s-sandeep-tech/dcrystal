@@ -20,6 +20,7 @@ let stateMultiSelect;
 let branchTypeMultiSelect;
 let branchStatusMultiSelect;
 let makeMultiSelect;
+let sectionMultiSelect;
 let makeHeaderFilter;
 let sectionHeaderFilter;
 let purityHeaderFilter;
@@ -54,6 +55,14 @@ document.addEventListener('DOMContentLoaded', () => {
         defaultText: 'All States',
         options: []
     });
+
+    sectionMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-section-container',
+        label: 'Section',
+        defaultText: 'All Sections',
+        options: []
+    });
+
     makeMultiSelect = new CustomMultiSelect({
         containerId: 'filter-make-container',
         label: 'Make',
@@ -183,7 +192,6 @@ async function loadOptions() {
         const config = [
             { id: 'filter-purity', data: data.purities },
             { id: 'filter-classification', data: data.classifications },
-            { id: 'filter-section', data: data.sections },
             { id: 'filter-prov-type', data: data.prov_types },
             { id: 'filter-provision-mode', data: data.provision_modes },
             { id: 'filter-business-head', data: data.business_heads }
@@ -193,6 +201,7 @@ async function loadOptions() {
         if (branchStatusMultiSelect) branchStatusMultiSelect.populateOptions(data.branch_statuses);
         if (branchTypeMultiSelect) branchTypeMultiSelect.populateOptions(data.branch_types);
         if (stateMultiSelect) stateMultiSelect.populateOptions(data.states);
+        if (sectionMultiSelect) sectionMultiSelect.populateOptions(data.sections);
         // makeMultiSelect is now dynamic
         if (makeHeaderFilter) makeHeaderFilter.setOptions([]); 
         if (sectionHeaderFilter) sectionHeaderFilter.setOptions(data.sections);
@@ -297,7 +306,6 @@ function applyFilters() {
 
     filterValues.purity = document.getElementById('filter-purity').value;
     filterValues.classification = document.getElementById('filter-classification').value;
-    filterValues.section = document.getElementById('filter-section').value;
     filterValues.prov_type = document.getElementById('filter-prov-type').value;
     filterValues.provision_mode = document.getElementById('filter-provision-mode').value;
 
@@ -307,11 +315,9 @@ function applyFilters() {
     let combinedMakes = new Set([...sidebarMakes, ...headerMakes]);
     filterValues.make = Array.from(combinedMakes).join(',');
 
-    const sectionSelect = document.getElementById('filter-section');
-    let sidebarSection = sectionSelect ? sectionSelect.value : '';
+    let sidebarSections = sectionMultiSelect ? sectionMultiSelect.getValues() : [];
     let headerSections = sectionHeaderFilter ? sectionHeaderFilter.selectedValues : [];
-    let combinedSections = new Set(headerSections);
-    if (sidebarSection) combinedSections.add(sidebarSection);
+    let combinedSections = new Set([...sidebarSections, ...headerSections]);
     filterValues.section = Array.from(combinedSections).join(',');
 
     const puritySelect = document.getElementById('filter-purity');
@@ -335,7 +341,6 @@ function resetFilters() {
     
     const filterIds = [
         'filter-purity', 'filter-classification', 
-        'filter-section', 
         'filter-prov-type', 'filter-provision-mode',
         'filter-business-head'
     ];
@@ -348,6 +353,7 @@ function resetFilters() {
     if (branchStatusMultiSelect) branchStatusMultiSelect.reset();
     if (branchTypeMultiSelect) branchTypeMultiSelect.reset();
     if (stateMultiSelect) stateMultiSelect.reset();
+    if (sectionMultiSelect) sectionMultiSelect.reset();
     if (makeMultiSelect) makeMultiSelect.reset();
     if (collectionMultiSelect) collectionMultiSelect.reset();
     

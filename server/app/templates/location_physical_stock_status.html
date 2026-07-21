@@ -257,12 +257,7 @@
             <!-- Collection -->
             <div id="filter-collection-container"></div>
             <!-- Section -->
-            <div class="space-y-1.5">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Section</label>
-                <select id="filter-section" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Sections</option>
-                </select>
-            </div>
+            <div id="filter-section-container"></div>
             <!-- Provision Type -->
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Provision Type</label>
@@ -291,5 +286,5 @@
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script src="{{ url_for('static', filename='js/header_filter.js') }}"></script>
-<script src="{{ url_for('static', filename='js/location_physical_stock_status.js', v='20260721-2') }}"></script>
+<script src="{{ url_for('static', filename='js/location_physical_stock_status.js', v='20260721-3') }}"></script>
 {% endblock %}
