@@ -2,7 +2,17 @@
 {% macro render_drilldown_row(row) %}
 {% set level = row.level_id %}
 {% set label = '' %}
-{% if level == 1 %}
+{% if include_purity_hierarchy|default(false) and level == 1 %}
+{% set label = row.section or 'Unknown Section' %}
+{% elif include_purity_hierarchy|default(false) and level == 2 %}
+{% set label = row.purity|string if row.purity is not none else 'Unknown Purity' %}
+{% elif include_purity_hierarchy|default(false) and level == 3 %}
+{% set label = row.type or 'Unknown Type' %}
+{% elif include_purity_hierarchy|default(false) and level == 4 %}
+{% set label = row.wide_range or 'Unknown Range' %}
+{% elif include_purity_hierarchy|default(false) and level == 5 %}
+{% set label = (row.range_weight|string ~ ' ') if row.range_weight is not none else 'Unknown Weight' %}
+{% elif level == 1 %}
 {% set label = row.section or 'Unknown Section' %}
 {% elif level == 2 %}
 {% set label = row.type or 'Unknown Type' %}
@@ -11,17 +21,18 @@
 {% elif level == 4 %}
 {% set label = (row.range_weight|string ~ ' ') if row.range_weight is not none else 'Unknown Weight' %}
 {% endif %}
+{% set max_level = 5 if include_purity_hierarchy|default(false) else 4 %}
 
 <tr
     class="{% if level == 1 %}bg-gray-100 dark:bg-gray-800 font-bold{% elif level == 2 %}bg-gray-50 dark:bg-gray-800/50 font-semibold{% else %}bg-white dark:bg-gray-900{% endif %} hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-100 dark:border-gray-800/50">
     <td class="px-3 py-2 text-[11px]">
         <div class="flex items-center" style="padding-left: {{ (level - 1) * 1.5 }}rem;">
-            {% if level < 4 %} <span class="material-symbols-outlined text-[14px] mr-1 text-gray-400">
+            {% if level < max_level %} <span class="material-symbols-outlined text-[14px] mr-1 text-gray-400">
                 arrow_drop_down</span>
                 {% else %}
                 <span class="material-symbols-outlined text-[10px] mr-2 ml-1 text-gray-300">fiber_manual_record</span>
                 {% endif %}
-                <span class="{% if level == 1 %}text-primary{% elif level == 4 %}text-gray-500 italic{% endif %}">{{
+                <span class="{% if level == 1 %}text-primary{% elif level == max_level %}text-gray-500 italic{% endif %}">{{
                     label }}</span>
         </div>
     </td>
@@ -32,9 +43,14 @@
         <a href="#" data-in-shop-detail
             data-level="{{ level }}"
             data-section="{{ row.section or '' }}"
+            data-purity="{{ row.purity if row.purity is defined and row.purity is not none else '' }}"
             data-type="{{ row.type or '' }}"
             data-wide-range="{{ row.wide_range or '' }}"
             data-range-weight="{{ row.range_weight if row.range_weight is not none else '' }}"
+            data-section-ids="{{ row.section_ids if row.section_ids is defined and row.section_ids else '' }}"
+            data-purity-ids="{{ row.purity_ids if row.purity_ids is defined and row.purity_ids else '' }}"
+            data-type-ids="{{ row.type_ids if row.type_ids is defined and row.type_ids else '' }}"
+            data-wide-range-ids="{{ row.wide_range_ids if row.wide_range_ids is defined and row.wide_range_ids else '' }}"
             class="font-semibold text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary focus:outline-none focus:ring-2 focus:ring-primary/30 rounded-sm"
             title="View in-shop barcode details">
             {{ "{:,.3f}".format(row.in_shop_wt|float) if row.in_shop_wt else '0.000' }}
@@ -74,7 +90,13 @@
         <table class="w-full text-left border-collapse">
             <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr class="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
-                    <th class="px-4 py-3 min-w-[250px]"> Section > Type > Wide Range > Range&nbsp;Weight</th>
+                    <th class="px-4 py-3 min-w-[250px]">
+                        {% if include_purity_hierarchy|default(false) %}
+                        Section > Purity > Type > Wide Range > Range&nbsp;Weight
+                        {% else %}
+                        Section > Type > Wide Range > Range&nbsp;Weight
+                        {% endif %}
+                    </th>
                     <th class="px-3 py-3 text-right">Prov Gr.Wt</th>
                     <th class="px-3 py-3 text-right">In Shop Wt</th>
                     <th class="px-3 py-3 text-right">Ordered Wt</th>

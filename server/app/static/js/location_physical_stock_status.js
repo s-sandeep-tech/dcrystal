@@ -532,16 +532,22 @@ async function openInShopDetailsModal(link) {
         ...filterValues,
         drill_level: link.dataset.level,
         drill_section: link.dataset.section,
+        drill_purity: link.dataset.purity,
         drill_type: link.dataset.type,
         drill_wide_range: link.dataset.wideRange,
         drill_range_weight: link.dataset.rangeWeight,
+        drill_section_ids: link.dataset.sectionIds,
+        drill_purity_ids: link.dataset.purityIds,
+        drill_type_ids: link.dataset.typeIds,
+        drill_wide_range_ids: link.dataset.wideRangeIds,
         page: '1'
     });
 
     const pathParts = [link.dataset.section];
-    if (Number(link.dataset.level) >= 2) pathParts.push(link.dataset.type || 'Unknown Type');
-    if (Number(link.dataset.level) >= 3) pathParts.push(link.dataset.wideRange || 'Unknown Range');
-    if (Number(link.dataset.level) >= 4) pathParts.push(link.dataset.rangeWeight || 'Unknown Weight');
+    if (Number(link.dataset.level) >= 2) pathParts.push(link.dataset.purity || 'Unknown Purity');
+    if (Number(link.dataset.level) >= 3) pathParts.push(link.dataset.type || 'Unknown Type');
+    if (Number(link.dataset.level) >= 4) pathParts.push(link.dataset.wideRange || 'Unknown Range');
+    if (Number(link.dataset.level) >= 5) pathParts.push(link.dataset.rangeWeight || 'Unknown Weight');
     path.textContent = pathParts.join(' / ');
     modal.classList.remove('hidden');
     await loadInShopDetails();
