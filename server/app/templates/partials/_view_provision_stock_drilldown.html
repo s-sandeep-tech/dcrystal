@@ -1,25 +1,43 @@
 {# Macro for rendering hierarchical rows #}
-{% macro render_drilldown_row(row) %}
+{% macro render_drilldown_row(row, parent_id_map) %}
 {% set level = row.level_id %}
 {% set label = '' %}
 {% if include_purity_hierarchy|default(false) and level == 1 %}
 {% set label = row.section or 'Unknown Section' %}
+{% set node_key = 'sec_' ~ (row.section or '') %}
+{% set parent_key = '' %}
 {% elif include_purity_hierarchy|default(false) and level == 2 %}
 {% set label = row.purity|string if row.purity is not none else 'Unknown Purity' %}
+{% set node_key = 'sec_' ~ (row.section or '') ~ '_pur_' ~ (row.purity or '') %}
+{% set parent_key = 'sec_' ~ (row.section or '') %}
 {% elif include_purity_hierarchy|default(false) and level == 3 %}
 {% set label = row.type or 'Unknown Type' %}
+{% set node_key = 'sec_' ~ (row.section or '') ~ '_pur_' ~ (row.purity or '') ~ '_type_' ~ (row.type or '') %}
+{% set parent_key = 'sec_' ~ (row.section or '') ~ '_pur_' ~ (row.purity or '') %}
 {% elif include_purity_hierarchy|default(false) and level == 4 %}
 {% set label = row.wide_range or 'Unknown Range' %}
+{% set node_key = 'sec_' ~ (row.section or '') ~ '_pur_' ~ (row.purity or '') ~ '_type_' ~ (row.type or '') ~ '_range_' ~ (row.wide_range or '') %}
+{% set parent_key = 'sec_' ~ (row.section or '') ~ '_pur_' ~ (row.purity or '') ~ '_type_' ~ (row.type or '') %}
 {% elif include_purity_hierarchy|default(false) and level == 5 %}
 {% set label = (row.range_weight|string ~ ' ') if row.range_weight is not none else 'Unknown Weight' %}
+{% set node_key = 'sec_' ~ (row.section or '') ~ '_pur_' ~ (row.purity or '') ~ '_type_' ~ (row.type or '') ~ '_range_' ~ (row.wide_range or '') ~ '_wt_' ~ (row.range_weight or '') %}
+{% set parent_key = 'sec_' ~ (row.section or '') ~ '_pur_' ~ (row.purity or '') ~ '_type_' ~ (row.type or '') ~ '_range_' ~ (row.wide_range or '') %}
 {% elif level == 1 %}
 {% set label = row.section or 'Unknown Section' %}
+{% set node_key = 'sec_' ~ (row.section or '') %}
+{% set parent_key = '' %}
 {% elif level == 2 %}
 {% set label = row.type or 'Unknown Type' %}
+{% set node_key = 'sec_' ~ (row.section or '') ~ '_type_' ~ (row.type or '') %}
+{% set parent_key = 'sec_' ~ (row.section or '') %}
 {% elif level == 3 %}
 {% set label = row.wide_range or 'Unknown Range' %}
+{% set node_key = 'sec_' ~ (row.section or '') ~ '_type_' ~ (row.type or '') ~ '_range_' ~ (row.wide_range or '') %}
+{% set parent_key = 'sec_' ~ (row.section or '') ~ '_type_' ~ (row.type or '') %}
 {% elif level == 4 %}
 {% set label = (row.range_weight|string ~ ' ') if row.range_weight is not none else 'Unknown Weight' %}
+{% set node_key = 'sec_' ~ (row.section or '') ~ '_type_' ~ (row.type or '') ~ '_range_' ~ (row.wide_range or '') ~ '_wt_' ~ (row.range_weight or '') %}
+{% set parent_key = 'sec_' ~ (row.section or '') ~ '_type_' ~ (row.type or '') ~ '_range_' ~ (row.wide_range or '') %}
 {% endif %}
 {% set max_level = 5 if include_purity_hierarchy|default(false) else 4 %}
 {% set has_detail_ids = row.section_ids is defined and row.section_ids
@@ -27,17 +45,21 @@
     and (level < 3 or (row.type_ids is defined and row.type_ids))
     and (level < 4 or (row.wide_range_ids is defined and row.wide_range_ids)) %}
 
-<tr
+<tr data-tree-row
+    data-level="{{ level }}"
+    data-node-id="{{ node_key }}"
+    data-parent-id="{{ parent_key }}"
     class="{% if level == 1 %}bg-gray-100 dark:bg-gray-800 font-bold{% elif level == 2 %}bg-gray-50 dark:bg-gray-800/50 font-semibold{% else %}bg-white dark:bg-gray-900{% endif %} hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-100 dark:border-gray-800/50">
     <td class="px-3 py-2 text-[11px]">
         <div class="flex items-center" style="padding-left: {{ (level - 1) * 1.5 }}rem;">
-            {% if level < max_level %} <span class="material-symbols-outlined text-[14px] mr-1 text-gray-400">
-                arrow_drop_down</span>
-                {% else %}
+            {% if level < max_level %}
+                <button type="button" data-tree-toggle onclick="toggleDrilldownTreeNode(this, event)" class="mr-1 text-gray-500 hover:text-primary transition-colors focus:outline-none flex items-center justify-center p-0.5 rounded">
+                    <span class="material-symbols-outlined text-[16px]">arrow_drop_down</span>
+                </button>
+            {% else %}
                 <span class="material-symbols-outlined text-[10px] mr-2 ml-1 text-gray-300">fiber_manual_record</span>
-                {% endif %}
-                <span class="{% if level == 1 %}text-primary{% elif level == max_level %}text-gray-500 italic{% endif %}">{{
-                    label }}</span>
+            {% endif %}
+            <span class="{% if level == 1 %}text-primary{% elif level == max_level %}text-gray-500 italic{% endif %}">{{ label }}</span>
         </div>
     </td>
     <td class="px-3 py-2 text-right text-[11px] font-mono">

@@ -510,6 +510,62 @@ async function openDrillDownModal(sectionName) {
     }
 }
 
+function toggleDrilldownTreeNode(buttonEl, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    const currentRow = buttonEl.closest('tr[data-tree-row]');
+    if (!currentRow) return;
+
+    const nodeId = currentRow.dataset.nodeId;
+    if (!nodeId) return;
+
+    const iconSpan = buttonEl.querySelector('.material-symbols-outlined');
+    const isExpanded = iconSpan ? iconSpan.textContent.trim() === 'arrow_drop_down' : true;
+
+    if (isExpanded) {
+        if (iconSpan) iconSpan.textContent = 'arrow_right';
+        collapseDrilldownChildren(currentRow.parentElement, nodeId);
+    } else {
+        if (iconSpan) iconSpan.textContent = 'arrow_drop_down';
+        expandDrilldownChildren(currentRow.parentElement, nodeId);
+    }
+}
+window.toggleDrilldownTreeNode = toggleDrilldownTreeNode;
+
+function collapseDrilldownChildren(tbody, parentNodeId) {
+    const childRows = tbody.querySelectorAll(`tr[data-parent-id="${parentNodeId}"]`);
+    childRows.forEach(row => {
+        row.classList.add('hidden');
+        const toggleBtn = row.querySelector('[data-tree-toggle] .material-symbols-outlined');
+        if (toggleBtn) {
+            toggleBtn.textContent = 'arrow_right';
+        }
+        const childNodeId = row.dataset.nodeId;
+        if (childNodeId) {
+            collapseDrilldownChildren(tbody, childNodeId);
+        }
+    });
+}
+
+function expandDrilldownChildren(tbody, parentNodeId) {
+    const childRows = tbody.querySelectorAll(`tr[data-parent-id="${parentNodeId}"]`);
+    childRows.forEach(row => {
+        row.classList.remove('hidden');
+        const toggleBtn = row.querySelector('[data-tree-toggle] .material-symbols-outlined');
+        const isChildExpanded = toggleBtn ? toggleBtn.textContent.trim() === 'arrow_drop_down' : false;
+        const childNodeId = row.dataset.nodeId;
+
+        if (isChildExpanded && childNodeId) {
+            expandDrilldownChildren(tbody, childNodeId);
+        } else if (childNodeId) {
+            // Keep grandchildren collapsed
+            collapseDrilldownChildren(tbody, childNodeId);
+        }
+    });
+}
+
 function closeDrillDownModal() {
     const modal = document.getElementById('drillDownModal');
     const container = document.getElementById('drillDownContainer');
