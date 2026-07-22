@@ -608,12 +608,47 @@ async function loadInShopDetails(page) {
     }
 }
 
+function toggleModalFullscreen(containerId, buttonEl) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const iconSpan = buttonEl ? buttonEl.querySelector('.material-symbols-outlined') : null;
+    const isFullscreen = container.classList.contains('inset-0');
+
+    if (isFullscreen) {
+        container.classList.remove('inset-0', 'rounded-none');
+        container.classList.add('inset-4', 'md:inset-8', 'lg:inset-12', 'rounded-lg');
+        if (iconSpan) iconSpan.textContent = 'fullscreen';
+        if (buttonEl) buttonEl.title = 'Fullscreen';
+    } else {
+        container.classList.remove('inset-4', 'md:inset-8', 'lg:inset-12', 'rounded-lg');
+        container.classList.add('inset-0', 'rounded-none');
+        if (iconSpan) iconSpan.textContent = 'fullscreen_exit';
+        if (buttonEl) buttonEl.title = 'Exit Fullscreen';
+    }
+}
+window.toggleModalFullscreen = toggleModalFullscreen;
+
+function resetModalFullscreen(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.classList.remove('inset-0', 'rounded-none');
+    container.classList.add('inset-4', 'md:inset-8', 'lg:inset-12', 'rounded-lg');
+    const headerBtn = container.querySelector('button[title="Exit Fullscreen"], button[title="Fullscreen"], button[title="Toggle Fullscreen"]');
+    if (headerBtn) {
+        headerBtn.title = 'Toggle Fullscreen';
+        const iconSpan = headerBtn.querySelector('.material-symbols-outlined');
+        if (iconSpan) iconSpan.textContent = 'fullscreen';
+    }
+}
+
 function closeInShopDetailsModal() {
     const modal = document.getElementById('inShopDetailsModal');
     window.clearTimeout(inShopDetailsTimeout);
     inShopDetailsTimeout = null;
     if (inShopDetailsRequestController) inShopDetailsRequestController.abort();
     if (modal) modal.classList.add('hidden');
+    resetModalFullscreen('inShopDetailsContainer');
     inShopDetailsRequestController = null;
     activeInShopDetailParams = null;
 }
@@ -681,6 +716,7 @@ function closeProvisionDetailsModal() {
     provisionDetailsTimeout = null;
     if (provisionDetailsRequestController) provisionDetailsRequestController.abort();
     if (modal) modal.classList.add('hidden');
+    resetModalFullscreen('provisionDetailsContainer');
     provisionDetailsRequestController = null;
     activeProvisionDetailParams = null;
 }
