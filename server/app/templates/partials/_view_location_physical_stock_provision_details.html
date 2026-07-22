@@ -37,7 +37,7 @@
                     <th class="px-3 py-2.5">Screw Type</th>
                     <th class="px-3 py-2.5 text-right">Weight</th>
                     <th class="px-3 py-2.5 text-right">Pieces</th>
-                    <th class="px-3 py-2.5 text-right">Gross Weight</th>
+                    <th class="px-3 py-2.5 text-right bg-emerald-100/80 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-x border-emerald-200/70 dark:border-emerald-800/50">Gross Weight</th>
                     <th class="px-3 py-2.5">Provision Type</th>
                 </tr>
             </thead>
@@ -60,7 +60,7 @@
                     <td class="px-3 py-2 font-semibold whitespace-nowrap">{{ row.screw_type or '-' }}</td>
                     <td class="px-3 py-2 text-right font-mono">{{ "{:,.3f}".format(row.weight|float) if row.weight is not none else '-' }}</td>
                     <td class="px-3 py-2 text-right font-mono">{{ "{:,.3f}".format(row.pieces|float) if row.pieces is not none else '-' }}</td>
-                    <td class="px-3 py-2 text-right font-mono font-bold text-emerald-700 dark:text-emerald-300">{{ "{:,.3f}".format(row.gross_weight|float) if row.gross_weight is not none else '-' }}</td>
+                    <td class="px-3 py-2 text-right font-mono font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/20 border-x border-emerald-100/80 dark:border-emerald-900/40">{{ "{:,.3f}".format(row.gross_weight|float) if row.gross_weight is not none else '-' }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ row.prov_type or '-' }}</td>
                 </tr>
                 {% endfor %}
