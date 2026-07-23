@@ -129,7 +129,7 @@
     </td>
     {% endif %}
     <td
-        class="px-3 py-2 text-[11px] font-mono {% if row.short_excess_wt < 0 %}text-red-500 font-bold{% elif row.short_excess_wt > 0 %}text-green-600{% endif %}">
+        class="pl-3 pr-1 py-2 text-[11px] font-mono {% if row.short_excess_wt < 0 %}text-red-500 font-bold{% elif row.short_excess_wt > 0 %}text-green-600{% endif %}">
         <div class="flex items-center justify-end gap-1">
             <span>{{ "{:,.3f}".format(row.short_excess_wt|float) if row.short_excess_wt else '0.000' }}</span>
             {% if row.short_excess_wt %}
@@ -141,7 +141,7 @@
             {% endif %}
         </div>
     </td>
-    <td class="px-3 py-2 text-right text-[11px] font-mono">
+    <td class="pl-1 pr-3 py-2 text-right text-[11px] font-mono">
         <span
             class="px-1.5 py-0.5 rounded {% if row.percent < 0 %}bg-red-50 text-red-600{% else %}bg-green-50 text-green-600{% endif %}">
             {{ "{:,.1f}%".format(row.percent|float) if row.percent is not none else '0.0%' }}
@@ -172,8 +172,8 @@
                     {% if include_piece_variance|default(false) %}
                     <th class="px-3 py-3 text-right">Short/Excess Pcs</th>
                     {% endif %}
-                    <th class="px-3 py-3 text-right">Short/Excess Wt</th>
-                    <th class="px-3 py-3 text-right">%</th>
+                    <th class="pl-3 pr-1 py-3 text-right">Short/Excess Wt</th>
+                    <th class="pl-1 pr-3 py-3 text-right">%</th>
                 </tr>
             </thead>
             <tbody>
@@ -219,7 +219,7 @@
                     </td>
                     {% endif %}
                     <td
-                        class="px-3 py-3 font-mono {% if modal_totals.short_excess_wt < 0 %}text-red-500{% elif modal_totals.short_excess_wt > 0 %}text-green-600{% endif %}">
+                        class="pl-3 pr-1 py-3 font-mono {% if modal_totals.short_excess_wt < 0 %}text-red-500{% elif modal_totals.short_excess_wt > 0 %}text-green-600{% endif %}">
                         <div class="flex items-center justify-end gap-1">
                             <span>{{ "{:,.3f}".format(modal_totals.short_excess_wt|float) }}</span>
                             {% if modal_totals.short_excess_wt %}
@@ -231,7 +231,7 @@
                             {% endif %}
                         </div>
                     </td>
-                    <td class="px-3 py-3 text-right font-mono">
+                    <td class="pl-1 pr-3 py-3 text-right font-mono">
                         {{ "{:,.1f}%".format(modal_totals.percent|float) }}
                     </td>
                 </tr>
