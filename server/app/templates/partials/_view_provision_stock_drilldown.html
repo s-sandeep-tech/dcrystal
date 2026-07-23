@@ -64,7 +64,7 @@
     </td>
     {% if include_piece_variance|default(false) %}
     <td class="px-3 py-2 text-right text-[11px] font-mono">
-        {{ "{:,.3f}".format(row.prov_pcs|float) if row.prov_pcs else '0.000' }}
+        {{ "{:,.0f}".format(row.prov_pcs|float) if row.prov_pcs else '0' }}
     </td>
     {% endif %}
     <td class="px-3 py-2 text-right text-[11px] font-mono">
@@ -117,7 +117,7 @@
     <td
         class="px-3 py-2 text-[11px] font-mono {% if row.short_excess_pcs < 0 %}text-red-500 font-bold{% elif row.short_excess_pcs > 0 %}text-green-600{% endif %}">
         <div class="flex items-center justify-end gap-1">
-            <span>{{ "{:,.3f}".format(row.short_excess_pcs|float) if row.short_excess_pcs else '0.000' }}</span>
+            <span>{{ "{:,.0f}".format(row.short_excess_pcs|float) if row.short_excess_pcs else '0' }}</span>
             {% if row.short_excess_pcs %}
                 {% if row.short_excess_pcs|float < 0 %}
                     <span class="text-[9px] font-normal">↓</span>
@@ -193,7 +193,7 @@
                 <tr class="text-[11px] font-bold text-gray-900 dark:text-white uppercase tracking-tight">
                     <td class="px-4 py-3">Totals for {{ drill_section or 'All' }}</td>
                     {% if include_piece_variance|default(false) %}
-                    <td class="px-3 py-3 text-right font-mono">{{ "{:,.3f}".format(modal_totals.prov_pcs|float) }}</td>
+                    <td class="px-3 py-3 text-right font-mono">{{ "{:,.0f}".format(modal_totals.prov_pcs|float) }}</td>
                     {% endif %}
                     <td class="px-3 py-3 text-right font-mono">{{ "{:,.3f}".format(modal_totals.prov_gr_wt|float) }}
                     </td>
@@ -207,7 +207,7 @@
                     <td
                         class="px-3 py-3 font-mono {% if modal_totals.short_excess_pcs < 0 %}text-red-500{% elif modal_totals.short_excess_pcs > 0 %}text-green-600{% endif %}">
                         <div class="flex items-center justify-end gap-1">
-                            <span>{{ "{:,.3f}".format(modal_totals.short_excess_pcs|float) }}</span>
+                            <span>{{ "{:,.0f}".format(modal_totals.short_excess_pcs|float) }}</span>
                             {% if modal_totals.short_excess_pcs %}
                                 {% if modal_totals.short_excess_pcs|float < 0 %}
                                     <span class="text-[9px] font-normal">↓</span>
