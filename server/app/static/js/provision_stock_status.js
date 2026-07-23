@@ -19,6 +19,9 @@ let locationMultiSelect;
 let stateMultiSelect;
 let branchTypeMultiSelect;
 let branchStatusMultiSelect;
+let makeMultiSelect;
+let collectionMultiSelect;
+let sectionMultiSelect;
 let makeHeaderFilter;
 let sectionHeaderFilter;
 let purityHeaderFilter;
@@ -53,6 +56,27 @@ document.addEventListener('DOMContentLoaded', () => {
         containerId: 'filter-state-container',
         label: 'State',
         defaultText: 'All States',
+        options: []
+    });
+
+    makeMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-make-container',
+        label: 'Make',
+        defaultText: 'All Makes',
+        options: []
+    });
+
+    collectionMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-collection-container',
+        label: 'Collection',
+        defaultText: 'All Collections',
+        options: []
+    });
+
+    sectionMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-section-container',
+        label: 'Section',
+        defaultText: 'All Sections',
         options: []
     });
     
@@ -117,9 +141,6 @@ async function loadOptions() {
         const config = [
             { id: 'filter-purity', data: data.purities },
             { id: 'filter-classification', data: data.classifications },
-            { id: 'filter-make', data: data.makes },
-            { id: 'filter-collection', data: data.collections },
-            { id: 'filter-section', data: data.sections },
             { id: 'filter-prov-type', data: data.prov_types },
             { id: 'filter-provision-mode', data: data.provision_modes },
             { id: 'filter-business-head', data: data.business_heads }
@@ -139,6 +160,18 @@ async function loadOptions() {
 
         if (stateMultiSelect) {
             stateMultiSelect.populateOptions(data.states);
+        }
+
+        if (makeMultiSelect) {
+            makeMultiSelect.populateOptions(data.makes);
+        }
+
+        if (collectionMultiSelect) {
+            collectionMultiSelect.populateOptions(data.collections);
+        }
+
+        if (sectionMultiSelect) {
+            sectionMultiSelect.populateOptions(data.sections);
         }
 
         if (makeHeaderFilter) {
@@ -273,26 +306,19 @@ function applyFilters() {
 
     filterValues.purity = document.getElementById('filter-purity').value;
     filterValues.classification = document.getElementById('filter-classification').value;
-    filterValues.make = document.getElementById('filter-make').value;
-    filterValues.collection = document.getElementById('filter-collection').value;
-    filterValues.section = document.getElementById('filter-section').value;
     filterValues.prov_type = document.getElementById('filter-prov-type').value;
     filterValues.provision_mode = document.getElementById('filter-provision-mode').value;
 
     // Combine Sidebar Make and Header Filter Makes
-    const makeSelect = document.getElementById('filter-make');
-    let sidebarMake = makeSelect ? makeSelect.value : '';
+    let sidebarMakes = makeMultiSelect ? makeMultiSelect.getValues() : [];
     let headerMakes = makeHeaderFilter ? makeHeaderFilter.selectedValues : [];
-    let combinedMakes = new Set(headerMakes);
-    if (sidebarMake) combinedMakes.add(sidebarMake);
+    let combinedMakes = new Set([...sidebarMakes, ...headerMakes]);
     filterValues.make = Array.from(combinedMakes).join(',');
 
     // Combine Sidebar Section and Header Filter Sections
-    const sectionSelect = document.getElementById('filter-section');
-    let sidebarSection = sectionSelect ? sectionSelect.value : '';
+    let sidebarSections = sectionMultiSelect ? sectionMultiSelect.getValues() : [];
     let headerSections = sectionHeaderFilter ? sectionHeaderFilter.selectedValues : [];
-    let combinedSections = new Set(headerSections);
-    if (sidebarSection) combinedSections.add(sidebarSection);
+    let combinedSections = new Set([...sidebarSections, ...headerSections]);
     filterValues.section = Array.from(combinedSections).join(',');
 
     // Combine Sidebar Purity and Header Filter Purities
@@ -304,11 +330,9 @@ function applyFilters() {
     filterValues.purity = Array.from(combinedPurities).join(',');
 
     // Combine Sidebar Collection and Header Filter Collections
-    const collectionSelect = document.getElementById('filter-collection');
-    let sidebarCollection = collectionSelect ? collectionSelect.value : '';
+    let sidebarCollections = collectionMultiSelect ? collectionMultiSelect.getValues() : [];
     let headerCollections = collectionHeaderFilter ? collectionHeaderFilter.selectedValues : [];
-    let combinedCollections = new Set(headerCollections);
-    if (sidebarCollection) combinedCollections.add(sidebarCollection);
+    let combinedCollections = new Set([...sidebarCollections, ...headerCollections]);
     filterValues.collection = Array.from(combinedCollections).join(',');
     
     loadReport();
@@ -325,7 +349,6 @@ function resetFilters() {
     // Reset UI elements
     const filterIds = [
         'filter-purity', 'filter-classification', 
-        'filter-make', 'filter-collection', 'filter-section', 
         'filter-prov-type', 'filter-provision-mode',
         'filter-branch-type', 'filter-branch-status', 'filter-business-head'
     ];
@@ -344,6 +367,22 @@ function resetFilters() {
 
     if (branchTypeMultiSelect) {
         branchTypeMultiSelect.reset();
+    }
+
+    if (stateMultiSelect) {
+        stateMultiSelect.reset();
+    }
+
+    if (makeMultiSelect) {
+        makeMultiSelect.reset();
+    }
+
+    if (collectionMultiSelect) {
+        collectionMultiSelect.reset();
+    }
+
+    if (sectionMultiSelect) {
+        sectionMultiSelect.reset();
     }
 
     if (makeHeaderFilter) {
