@@ -859,6 +859,7 @@ levels AS (
            array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
            NULL::text as purity_ids, NULL::text as type_ids, NULL::text as wide_range_ids,
            SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
+           SUM(COALESCE(in_shop_pcs, 0) + COALESCE(in_transit, 0) - COALESCE(prov_pieces, 0)) as short_excess_pcs,
            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
            SUM(in_transit_wt) as in_transit_wt
     FROM base GROUP BY section
@@ -871,6 +872,7 @@ levels AS (
            array_to_string(array_agg(DISTINCT purity_id) FILTER (WHERE purity_id IS NOT NULL), ',') as purity_ids,
            NULL::text as type_ids, NULL::text as wide_range_ids,
            SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
+           SUM(COALESCE(in_shop_pcs, 0) + COALESCE(in_transit, 0) - COALESCE(prov_pieces, 0)) as short_excess_pcs,
            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
            SUM(in_transit_wt) as in_transit_wt
     FROM base GROUP BY section, purity
@@ -884,6 +886,7 @@ levels AS (
            array_to_string(array_agg(DISTINCT type_id) FILTER (WHERE type_id IS NOT NULL), ',') as type_ids,
            NULL::text as wide_range_ids,
            SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
+           SUM(COALESCE(in_shop_pcs, 0) + COALESCE(in_transit, 0) - COALESCE(prov_pieces, 0)) as short_excess_pcs,
            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
            SUM(in_transit_wt) as in_transit_wt
     FROM base GROUP BY section, purity, type
@@ -896,6 +899,7 @@ levels AS (
            array_to_string(array_agg(DISTINCT type_id) FILTER (WHERE type_id IS NOT NULL), ',') as type_ids,
            array_to_string(array_agg(DISTINCT wide_range_id) FILTER (WHERE wide_range_id IS NOT NULL), ',') as wide_range_ids,
            SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
+           SUM(COALESCE(in_shop_pcs, 0) + COALESCE(in_transit, 0) - COALESCE(prov_pieces, 0)) as short_excess_pcs,
            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
            SUM(in_transit_wt) as in_transit_wt
     FROM base GROUP BY section, purity, type, wide_range
@@ -908,6 +912,7 @@ levels AS (
            array_to_string(array_agg(DISTINCT type_id) FILTER (WHERE type_id IS NOT NULL), ',') as type_ids,
            array_to_string(array_agg(DISTINCT wide_range_id) FILTER (WHERE wide_range_id IS NOT NULL), ',') as wide_range_ids,
            SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
+           SUM(COALESCE(in_shop_pcs, 0) + COALESCE(in_transit, 0) - COALESCE(prov_pieces, 0)) as short_excess_pcs,
            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
            SUM(in_transit_wt) as in_transit_wt
     FROM base GROUP BY section, purity, type, wide_range, range_weight
@@ -915,7 +920,7 @@ levels AS (
 SELECT 
     level_id, section, purity, type, wide_range, range_weight,
     section_ids, purity_ids, type_ids, wide_range_ids,
-    prov_pcs, prov_gr_wt, in_shop_wt, ordered_wt, in_transit_wt,
+    prov_pcs, prov_gr_wt, in_shop_wt, short_excess_pcs, ordered_wt, in_transit_wt,
     (in_shop_wt + in_transit_wt - prov_gr_wt) as short_excess_wt,
     CASE WHEN prov_gr_wt = 0 THEN 0 ELSE (in_shop_wt + in_transit_wt - prov_gr_wt) * 100.0 / prov_gr_wt END as percent
 FROM levels
@@ -931,6 +936,7 @@ ORDER BY section, purity NULLS FIRST, type NULLS FIRST, wide_range NULLS FIRST, 
         total_in_shop = sum(r['in_shop_wt'] or 0 for r in rows if r['level_id'] == 1)
         total_transit = sum(r['in_transit_wt'] or 0 for r in rows if r['level_id'] == 1)
         total_ordered = sum(r['ordered_wt'] or 0 for r in rows if r['level_id'] == 1)
+        total_short_excess_pcs = sum(r['short_excess_pcs'] or 0 for r in rows if r['level_id'] == 1)
         
         total_short_excess = total_in_shop + total_transit - total_gr_wt
         total_percent = (total_short_excess * 100 / total_gr_wt) if total_gr_wt != 0 else 0
@@ -941,6 +947,7 @@ ORDER BY section, purity NULLS FIRST, type NULLS FIRST, wide_range NULLS FIRST, 
             'in_shop_wt': total_in_shop,
             'ordered_wt': total_ordered,
             'in_transit_wt': total_transit,
+            'short_excess_pcs': total_short_excess_pcs,
             'short_excess_wt': total_short_excess,
             'percent': total_percent
         }
@@ -951,6 +958,7 @@ ORDER BY section, purity NULLS FIRST, type NULLS FIRST, wide_range NULLS FIRST, 
                                modal_totals=modal_totals,
                                drill_section=drill_section,
                                include_purity_hierarchy=True,
+                               include_piece_variance=True,
                                enable_in_shop_details=True)
 
     except Exception as e:
