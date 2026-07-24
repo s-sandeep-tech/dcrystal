@@ -15,7 +15,10 @@ let filterValues = {
     collection: '',
     section: '',
     branch_type: '',
-    page: 1
+    sort_by: '',
+    sort_order: 'none',
+    page: 1,
+    per_page: 50
 };
 
 let locationMultiSelect = null;
@@ -45,33 +48,48 @@ function renderDeliveryTimeline(stages) {
     list.innerHTML = '';
 
     (stages || []).forEach((stage, index) => {
+        const status = stage.status || (stage.completed ? 'completed' : 'pending');
+        const isCompleted = status === 'completed';
+        const isSkipped = status === 'skipped';
+
         const item = document.createElement('div');
-        item.className = `relative min-w-0 min-h-[112px] rounded-md border p-3 pt-9 shadow-sm transition-colors ${
-            stage.completed
-                ? 'border-blue-100 bg-blue-50/40 dark:border-blue-900/50 dark:bg-blue-900/10'
-                : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800/40'
-        }`;
+        let cardBgClass = 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800/40';
+        if (isCompleted) {
+            cardBgClass = 'border-blue-100 bg-blue-50/40 dark:border-blue-900/50 dark:bg-blue-900/10';
+        } else if (isSkipped) {
+            cardBgClass = 'border-dashed border-gray-300 bg-gray-50/60 dark:border-gray-700 dark:bg-gray-800/20 opacity-80';
+        }
+        item.className = `relative min-w-0 min-h-[112px] rounded-md border p-3 pt-9 shadow-sm transition-colors ${cardBgClass}`;
 
         const marker = document.createElement('span');
-        marker.className = `absolute left-3 top-3 flex size-4 items-center justify-center rounded-full text-[8px] font-bold ${
-            stage.completed
-                ? 'bg-primary text-white shadow-sm'
-                : 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-300'
-        }`;
+        let markerClass = 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-300';
+        if (isCompleted) {
+            markerClass = 'bg-primary text-white shadow-sm';
+        } else if (isSkipped) {
+            markerClass = 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 font-bold';
+        }
+        marker.className = `absolute left-3 top-3 flex size-4 items-center justify-center rounded-full text-[8px] font-bold ${markerClass}`;
         marker.textContent = String(index + 1);
         item.appendChild(marker);
 
         const state = document.createElement('span');
-        state.className = `absolute right-3 top-3 text-[8px] font-bold uppercase tracking-wider ${
-            stage.completed ? 'text-primary' : 'text-gray-400'
-        }`;
-        state.textContent = stage.completed ? 'Completed' : 'Pending';
+        let stateClass = 'text-gray-400';
+        let stateText = 'Pending';
+        if (isCompleted) {
+            stateClass = 'text-primary';
+            stateText = 'Completed';
+        } else if (isSkipped) {
+            stateClass = 'text-amber-600 dark:text-amber-400';
+            stateText = 'Skipped / N/A';
+        }
+        state.className = `absolute right-3 top-3 text-[8px] font-bold uppercase tracking-wider ${stateClass}`;
+        state.textContent = stateText;
         item.appendChild(state);
 
         if (index < stages.length - 1 && index % 4 !== 3) {
             const connector = document.createElement('span');
             connector.className = `material-symbols-outlined absolute -right-[30px] top-1/2 z-10 hidden md:flex size-6 -translate-y-1/2 items-center justify-center rounded-full border bg-white dark:bg-gray-900 text-[16px] shadow-sm ${
-                stage.completed && stages[index + 1]?.completed
+                isCompleted && (stages[index + 1]?.completed || stages[index + 1]?.status === 'completed')
                     ? 'border-blue-100 text-primary dark:border-blue-900'
                     : 'border-gray-200 text-gray-300 dark:border-gray-700 dark:text-gray-600'
             }`;
@@ -87,17 +105,23 @@ function renderDeliveryTimeline(stages) {
 
         const date = document.createElement('p');
         date.className = 'mt-1 text-[10px] font-medium text-gray-500 dark:text-gray-400';
-        date.textContent = formatDeliveryModalDate(stage.date);
+        if (isSkipped) {
+            date.textContent = 'N/A';
+        } else {
+            date.textContent = formatDeliveryModalDate(stage.date);
+        }
         item.appendChild(date);
 
         const stageMetrics = document.createElement('div');
         stageMetrics.className = 'mt-2 flex items-center justify-between gap-2';
 
         const duration = document.createElement('p');
-        duration.className = `mt-2 text-[9px] font-semibold ${
-            stage.completed ? 'text-primary' : 'text-gray-400'
+        duration.className = `text-[9px] font-semibold ${
+            isCompleted ? 'text-primary' : (isSkipped ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400')
         }`;
-        if (!stage.completed) {
+        if (isSkipped) {
+            duration.textContent = 'Skipped';
+        } else if (!isCompleted) {
             duration.textContent = 'Pending';
         } else if (stage.days_to_next !== null && stage.days_to_next !== undefined) {
             duration.textContent = `${stage.days_to_next} day${stage.days_to_next === 1 ? '' : 's'} to next stage`;
@@ -106,7 +130,6 @@ function renderDeliveryTimeline(stages) {
         } else {
             duration.textContent = 'Awaiting next stage';
         }
-        duration.classList.remove('mt-2');
         stageMetrics.appendChild(duration);
 
         const cumulative = document.createElement('span');
@@ -169,7 +192,26 @@ function openDeliveryTimelineModal(detail) {
     setDeliveryModalText('delivery-modal-inshop', formatDeliveryModalDate(detail.inshop_date));
     setDeliveryModalText('delivery-modal-order-type', detail.order_type);
     setDeliveryModalText('delivery-modal-branch-type', detail.branch_type);
+
+    // Requirement A: Extended Product & Taxonomy
+    setDeliveryModalText('delivery-modal-purity', detail.purity || '-');
+    setDeliveryModalText('delivery-modal-make', detail.make || '-');
+    setDeliveryModalText('delivery-modal-classification', detail.classification || '-');
+    setDeliveryModalText('delivery-modal-sub-classification', detail.sub_classification || '-');
+    setDeliveryModalText('delivery-modal-master-collection', detail.master_collection || '-');
+    const sizeScrew = [detail.size, detail.screw_type].filter(Boolean).join(' · ');
+    setDeliveryModalText('delivery-modal-size-screw', sizeScrew || '-');
+    setDeliveryModalText('delivery-modal-design-no', detail.design_no || '-');
+    setDeliveryModalText('delivery-modal-barcode-no', detail.barcode || '-');
+
+    // Location & Branch Details
+    setDeliveryModalText('delivery-modal-order-location', detail.branch || '-');
+    setDeliveryModalText('delivery-modal-loc-branch-type', detail.branch_type || '-');
+    setDeliveryModalText('delivery-modal-received-location', detail.received_location || '-');
+    setDeliveryModalText('delivery-modal-current-location', detail.current_location || '-');
+
     renderDeliveryTimeline(detail.timeline);
+    renderStageDurationsTable(detail.stage_durations);
 
     deliveryModalPreviousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -177,6 +219,35 @@ function openDeliveryTimelineModal(detail) {
     modal.classList.add('flex');
     modal.setAttribute('aria-hidden', 'false');
     modal.querySelector('[data-delivery-modal-close]:not(.absolute)')?.focus();
+}
+
+function renderStageDurationsTable(durations) {
+    const tbody = document.getElementById('delivery-modal-stage-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!durations || durations.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="px-3 py-3 text-center text-gray-400 italic">No completed stage transitions available yet.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    durations.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50 dark:hover:bg-gray-800/50';
+        tr.innerHTML = `
+            <td class="px-3 py-2 font-semibold text-gray-900 dark:text-white">
+                ${item.from_stage} <span class="text-gray-400 mx-1">→</span> ${item.to_stage}
+            </td>
+            <td class="px-3 py-2 text-gray-600 dark:text-gray-400">${formatDeliveryModalDate(item.start_date)}</td>
+            <td class="px-3 py-2 text-gray-600 dark:text-gray-400">${formatDeliveryModalDate(item.end_date)}</td>
+            <td class="px-3 py-2 text-right font-mono font-bold text-primary">${item.duration_days} days</td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 function closeDeliveryTimelineModal() {
@@ -226,10 +297,16 @@ function initDeliveryTimelineModal() {
 
 async function initFilters() {
     try {
-        const response = await fetch('/api/collection-wise-average-delivery-days/options', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-        });
-        if (!response.ok) return;
+        const headers = {};
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        const response = await fetch('/api/collection-wise-average-delivery-days/options', { headers });
+        if (!response.ok) {
+            console.error('Failed to fetch filter options:', response.status);
+            return;
+        }
         const options = await response.json();
 
         // Location multi-select
@@ -237,7 +314,8 @@ async function initFilters() {
         if (locContainer && typeof CustomMultiSelect !== 'undefined') {
             locationMultiSelect = new CustomMultiSelect({
                 containerId: 'filter-location-container',
-                placeholder: 'All Locations',
+                label: 'Location',
+                defaultText: 'All Locations',
                 options: (options.locations || []).map(loc => ({ value: loc, label: loc })),
                 onChange: (selected) => {
                     filterValues.location = selected.join(',');
@@ -278,6 +356,9 @@ function collectFilterValues() {
     filterValues.collection = document.getElementById('filter-collection')?.value || '';
     filterValues.section = document.getElementById('filter-section')?.value || '';
     filterValues.branch_type = document.getElementById('filter-branch-type')?.value || '';
+    if (locationMultiSelect && typeof locationMultiSelect.getValues === 'function') {
+        filterValues.location = locationMultiSelect.getValues().join(',');
+    }
 }
 
 function applyFilters() {
@@ -298,13 +379,18 @@ function resetFilters() {
         collection: '',
         section: '',
         branch_type: '',
-        page: 1
+        sort_by: '',
+        sort_order: 'none',
+        page: 1,
+        per_page: filterValues.per_page || 50
     };
 
     const searchInput = document.getElementById('report-search');
     if (searchInput) searchInput.value = '';
 
-    if (locationMultiSelect) locationMultiSelect.setSelected([]);
+    if (locationMultiSelect && typeof locationMultiSelect.reset === 'function') {
+        locationMultiSelect.reset();
+    }
 
     ['filter-group', 'filter-purity', 'filter-classification', 'filter-make', 'filter-master-collection', 'filter-collection', 'filter-section', 'filter-branch-type'].forEach(id => {
         const select = document.getElementById(id);
@@ -328,6 +414,58 @@ function goToPage(page) {
     loadReportData();
 }
 
+function updateHeaderPagination() {
+    const root = document.getElementById('partial-root');
+    const infoSpan = document.getElementById('pagination-info');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const selectPerPage = document.getElementById('per-page-select');
+
+    if (!root) return;
+
+    const page = parseInt(root.dataset.page || '1', 10);
+    const perPage = parseInt(root.dataset.perPage || '50', 10);
+    const totalPages = parseInt(root.dataset.totalPages || '1', 10);
+    const totalRecords = parseInt(root.dataset.totalRecords || '0', 10);
+
+    filterValues.page = page;
+    filterValues.per_page = perPage;
+
+    if (selectPerPage) selectPerPage.value = String(perPage);
+
+    if (totalRecords === 0) {
+        if (infoSpan) infoSpan.textContent = '0-0 of 0';
+        if (btnPrev) btnPrev.disabled = true;
+        if (btnNext) btnNext.disabled = true;
+        return;
+    }
+
+    const startRecord = (page - 1) * perPage + 1;
+    const endRecord = Math.min(page * perPage, totalRecords);
+
+    if (infoSpan) infoSpan.textContent = `${startRecord.toLocaleString('en-IN')}-${endRecord.toLocaleString('en-IN')} of ${totalRecords.toLocaleString('en-IN')}`;
+    if (btnPrev) btnPrev.disabled = (page <= 1);
+    if (btnNext) btnNext.disabled = (page >= totalPages);
+}
+
+function changePerPage(newPerPage) {
+    filterValues.per_page = parseInt(newPerPage, 10) || 50;
+    filterValues.page = 1;
+    loadReportData();
+}
+
+function goToPrevPage() {
+    if (filterValues.page > 1) {
+        filterValues.page--;
+        loadReportData();
+    }
+}
+
+function goToNextPage() {
+    filterValues.page++;
+    loadReportData();
+}
+
 async function loadReportData() {
     const container = document.getElementById('view-collection-wise-average-delivery-days');
     const progressBar = document.getElementById('report-progress');
@@ -347,7 +485,10 @@ async function loadReportData() {
         });
 
         const html = await response.text();
-        if (container) container.innerHTML = html;
+        if (container) {
+            container.innerHTML = html;
+            updateHeaderPagination();
+        }
     } catch (err) {
         console.error('Error loading report data:', err);
         if (container) {
@@ -414,9 +555,31 @@ async function exportToExcel() {
     }
 }
 
+function toggleSort(column) {
+    if (filterValues.sort_by === column) {
+        if (filterValues.sort_order === 'asc') {
+            filterValues.sort_order = 'desc';
+        } else if (filterValues.sort_order === 'desc') {
+            filterValues.sort_by = '';
+            filterValues.sort_order = 'none';
+        } else {
+            filterValues.sort_order = 'asc';
+        }
+    } else {
+        filterValues.sort_by = column;
+        filterValues.sort_order = 'asc';
+    }
+    filterValues.page = 1;
+    loadReportData();
+}
+
 window.applyFilters = applyFilters;
 window.resetFilters = resetFilters;
 window.onSearchInput = onSearchInput;
 window.goToPage = goToPage;
+window.changePerPage = changePerPage;
+window.goToPrevPage = goToPrevPage;
+window.goToNextPage = goToNextPage;
+window.toggleSort = toggleSort;
 window.adjustZoom = adjustZoom;
 window.exportToExcel = exportToExcel;

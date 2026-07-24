@@ -35,31 +35,55 @@ def build_process_timeline(record):
     ]
     start_date = stages[0][1]
 
-    timeline = []
-    stage_durations = []
+    # Find indices of stages that have actual dates
+    completed_indices = [i for i, (label, dt) in enumerate(stages) if dt is not None]
 
+    # Build stage duration breakdown between consecutive completed stages
+    stage_durations = []
+    for idx in range(len(completed_indices) - 1):
+        curr_i = completed_indices[idx]
+        next_i = completed_indices[idx + 1]
+        from_label, from_date = stages[curr_i]
+        to_label, to_date = stages[next_i]
+        dur = max((to_date - from_date).days, 0)
+        stage_durations.append({
+            'from_stage': from_label,
+            'to_stage': to_label,
+            'start_date': date_to_iso(from_date),
+            'end_date': date_to_iso(to_date),
+            'duration_days': dur,
+        })
+
+    timeline = []
     for index, (label, stage_date) in enumerate(stages):
-        next_label, next_date = stages[index + 1] if index + 1 < len(stages) else (None, None)
+        # Find the next completed stage after this index (if any)
+        next_completed = next((stages[j] for j in range(index + 1, len(stages)) if stages[j][1] is not None), None)
+        later_completed_exists = any(stages[j][1] is not None for j in range(index + 1, len(stages)))
+
         days_to_next = None
         cumulative_days = None
-        if stage_date and next_date:
-            days_to_next = max((next_date - stage_date).days, 0)
-            stage_durations.append({
-                'from_stage': label,
-                'to_stage': next_label,
-                'start_date': date_to_iso(stage_date),
-                'end_date': date_to_iso(next_date),
-                'duration_days': days_to_next,
-            })
-        if start_date and stage_date:
-            cumulative_days = max((stage_date - start_date).days, 0)
+        status = 'pending'
+
+        if stage_date is not None:
+            status = 'completed'
+            if next_completed and next_completed[1]:
+                days_to_next = max((next_completed[1] - stage_date).days, 0)
+            if start_date:
+                cumulative_days = max((stage_date - start_date).days, 0)
+        else:
+            if later_completed_exists:
+                status = 'skipped'
+            else:
+                status = 'pending'
 
         timeline.append({
             'label': label,
             'date': date_to_iso(stage_date),
             'days_to_next': days_to_next,
+            'next_stage_label': next_completed[0] if next_completed else None,
             'cumulative_days': cumulative_days,
-            'completed': stage_date is not None,
+            'completed': status == 'completed',
+            'status': status,
         })
 
     return timeline, stage_durations
@@ -116,6 +140,8 @@ def build_delivery_display_rows(records):
                     str(record.order_request_type) if record.order_request_type is not None else '-'
                 ),
                 'branch_type': record.branch_type or '-',
+                'received_location': record.received_location or '-',
+                'current_location': record.current_location or '-',
                 'timeline': timeline,
                 'stage_durations': stage_durations,
             },
@@ -135,8 +161,9 @@ def build_delivery_display_rows(records):
 
 def get_distinct(column):
     try:
-        results = db.session.query(distinct(column)).filter(column.isnot(None), column != '').order_by(column).all()
-        return [r[0] for r in results if r[0] is not None]
+        query = db.session.query(distinct(column)).filter(column.isnot(None))
+        results = query.order_by(column).all()
+        return [str(r[0]) if isinstance(r[0], (int, float)) or hasattr(r[0], 'as_tuple') else r[0] for r in results if r[0] is not None and str(r[0]).strip() != '']
     except Exception as e:
         logger.error(f"Error fetching distinct values for {column}: {e}")
         return []
@@ -159,46 +186,57 @@ def build_snapshot_query(args):
             (CollectionWiseAverageDeliveryDaysSnapshot.barcode_no.ilike(f"%{search}%"))
         )
 
-    # Multi-select location filter
+    # Multi-select or single location filter
     locations = split_filter_values(args.get('location'))
     if locations:
         query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.location.in_(locations))
 
-    # Single or Multi-select filters
-    group_name = args.get('group', '').strip()
-    if group_name:
-        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.group_name == group_name)
+    # Group filter
+    groups = split_filter_values(args.get('group'))
+    if groups:
+        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.group_name.in_(groups))
 
-    purity = args.get('purity', '').strip()
-    if purity:
-        try:
-            query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.purity == float(purity))
-        except (ValueError, TypeError):
-            pass
+    # Purity filter
+    purity_strs = split_filter_values(args.get('purity'))
+    if purity_strs:
+        float_purities = []
+        for p in purity_strs:
+            try:
+                float_purities.append(float(p))
+            except (ValueError, TypeError):
+                pass
+        if float_purities:
+            query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.purity.in_(float_purities))
 
-    classification = args.get('classification', '').strip()
-    if classification:
-        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.classification == classification)
+    # Classification filter
+    classifications = split_filter_values(args.get('classification'))
+    if classifications:
+        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.classification.in_(classifications))
 
-    make = args.get('make', '').strip()
-    if make:
-        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.make == make)
+    # Make filter
+    makes = split_filter_values(args.get('make'))
+    if makes:
+        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.make.in_(makes))
 
-    collection = args.get('collection', '').strip()
-    if collection:
-        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.collection == collection)
+    # Collection filter
+    collections = split_filter_values(args.get('collection'))
+    if collections:
+        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.collection.in_(collections))
 
-    master_collection = args.get('master_collection', '').strip()
-    if master_collection:
-        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.master_collection == master_collection)
+    # Master Collection filter
+    master_collections = split_filter_values(args.get('master_collection'))
+    if master_collections:
+        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.master_collection.in_(master_collections))
 
-    section = args.get('section', '').strip()
-    if section:
-        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.section == section)
+    # Section filter
+    sections = split_filter_values(args.get('section'))
+    if sections:
+        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.section.in_(sections))
 
-    branch_type = args.get('branch_type', '').strip()
-    if branch_type:
-        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.branch_type == branch_type)
+    # Branch Type filter
+    branch_types = split_filter_values(args.get('branch_type'))
+    if branch_types:
+        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.branch_type.in_(branch_types))
 
     return query
 
@@ -230,11 +268,32 @@ def get_collection_wise_average_delivery_days_partial():
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
+        sort_by = request.args.get('sort_by', '').strip()
+        sort_order = request.args.get('sort_order', 'none').lower()
 
         query = build_snapshot_query(request.args)
-        pagination = query.order_by(CollectionWiseAverageDeliveryDaysSnapshot.id.desc()).paginate(
-            page=page, per_page=per_page, error_out=False
-        )
+
+        column_map = {
+            'collection': CollectionWiseAverageDeliveryDaysSnapshot.collection,
+            'location': CollectionWiseAverageDeliveryDaysSnapshot.location,
+            'group': CollectionWiseAverageDeliveryDaysSnapshot.group_name,
+            'ordered_date': CollectionWiseAverageDeliveryDaysSnapshot.ordered_date,
+            'morr_received_date': CollectionWiseAverageDeliveryDaysSnapshot.morr_received_date,
+            'muziris_inshop_received_date': CollectionWiseAverageDeliveryDaysSnapshot.muziris_inshop_received_date,
+            'tat_days': (CollectionWiseAverageDeliveryDaysSnapshot.morr_received_date - CollectionWiseAverageDeliveryDaysSnapshot.ordered_date),
+            'sla_variance': ((CollectionWiseAverageDeliveryDaysSnapshot.morr_received_date - CollectionWiseAverageDeliveryDaysSnapshot.ordered_date) - WORKSHOP_SLA_DAYS),
+        }
+
+        if sort_by in column_map and sort_order in ('asc', 'desc'):
+            sort_col = column_map[sort_by]
+            if sort_order == 'desc':
+                query = query.order_by(sort_col.desc().nullslast())
+            else:
+                query = query.order_by(sort_col.asc().nullslast())
+        else:
+            query = query.order_by(CollectionWiseAverageDeliveryDaysSnapshot.id.desc())
+
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         display_rows = build_delivery_display_rows(pagination.items)
 
         return render_template(
@@ -243,7 +302,9 @@ def get_collection_wise_average_delivery_days_partial():
             total_records=pagination.total,
             page=page,
             per_page=per_page,
-            total_pages=pagination.pages or 1
+            total_pages=pagination.pages or 1,
+            sort_by=sort_by,
+            sort_order=sort_order
         )
     except Exception as e:
         logger.error(f"Error rendering collection_wise_average_delivery_days partial: {str(e)}")

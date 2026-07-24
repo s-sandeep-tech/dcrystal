@@ -229,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncHMDelayManagementBtn) syncHMDelayManagementBtn.addEventListener('click', () => triggerSync(syncHMDelayManagementBtn, '/settings/sync-hm-delay-management', 'HM Delay Management Sync', 'hm_delay_management'));
     const syncCollectionWiseAverageDeliveryDaysBtn = document.getElementById('sync-collection-wise-average-delivery-days-btn');
 
-    if (syncCollectionWiseAverageDeliveryDaysBtn) syncCollectionWiseAverageDeliveryDaysBtn.addEventListener('click', () => triggerSync(syncCollectionWiseAverageDeliveryDaysBtn, '/api/sync/collection-wise-average-delivery-days', 'Collection Wise Average Delivery Days Sync', 'collection_wise_average_delivery_days'));
+    if (syncCollectionWiseAverageDeliveryDaysBtn) syncCollectionWiseAverageDeliveryDaysBtn.addEventListener('click', () => triggerSync(syncCollectionWiseAverageDeliveryDaysBtn, window.SETTINGS_CONFIG.syncCollectionWiseAverageDeliveryDaysUrl || '/api/sync/collection-wise-average-delivery-days', 'Collection Wise Average Delivery Days Sync', 'collection_wise_average_delivery_days'));
 
     function showConfirmModal(title, message) {
         return new Promise((resolve) => {

@@ -112,7 +112,33 @@
                 <div id="delivery-timeline-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4"></div>
             </div>
 
-            <!-- Requirement C: Stage Duration Breakdown Table -->
+            <!-- Location & Branch Details -->
+            <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="material-symbols-outlined text-primary text-base">location_on</span>
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-700 dark:text-gray-200">Location & Branch Details</h3>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-lg border border-gray-100 dark:border-gray-800 text-[10px]">
+                    <div>
+                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Order Location</span>
+                        <span id="delivery-modal-order-location" class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
+                    </div>
+                    <div>
+                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Branch Type</span>
+                        <span id="delivery-modal-loc-branch-type" class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
+                    </div>
+                    <div>
+                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Received Location</span>
+                        <span id="delivery-modal-received-location" class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
+                    </div>
+                    <div>
+                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Current Location</span>
+                        <span id="delivery-modal-current-location" class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stage Duration Breakdown Table -->
             <div class="px-5 py-4">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="material-symbols-outlined text-primary text-base">timer</span>

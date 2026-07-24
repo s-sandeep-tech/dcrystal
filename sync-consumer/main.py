@@ -54,6 +54,7 @@ try:
         sync_pending_order_details_task,
         sync_active_order_details_task,
         sync_size_level_nip_barcode_task,
+        sync_collection_wise_average_delivery_days_task,
         emit_sync_update
     )
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -189,6 +190,8 @@ def process_sync_queue():
                         res = sync_active_order_details_task()
                     elif task_type == 'size_level_nip_barcode':
                         res = sync_size_level_nip_barcode_task()
+                    elif task_type == 'collection_wise_average_delivery_days':
+                        res = sync_collection_wise_average_delivery_days_task()
                     else:
                         logger.error(f"Unknown sync task type: {task_type}")
 

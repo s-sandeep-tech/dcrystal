@@ -1,4 +1,8 @@
-<div class="h-full flex flex-col bg-white dark:bg-gray-900">
+<div class="h-full flex flex-col bg-white dark:bg-gray-900" id="partial-root"
+    data-page="{{ page|default(1) }}"
+    data-per-page="{{ per_page|default(50) }}"
+    data-total-pages="{{ total_pages|default(1) }}"
+    data-total-records="{{ total_records|default(0) }}">
     {% if error_message %}
     <div class="h-full flex flex-col items-center justify-center p-8 text-center">
         <span class="material-symbols-outlined text-3xl text-red-500 mb-2">error</span>
@@ -27,14 +31,70 @@
             </colgroup>
             <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr class="text-[9px] uppercase text-gray-500 font-bold tracking-wider">
-                    <th scope="col" class="px-3 py-1.5">Collection / Barcode</th>
-                    <th scope="col" class="px-3 py-1.5">Branch</th>
-                    <th scope="col" class="px-3 py-1.5">Product</th>
-                    <th scope="col" class="px-3 py-1.5">Order Date</th>
-                    <th scope="col" class="px-3 py-1.5">MORR Receipt</th>
-                    <th scope="col" class="px-3 py-1.5">Workshop TAT</th>
-                    <th scope="col" class="px-3 py-1.5">SLA Variance</th>
-                    <th scope="col" class="px-3 py-1.5">Muziris In-Shop</th>
+                    <th scope="col" class="px-3 py-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group" onclick="toggleSort('collection')">
+                        <div class="flex items-center gap-1">
+                            <span>Collection / Barcode</span>
+                            <span class="material-symbols-outlined text-[14px] {% if sort_by == 'collection' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                                {{ 'arrow_upward' if (sort_by == 'collection' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'collection' and sort_order == 'desc') else 'unfold_more') }}
+                            </span>
+                        </div>
+                    </th>
+                    <th scope="col" class="px-3 py-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group" onclick="toggleSort('location')">
+                        <div class="flex items-center gap-1">
+                            <span>Branch</span>
+                            <span class="material-symbols-outlined text-[14px] {% if sort_by == 'location' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                                {{ 'arrow_upward' if (sort_by == 'location' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'location' and sort_order == 'desc') else 'unfold_more') }}
+                            </span>
+                        </div>
+                    </th>
+                    <th scope="col" class="px-3 py-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group" onclick="toggleSort('group')">
+                        <div class="flex items-center gap-1">
+                            <span>Product</span>
+                            <span class="material-symbols-outlined text-[14px] {% if sort_by == 'group' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                                {{ 'arrow_upward' if (sort_by == 'group' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'group' and sort_order == 'desc') else 'unfold_more') }}
+                            </span>
+                        </div>
+                    </th>
+                    <th scope="col" class="px-3 py-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group" onclick="toggleSort('ordered_date')">
+                        <div class="flex items-center gap-1">
+                            <span>Order Date</span>
+                            <span class="material-symbols-outlined text-[14px] {% if sort_by == 'ordered_date' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                                {{ 'arrow_upward' if (sort_by == 'ordered_date' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'ordered_date' and sort_order == 'desc') else 'unfold_more') }}
+                            </span>
+                        </div>
+                    </th>
+                    <th scope="col" class="px-3 py-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group" onclick="toggleSort('morr_received_date')">
+                        <div class="flex items-center gap-1">
+                            <span>MORR Receipt</span>
+                            <span class="material-symbols-outlined text-[14px] {% if sort_by == 'morr_received_date' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                                {{ 'arrow_upward' if (sort_by == 'morr_received_date' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'morr_received_date' and sort_order == 'desc') else 'unfold_more') }}
+                            </span>
+                        </div>
+                    </th>
+                    <th scope="col" class="px-3 py-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group" onclick="toggleSort('tat_days')">
+                        <div class="flex items-center gap-1">
+                            <span>Workshop TAT</span>
+                            <span class="material-symbols-outlined text-[14px] {% if sort_by == 'tat_days' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                                {{ 'arrow_upward' if (sort_by == 'tat_days' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'tat_days' and sort_order == 'desc') else 'unfold_more') }}
+                            </span>
+                        </div>
+                    </th>
+                    <th scope="col" class="px-3 py-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group" onclick="toggleSort('sla_variance')">
+                        <div class="flex items-center gap-1">
+                            <span>SLA Var.</span>
+                            <span class="material-symbols-outlined text-[14px] {% if sort_by == 'sla_variance' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                                {{ 'arrow_upward' if (sort_by == 'sla_variance' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'sla_variance' and sort_order == 'desc') else 'unfold_more') }}
+                            </span>
+                        </div>
+                    </th>
+                    <th scope="col" class="px-3 py-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group" onclick="toggleSort('muziris_inshop_received_date')">
+                        <div class="flex items-center gap-1">
+                            <span>Muziris In-Shop</span>
+                            <span class="material-symbols-outlined text-[14px] {% if sort_by == 'muziris_inshop_received_date' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                                {{ 'arrow_upward' if (sort_by == 'muziris_inshop_received_date' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'muziris_inshop_received_date' and sort_order == 'desc') else 'unfold_more') }}
+                            </span>
+                        </div>
+                    </th>
                     <th scope="col" class="px-3 py-1.5">Status</th>
                 </tr>
             </thead>
