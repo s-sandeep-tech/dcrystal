@@ -90,21 +90,39 @@
     </td>
     <td class="px-2.5 py-1 text-right text-[11px] font-mono">
         {% if enable_in_shop_details|default(false) and has_detail_ids and row.prov_gr_wt|float != row.in_shop_wt|float %}
-        <a href="#" data-in-shop-detail
-            data-level="{{ level }}"
-            data-section="{{ row.section or '' }}"
-            data-purity="{{ row.purity if row.purity is defined and row.purity is not none else '' }}"
-            data-type="{{ row.type or '' }}"
-            data-wide-range="{{ row.wide_range or '' }}"
-            data-range-weight="{{ row.range_weight if row.range_weight is not none else '' }}"
-            data-section-ids="{{ row.section_ids if row.section_ids is defined and row.section_ids else '' }}"
-            data-purity-ids="{{ row.purity_ids if row.purity_ids is defined and row.purity_ids else '' }}"
-            data-type-ids="{{ row.type_ids if row.type_ids is defined and row.type_ids else '' }}"
-            data-wide-range-ids="{{ row.wide_range_ids if row.wide_range_ids is defined and row.wide_range_ids else '' }}"
-            class="font-semibold text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary focus:outline-none focus:ring-2 focus:ring-primary/30 rounded-sm"
-            title="View in-shop barcode details">
-            {{ "{:,.3f}".format(row.in_shop_wt|float) if row.in_shop_wt else '0.000' }}
-        </a>
+        <div class="flex items-center justify-end gap-1">
+            <a href="#" data-in-shop-detail
+                data-level="{{ level }}"
+                data-section="{{ row.section or '' }}"
+                data-purity="{{ row.purity if row.purity is defined and row.purity is not none else '' }}"
+                data-type="{{ row.type or '' }}"
+                data-wide-range="{{ row.wide_range or '' }}"
+                data-range-weight="{{ row.range_weight if row.range_weight is not none else '' }}"
+                data-section-ids="{{ row.section_ids if row.section_ids is defined and row.section_ids else '' }}"
+                data-purity-ids="{{ row.purity_ids if row.purity_ids is defined and row.purity_ids else '' }}"
+                data-type-ids="{{ row.type_ids if row.type_ids is defined and row.type_ids else '' }}"
+                data-wide-range-ids="{{ row.wide_range_ids if row.wide_range_ids is defined and row.wide_range_ids else '' }}"
+                class="font-semibold text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary focus:outline-none focus:ring-2 focus:ring-primary/30 rounded-sm"
+                title="View in-shop barcode details">
+                {{ "{:,.3f}".format(row.in_shop_wt|float) if row.in_shop_wt else '0.000' }}
+            </a>
+            <button type="button" data-comparison-detail
+                data-level="{{ level }}"
+                data-section="{{ row.section or '' }}"
+                data-purity="{{ row.purity if row.purity is defined and row.purity is not none else '' }}"
+                data-type="{{ row.type or '' }}"
+                data-wide-range="{{ row.wide_range or '' }}"
+                data-range-weight="{{ row.range_weight if row.range_weight is not none else '' }}"
+                data-section-ids="{{ row.section_ids if row.section_ids is defined and row.section_ids else '' }}"
+                data-purity-ids="{{ row.purity_ids if row.purity_ids is defined and row.purity_ids else '' }}"
+                data-type-ids="{{ row.type_ids if row.type_ids is defined and row.type_ids else '' }}"
+                data-wide-range-ids="{{ row.wide_range_ids if row.wide_range_ids is defined and row.wide_range_ids else '' }}"
+                class="size-5 inline-flex items-center justify-center rounded text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/40 focus:outline-none focus:ring-2 focus:ring-red-300"
+                title="Compare provision and NIP values"
+                aria-label="Compare provision and NIP values">
+                <span class="material-symbols-outlined text-[14px]">difference</span>
+            </button>
+        </div>
         {% else %}
         {{ "{:,.3f}".format(row.in_shop_wt|float) if row.in_shop_wt else '0.000' }}
         {% endif %}

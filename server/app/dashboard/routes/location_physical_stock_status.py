@@ -1259,6 +1259,232 @@ LIMIT :limit OFFSET :offset
         ), 500
 
 
+@dashboard_bp.route('/api/location-physical-stock-status/stock-comparison')
+@jwt_required()
+def get_location_physical_stock_comparison():
+    try:
+        page = max(request.args.get('page', 1, type=int), 1)
+        per_page = 50
+        drill_level = min(max(request.args.get('drill_level', 1, type=int), 1), 5)
+
+        params = {
+            'location': request.args.get('location') or None,
+            'purity': request.args.get('purity') or None,
+            'classification': request.args.get('classification') or None,
+            'make': request.args.get('make') or None,
+            'collection': request.args.get('collection') or None,
+            'section': request.args.get('section') or None,
+            'prov_type': request.args.get('prov_type') or None,
+            'provision_mode': request.args.get('provision_mode') or None,
+            'branch_type': request.args.get('branch_type') or None,
+            'branch_status': request.args.get('branch_status') or None,
+            'business_head': request.args.get('business_head') or None,
+            'state': request.args.get('state') or None,
+            'bh_emp_code': None,
+            'authorized_branch_ids': None,
+            'drill_level': drill_level,
+            'drill_range_weight': request.args.get('drill_range_weight') or None,
+            'drill_section_ids': request.args.get('drill_section_ids') or None,
+            'drill_purity_ids': request.args.get('drill_purity_ids') or None,
+            'drill_type_ids': request.args.get('drill_type_ids') or None,
+            'drill_wide_range_ids': request.args.get('drill_wide_range_ids') or None,
+            'limit': per_page,
+            'offset': (page - 1) * per_page,
+        }
+
+        required_id_params = ['drill_section_ids']
+        if drill_level >= 2:
+            required_id_params.append('drill_purity_ids')
+        if drill_level >= 3:
+            required_id_params.append('drill_type_ids')
+        if drill_level >= 4:
+            required_id_params.append('drill_wide_range_ids')
+
+        if any(not params[param] for param in required_id_params):
+            return '<div class="p-8 text-center text-red-500">Required hierarchy IDs are missing.</div>', 400
+        if drill_level >= 5 and params['drill_range_weight'] is None:
+            return '<div class="p-8 text-center text-red-500">A range weight is required.</div>', 400
+
+        roles = [role.upper() for role in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(role in roles for role in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        user_id = session.get('user_id')
+
+        apply_franchise_india_branch_param(params, roles)
+
+        if not is_admin and not is_manager:
+            if 'BUSINESS_HEAD' in roles and user_id:
+                params['bh_emp_code'] = user_id
+            elif 'SHOWROOM_MANAGER' in roles and user_id:
+                try:
+                    branch_ids = [
+                        row.branch_id
+                        for row in BranchAuthoritySnapshot.query.filter_by(emp_code=int(user_id)).all()
+                    ]
+                    params['authorized_branch_ids'] = ','.join(map(str, branch_ids)) if branch_ids else '-1'
+                except (ValueError, TypeError):
+                    params['authorized_branch_ids'] = '-1'
+
+        identity_columns = (
+            'branch_id', 'division_id', 'group_id', 'purity_id',
+            'classification_id', 'sub_classification_id', 'section_id',
+            'type_id', 'make_id', 'collection_id', 'master_collection_id',
+            'sub_section_id', 'wide_range_id', 'gender_id', 'size_id',
+            'screw_type_id',
+        )
+        provision_identity = ',\n        '.join(f'p.{column}' for column in identity_columns)
+        nip_identity = ',\n        '.join(f'b.{column}' for column in identity_columns)
+        provision_group_by = ', '.join(f'p.{column}' for column in identity_columns)
+        nip_group_by = ', '.join(f'b.{column}' for column in identity_columns)
+        provision_nip_join = '\n'.join(
+            f'      AND p.{column} = b.{column}' for column in identity_columns
+        )
+        comparison_join = '\n'.join(
+            f'      AND p.{column} = n.{column}' for column in identity_columns
+        )
+
+        query = text(f'''
+WITH provision_rows AS MATERIALIZED (
+    SELECT
+        {provision_identity},
+        p.range_weight,
+        MIN(p.location) AS location,
+        MIN(p.division) AS division,
+        MIN(p."group") AS group_name,
+        MIN(p.purity) AS purity,
+        MIN(p.classification) AS classification,
+        MIN(p.sub_classification) AS sub_classification,
+        MIN(p.make) AS make,
+        MIN(p.collection) AS collection,
+        MIN(p.section) AS section,
+        MIN(p.sub_section) AS sub_section,
+        MIN(p.type) AS type,
+        MIN(p.wide_range) AS wide_range,
+        MIN(p.size) AS size,
+        MIN(p.screw_type) AS screw_type,
+        MIN(p.prov_type) AS prov_type,
+        COALESCE(SUM(p.prov_pieces), 0) AS provision_pieces,
+        COALESCE(SUM(p.prov_gr_wt), 0) AS provision_weight
+    FROM provision_stock_raw_snapshot AS p
+    WHERE (:location IS NULL OR p.location = ANY(string_to_array(CAST(:location AS text), ',')))
+      AND (:state IS NULL OR p.state = ANY(string_to_array(CAST(:state AS text), ',')))
+      AND (:purity IS NULL OR p.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
+      AND (:classification IS NULL OR p.classification = ANY(string_to_array(CAST(:classification AS text), ',')))
+      AND (:make IS NULL OR p.make = ANY(string_to_array(CAST(:make AS text), ',')))
+      AND (:collection IS NULL OR p.collection = ANY(string_to_array(CAST(:collection AS text), ',')))
+      AND (:section IS NULL OR p.section = ANY(string_to_array(CAST(:section AS text), ',')))
+      AND (:prov_type IS NULL OR p.prov_type = ANY(string_to_array(CAST(:prov_type AS text), ',')))
+      AND (:provision_mode IS NULL OR p.provision_mode_filter = ANY(string_to_array(CAST(:provision_mode AS text), ',')))
+      AND (:branch_type IS NULL OR p.branch_type = ANY(string_to_array(CAST(:branch_type AS text), ',')))
+      AND (:branch_status IS NULL OR p.branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
+      AND (:business_head IS NULL OR p.business_head_name = ANY(string_to_array(CAST(:business_head AS text), ',')))
+      AND (:bh_emp_code IS NULL OR p.business_head_emp_code = :bh_emp_code)
+      AND (:authorized_branch_ids IS NULL OR p.branch_id = ANY(string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]))
+      AND p.section_id = ANY(string_to_array(CAST(:drill_section_ids AS text), ',')::bigint[])
+      AND (:drill_level < 2 OR p.purity_id = ANY(string_to_array(CAST(:drill_purity_ids AS text), ',')::bigint[]))
+      AND (:drill_level < 3 OR p.type_id = ANY(string_to_array(CAST(:drill_type_ids AS text), ',')::bigint[]))
+      AND (:drill_level < 4 OR p.wide_range_id = ANY(string_to_array(CAST(:drill_wide_range_ids AS text), ',')::bigint[]))
+      AND (:drill_level < 5 OR p.range_weight = CAST(:drill_range_weight AS numeric))
+    GROUP BY {provision_group_by}, p.range_weight
+),
+nip_rows AS MATERIALIZED (
+    SELECT
+        {nip_identity},
+        b.weight AS range_weight,
+        MIN(b.location) AS nip_location,
+        MIN(b.classification) AS nip_classification,
+        MIN(b.make) AS nip_make,
+        MIN(b.collection) AS nip_collection,
+        MIN(b.section) AS nip_section,
+        MIN(b.sub_section) AS nip_sub_section,
+        MIN(b.type) AS nip_type,
+        MIN(b.wide_range) AS nip_wide_range,
+        MIN(b.size) AS nip_size,
+        MIN(b.screw_type) AS nip_screw_type,
+        COUNT(*) AS barcode_count,
+        COALESCE(SUM(b.pieces), 0) AS nip_pieces,
+        COALESCE(SUM(b.gross_wt), 0) AS nip_weight
+    FROM size_level_nip_barcode_snapshot AS b
+    JOIN provision_rows AS p
+      ON p.range_weight = b.weight
+      {provision_nip_join}
+    GROUP BY {nip_group_by}, b.weight
+),
+comparison AS (
+    SELECT
+        p.*,
+        n.nip_location,
+        n.nip_classification,
+        n.nip_make,
+        n.nip_collection,
+        n.nip_section,
+        n.nip_sub_section,
+        n.nip_type,
+        n.nip_wide_range,
+        n.nip_size,
+        n.nip_screw_type,
+        COALESCE(n.barcode_count, 0) AS barcode_count,
+        COALESCE(n.nip_pieces, 0) AS nip_pieces,
+        COALESCE(n.nip_weight, 0) AS nip_weight,
+        COALESCE(n.nip_pieces, 0) - p.provision_pieces AS pieces_difference,
+        COALESCE(n.nip_weight, 0) - p.provision_weight AS weight_difference
+    FROM provision_rows AS p
+    LEFT JOIN nip_rows AS n
+      ON p.range_weight = n.range_weight
+      {comparison_join}
+)
+SELECT
+    comparison.*,
+    (ABS(pieces_difference) > 0.0005 OR ABS(weight_difference) > 0.0005) AS has_difference,
+    COUNT(*) OVER () AS total_pairs,
+    COUNT(*) FILTER (
+        WHERE ABS(pieces_difference) > 0.0005 OR ABS(weight_difference) > 0.0005
+    ) OVER () AS mismatch_pairs,
+    COALESCE(SUM(provision_pieces) OVER (), 0) AS total_provision_pieces,
+    COALESCE(SUM(nip_pieces) OVER (), 0) AS total_nip_pieces,
+    COALESCE(SUM(provision_weight) OVER (), 0) AS total_provision_weight,
+    COALESCE(SUM(nip_weight) OVER (), 0) AS total_nip_weight
+FROM comparison
+ORDER BY
+    (ABS(pieces_difference) > 0.0005 OR ABS(weight_difference) > 0.0005) DESC,
+    location NULLS LAST, classification NULLS LAST, make NULLS LAST,
+    collection NULLS LAST, section NULLS LAST, range_weight NULLS LAST
+LIMIT :limit OFFSET :offset
+        ''')
+
+        result = db.session.execute(query, params)
+        rows = [dict(row._mapping) for row in result]
+        total_pairs = int(rows[0]['total_pairs']) if rows else 0
+        total_pages = max((total_pairs + per_page - 1) // per_page, 1)
+
+        summary = {
+            'total_pairs': total_pairs,
+            'mismatch_pairs': int(rows[0]['mismatch_pairs']) if rows else 0,
+            'provision_pieces': rows[0]['total_provision_pieces'] if rows else 0,
+            'nip_pieces': rows[0]['total_nip_pieces'] if rows else 0,
+            'provision_weight': rows[0]['total_provision_weight'] if rows else 0,
+            'nip_weight': rows[0]['total_nip_weight'] if rows else 0,
+        }
+
+        return render_template(
+            'partials/_view_location_physical_stock_comparison.html',
+            rows=rows,
+            summary=summary,
+            page=page,
+            total_pages=total_pages,
+        )
+    except Exception as e:
+        logger.exception('Error loading location physical stock comparison')
+        return render_template(
+            'partials/_view_location_physical_stock_comparison.html',
+            rows=[],
+            summary={},
+            page=1,
+            total_pages=1,
+            error_message=str(e),
+        ), 500
+
+
 @dashboard_bp.route('/api/sync/location-physical-stock-status', methods=['POST'])
 @jwt_required()
 def sync_location_physical_stock_status():

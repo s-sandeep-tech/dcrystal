@@ -777,7 +777,99 @@ function closeProvisionDetailsModal() {
     activeProvisionDetailParams = null;
 }
 
+let activeStockComparisonParams = null;
+let stockComparisonRequestController = null;
+let stockComparisonTimeout = null;
+
+async function openStockComparisonModal(link) {
+    const modal = document.getElementById('stockComparisonModal');
+    const path = document.getElementById('stockComparisonPath');
+    if (!modal) return;
+
+    activeStockComparisonParams = buildHierarchyDetailParams(link);
+    setHierarchyDetailsPath(path, link);
+    modal.classList.remove('hidden');
+    await loadStockComparison();
+}
+
+window.openStockComparisonModal = openStockComparisonModal;
+
+async function loadStockComparison(page) {
+    if (!activeStockComparisonParams) return;
+    if (page) activeStockComparisonParams.set('page', String(page));
+
+    const loader = document.getElementById('stockComparisonLoader');
+    const content = document.getElementById('stockComparisonContent');
+    if (stockComparisonRequestController) stockComparisonRequestController.abort();
+    const requestController = new AbortController();
+    stockComparisonRequestController = requestController;
+    loader.classList.remove('hidden');
+    const requestTimeout = window.setTimeout(() => requestController.abort(), 30000);
+    stockComparisonTimeout = requestTimeout;
+
+    try {
+        const response = await fetch(`/api/location-physical-stock-status/stock-comparison?${activeStockComparisonParams}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+            signal: requestController.signal
+        });
+        const html = await response.text();
+        content.innerHTML = html;
+        if (!response.ok) throw new Error('Failed to compare provision and NIP rows');
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            if (stockComparisonRequestController === requestController) {
+                content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">The comparison request timed out. Please retry.</div>';
+            }
+            return;
+        }
+        console.error('Stock comparison error:', error);
+        content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">Unable to compare provision and NIP rows.</div>';
+    } finally {
+        window.clearTimeout(requestTimeout);
+        if (stockComparisonTimeout === requestTimeout) stockComparisonTimeout = null;
+        if (stockComparisonRequestController === requestController) {
+            loader.classList.add('hidden');
+            stockComparisonRequestController = null;
+        }
+    }
+}
+
+function closeStockComparisonModal() {
+    const modal = document.getElementById('stockComparisonModal');
+    window.clearTimeout(stockComparisonTimeout);
+    stockComparisonTimeout = null;
+    if (stockComparisonRequestController) stockComparisonRequestController.abort();
+    if (modal) modal.classList.add('hidden');
+    resetModalFullscreen('stockComparisonContainer');
+    stockComparisonRequestController = null;
+    activeStockComparisonParams = null;
+}
+
+window.closeStockComparisonModal = closeStockComparisonModal;
+
 document.addEventListener('click', (event) => {
+    const nipToggle = event.target.closest('[data-comparison-nip-toggle]');
+    if (nipToggle) {
+        const pairBody = nipToggle.closest('tbody');
+        const detailRow = pairBody?.querySelector('[data-comparison-nip-detail]');
+        const icon = nipToggle.querySelector('[data-comparison-nip-icon]');
+        if (detailRow) {
+            const willExpand = detailRow.classList.contains('hidden');
+            detailRow.classList.toggle('hidden', !willExpand);
+            nipToggle.setAttribute('aria-expanded', String(willExpand));
+            nipToggle.title = willExpand ? 'Hide NIP row details' : 'Show NIP row details';
+            if (icon) icon.textContent = willExpand ? 'expand_more' : 'chevron_right';
+        }
+        return;
+    }
+
+    const comparisonLink = event.target.closest('[data-comparison-detail]');
+    if (comparisonLink) {
+        event.preventDefault();
+        openStockComparisonModal(comparisonLink);
+        return;
+    }
+
     const provisionLink = event.target.closest('[data-provision-detail]');
     if (provisionLink) {
         event.preventDefault();
@@ -801,11 +893,22 @@ document.addEventListener('click', (event) => {
     const provisionPageButton = event.target.closest('[data-provision-page]');
     if (provisionPageButton && !provisionPageButton.disabled) {
         loadProvisionDetails(Number(provisionPageButton.dataset.provisionPage));
+        return;
+    }
+
+    const comparisonPageButton = event.target.closest('[data-comparison-page]');
+    if (comparisonPageButton && !comparisonPageButton.disabled) {
+        loadStockComparison(Number(comparisonPageButton.dataset.comparisonPage));
     }
 });
 
 document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
+    const comparisonModal = document.getElementById('stockComparisonModal');
+    if (comparisonModal && !comparisonModal.classList.contains('hidden')) {
+        closeStockComparisonModal();
+        return;
+    }
     const detailsModal = document.getElementById('inShopDetailsModal');
     if (detailsModal && !detailsModal.classList.contains('hidden')) {
         closeInShopDetailsModal();
