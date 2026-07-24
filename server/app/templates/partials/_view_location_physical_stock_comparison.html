@@ -90,9 +90,27 @@
                 <tr data-comparison-source="nip" data-comparison-has-pieces="{{ 'true' if row.nip_pieces|float > 0 else 'false' }}" class="text-[10px] text-gray-700 dark:text-gray-300 bg-gray-50/70 dark:bg-gray-800/30 [&>td]:!py-1">
                     <td class="px-3 py-2">
                         <button type="button" data-comparison-nip-toggle
+                            data-branch-id="{{ row.branch_id }}"
+                            data-division-id="{{ row.division_id }}"
+                            data-group-id="{{ row.group_id }}"
+                            data-purity-id="{{ row.purity_id }}"
+                            data-classification-id="{{ row.classification_id }}"
+                            data-sub-classification-id="{{ row.sub_classification_id }}"
+                            data-section-id="{{ row.section_id }}"
+                            data-type-id="{{ row.type_id }}"
+                            data-make-id="{{ row.make_id }}"
+                            data-collection-id="{{ row.collection_id }}"
+                            data-master-collection-id="{{ row.master_collection_id }}"
+                            data-sub-section-id="{{ row.sub_section_id }}"
+                            data-wide-range-id="{{ row.wide_range_id }}"
+                            data-gender-id="{{ row.gender_id }}"
+                            data-size-id="{{ row.size_id }}"
+                            data-screw-type-id="{{ row.screw_type_id }}"
+                            data-range-weight="{{ row.range_weight }}"
+                            {% if not row.barcode_count %}disabled{% endif %}
                             aria-expanded="false"
-                            class="inline-flex items-center gap-1 rounded bg-gray-100 dark:bg-gray-800 px-1 py-0.5 font-bold text-gray-600 dark:text-gray-300 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-                            title="Show NIP row details">
+                            class="inline-flex items-center gap-1 rounded bg-gray-100 dark:bg-gray-800 px-1 py-0.5 font-bold text-gray-600 dark:text-gray-300 enabled:hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
+                            title="{{ 'Show NIP barcode details' if row.barcode_count else 'No matching NIP barcodes' }}">
                             <span data-comparison-nip-icon class="material-symbols-outlined text-[14px]">chevron_right</span>
                             <span class="material-symbols-outlined text-[13px]">barcode_scanner</span>
                             NIP
@@ -119,29 +137,14 @@
                     </td>
                 </tr>
                 <tr data-comparison-nip-detail data-comparison-source="nip" data-comparison-has-pieces="{{ 'true' if row.nip_pieces|float > 0 else 'false' }}" class="hidden text-[10px] text-gray-700 dark:text-gray-300 bg-blue-50/40 dark:bg-blue-900/10 [&>td]:!py-1">
-                    <td class="px-3 py-2">
-                        <span class="inline-flex items-center gap-1 rounded bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 font-bold text-primary">
-                            <span class="material-symbols-outlined text-[13px]">subdirectory_arrow_right</span>
-                            NIP Detail
-                        </span>
+                    <td colspan="12" class="!p-0">
+                        <div data-comparison-barcode-content class="min-h-16">
+                            <div class="px-4 py-4 flex items-center gap-2 text-[10px] text-gray-400">
+                                <span class="material-symbols-outlined text-base">barcode_scanner</span>
+                                Expand NIP to load barcode details.
+                            </div>
+                        </div>
                     </td>
-                    <td class="px-3 py-2 font-semibold whitespace-nowrap">{{ row.nip_location or '-' }}</td>
-                    <td class="px-3 py-2 whitespace-nowrap">{{ row.nip_classification or '-' }}</td>
-                    <td class="px-3 py-2 whitespace-nowrap">{{ row.nip_make or '-' }}</td>
-                    <td class="px-3 py-2 whitespace-nowrap">{{ row.nip_collection or '-' }}</td>
-                    <td class="px-3 py-2 whitespace-nowrap">
-                        <span class="font-semibold">{{ row.nip_section or '-' }}</span>
-                        <span class="text-gray-400"> / {{ row.nip_sub_section or '-' }}</span>
-                    </td>
-                    <td class="px-3 py-2 whitespace-nowrap">
-                        <span class="font-semibold">{{ row.nip_type or '-' }}</span>
-                        <span class="text-gray-400"> / {{ row.nip_wide_range or '-' }}</span>
-                    </td>
-                    <td class="px-3 py-2 whitespace-nowrap">{{ row.nip_size or '-' }} / {{ row.nip_screw_type or '-' }}</td>
-                    <td class="px-3 py-2 text-right font-mono">{{ "{:,.3f}".format(row.range_weight|float) if row.range_weight is not none else '-' }}</td>
-                    <td class="px-3 py-2 text-right font-mono font-bold bg-blue-50/70 text-blue-700 dark:bg-blue-950/20 dark:text-blue-300">{{ "{:,.0f}".format(row.nip_pieces|float) }}</td>
-                    <td class="px-3 py-2 text-right font-mono font-bold bg-blue-50/70 text-blue-700 dark:bg-blue-950/20 dark:text-blue-300">{{ "{:,.3f}".format(row.nip_weight|float) }}</td>
-                    <td class="px-3 py-2 text-right font-mono text-gray-400">{{ "{:,}".format(row.barcode_count) }} barcodes</td>
                 </tr>
             </tbody>
             {% endfor %}

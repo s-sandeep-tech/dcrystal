@@ -780,6 +780,75 @@ function closeProvisionDetailsModal() {
 let activeStockComparisonParams = null;
 let stockComparisonRequestController = null;
 let stockComparisonTimeout = null;
+const comparisonBarcodeControllers = new Set();
+
+function buildComparisonBarcodeParams(toggle, page = 1) {
+    const fieldMap = {
+        branchId: 'branch_id',
+        divisionId: 'division_id',
+        groupId: 'group_id',
+        purityId: 'purity_id',
+        classificationId: 'classification_id',
+        subClassificationId: 'sub_classification_id',
+        sectionId: 'section_id',
+        typeId: 'type_id',
+        makeId: 'make_id',
+        collectionId: 'collection_id',
+        masterCollectionId: 'master_collection_id',
+        subSectionId: 'sub_section_id',
+        wideRangeId: 'wide_range_id',
+        genderId: 'gender_id',
+        sizeId: 'size_id',
+        screwTypeId: 'screw_type_id',
+        rangeWeight: 'range_weight'
+    };
+    const params = new URLSearchParams({ page: String(page) });
+    Object.entries(fieldMap).forEach(([datasetKey, parameterName]) => {
+        params.set(parameterName, toggle.dataset[datasetKey] || '');
+    });
+    return params;
+}
+
+async function loadComparisonBarcodeDetails(toggle, page = 1) {
+    const pairBody = toggle.closest('tbody');
+    const content = pairBody?.querySelector('[data-comparison-barcode-content]');
+    if (!content) return;
+
+    const requestController = new AbortController();
+    comparisonBarcodeControllers.add(requestController);
+    content.innerHTML = `
+        <div class="px-4 py-4 flex items-center gap-2 text-[10px] font-semibold text-gray-500">
+            <span class="size-4 border-2 border-blue-100 border-t-primary rounded-full animate-spin"></span>
+            Loading barcode details...
+        </div>
+    `;
+
+    const requestTimeout = window.setTimeout(() => requestController.abort(), 30000);
+    try {
+        const params = buildComparisonBarcodeParams(toggle, page);
+        const response = await fetch(
+            `/api/location-physical-stock-status/stock-comparison-barcodes?${params}`,
+            {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+                signal: requestController.signal
+            }
+        );
+        content.innerHTML = await response.text();
+        if (response.ok) {
+            toggle.dataset.barcodeDetailsLoaded = 'true';
+        }
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            content.innerHTML = '<div class="px-4 py-4 text-[10px] font-semibold text-red-500">The barcode request timed out. Please retry.</div>';
+        } else {
+            console.error('Comparison barcode detail error:', error);
+            content.innerHTML = '<div class="px-4 py-4 text-[10px] font-semibold text-red-500">Unable to load barcode details.</div>';
+        }
+    } finally {
+        window.clearTimeout(requestTimeout);
+        comparisonBarcodeControllers.delete(requestController);
+    }
+}
 
 async function openStockComparisonModal(link) {
     const modal = document.getElementById('stockComparisonModal');
@@ -839,6 +908,8 @@ function closeStockComparisonModal() {
     window.clearTimeout(stockComparisonTimeout);
     stockComparisonTimeout = null;
     if (stockComparisonRequestController) stockComparisonRequestController.abort();
+    comparisonBarcodeControllers.forEach(controller => controller.abort());
+    comparisonBarcodeControllers.clear();
     if (modal) modal.classList.add('hidden');
     resetModalFullscreen('stockComparisonContainer');
     stockComparisonRequestController = null;
@@ -874,8 +945,18 @@ document.addEventListener('click', (event) => {
         return;
     }
 
+    const barcodePageButton = event.target.closest('[data-comparison-barcode-page]');
+    if (barcodePageButton && !barcodePageButton.disabled) {
+        const pairBody = barcodePageButton.closest('tbody');
+        const toggle = pairBody?.querySelector('[data-comparison-nip-toggle]');
+        if (toggle) {
+            loadComparisonBarcodeDetails(toggle, Number(barcodePageButton.dataset.comparisonBarcodePage));
+        }
+        return;
+    }
+
     const nipToggle = event.target.closest('[data-comparison-nip-toggle]');
-    if (nipToggle) {
+    if (nipToggle && !nipToggle.disabled) {
         const pairBody = nipToggle.closest('tbody');
         const detailRow = pairBody?.querySelector('[data-comparison-nip-detail]');
         const icon = nipToggle.querySelector('[data-comparison-nip-icon]');
@@ -885,6 +966,9 @@ document.addEventListener('click', (event) => {
             nipToggle.setAttribute('aria-expanded', String(willExpand));
             nipToggle.title = willExpand ? 'Hide NIP row details' : 'Show NIP row details';
             if (icon) icon.textContent = willExpand ? 'expand_more' : 'chevron_right';
+            if (willExpand && nipToggle.dataset.barcodeDetailsLoaded !== 'true') {
+                loadComparisonBarcodeDetails(nipToggle);
+            }
         }
         return;
     }

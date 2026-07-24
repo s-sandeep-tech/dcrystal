@@ -1485,6 +1485,130 @@ LIMIT :limit OFFSET :offset
         ), 500
 
 
+@dashboard_bp.route('/api/location-physical-stock-status/stock-comparison-barcodes')
+@jwt_required()
+def get_location_physical_stock_comparison_barcodes():
+    try:
+        page = max(request.args.get('page', 1, type=int), 1)
+        per_page = 100
+        identity_columns = (
+            'branch_id', 'division_id', 'group_id', 'purity_id',
+            'classification_id', 'sub_classification_id', 'section_id',
+            'type_id', 'make_id', 'collection_id', 'master_collection_id',
+            'sub_section_id', 'wide_range_id', 'gender_id', 'size_id',
+            'screw_type_id',
+        )
+        params = {
+            column: request.args.get(column) or None
+            for column in identity_columns
+        }
+        params.update({
+            'range_weight': request.args.get('range_weight') or None,
+            'bh_emp_code': None,
+            'authorized_branch_ids': None,
+            'required_branch_type': None,
+            'limit': per_page,
+            'offset': (page - 1) * per_page,
+        })
+
+        if any(params[column] is None for column in identity_columns) or params['range_weight'] is None:
+            return render_template(
+                'partials/_view_location_physical_stock_comparison_barcodes.html',
+                rows=[],
+                page=1,
+                total_pages=1,
+                total_records=0,
+                error_message='Required comparison identity values are missing.',
+            ), 400
+
+        roles = [role.upper() for role in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(role in roles for role in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        user_id = session.get('user_id')
+
+        if is_franchise_india_head(roles):
+            params['required_branch_type'] = FRANCHISE_INDIA_BRANCH_TYPE
+
+        if not is_admin and not is_manager:
+            if 'BUSINESS_HEAD' in roles and user_id:
+                params['bh_emp_code'] = user_id
+            elif 'SHOWROOM_MANAGER' in roles and user_id:
+                try:
+                    branch_ids = [
+                        row.branch_id
+                        for row in BranchAuthoritySnapshot.query.filter_by(emp_code=int(user_id)).all()
+                    ]
+                    params['authorized_branch_ids'] = ','.join(map(str, branch_ids)) if branch_ids else '-1'
+                except (ValueError, TypeError):
+                    params['authorized_branch_ids'] = '-1'
+
+        provision_identity_filters = '\n'.join(
+            f'      AND p.{column} = CAST(:{column} AS bigint)'
+            for column in identity_columns
+        )
+        barcode_identity_join = '\n'.join(
+            f'      AND p.{column} = b.{column}'
+            for column in identity_columns
+        )
+
+        query = text(f'''
+WITH authorized_identity AS MATERIALIZED (
+    SELECT DISTINCT
+        {', '.join(f'p.{column}' for column in identity_columns)},
+        p.range_weight
+    FROM provision_stock_raw_snapshot AS p
+    WHERE TRUE
+      {provision_identity_filters}
+      AND p.range_weight = CAST(:range_weight AS numeric)
+      AND (:required_branch_type IS NULL OR p.branch_type = :required_branch_type)
+      AND (:bh_emp_code IS NULL OR p.business_head_emp_code = :bh_emp_code)
+      AND (:authorized_branch_ids IS NULL OR p.branch_id = ANY(
+          string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]
+      ))
+),
+matched_barcodes AS (
+    SELECT b.*
+    FROM authorized_identity AS p
+    JOIN size_level_nip_barcode_snapshot AS b
+      ON p.range_weight = b.weight
+      {barcode_identity_join}
+)
+SELECT
+    b.*,
+    COUNT(*) OVER () AS total_records,
+    COALESCE(SUM(b.pieces) OVER (), 0) AS total_pieces,
+    COALESCE(SUM(b.gross_wt) OVER (), 0) AS total_gross_wt
+FROM matched_barcodes AS b
+ORDER BY b.barcode_no NULLS LAST, b.design_no NULLS LAST, b.id
+LIMIT :limit OFFSET :offset
+        ''')
+
+        result = db.session.execute(query, params)
+        rows = [dict(row._mapping) for row in result]
+        total_records = int(rows[0]['total_records']) if rows else 0
+        total_pages = max((total_records + per_page - 1) // per_page, 1)
+
+        return render_template(
+            'partials/_view_location_physical_stock_comparison_barcodes.html',
+            rows=rows,
+            page=page,
+            total_pages=total_pages,
+            total_records=total_records,
+            total_pieces=rows[0]['total_pieces'] if rows else 0,
+            total_gross_wt=rows[0]['total_gross_wt'] if rows else 0,
+        )
+    except Exception as e:
+        logger.exception('Error loading comparison barcode details')
+        return render_template(
+            'partials/_view_location_physical_stock_comparison_barcodes.html',
+            rows=[],
+            page=1,
+            total_pages=1,
+            total_records=0,
+            error_message=str(e),
+        ), 500
+
+
 @dashboard_bp.route('/api/sync/location-physical-stock-status', methods=['POST'])
 @jwt_required()
 def sync_location_physical_stock_status():
