@@ -108,9 +108,14 @@
                     <td class="px-3 py-2 text-right font-mono font-bold bg-blue-50/70 text-blue-700 dark:bg-blue-950/20 dark:text-blue-300">
                         {{ "{:,.3f}".format(row.nip_weight|float) }}
                     </td>
-                    <td class="px-3 py-2 text-right font-mono font-bold whitespace-nowrap {% if row.has_difference %}text-red-500{% else %}text-emerald-600{% endif %}">
-                        {{ "{:+,.0f}".format(row.pieces_difference|float) }} Pcs /
-                        {{ "{:+,.3f}".format(row.weight_difference|float) }} g
+                    <td class="px-3 py-2 text-right font-mono font-bold whitespace-nowrap">
+                        <span class="{% if row.pieces_difference|float == 0 %}text-emerald-600{% else %}text-gray-900 dark:text-white{% endif %}">
+                            {{ "{:+,.0f}".format(row.pieces_difference|float) }} Pcs
+                        </span>
+                        <span class="text-gray-400"> / </span>
+                        <span class="{% if row.weight_difference|float == 0 %}text-emerald-600{% else %}text-gray-900 dark:text-white{% endif %}">
+                            {{ "{:+,.3f}".format(row.weight_difference|float) }} g
+                        </span>
                     </td>
                 </tr>
                 <tr data-comparison-nip-detail data-comparison-source="nip" data-comparison-has-pieces="{{ 'true' if row.nip_pieces|float > 0 else 'false' }}" class="hidden text-[10px] text-gray-700 dark:text-gray-300 bg-blue-50/40 dark:bg-blue-900/10 [&>td]:!py-1">
