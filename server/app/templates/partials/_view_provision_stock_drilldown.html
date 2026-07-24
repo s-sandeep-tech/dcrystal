@@ -50,7 +50,7 @@
     data-node-id="{{ node_key }}"
     data-parent-id="{{ parent_key }}"
     class="{% if level == 1 %}bg-gray-100 dark:bg-gray-800 font-bold{% elif level == 2 %}bg-gray-50 dark:bg-gray-800/50 font-semibold{% else %}bg-white dark:bg-gray-900{% endif %} hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-100 dark:border-gray-800/50">
-    <td class="px-3 py-2 text-[11px]">
+    <td class="px-2.5 py-1 text-[11px]">
         <div class="flex items-center" style="padding-left: {{ (level - 1) * 1.5 }}rem;">
             {% if level < max_level %}
                 <button type="button" data-tree-toggle onclick="toggleDrilldownTreeNode(this, event)" class="mr-1 text-gray-500 hover:text-primary transition-colors focus:outline-none flex items-center justify-center p-0.5 rounded">
@@ -63,11 +63,11 @@
         </div>
     </td>
     {% if include_piece_variance|default(false) %}
-    <td class="px-3 py-2 text-right text-[11px] font-mono">
+    <td class="px-2.5 py-1 text-right text-[11px] font-mono">
         {{ "{:,.0f}".format(row.prov_pcs|float) if row.prov_pcs else '0' }}
     </td>
     {% endif %}
-    <td class="px-3 py-2 text-right text-[11px] font-mono">
+    <td class="px-2.5 py-1 text-right text-[11px] font-mono">
         {% if enable_in_shop_details|default(false) and has_detail_ids and row.prov_gr_wt|float != row.in_shop_wt|float %}
         <a href="#" data-provision-detail
             data-level="{{ level }}"
@@ -88,7 +88,7 @@
         {{ "{:,.3f}".format(row.prov_gr_wt|float) if row.prov_gr_wt else '0.000' }}
         {% endif %}
     </td>
-    <td class="px-3 py-2 text-right text-[11px] font-mono">
+    <td class="px-2.5 py-1 text-right text-[11px] font-mono">
         {% if enable_in_shop_details|default(false) and has_detail_ids and row.prov_gr_wt|float != row.in_shop_wt|float %}
         <a href="#" data-in-shop-detail
             data-level="{{ level }}"
@@ -109,13 +109,13 @@
         {{ "{:,.3f}".format(row.in_shop_wt|float) if row.in_shop_wt else '0.000' }}
         {% endif %}
     </td>
-    <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.ordered_wt|float) if row.ordered_wt
+    <td class="px-2.5 py-1 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.ordered_wt|float) if row.ordered_wt
         else '0.000' }}</td>
-    <td class="px-3 py-2 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.in_transit_wt|float) if
+    <td class="px-2.5 py-1 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.in_transit_wt|float) if
         row.in_transit_wt else '0.000' }}</td>
     {% if include_piece_variance|default(false) %}
     <td
-        class="px-3 py-2 text-[11px] font-mono {% if row.short_excess_pcs < 0 %}text-red-500 font-bold{% elif row.short_excess_pcs > 0 %}text-green-600{% endif %}">
+        class="px-2.5 py-1 text-[11px] font-mono {% if row.short_excess_pcs < 0 %}text-red-500 font-bold{% elif row.short_excess_pcs > 0 %}text-green-600{% endif %}">
         <div class="flex items-center justify-end gap-1">
             <span>{{ "{:,.0f}".format(row.short_excess_pcs|float) if row.short_excess_pcs else '0' }}</span>
             {% if row.short_excess_pcs %}
@@ -129,7 +129,7 @@
     </td>
     {% endif %}
     <td
-        class="pl-3 pr-1 py-2 text-[11px] font-mono {% if row.short_excess_wt < 0 %}text-red-500 font-bold{% elif row.short_excess_wt > 0 %}text-green-600{% endif %}">
+        class="pl-2.5 pr-1 py-1 text-[11px] font-mono {% if row.short_excess_wt < 0 %}text-red-500 font-bold{% elif row.short_excess_wt > 0 %}text-green-600{% endif %}">
         <div class="flex items-center justify-end gap-1">
             <span>{{ "{:,.3f}".format(row.short_excess_wt|float) if row.short_excess_wt else '0.000' }}</span>
             {% if row.short_excess_wt %}
@@ -141,7 +141,7 @@
             {% endif %}
         </div>
     </td>
-    <td class="pl-1 pr-3 py-2 text-right text-[11px] font-mono">
+    <td class="pl-1 pr-2.5 py-1 text-right text-[11px] font-mono">
         <span
             class="px-1.5 py-0.5 rounded {% if row.percent < 0 %}bg-red-50 text-red-600{% else %}bg-green-50 text-green-600{% endif %}">
             {{ "{:,.1f}%".format(row.percent|float) if row.percent is not none else '0.0%' }}
@@ -155,7 +155,7 @@
         <table class="w-full text-left border-collapse">
             <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr class="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
-                    <th class="px-4 py-3 min-w-[250px]">
+                    <th class="px-3 py-1.5 min-w-[250px]">
                         {% if include_purity_hierarchy|default(false) %}
                         Section > Purity > Type > Wide Range > Range&nbsp;Weight
                         {% else %}
@@ -163,17 +163,17 @@
                         {% endif %}
                     </th>
                     {% if include_piece_variance|default(false) %}
-                    <th class="px-3 py-3 text-right">Prov Pcs</th>
+                    <th class="px-2.5 py-1.5 text-right">Prov Pcs</th>
                     {% endif %}
-                    <th class="px-3 py-3 text-right">Prov Gr.Wt</th>
-                    <th class="px-3 py-3 text-right">In Shop Wt</th>
-                    <th class="px-3 py-3 text-right">Ordered Wt</th>
-                    <th class="px-3 py-3 text-right">Transit Wt</th>
+                    <th class="px-2.5 py-1.5 text-right">Prov Gr.Wt</th>
+                    <th class="px-2.5 py-1.5 text-right">In Shop Wt</th>
+                    <th class="px-2.5 py-1.5 text-right">Ordered Wt</th>
+                    <th class="px-2.5 py-1.5 text-right">Transit Wt</th>
                     {% if include_piece_variance|default(false) %}
-                    <th class="px-3 py-3 text-right">Short/Excess Pcs</th>
+                    <th class="px-2.5 py-1.5 text-right">Short/Excess Pcs</th>
                     {% endif %}
-                    <th class="pl-3 pr-1 py-3 text-right">Short/Excess Wt</th>
-                    <th class="pl-1 pr-3 py-3 text-right">%</th>
+                    <th class="pl-2.5 pr-1 py-1.5 text-right">Short/Excess Wt</th>
+                    <th class="pl-1 pr-2.5 py-1.5 text-right">%</th>
                 </tr>
             </thead>
             <tbody>
@@ -191,21 +191,21 @@
             <tfoot
                 class="sticky bottom-0 z-10 bg-gray-100 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700">
                 <tr class="text-[11px] font-bold text-gray-900 dark:text-white uppercase tracking-tight">
-                    <td class="px-4 py-3">Totals for {{ drill_section or 'All' }}</td>
+                    <td class="px-3 py-1.5">Totals for {{ drill_section or 'All' }}</td>
                     {% if include_piece_variance|default(false) %}
-                    <td class="px-3 py-3 text-right font-mono">{{ "{:,.0f}".format(modal_totals.prov_pcs|float) }}</td>
+                    <td class="px-2.5 py-1.5 text-right font-mono">{{ "{:,.0f}".format(modal_totals.prov_pcs|float) }}</td>
                     {% endif %}
-                    <td class="px-3 py-3 text-right font-mono">{{ "{:,.3f}".format(modal_totals.prov_gr_wt|float) }}
+                    <td class="px-2.5 py-1.5 text-right font-mono">{{ "{:,.3f}".format(modal_totals.prov_gr_wt|float) }}
                     </td>
-                    <td class="px-3 py-3 text-right font-mono">{{ "{:,.3f}".format(modal_totals.in_shop_wt|float) }}
+                    <td class="px-2.5 py-1.5 text-right font-mono">{{ "{:,.3f}".format(modal_totals.in_shop_wt|float) }}
                     </td>
-                    <td class="px-3 py-3 text-right font-mono">{{ "{:,.3f}".format(modal_totals.ordered_wt|float) }}
+                    <td class="px-2.5 py-1.5 text-right font-mono">{{ "{:,.3f}".format(modal_totals.ordered_wt|float) }}
                     </td>
-                    <td class="px-3 py-3 text-right font-mono">{{ "{:,.3f}".format(modal_totals.in_transit_wt|float) }}
+                    <td class="px-2.5 py-1.5 text-right font-mono">{{ "{:,.3f}".format(modal_totals.in_transit_wt|float) }}
                     </td>
                     {% if include_piece_variance|default(false) %}
                     <td
-                        class="px-3 py-3 font-mono {% if modal_totals.short_excess_pcs < 0 %}text-red-500{% elif modal_totals.short_excess_pcs > 0 %}text-green-600{% endif %}">
+                        class="px-2.5 py-1.5 font-mono {% if modal_totals.short_excess_pcs < 0 %}text-red-500{% elif modal_totals.short_excess_pcs > 0 %}text-green-600{% endif %}">
                         <div class="flex items-center justify-end gap-1">
                             <span>{{ "{:,.0f}".format(modal_totals.short_excess_pcs|float) }}</span>
                             {% if modal_totals.short_excess_pcs %}
@@ -219,7 +219,7 @@
                     </td>
                     {% endif %}
                     <td
-                        class="pl-3 pr-1 py-3 font-mono {% if modal_totals.short_excess_wt < 0 %}text-red-500{% elif modal_totals.short_excess_wt > 0 %}text-green-600{% endif %}">
+                        class="pl-2.5 pr-1 py-1.5 font-mono {% if modal_totals.short_excess_wt < 0 %}text-red-500{% elif modal_totals.short_excess_wt > 0 %}text-green-600{% endif %}">
                         <div class="flex items-center justify-end gap-1">
                             <span>{{ "{:,.3f}".format(modal_totals.short_excess_wt|float) }}</span>
                             {% if modal_totals.short_excess_wt %}
@@ -231,7 +231,7 @@
                             {% endif %}
                         </div>
                     </td>
-                    <td class="pl-1 pr-3 py-3 text-right font-mono">
+                    <td class="pl-1 pr-2.5 py-1.5 text-right font-mono">
                         {{ "{:,.1f}%".format(modal_totals.percent|float) }}
                     </td>
                 </tr>

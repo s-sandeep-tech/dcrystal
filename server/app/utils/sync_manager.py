@@ -34,6 +34,7 @@ ALLOWED_SYNC_TASKS = {
     'pending_order_details',
     'active_order_details',
     'size_level_nip_barcode',
+    'collection_wise_average_delivery_days',
 }
 
 def enqueue_sync_task(task_type, user_id=None):
@@ -139,3 +140,6 @@ def sync_active_order_details_data(user_id=None):
 
 def sync_size_level_nip_barcode_data(user_id=None):
     return enqueue_sync_task('size_level_nip_barcode', user_id)
+
+def sync_collection_wise_average_delivery_days_data(user_id=None):
+    return enqueue_sync_task('collection_wise_average_delivery_days', user_id)

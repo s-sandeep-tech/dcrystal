@@ -85,6 +85,14 @@ window.REPORT_MENU_DATA = [
                 icon: "account_tree",
                 description: "Business head and showroom order summary.",
                 tags: ["business head", "showroom", "summary"]
+            },
+            {
+                id: "collection-wise-average-delivery-days",
+                title: "Collection wise average delivery days",
+                href: "/collection-wise-average-delivery-days",
+                icon: "local_shipping",
+                description: "Track receipt performance and average delivery days across collections.",
+                tags: ["collection", "delivery", "days", "average", "receipt"]
             }
         ]
     },

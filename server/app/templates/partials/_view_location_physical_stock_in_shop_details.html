@@ -80,18 +80,5 @@
             </tbody>
         </table>
     </div>
-    <footer class="px-4 py-2 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0 bg-white dark:bg-gray-900">
-        <span class="text-[10px] text-gray-500">Page {{ page }} of {{ total_pages }}</span>
-        <div class="flex items-center gap-1">
-            <button type="button" data-in-shop-page="{{ page - 1 }}" {% if page <= 1 %}disabled{% endif %}
-                class="size-7 flex items-center justify-center border border-gray-200 dark:border-gray-700 rounded text-gray-500 hover:text-primary disabled:opacity-40 disabled:pointer-events-none" title="Previous page">
-                <span class="material-symbols-outlined text-base">chevron_left</span>
-            </button>
-            <button type="button" data-in-shop-page="{{ page + 1 }}" {% if page >= total_pages %}disabled{% endif %}
-                class="size-7 flex items-center justify-center border border-gray-200 dark:border-gray-700 rounded text-gray-500 hover:text-primary disabled:opacity-40 disabled:pointer-events-none" title="Next page">
-                <span class="material-symbols-outlined text-base">chevron_right</span>
-            </button>
-        </div>
-    </footer>
     {% endif %}
 </div>
