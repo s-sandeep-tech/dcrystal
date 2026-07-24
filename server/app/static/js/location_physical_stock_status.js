@@ -848,6 +848,32 @@ function closeStockComparisonModal() {
 window.closeStockComparisonModal = closeStockComparisonModal;
 
 document.addEventListener('click', (event) => {
+    const sourceHighlightButton = event.target.closest('[data-comparison-highlight-source]');
+    if (sourceHighlightButton) {
+        const comparisonContent = document.getElementById('stockComparisonContent');
+        const source = sourceHighlightButton.dataset.comparisonHighlightSource;
+        const shouldHighlight = sourceHighlightButton.getAttribute('aria-pressed') !== 'true';
+
+        comparisonContent?.querySelectorAll('[data-comparison-highlight-source]').forEach(button => {
+            button.setAttribute('aria-pressed', 'false');
+            button.classList.remove('text-primary', 'underline');
+        });
+        comparisonContent?.querySelectorAll('[data-comparison-source]').forEach(row => {
+            row.classList.remove('comparison-row-highlight');
+        });
+
+        if (shouldHighlight) {
+            sourceHighlightButton.setAttribute('aria-pressed', 'true');
+            sourceHighlightButton.classList.add('text-primary', 'underline');
+            comparisonContent?.querySelectorAll(
+                `[data-comparison-source="${source}"][data-comparison-has-pieces="true"]`
+            ).forEach(row => {
+                row.classList.add('comparison-row-highlight');
+            });
+        }
+        return;
+    }
+
     const nipToggle = event.target.closest('[data-comparison-nip-toggle]');
     if (nipToggle) {
         const pairBody = nipToggle.closest('tbody');

@@ -1,4 +1,13 @@
 <div class="h-full flex flex-col bg-white dark:bg-gray-900">
+    <style>
+        .comparison-row-highlight {
+            background-color: rgba(219, 234, 254, 0.82) !important;
+            box-shadow: inset 3px 0 0 #1d7fea;
+        }
+        .dark .comparison-row-highlight {
+            background-color: rgba(30, 64, 175, 0.22) !important;
+        }
+    </style>
     {% if error_message %}
     <div class="h-full flex flex-col items-center justify-center p-8 text-center">
         <span class="material-symbols-outlined text-3xl text-red-500 mb-2">error</span>
@@ -15,8 +24,18 @@
     <div class="px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex flex-wrap items-center gap-x-6 gap-y-1 shrink-0 text-[10px]">
         <span class="font-bold text-gray-700 dark:text-gray-200">{{ "{:,}".format(summary.total_pairs) }} matched identities</span>
         <span class="text-gray-500">Differences <strong class="{% if summary.mismatch_pairs %}text-red-500{% else %}text-emerald-600{% endif %}">{{ "{:,}".format(summary.mismatch_pairs) }}</strong></span>
-        <span class="text-gray-500">Provision <strong class="text-gray-800 dark:text-white">{{ "{:,.0f}".format(summary.provision_pieces|float) }} Pcs / {{ "{:,.3f}".format(summary.provision_weight|float) }} g</strong></span>
-        <span class="text-gray-500">NIP <strong class="text-gray-800 dark:text-white">{{ "{:,.0f}".format(summary.nip_pieces|float) }} Pcs / {{ "{:,.3f}".format(summary.nip_weight|float) }} g</strong></span>
+        <span class="text-gray-500">Provision
+            <button type="button" data-comparison-highlight-source="provision" aria-pressed="false"
+                class="font-bold text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary/30 rounded-sm"
+                title="Highlight Provision rows">{{ "{:,.0f}".format(summary.provision_pieces|float) }} Pcs</button>
+            / <strong class="text-gray-800 dark:text-white">{{ "{:,.3f}".format(summary.provision_weight|float) }} g</strong>
+        </span>
+        <span class="text-gray-500">NIP
+            <button type="button" data-comparison-highlight-source="nip" aria-pressed="false"
+                class="font-bold text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary/30 rounded-sm"
+                title="Highlight NIP rows">{{ "{:,.0f}".format(summary.nip_pieces|float) }} Pcs</button>
+            / <strong class="text-gray-800 dark:text-white">{{ "{:,.3f}".format(summary.nip_weight|float) }} g</strong>
+        </span>
     </div>
 
     <div class="flex-1 min-h-0 overflow-auto custom-scrollbar">
@@ -39,7 +58,7 @@
             </thead>
             {% for row in rows %}
             <tbody class="border-t-2 {% if row.has_difference %}border-red-200 dark:border-red-900/60{% else %}border-emerald-200 dark:border-emerald-900/50{% endif %}">
-                <tr class="text-[10px] text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 [&>td]:!py-1">
+                <tr data-comparison-source="provision" data-comparison-has-pieces="{{ 'true' if row.provision_pieces|float > 0 else 'false' }}" class="text-[10px] text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 [&>td]:!py-1">
                     <td class="px-3 py-2" rowspan="1">
                         <span class="inline-flex items-center gap-1 rounded bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 font-bold text-primary">
                             <span class="material-symbols-outlined text-[13px]">inventory</span>
@@ -68,7 +87,7 @@
                     </td>
                     <td class="px-3 py-2 text-right text-gray-400">Baseline</td>
                 </tr>
-                <tr class="text-[10px] text-gray-700 dark:text-gray-300 bg-gray-50/70 dark:bg-gray-800/30 [&>td]:!py-1">
+                <tr data-comparison-source="nip" data-comparison-has-pieces="{{ 'true' if row.nip_pieces|float > 0 else 'false' }}" class="text-[10px] text-gray-700 dark:text-gray-300 bg-gray-50/70 dark:bg-gray-800/30 [&>td]:!py-1">
                     <td class="px-3 py-2">
                         <button type="button" data-comparison-nip-toggle
                             aria-expanded="false"
@@ -94,7 +113,7 @@
                         {{ "{:+,.3f}".format(row.weight_difference|float) }} g
                     </td>
                 </tr>
-                <tr data-comparison-nip-detail class="hidden text-[10px] text-gray-700 dark:text-gray-300 bg-blue-50/40 dark:bg-blue-900/10 [&>td]:!py-1">
+                <tr data-comparison-nip-detail data-comparison-source="nip" data-comparison-has-pieces="{{ 'true' if row.nip_pieces|float > 0 else 'false' }}" class="hidden text-[10px] text-gray-700 dark:text-gray-300 bg-blue-50/40 dark:bg-blue-900/10 [&>td]:!py-1">
                     <td class="px-3 py-2">
                         <span class="inline-flex items-center gap-1 rounded bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 font-bold text-primary">
                             <span class="material-symbols-outlined text-[13px]">subdirectory_arrow_right</span>
