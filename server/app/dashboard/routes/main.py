@@ -369,14 +369,27 @@ def get_sync_logs():
     user_ids = [log.initiated_by for log in pagination.items if log.initiated_by]
     users_dict = {}
     if user_ids:
-        users = User.query.filter(User.user_id.in_(user_ids)).all()
-        users_dict = {u.user_id: u.username for u in users}
+        int_ids = []
+        for uid in user_ids:
+            try:
+                int_ids.append(int(uid))
+            except (ValueError, TypeError):
+                pass
+        
+        users = User.query.filter(
+            (User.user_id.in_(user_ids)) | (User.id.in_(int_ids) if int_ids else False)
+        ).all()
+        
+        for u in users:
+            display_name = f"{u.username} ({u.user_id})"
+            users_dict[u.user_id] = display_name
+            users_dict[str(u.id)] = display_name
         
     logs_data = []
     for log in pagination.items:
         log_dict = log.to_dict()
         if log.initiated_by and log.initiated_by in users_dict:
-            log_dict['initiated_by'] = f"{users_dict[log.initiated_by]} ({log.initiated_by})"
+            log_dict['initiated_by'] = users_dict[log.initiated_by]
         logs_data.append(log_dict)
     
     return {

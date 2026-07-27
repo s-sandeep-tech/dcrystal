@@ -349,10 +349,15 @@ def get_collection_wise_average_delivery_days_options():
 
 
 @dashboard_bp.route('/api/sync/collection-wise-average-delivery-days', methods=['POST'])
-@jwt_required()
+@jwt_required(optional=True)
 def trigger_sync_collection_wise_average_delivery_days():
     from app.utils.sync_manager import sync_collection_wise_average_delivery_days_data
-    user_id = get_jwt_identity()
+    from app.models.auth import User
+    user_id = session.get('user_id') or get_jwt_identity()
+    if user_id and str(user_id).isdigit():
+        user = User.query.get(int(user_id))
+        if user:
+            user_id = user.user_id
     return jsonify(sync_collection_wise_average_delivery_days_data(user_id))
 
 
