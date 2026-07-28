@@ -228,6 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncQCDelayManagementBtn) syncQCDelayManagementBtn.addEventListener('click', () => triggerSync(syncQCDelayManagementBtn, window.SETTINGS_CONFIG.syncQCDelayManagementUrl, 'QC Delay Summary Sync', 'qc_delay_management'));
     if (syncHMDelayManagementBtn) syncHMDelayManagementBtn.addEventListener('click', () => triggerSync(syncHMDelayManagementBtn, '/settings/sync-hm-delay-management', 'HM Delay Management Sync', 'hm_delay_management'));
     if (syncPartyDelayManagementBtn) syncPartyDelayManagementBtn.addEventListener('click', () => triggerSync(syncPartyDelayManagementBtn, window.SETTINGS_CONFIG.syncPartyDelayManagementUrl, 'Vendor Delay Management Sync', 'party_delay_management'));
+    if (syncOrderFulfillmentAgingMatrixBtn) syncOrderFulfillmentAgingMatrixBtn.addEventListener('click', () => triggerSync(syncOrderFulfillmentAgingMatrixBtn, window.SETTINGS_CONFIG.syncOrderFulfillmentValueAgingMatrixUrl, 'Order Fulfillment Value Aging Matrix Sync', 'order_fulfillment_aging_matrix'));
     const syncCollectionWiseAverageDeliveryDaysBtn = document.getElementById('sync-collection-wise-average-delivery-days-btn');
 
     if (syncCollectionWiseAverageDeliveryDaysBtn) syncCollectionWiseAverageDeliveryDaysBtn.addEventListener('click', () => triggerSync(syncCollectionWiseAverageDeliveryDaysBtn, window.SETTINGS_CONFIG.syncCollectionWiseAverageDeliveryDaysUrl || '/api/sync/collection-wise-average-delivery-days', 'Collection Wise Average Delivery Days Sync', 'collection_wise_average_delivery_days'));
