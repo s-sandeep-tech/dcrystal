@@ -1402,6 +1402,7 @@
             syncInvoiceCompletedDeliverUrl: "{{ url_for('dashboard.settings_sync_invoice_completed_deliver') }}",
             syncBranchAuthorityUrl: "{{ url_for('dashboard.settings_sync_branch_authority') }}",
             syncQCDelayManagementUrl: "{{ url_for('dashboard.settings_sync_qc_delay_management') }}",
+            syncPartyDelayManagementUrl: "{{ url_for('dashboard.settings_sync_party_delay_management') }}",
             syncQCReceiptCompletedPendingUrl: "{{ url_for('dashboard.settings_sync_qc_receipt_completed_pending') }}",
             syncOwnerShowroomUrl: "{{ url_for('dashboard.sync_owner_and_showroom_wise') }}",
             syncOrderFulfillmentValueAgingMatrixUrl: "{{ url_for('dashboard.sync_order_fulfillment_value_aging_matrix') }}",
@@ -1415,5 +1416,5 @@
             notificationsUrl: "{{ url_for('dashboard.get_settings_notifications') }}"
         };
     </script>
-    <script src="{{ url_for('static', filename='js/settings.js', v='20260715-1') }}"></script>
+    <script src="{{ url_for('static', filename='js/settings.js', v='20260728-1') }}"></script>
     {% endblock %}
