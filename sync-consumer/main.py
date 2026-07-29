@@ -636,6 +636,17 @@ def setup_scheduler():
         replace_existing=True
     )
 
+    # Schedule "Size Level NIP Barcode Sync" every day at 11:30 AM IST
+    scheduler.add_job(
+        func=enqueue_sync_task,
+        trigger='cron',
+        hour=11,
+        minute=30,
+        args=['size_level_nip_barcode'],
+        id='daily_size_level_nip_barcode_sync',
+        replace_existing=True
+    )
+
     # Schedule "Branch Authority Sync" every day at 10:00 AM and 4:00 PM IST
     # Task type 'branch_authority' matches sync_manager.py
     scheduler.add_job(
@@ -707,6 +718,7 @@ def setup_scheduler():
 
     scheduler.start()
     logger.info("Background Scheduler started. 'Provision & Stock Status Sync' scheduled for 11:00 IST daily.")
+    logger.info("Size Level NIP Barcode Sync scheduled for 11:30 IST daily.")
     logger.info("Branch Authority Sync scheduled for 10:00 IST and 16:00 IST daily.")
     logger.info("Owner & Showroom Wise Order Summary Sync scheduled for 10:30 IST and 14:30 IST daily.")
     logger.info("QC Delay Summary Sync scheduled for 9:00 IST daily.")
