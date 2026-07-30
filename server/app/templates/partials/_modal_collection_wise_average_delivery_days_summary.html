@@ -86,10 +86,16 @@
                         <p class="text-[9px] font-bold uppercase tracking-widest text-gray-500">Supplier Delivery Target</p>
                         <p class="mt-0.5 text-[10px] text-gray-400">Configured timeline; progress is relative to the highest target</p>
                     </div>
-                    <span id="collection-summary-supplier-max"
-                        class="hidden rounded bg-blue-50 dark:bg-blue-900/20 px-2 py-1 text-[9px] font-bold text-primary tabular-nums">
-                        Max: 0 days
-                    </span>
+                    <div id="collection-summary-supplier-stats" class="hidden items-center gap-2">
+                        <span id="collection-summary-supplier-count"
+                            class="rounded bg-gray-100 dark:bg-gray-800 px-2 py-1 text-[9px] font-bold text-gray-600 dark:text-gray-300 tabular-nums">
+                            0 suppliers
+                        </span>
+                        <span id="collection-summary-supplier-max"
+                            class="rounded bg-blue-50 dark:bg-blue-900/20 px-2 py-1 text-[9px] font-bold text-primary tabular-nums">
+                            Max: 0 days
+                        </span>
+                    </div>
                 </div>
 
                 <div id="collection-summary-supplier-loading"

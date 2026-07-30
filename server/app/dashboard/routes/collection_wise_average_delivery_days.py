@@ -546,6 +546,7 @@ def get_collection_supplier_delivery_times():
 
         return jsonify({
             'suppliers': suppliers,
+            'supplier_count': len(suppliers),
             'max_delivery_days': max_delivery_days,
         })
     except Exception as e:

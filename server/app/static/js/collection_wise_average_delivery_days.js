@@ -168,7 +168,7 @@ function showSupplierDeliveryState(state) {
     const empty = document.getElementById('collection-summary-supplier-empty');
     const error = document.getElementById('collection-summary-supplier-error');
     const list = document.getElementById('collection-summary-supplier-list');
-    const maxBadge = document.getElementById('collection-summary-supplier-max');
+    const stats = document.getElementById('collection-summary-supplier-stats');
 
     [
         [loading, state === 'loading'],
@@ -181,12 +181,14 @@ function showSupplierDeliveryState(state) {
     });
 
     list?.classList.toggle('hidden', state !== 'ready');
-    maxBadge?.classList.toggle('hidden', state !== 'ready');
+    stats?.classList.toggle('hidden', state !== 'ready');
+    stats?.classList.toggle('flex', state === 'ready');
 }
 
 function renderSupplierDeliveryTimes(data) {
     const list = document.getElementById('collection-summary-supplier-list');
     const maxBadge = document.getElementById('collection-summary-supplier-max');
+    const countBadge = document.getElementById('collection-summary-supplier-count');
     const suppliers = Array.isArray(data.suppliers) ? data.suppliers : [];
     if (!list) return;
 
@@ -199,6 +201,10 @@ function renderSupplierDeliveryTimes(data) {
     if (maxBadge) {
         const maximum = Number(data.max_delivery_days || 0);
         maxBadge.textContent = `Max: ${formatCollectionSummaryNumber(maximum)} day${maximum === 1 ? '' : 's'}`;
+    }
+    if (countBadge) {
+        const count = Number(data.supplier_count ?? suppliers.length);
+        countBadge.textContent = `${formatCollectionSummaryNumber(count)} supplier${count === 1 ? '' : 's'}`;
     }
 
     suppliers.forEach(supplier => {
