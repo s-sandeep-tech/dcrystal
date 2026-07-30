@@ -11,9 +11,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-WORKSHOP_SLA_DAYS = 10
-
-
 def split_filter_values(value):
     return [v.strip() for v in (value or '').split(',') if v.strip()]
 
@@ -92,16 +89,26 @@ def build_process_timeline(record):
 def build_delivery_display_rows(records):
     prepared_rows = []
     tat_values = []
+    delivery_target_values = []
 
     for record in records:
         tat_days = None
+        delivery_target_days = int(record.delivery_days) if record.delivery_days is not None else None
         if record.ordered_date and record.morr_received_date:
             tat_days = max((record.morr_received_date - record.ordered_date).days, 0)
             tat_values.append(tat_days)
+        if delivery_target_days is not None:
+            delivery_target_values.append(delivery_target_days)
 
-        variance_days = tat_days - WORKSHOP_SLA_DAYS if tat_days is not None else None
-        if variance_days is None:
+        variance_days = (
+            tat_days - delivery_target_days
+            if tat_days is not None and delivery_target_days is not None
+            else None
+        )
+        if tat_days is None:
             status_key, status_label = 'pending', 'Pending'
+        elif delivery_target_days is None:
+            status_key, status_label = 'unconfigured', 'SLA Not Set'
         elif variance_days <= 0:
             status_key, status_label = 'on_time', 'On Time'
         elif variance_days <= 5:
@@ -115,6 +122,7 @@ def build_delivery_display_rows(records):
         prepared_rows.append({
             'record': record,
             'tat_days': tat_days,
+            'delivery_target_days': delivery_target_days,
             'variance_days': variance_days,
             'status_key': status_key,
             'status_label': status_label,
@@ -133,8 +141,11 @@ def build_delivery_display_rows(records):
                 'screw_type': record.screw_type or '-',
                 'weight': float(record.weight) if record.weight is not None else None,
                 'tat_days': tat_days,
+                'delivery_days': delivery_target_days,
                 'variance_days': variance_days,
                 'status': status_label,
+                'supplier_name': record.supplier_name or '-',
+                'by_hand': bool(record.by_hand) if record.by_hand is not None else None,
                 'inshop_date': date_to_iso(record.muziris_inshop_received_date),
                 'order_type': record.order_request_type_name or (
                     str(record.order_request_type) if record.order_request_type is not None else '-'
@@ -147,9 +158,13 @@ def build_delivery_display_rows(records):
             },
         })
 
-    scale_days = max(tat_values + [WORKSHOP_SLA_DAYS])
+    scale_days = max(tat_values + delivery_target_values + [1])
     for item in prepared_rows:
-        item['sla_percent'] = min(round(WORKSHOP_SLA_DAYS * 100 / scale_days), 100)
+        item['sla_percent'] = (
+            min(round(item['delivery_target_days'] * 100 / scale_days), 100)
+            if item['delivery_target_days'] is not None
+            else 0
+        )
         item['tat_percent'] = (
             min(round(item['tat_days'] * 100 / scale_days), 100)
             if item['tat_days'] is not None
@@ -244,8 +259,15 @@ def build_snapshot_query(args):
 def build_collection_summary_query(args):
     snapshot = CollectionWiseAverageDeliveryDaysSnapshot
     tat_days = snapshot.morr_received_date - snapshot.ordered_date
-    completed_count = func.count(tat_days)
-    compliant_count = func.sum(case((tat_days <= WORKSHOP_SLA_DAYS, 1), else_=0))
+    eligible_tat = case((snapshot.delivery_days.isnot(None), tat_days), else_=None)
+    sla_variance = case(
+        (snapshot.delivery_days.isnot(None), tat_days - snapshot.delivery_days),
+        else_=None,
+    )
+    completed_count = func.count(eligible_tat)
+    compliant_count = func.sum(
+        case((tat_days <= snapshot.delivery_days, 1), else_=0)
+    )
     pending_age = case(
         (
             snapshot.muziris_inshop_received_date.is_(None),
@@ -265,8 +287,12 @@ def build_collection_summary_query(args):
         'median_tat_days': func.percentile_cont(0.5).within_group(tat_days),
         'p90_tat_days': func.percentile_cont(0.9).within_group(tat_days),
         'max_tat_days': func.max(tat_days),
+        'avg_delivery_days': func.avg(snapshot.delivery_days),
+        'avg_sla_variance': func.avg(sla_variance),
         'compliance_pct': compliant_count * 100.0 / func.nullif(completed_count, 0),
-        'delayed_count': func.sum(case((tat_days > WORKSHOP_SLA_DAYS, 1), else_=0)),
+        'delayed_count': func.sum(
+            case((tat_days > snapshot.delivery_days, 1), else_=0)
+        ),
         'awaiting_inshop_count': func.sum(
             case((snapshot.muziris_inshop_received_date.is_(None), 1), else_=0)
         ),
@@ -307,6 +333,16 @@ def build_collection_summary_display_rows(rows):
                 'median_tat_days': float(row.median_tat_days) if row.median_tat_days is not None else None,
                 'p90_tat_days': float(row.p90_tat_days) if row.p90_tat_days is not None else None,
                 'max_tat_days': int(row.max_tat_days) if row.max_tat_days is not None else None,
+                'avg_delivery_days': (
+                    float(row.avg_delivery_days)
+                    if row.avg_delivery_days is not None
+                    else None
+                ),
+                'avg_sla_variance': (
+                    float(row.avg_sla_variance)
+                    if row.avg_sla_variance is not None
+                    else None
+                ),
                 'compliance_pct': float(row.compliance_pct) if row.compliance_pct is not None else None,
                 'delayed_count': int(row.delayed_count or 0),
                 'awaiting_inshop_count': int(row.awaiting_inshop_count or 0),
@@ -451,6 +487,11 @@ def get_collection_supplier_delivery_times():
 
         snapshot = CollectionWiseAverageDeliveryDaysSnapshot
         supplier_days = func.max(snapshot.delivery_days)
+        tat_days = snapshot.morr_received_date - snapshot.ordered_date
+        completed_count = func.count(tat_days)
+        compliant_count = func.sum(
+            case((tat_days <= snapshot.delivery_days, 1), else_=0)
+        )
         rows = (
             build_snapshot_query(request.args)
             .filter(
@@ -463,7 +504,12 @@ def get_collection_supplier_delivery_times():
                 snapshot.supplier_id.label('supplier_id'),
                 snapshot.supplier_name.label('supplier_name'),
                 supplier_days.label('delivery_days'),
-                func.count(snapshot.id).label('record_count'),
+                func.count(distinct(snapshot.barcode_no)).label('barcode_count'),
+                func.avg(tat_days).label('actual_avg_days'),
+                func.avg(tat_days - snapshot.delivery_days).label('avg_variance_days'),
+                (
+                    compliant_count * 100.0 / func.nullif(completed_count, 0)
+                ).label('compliance_pct'),
             )
             .group_by(snapshot.supplier_id, snapshot.supplier_name)
             .order_by(supplier_days.desc(), snapshot.supplier_name.asc())
@@ -477,7 +523,22 @@ def get_collection_supplier_delivery_times():
                 'supplier_id': row.supplier_id,
                 'supplier_name': row.supplier_name,
                 'delivery_days': int(row.delivery_days or 0),
-                'record_count': int(row.record_count or 0),
+                'barcode_count': int(row.barcode_count or 0),
+                'actual_avg_days': (
+                    round(float(row.actual_avg_days), 1)
+                    if row.actual_avg_days is not None
+                    else None
+                ),
+                'avg_variance_days': (
+                    round(float(row.avg_variance_days), 1)
+                    if row.avg_variance_days is not None
+                    else None
+                ),
+                'compliance_pct': (
+                    round(float(row.compliance_pct), 1)
+                    if row.compliance_pct is not None
+                    else None
+                ),
                 'progress_percent': round(int(row.delivery_days or 0) * 100 / denominator, 1),
             }
             for row in rows

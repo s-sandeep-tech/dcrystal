@@ -103,7 +103,7 @@
                 {% set row = item.record %}
                 {% set group_id = 'collection-' ~ page ~ '-' ~ loop.index %}
                 {% set avg_tat = row.avg_tat_days|float %}
-                {% set variance = avg_tat - 10 %}
+                {% set variance = row.avg_sla_variance|float %}
                 {% set compliance = row.compliance_pct|float %}
                 <tr class="collection-summary-row text-[10px] text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 hover:bg-blue-50/60 dark:hover:bg-blue-900/10 transition-colors cursor-pointer focus:outline-none focus:bg-blue-50/60 dark:focus:bg-blue-900/10"
                     role="button" tabindex="0"
@@ -153,11 +153,11 @@
                         {{ row.last_morr_received_date.strftime('%d-%b-%Y') if row.last_morr_received_date else '-' }}
                     </td>
                     <td class="px-3 py-2 align-middle">
-                        <div class="font-bold tabular-nums {% if avg_tat > 10 %}text-red-500 dark:text-red-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
+                        <div class="font-bold tabular-nums {% if variance > 0 %}text-red-500 dark:text-red-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
                             {{ "{:,.1f}".format(avg_tat) }}d average
                         </div>
                         <div class="text-[9px] text-gray-400 tabular-nums">
-                            Median {{ "{:,.1f}".format(row.median_tat_days|float) }}d · P90 {{ "{:,.1f}".format(row.p90_tat_days|float) }}d
+                            Target {{ "{:,.1f}".format(row.avg_delivery_days|float) }}d · Median {{ "{:,.1f}".format(row.median_tat_days|float) }}d
                         </div>
                     </td>
                     <td class="px-3 py-2 align-middle font-bold tabular-nums whitespace-nowrap

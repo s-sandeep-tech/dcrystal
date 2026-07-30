@@ -203,7 +203,7 @@ function renderSupplierDeliveryTimes(data) {
 
     suppliers.forEach(supplier => {
         const row = document.createElement('div');
-        row.className = 'grid grid-cols-[minmax(0,180px)_minmax(120px,1fr)_58px] items-center gap-3';
+        row.className = 'grid grid-cols-[minmax(0,140px)_minmax(90px,1fr)_52px] sm:grid-cols-[minmax(0,260px)_minmax(120px,1fr)_66px] items-center gap-3';
 
         const identity = document.createElement('div');
         identity.className = 'min-w-0';
@@ -213,16 +213,23 @@ function renderSupplierDeliveryTimes(data) {
         name.textContent = supplier.supplier_name || '-';
         name.title = supplier.supplier_name || '-';
 
-        const records = document.createElement('p');
-        records.className = 'mt-0.5 text-[8px] text-gray-400 tabular-nums';
-        records.textContent = `${formatCollectionSummaryNumber(supplier.record_count)} record${
-            Number(supplier.record_count) === 1 ? '' : 's'
-        }`;
-        identity.append(name, records);
+        const performance = document.createElement('p');
+        performance.className = 'mt-0.5 truncate text-[8px] text-gray-400 tabular-nums';
+        const actualAverage = supplier.actual_avg_days === null || supplier.actual_avg_days === undefined
+            ? '-'
+            : `${formatCollectionSummaryNumber(supplier.actual_avg_days, 1)}d`;
+        const compliance = supplier.compliance_pct === null || supplier.compliance_pct === undefined
+            ? '-'
+            : `${formatCollectionSummaryNumber(supplier.compliance_pct, 1)}%`;
+        performance.textContent = `${formatCollectionSummaryNumber(supplier.barcode_count)} barcode${
+            Number(supplier.barcode_count) === 1 ? '' : 's'
+        } · Actual ${actualAverage} · ${compliance} compliant`;
+        performance.title = performance.textContent;
+        identity.append(name, performance);
 
         const track = document.createElement('div');
         track.className = 'h-2 overflow-hidden rounded bg-gray-100 dark:bg-gray-800';
-        track.title = `${supplier.delivery_days || 0} days`;
+        track.title = `Configured target: ${supplier.delivery_days || 0} days`;
 
         const bar = document.createElement('div');
         bar.className = 'h-full rounded bg-primary transition-[width] duration-300';
@@ -233,6 +240,7 @@ function renderSupplierDeliveryTimes(data) {
         days.className = 'text-right text-[10px] font-bold text-gray-900 dark:text-white tabular-nums whitespace-nowrap';
         const deliveryDays = Number(supplier.delivery_days || 0);
         days.textContent = `${formatCollectionSummaryNumber(deliveryDays)}d`;
+        days.title = 'Configured delivery target';
 
         row.append(identity, track, days);
         list.appendChild(row);
@@ -302,7 +310,7 @@ function openCollectionSummaryModal(detail) {
             ? '-'
             : `${formatCollectionSummaryNumber(detail.avg_tat_days, 1)} days`;
         average.className = `mt-1 text-sm font-bold tabular-nums ${
-            Number(detail.avg_tat_days) > 10
+            Number(detail.avg_sla_variance) > 0
                 ? 'text-red-500 dark:text-red-400'
                 : 'text-emerald-600 dark:text-emerald-400'
         }`;
@@ -561,6 +569,13 @@ function openDeliveryTimelineModal(detail) {
     setDeliveryModalText('delivery-modal-size-screw', sizeScrew || '-');
     setDeliveryModalText('delivery-modal-design-no', detail.design_no || '-');
     setDeliveryModalText('delivery-modal-barcode-no', detail.barcode || '-');
+    setDeliveryModalText('delivery-modal-supplier', detail.supplier_name || '-');
+    setDeliveryModalText(
+        'delivery-modal-delivery-target',
+        detail.delivery_days === null || detail.delivery_days === undefined
+            ? '-'
+            : `${formatCollectionSummaryNumber(detail.delivery_days)} days`
+    );
 
     // Location & Branch Details
     setDeliveryModalText('delivery-modal-order-location', detail.branch || '-');
