@@ -1,0 +1,121 @@
+{% if error_message %}
+<div class="flex items-center justify-center gap-2 px-4 py-5 text-[10px] text-red-500">
+    <span class="material-symbols-outlined text-base">error</span>
+    <span>{{ error_message }}</span>
+</div>
+{% elif not rows %}
+<div class="px-4 py-5 text-center text-[10px] text-gray-400">
+    No matching barcode records found for this collection.
+</div>
+{% else %}
+<div class="overflow-x-auto border-y border-blue-100 dark:border-blue-900/40 bg-blue-50/20 dark:bg-blue-950/10">
+    <table class="w-full min-w-[1280px] table-fixed border-collapse text-left">
+        <colgroup>
+            <col class="w-[13%]">
+            <col class="w-[10%]">
+            <col class="w-[14%]">
+            <col class="w-[9%]">
+            <col class="w-[9%]">
+            <col class="w-[17%]">
+            <col class="w-[8%]">
+            <col class="w-[11%]">
+            <col class="w-[9%]">
+        </colgroup>
+        <tbody class="divide-y divide-blue-100/70 dark:divide-blue-900/30">
+            {% for item in rows %}
+            {% set row = item.record %}
+            <tr class="delivery-report-row text-[10px] text-gray-700 dark:text-gray-300 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 cursor-pointer focus:outline-none focus:bg-blue-50/80 dark:focus:bg-blue-900/20"
+                role="button" tabindex="0"
+                aria-label="Open timeline for {{ row.collection or row.master_collection or 'record' }}"
+                data-detail='{{ item.modal_data|tojson }}'>
+                <td class="px-3 py-1.5 pl-8 align-middle">
+                    <div class="font-bold text-[10px] text-gray-900 dark:text-white whitespace-nowrap">
+                        {{ row.collection or row.master_collection or '-' }}
+                    </div>
+                    <div class="font-mono text-[9px] text-primary whitespace-nowrap">
+                        {{ row.barcode_no or '-' }}
+                    </div>
+                </td>
+                <td class="px-3 py-1.5 align-middle">
+                    <div class="font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                        {{ row.location or '-' }}
+                    </div>
+                    <div class="text-[9px] uppercase text-gray-400 whitespace-nowrap">
+                        {{ row.branch_type or 'Branch' }}
+                    </div>
+                </td>
+                <td class="px-3 py-1.5 align-middle">
+                    <div class="font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                        {{ row.section or '-' }}{% if row.type %} · {{ row.type }}{% endif %}
+                    </div>
+                    <div class="text-[9px] uppercase text-gray-400 whitespace-nowrap">
+                        {{ row.master_collection or row.make or '-' }}
+                        {% if row.weight is not none %} · {{ "{:,.3f}".format(row.weight|float) }} g{% endif %}
+                    </div>
+                </td>
+                <td class="px-3 py-1.5 align-middle font-medium whitespace-nowrap">
+                    {{ row.ordered_date.strftime('%d-%b-%Y') if row.ordered_date else '-' }}
+                </td>
+                <td class="px-3 py-1.5 align-middle font-medium whitespace-nowrap">
+                    {{ row.morr_received_date.strftime('%d-%b-%Y') if row.morr_received_date else '-' }}
+                </td>
+                <td class="px-3 py-1.5 align-middle">
+                    <div class="flex items-center gap-3">
+                        <div class="relative h-1.5 flex-1 overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
+                            <div class="absolute inset-y-0 w-px bg-gray-400/70 dark:bg-gray-300/50"
+                                style="left: {{ item.sla_percent }}%"></div>
+                            <div class="h-full rounded {% if item.tat_days is not none %}bg-primary{% else %}bg-gray-300 dark:bg-gray-600{% endif %}"
+                                style="width: {{ item.tat_percent }}%"></div>
+                        </div>
+                        <span class="w-8 text-right font-bold tabular-nums text-gray-700 dark:text-gray-200">
+                            {{ item.tat_days ~ 'd' if item.tat_days is not none else '-' }}
+                        </span>
+                    </div>
+                </td>
+                <td class="px-3 py-1.5 align-middle font-bold tabular-nums whitespace-nowrap
+                    {% if item.variance_days is none %}text-gray-400
+                    {% elif item.variance_days > 0 %}text-red-500 dark:text-red-400
+                    {% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
+                    {% if item.variance_days is none %}
+                        -
+                    {% elif item.variance_days > 0 %}
+                        +{{ item.variance_days }}d
+                    {% else %}
+                        {{ item.variance_days }}d
+                    {% endif %}
+                </td>
+                <td class="px-3 py-1.5 align-middle">
+                    <span class="inline-flex px-1.5 py-0.5 rounded bg-white dark:bg-gray-800 font-bold text-[9.5px] tracking-wide whitespace-nowrap">
+                        {{ row.muziris_inshop_received_date.strftime('%d-%b-%Y') if row.muziris_inshop_received_date else '-' }}
+                    </span>
+                </td>
+                <td class="px-3 py-1.5 align-middle">
+                    <span class="inline-flex px-1.5 py-0.5 rounded text-[8.5px] font-bold uppercase tracking-wider whitespace-nowrap bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                        {{ item.status_label }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div class="flex items-center justify-between px-4 py-2 text-[9px] text-gray-500">
+    <span>
+        {{ ((page - 1) * per_page + 1)|int }}–{{ [page * per_page, total_records]|min|int }}
+        of {{ "{:,.0f}".format(total_records|float) }} barcodes
+    </span>
+    <div class="flex items-center gap-1">
+        <button type="button" data-collection-detail-page="{{ page - 1 }}"
+            {% if page <= 1 %}disabled{% endif %}
+            class="size-6 rounded border border-gray-200 dark:border-gray-700 flex items-center justify-center disabled:opacity-30 hover:border-primary hover:text-primary">
+            <span class="material-symbols-outlined text-sm">chevron_left</span>
+        </button>
+        <span class="px-2 font-semibold">Page {{ page }} of {{ total_pages }}</span>
+        <button type="button" data-collection-detail-page="{{ page + 1 }}"
+            {% if page >= total_pages %}disabled{% endif %}
+            class="size-6 rounded border border-gray-200 dark:border-gray-700 flex items-center justify-center disabled:opacity-30 hover:border-primary hover:text-primary">
+            <span class="material-symbols-outlined text-sm">chevron_right</span>
+        </button>
+    </div>
+</div>
+{% endif %}

@@ -101,75 +101,93 @@
             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                 {% for item in rows %}
                 {% set row = item.record %}
-                <tr class="delivery-report-row text-[10px] text-gray-700 dark:text-gray-300 hover:bg-blue-50/60 dark:hover:bg-blue-900/10 cursor-pointer focus:outline-none focus:bg-blue-50/60 dark:focus:bg-blue-900/10"
+                {% set group_id = 'collection-' ~ page ~ '-' ~ loop.index %}
+                {% set avg_tat = row.avg_tat_days|float %}
+                {% set variance = avg_tat - 10 %}
+                {% set compliance = row.compliance_pct|float %}
+                <tr class="collection-summary-row text-[10px] text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 hover:bg-blue-50/60 dark:hover:bg-blue-900/10 transition-colors cursor-pointer focus:outline-none focus:bg-blue-50/60 dark:focus:bg-blue-900/10"
                     role="button" tabindex="0"
-                    aria-label="Open timeline for {{ row.collection or row.master_collection or 'record' }}"
-                    data-detail='{{ item.modal_data|tojson }}'>
-                    <td class="px-3 py-1 align-middle">
-                        <div class="font-bold text-[11px] text-gray-900 dark:text-white whitespace-nowrap">
-                            {{ row.collection or row.master_collection or '-' }}
-                        </div>
-                        <div class="font-mono text-[9px] text-gray-400 whitespace-nowrap">
-                            {{ row.barcode_no or '-' }}
-                        </div>
-                    </td>
-                    <td class="px-3 py-1 align-middle">
-                        <div class="font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
-                            {{ row.location or '-' }}
-                        </div>
-                        <div class="text-[9px] uppercase text-gray-400 whitespace-nowrap">
-                            {{ row.branch_type or 'Branch' }}
-                        </div>
-                    </td>
-                    <td class="px-3 py-1 align-middle">
-                        <div class="font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
-                            {{ row.section or '-' }}{% if row.type %} · {{ row.type }}{% endif %}
-                        </div>
-                        <div class="text-[9px] uppercase text-gray-400 whitespace-nowrap">
-                            {{ row.master_collection or row.make or '-' }}
-                            {% if row.weight is not none %} · {{ "{:,.3f}".format(row.weight|float) }} g{% endif %}
-                        </div>
-                    </td>
-                    <td class="px-3 py-1 align-middle font-medium whitespace-nowrap">
-                        {{ row.ordered_date.strftime('%d-%b-%Y') if row.ordered_date else '-' }}
-                    </td>
-                    <td class="px-3 py-1 align-middle font-medium whitespace-nowrap">
-                        {{ row.morr_received_date.strftime('%d-%b-%Y') if row.morr_received_date else '-' }}
-                    </td>
-                    <td class="px-3 py-1 align-middle">
-                        <div class="flex items-center gap-3">
-                            <div class="relative h-1.5 flex-1 overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
-                                <div class="absolute inset-y-0 w-px bg-gray-400/70 dark:bg-gray-300/50"
-                                    style="left: {{ item.sla_percent }}%"></div>
-                                <div class="h-full rounded {% if item.tat_days is not none %}bg-primary{% else %}bg-gray-300 dark:bg-gray-600{% endif %}"
-                                    style="width: {{ item.tat_percent }}%"></div>
-                            </div>
-                            <span class="w-8 text-right font-bold tabular-nums text-gray-700 dark:text-gray-200 text-[10px]">
-                                {{ item.tat_days ~ 'd' if item.tat_days is not none else '-' }}
+                    aria-label="Open summary for {{ row.collection or 'collection' }}"
+                    data-collection-summary='{{ item.modal_data|tojson }}'>
+                    <td class="px-3 py-2 align-middle">
+                        <button type="button"
+                            data-collection-toggle
+                            data-group-id="{{ group_id }}"
+                            data-collection-name="{{ row.collection }}"
+                            aria-expanded="false"
+                            class="flex w-full items-center gap-2 text-left group">
+                            <span data-collection-toggle-icon class="material-symbols-outlined text-[16px] text-gray-400 group-hover:text-primary transition-transform">chevron_right</span>
+                            <span class="min-w-0">
+                                <span class="block font-bold text-[11px] text-gray-900 dark:text-white truncate">
+                                    {{ row.collection or '-' }}
+                                </span>
+                                <span class="block text-[9px] text-gray-400 truncate">
+                                    {{ "{:,.0f}".format(row.barcode_count|float) }} barcodes · {{ row.master_collection or '-' }}
+                                </span>
                             </span>
+                        </button>
+                    </td>
+                    <td class="px-3 py-2 align-middle">
+                        <div class="font-semibold text-gray-800 dark:text-gray-200">
+                            {{ "{:,.0f}".format(row.branch_count|float) }} branches
+                        </div>
+                        <div class="text-[9px] text-gray-400">
+                            Across filtered records
                         </div>
                     </td>
-                    <td class="px-3 py-1 align-middle font-bold tabular-nums whitespace-nowrap text-[10px]
-                        {% if item.variance_days is none %}text-gray-400
-                        {% elif item.variance_days > 0 %}text-red-500 dark:text-red-400
-                        {% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
-                        {% if item.variance_days is none %}
-                            -
-                        {% elif item.variance_days > 0 %}
-                            +{{ item.variance_days }}d
-                        {% else %}
-                            {{ item.variance_days }}d
-                        {% endif %}
+                    <td class="px-3 py-2 align-middle">
+                        <div class="font-semibold text-gray-800 dark:text-gray-200">
+                            {{ "{:,.0f}".format(row.section_count|float) }} sections
+                        </div>
+                        <div class="text-[9px] text-gray-400">
+                            {{ "{:,.0f}".format(row.type_count|float) }} product types
+                        </div>
                     </td>
-                    <td class="px-3 py-1 align-middle">
-                        <span class="inline-flex px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 font-bold text-[9.5px] tracking-wide whitespace-nowrap">
-                            {{ row.muziris_inshop_received_date.strftime('%d-%b-%Y') if row.muziris_inshop_received_date else '-' }}
+                    <td class="px-3 py-2 align-middle font-medium whitespace-nowrap">
+                        <div>{{ row.last_ordered_date.strftime('%d-%b-%Y') if row.last_ordered_date else '-' }}</div>
+                        <div class="text-[9px] text-gray-400">
+                            From {{ row.first_ordered_date.strftime('%d-%b-%Y') if row.first_ordered_date else '-' }}
+                        </div>
+                    </td>
+                    <td class="px-3 py-2 align-middle font-medium whitespace-nowrap">
+                        {{ row.last_morr_received_date.strftime('%d-%b-%Y') if row.last_morr_received_date else '-' }}
+                    </td>
+                    <td class="px-3 py-2 align-middle">
+                        <div class="font-bold tabular-nums {% if avg_tat > 10 %}text-red-500 dark:text-red-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
+                            {{ "{:,.1f}".format(avg_tat) }}d average
+                        </div>
+                        <div class="text-[9px] text-gray-400 tabular-nums">
+                            Median {{ "{:,.1f}".format(row.median_tat_days|float) }}d · P90 {{ "{:,.1f}".format(row.p90_tat_days|float) }}d
+                        </div>
+                    </td>
+                    <td class="px-3 py-2 align-middle font-bold tabular-nums whitespace-nowrap
+                        {% if variance > 0 %}text-red-500 dark:text-red-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
+                        {{ '+' if variance > 0 else '' }}{{ "{:,.1f}".format(variance) }}d
+                        <div class="text-[9px] font-medium text-gray-400">
+                            {{ "{:,.0f}".format(row.delayed_count|float) }} delayed
+                        </div>
+                    </td>
+                    <td class="px-3 py-2 align-middle">
+                        <div class="font-bold tabular-nums text-gray-800 dark:text-gray-200">
+                            {{ "{:,.0f}".format(row.received_inshop_count|float) }} received
+                        </div>
+                        <div class="text-[9px] {% if row.awaiting_inshop_count %}text-blue-600 dark:text-blue-400{% else %}text-gray-400{% endif %}">
+                            {{ "{:,.0f}".format(row.awaiting_inshop_count|float) }} awaiting
+                            {% if row.avg_pending_age_days is not none %} · {{ "{:,.1f}".format(row.avg_pending_age_days|float) }}d avg{% endif %}
+                        </div>
+                    </td>
+                    <td class="px-3 py-2 align-middle">
+                        <span class="inline-flex px-1.5 py-0.5 rounded text-[8.5px] font-bold uppercase tracking-wider whitespace-nowrap
+                            {% if compliance >= 80 %}bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400
+                            {% elif compliance >= 50 %}bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400
+                            {% else %}bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400{% endif %}">
+                            {{ "{:,.1f}".format(compliance) }}% compliant
                         </span>
                     </td>
-                    <td class="px-3 py-1 align-middle">
-                        <span class="inline-flex px-1.5 py-0.5 rounded text-[8.5px] font-bold uppercase tracking-wider whitespace-nowrap bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                            {{ item.status_label }}
-                        </span>
+                </tr>
+                <tr data-collection-detail-row="{{ group_id }}" class="hidden bg-gray-50/60 dark:bg-gray-950/30">
+                    <td colspan="9" class="p-0">
+                        <div data-collection-detail-content class="min-h-16"></div>
                     </td>
                 </tr>
                 {% endfor %}

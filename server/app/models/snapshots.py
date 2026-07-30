@@ -3105,4 +3105,7 @@ class CollectionWiseAverageDeliveryDaysSnapshot(db.Model):
     hm_receipt_date = db.Column(db.Date)
     qc_receipt_date = db.Column(db.Date)
     branch_type = db.Column(db.Text)
-    is_hand = db.Column(db.Boolean)
+    by_hand = db.Column(db.Boolean)
+    supplier_id = db.Column(db.BigInteger)
+    supplier_name = db.Column(db.Text)
+    delivery_days = db.Column(db.Integer)

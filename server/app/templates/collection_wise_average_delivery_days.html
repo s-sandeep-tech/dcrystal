@@ -44,7 +44,7 @@
     <div class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
             <span class="material-symbols-outlined text-[14px]">info</span>
-            <span>Collection wise average delivery days tracking details. Use filters to refine records.</span>
+            <span>Collection-grouped delivery tracking. Expand a collection to view its barcode records.</span>
         </div>
 
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
@@ -96,6 +96,7 @@
     </div>
 </main>
 {% include 'partials/_modal_collection_wise_average_delivery_days.html' %}
+{% include 'partials/_modal_collection_wise_average_delivery_days_summary.html' %}
 {% endblock %}
 
 {% block sidebar %}
@@ -208,5 +209,5 @@
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script src="{{ url_for('static', filename='js/header_filter.js') }}"></script>
-<script src="{{ url_for('static', filename='js/collection_wise_average_delivery_days.js') }}"></script>
+<script src="{{ url_for('static', filename='js/collection_wise_average_delivery_days.js', v='20260727-3') }}"></script>
 {% endblock %}

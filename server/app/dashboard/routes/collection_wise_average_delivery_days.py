@@ -4,7 +4,7 @@ from app.dashboard import dashboard_bp
 from app.models import Notification, CollectionWiseAverageDeliveryDaysSnapshot
 from app.extensions import db
 from app.utils.decorators import require_perm
-from sqlalchemy import func, distinct
+from sqlalchemy import case, func, distinct
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import logging
@@ -241,6 +241,87 @@ def build_snapshot_query(args):
     return query
 
 
+def build_collection_summary_query(args):
+    snapshot = CollectionWiseAverageDeliveryDaysSnapshot
+    tat_days = snapshot.morr_received_date - snapshot.ordered_date
+    completed_count = func.count(tat_days)
+    compliant_count = func.sum(case((tat_days <= WORKSHOP_SLA_DAYS, 1), else_=0))
+    pending_age = case(
+        (
+            snapshot.muziris_inshop_received_date.is_(None),
+            func.current_date() - snapshot.morr_received_date,
+        ),
+        else_=None,
+    )
+
+    metrics = {
+        'barcode_count': func.count(snapshot.id),
+        'branch_count': func.count(distinct(snapshot.location)),
+        'section_count': func.count(distinct(snapshot.section)),
+        'type_count': func.count(distinct(snapshot.type)),
+        'first_ordered_date': func.min(snapshot.ordered_date),
+        'last_ordered_date': func.max(snapshot.ordered_date),
+        'avg_tat_days': func.avg(tat_days),
+        'median_tat_days': func.percentile_cont(0.5).within_group(tat_days),
+        'p90_tat_days': func.percentile_cont(0.9).within_group(tat_days),
+        'max_tat_days': func.max(tat_days),
+        'compliance_pct': compliant_count * 100.0 / func.nullif(completed_count, 0),
+        'delayed_count': func.sum(case((tat_days > WORKSHOP_SLA_DAYS, 1), else_=0)),
+        'awaiting_inshop_count': func.sum(
+            case((snapshot.muziris_inshop_received_date.is_(None), 1), else_=0)
+        ),
+        'received_inshop_count': func.sum(
+            case((snapshot.muziris_inshop_received_date.isnot(None), 1), else_=0)
+        ),
+        'avg_pending_age_days': func.avg(pending_age),
+        'last_morr_received_date': func.max(snapshot.morr_received_date),
+    }
+
+    query = build_snapshot_query(args).with_entities(
+        snapshot.collection.label('collection'),
+        snapshot.master_collection.label('master_collection'),
+        *(expression.label(name) for name, expression in metrics.items()),
+    ).group_by(
+        snapshot.collection,
+        snapshot.master_collection,
+    )
+
+    return query, metrics
+
+
+def build_collection_summary_display_rows(rows):
+    display_rows = []
+    for row in rows:
+        display_rows.append({
+            'record': row,
+            'modal_data': {
+                'collection': row.collection or '-',
+                'master_collection': row.master_collection or '-',
+                'barcode_count': int(row.barcode_count or 0),
+                'branch_count': int(row.branch_count or 0),
+                'section_count': int(row.section_count or 0),
+                'type_count': int(row.type_count or 0),
+                'first_ordered_date': date_to_iso(row.first_ordered_date),
+                'last_ordered_date': date_to_iso(row.last_ordered_date),
+                'avg_tat_days': float(row.avg_tat_days) if row.avg_tat_days is not None else None,
+                'median_tat_days': float(row.median_tat_days) if row.median_tat_days is not None else None,
+                'p90_tat_days': float(row.p90_tat_days) if row.p90_tat_days is not None else None,
+                'max_tat_days': int(row.max_tat_days) if row.max_tat_days is not None else None,
+                'compliance_pct': float(row.compliance_pct) if row.compliance_pct is not None else None,
+                'delayed_count': int(row.delayed_count or 0),
+                'awaiting_inshop_count': int(row.awaiting_inshop_count or 0),
+                'received_inshop_count': int(row.received_inshop_count or 0),
+                'avg_pending_age_days': (
+                    float(row.avg_pending_age_days)
+                    if row.avg_pending_age_days is not None
+                    else None
+                ),
+                'last_morr_received_date': date_to_iso(row.last_morr_received_date),
+            },
+        })
+    return display_rows
+
+
 @dashboard_bp.route('/collection-wise-average-delivery-days')
 def collection_wise_average_delivery_days_page():
     try:
@@ -271,17 +352,18 @@ def get_collection_wise_average_delivery_days_partial():
         sort_by = request.args.get('sort_by', '').strip()
         sort_order = request.args.get('sort_order', 'none').lower()
 
-        query = build_snapshot_query(request.args)
+        query, metrics = build_collection_summary_query(request.args)
 
         column_map = {
             'collection': CollectionWiseAverageDeliveryDaysSnapshot.collection,
-            'location': CollectionWiseAverageDeliveryDaysSnapshot.location,
-            'group': CollectionWiseAverageDeliveryDaysSnapshot.group_name,
-            'ordered_date': CollectionWiseAverageDeliveryDaysSnapshot.ordered_date,
-            'morr_received_date': CollectionWiseAverageDeliveryDaysSnapshot.morr_received_date,
-            'muziris_inshop_received_date': CollectionWiseAverageDeliveryDaysSnapshot.muziris_inshop_received_date,
-            'tat_days': (CollectionWiseAverageDeliveryDaysSnapshot.morr_received_date - CollectionWiseAverageDeliveryDaysSnapshot.ordered_date),
-            'sla_variance': ((CollectionWiseAverageDeliveryDaysSnapshot.morr_received_date - CollectionWiseAverageDeliveryDaysSnapshot.ordered_date) - WORKSHOP_SLA_DAYS),
+            'location': metrics['branch_count'],
+            'group': metrics['type_count'],
+            'ordered_date': metrics['last_ordered_date'],
+            'morr_received_date': metrics['last_morr_received_date'],
+            'tat_days': metrics['avg_tat_days'],
+            'sla_variance': metrics['avg_tat_days'],
+            'muziris_inshop_received_date': metrics['awaiting_inshop_count'],
+            'compliance_pct': metrics['compliance_pct'],
         }
 
         if sort_by in column_map and sort_order in ('asc', 'desc'):
@@ -291,14 +373,13 @@ def get_collection_wise_average_delivery_days_partial():
             else:
                 query = query.order_by(sort_col.asc().nullslast())
         else:
-            query = query.order_by(CollectionWiseAverageDeliveryDaysSnapshot.id.desc())
+            query = query.order_by(CollectionWiseAverageDeliveryDaysSnapshot.collection.asc())
 
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-        display_rows = build_delivery_display_rows(pagination.items)
 
         return render_template(
             'partials/_view_collection_wise_average_delivery_days.html',
-            rows=display_rows,
+            rows=build_collection_summary_display_rows(pagination.items),
             total_records=pagination.total,
             page=page,
             per_page=per_page,
@@ -317,6 +398,44 @@ def get_collection_wise_average_delivery_days_partial():
             total_pages=1,
             error_message=str(e)
         )
+
+
+@dashboard_bp.route('/partial/collection-wise-average-delivery-days/collection-rows')
+def get_collection_wise_average_delivery_days_collection_rows():
+    try:
+        collection = request.args.get('group_collection', '').strip()
+        if not collection:
+            return render_template(
+                'partials/_view_collection_wise_average_delivery_days_rows.html',
+                rows=[],
+                error_message='Collection is required.'
+            ), 400
+
+        page = request.args.get('detail_page', 1, type=int)
+        per_page = min(request.args.get('detail_per_page', 25, type=int), 100)
+        snapshot = CollectionWiseAverageDeliveryDaysSnapshot
+        query = build_snapshot_query(request.args).filter(snapshot.collection == collection)
+        pagination = query.order_by(
+            snapshot.ordered_date.desc().nullslast(),
+            snapshot.id.desc(),
+        ).paginate(page=page, per_page=per_page, error_out=False)
+
+        return render_template(
+            'partials/_view_collection_wise_average_delivery_days_rows.html',
+            rows=build_delivery_display_rows(pagination.items),
+            collection=collection,
+            page=page,
+            per_page=per_page,
+            total_pages=pagination.pages or 1,
+            total_records=pagination.total,
+        )
+    except Exception as e:
+        logger.error(f"Error rendering collection delivery detail rows: {str(e)}")
+        return render_template(
+            'partials/_view_collection_wise_average_delivery_days_rows.html',
+            rows=[],
+            error_message=str(e)
+        ), 500
 
 
 @dashboard_bp.route('/api/collection-wise-average-delivery-days/options')

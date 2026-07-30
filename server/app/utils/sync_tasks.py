@@ -4163,7 +4163,10 @@ def sync_collection_wise_average_delivery_days_task(task_type_override=None, pro
                 'hm_receipt_date': row.get('hm_receipt_date'),
                 'qc_receipt_date': row.get('qc_receipt_date'),
                 'branch_type': row.get('branch_type'),
-                'is_hand': row.get('is_hand')
+                'by_hand': row.get('by_hand'),
+                'supplier_id': row.get('supplier_id'),
+                'supplier_name': row.get('supplier_name'),
+                'delivery_days': row.get('delivery_days')
             })
 
         if new_records:

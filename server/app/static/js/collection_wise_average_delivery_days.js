@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     initDeliveryTimelineModal();
+    initCollectionGrouping();
+    initCollectionSummaryModal();
     initFilters();
     loadReportData();
 });
@@ -25,6 +27,237 @@ let locationMultiSelect = null;
 let searchTimeout = null;
 let currentZoom = 1.0;
 let deliveryModalPreviousOverflow = '';
+let collectionSummaryPreviousOverflow = '';
+const collectionDetailControllers = new Map();
+
+function abortCollectionDetailRequests() {
+    collectionDetailControllers.forEach(controller => controller.abort());
+    collectionDetailControllers.clear();
+}
+
+function buildCollectionDetailParams(toggle, page) {
+    collectFilterValues();
+    const params = new URLSearchParams();
+
+    Object.entries(filterValues).forEach(([key, value]) => {
+        if (!['page', 'per_page', 'sort_by', 'sort_order'].includes(key) && value !== '' && value !== null) {
+            params.set(key, value);
+        }
+    });
+
+    params.set('group_collection', toggle.dataset.collectionName || '');
+    params.set('detail_page', String(page));
+    params.set('detail_per_page', '25');
+    return params;
+}
+
+async function loadCollectionDetails(toggle, page = 1) {
+    const groupId = toggle.dataset.groupId;
+    const detailRow = document.querySelector(`[data-collection-detail-row="${groupId}"]`);
+    const content = detailRow?.querySelector('[data-collection-detail-content]');
+    if (!groupId || !content) return;
+
+    collectionDetailControllers.get(groupId)?.abort();
+    const controller = new AbortController();
+    collectionDetailControllers.set(groupId, controller);
+    toggle.disabled = true;
+    content.innerHTML = `
+        <div class="flex min-h-16 items-center justify-center gap-2 text-[10px] text-gray-400">
+            <span class="size-4 rounded-full border-2 border-primary/20 border-t-primary animate-spin"></span>
+            Loading barcode records...
+        </div>
+    `;
+
+    try {
+        const response = await fetch(
+            `/partial/collection-wise-average-delivery-days/collection-rows?${buildCollectionDetailParams(toggle, page)}`,
+            {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+                signal: controller.signal
+            }
+        );
+        const html = await response.text();
+        if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+
+        content.innerHTML = html;
+        content.dataset.loaded = 'true';
+        content.dataset.page = String(page);
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            console.error('Unable to load collection barcode rows:', error);
+            content.innerHTML = `
+                <div class="flex min-h-16 items-center justify-center gap-2 text-[10px] text-red-500">
+                    <span class="material-symbols-outlined text-base">error</span>
+                    Unable to load barcode records.
+                </div>
+            `;
+        }
+    } finally {
+        if (collectionDetailControllers.get(groupId) === controller) {
+            collectionDetailControllers.delete(groupId);
+            toggle.disabled = false;
+        }
+    }
+}
+
+function initCollectionGrouping() {
+    document.addEventListener('click', event => {
+        const pageButton = event.target.closest('[data-collection-detail-page]');
+        if (pageButton) {
+            if (pageButton.disabled) return;
+            const detailRow = pageButton.closest('[data-collection-detail-row]');
+            const groupId = detailRow?.dataset.collectionDetailRow;
+            const toggle = groupId
+                ? document.querySelector(`[data-collection-toggle][data-group-id="${groupId}"]`)
+                : null;
+            const page = Number.parseInt(pageButton.dataset.collectionDetailPage || '1', 10);
+            if (toggle && page > 0) loadCollectionDetails(toggle, page);
+            return;
+        }
+
+        const toggle = event.target.closest('[data-collection-toggle]');
+        if (!toggle) return;
+
+        const groupId = toggle.dataset.groupId;
+        const detailRow = document.querySelector(`[data-collection-detail-row="${groupId}"]`);
+        const content = detailRow?.querySelector('[data-collection-detail-content]');
+        const icon = toggle.querySelector('[data-collection-toggle-icon]');
+        if (!detailRow || !content) return;
+
+        const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+        toggle.setAttribute('aria-expanded', String(!isExpanded));
+        detailRow.classList.toggle('hidden', isExpanded);
+        icon?.classList.toggle('rotate-90', !isExpanded);
+
+        if (!isExpanded && content.dataset.loaded !== 'true') {
+            loadCollectionDetails(toggle, 1);
+        }
+    });
+}
+
+function setCollectionSummaryText(elementId, value) {
+    const element = document.getElementById(elementId);
+    if (element) element.textContent = value ?? '-';
+}
+
+function formatCollectionSummaryNumber(value, fractionDigits = 0) {
+    if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+    return Number(value).toLocaleString('en-IN', {
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits
+    });
+}
+
+function openCollectionSummaryModal(detail) {
+    const modal = document.getElementById('collection-summary-modal');
+    if (!modal) return;
+
+    setCollectionSummaryText('collection-summary-title', detail.collection || '-');
+    setCollectionSummaryText('collection-summary-subtitle', detail.master_collection || '-');
+    setCollectionSummaryText('collection-summary-barcodes', formatCollectionSummaryNumber(detail.barcode_count));
+    setCollectionSummaryText('collection-summary-branches', formatCollectionSummaryNumber(detail.branch_count));
+    setCollectionSummaryText('collection-summary-sections', formatCollectionSummaryNumber(detail.section_count));
+    setCollectionSummaryText('collection-summary-types', formatCollectionSummaryNumber(detail.type_count));
+    setCollectionSummaryText('collection-summary-median', `${formatCollectionSummaryNumber(detail.median_tat_days, 1)} days`);
+    setCollectionSummaryText('collection-summary-p90', `${formatCollectionSummaryNumber(detail.p90_tat_days, 1)} days`);
+    setCollectionSummaryText('collection-summary-maximum', `${formatCollectionSummaryNumber(detail.max_tat_days)} days`);
+    setCollectionSummaryText('collection-summary-delayed', formatCollectionSummaryNumber(detail.delayed_count));
+    setCollectionSummaryText('collection-summary-received', formatCollectionSummaryNumber(detail.received_inshop_count));
+    setCollectionSummaryText('collection-summary-awaiting', formatCollectionSummaryNumber(detail.awaiting_inshop_count));
+    setCollectionSummaryText(
+        'collection-summary-pending-age',
+        detail.avg_pending_age_days === null || detail.avg_pending_age_days === undefined
+            ? '-'
+            : `${formatCollectionSummaryNumber(detail.avg_pending_age_days, 1)} days`
+    );
+    setCollectionSummaryText('collection-summary-first-order', formatDeliveryModalDate(detail.first_ordered_date));
+    setCollectionSummaryText('collection-summary-last-order', formatDeliveryModalDate(detail.last_ordered_date));
+    setCollectionSummaryText('collection-summary-last-morr', formatDeliveryModalDate(detail.last_morr_received_date));
+
+    const average = document.getElementById('collection-summary-average');
+    if (average) {
+        average.textContent = detail.avg_tat_days === null || detail.avg_tat_days === undefined
+            ? '-'
+            : `${formatCollectionSummaryNumber(detail.avg_tat_days, 1)} days`;
+        average.className = `mt-1 text-sm font-bold tabular-nums ${
+            Number(detail.avg_tat_days) > 10
+                ? 'text-red-500 dark:text-red-400'
+                : 'text-emerald-600 dark:text-emerald-400'
+        }`;
+    }
+
+    const compliance = Number(detail.compliance_pct || 0);
+    const complianceBadge = document.getElementById('collection-summary-compliance-badge');
+    if (complianceBadge) {
+        complianceBadge.textContent = `${formatCollectionSummaryNumber(compliance, 1)}% compliant`;
+        let colorClass = 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400';
+        if (compliance >= 80) {
+            colorClass = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400';
+        } else if (compliance >= 50) {
+            colorClass = 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400';
+        }
+        complianceBadge.className = `inline-flex rounded px-2 py-1 text-[9px] font-bold uppercase tracking-wider ${colorClass}`;
+    }
+
+    const complianceBar = document.getElementById('collection-summary-compliance-bar');
+    if (complianceBar) {
+        complianceBar.style.width = `${Math.min(Math.max(compliance, 0), 100)}%`;
+    }
+
+    collectionSummaryPreviousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.setAttribute('aria-hidden', 'false');
+    modal.querySelector('[data-collection-summary-close]:not(.absolute)')?.focus();
+}
+
+function closeCollectionSummaryModal() {
+    const modal = document.getElementById('collection-summary-modal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = collectionSummaryPreviousOverflow;
+}
+
+function initCollectionSummaryModal() {
+    const modal = document.getElementById('collection-summary-modal');
+    if (!modal) return;
+
+    modal.querySelectorAll('[data-collection-summary-close]').forEach(button => {
+        button.addEventListener('click', closeCollectionSummaryModal);
+    });
+
+    document.addEventListener('click', event => {
+        if (event.target.closest('[data-collection-toggle]')) return;
+        const row = event.target.closest('.collection-summary-row');
+        if (!row) return;
+        try {
+            openCollectionSummaryModal(JSON.parse(row.dataset.collectionSummary || '{}'));
+        } catch (error) {
+            console.error('Unable to open collection summary:', error);
+        }
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+            closeCollectionSummaryModal();
+            return;
+        }
+        if (event.target.closest('[data-collection-toggle]')) return;
+
+        const row = event.target.closest('.collection-summary-row');
+        if (row && (event.key === 'Enter' || event.key === ' ')) {
+            event.preventDefault();
+            try {
+                openCollectionSummaryModal(JSON.parse(row.dataset.collectionSummary || '{}'));
+            } catch (error) {
+                console.error('Unable to open collection summary:', error);
+            }
+        }
+    });
+}
 
 function setDeliveryModalText(elementId, value) {
     const element = document.getElementById(elementId);
@@ -470,6 +703,7 @@ async function loadReportData() {
     const container = document.getElementById('view-collection-wise-average-delivery-days');
     const progressBar = document.getElementById('report-progress');
 
+    abortCollectionDetailRequests();
     if (progressBar) progressBar.classList.remove('hidden');
 
     try {
