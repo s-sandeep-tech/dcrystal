@@ -4,7 +4,7 @@ from app.dashboard import dashboard_bp
 from app.models import Notification, CollectionWiseAverageDeliveryDaysSnapshot
 from app.extensions import db
 from app.utils.decorators import require_perm
-from sqlalchemy import case, func, distinct
+from sqlalchemy import and_, case, func, distinct
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import logging
@@ -488,6 +488,17 @@ def get_collection_supplier_delivery_times():
         snapshot = CollectionWiseAverageDeliveryDaysSnapshot
         supplier_days = func.max(snapshot.delivery_days)
         tat_days = snapshot.morr_received_date - snapshot.ordered_date
+        is_inshop_pending = and_(
+            snapshot.morr_received_date.isnot(None),
+            snapshot.muziris_inshop_received_date.is_(None),
+        )
+        inshop_pending_age = case(
+            (
+                is_inshop_pending,
+                func.current_date() - snapshot.morr_received_date,
+            ),
+            else_=None,
+        )
         completed_count = func.count(tat_days)
         compliant_count = func.sum(
             case((tat_days <= snapshot.delivery_days, 1), else_=0)
@@ -510,6 +521,23 @@ def get_collection_supplier_delivery_times():
                 (
                     compliant_count * 100.0 / func.nullif(completed_count, 0)
                 ).label('compliance_pct'),
+                func.sum(
+                    case((is_inshop_pending, 1), else_=0)
+                ).label('inshop_pending_count'),
+                func.max(inshop_pending_age).label('oldest_inshop_pending_days'),
+                func.avg(inshop_pending_age).label('avg_inshop_pending_days'),
+                func.sum(
+                    case(
+                        (
+                            and_(
+                                is_inshop_pending,
+                                inshop_pending_age > snapshot.delivery_days,
+                            ),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label('past_target_count'),
             )
             .group_by(snapshot.supplier_id, snapshot.supplier_name)
             .order_by(supplier_days.desc(), snapshot.supplier_name.asc())
@@ -518,11 +546,28 @@ def get_collection_supplier_delivery_times():
 
         max_delivery_days = max((int(row.delivery_days or 0) for row in rows), default=0)
         denominator = max(max_delivery_days, 1)
-        suppliers = [
-            {
+        suppliers = []
+        for row in rows:
+            target_days = int(row.delivery_days or 0)
+            pending_count = int(row.inshop_pending_count or 0)
+            oldest_pending_days = (
+                int(row.oldest_inshop_pending_days)
+                if row.oldest_inshop_pending_days is not None
+                else None
+            )
+            if not pending_count or oldest_pending_days is None:
+                pending_status = 'none'
+            elif oldest_pending_days > target_days:
+                pending_status = 'past_target'
+            elif target_days > 0 and oldest_pending_days >= target_days * 0.75:
+                pending_status = 'near_target'
+            else:
+                pending_status = 'within_target'
+
+            suppliers.append({
                 'supplier_id': row.supplier_id,
                 'supplier_name': row.supplier_name,
-                'delivery_days': int(row.delivery_days or 0),
+                'delivery_days': target_days,
                 'barcode_count': int(row.barcode_count or 0),
                 'actual_avg_days': (
                     round(float(row.actual_avg_days), 1)
@@ -539,10 +584,22 @@ def get_collection_supplier_delivery_times():
                     if row.compliance_pct is not None
                     else None
                 ),
-                'progress_percent': round(int(row.delivery_days or 0) * 100 / denominator, 1),
-            }
-            for row in rows
-        ]
+                'inshop_pending_count': pending_count,
+                'oldest_inshop_pending_days': oldest_pending_days,
+                'avg_inshop_pending_days': (
+                    round(float(row.avg_inshop_pending_days), 1)
+                    if row.avg_inshop_pending_days is not None
+                    else None
+                ),
+                'past_target_count': int(row.past_target_count or 0),
+                'pending_status': pending_status,
+                'progress_percent': round(target_days * 100 / denominator, 1),
+                'pending_progress_percent': (
+                    min(round(oldest_pending_days * 100 / denominator, 1), 100)
+                    if oldest_pending_days is not None
+                    else 0
+                ),
+            })
 
         return jsonify({
             'suppliers': suppliers,

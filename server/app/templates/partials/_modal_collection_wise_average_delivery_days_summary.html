@@ -84,7 +84,7 @@
                 <div class="flex items-center justify-between gap-4">
                     <div>
                         <p class="text-[9px] font-bold uppercase tracking-widest text-gray-500">Supplier Delivery Target</p>
-                        <p class="mt-0.5 text-[10px] text-gray-400">Configured timeline; progress is relative to the highest target</p>
+                        <p class="mt-0.5 text-[10px] text-gray-400">Configured target and oldest Muziris in-shop pending age</p>
                     </div>
                     <div id="collection-summary-supplier-stats" class="hidden items-center gap-2">
                         <span id="collection-summary-supplier-count"
@@ -112,8 +112,21 @@
                     <span class="material-symbols-outlined text-base">error</span>
                     Unable to load supplier delivery times.
                 </div>
+                <div id="collection-summary-supplier-columns"
+                    class="hidden mt-3 grid-cols-[minmax(0,140px)_minmax(90px,1fr)_68px] sm:grid-cols-[minmax(0,260px)_minmax(120px,1fr)_78px] items-center gap-3 text-[7px] font-bold uppercase tracking-wider text-gray-400">
+                    <span>Supplier Performance</span>
+                    <span>Target / Current Age</span>
+                    <span class="text-right">Configured Days</span>
+                </div>
+                <div id="collection-summary-supplier-legend"
+                    class="hidden mt-2 flex-wrap items-center gap-x-3 gap-y-1 text-[8px] text-gray-500 dark:text-gray-400">
+                    <span class="inline-flex items-center gap-1"><span class="h-1.5 w-4 rounded bg-primary"></span>Target</span>
+                    <span class="inline-flex items-center gap-1"><span class="h-1.5 w-4 rounded bg-emerald-500"></span>Pending within target</span>
+                    <span class="inline-flex items-center gap-1"><span class="h-1.5 w-4 rounded bg-amber-500"></span>Near target</span>
+                    <span class="inline-flex items-center gap-1"><span class="h-1.5 w-4 rounded bg-red-500"></span>Past target</span>
+                </div>
                 <div id="collection-summary-supplier-list"
-                    class="hidden mt-3 max-h-52 space-y-3 overflow-y-auto pr-1 custom-scrollbar"></div>
+                    class="hidden mt-2 max-h-52 space-y-3 overflow-y-auto pr-1 custom-scrollbar"></div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2">

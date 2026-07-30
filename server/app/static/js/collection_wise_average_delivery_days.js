@@ -168,6 +168,8 @@ function showSupplierDeliveryState(state) {
     const empty = document.getElementById('collection-summary-supplier-empty');
     const error = document.getElementById('collection-summary-supplier-error');
     const list = document.getElementById('collection-summary-supplier-list');
+    const columns = document.getElementById('collection-summary-supplier-columns');
+    const legend = document.getElementById('collection-summary-supplier-legend');
     const stats = document.getElementById('collection-summary-supplier-stats');
 
     [
@@ -181,6 +183,10 @@ function showSupplierDeliveryState(state) {
     });
 
     list?.classList.toggle('hidden', state !== 'ready');
+    columns?.classList.toggle('hidden', state !== 'ready');
+    columns?.classList.toggle('grid', state === 'ready');
+    legend?.classList.toggle('hidden', state !== 'ready');
+    legend?.classList.toggle('flex', state === 'ready');
     stats?.classList.toggle('hidden', state !== 'ready');
     stats?.classList.toggle('flex', state === 'ready');
 }
@@ -209,7 +215,7 @@ function renderSupplierDeliveryTimes(data) {
 
     suppliers.forEach(supplier => {
         const row = document.createElement('div');
-        row.className = 'grid grid-cols-[minmax(0,140px)_minmax(90px,1fr)_52px] sm:grid-cols-[minmax(0,260px)_minmax(120px,1fr)_66px] items-center gap-3';
+        row.className = 'grid grid-cols-[minmax(0,140px)_minmax(90px,1fr)_68px] sm:grid-cols-[minmax(0,260px)_minmax(120px,1fr)_78px] items-center gap-3';
 
         const identity = document.createElement('div');
         identity.className = 'min-w-0';
@@ -231,21 +237,60 @@ function renderSupplierDeliveryTimes(data) {
             Number(supplier.barcode_count) === 1 ? '' : 's'
         } · Actual ${actualAverage} · ${compliance} compliant`;
         performance.title = performance.textContent;
-        identity.append(name, performance);
+
+        const pending = document.createElement('p');
+        pending.className = 'mt-0.5 truncate text-[8px] font-medium tabular-nums';
+        const pendingCount = Number(supplier.inshop_pending_count || 0);
+        const oldestPendingDays = supplier.oldest_inshop_pending_days;
+        const pastTargetCount = Number(supplier.past_target_count || 0);
+        if (!pendingCount || oldestPendingDays === null || oldestPendingDays === undefined) {
+            pending.className += ' text-gray-400';
+            pending.textContent = 'No Muziris in-shop pending';
+        } else {
+            const pendingColorClasses = {
+                within_target: ' text-emerald-600 dark:text-emerald-400',
+                near_target: ' text-amber-600 dark:text-amber-400',
+                past_target: ' text-red-500 dark:text-red-400'
+            };
+            pending.className += pendingColorClasses[supplier.pending_status] || ' text-gray-500';
+            pending.textContent = `${formatCollectionSummaryNumber(pendingCount)} in-shop pending · Oldest ${
+                formatCollectionSummaryNumber(oldestPendingDays)
+            }d${pastTargetCount ? ` · ${formatCollectionSummaryNumber(pastTargetCount)} past target` : ''}`;
+        }
+        pending.title = pending.textContent;
+        identity.append(name, performance, pending);
 
         const track = document.createElement('div');
-        track.className = 'h-2 overflow-hidden rounded bg-gray-100 dark:bg-gray-800';
-        track.title = `Configured target: ${supplier.delivery_days || 0} days`;
+        track.className = 'relative h-4 overflow-hidden rounded bg-gray-100 dark:bg-gray-800';
+        track.title = `Configured target: ${supplier.delivery_days || 0} days${
+            oldestPendingDays === null || oldestPendingDays === undefined
+                ? '; no Muziris in-shop pending'
+                : `; oldest Muziris in-shop pending: ${oldestPendingDays} days`
+        }`;
 
-        const bar = document.createElement('div');
-        bar.className = 'h-full rounded bg-primary transition-[width] duration-300';
-        bar.style.width = `${Math.min(Math.max(Number(supplier.progress_percent || 0), 0), 100)}%`;
-        track.appendChild(bar);
+        const targetBar = document.createElement('div');
+        targetBar.className = 'absolute left-0 top-0 h-[7px] rounded bg-primary transition-[width] duration-300';
+        targetBar.style.width = `${Math.min(Math.max(Number(supplier.progress_percent || 0), 0), 100)}%`;
+
+        const pendingBar = document.createElement('div');
+        const pendingBarClasses = {
+            within_target: 'bg-emerald-500',
+            near_target: 'bg-amber-500',
+            past_target: 'bg-red-500'
+        };
+        pendingBar.className = `absolute bottom-0 left-0 h-[7px] rounded transition-[width] duration-300 ${
+            pendingBarClasses[supplier.pending_status] || 'bg-transparent'
+        }`;
+        pendingBar.style.width = `${Math.min(
+            Math.max(Number(supplier.pending_progress_percent || 0), 0),
+            100
+        )}%`;
+        track.append(targetBar, pendingBar);
 
         const days = document.createElement('p');
         days.className = 'text-right text-[10px] font-bold text-gray-900 dark:text-white tabular-nums whitespace-nowrap';
         const deliveryDays = Number(supplier.delivery_days || 0);
-        days.textContent = `${formatCollectionSummaryNumber(deliveryDays)}d`;
+        days.textContent = `${formatCollectionSummaryNumber(deliveryDays)} day${deliveryDays === 1 ? '' : 's'}`;
         days.title = 'Configured delivery target';
 
         row.append(identity, track, days);
