@@ -80,6 +80,36 @@
                 </div>
             </div>
 
+            <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <p class="text-[9px] font-bold uppercase tracking-widest text-gray-500">Supplier Delivery Time</p>
+                        <p class="mt-0.5 text-[10px] text-gray-400">Progress is relative to the highest supplier delivery days</p>
+                    </div>
+                    <span id="collection-summary-supplier-max"
+                        class="hidden rounded bg-blue-50 dark:bg-blue-900/20 px-2 py-1 text-[9px] font-bold text-primary tabular-nums">
+                        Max: 0 days
+                    </span>
+                </div>
+
+                <div id="collection-summary-supplier-loading"
+                    class="flex min-h-20 items-center justify-center gap-2 text-[10px] text-gray-400">
+                    <span class="size-4 rounded-full border-2 border-primary/20 border-t-primary animate-spin"></span>
+                    Loading supplier delivery times...
+                </div>
+                <div id="collection-summary-supplier-empty"
+                    class="hidden min-h-20 items-center justify-center text-[10px] text-gray-400">
+                    No supplier delivery-time data found.
+                </div>
+                <div id="collection-summary-supplier-error"
+                    class="hidden min-h-20 items-center justify-center gap-2 text-[10px] text-red-500">
+                    <span class="material-symbols-outlined text-base">error</span>
+                    Unable to load supplier delivery times.
+                </div>
+                <div id="collection-summary-supplier-list"
+                    class="hidden mt-3 max-h-52 space-y-3 overflow-y-auto pr-1 custom-scrollbar"></div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2">
                 <div class="px-5 py-4 border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-800">
                     <p class="text-[9px] font-bold uppercase tracking-widest text-gray-500 mb-3">Muziris In-Shop</p>

@@ -438,6 +438,60 @@ def get_collection_wise_average_delivery_days_collection_rows():
         ), 500
 
 
+@dashboard_bp.route('/api/collection-wise-average-delivery-days/supplier-delivery-times')
+def get_collection_supplier_delivery_times():
+    try:
+        collection = request.args.get('group_collection', '').strip()
+        if not collection:
+            return jsonify({
+                'suppliers': [],
+                'max_delivery_days': 0,
+                'message': 'Collection is required.',
+            }), 400
+
+        snapshot = CollectionWiseAverageDeliveryDaysSnapshot
+        supplier_days = func.max(snapshot.delivery_days)
+        rows = (
+            build_snapshot_query(request.args)
+            .filter(
+                snapshot.collection == collection,
+                snapshot.supplier_name.isnot(None),
+                func.trim(snapshot.supplier_name) != '',
+                snapshot.delivery_days.isnot(None),
+            )
+            .with_entities(
+                snapshot.supplier_id.label('supplier_id'),
+                snapshot.supplier_name.label('supplier_name'),
+                supplier_days.label('delivery_days'),
+                func.count(snapshot.id).label('record_count'),
+            )
+            .group_by(snapshot.supplier_id, snapshot.supplier_name)
+            .order_by(supplier_days.desc(), snapshot.supplier_name.asc())
+            .all()
+        )
+
+        max_delivery_days = max((int(row.delivery_days or 0) for row in rows), default=0)
+        denominator = max(max_delivery_days, 1)
+        suppliers = [
+            {
+                'supplier_id': row.supplier_id,
+                'supplier_name': row.supplier_name,
+                'delivery_days': int(row.delivery_days or 0),
+                'record_count': int(row.record_count or 0),
+                'progress_percent': round(int(row.delivery_days or 0) * 100 / denominator, 1),
+            }
+            for row in rows
+        ]
+
+        return jsonify({
+            'suppliers': suppliers,
+            'max_delivery_days': max_delivery_days,
+        })
+    except Exception as e:
+        logger.error(f"Error fetching supplier delivery times: {str(e)}")
+        return jsonify({'error': str(e), 'suppliers': [], 'max_delivery_days': 0}), 500
+
+
 @dashboard_bp.route('/api/collection-wise-average-delivery-days/options')
 def get_collection_wise_average_delivery_days_options():
     try:

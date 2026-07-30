@@ -28,6 +28,7 @@ let searchTimeout = null;
 let currentZoom = 1.0;
 let deliveryModalPreviousOverflow = '';
 let collectionSummaryPreviousOverflow = '';
+let collectionSupplierDeliveryController = null;
 const collectionDetailControllers = new Map();
 
 function abortCollectionDetailRequests() {
@@ -148,6 +149,127 @@ function formatCollectionSummaryNumber(value, fractionDigits = 0) {
     });
 }
 
+function buildSupplierDeliveryParams(collection) {
+    collectFilterValues();
+    const params = new URLSearchParams();
+
+    Object.entries(filterValues).forEach(([key, value]) => {
+        if (!['page', 'per_page', 'sort_by', 'sort_order'].includes(key) && value !== '' && value !== null) {
+            params.set(key, value);
+        }
+    });
+
+    params.set('group_collection', collection || '');
+    return params;
+}
+
+function showSupplierDeliveryState(state) {
+    const loading = document.getElementById('collection-summary-supplier-loading');
+    const empty = document.getElementById('collection-summary-supplier-empty');
+    const error = document.getElementById('collection-summary-supplier-error');
+    const list = document.getElementById('collection-summary-supplier-list');
+    const maxBadge = document.getElementById('collection-summary-supplier-max');
+
+    [
+        [loading, state === 'loading'],
+        [empty, state === 'empty'],
+        [error, state === 'error']
+    ].forEach(([element, visible]) => {
+        if (!element) return;
+        element.classList.toggle('hidden', !visible);
+        element.classList.toggle('flex', visible);
+    });
+
+    list?.classList.toggle('hidden', state !== 'ready');
+    maxBadge?.classList.toggle('hidden', state !== 'ready');
+}
+
+function renderSupplierDeliveryTimes(data) {
+    const list = document.getElementById('collection-summary-supplier-list');
+    const maxBadge = document.getElementById('collection-summary-supplier-max');
+    const suppliers = Array.isArray(data.suppliers) ? data.suppliers : [];
+    if (!list) return;
+
+    list.replaceChildren();
+    if (!suppliers.length) {
+        showSupplierDeliveryState('empty');
+        return;
+    }
+
+    if (maxBadge) {
+        const maximum = Number(data.max_delivery_days || 0);
+        maxBadge.textContent = `Max: ${formatCollectionSummaryNumber(maximum)} day${maximum === 1 ? '' : 's'}`;
+    }
+
+    suppliers.forEach(supplier => {
+        const row = document.createElement('div');
+        row.className = 'grid grid-cols-[minmax(0,180px)_minmax(120px,1fr)_58px] items-center gap-3';
+
+        const identity = document.createElement('div');
+        identity.className = 'min-w-0';
+
+        const name = document.createElement('p');
+        name.className = 'truncate text-[10px] font-bold text-gray-800 dark:text-gray-200';
+        name.textContent = supplier.supplier_name || '-';
+        name.title = supplier.supplier_name || '-';
+
+        const records = document.createElement('p');
+        records.className = 'mt-0.5 text-[8px] text-gray-400 tabular-nums';
+        records.textContent = `${formatCollectionSummaryNumber(supplier.record_count)} record${
+            Number(supplier.record_count) === 1 ? '' : 's'
+        }`;
+        identity.append(name, records);
+
+        const track = document.createElement('div');
+        track.className = 'h-2 overflow-hidden rounded bg-gray-100 dark:bg-gray-800';
+        track.title = `${supplier.delivery_days || 0} days`;
+
+        const bar = document.createElement('div');
+        bar.className = 'h-full rounded bg-primary transition-[width] duration-300';
+        bar.style.width = `${Math.min(Math.max(Number(supplier.progress_percent || 0), 0), 100)}%`;
+        track.appendChild(bar);
+
+        const days = document.createElement('p');
+        days.className = 'text-right text-[10px] font-bold text-gray-900 dark:text-white tabular-nums whitespace-nowrap';
+        const deliveryDays = Number(supplier.delivery_days || 0);
+        days.textContent = `${formatCollectionSummaryNumber(deliveryDays)}d`;
+
+        row.append(identity, track, days);
+        list.appendChild(row);
+    });
+
+    showSupplierDeliveryState('ready');
+}
+
+async function loadCollectionSupplierDeliveryTimes(collection) {
+    collectionSupplierDeliveryController?.abort();
+    collectionSupplierDeliveryController = new AbortController();
+    const controller = collectionSupplierDeliveryController;
+    showSupplierDeliveryState('loading');
+
+    try {
+        const response = await fetch(
+            `/api/collection-wise-average-delivery-days/supplier-delivery-times?${buildSupplierDeliveryParams(collection)}`,
+            {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+                signal: controller.signal
+            }
+        );
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || data.message || `Request failed with status ${response.status}`);
+        renderSupplierDeliveryTimes(data);
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            console.error('Unable to load supplier delivery times:', error);
+            showSupplierDeliveryState('error');
+        }
+    } finally {
+        if (collectionSupplierDeliveryController === controller) {
+            collectionSupplierDeliveryController = null;
+        }
+    }
+}
+
 function openCollectionSummaryModal(detail) {
     const modal = document.getElementById('collection-summary-modal');
     if (!modal) return;
@@ -210,6 +332,7 @@ function openCollectionSummaryModal(detail) {
     modal.classList.add('flex');
     modal.setAttribute('aria-hidden', 'false');
     modal.querySelector('[data-collection-summary-close]:not(.absolute)')?.focus();
+    loadCollectionSupplierDeliveryTimes(detail.collection || '');
 }
 
 function closeCollectionSummaryModal() {
@@ -219,6 +342,8 @@ function closeCollectionSummaryModal() {
     modal.classList.remove('flex');
     modal.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = collectionSummaryPreviousOverflow;
+    collectionSupplierDeliveryController?.abort();
+    collectionSupplierDeliveryController = null;
 }
 
 function initCollectionSummaryModal() {
