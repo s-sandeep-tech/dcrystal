@@ -1,19 +1,21 @@
-<div id="delivery-timeline-modal"
-    class="fixed inset-0 z-[100] hidden items-center justify-center p-4"
-    role="dialog" aria-modal="true" aria-labelledby="delivery-timeline-title" aria-hidden="true">
-    <button type="button" data-delivery-modal-close
-        class="absolute inset-0 w-full h-full bg-gray-900/50 cursor-default"
+<div id="delivery-timeline-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4" role="dialog"
+    aria-modal="true" aria-labelledby="delivery-timeline-title" aria-hidden="true">
+    <button type="button" data-delivery-modal-close class="absolute inset-0 w-full h-full bg-gray-900/50 cursor-default"
         aria-label="Close timeline"></button>
 
-    <section class="relative w-full max-w-4xl max-h-[88vh] overflow-hidden rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl flex flex-col">
-        <header class="px-5 py-3.5 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between gap-4 shrink-0">
+    <section
+        class="relative w-full max-w-4xl max-h-[88vh] overflow-hidden rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl flex flex-col">
+        <header
+            class="px-5 py-3.5 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between gap-4 shrink-0">
             <div class="flex items-center gap-3 min-w-0">
-                <div class="size-9 rounded bg-blue-50 dark:bg-blue-900/20 text-primary flex items-center justify-center shrink-0">
+                <div
+                    class="size-9 rounded bg-blue-50 dark:bg-blue-900/20 text-primary flex items-center justify-center shrink-0">
                     <span class="material-symbols-outlined text-xl">timeline</span>
                 </div>
                 <div class="min-w-0">
                     <p class="text-[9px] font-bold uppercase tracking-widest text-primary">Collection Timeline</p>
-                    <h2 id="delivery-timeline-title" class="mt-0.5 text-base font-bold text-gray-900 dark:text-white truncate">-</h2>
+                    <h2 id="delivery-timeline-title"
+                        class="mt-0.5 text-base font-bold text-gray-900 dark:text-white truncate">-</h2>
                     <p id="delivery-timeline-subtitle" class="mt-0.5 text-[10px] text-gray-400 truncate">-</p>
                 </div>
             </div>
@@ -26,7 +28,8 @@
 
         <div class="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
             <!-- Key Metrics Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-6 border-b border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20">
+            <div
+                class="grid grid-cols-2 md:grid-cols-6 border-b border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20">
                 <div class="px-4 py-2.5 border-r border-b md:border-b-0 border-gray-200 dark:border-gray-800">
                     <p class="text-[8px] font-bold uppercase tracking-widest text-gray-400">Workshop TAT</p>
                     <p id="delivery-modal-tat" class="mt-0.5 text-sm font-bold text-gray-900 dark:text-white">-</p>
@@ -45,11 +48,13 @@
                 </div>
                 <div class="px-4 py-2.5 border-r border-gray-200 dark:border-gray-800">
                     <p class="text-[8px] font-bold uppercase tracking-widest text-gray-400">Order Type</p>
-                    <p id="delivery-modal-order-type" class="mt-0.5 text-sm font-bold text-gray-900 dark:text-white">-</p>
+                    <p id="delivery-modal-order-type" class="mt-0.5 text-sm font-bold text-gray-900 dark:text-white">-
+                    </p>
                 </div>
                 <div class="px-4 py-2.5">
                     <p class="text-[8px] font-bold uppercase tracking-widest text-gray-400">Branch Type</p>
-                    <p id="delivery-modal-branch-type" class="mt-0.5 text-sm font-bold text-gray-900 dark:text-white">-</p>
+                    <p id="delivery-modal-branch-type" class="mt-0.5 text-sm font-bold text-gray-900 dark:text-white">-
+                    </p>
                 </div>
             </div>
 
@@ -57,56 +62,76 @@
             <div class="px-5 py-3 border-b border-gray-200 dark:border-gray-800">
                 <div class="flex items-center gap-2 mb-2">
                     <span class="material-symbols-outlined text-primary text-sm">category</span>
-                    <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-700 dark:text-gray-200">Item & Taxonomy Details</h3>
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-700 dark:text-gray-200">Item
+                        Details</h3>
                 </div>
-                <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-lg border border-gray-100 dark:border-gray-800 text-[10px]">
+                <div
+                    class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-lg border border-gray-100 dark:border-gray-800 text-[10px]">
                     <div>
                         <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Product</span>
-                        <span id="delivery-modal-product" class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
+                        <span id="delivery-modal-product"
+                            class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
                     </div>
                     <div>
                         <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Weight</span>
-                        <span id="delivery-modal-weight" class="font-semibold font-mono text-gray-800 dark:text-gray-200 block">-</span>
+                        <span id="delivery-modal-weight"
+                            class="font-semibold font-mono text-gray-800 dark:text-gray-200 block">-</span>
                     </div>
                     <div>
                         <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Purity</span>
-                        <span id="delivery-modal-purity" class="font-semibold text-gray-800 dark:text-gray-200 block">-</span>
+                        <span id="delivery-modal-purity"
+                            class="font-semibold text-gray-800 dark:text-gray-200 block">-</span>
                     </div>
                     <div>
                         <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Make</span>
-                        <span id="delivery-modal-make" class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
+                        <span id="delivery-modal-make"
+                            class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
                     </div>
                     <div>
-                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Classification</span>
-                        <span id="delivery-modal-classification" class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
+                        <span
+                            class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Classification</span>
+                        <span id="delivery-modal-classification"
+                            class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
                     </div>
                     <div>
-                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Sub-Classification</span>
-                        <span id="delivery-modal-sub-classification" class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
+                        <span
+                            class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Sub-Classification</span>
+                        <span id="delivery-modal-sub-classification"
+                            class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
                     </div>
                     <div>
-                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Master Collection</span>
-                        <span id="delivery-modal-master-collection" class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
+                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Master
+                            Collection</span>
+                        <span id="delivery-modal-master-collection"
+                            class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
                     </div>
                     <div>
-                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Size / Screw</span>
-                        <span id="delivery-modal-size-screw" class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
+                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Size /
+                            Screw</span>
+                        <span id="delivery-modal-size-screw"
+                            class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
                     </div>
                     <div>
                         <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Design No</span>
-                        <span id="delivery-modal-design-no" class="font-semibold font-mono text-gray-800 dark:text-gray-200 truncate block">-</span>
+                        <span id="delivery-modal-design-no"
+                            class="font-semibold font-mono text-gray-800 dark:text-gray-200 truncate block">-</span>
                     </div>
                     <div>
-                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Barcode No</span>
-                        <span id="delivery-modal-barcode-no" class="font-semibold font-mono text-primary truncate block">-</span>
+                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Barcode
+                            No</span>
+                        <span id="delivery-modal-barcode-no"
+                            class="font-semibold font-mono text-primary truncate block">-</span>
                     </div>
                     <div>
                         <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Supplier</span>
-                        <span id="delivery-modal-supplier" class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
+                        <span id="delivery-modal-supplier"
+                            class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
                     </div>
                     <div>
-                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Delivery Target</span>
-                        <span id="delivery-modal-delivery-target" class="font-semibold text-gray-800 dark:text-gray-200 block">-</span>
+                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Delivery
+                            Target</span>
+                        <span id="delivery-modal-delivery-target"
+                            class="font-semibold text-gray-800 dark:text-gray-200 block">-</span>
                     </div>
                 </div>
             </div>
@@ -115,33 +140,45 @@
             <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-800">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="material-symbols-outlined text-primary text-base">account_tree</span>
-                    <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-700 dark:text-gray-200">Process Timeline</h3>
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-700 dark:text-gray-200">Process
+                        Timeline</h3>
                 </div>
-                <div id="delivery-timeline-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4"></div>
+                <div id="delivery-timeline-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4">
+                </div>
             </div>
 
             <!-- Location & Branch Details -->
             <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-800">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="material-symbols-outlined text-primary text-base">location_on</span>
-                    <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-700 dark:text-gray-200">Location & Branch Details</h3>
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-700 dark:text-gray-200">
+                        Location & Branch Details</h3>
                 </div>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-lg border border-gray-100 dark:border-gray-800 text-[10px]">
+                <div
+                    class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50 dark:bg-gray-800/40 p-3 rounded-lg border border-gray-100 dark:border-gray-800 text-[10px]">
                     <div>
-                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Order Location</span>
-                        <span id="delivery-modal-order-location" class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
+                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Order
+                            Location</span>
+                        <span id="delivery-modal-order-location"
+                            class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
                     </div>
                     <div>
-                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Branch Type</span>
-                        <span id="delivery-modal-loc-branch-type" class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
+                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Branch
+                            Type</span>
+                        <span id="delivery-modal-loc-branch-type"
+                            class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
                     </div>
                     <div>
-                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Received Location</span>
-                        <span id="delivery-modal-received-location" class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
+                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Received
+                            Location</span>
+                        <span id="delivery-modal-received-location"
+                            class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
                     </div>
                     <div>
-                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Current Location</span>
-                        <span id="delivery-modal-current-location" class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
+                        <span class="text-[8px] font-bold uppercase tracking-wider text-gray-400 block">Current
+                            Location</span>
+                        <span id="delivery-modal-current-location"
+                            class="font-semibold text-gray-800 dark:text-gray-200 truncate block">-</span>
                     </div>
                 </div>
             </div>
@@ -150,11 +187,13 @@
             <div class="px-5 py-4">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="material-symbols-outlined text-primary text-base">timer</span>
-                    <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-700 dark:text-gray-200">Stage Duration Breakdown</h3>
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-700 dark:text-gray-200">Stage
+                        Duration Breakdown</h3>
                 </div>
                 <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
                     <table class="w-full text-left border-collapse text-[10px]">
-                        <thead class="bg-gray-50 dark:bg-gray-800/60 text-gray-500 uppercase font-bold text-[8.5px] border-b border-gray-200 dark:border-gray-700">
+                        <thead
+                            class="bg-gray-50 dark:bg-gray-800/60 text-gray-500 uppercase font-bold text-[8.5px] border-b border-gray-200 dark:border-gray-700">
                             <tr>
                                 <th class="px-3 py-2">Stage Transition</th>
                                 <th class="px-3 py-2">Start Date</th>
@@ -162,7 +201,8 @@
                                 <th class="px-3 py-2 text-right">Duration</th>
                             </tr>
                         </thead>
-                        <tbody id="delivery-modal-stage-table-body" class="divide-y divide-gray-100 dark:divide-gray-800 font-medium text-gray-700 dark:text-gray-300">
+                        <tbody id="delivery-modal-stage-table-body"
+                            class="divide-y divide-gray-100 dark:divide-gray-800 font-medium text-gray-700 dark:text-gray-300">
                             <!-- Populated dynamically via JS -->
                         </tbody>
                     </table>
@@ -170,7 +210,8 @@
             </div>
         </div>
 
-        <footer class="px-5 py-2.5 border-t border-gray-200 dark:border-gray-800 flex justify-end shrink-0 bg-white dark:bg-gray-900">
+        <footer
+            class="px-5 py-2.5 border-t border-gray-200 dark:border-gray-800 flex justify-end shrink-0 bg-white dark:bg-gray-900">
             <button type="button" data-delivery-modal-close
                 class="px-4 py-1.5 rounded border border-gray-200 dark:border-gray-700 text-[10px] font-bold text-gray-600 dark:text-gray-300 hover:border-primary hover:text-primary transition-colors">
                 Close
