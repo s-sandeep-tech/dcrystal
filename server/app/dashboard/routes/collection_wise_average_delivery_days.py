@@ -253,6 +253,11 @@ def build_snapshot_query(args):
     if branch_types:
         query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.branch_type.in_(branch_types))
 
+    # Order Period filter
+    order_periods = split_filter_values(args.get('order_period'))
+    if order_periods:
+        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.order_period.in_(order_periods))
+
     return query
 
 
@@ -623,6 +628,7 @@ def get_collection_wise_average_delivery_days_options():
         master_collections = get_distinct(CollectionWiseAverageDeliveryDaysSnapshot.master_collection)
         sections = get_distinct(CollectionWiseAverageDeliveryDaysSnapshot.section)
         branch_types = get_distinct(CollectionWiseAverageDeliveryDaysSnapshot.branch_type)
+        order_periods = get_distinct(CollectionWiseAverageDeliveryDaysSnapshot.order_period)
 
         return jsonify({
             'locations': locations,
@@ -633,7 +639,8 @@ def get_collection_wise_average_delivery_days_options():
             'collections': collections,
             'master_collections': master_collections,
             'sections': sections,
-            'branch_types': branch_types
+            'branch_types': branch_types,
+            'order_periods': order_periods
         })
     except Exception as e:
         logger.error(f"Error fetching collection_wise_average_delivery_days options: {str(e)}")

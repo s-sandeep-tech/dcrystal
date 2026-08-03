@@ -17,6 +17,7 @@ let filterValues = {
     collection: '',
     section: '',
     branch_type: '',
+    order_period: '',
     sort_by: '',
     sort_order: 'none',
     page: 1,
@@ -755,6 +756,7 @@ async function initFilters() {
         populateSelect('filter-collection', options.collections || []);
         populateSelect('filter-section', options.sections || []);
         populateSelect('filter-branch-type', options.branch_types || []);
+        populateSelect('filter-order-period', options.order_periods || []);
     } catch (err) {
         console.error('Error initializing filters:', err);
     }
@@ -780,6 +782,7 @@ function collectFilterValues() {
     filterValues.collection = document.getElementById('filter-collection')?.value || '';
     filterValues.section = document.getElementById('filter-section')?.value || '';
     filterValues.branch_type = document.getElementById('filter-branch-type')?.value || '';
+    filterValues.order_period = document.getElementById('filter-order-period')?.value || '';
     if (locationMultiSelect && typeof locationMultiSelect.getValues === 'function') {
         filterValues.location = locationMultiSelect.getValues().join(',');
     }
@@ -803,6 +806,7 @@ function resetFilters() {
         collection: '',
         section: '',
         branch_type: '',
+        order_period: '',
         sort_by: '',
         sort_order: 'none',
         page: 1,
@@ -816,7 +820,7 @@ function resetFilters() {
         locationMultiSelect.reset();
     }
 
-    ['filter-group', 'filter-purity', 'filter-classification', 'filter-make', 'filter-master-collection', 'filter-collection', 'filter-section', 'filter-branch-type'].forEach(id => {
+    ['filter-group', 'filter-purity', 'filter-classification', 'filter-make', 'filter-master-collection', 'filter-collection', 'filter-section', 'filter-branch-type', 'filter-order-period'].forEach(id => {
         const select = document.getElementById(id);
         if (select) select.value = '';
     });

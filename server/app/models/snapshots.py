@@ -3109,3 +3109,4 @@ class CollectionWiseAverageDeliveryDaysSnapshot(db.Model):
     supplier_id = db.Column(db.BigInteger)
     supplier_name = db.Column(db.Text)
     delivery_days = db.Column(db.Integer)
+    order_period = db.Column(db.Text)
