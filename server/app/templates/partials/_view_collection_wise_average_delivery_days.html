@@ -17,17 +17,17 @@
     </div>
     {% else %}
     <div class="flex-1 min-h-0 overflow-auto custom-scrollbar">
-        <table class="w-full min-w-[1420px] table-fixed border-collapse text-left">
+        <table class="w-full min-w-[1000px] table-fixed border-collapse text-left">
             <colgroup>
-                <col class="w-[14%]">
+                <col class="w-[15%]">
                 <col class="w-[7%]">
                 <col class="w-[9%]">
                 <col class="w-[7%]">
                 <col class="w-[9%]">
-                <col class="w-[16%]">
-                <col class="w-[14%]">
-                <col class="w-[7%]">
+                <col class="w-[18%]">
                 <col class="w-[11%]">
+                <col class="w-[6%]">
+                <col class="w-[12%]">
                 <col class="w-[6%]">
             </colgroup>
             <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
@@ -141,7 +141,7 @@
                             {{ "{:,.0f}".format(row.branch_count|float) }} branches
                         </div>
                         <div class="text-[9px] text-gray-400">
-                            Across filtered records
+                            Filtered
                         </div>
                     </td>
                     <td class="px-3 py-2 align-middle">
@@ -205,6 +205,14 @@
                             {% else %}bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400{% endif %}">
                             {{ "{:,.1f}".format(compliance) }}%
                         </span>
+                        <div class="mt-1 h-1 w-full overflow-hidden rounded bg-gray-100 dark:bg-gray-800"
+                            title="{{ '{:,.1f}'.format(compliance) }}% compliant">
+                            <div class="h-full rounded
+                                {% if compliance >= 80 %}bg-emerald-500
+                                {% elif compliance >= 50 %}bg-amber-500
+                                {% else %}bg-red-500{% endif %}"
+                                style="width: {{ [compliance, 100]|min }}%"></div>
+                        </div>
                     </td>
                 </tr>
                 <tr data-collection-detail-row="{{ group_id }}" class="hidden bg-gray-50/60 dark:bg-gray-950/30">
