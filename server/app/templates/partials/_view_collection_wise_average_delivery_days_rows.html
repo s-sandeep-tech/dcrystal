@@ -9,17 +9,18 @@
 </div>
 {% else %}
 <div class="overflow-x-auto border-y border-blue-100 dark:border-blue-900/40 bg-blue-50/20 dark:bg-blue-950/10">
-    <table class="w-full min-w-[1280px] table-fixed border-collapse text-left">
+    <table class="w-full min-w-[1420px] table-fixed border-collapse text-left">
         <colgroup>
-            <col class="w-[13%]">
-            <col class="w-[10%]">
-            <col class="w-[14%]">
+            <col class="w-[12%]">
             <col class="w-[9%]">
-            <col class="w-[9%]">
-            <col class="w-[17%]">
+            <col class="w-[12%]">
             <col class="w-[8%]">
-            <col class="w-[11%]">
-            <col class="w-[9%]">
+            <col class="w-[8%]">
+            <col class="w-[14%]">
+            <col class="w-[12%]">
+            <col class="w-[7%]">
+            <col class="w-[10%]">
+            <col class="w-[8%]">
         </colgroup>
         <tbody class="divide-y divide-blue-100/70 dark:divide-blue-900/30">
             {% for item in rows %}
@@ -71,6 +72,18 @@
                             {{ item.tat_days ~ 'd' if item.tat_days is not none else '-' }}
                         </span>
                     </div>
+                </td>
+                <td class="px-3 py-1.5 align-middle whitespace-nowrap">
+                    {% if item.office_to_shop_status == 'completed' %}
+                    <span class="font-bold tabular-nums text-primary">{{ item.office_to_shop_days }}d</span>
+                    {% elif item.office_to_shop_status == 'pending' %}
+                    <div class="font-bold tabular-nums text-amber-600 dark:text-amber-400">Pending</div>
+                    <div class="text-[9px] tabular-nums text-gray-400">{{ item.office_to_shop_pending_days }}d since MORR</div>
+                    {% elif item.office_to_shop_status == 'invalid' %}
+                    <span class="font-medium text-red-500 dark:text-red-400">Invalid dates</span>
+                    {% else %}
+                    <span class="font-medium text-gray-400">Not started</span>
+                    {% endif %}
                 </td>
                 <td class="px-3 py-1.5 align-middle font-bold tabular-nums whitespace-nowrap
                     {% if item.variance_days is none %}text-gray-400

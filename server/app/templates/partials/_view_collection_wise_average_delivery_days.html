@@ -17,17 +17,18 @@
     </div>
     {% else %}
     <div class="flex-1 min-h-0 overflow-auto custom-scrollbar">
-        <table class="w-full min-w-[1280px] table-fixed border-collapse text-left">
+        <table class="w-full min-w-[1420px] table-fixed border-collapse text-left">
             <colgroup>
-                <col class="w-[13%]">
-                <col class="w-[10%]">
-                <col class="w-[14%]">
+                <col class="w-[12%]">
                 <col class="w-[9%]">
-                <col class="w-[9%]">
-                <col class="w-[17%]">
+                <col class="w-[12%]">
                 <col class="w-[8%]">
-                <col class="w-[11%]">
-                <col class="w-[9%]">
+                <col class="w-[8%]">
+                <col class="w-[14%]">
+                <col class="w-[12%]">
+                <col class="w-[7%]">
+                <col class="w-[10%]">
+                <col class="w-[8%]">
             </colgroup>
             <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr class="text-[9px] uppercase text-gray-500 font-bold tracking-wider">
@@ -76,6 +77,14 @@
                             <span>Workshop TAT</span>
                             <span class="material-symbols-outlined text-[14px] {% if sort_by == 'tat_days' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
                                 {{ 'arrow_upward' if (sort_by == 'tat_days' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'tat_days' and sort_order == 'desc') else 'unfold_more') }}
+                            </span>
+                        </div>
+                    </th>
+                    <th scope="col" class="px-3 py-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group" onclick="toggleSort('office_to_shop_days')">
+                        <div class="flex items-center gap-1">
+                            <span>Office-to-Shop TAT</span>
+                            <span class="material-symbols-outlined text-[14px] {% if sort_by == 'office_to_shop_days' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                                {{ 'arrow_upward' if (sort_by == 'office_to_shop_days' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'office_to_shop_days' and sort_order == 'desc') else 'unfold_more') }}
                             </span>
                         </div>
                     </th>
@@ -160,6 +169,19 @@
                             Target {{ "{:,.1f}".format(row.avg_delivery_days|float) }}d · Median {{ "{:,.1f}".format(row.median_tat_days|float) }}d
                         </div>
                     </td>
+                    <td class="px-3 py-2 align-middle">
+                        {% if row.avg_office_to_shop_days is not none %}
+                        <div class="font-bold tabular-nums text-primary">
+                            {{ "{:,.1f}".format(row.avg_office_to_shop_days|float) }}d average
+                        </div>
+                        <div class="text-[9px] text-gray-400 tabular-nums">
+                            Median {{ "{:,.1f}".format(row.median_office_to_shop_days|float) }}d · P90 {{ "{:,.1f}".format(row.p90_office_to_shop_days|float) }}d
+                        </div>
+                        {% else %}
+                        <div class="font-medium text-gray-400">-</div>
+                        <div class="text-[9px] text-gray-400">No completed receipts</div>
+                        {% endif %}
+                    </td>
                     <td class="px-3 py-2 align-middle font-bold tabular-nums whitespace-nowrap
                         {% if variance > 0 %}text-red-500 dark:text-red-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
                         {{ '+' if variance > 0 else '' }}{{ "{:,.1f}".format(variance) }}d
@@ -186,7 +208,7 @@
                     </td>
                 </tr>
                 <tr data-collection-detail-row="{{ group_id }}" class="hidden bg-gray-50/60 dark:bg-gray-950/30">
-                    <td colspan="9" class="p-0">
+                    <td colspan="10" class="p-0">
                         <div data-collection-detail-content class="min-h-16"></div>
                     </td>
                 </tr>

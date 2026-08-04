@@ -344,6 +344,34 @@ function openCollectionSummaryModal(detail) {
     setCollectionSummaryText('collection-summary-p90', `${formatCollectionSummaryNumber(detail.p90_tat_days, 1)} days`);
     setCollectionSummaryText('collection-summary-maximum', `${formatCollectionSummaryNumber(detail.max_tat_days)} days`);
     setCollectionSummaryText('collection-summary-delayed', formatCollectionSummaryNumber(detail.delayed_count));
+    setCollectionSummaryText(
+        'collection-summary-office-average',
+        detail.avg_office_to_shop_days === null || detail.avg_office_to_shop_days === undefined
+            ? '-'
+            : `${formatCollectionSummaryNumber(detail.avg_office_to_shop_days, 1)} days`
+    );
+    setCollectionSummaryText(
+        'collection-summary-office-median',
+        detail.median_office_to_shop_days === null || detail.median_office_to_shop_days === undefined
+            ? '-'
+            : `${formatCollectionSummaryNumber(detail.median_office_to_shop_days, 1)} days`
+    );
+    setCollectionSummaryText(
+        'collection-summary-office-p90',
+        detail.p90_office_to_shop_days === null || detail.p90_office_to_shop_days === undefined
+            ? '-'
+            : `${formatCollectionSummaryNumber(detail.p90_office_to_shop_days, 1)} days`
+    );
+    setCollectionSummaryText(
+        'collection-summary-office-maximum',
+        detail.max_office_to_shop_days === null || detail.max_office_to_shop_days === undefined
+            ? '-'
+            : `${formatCollectionSummaryNumber(detail.max_office_to_shop_days)} days`
+    );
+    setCollectionSummaryText(
+        'collection-summary-office-completed',
+        formatCollectionSummaryNumber(detail.office_to_shop_completed_count)
+    );
     setCollectionSummaryText('collection-summary-received', formatCollectionSummaryNumber(detail.received_inshop_count));
     setCollectionSummaryText('collection-summary-awaiting', formatCollectionSummaryNumber(detail.awaiting_inshop_count));
     setCollectionSummaryText(

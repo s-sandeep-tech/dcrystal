@@ -93,10 +93,26 @@ def build_delivery_display_rows(records):
 
     for record in records:
         tat_days = None
+        office_to_shop_days = None
+        office_to_shop_pending_days = None
+        office_to_shop_status = 'not_started'
         delivery_target_days = int(record.delivery_days) if record.delivery_days is not None else None
         if record.ordered_date and record.morr_received_date:
             tat_days = max((record.morr_received_date - record.ordered_date).days, 0)
             tat_values.append(tat_days)
+        if record.morr_received_date and record.muziris_inshop_received_date:
+            office_to_shop_days = (
+                record.muziris_inshop_received_date - record.morr_received_date
+            ).days
+            office_to_shop_status = 'completed' if office_to_shop_days >= 0 else 'invalid'
+            if office_to_shop_days < 0:
+                office_to_shop_days = None
+        elif record.morr_received_date:
+            office_to_shop_pending_days = max(
+                (datetime.now(ZoneInfo("Asia/Kolkata")).date() - record.morr_received_date).days,
+                0,
+            )
+            office_to_shop_status = 'pending'
         if delivery_target_days is not None:
             delivery_target_values.append(delivery_target_days)
 
@@ -122,6 +138,9 @@ def build_delivery_display_rows(records):
         prepared_rows.append({
             'record': record,
             'tat_days': tat_days,
+            'office_to_shop_days': office_to_shop_days,
+            'office_to_shop_pending_days': office_to_shop_pending_days,
+            'office_to_shop_status': office_to_shop_status,
             'delivery_target_days': delivery_target_days,
             'variance_days': variance_days,
             'status_key': status_key,
@@ -141,6 +160,9 @@ def build_delivery_display_rows(records):
                 'screw_type': record.screw_type or '-',
                 'weight': float(record.weight) if record.weight is not None else None,
                 'tat_days': tat_days,
+                'office_to_shop_days': office_to_shop_days,
+                'office_to_shop_pending_days': office_to_shop_pending_days,
+                'office_to_shop_status': office_to_shop_status,
                 'delivery_days': delivery_target_days,
                 'variance_days': variance_days,
                 'status': status_label,
@@ -264,6 +286,17 @@ def build_snapshot_query(args):
 def build_collection_summary_query(args):
     snapshot = CollectionWiseAverageDeliveryDaysSnapshot
     tat_days = snapshot.morr_received_date - snapshot.ordered_date
+    office_to_shop_days = case(
+        (
+            and_(
+                snapshot.morr_received_date.isnot(None),
+                snapshot.muziris_inshop_received_date.isnot(None),
+                snapshot.muziris_inshop_received_date >= snapshot.morr_received_date,
+            ),
+            snapshot.muziris_inshop_received_date - snapshot.morr_received_date,
+        ),
+        else_=None,
+    )
     eligible_tat = case((snapshot.delivery_days.isnot(None), tat_days), else_=None)
     sla_variance = case(
         (snapshot.delivery_days.isnot(None), tat_days - snapshot.delivery_days),
@@ -292,6 +325,11 @@ def build_collection_summary_query(args):
         'median_tat_days': func.percentile_cont(0.5).within_group(tat_days),
         'p90_tat_days': func.percentile_cont(0.9).within_group(tat_days),
         'max_tat_days': func.max(tat_days),
+        'avg_office_to_shop_days': func.avg(office_to_shop_days),
+        'median_office_to_shop_days': func.percentile_cont(0.5).within_group(office_to_shop_days),
+        'p90_office_to_shop_days': func.percentile_cont(0.9).within_group(office_to_shop_days),
+        'max_office_to_shop_days': func.max(office_to_shop_days),
+        'office_to_shop_completed_count': func.count(office_to_shop_days),
         'avg_delivery_days': func.avg(snapshot.delivery_days),
         'avg_sla_variance': func.avg(sla_variance),
         'compliance_pct': compliant_count * 100.0 / func.nullif(completed_count, 0),
@@ -338,6 +376,27 @@ def build_collection_summary_display_rows(rows):
                 'median_tat_days': float(row.median_tat_days) if row.median_tat_days is not None else None,
                 'p90_tat_days': float(row.p90_tat_days) if row.p90_tat_days is not None else None,
                 'max_tat_days': int(row.max_tat_days) if row.max_tat_days is not None else None,
+                'avg_office_to_shop_days': (
+                    float(row.avg_office_to_shop_days)
+                    if row.avg_office_to_shop_days is not None
+                    else None
+                ),
+                'median_office_to_shop_days': (
+                    float(row.median_office_to_shop_days)
+                    if row.median_office_to_shop_days is not None
+                    else None
+                ),
+                'p90_office_to_shop_days': (
+                    float(row.p90_office_to_shop_days)
+                    if row.p90_office_to_shop_days is not None
+                    else None
+                ),
+                'max_office_to_shop_days': (
+                    int(row.max_office_to_shop_days)
+                    if row.max_office_to_shop_days is not None
+                    else None
+                ),
+                'office_to_shop_completed_count': int(row.office_to_shop_completed_count or 0),
                 'avg_delivery_days': (
                     float(row.avg_delivery_days)
                     if row.avg_delivery_days is not None
@@ -402,6 +461,7 @@ def get_collection_wise_average_delivery_days_partial():
             'ordered_date': metrics['last_ordered_date'],
             'morr_received_date': metrics['last_morr_received_date'],
             'tat_days': metrics['avg_tat_days'],
+            'office_to_shop_days': metrics['avg_office_to_shop_days'],
             'sla_variance': metrics['avg_tat_days'],
             'muziris_inshop_received_date': metrics['awaiting_inshop_count'],
             'compliance_pct': metrics['compliance_pct'],
