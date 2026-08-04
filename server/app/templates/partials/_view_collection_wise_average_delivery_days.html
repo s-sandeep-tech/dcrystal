@@ -19,16 +19,16 @@
     <div class="flex-1 min-h-0 overflow-auto custom-scrollbar">
         <table class="w-full min-w-[1420px] table-fixed border-collapse text-left">
             <colgroup>
-                <col class="w-[12%]">
-                <col class="w-[9%]">
-                <col class="w-[12%]">
-                <col class="w-[8%]">
-                <col class="w-[8%]">
                 <col class="w-[14%]">
-                <col class="w-[12%]">
                 <col class="w-[7%]">
-                <col class="w-[10%]">
-                <col class="w-[8%]">
+                <col class="w-[9%]">
+                <col class="w-[7%]">
+                <col class="w-[9%]">
+                <col class="w-[16%]">
+                <col class="w-[14%]">
+                <col class="w-[7%]">
+                <col class="w-[11%]">
+                <col class="w-[6%]">
             </colgroup>
             <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr class="text-[9px] uppercase text-gray-500 font-bold tracking-wider">
@@ -203,7 +203,7 @@
                             {% if compliance >= 80 %}bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400
                             {% elif compliance >= 50 %}bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400
                             {% else %}bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400{% endif %}">
-                            {{ "{:,.1f}".format(compliance) }}% compliant
+                            {{ "{:,.1f}".format(compliance) }}%
                         </span>
                     </td>
                 </tr>
