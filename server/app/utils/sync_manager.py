@@ -4,6 +4,33 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+SCHEDULED_ALL_SYNC_TASKS = (
+    'owner_showroom_combined',
+    'process_delay',
+    'outstanding_po',
+    'stage_delay',
+    'order_delay_tracking',
+    'pending_acceptance',
+    'rejected_weight',
+    'provision_stock_status',
+    'size_level_nip_barcode',
+    'hallmarking_delayed',
+    'qc_delayed',
+    'order_processing_pending',
+    'supplier_hm_issue',
+    'hm_return_pending',
+    'hm_qc_issue_pending',
+    'supplier_qc_issue_receipt_pending',
+    'qc_completed_invoice_pending',
+    'invoice_completed_pending_deliver',
+    'branch_authority',
+    'qc_delay_management',
+    'hm_delay_management',
+    'party_delay_management',
+    'order_fulfillment_aging_matrix',
+    'collection_wise_average_delivery_days',
+)
+
 ALLOWED_SYNC_TASKS = {
     'owner_wise',
     'process_delay',
@@ -49,6 +76,50 @@ def enqueue_sync_task(task_type, user_id=None):
     except Exception as e:
         logger.error(f"Failed to enqueue sync task: {str(e)}")
         return {"status": "error", "message": f"Failed to queue task: {str(e)}"}
+
+
+def _enqueue_scheduled_all_task(batch_id, task_index):
+    if task_index >= len(SCHEDULED_ALL_SYNC_TASKS):
+        logger.info(f"Scheduled all-sync batch {batch_id} completed")
+        return {"status": "success", "message": "Scheduled all-sync batch completed."}
+
+    task_type = SCHEDULED_ALL_SYNC_TASKS[task_index]
+    task_data = json.dumps({
+        "type": task_type,
+        "user_id": "SCHEDULER_0730",
+        "scheduled_all_batch": True,
+        "batch_id": batch_id,
+        "batch_index": task_index,
+        "batch_total": len(SCHEDULED_ALL_SYNC_TASKS),
+    })
+    redis_client.rpush('sync_queue', task_data)
+    logger.info(
+        "Enqueued scheduled all-sync task %s/%s: %s",
+        task_index + 1,
+        len(SCHEDULED_ALL_SYNC_TASKS),
+        task_type,
+    )
+    return {"status": "success", "message": f"Queued {task_type}."}
+
+
+def enqueue_scheduled_all_sync():
+    """Starts the daily batch; each completed task queues the next task."""
+    from datetime import datetime, timezone
+
+    batch_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    try:
+        return _enqueue_scheduled_all_task(batch_id, 0)
+    except Exception as e:
+        logger.error(f"Failed to start scheduled all-sync batch: {str(e)}")
+        return {"status": "error", "message": f"Failed to start scheduled batch: {str(e)}"}
+
+
+def enqueue_next_scheduled_all_task(task_data):
+    """Queues the next task after the current scheduled batch task finishes."""
+    return _enqueue_scheduled_all_task(
+        task_data['batch_id'],
+        int(task_data['batch_index']) + 1,
+    )
 
 def sync_owner_wise_data(user_id=None):
     return enqueue_sync_task('owner_wise', user_id)

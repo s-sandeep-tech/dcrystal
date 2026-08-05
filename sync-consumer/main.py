@@ -58,7 +58,13 @@ try:
         emit_sync_update
     )
     from apscheduler.schedulers.background import BackgroundScheduler
-    from app.utils.sync_manager import enqueue_sync_task, sync_pending_order_details_data, sync_active_order_details_data
+    from app.utils.sync_manager import (
+        enqueue_next_scheduled_all_task,
+        enqueue_scheduled_all_sync,
+        enqueue_sync_task,
+        sync_pending_order_details_data,
+        sync_active_order_details_data,
+    )
 
     from app.utils.sync_manager import sync_order_fulfillment_aging_matrix_data
 except Exception as e:
@@ -79,6 +85,7 @@ def process_sync_queue():
     logger.info("Sync Consumer started. Waiting for sync tasks...")
 
     while True:
+        task_data = None
         try:
             _, task_data_json = redis_client.blpop('sync_queue')
 
@@ -231,6 +238,16 @@ def process_sync_queue():
         except Exception as e:
             logger.error(f"Error in sync consumer loop: {str(e)}")
             time.sleep(5)
+        finally:
+            if task_data and task_data.get('scheduled_all_batch'):
+                try:
+                    enqueue_next_scheduled_all_task(task_data)
+                except Exception as chain_error:
+                    logger.error(
+                        "Failed to continue scheduled all-sync batch %s: %s",
+                        task_data.get('batch_id'),
+                        chain_error,
+                    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -624,6 +641,16 @@ def setup_scheduler():
     IST = datetime_timezone(timedelta(hours=5, minutes=30))
     scheduler = BackgroundScheduler(timezone=IST)
 
+    # Run every configured report sync sequentially each day at 7:30 AM IST.
+    scheduler.add_job(
+        func=enqueue_scheduled_all_sync,
+        trigger='cron',
+        hour=7,
+        minute=30,
+        id='daily_all_tasks_sync',
+        replace_existing=True
+    )
+
     # Schedule "Provision & Stock Status Sync" every day at 11 AM IST
     # Task type 'provision_stock_status' matches sync_manager.py
     scheduler.add_job(
@@ -717,6 +744,7 @@ def setup_scheduler():
     )
 
     scheduler.start()
+    logger.info("All report sync tasks scheduled sequentially for 7:30 IST daily.")
     logger.info("Background Scheduler started. 'Provision & Stock Status Sync' scheduled for 11:00 IST daily.")
     logger.info("Size Level NIP Barcode Sync scheduled for 11:30 IST daily.")
     logger.info("Branch Authority Sync scheduled for 10:00 IST and 16:00 IST daily.")
