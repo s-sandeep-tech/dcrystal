@@ -86,7 +86,7 @@ def _enqueue_scheduled_all_task(batch_id, task_index):
     task_type = SCHEDULED_ALL_SYNC_TASKS[task_index]
     task_data = json.dumps({
         "type": task_type,
-        "user_id": "SCHEDULER_0730",
+        "user_id": "SCHEDULER",
         "scheduled_all_batch": True,
         "batch_id": batch_id,
         "batch_index": task_index,
