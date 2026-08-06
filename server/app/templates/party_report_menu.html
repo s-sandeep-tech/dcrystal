@@ -22,6 +22,17 @@
                     <input id="partyReportSearch" type="search" placeholder="Search party reports..." autocomplete="off" />
                 </label>
 
+                <label class="party-menu-filter" for="partyReportPartyFilter">
+                    <span class="material-symbols-outlined">store</span>
+                    <select id="partyReportPartyFilter" aria-label="Filter reports by party">
+                        <option value="">All Parties</option>
+                        {% for party in parties %}
+                        <option value="{{ party }}" {% if selected_party == party %}selected{% endif %}>{{ party }}</option>
+                        {% endfor %}
+                    </select>
+                    <span class="material-symbols-outlined party-menu-filter-arrow">expand_more</span>
+                </label>
+
                 <div class="report-toolbar-actions">
                     <div class="report-count" id="partyReportCount">0 reports</div>
                     <span class="report-toolbar-divider"></span>

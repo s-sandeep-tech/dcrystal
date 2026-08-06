@@ -1,0 +1,96 @@
+{% if not is_child_rows %}
+<table class="enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider border-b border-gray-200 dark:border-gray-700">
+            <th class="col-expander text-center px-0 w-8"></th>
+            <th class="text-left px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none" onclick="handleSort('make')">
+                <div class="flex items-center gap-1">
+                    <span>Make (Make Owner) / Section / Wide Range</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400">
+                        {% if sort_by == 'make' or sort_by == 'section' or sort_by == 'wide_range' %}{% if sort_dir == 'asc' %}arrow_upward{% else %}arrow_downward{% endif %}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-3 py-2 bg-blue-50/20 dark:bg-blue-900/10 cursor-pointer hover:bg-blue-100/30 select-none" onclick="handleSort('design_count')">
+                <div class="flex items-center justify-end gap-1">
+                    <span>TOTAL DESIGN COUNT</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400">
+                        {% if sort_by == 'design_count' %}{% if sort_dir == 'asc' %}arrow_upward{% else %}arrow_downward{% endif %}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-3 py-2 bg-purple-50/20 dark:bg-purple-900/10">DESIGN COUNT %</th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+{% endif %}
+
+{% for r in rows %}
+<tr class="parent-row hover:bg-blue-50/30 group animate-fade-in" data-level="{{ r.level }}">
+    <td class="text-center px-0 py-2">
+        {% if r.level != 'wide_range' %}
+        <button onclick="toggleDesignAllocationRow(this, '{{ r.level }}', '{{ r.make|e }}', '{{ r.section|e }}')"
+            class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
+            <span class="material-symbols-outlined text-[14px]">add_circle</span>
+        </button>
+        {% else %}
+        <span class="material-symbols-outlined text-[8px] text-gray-300">fiber_manual_record</span>
+        {% endif %}
+    </td>
+    <td class="px-3 py-2 font-bold text-gray-800 dark:text-gray-200">
+        <div class="flex items-center gap-1.5"
+            style="padding-left: {{ '0px' if r.level == 'make' else ('12px' if r.level == 'section' else '24px') }}">
+            <span class="material-symbols-outlined text-[14px] text-gray-400">
+                {% if r.level == 'make' %}precision_manufacturing{% elif r.level == 'section' %}category{% else %}aspect_ratio{% endif %}
+            </span>
+            {% if r.level == 'make' %}
+                {{ r.make or 'Unknown Make' }}
+                {% if r.make_owner %}
+                    <span class="text-[9px] font-normal text-gray-500">({{ r.make_owner }})</span>
+                {% endif %}
+            {% elif r.level == 'section' %}
+                {{ r.section or 'Unknown Section' }}
+            {% else %}
+                {{ r.wide_range or 'Unknown Wide Range' }}
+            {% endif %}
+        </div>
+    </td>
+    <td class="text-right px-3 py-2 font-bold text-primary">
+        {{ "{:,}".format(r.design_count) }}
+    </td>
+    <td class="text-right px-3 py-2 font-bold text-purple-600">
+        {% if r.design_count_pct and r.design_count_pct > 0 %}
+            {{ "%.2f"|format(r.design_count_pct) }}%
+        {% else %}
+            
+        {% endif %}
+    </td>
+</tr>
+{% endfor %}
+
+{% if not is_child_rows %}
+    </tbody>
+    <tfoot class="bg-gray-50 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700 font-bold sticky bottom-0 z-10">
+        <tr>
+            <td colspan="2" class="px-3 py-2.5 text-left uppercase tracking-wider text-gray-700 dark:text-gray-200 text-[10px]">Grand Total</td>
+            <td class="text-right px-3 py-2.5 font-bold text-primary text-xs">{{ stats.total_design_count if stats else '0' }}</td>
+            <td class="text-right px-3 py-2.5 font-bold text-purple-600 text-xs">100.00%</td>
+        </tr>
+    </tfoot>
+</table>
+
+<div class="pagination-meta hidden"
+     data-level="{{ current_level }}"
+     data-page="{{ pagination.page if pagination else 1 }}"
+     data-pages="{{ pagination.pages if pagination else 1 }}"
+     data-total="{{ pagination.total if pagination else 0 }}"
+     data-per-page="{{ pagination.per_page if pagination else 50 }}"
+     data-sort-by="{{ sort_by }}"
+     data-sort-dir="{{ sort_dir }}">
+</div>
+
+<script id="stats-metadata" type="application/json">
+    {{ stats|tojson }}
+</script>
+{% endif %}
+

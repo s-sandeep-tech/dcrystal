@@ -53,6 +53,17 @@ def apply_sort(query, group_cols, sort_by, sort_dir):
     )
 
 
+def paginate_with_fallback(query, page, per_page):
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    if pagination.pages and page > pagination.pages:
+        pagination = query.paginate(
+            page=pagination.pages,
+            per_page=per_page,
+            error_out=False,
+        )
+    return pagination
+
+
 @dashboard_bp.route('/party-design-delivery-performance')
 def party_design_delivery_performance():
     try:
@@ -169,7 +180,7 @@ def party_design_delivery_performance():
         main_q = main_q.group_by(*group_cols)
         main_q = apply_sort(main_q, group_cols, sort_by, sort_dir)
 
-        pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
+        pagination = paginate_with_fallback(main_q, page, per_page)
 
         processed_rows = []
         for r in pagination.items:
@@ -331,7 +342,7 @@ def get_party_design_delivery_performance_partial():
             items = main_q.all()
             pagination = None
         else:
-            pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
+            pagination = paginate_with_fallback(main_q, page, per_page)
             items = pagination.items
 
         processed_rows = []

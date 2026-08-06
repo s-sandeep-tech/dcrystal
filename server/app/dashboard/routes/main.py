@@ -1,7 +1,22 @@
 from flask import render_template, session, redirect, url_for, request, current_app
 from app.dashboard import dashboard_bp
-from app.models import Order, DashboardStats, Notification, User
+from app.models import (
+    Order,
+    DashboardStats,
+    Notification,
+    User,
+    PartyDesignAverageDeliveryDaysSnapshot,
+    PartyOrderAcceptCancelDeliverySnapshot,
+    PartyDesignLocationAllocationSnapshot,
+    PartyOrderCancellationSnapshot,
+    PartyMcStoneValueAllocationSnapshot,
+    PartyHallmarkPassFailSnapshot,
+    PartyRoWiseDeliverySnapshot,
+    PartyOrderLifecycleSnapshot,
+    PartyQcPassFailSnapshot,
+)
 from app.extensions import db
+from sqlalchemy import func, select, union
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from werkzeug.utils import safe_join, secure_filename
@@ -64,10 +79,37 @@ def report_menu():
 def party_report_menu():
     sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
     unread_count = Notification.query.filter_by(is_read=False).count()
+    party_columns = [
+        PartyDesignAverageDeliveryDaysSnapshot.party,
+        PartyOrderAcceptCancelDeliverySnapshot.supplier,
+        PartyDesignLocationAllocationSnapshot.party,
+        PartyOrderCancellationSnapshot.supplier,
+        PartyMcStoneValueAllocationSnapshot.party,
+        PartyHallmarkPassFailSnapshot.party,
+        PartyRoWiseDeliverySnapshot.party,
+        PartyOrderLifecycleSnapshot.party,
+        PartyQcPassFailSnapshot.party,
+    ]
+    party_selects = [
+        select(func.trim(column).label('party')).where(
+            column.isnot(None),
+            func.trim(column) != '',
+        )
+        for column in party_columns
+    ]
+    party_source = union(*party_selects).subquery()
+    parties = db.session.execute(
+        select(party_source.c.party).order_by(
+            func.lower(party_source.c.party),
+            party_source.c.party,
+        )
+    ).scalars().all()
     return render_template(
         'party_report_menu.html',
         sync_time=sync_time,
         unread_count=unread_count,
+        parties=parties,
+        selected_party=request.args.get('party', '').strip(),
     )
 
 @dashboard_bp.route('/settings/sync-data', methods=['POST'])

@@ -3280,3 +3280,21 @@ class PartyQcPassFailSnapshot(db.Model):
     snapshot_date = db.Column(db.Date)
     source_file = db.Column(db.Text)
     imported_at = db.Column(db.DateTime(timezone=True), default=db.func.now())
+
+
+class DesignAllocationInfoSnapshot(db.Model):
+    __tablename__ = 'design_allocation_info_snapshot'
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    source_row_number = db.Column(db.Integer)
+    order_type = db.Column(db.Text)
+    provision_type = db.Column(db.Text)
+    make = db.Column(db.Text)
+    make_owner = db.Column(db.Text)
+    section = db.Column(db.Text)
+    wide_range = db.Column(db.Text)
+    design_count = db.Column(db.BigInteger)
+    snapshot_date = db.Column(db.Date)
+    source_file = db.Column(db.Text)
+    imported_at = db.Column(db.DateTime(timezone=True), default=db.func.now())
+

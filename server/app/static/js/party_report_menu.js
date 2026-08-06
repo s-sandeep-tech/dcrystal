@@ -4,6 +4,7 @@
         : [];
     const contentEl = document.getElementById("partyReportMenuContent");
     const searchEl = document.getElementById("partyReportSearch");
+    const partyEl = document.getElementById("partyReportPartyFilter");
     const countEl = document.getElementById("partyReportCount");
     const emptyEl = document.getElementById("partyReportEmptyState");
 
@@ -28,10 +29,22 @@
         ].map(normalize).join(" ").includes(query);
     }
 
+    function reportHref(href) {
+        const url = new URL(href || "#", window.location.origin);
+        const party = String(partyEl?.value || "").trim();
+        if (party) {
+            url.searchParams.set("party", party);
+            url.searchParams.set("page", "1");
+        } else {
+            url.searchParams.delete("party");
+        }
+        return `${url.pathname}${url.search}${url.hash}`;
+    }
+
     function renderReport(report) {
         const tags = (report.tags || []).slice(0, 3);
         return `
-            <a class="report-card" href="${escapeHtml(report.href || "#")}" data-report-id="${escapeHtml(report.id)}">
+            <a class="report-card" href="${escapeHtml(reportHref(report.href))}" data-report-id="${escapeHtml(report.id)}">
                 <span class="report-card-sequence">${escapeHtml(report.sequence)}</span>
                 <span class="report-card-body">
                     <span class="report-card-heading">
@@ -78,6 +91,20 @@
         emptyEl.classList.toggle("hidden", total > 0);
     }
 
+
+    function syncPartySelection() {
+        const url = new URL(window.location.href);
+        const party = String(partyEl?.value || "").trim();
+        if (party) {
+            url.searchParams.set("party", party);
+        } else {
+            url.searchParams.delete("party");
+        }
+        window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+        render();
+    }
+
     searchEl.addEventListener("input", render);
+    partyEl?.addEventListener("change", syncPartySelection);
     render();
 })();

@@ -173,9 +173,18 @@ window.REPORT_MENU_DATA = [
                 icon: "fact_check",
                 description: "Drilldown by party with month-wise breakdown for QC ISSUE, QC PASSED, and QC FAILED weights and pieces.",
                 tags: ["party", "qc", "quality control", "pass", "fail", "performance", "month"]
+            },
+            {
+                id: "design-allocation-performance",
+                title: "Design Allocation Performance",
+                href: "/design-allocation-performance",
+                icon: "category",
+                description: "Drilldown by make (make owner), section, and wide range for total design count and percentage.",
+                tags: ["design", "allocation", "performance", "make", "section", "wide range"]
             }
         ]
     },
+
 
 
 
