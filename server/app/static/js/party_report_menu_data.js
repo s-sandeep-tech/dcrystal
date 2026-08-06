@@ -85,6 +85,16 @@ window.PARTY_REPORT_MENU_DATA = [
                 icon: "task_alt",
                 description: "Track QC issue, passed, and failed pieces and weight by month.",
                 tags: ["quality control", "pass", "fail"]
+            },
+            {
+                id: "design-allocation-performance",
+                sequence: "10",
+                title: "Design Allocation Performance",
+                href: "/design-allocation-performance",
+                supportsPartyFilter: false,
+                icon: "schema",
+                description: "Review design allocation by make, owner, section, and weight range.",
+                tags: ["design", "allocation", "range"]
             }
         ]
     }

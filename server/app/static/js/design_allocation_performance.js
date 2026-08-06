@@ -67,9 +67,16 @@ async function loadViewData() {
 function updateHeaderStats(stats) {
     if (!stats) return;
     const totalDesignCountEl = document.getElementById('stat-total-design-count');
+    const makeCountEl = document.getElementById('stat-make-count');
+    const sectionCountEl = document.getElementById('stat-section-count');
+    const wideRangeCountEl = document.getElementById('stat-wide-range-count');
 
     if (totalDesignCountEl) totalDesignCountEl.textContent = stats.total_design_count || '0';
+    if (makeCountEl) makeCountEl.textContent = stats.make_count || '0';
+    if (sectionCountEl) sectionCountEl.textContent = stats.section_count || '0';
+    if (wideRangeCountEl) wideRangeCountEl.textContent = stats.wide_range_count || '0';
 }
+
 
 function updateLevelBadge(level) {
     const badge = document.getElementById('current-level-badge');

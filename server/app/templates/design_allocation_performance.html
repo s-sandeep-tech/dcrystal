@@ -29,14 +29,46 @@
     </div>
 
     <!-- Stats Grid -->
-    <div class="grid grid-cols-1 gap-2 p-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
-        <div class="p-2 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Design Count</p>
+    <div class="grid grid-cols-4 gap-2 p-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[13px] text-primary">draw</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Total Design Count</p>
+            </div>
             <div class="flex flex-col mt-1">
                 <p id="stat-total-design-count" class="text-base font-bold text-primary">{{ stats.total_design_count if stats else '0' }}</p>
             </div>
         </div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[13px] text-emerald-600">precision_manufacturing</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Make Count</p>
+            </div>
+            <div class="flex flex-col mt-1">
+                <p id="stat-make-count" class="text-base font-bold text-emerald-600">{{ stats.make_count if stats else '0' }}</p>
+            </div>
+        </div>
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[13px] text-amber-600">category</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Section Count</p>
+            </div>
+            <div class="flex flex-col mt-1">
+                <p id="stat-section-count" class="text-base font-bold text-amber-600">{{ stats.section_count if stats else '0' }}</p>
+            </div>
+        </div>
+        <div class="p-2 text-center">
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[13px] text-purple-600">aspect_ratio</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Wide Range Count</p>
+            </div>
+            <div class="flex flex-col mt-1">
+                <p id="stat-wide-range-count" class="text-base font-bold text-purple-600">{{ stats.wide_range_count if stats else '0' }}</p>
+            </div>
+        </div>
     </div>
+
+
 
     <!-- Pagination Strip -->
     <div class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">

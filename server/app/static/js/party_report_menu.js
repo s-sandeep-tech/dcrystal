@@ -29,10 +29,10 @@
         ].map(normalize).join(" ").includes(query);
     }
 
-    function reportHref(href) {
-        const url = new URL(href || "#", window.location.origin);
+    function reportHref(report) {
+        const url = new URL(report.href || "#", window.location.origin);
         const party = String(partyEl?.value || "").trim();
-        if (party) {
+        if (party && report.supportsPartyFilter !== false) {
             url.searchParams.set("party", party);
             url.searchParams.set("page", "1");
         } else {
@@ -44,7 +44,7 @@
     function renderReport(report) {
         const tags = (report.tags || []).slice(0, 3);
         return `
-            <a class="report-card" href="${escapeHtml(reportHref(report.href))}" data-report-id="${escapeHtml(report.id)}">
+            <a class="report-card" href="${escapeHtml(reportHref(report))}" data-report-id="${escapeHtml(report.id)}">
                 <span class="report-card-sequence">${escapeHtml(report.sequence)}</span>
                 <span class="report-card-body">
                     <span class="report-card-heading">

@@ -80,16 +80,25 @@ def design_allocation_performance():
 
         # Global Aggregate Stats
         agg_cols = [
-            func.sum(DesignAllocationInfoSnapshot.design_count).label('total_design_count')
+            func.sum(DesignAllocationInfoSnapshot.design_count).label('total_design_count'),
+            func.count(func.distinct(DesignAllocationInfoSnapshot.make)).label('make_count'),
+            func.count(func.distinct(DesignAllocationInfoSnapshot.section)).label('section_count'),
+            func.count(func.distinct(DesignAllocationInfoSnapshot.wide_range)).label('wide_range_count')
         ]
         agg_q = db.session.query(*agg_cols)
         agg_q = apply_filters(agg_q)
         aggs = agg_q.first()
 
         tot_design_cnt = int(aggs.total_design_count or 0)
+        make_cnt = int(aggs.make_count or 0)
+        section_cnt = int(aggs.section_count or 0)
+        wide_range_cnt = int(aggs.wide_range_count or 0)
 
         stats = {
-            'total_design_count': f"{tot_design_cnt:,}"
+            'total_design_count': f"{tot_design_cnt:,}",
+            'make_count': f"{make_cnt:,}",
+            'section_count': f"{section_cnt:,}",
+            'wide_range_count': f"{wide_range_cnt:,}"
         }
 
         # Hierarchy level logic: Make (Make Owner) -> section -> wide_range
@@ -209,16 +218,25 @@ def get_design_allocation_performance_partial():
 
         # Global Aggregate Stats
         agg_cols = [
-            func.sum(DesignAllocationInfoSnapshot.design_count).label('total_design_count')
+            func.sum(DesignAllocationInfoSnapshot.design_count).label('total_design_count'),
+            func.count(func.distinct(DesignAllocationInfoSnapshot.make)).label('make_count'),
+            func.count(func.distinct(DesignAllocationInfoSnapshot.section)).label('section_count'),
+            func.count(func.distinct(DesignAllocationInfoSnapshot.wide_range)).label('wide_range_count')
         ]
         agg_q = db.session.query(*agg_cols)
         agg_q = apply_filters(agg_q)
         aggs = agg_q.first()
 
         tot_design_cnt = int(aggs.total_design_count or 0)
+        make_cnt = int(aggs.make_count or 0)
+        section_cnt = int(aggs.section_count or 0)
+        wide_range_cnt = int(aggs.wide_range_count or 0)
 
         stats = {
-            'total_design_count': f"{tot_design_cnt:,}"
+            'total_design_count': f"{tot_design_cnt:,}",
+            'make_count': f"{make_cnt:,}",
+            'section_count': f"{section_cnt:,}",
+            'wide_range_count': f"{wide_range_cnt:,}"
         }
 
         # Hierarchy level logic
@@ -266,6 +284,19 @@ def get_design_allocation_performance_partial():
         if parent_section and level == 'wide_range':
             main_q = main_q.filter(DesignAllocationInfoSnapshot.section == parent_section)
 
+        # Calculate partition sum for child rows inside current parent grouping
+        partition_total = tot_design_cnt
+        if is_child_rows and parent_make:
+            p_agg_q = db.session.query(func.sum(DesignAllocationInfoSnapshot.design_count)).filter(
+                DesignAllocationInfoSnapshot.make == parent_make
+            )
+            p_agg_q = apply_filters(p_agg_q)
+            if parent_section and level == 'wide_range':
+                p_agg_q = p_agg_q.filter(DesignAllocationInfoSnapshot.section == parent_section)
+            p_tot = p_agg_q.scalar()
+            if p_tot is not None:
+                partition_total = int(p_tot or 0)
+
         main_q = main_q.group_by(*group_cols)
 
         # Sorting logic
@@ -291,7 +322,7 @@ def get_design_allocation_performance_partial():
         processed_rows = []
         for r in items:
             cnt = int(r.d_cnt or 0)
-            pct = (cnt / tot_design_cnt * 100.0) if tot_design_cnt > 0 else 0.0
+            pct = (cnt / partition_total * 100.0) if partition_total > 0 else 0.0
 
             row_dict = {
                 'make': r[0] if len(r) > 0 else '',
