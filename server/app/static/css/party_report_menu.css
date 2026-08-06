@@ -1,0 +1,41 @@
+.party-report-menu-page .report-menu-content {
+    gap: 18px;
+}
+
+.party-report-menu-page .report-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.party-report-menu-page .report-card {
+    min-height: 126px;
+    border-radius: 8px;
+}
+
+.party-report-menu-page .report-card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    font-size: 21px;
+}
+
+.party-report-menu-page .report-card-sequence {
+    position: absolute;
+    top: 12px;
+    right: 42px;
+    color: #94a3b8;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+@media (max-width: 1100px) {
+    .party-report-menu-page .report-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 620px) {
+    .party-report-menu-page .report-card-grid {
+        grid-template-columns: 1fr;
+    }
+}

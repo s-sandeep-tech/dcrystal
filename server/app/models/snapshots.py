@@ -3110,3 +3110,173 @@ class CollectionWiseAverageDeliveryDaysSnapshot(db.Model):
     supplier_name = db.Column(db.Text)
     delivery_days = db.Column(db.Integer)
     order_period = db.Column(db.Text)
+
+
+class PartyDesignAverageDeliveryDaysSnapshot(db.Model):
+    __tablename__ = 'party_design_average_delivery_days_snapshot'
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    design_id = db.Column(db.BigInteger, nullable=False)
+    design_code = db.Column(db.String(50), nullable=False)
+    order_type = db.Column(db.String(50), nullable=False)
+    provision_type = db.Column(db.String(50), nullable=False)
+    party = db.Column(db.String(255), nullable=False)
+    make = db.Column(db.String(100), nullable=False)
+    make_owner = db.Column(db.String(150), nullable=False)
+    classification = db.Column(db.String(100), nullable=False)
+    sub_classification = db.Column(db.String(100), nullable=False)
+    average_delivery_days = db.Column(db.Integer, nullable=False)
+    snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    source_file = db.Column(db.String(255), nullable=False, default='external_sync')
+    imported_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+
+
+class PartyOrderAcceptCancelDeliverySnapshot(db.Model):
+    __tablename__ = 'party_order_accept_cancel_delivery_frequency_snapshot'
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    month = db.Column(db.Text)
+    order_type = db.Column(db.Text)
+    provision_type = db.Column(db.Text)
+    supplier = db.Column(db.Text)
+    make = db.Column(db.Text)
+    order_wt = db.Column(db.Numeric(18, 3))
+    order_pcs = db.Column(db.BigInteger)
+    accepted_wt = db.Column(db.Numeric(18, 3))
+    accepted_pcs = db.Column(db.BigInteger)
+    cancelled_wt = db.Column(db.Numeric(18, 3))
+    cancelled_pcs = db.Column(db.BigInteger)
+    delivered_wt = db.Column(db.Numeric(18, 3))
+    delivered_pcs = db.Column(db.BigInteger)
+    snapshot_date = db.Column(db.Date)
+    source_file = db.Column(db.Text)
+    imported_at = db.Column(db.DateTime(timezone=True), default=db.func.now())
+
+
+class PartyDesignLocationAllocationSnapshot(db.Model):
+    __tablename__ = 'party_design_location_allocation_snapshot'
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    party = db.Column(db.String(100))
+    zone = db.Column(db.String(50))
+    order_type = db.Column(db.String(50))
+    provision_type = db.Column(db.String(50))
+    make = db.Column(db.String(100))
+    total_design_count = db.Column(db.BigInteger)
+    delivered_weight = db.Column(db.Numeric(18, 3))
+    snapshot_date = db.Column(db.Date)
+    source_file = db.Column(db.Text)
+    imported_at = db.Column(db.DateTime(timezone=True), default=db.func.now())
+
+
+class PartyOrderCancellationSnapshot(db.Model):
+    __tablename__ = 'party_order_cancellation_snapshot'
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    order_no = db.Column(db.String(30))
+    order_type = db.Column(db.String(50))
+    provision_type = db.Column(db.String(50))
+    supplier = db.Column(db.String(100))
+    make = db.Column(db.String(100))
+    make_owner = db.Column(db.String(100), nullable=True)
+    order_wt = db.Column(db.Numeric(18, 3))
+    cancelled_wt = db.Column(db.Numeric(18, 3))
+    snapshot_date = db.Column(db.Date)
+    source_file = db.Column(db.Text)
+    imported_at = db.Column(db.DateTime(timezone=True), default=db.func.now())
+
+
+class PartyMcStoneValueAllocationSnapshot(db.Model):
+    __tablename__ = 'party_mc_stone_value_allocation_snapshot'
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    party = db.Column(db.String(100))
+    make = db.Column(db.String(100))
+    order_type = db.Column(db.String(50))
+    provision_type = db.Column(db.String(50))
+    total_metal_weight = db.Column(db.Numeric(20, 3))
+    total_mc_value = db.Column(db.Numeric(20, 2))
+    stone_weight = db.Column(db.Numeric(18, 3))
+    stone_value = db.Column(db.Numeric(20, 2))
+    snapshot_date = db.Column(db.Date)
+    source_file = db.Column(db.Text)
+    imported_at = db.Column(db.DateTime(timezone=True), default=db.func.now())
+
+
+class PartyHallmarkPassFailSnapshot(db.Model):
+    __tablename__ = 'party_hallmark_pass_fail_snapshot'
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    source_row_number = db.Column(db.Integer)
+    party = db.Column(db.String(100))
+    hallmarking_center = db.Column(db.String(150))
+    month = db.Column(db.String(15))
+    month_number = db.Column(db.SmallInteger)
+    order_type = db.Column(db.String(50))
+    provision_type = db.Column(db.String(50))
+    hm_issue_pcs = db.Column(db.BigInteger)
+    hm_issue_wt = db.Column(db.Numeric(18, 3))
+    hm_passed_pcs = db.Column(db.BigInteger)
+    hm_passed_wt = db.Column(db.Numeric(18, 3))
+    hm_failed_pcs = db.Column(db.BigInteger)
+    hm_failed_wt = db.Column(db.Numeric(18, 3))
+    snapshot_date = db.Column(db.Date)
+    source_file = db.Column(db.Text)
+    imported_at = db.Column(db.DateTime(timezone=True), default=db.func.now())
+
+
+class PartyRoWiseDeliverySnapshot(db.Model):
+    __tablename__ = 'party_ro_wise_delivery_snapshot'
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    party = db.Column(db.String(100))
+    delivery_ro = db.Column(db.String(100))
+    order_type = db.Column(db.String(50))
+    provision_type = db.Column(db.String(50))
+    make = db.Column(db.String(100))
+    make_owner = db.Column(db.String(100))
+    delivered_weight = db.Column(db.Numeric(18, 3))
+    snapshot_date = db.Column(db.Date)
+    source_file = db.Column(db.Text)
+    imported_at = db.Column(db.DateTime(timezone=True), default=db.func.now())
+
+
+class PartyOrderLifecycleSnapshot(db.Model):
+    __tablename__ = 'party_order_lifecycle_snapshot'
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    order_number = db.Column(db.String(30))
+    order_type = db.Column(db.String(50))
+    provision_type = db.Column(db.String(50))
+    party = db.Column(db.String(100))
+    make = db.Column(db.String(100))
+    make_owner = db.Column(db.String(100))
+    classification = db.Column(db.String(100))
+    order_weight = db.Column(db.Numeric(18, 3))
+    cancelled_weight = db.Column(db.Numeric(18, 3))
+    production_weight = db.Column(db.Numeric(18, 3))
+    delivered_weight = db.Column(db.Numeric(18, 3))
+    ornament_type = db.Column(db.String(50))
+    snapshot_date = db.Column(db.Date)
+    source_file = db.Column(db.Text)
+    imported_at = db.Column(db.DateTime(timezone=True), default=db.func.now())
+
+
+class PartyQcPassFailSnapshot(db.Model):
+    __tablename__ = 'party_qc_pass_fail_snapshot'
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    party = db.Column(db.String(100))
+    month = db.Column(db.String(15))
+    month_number = db.Column(db.SmallInteger)
+    order_type = db.Column(db.String(50))
+    provision_type = db.Column(db.String(50))
+    qc_issue_wt = db.Column(db.Numeric(18, 3))
+    qc_issue_pcs = db.Column(db.BigInteger)
+    qc_passed_wt = db.Column(db.Numeric(18, 3))
+    qc_passed_pcs = db.Column(db.BigInteger)
+    qc_failed_wt = db.Column(db.Numeric(18, 3))
+    qc_failed_pcs = db.Column(db.BigInteger)
+    snapshot_date = db.Column(db.Date)
+    source_file = db.Column(db.Text)
+    imported_at = db.Column(db.DateTime(timezone=True), default=db.func.now())

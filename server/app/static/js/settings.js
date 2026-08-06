@@ -165,7 +165,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncHMDelayManagementBtn = document.getElementById('sync-hm-delay-management-btn');
     const syncPartyDelayManagementBtn = document.getElementById('sync-party-delay-management-btn');
     const syncOrderFulfillmentAgingMatrixBtn = document.getElementById('sync-order-fulfillment-aging-matrix-btn');
+    const syncCollectionWiseAverageDeliveryDaysBtn = document.getElementById('sync-collection-wise-average-delivery-days-btn');
     const syncAllBtn = document.getElementById('sync-all-btn');
+
 
     async function triggerSync(btn, url, label, type) {
         setSyncLoading(btn, 'Queueing');
@@ -229,9 +231,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncHMDelayManagementBtn) syncHMDelayManagementBtn.addEventListener('click', () => triggerSync(syncHMDelayManagementBtn, '/settings/sync-hm-delay-management', 'HM Delay Management Sync', 'hm_delay_management'));
     if (syncPartyDelayManagementBtn) syncPartyDelayManagementBtn.addEventListener('click', () => triggerSync(syncPartyDelayManagementBtn, window.SETTINGS_CONFIG.syncPartyDelayManagementUrl, 'Vendor Delay Management Sync', 'party_delay_management'));
     if (syncOrderFulfillmentAgingMatrixBtn) syncOrderFulfillmentAgingMatrixBtn.addEventListener('click', () => triggerSync(syncOrderFulfillmentAgingMatrixBtn, window.SETTINGS_CONFIG.syncOrderFulfillmentValueAgingMatrixUrl, 'Order Fulfillment Value Aging Matrix Sync', 'order_fulfillment_aging_matrix'));
-    const syncCollectionWiseAverageDeliveryDaysBtn = document.getElementById('sync-collection-wise-average-delivery-days-btn');
-
     if (syncCollectionWiseAverageDeliveryDaysBtn) syncCollectionWiseAverageDeliveryDaysBtn.addEventListener('click', () => triggerSync(syncCollectionWiseAverageDeliveryDaysBtn, window.SETTINGS_CONFIG.syncCollectionWiseAverageDeliveryDaysUrl || '/api/sync/collection-wise-average-delivery-days', 'Collection Wise Average Delivery Days Sync', 'collection_wise_average_delivery_days'));
+
+
 
     function showConfirmModal(title, message) {
         return new Promise((resolve) => {

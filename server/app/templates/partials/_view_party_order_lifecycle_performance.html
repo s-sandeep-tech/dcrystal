@@ -1,0 +1,96 @@
+{% if not is_child_rows %}
+<table class="enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider border-b border-gray-200 dark:border-gray-700">
+            <th class="col-expander text-center px-0 w-8"></th>
+            {% set sortable_headers = [
+                ('hierarchy', 'Party / Make (Make Owner) / Ornament Type', 'text-left', ''),
+                ('order_count', 'Order Number Count', 'text-left', 'bg-purple-50/20 dark:bg-purple-900/10'),
+                ('order_weight', 'Order Wt', 'text-right', 'bg-blue-50/20 dark:bg-blue-900/10'),
+                ('cancelled_weight', 'Cancelled Wt', 'text-right', 'bg-red-50/20 dark:bg-red-900/10'),
+                ('production_weight', 'Production Wt', 'text-right', 'bg-amber-50/20 dark:bg-amber-900/10'),
+                ('delivered_weight', 'Delivered Wt', 'text-right', 'bg-emerald-50/20 dark:bg-emerald-900/10')
+            ] %}
+            {% for sort_key, label, alignment, background in sortable_headers %}
+            <th class="{{ alignment }} px-3 py-2 {{ background }} cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none group"
+                onclick="handleSort('{{ sort_key }}')"
+                {% if sort_key == 'order_count' %}title="Sort by order count"{% endif %}>
+                <div class="flex items-center gap-1 {{ 'justify-end' if alignment == 'text-right' else '' }}">
+                    <span>{{ label }}</span>
+                    <span class="material-symbols-outlined text-[12px] {{ 'text-primary' if sort_by == sort_key else 'text-gray-300 opacity-0 group-hover:opacity-100' }}">
+                        {% if sort_by == sort_key %}{{ 'arrow_upward' if sort_dir == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+{% endif %}
+
+{% for r in rows %}
+<tr class="parent-row hover:bg-blue-50/30 group animate-fade-in" data-level="{{ r.level }}">
+    <td class="text-center px-0 py-2">
+        {% if r.level != 'ornament_type' %}
+        <button onclick="togglePartyLifecycleRow(this, '{{ r.level }}', '{{ r.party|e }}', '{{ r.make|e }}')"
+            class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
+            <span class="material-symbols-outlined text-[14px]">add_circle</span>
+        </button>
+        {% else %}
+        <span class="material-symbols-outlined text-[8px] text-gray-300">fiber_manual_record</span>
+        {% endif %}
+    </td>
+    <td class="px-3 py-2 font-bold text-gray-800 dark:text-gray-200">
+        <div class="flex items-center gap-1.5"
+            style="padding-left: {{ '0px' if r.level == 'party' else ('12px' if r.level == 'make' else '24px') }}">
+            <span class="material-symbols-outlined text-[14px] text-gray-400">
+                {% if r.level == 'party' %}store{% elif r.level == 'make' %}precision_manufacturing{% else %}diamond{% endif %}
+            </span>
+            {% if r.level == 'party' %}
+                {{ r.party or 'Unknown Party' }}
+            {% elif r.level == 'make' %}
+                {{ r.make or 'Unknown Make' }}
+                {% if r.make_owner %}
+                    <span class="text-[9px] font-normal text-gray-500">({{ r.make_owner }})</span>
+                {% endif %}
+            {% else %}
+                {{ r.ornament_type or 'Unknown Ornament Type' }}
+            {% endif %}
+        </div>
+    </td>
+    <td class="px-3 py-2 font-bold text-purple-700 dark:text-purple-300">
+        {{ "{:,}".format(r.order_count) }}
+    </td>
+    <td class="text-right px-3 py-2 font-bold text-primary">
+        {{ "%.3f"|format(r.order_weight) }}
+    </td>
+    <td class="text-right px-3 py-2 font-bold text-red-600">
+        {{ "%.3f"|format(r.cancelled_weight) }}
+    </td>
+    <td class="text-right px-3 py-2 font-bold text-amber-600">
+        {{ "%.3f"|format(r.production_weight) }}
+    </td>
+    <td class="text-right px-3 py-2 font-bold text-emerald-600">
+        {{ "%.3f"|format(r.delivered_weight) }}
+    </td>
+</tr>
+{% endfor %}
+
+{% if not is_child_rows %}
+    </tbody>
+</table>
+
+<div class="pagination-meta hidden"
+     data-level="{{ current_level }}"
+     data-page="{{ pagination.page if pagination else 1 }}"
+     data-pages="{{ pagination.pages if pagination else 1 }}"
+     data-total="{{ pagination.total if pagination else 0 }}"
+     data-per-page="{{ pagination.per_page if pagination else 50 }}"
+     data-sort-by="{{ sort_by }}"
+     data-sort-dir="{{ sort_dir }}">
+</div>
+
+<script id="stats-metadata" type="application/json">
+    {{ stats|tojson }}
+</script>
+{% endif %}

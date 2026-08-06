@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Party RO-Wise Delivery Performance{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
+{% endblock %}
+
+{% block content %}
+<main id="party-ro-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    <!-- Header -->
+    <div class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <h2 class="text-sm font-bold tracking-tight">Party RO-Wise Delivery Performance
+                <span class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded uppercase tracking-widest text-gray-500">v1.0</span>
+            </h2>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
+                <button onclick="adjustZoom(-0.1)" class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors" title="Zoom Out">-</button>
+                <button id="zoom-level" onclick="adjustZoom(0, true)" class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700" title="Reset Zoom">100%</button>
+                <button onclick="adjustZoom(0.1)" class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors" title="Zoom In">+</button>
+            </div>
+            <div class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
+                <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
+                <input id="hierarchy-search" value="{{ request.args.get('search', '') }}" class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0" placeholder="Search hierarchy..." type="text" oninput="onSearchInput(this.value)" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-2 gap-2 p-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Total RO Count</p>
+            <div class="flex flex-col mt-1">
+                <p id="stat-total-ro-count" class="text-base font-bold text-primary">{{ stats.total_ro_count if stats else '0' }}</p>
+            </div>
+        </div>
+        <div class="p-2 text-center text-emerald-600">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Delivered Wt</p>
+            <div class="flex flex-col mt-1">
+                <p id="stat-total-delivered-wt" class="text-base font-bold">{{ stats.total_delivered_wt if stats else '0.000' }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination Strip -->
+    <div class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Hierarchy:</span>
+            <span id="current-level-badge" class="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-bold rounded uppercase">{{ current_level|replace('_', ' ') }}</span>
+        </div>
+
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <div class="flex items-center gap-2">
+                <span class="text-gray-400">Rows:</span>
+                <select id="per-page-select" onchange="changePerPage(this.value)" class="bg-transparent border-none text-[10px] font-bold focus:ring-0 p-0 cursor-pointer">
+                    <option value="50" {% if request.args.get('per_page', '50') == '50' %}selected{% endif %}>50</option>
+                    <option value="100" {% if request.args.get('per_page') == '100' %}selected{% endif %}>100</option>
+                </select>
+            </div>
+            <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
+            <span id="pagination-info" class="font-medium">0-0 of 0</span>
+            <div class="flex items-center gap-1">
+                <button id="btn-prev" onclick="navigatePage(-1)" class="p-0.5 hover:bg-gray-100 rounded disabled:opacity-50">
+                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                </button>
+                <button id="btn-next" onclick="navigatePage(1)" class="p-0.5 hover:bg-gray-100 rounded disabled:opacity-50">
+                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Container -->
+    <div id="table-area" class="flex-1 overflow-auto relative">
+        <div id="view-party-ro" class="dashboard-view">
+            {% include 'partials/_view_party_ro_wise_delivery_performance.html' %}
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block sidebar %}
+<!-- Right Side Filter Sidebar (Exact copy of /ownerwiseordersummary) -->
+<aside class="w-64 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xs font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> FILTERS
+            </h2>
+            <button onclick="resetAllFilters()" class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+        </div>
+        <div class="space-y-3">
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Party</label>
+                <select id="filter-party" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Parties</option>
+                    {% for p in filter_options.parties %}
+                    <option value="{{ p }}" {% if request.args.get('party') == p %}selected{% endif %}>{{ p }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make</label>
+                <select id="filter-make" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Makes</option>
+                    {% for m in filter_options.makes %}
+                    <option value="{{ m }}" {% if request.args.get('make') == m %}selected{% endif %}>{{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Make Owner</label>
+                <select id="filter-make-owner" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Make Owners</option>
+                    {% for mo in filter_options.make_owners %}
+                    <option value="{{ mo }}" {% if request.args.get('make_owner') == mo %}selected{% endif %}>{{ mo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order Type</label>
+                <select id="filter-order-type" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Order Types</option>
+                    {% for ot in filter_options.order_types %}
+                    <option value="{{ ot }}" {% if request.args.get('order_type') == ot %}selected{% endif %}>{{ ot }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Provision Type</label>
+                <select id="filter-provision-type" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Provision Types</option>
+                    {% for pt in filter_options.provision_types %}
+                    <option value="{{ pt }}" {% if request.args.get('provision_type') == pt %}selected{% endif %}>{{ pt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-4 border-t border-gray-200 dark:border-gray-800">
+        <button onclick="applyFilters()" class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
+        </button>
+    </div>
+</aside>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/party_ro_wise_delivery_performance.js') }}"></script>
+{% endblock %}

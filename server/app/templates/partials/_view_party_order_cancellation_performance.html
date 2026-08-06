@@ -1,0 +1,105 @@
+{% if not is_child_rows %}
+<table class="enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider border-b border-gray-200 dark:border-gray-700">
+            <th class="col-expander text-center px-0 w-8"></th>
+            <th class="text-left px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none group" onclick="handleSort('party')">
+                <div class="flex items-center gap-1">
+                    <span>Party / Make (Make Owner)</span>
+                    <span class="material-symbols-outlined text-[12px] {% if sort_by in ['party', 'make'] %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {% if sort_by in ['party', 'make'] %}{% if sort_dir == 'asc' %}arrow_upward{% else %}arrow_downward{% endif %}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-3 py-2 bg-blue-50/20 dark:bg-blue-900/10 cursor-pointer hover:bg-blue-100/30 select-none group" onclick="handleSort('order_weight')">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Order Wt</span>
+                    <span class="material-symbols-outlined text-[12px] {% if sort_by == 'order_weight' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {% if sort_by == 'order_weight' %}{% if sort_dir == 'asc' %}arrow_upward{% else %}arrow_downward{% endif %}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-3 py-2 bg-red-50/20 dark:bg-red-900/10 cursor-pointer hover:bg-red-100/30 select-none group" onclick="handleSort('cancelled_weight')">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Cancelled Wt</span>
+                    <span class="material-symbols-outlined text-[12px] {% if sort_by == 'cancelled_weight' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {% if sort_by == 'cancelled_weight' %}{% if sort_dir == 'asc' %}arrow_upward{% else %}arrow_downward{% endif %}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-3 py-2 bg-amber-50/20 dark:bg-amber-900/10 cursor-pointer hover:bg-amber-100/30 select-none group" onclick="handleSort('cancelled_pct')">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Cancelled %</span>
+                    <span class="material-symbols-outlined text-[12px] {% if sort_by == 'cancelled_pct' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {% if sort_by == 'cancelled_pct' %}{% if sort_dir == 'asc' %}arrow_upward{% else %}arrow_downward{% endif %}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+{% endif %}
+
+{% for r in rows %}
+<tr class="parent-row hover:bg-blue-50/30 group animate-fade-in" data-level="{{ r.level }}">
+    <td class="text-center px-0 py-2">
+        {% if r.level != 'make' %}
+        <button onclick="togglePartyCancellationRow(this, '{{ r.level }}', '{{ r.party|e }}')"
+            class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
+            <span class="material-symbols-outlined text-[14px]">add_circle</span>
+        </button>
+        {% else %}
+        <span class="material-symbols-outlined text-[8px] text-gray-300">fiber_manual_record</span>
+        {% endif %}
+    </td>
+    <td class="px-3 py-2 font-bold text-gray-800 dark:text-gray-200">
+        <div class="flex items-center gap-1.5"
+            style="padding-left: {{ '0px' if r.level == 'party' else '12px' }}">
+            <span class="material-symbols-outlined text-[14px] text-gray-400">
+                {% if r.level == 'party' %}store{% else %}precision_manufacturing{% endif %}
+            </span>
+            {% if r.level == 'party' %}
+                {{ r.party or 'Unknown Party' }}
+            {% else %}
+                {{ r.make or 'Unknown Make' }}
+                {% if r.make_owner %}
+                    <span class="text-[9px] font-normal text-gray-500">({{ r.make_owner }})</span>
+                {% endif %}
+            {% endif %}
+        </div>
+    </td>
+    <td class="text-right px-3 py-2 font-bold text-primary">
+        {{ "%.3f"|format(r.order_wt) }}
+    </td>
+    <td class="text-right px-3 py-2 font-bold text-red-600">
+        {{ "%.3f"|format(r.cancelled_wt) }}
+    </td>
+    <td class="text-right px-3 py-2 font-bold text-amber-600">
+        {% if r.cancelled_pct and r.cancelled_pct > 0 %}
+            {{ "%.2f"|format(r.cancelled_pct) }}%
+        {% else %}
+            
+        {% endif %}
+    </td>
+
+</tr>
+{% endfor %}
+
+{% if not is_child_rows %}
+    </tbody>
+</table>
+
+<div class="pagination-meta hidden"
+     data-level="{{ current_level }}"
+     data-page="{{ pagination.page if pagination else 1 }}"
+     data-pages="{{ pagination.pages if pagination else 1 }}"
+     data-total="{{ pagination.total if pagination else 0 }}"
+     data-per-page="{{ pagination.per_page if pagination else 50 }}"
+     data-sort-by="{{ sort_by }}"
+     data-sort-dir="{{ sort_dir }}">
+</div>
+
+<script id="stats-metadata" type="application/json">
+    {{ stats|tojson }}
+</script>
+{% endif %}

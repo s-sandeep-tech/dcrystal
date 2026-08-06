@@ -418,6 +418,8 @@
                                     </button>
                                 </div>
 
+
+
                                 <div id="sync-wrapper-hallmarking_delayed"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
@@ -1413,6 +1415,7 @@
             syncActiveOrderDetailsUrl: "{{ url_for('dashboard.sync_active_order_details') }}",
             syncCollectionWiseAverageDeliveryDaysUrl: "{{ url_for('dashboard.trigger_sync_collection_wise_average_delivery_days') }}",
             syncLogsUrl: "{{ url_for('dashboard.get_sync_logs') }}",
+
 
             auditLogsUrl: "{{ url_for('admin_rbac.get_audit_logs') }}",
             clearCacheUrl: "{{ url_for('dashboard.clear_cache') }}",

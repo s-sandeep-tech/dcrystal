@@ -1,0 +1,85 @@
+{% if not is_child_rows %}
+<table class="enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider border-b border-gray-200 dark:border-gray-700">
+            <th class="col-expander text-center px-0 w-8"></th>
+            <th class="text-left px-3 py-2">Party / Make (Make Owner)</th>
+            <th class="text-left px-3 py-2 bg-blue-50/20 dark:bg-blue-900/10 w-[40%]">RO (DELIVERY RO)</th>
+
+            <th class="text-right px-3 py-2 bg-emerald-50/20 dark:bg-emerald-900/10">TOTAL DELIVERED WT</th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+{% endif %}
+
+{% for r in rows %}
+<tr class="parent-row hover:bg-blue-50/30 group animate-fade-in" data-level="{{ r.level }}">
+    <td class="text-center px-0 py-2">
+        {% if r.level != 'make' %}
+        <button onclick="togglePartyRoRow(this, '{{ r.level }}', '{{ r.party|e }}')"
+            class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
+            <span class="material-symbols-outlined text-[14px]">add_circle</span>
+        </button>
+        {% else %}
+        <span class="material-symbols-outlined text-[8px] text-gray-300">fiber_manual_record</span>
+        {% endif %}
+    </td>
+    <td class="px-3 py-2 font-bold text-gray-800 dark:text-gray-200">
+        <div class="flex items-center gap-1.5"
+            style="padding-left: {{ '0px' if r.level == 'party' else '12px' }}">
+            <span class="material-symbols-outlined text-[14px] text-gray-400">
+                {% if r.level == 'party' %}store{% else %}precision_manufacturing{% endif %}
+            </span>
+            {% if r.level == 'party' %}
+                {{ r.party or 'Unknown Party' }}
+            {% else %}
+                {{ r.make or 'Unknown Make' }}
+                {% if r.make_owner %}
+                    <span class="text-[9px] font-normal text-gray-500">({{ r.make_owner }})</span>
+                {% endif %}
+            {% endif %}
+        </div>
+    </td>
+    <td class="px-3 py-2 text-gray-700 dark:text-gray-300">
+        {% if r.delivery_ros %}
+            {% set ro_count = r.delivery_ros|length %}
+            <div class="flex items-center gap-1 flex-wrap">
+                {% for ro_val in r.delivery_ros[:10] %}
+                <span class="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-mono rounded text-[9px]">
+                    {{ ro_val }}
+                </span>
+                {% endfor %}
+                {% if ro_count > 10 %}
+                <span class="text-[9px] text-gray-400 cursor-help font-semibold" title="{{ r.delivery_ros|join(', ') }}">
+                    +{{ ro_count - 10 }} more
+                </span>
+                {% endif %}
+            </div>
+        {% else %}
+            <span class="text-gray-400 text-[9px]">-</span>
+        {% endif %}
+    </td>
+
+
+    <td class="text-right px-3 py-2 font-bold text-emerald-600">
+        {{ "%.3f"|format(r.delivered_weight) }}
+    </td>
+</tr>
+{% endfor %}
+
+{% if not is_child_rows %}
+    </tbody>
+</table>
+
+<div class="pagination-meta hidden"
+     data-level="{{ current_level }}"
+     data-page="{{ pagination.page if pagination else 1 }}"
+     data-pages="{{ pagination.pages if pagination else 1 }}"
+     data-total="{{ pagination.total if pagination else 0 }}"
+     data-per-page="{{ pagination.per_page if pagination else 50 }}">
+</div>
+
+<script id="stats-metadata" type="application/json">
+    {{ stats|tojson }}
+</script>
+{% endif %}

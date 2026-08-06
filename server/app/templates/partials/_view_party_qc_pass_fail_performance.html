@@ -1,0 +1,99 @@
+{% if not is_child_rows %}
+<table class="enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider border-b border-gray-200 dark:border-gray-700">
+            <th class="col-expander text-center px-0 w-8"></th>
+            <th class="text-left px-3 py-2 min-w-[200px] cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none" onclick="handleSort('party')">
+                <div class="flex items-center gap-1">
+                    <span>Party</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400">
+                        {% if sort_by == 'party' %}{% if sort_dir == 'asc' %}arrow_upward{% else %}arrow_downward{% endif %}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            {% for m in months %}
+            <th class="text-center px-3 py-2 border-l border-gray-200 dark:border-gray-700 bg-blue-50/10 dark:bg-blue-900/10 cursor-pointer hover:bg-blue-100/30 select-none" onclick="handleSort('{{ m|lower }}')">
+                <div class="flex items-center justify-center gap-1">
+                    <span>{{ m|upper }}</span>
+                    <span class="material-symbols-outlined text-[12px] text-gray-400">
+                        {% if sort_by == m|lower %}{% if sort_dir == 'asc' %}arrow_upward{% else %}arrow_downward{% endif %}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            {% endfor %}
+        </tr>
+
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+{% endif %}
+
+{% for r in rows %}
+{% if r.level == 'party' %}
+<tr class="parent-row hover:bg-blue-50/30 group animate-fade-in" data-level="party">
+    <td class="text-center px-0 py-2">
+        <button onclick="togglePartyQcRow(this, '{{ r.party|e }}')"
+            class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
+            <span class="material-symbols-outlined text-[14px]">add_circle</span>
+        </button>
+    </td>
+    <td class="px-3 py-2 font-bold text-gray-800 dark:text-gray-200">
+        <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[14px] text-gray-400">store</span>
+            {{ r.party or 'Unknown Party' }}
+        </div>
+    </td>
+    {% for m in months %}
+    {% set md = r.months_data.get(m, {}) %}
+    <td class="text-right px-3 py-2 border-l border-gray-100 dark:border-gray-800">
+        <div class="flex flex-col text-[9px]">
+            <span class="font-bold text-primary">{{ "%.3f"|format(md.issue_wt or 0.0) }} wt / {{ md.issue_pcs or 0 }} pcs</span>
+            <span class="text-emerald-600 font-medium">Pass: {{ "%.3f"|format(md.passed_wt or 0.0) }} wt / {{ md.passed_pcs or 0 }} pcs</span>
+            <span class="text-red-500 font-medium">Fail: {{ "%.3f"|format(md.failed_wt or 0.0) }} wt / {{ md.failed_pcs or 0 }} pcs</span>
+        </div>
+    </td>
+    {% endfor %}
+</tr>
+{% else %}
+<tr class="child-row hover:bg-gray-100/50 group animate-fade-in" data-level="metric">
+    <td class="text-center px-0 py-2">
+        <span class="material-symbols-outlined text-[8px] text-gray-300">fiber_manual_record</span>
+    </td>
+    <td class="px-3 py-2 font-semibold text-gray-700 dark:text-gray-300 pl-8">
+        <span class="material-symbols-outlined text-[12px] text-gray-400 mr-1">
+            {% if 'ISSUE' in r.metric_name %}outbox{% elif 'PASSED' in r.metric_name %}check_circle{% else %}cancel{% endif %}
+        </span>
+        <span class="{% if 'PASSED' in r.metric_name %}text-emerald-600{% elif 'FAILED' in r.metric_name %}text-red-600{% else %}text-primary{% endif %}">
+            {{ r.metric_name }}
+        </span>
+    </td>
+    {% for m in months %}
+    {% set md = r.months_data.get(m, {'pcs': 0, 'wt': 0.0}) %}
+    <td class="text-right px-3 py-2 border-l border-gray-100 dark:border-gray-800 font-medium">
+        <span class="{% if 'PASSED' in r.metric_name %}text-emerald-600{% elif 'FAILED' in r.metric_name %}text-red-600{% else %}text-primary{% endif %} font-bold">
+            {{ "%.3f"|format(md.wt) }} wt / {{ "{:,}".format(md.pcs) }} pcs
+        </span>
+    </td>
+    {% endfor %}
+</tr>
+{% endif %}
+{% endfor %}
+
+{% if not is_child_rows %}
+    </tbody>
+</table>
+
+<div class="pagination-meta hidden"
+     data-level="{{ current_level }}"
+     data-page="{{ pagination.page if pagination else 1 }}"
+     data-pages="{{ pagination.pages if pagination else 1 }}"
+     data-total="{{ pagination.total if pagination else 0 }}"
+     data-per-page="{{ pagination.per_page if pagination else 50 }}"
+     data-sort-by="{{ sort_by }}"
+     data-sort-dir="{{ sort_dir }}">
+</div>
+
+
+<script id="stats-metadata" type="application/json">
+    {{ stats|tojson }}
+</script>
+{% endif %}

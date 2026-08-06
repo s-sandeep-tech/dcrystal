@@ -55,8 +55,10 @@ try:
         sync_active_order_details_task,
         sync_size_level_nip_barcode_task,
         sync_collection_wise_average_delivery_days_task,
+        sync_party_design_average_delivery_days_task,
         emit_sync_update
     )
+
     from apscheduler.schedulers.background import BackgroundScheduler
     from app.utils.sync_manager import (
         enqueue_next_scheduled_all_task,

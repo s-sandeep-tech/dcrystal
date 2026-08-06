@@ -29,6 +29,7 @@ SCHEDULED_ALL_SYNC_TASKS = (
     'party_delay_management',
     'order_fulfillment_aging_matrix',
     'collection_wise_average_delivery_days',
+    'party_design_average_delivery_days',
 )
 
 ALLOWED_SYNC_TASKS = {
@@ -62,7 +63,9 @@ ALLOWED_SYNC_TASKS = {
     'active_order_details',
     'size_level_nip_barcode',
     'collection_wise_average_delivery_days',
+    'party_design_average_delivery_days',
 }
+
 
 def enqueue_sync_task(task_type, user_id=None):
     """Pushes a sync task to the Redis queue."""
@@ -214,3 +217,7 @@ def sync_size_level_nip_barcode_data(user_id=None):
 
 def sync_collection_wise_average_delivery_days_data(user_id=None):
     return enqueue_sync_task('collection_wise_average_delivery_days', user_id)
+
+
+def sync_party_design_average_delivery_days_data(user_id=None):
+    return enqueue_sync_task('party_design_average_delivery_days', user_id)

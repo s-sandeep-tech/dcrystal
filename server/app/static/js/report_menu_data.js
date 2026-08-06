@@ -46,6 +46,14 @@ window.REPORT_MENU_DATA = [
         accent: "emerald",
         reports: [
             {
+                id: "party-report-menu",
+                title: "Party Report Center",
+                href: "/party-report-menu",
+                icon: "hub",
+                description: "Open the complete collection of party design, order, quality, allocation, and delivery reports.",
+                tags: ["party", "reports", "center"]
+            },
+            {
                 id: "pending-order-details",
                 title: "Pending Order Details Report",
                 href: "/pendingorderdetails",
@@ -93,9 +101,90 @@ window.REPORT_MENU_DATA = [
                 icon: "local_shipping",
                 description: "Track receipt performance and average delivery days across collections.",
                 tags: ["collection", "delivery", "days", "average", "receipt"]
+            },
+            {
+                id: "party-design-delivery-performance",
+                title: "Order Fulfillment Value Aging Matrix / Party Design Delivery Performance",
+                href: "/party-design-delivery-performance",
+                icon: "analytics",
+                description: "Hierarchical delivery performance and average delivery days by party, make, classification, and sub-classification.",
+                tags: ["party", "design", "delivery", "performance", "average"]
+            },
+            {
+                id: "party-order-accept-cancel-delivery-performance",
+                title: "Party Order Acceptance, Cancellation & Delivery Performance",
+                href: "/party-order-accept-cancel-delivery-performance",
+                icon: "fact_check",
+                description: "Party level breakdown of order numbers, weights, cancellations, production, and delivery performance.",
+                tags: ["party", "order", "acceptance", "cancellation", "delivery", "performance"]
+            },
+            {
+                id: "party-design-location-allocation",
+                title: "Party Design Location Allocation",
+                href: "/party-design-location-allocation",
+                icon: "pin_drop",
+                description: "Drilldown by party, zone, and make for total design count and delivered weights.",
+                tags: ["party", "design", "location", "allocation", "zone"]
+            },
+            {
+                id: "party-order-cancellation-performance",
+                title: "Party Order Cancellation Performance",
+                href: "/party-order-cancellation-performance",
+                icon: "cancel",
+                description: "Drilldown by party and make for order weights, cancelled weights, and cancellation percentages.",
+                tags: ["party", "order", "cancellation", "performance"]
+            },
+            {
+                id: "party-mc-stone-value-allocation",
+                title: "Party Making Charge & Stone Value Allocation",
+                href: "/party-mc-stone-value-allocation",
+                icon: "request_quote",
+                description: "Drilldown by party and make for total design count, metal weights, MC values, stone weights, and stone values.",
+                tags: ["party", "making charge", "mc", "stone", "value", "allocation"]
+            },
+            {
+                id: "party-hallmark-pass-fail-performance",
+                title: "Party Hallmark Pass & Fail Performance",
+                href: "/party-hallmark-pass-fail-performance",
+                icon: "verified",
+                description: "Drilldown by party with month-wise breakdown for HM ISSUE, HM PASSED, and HM FAILED weights and pieces.",
+                tags: ["party", "hallmark", "hm", "pass", "fail", "performance", "month"]
+            },
+            {
+                id: "party-ro-wise-delivery-performance",
+                title: "Party RO-Wise Delivery Performance",
+                href: "/party-ro-wise-delivery-performance",
+                icon: "local_shipping",
+                description: "Drilldown by party and make (make owner) for delivery RO and total delivered weight.",
+                tags: ["party", "ro", "delivery", "performance", "weight"]
+            },
+            {
+                id: "party-order-lifecycle-performance",
+                title: "Party Order Lifecycle Performance",
+                href: "/party-order-lifecycle-performance",
+                icon: "loop",
+                description: "Drilldown by party, make (make owner), and ornament type for order numbers, order weights, cancelled weights, production weights, and delivered weights.",
+                tags: ["party", "order", "lifecycle", "performance", "weight"]
+            },
+            {
+                id: "party-qc-pass-fail-performance",
+                title: "Party QC Pass & Fail Info",
+                href: "/party-qc-pass-fail-performance",
+                icon: "fact_check",
+                description: "Drilldown by party with month-wise breakdown for QC ISSUE, QC PASSED, and QC FAILED weights and pieces.",
+                tags: ["party", "qc", "quality control", "pass", "fail", "performance", "month"]
             }
         ]
     },
+
+
+
+
+
+
+
+
+
     {
         id: "inventory-stock",
         title: "Inventory & Stock",

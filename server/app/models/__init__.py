@@ -21,8 +21,18 @@ from .snapshots import (
     ActiveOrderDetailsSnapshot,
     SizeLevelNIPBarcodeSnapshot,
     SizeLevelNIPBarcodeStaging,
-    CollectionWiseAverageDeliveryDaysSnapshot
+    CollectionWiseAverageDeliveryDaysSnapshot,
+    PartyDesignAverageDeliveryDaysSnapshot,
+    PartyOrderAcceptCancelDeliverySnapshot,
+    PartyDesignLocationAllocationSnapshot,
+    PartyOrderCancellationSnapshot,
+    PartyMcStoneValueAllocationSnapshot,
+    PartyHallmarkPassFailSnapshot,
+    PartyRoWiseDeliverySnapshot,
+    PartyOrderLifecycleSnapshot,
+    PartyQcPassFailSnapshot
 )
+
 from .rbac import Role, Permission, Menu, RoleMenu, RolePermission, UserRole, AuditLog, UserPasswordHistory
 from .akt_report import AKTTransactionPerformance
 
@@ -65,6 +75,22 @@ __all__ = [
     'SizeLevelNIPBarcodeSnapshot',
     'SizeLevelNIPBarcodeStaging',
     'CollectionWiseAverageDeliveryDaysSnapshot',
+    'PartyDesignAverageDeliveryDaysSnapshot',
+    'PartyOrderAcceptCancelDeliverySnapshot',
+    'PartyDesignLocationAllocationSnapshot',
+    'PartyOrderCancellationSnapshot',
+    'PartyMcStoneValueAllocationSnapshot',
+    'PartyHallmarkPassFailSnapshot',
+    'PartyRoWiseDeliverySnapshot',
+    'PartyOrderLifecycleSnapshot',
+    'PartyQcPassFailSnapshot',
     'AKTTransactionPerformance'
 ]
+
+
+
+
+
+
+
 

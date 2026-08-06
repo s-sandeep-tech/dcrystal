@@ -4194,3 +4194,71 @@ def sync_collection_wise_average_delivery_days_task(task_type_override=None, pro
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
+
+
+def sync_party_design_average_delivery_days_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+    conn = None
+    TASK_TYPE = task_type_override or 'party_design_average_delivery_days'
+
+    def emit(status, message, progress):
+        emit_combined_sync_update(status, message, progress, TASK_TYPE, progress_range, is_subtask)
+
+    try:
+        emit('processing', 'Starting Party Design Average Delivery Days Sync...', 5)
+        conn = get_external_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        emit('processing', 'Fetching data from external view for party design average delivery days...', 20)
+        query = "SELECT * FROM ext_view.vw_party_design_average_delivery_days"
+
+        start_time = time.time()
+        cur.execute("SET statement_timeout = 0")
+        cur.execute(query)
+        rows = cur.fetchall()
+        duration = time.time() - start_time
+
+        logger.info(f"PartyDesignAverageDeliveryDays query took {duration:.2f} seconds.")
+        emit('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot database...', 50)
+
+        db.session.query(PartyDesignAverageDeliveryDaysSnapshot).delete()
+
+        new_records = []
+        for row in rows:
+            new_records.append({
+                'design_id': row.get('Design Id') or row.get('Design ID') or row.get('design_id'),
+                'design_code': row.get('Design Code') or row.get('design_code'),
+                'order_type': row.get('OrderType') or row.get('order_type'),
+                'provision_type': row.get('Provision Type') or row.get('ProvisionType') or row.get('provision_type'),
+                'party': row.get('Party') or row.get('party'),
+                'make': row.get('Make') or row.get('make'),
+                'make_owner': row.get('Make Owner') or row.get('make_owner'),
+                'classification': row.get('Classification') or row.get('classification'),
+                'sub_classification': row.get('Sub-Classification') or row.get('sub_classification'),
+                'average_delivery_days': row.get('Average Delivery Days') or row.get('Average delivery days') or row.get('average_delivery_days'),
+                'source_file': 'ext_view.vw_party_design_average_delivery_days',
+            })
+
+        if new_records:
+            chunk_size = 5000
+            for i in range(0, len(new_records), chunk_size):
+                db.session.bulk_insert_mappings(PartyDesignAverageDeliveryDaysSnapshot, new_records[i:i + chunk_size])
+
+        db.session.commit()
+
+        try:
+            redis_client.flushdb()
+            cache_msg = " Cache cleared."
+        except Exception as ce:
+            logger.error(f"Failed to clear cache during PartyDesignAverageDeliveryDays sync: {ce}")
+            cache_msg = " Cache clear failed."
+
+        emit('success', f'Sync completed! {len(rows)} records updated.{cache_msg}', 100)
+        return {"status": "success", "count": len(rows)}
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        logger.error(f"PartyDesignAverageDeliveryDays Sync error: {error_msg}")
+        emit('error', f'Sync failed: {error_msg}', 0)
+        return {"status": "error", "message": error_msg}
+    finally:
+        if conn: conn.close()

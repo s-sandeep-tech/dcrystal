@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Party Report Menu{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/report_menu.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/party_report_menu.css') }}">
+{% endblock %}
+
+{% block content %}
+<main class="report-menu-page party-report-menu-page flex-1 overflow-y-auto">
+    <section class="report-menu-shell">
+        <div class="report-menu-panel" aria-labelledby="party-report-menu-title">
+            <div class="report-menu-toolbar">
+                <div class="report-menu-eyebrow" id="party-report-menu-title">
+                    <span class="material-symbols-outlined">hub</span>
+                    Party Report Center
+                </div>
+
+                <label class="report-search" for="partyReportSearch">
+                    <span class="material-symbols-outlined">search</span>
+                    <input id="partyReportSearch" type="search" placeholder="Search party reports..." autocomplete="off" />
+                </label>
+
+                <div class="report-toolbar-actions">
+                    <div class="report-count" id="partyReportCount">0 reports</div>
+                    <span class="report-toolbar-divider"></span>
+                    <div class="report-menu-meta">
+                        <span class="material-symbols-outlined">schedule</span>
+                        <span>{{ sync_time }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-menu-content" id="partyReportMenuContent" aria-live="polite"></div>
+
+            <div class="report-empty-state hidden" id="partyReportEmptyState">
+                <span class="material-symbols-outlined">search_off</span>
+                <h2>No party reports found</h2>
+                <p>Try a different report name or keyword.</p>
+            </div>
+        </div>
+    </section>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/party_report_menu_data.js') }}"></script>
+<script src="{{ url_for('static', filename='js/party_report_menu.js') }}"></script>
+{% endblock %}

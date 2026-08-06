@@ -59,7 +59,24 @@ def seed_rbac():
             {"title": "Branch Weight Allocation & Refillv2", "url": "/branchweightv2", "icon": "dvr", "order": 60},
             {"title": "StageLevel Delay Report", "url": "/stageleveldelay", "icon": "query_stats", "order": 65},
             {"title": "Owner Wise Summary", "url": "/ownerwiseordersummary", "icon": "person_pin", "order": 70},
+            {"title": "Party Design Delivery Performance", "url": "/party-design-delivery-performance", "icon": "analytics", "order": 71},
+            {"title": "Party Order Acceptance, Cancellation & Delivery Performance", "url": "/party-order-accept-cancel-delivery-performance", "icon": "fact_check", "order": 71.5},
+            {"title": "Party Design Location Allocation", "url": "/party-design-location-allocation", "icon": "pin_drop", "order": 71.8},
+            {"title": "Party Order Cancellation Performance", "url": "/party-order-cancellation-performance", "icon": "cancel", "order": 71.9},
+            {"title": "Party Making Charge & Stone Value Allocation", "url": "/party-mc-stone-value-allocation", "icon": "request_quote", "order": 71.95},
+            {"title": "Party Hallmark Pass & Fail Performance", "url": "/party-hallmark-pass-fail-performance", "icon": "verified", "order": 71.98},
+            {"title": "Party RO-Wise Delivery Performance", "url": "/party-ro-wise-delivery-performance", "icon": "local_shipping", "order": 71.99},
+            {"title": "Party Order Lifecycle Performance", "url": "/party-order-lifecycle-performance", "icon": "loop", "order": 71.995},
+            {"title": "Party QC Pass & Fail Info", "url": "/party-qc-pass-fail-performance", "icon": "fact_check", "order": 71.998},
             {"title": "Pending Acceptance Report", "url": "/pending-acceptance-feedback", "icon": "assignment_turned_in", "order": 72},
+
+
+
+
+
+
+
+
             {"title": "Order Processing Pending Report", "url": "/order-processing-pending-status", "icon": "assignment_late", "order": 73},
             {"title": "Outstanding PO Status", "url": "/outstanding_purchase_orders", "icon": "receipt_long", "order": 75},
             {"title": "Crystal General Issues", "url": "/crystal_issues", "icon": "report_problem", "order": 80},

@@ -1,0 +1,95 @@
+{% if not is_child_rows %}
+<table class="enterprise-grid w-full border-collapse bg-white dark:bg-gray-900 sticky-header" style="font-size: 10.5px;">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold tracking-wider" style="font-size: 8.4px;">
+            <th class="col-expander text-center px-0 w-8"></th>
+            {% set sortable_headers = [
+                ('hierarchy', 'Party Design Hierarchy', 'text-left', '', 'width: 50%;'),
+                ('design_count', 'Design Count', 'text-right', 'bg-gray-100/30', ''),
+                ('avg_delivery_days', 'Avg Delivery Days', 'text-right', 'bg-emerald-50/20', '')
+            ] %}
+            {% for sort_key, label, alignment, background, width_style in sortable_headers %}
+            <th class="{{ alignment }} px-2 {{ background }} cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none group"
+                style="{{ width_style }}"
+                onclick="handleSort('{{ sort_key }}')">
+                <div class="flex items-center gap-1 {{ 'justify-end' if alignment == 'text-right' else '' }}">
+                    <span>{{ label }}</span>
+                    <span class="material-symbols-outlined text-[12px] {{ 'text-primary' if sort_by == sort_key else 'text-gray-300 opacity-0 group-hover:opacity-100' }}">
+                        {% if sort_by == sort_key %}{{ 'arrow_upward' if sort_dir == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+{% endif %}
+
+{% for r in rows %}
+<tr class="parent-row hover:bg-blue-50/30 group animate-fade-in" data-level="{{ r.level }}">
+    <td class="text-center px-0">
+        {% if r.level != 'sub_classification' %}
+        <button onclick="togglePartyDesignRow(this, '{{ r.level }}', '{{ r.party|e }}', '{{ r.make|e }}', '{{ r.classification|e }}')"
+            class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
+            <span class="material-symbols-outlined text-[14px]">add_circle</span>
+        </button>
+        {% else %}
+        <span class="material-symbols-outlined text-[8px] text-gray-200">fiber_manual_record</span>
+        {% endif %}
+    </td>
+    <td class="px-2 font-bold">
+        <div class="flex items-center gap-1" style="padding-left: {{ '0px' if r.level == 'party' else ('12px' if r.level == 'make' else ('24px' if r.level == 'classification' else '36px')) }}">
+            <span class="material-symbols-outlined text-[12px] text-gray-300">
+                {% if r.level == 'party' %}store{% elif r.level == 'make' %}precision_manufacturing{% elif r.level == 'classification' %}category{% else %}label{% endif %}
+            </span>
+            {% if r.level == 'party' %}
+                {{ r.party or 'Unknown Party' }}
+            {% elif r.level == 'make' %}
+                {{ r.make or 'Unknown Make' }}
+                {% if r.make_owner %}<span class="font-normal text-gray-500" style="font-size: 9.45px;">({{ r.make_owner }})</span>{% endif %}
+            {% elif r.level == 'classification' %}
+                {{ r.classification or 'Unknown Classification' }}
+            {% else %}
+                {{ r.sub_classification or 'Unknown Sub-Classification' }}
+            {% endif %}
+        </div>
+    </td>
+    <td class="text-right px-2">
+        <span class="font-bold text-gray-700 dark:text-gray-200">{{ "{:,}".format(r.design_count) }}</span>
+    </td>
+    <td class="text-right px-2">
+        <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ "%.1f"|format(r.avg_delivery_days) }} Days</span>
+    </td>
+</tr>
+{% endfor %}
+
+{% if not rows and not is_child_rows %}
+<tr>
+    <td colspan="4" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
+</tr>
+{% endif %}
+
+{% if not is_child_rows %}
+    </tbody>
+    <tfoot class="bg-gray-50 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700 font-bold sticky bottom-0 z-10">
+        <tr>
+            <td colspan="2" class="px-2 py-3 text-left uppercase tracking-wider text-gray-500" style="font-size: 10.5px;">Grand Total</td>
+            <td class="text-right px-2"></td>
+            <td class="text-right px-2 text-emerald-600 text-xs">{{ stats.avg_delivery_days }} Days</td>
+        </tr>
+    </tfoot>
+</table>
+
+<script id="stats-metadata" type="application/json">{{ stats|tojson }}</script>
+<div class="pagination-meta hidden"
+    data-level="{{ current_level }}"
+    data-page="{{ pagination.page if pagination else 1 }}"
+    data-pages="{{ pagination.pages if pagination else 1 }}"
+    data-total="{{ pagination.total if pagination else 0 }}"
+    data-per-page="{{ pagination.per_page if pagination else 50 }}"
+    data-has-prev="{{ 'true' if pagination and pagination.has_prev else 'false' }}"
+    data-has-next="{{ 'true' if pagination and pagination.has_next else 'false' }}"
+    data-sort-by="{{ sort_by }}"
+    data-sort-dir="{{ sort_dir }}">
+</div>
+{% endif %}

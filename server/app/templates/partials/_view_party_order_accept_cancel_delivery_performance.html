@@ -1,0 +1,140 @@
+{% set metric_rows = [
+    ('ordered', 'Ordered Wt/Pcs', 'text-primary'),
+    ('accepted', 'Accepted Wt/Pcs', 'text-emerald-600'),
+    ('cancelled', 'Cancelled Wt/Pcs', 'text-red-600'),
+    ('delivered', 'Delivered Wt/Pcs', 'text-blue-600')
+] %}
+
+{% if not is_child_rows %}
+<table class="enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider">
+            <th class="col-expander text-center px-0 w-8"></th>
+            <th class="text-left px-2 min-w-[210px] cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none group"
+                onclick="handleSort('party')">
+                <div class="flex items-center gap-1">
+                    <span>Drill Down</span>
+                    <span class="material-symbols-outlined text-[12px] {{ 'text-primary' if sort_by == 'party' else 'text-gray-300 opacity-0 group-hover:opacity-100' }}">
+                        {% if sort_by == 'party' %}{{ 'arrow_upward' if sort_dir == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            <th class="text-left px-2 min-w-[105px]">Metric</th>
+            {% for month in months %}
+            {% set month_sort_key = 'month_' ~ month|lower %}
+            <th class="text-right px-2 min-w-[105px] cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none group {{ 'bg-gray-100/30' if loop.index is odd else '' }}"
+                onclick="handleSort('{{ month_sort_key }}')"
+                title="Sort parties by {{ month }} ordered weight">
+                <div class="flex items-center justify-end gap-1">
+                    <span>{{ month }}</span>
+                    <span class="material-symbols-outlined text-[12px] {{ 'text-primary' if sort_by == month_sort_key else 'text-gray-300 opacity-0 group-hover:opacity-100' }}">
+                        {% if sort_by == month_sort_key %}{{ 'arrow_upward' if sort_dir == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            {% endfor %}
+            <th class="text-right px-2 min-w-[115px] bg-blue-50/30 cursor-pointer hover:bg-blue-100/40 select-none group"
+                onclick="handleSort('grand_total')"
+                title="Sort parties by total ordered weight">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Grand Total</span>
+                    <span class="material-symbols-outlined text-[12px] {{ 'text-primary' if sort_by == 'grand_total' else 'text-gray-300 opacity-0 group-hover:opacity-100' }}">
+                        {% if sort_by == 'grand_total' %}{{ 'arrow_upward' if sort_dir == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+{% endif %}
+
+{% for row in rows %}
+    {% set group_id = ('child-' if is_child_rows else 'parent-') ~ loop.index0 %}
+    {% for metric_key, metric_label, metric_color in metric_rows %}
+    <tr class="{{ 'child-row bg-gray-50/50 dark:bg-gray-800/20' if is_child_rows else 'parent-row' }} hover:bg-blue-50/30 group animate-fade-in"
+        data-level="{{ row.level }}" data-matrix-group="{{ group_id }}">
+        {% if loop.first %}
+        <td rowspan="4" class="text-center px-0 align-middle border-r border-gray-100 dark:border-gray-800">
+            {% if row.level == 'party' %}
+            <button onclick="togglePartyOrderRow(this, '{{ row.party|e }}')"
+                class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
+                <span class="material-symbols-outlined text-[14px]">add_circle</span>
+            </button>
+            {% else %}
+            <span class="material-symbols-outlined text-[8px] text-gray-300">fiber_manual_record</span>
+            {% endif %}
+        </td>
+        <td rowspan="4" class="px-2 font-bold align-middle border-r border-gray-100 dark:border-gray-800">
+            <div class="flex items-center gap-1 {{ 'pl-3' if row.level == 'make' else '' }}">
+                <span class="material-symbols-outlined text-[13px] text-gray-300">{{ 'store' if row.level == 'party' else 'precision_manufacturing' }}</span>
+                <span>{{ row.party if row.level == 'party' else row.make }}</span>
+            </div>
+            {% if row.level == 'make' %}
+            <p class="pl-7 text-[8px] font-normal text-gray-400">{{ row.party }}</p>
+            {% endif %}
+        </td>
+        {% endif %}
+        <td class="px-2 py-1 font-bold uppercase text-[8px] {{ metric_color }}">{{ metric_label }}</td>
+        {% for month in months %}
+        {% set value = row.months[month][metric_key] %}
+        <td class="text-right px-2 py-1 {{ 'bg-gray-50/60 dark:bg-gray-800/20' if loop.index is odd else '' }}">
+            <div class="flex flex-col leading-tight">
+                <span class="font-bold {{ metric_color }}">{{ "{:,.3f}".format(value.wt) }}</span>
+                <span class="text-[8px] text-gray-400">{{ "{:,}".format(value.pcs) }} Pcs</span>
+            </div>
+        </td>
+        {% endfor %}
+        {% set total = row.total[metric_key] %}
+        <td class="text-right px-2 py-1 bg-blue-50/20 dark:bg-blue-900/10">
+            <div class="flex flex-col leading-tight">
+                <span class="font-bold {{ metric_color }}">{{ "{:,.3f}".format(total.wt) }}</span>
+                <span class="text-[8px] text-gray-400">{{ "{:,}".format(total.pcs) }} Pcs</span>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+{% endfor %}
+
+{% if not rows and not is_child_rows %}
+<tr>
+    <td colspan="11" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
+</tr>
+{% endif %}
+
+{% if not is_child_rows %}
+    </tbody>
+    <tfoot class="bg-gray-50 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700 font-bold sticky bottom-0 z-10">
+        {% for metric_key, metric_label, metric_color in metric_rows %}
+        <tr>
+            {% if loop.first %}
+            <td rowspan="4" colspan="2" class="px-2 text-left uppercase tracking-wider text-gray-500 text-[9px] align-middle">Grand Total</td>
+            {% endif %}
+            <td class="px-2 py-1 uppercase text-[8px] {{ metric_color }}">{{ metric_label }}</td>
+            {% for month in months %}
+            {% set value = month_totals[month][metric_key] %}
+            <td class="text-right px-2 py-1">
+                <span class="block {{ metric_color }}">{{ "{:,.3f}".format(value.wt) }}</span>
+                <span class="block text-[8px] text-gray-400">{{ "{:,}".format(value.pcs) }} Pcs</span>
+            </td>
+            {% endfor %}
+            {% set total = grand_total[metric_key] %}
+            <td class="text-right px-2 py-1 bg-blue-50/30">
+                <span class="block {{ metric_color }}">{{ "{:,.3f}".format(total.wt) }}</span>
+                <span class="block text-[8px] text-gray-400">{{ "{:,}".format(total.pcs) }} Pcs</span>
+            </td>
+        </tr>
+        {% endfor %}
+    </tfoot>
+</table>
+
+<script id="stats-metadata" type="application/json">{{ stats|tojson }}</script>
+<div class="pagination-meta hidden"
+    data-level="{{ current_level }}"
+    data-page="{{ pagination.page if pagination else 1 }}"
+    data-pages="{{ pagination.pages if pagination else 1 }}"
+    data-total="{{ pagination.total if pagination else 0 }}"
+    data-per-page="{{ pagination.per_page if pagination else 50 }}"
+    data-sort-by="{{ sort_by }}"
+    data-sort-dir="{{ sort_dir }}">
+</div>
+{% endif %}
