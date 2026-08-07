@@ -11,7 +11,8 @@ const partyDesignFilters = {
     classification: 'filter-classification',
     sub_classification: 'filter-sub-classification',
     order_type: 'filter-order-type',
-    provision_type: 'filter-provision-type'
+    provision_type: 'filter-provision-type',
+    month: 'filter-month'
 };
 
 function adjustZoom(delta, reset = false) {

@@ -79,6 +79,7 @@ def party_design_delivery_performance():
         sub_classification = request.args.get('sub_classification', '')
         order_type = request.args.get('order_type', '')
         provision_type = request.args.get('provision_type', '')
+        month = request.args.get('month', '')
         sort_by, sort_dir = get_sort_params()
 
         page = request.args.get('page', 1, type=int)
@@ -100,6 +101,7 @@ def party_design_delivery_performance():
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.sub_classification, sub_classification)
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.order_type, order_type)
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.provision_type, provision_type)
+            query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.month, month)
             return query
 
         def get_options(column):
@@ -118,6 +120,7 @@ def party_design_delivery_performance():
             'sub_classifications': get_options(PartyDesignAverageDeliveryDaysSnapshot.sub_classification),
             'order_types': get_options(PartyDesignAverageDeliveryDaysSnapshot.order_type),
             'provision_types': get_options(PartyDesignAverageDeliveryDaysSnapshot.provision_type),
+            'months': get_options(PartyDesignAverageDeliveryDaysSnapshot.month),
         }
 
         # Overall Grand Stats
@@ -228,6 +231,7 @@ def get_party_design_delivery_performance_partial():
         sub_classification = request.args.get('sub_classification', '')
         order_type = request.args.get('order_type', '')
         provision_type = request.args.get('provision_type', '')
+        month = request.args.get('month', '')
         sort_by, sort_dir = get_sort_params()
 
         parent_party = request.args.get('parent_party', '')
@@ -255,6 +259,7 @@ def get_party_design_delivery_performance_partial():
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.sub_classification, sub_classification)
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.order_type, order_type)
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.provision_type, provision_type)
+            query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.month, month)
             return query
 
         # Overall Grand Stats for percentage calculations
@@ -399,6 +404,7 @@ def get_party_design_delivery_performance_options():
                 'sub_classifications': get_opts(PartyDesignAverageDeliveryDaysSnapshot.sub_classification),
                 'order_types': get_opts(PartyDesignAverageDeliveryDaysSnapshot.order_type),
                 'provision_types': get_opts(PartyDesignAverageDeliveryDaysSnapshot.provision_type),
+                'months': get_opts(PartyDesignAverageDeliveryDaysSnapshot.month),
             }
         })
     except Exception as e:

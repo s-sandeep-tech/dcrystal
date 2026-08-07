@@ -113,7 +113,8 @@
                 ('classification', 'Classification', 'classifications', 'All Classifications'),
                 ('sub-classification', 'Sub Classification', 'sub_classifications', 'All Sub Classifications'),
                 ('order-type', 'Order Type', 'order_types', 'All Order Types'),
-                ('provision-type', 'Provision Type', 'provision_types', 'All Provision Types')
+                ('provision-type', 'Provision Type', 'provision_types', 'All Provision Types'),
+                ('month', 'Month', 'months', 'All Months')
             ] %}
             {% for id_suffix, label, options_key, empty_label in filters %}
             {% set param_name = id_suffix|replace('-', '_') %}

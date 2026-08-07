@@ -3126,6 +3126,7 @@ class PartyDesignAverageDeliveryDaysSnapshot(db.Model):
     classification = db.Column(db.String(100), nullable=False)
     sub_classification = db.Column(db.String(100), nullable=False)
     average_delivery_days = db.Column(db.Integer, nullable=False)
+    month = db.Column(db.String(20))
     snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     source_file = db.Column(db.String(255), nullable=False, default='external_sync')
     imported_at = db.Column(db.DateTime, nullable=False, default=db.func.now())

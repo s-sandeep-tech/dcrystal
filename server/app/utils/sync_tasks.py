@@ -4235,6 +4235,7 @@ def sync_party_design_average_delivery_days_task(task_type_override=None, progre
                 'classification': row.get('Classification') or row.get('classification'),
                 'sub_classification': row.get('Sub-Classification') or row.get('sub_classification'),
                 'average_delivery_days': row.get('Average Delivery Days') or row.get('Average delivery days') or row.get('average_delivery_days'),
+                'month': row.get('Month') or row.get('month'),
                 'source_file': 'ext_view.vw_party_design_average_delivery_days',
             })
 
