@@ -184,6 +184,26 @@ function onSearchInput(val) {
     }, 400);
 }
 
+const hierarchyDepth = {
+    party: 0,
+    zone: 1,
+    make: 2
+};
+
+function removeDescendantRows(row) {
+    const currentDepth = hierarchyDepth[row.dataset.level];
+    if (currentDepth === undefined) return;
+
+    let nextRow = row.nextElementSibling;
+    while (nextRow) {
+        const nextDepth = hierarchyDepth[nextRow.dataset.level];
+        if (nextDepth === undefined || nextDepth <= currentDepth) break;
+        const rowToRemove = nextRow;
+        nextRow = nextRow.nextElementSibling;
+        rowToRemove.remove();
+    }
+}
+
 async function togglePartyLocationRow(btn, level, party, zone) {
     const icon = btn.querySelector('.material-symbols-outlined');
     const tr = btn.closest('tr');
@@ -193,12 +213,7 @@ async function togglePartyLocationRow(btn, level, party, zone) {
         tr.classList.remove('expanded');
         if (icon) icon.textContent = 'add_circle';
 
-        let nextRow = tr.nextElementSibling;
-        while (nextRow && nextRow.classList.contains('child-row')) {
-            const toRemove = nextRow;
-            nextRow = nextRow.nextElementSibling;
-            toRemove.remove();
-        }
+        removeDescendantRows(tr);
         return;
     }
 
