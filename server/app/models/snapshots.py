@@ -3163,7 +3163,7 @@ class PartyDesignLocationAllocationSnapshot(db.Model):
     order_type = db.Column(db.String(50))
     provision_type = db.Column(db.String(50))
     make = db.Column(db.String(100))
-    total_design_count = db.Column(db.BigInteger)
+    design_id = db.Column(db.BigInteger)
     delivered_weight = db.Column(db.Numeric(18, 3))
     snapshot_date = db.Column(db.Date)
     source_file = db.Column(db.Text)
