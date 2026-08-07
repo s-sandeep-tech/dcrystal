@@ -176,7 +176,7 @@ window.REPORT_MENU_DATA = [
             },
             {
                 id: "design-allocation-performance",
-                title: "Design Allocation Performance",
+                title: "Make Wise Design Allocation Info",
                 href: "/design-allocation-performance",
                 icon: "category",
                 description: "Drilldown by make (make owner), section, and wide range for total design count and percentage.",

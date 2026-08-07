@@ -98,7 +98,7 @@ window.PARTY_REPORT_MENU_DATA = [
             {
                 id: "design-allocation-performance",
                 sequence: "10",
-                title: "Design Allocation Performance",
+                title: "Make Wise Design Allocation Info",
                 href: "/design-allocation-performance",
                 supportsPartyFilter: false,
                 icon: "schema",
