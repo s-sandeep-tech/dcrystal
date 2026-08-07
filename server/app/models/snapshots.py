@@ -3139,6 +3139,7 @@ class PartyOrderAcceptCancelDeliverySnapshot(db.Model):
     order_type = db.Column(db.Text)
     provision_type = db.Column(db.Text)
     supplier = db.Column(db.Text)
+    party_type = db.Column(db.Text)
     make = db.Column(db.Text)
     order_wt = db.Column(db.Numeric(18, 3))
     order_pcs = db.Column(db.BigInteger)
@@ -3297,4 +3298,3 @@ class DesignAllocationInfoSnapshot(db.Model):
     snapshot_date = db.Column(db.Date)
     source_file = db.Column(db.Text)
     imported_at = db.Column(db.DateTime(timezone=True), default=db.func.now())
-

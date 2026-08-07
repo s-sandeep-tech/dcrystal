@@ -113,7 +113,6 @@
         navigate((params) => {
             const filters = {
                 order_type: 'matrix-filter-order-type',
-                provision_type: 'matrix-filter-provision-type',
                 sort_by: 'matrix-sort-by',
                 sort_dir: 'matrix-sort-dir'
             };

@@ -60,9 +60,6 @@ def apply_common_filters(query, model, party_column, filters):
     order_types = split_values(filters['order_type'])
     if order_types and hasattr(model, 'order_type'):
         query = query.filter(model.order_type.in_(order_types))
-    provision_types = split_values(filters['provision_type'])
-    if provision_types and hasattr(model, 'provision_type'):
-        query = query.filter(model.provision_type.in_(provision_types))
     return query
 
 
@@ -337,7 +334,6 @@ def party_performance_matrix():
         'search': request.args.get('search', '').strip(),
         'party': request.args.get('party', '').strip(),
         'order_type': request.args.get('order_type', '').strip(),
-        'provision_type': request.args.get('provision_type', '').strip(),
     }
     sort_by = request.args.get('sort_by', 'order_wt').strip()
     sort_dir = request.args.get('sort_dir', 'desc').strip().lower()
@@ -416,6 +412,5 @@ def party_performance_matrix():
         filter_options={
             'parties': get_party_options(),
             'order_types': get_common_options('order_type'),
-            'provision_types': get_common_options('provision_type'),
         },
     )

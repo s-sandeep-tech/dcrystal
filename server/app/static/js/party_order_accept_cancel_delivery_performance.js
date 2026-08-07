@@ -6,6 +6,7 @@ let currentSortDir = new URLSearchParams(window.location.search).get('sort_dir')
 
 const reportFilters = {
     party: 'filter-party',
+    party_type: 'filter-party-type',
     make: 'filter-make',
     month: 'filter-month',
     order_type: 'filter-order-type',

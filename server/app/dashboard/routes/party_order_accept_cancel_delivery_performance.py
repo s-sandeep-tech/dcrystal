@@ -14,7 +14,8 @@ from app.models import Notification, PartyOrderAcceptCancelDeliverySnapshot
 logger = logging.getLogger(__name__)
 
 REPORT_MONTHS = [
-    'April', 'May', 'June', 'July', 'August'
+    'January 2026', 'February 2026', 'March 2026', 'April 2026',
+    'May 2026', 'June 2026', 'July 2026', 'August 2026',
 ]
 
 METRICS = {
@@ -40,6 +41,7 @@ def report_filters():
     return {
         'search': request.args.get('search', '').strip(),
         'party': request.args.get('party', ''),
+        'party_type': request.args.get('party_type', ''),
         'make': request.args.get('make', ''),
         'month': request.args.get('month', ''),
         'order_type': request.args.get('order_type', ''),
@@ -65,10 +67,12 @@ def apply_filters(query, filters):
         term = f"%{filters['search']}%"
         query = query.filter(or_(
             model.supplier.ilike(term),
+            model.party_type.ilike(term),
             model.make.ilike(term),
             model.month.ilike(term),
         ))
     query = apply_multi_filter(query, model.supplier, filters['party'])
+    query = apply_multi_filter(query, model.party_type, filters['party_type'])
     query = apply_multi_filter(query, model.make, filters['make'])
     query = apply_multi_filter(query, model.month, filters['month'])
     query = apply_multi_filter(query, model.order_type, filters['order_type'])
@@ -292,6 +296,7 @@ def report_context(is_partial=False):
             'sync_time': datetime.now(ZoneInfo('Asia/Kolkata')).strftime('%I:%M %p'),
             'filter_options': {
                 'parties': get_options(model.supplier),
+                'party_types': get_options(model.party_type),
                 'makes': get_options(model.make),
                 'months': get_options(model.month, calendar_order=True),
                 'order_types': get_options(model.order_type),

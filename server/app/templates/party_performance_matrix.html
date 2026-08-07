@@ -210,14 +210,6 @@
                 {% endfor %}
             </select>
         </label>
-        <label>Provision Type
-            <select id="matrix-filter-provision-type">
-                <option value="">All Provision Types</option>
-                {% for value in filter_options.provision_types %}
-                <option value="{{ value }}" {% if request.args.get('provision_type') == value %}selected{% endif %}>{{ value }}</option>
-                {% endfor %}
-            </select>
-        </label>
         <label>Sort By
             <select id="matrix-sort-by">
                 {% set sort_options = [
