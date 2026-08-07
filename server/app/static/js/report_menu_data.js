@@ -160,7 +160,7 @@ window.REPORT_MENU_DATA = [
             },
             {
                 id: "party-order-lifecycle-performance",
-                title: "Party Order Lifecycle Performance",
+                title: "Party Order plain and Studed info",
                 href: "/party-order-lifecycle-performance",
                 icon: "loop",
                 description: "Drilldown by party, make (make owner), and ornament type for order numbers, order weights, cancelled weights, production weights, and delivered weights.",

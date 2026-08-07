@@ -6,6 +6,15 @@ window.PARTY_REPORT_MENU_DATA = [
         accent: "blue",
         reports: [
             {
+                id: "party-performance-matrix",
+                sequence: "00",
+                title: "Party Performance Matrix",
+                href: "/party-performance-matrix",
+                icon: "grid_view",
+                description: "Compare consolidated design, order, allocation, quality, and delivery performance.",
+                tags: ["party", "matrix", "analytics"]
+            },
+            {
                 id: "party-design-info",
                 sequence: "01",
                 title: "Party Design Info",
@@ -71,7 +80,7 @@ window.PARTY_REPORT_MENU_DATA = [
             {
                 id: "party-order-lifecycle",
                 sequence: "08",
-                title: "Party Order Lifecycle",
+                title: "Party Order plain and Studed info",
                 href: "/party-order-lifecycle-performance",
                 icon: "conversion_path",
                 description: "Follow order weight through cancellation, production, and delivery.",
