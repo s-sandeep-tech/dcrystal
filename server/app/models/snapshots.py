@@ -3123,6 +3123,8 @@ class PartyDesignAverageDeliveryDaysSnapshot(db.Model):
     party = db.Column(db.String(255), nullable=False)
     make = db.Column(db.String(100), nullable=False)
     make_owner = db.Column(db.String(150), nullable=False)
+    section = db.Column(db.String(100), nullable=False)
+    wide_range = db.Column(db.String(100), nullable=False)
     classification = db.Column(db.String(100), nullable=False)
     sub_classification = db.Column(db.String(100), nullable=False)
     average_delivery_days = db.Column(db.Integer, nullable=False)

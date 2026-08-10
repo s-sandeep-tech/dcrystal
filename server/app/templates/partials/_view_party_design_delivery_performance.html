@@ -30,7 +30,7 @@
 <tr class="parent-row hover:bg-blue-50/30 group animate-fade-in" data-level="{{ r.level }}">
     <td class="text-center px-0">
         {% if r.level != 'sub_classification' %}
-        <button onclick="togglePartyDesignRow(this, '{{ r.level }}', '{{ r.party|e }}', '{{ r.make|e }}', '{{ r.classification|e }}')"
+        <button onclick="togglePartyDesignRow(this, {{ r.level|tojson|forceescape }}, {{ r.party|tojson|forceescape }}, {{ r.make|tojson|forceescape }}, {{ r.section|tojson|forceescape }}, {{ r.wide_range|tojson|forceescape }}, {{ r.classification|tojson|forceescape }})"
             class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none">
             <span class="material-symbols-outlined text-[14px]">add_circle</span>
         </button>
@@ -39,15 +39,20 @@
         {% endif %}
     </td>
     <td class="px-2 font-bold">
-        <div class="flex items-center gap-1" style="padding-left: {{ '0px' if r.level == 'party' else ('12px' if r.level == 'make' else ('24px' if r.level == 'classification' else '36px')) }}">
+        {% set level_indent = {'party': '0px', 'make': '12px', 'section': '24px', 'wide_range': '36px', 'classification': '48px', 'sub_classification': '60px'} %}
+        <div class="flex items-center gap-1" style="padding-left: {{ level_indent.get(r.level, '0px') }}">
             <span class="material-symbols-outlined text-[12px] text-gray-300">
-                {% if r.level == 'party' %}store{% elif r.level == 'make' %}precision_manufacturing{% elif r.level == 'classification' %}category{% else %}label{% endif %}
+                {% if r.level == 'party' %}store{% elif r.level == 'make' %}precision_manufacturing{% elif r.level == 'section' %}view_module{% elif r.level == 'wide_range' %}straighten{% elif r.level == 'classification' %}category{% else %}label{% endif %}
             </span>
             {% if r.level == 'party' %}
                 {{ r.party or 'Unknown Party' }}
             {% elif r.level == 'make' %}
                 {{ r.make or 'Unknown Make' }}
                 {% if r.make_owner %}<span class="font-normal text-gray-500" style="font-size: 9.45px;">({{ r.make_owner }})</span>{% endif %}
+            {% elif r.level == 'section' %}
+                {{ r.section or 'Unknown Section' }}
+            {% elif r.level == 'wide_range' %}
+                {{ r.wide_range or 'Unknown Wide Range' }}
             {% elif r.level == 'classification' %}
                 {{ r.classification or 'Unknown Classification' }}
             {% else %}

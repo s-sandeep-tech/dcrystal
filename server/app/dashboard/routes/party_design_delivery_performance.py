@@ -68,87 +68,83 @@ def paginate_with_fallback(query, page, per_page):
     return pagination
 
 
-def compute_rows_with_percentages(items, level, grand_total_designs, apply_filters_fn, p_party=None, p_make=None, p_class=None):
-    partition_totals = {}
+def hierarchy_config():
+    model = PartyDesignAverageDeliveryDaysSnapshot
+    return {
+        'party': [model.party],
+        'make': [model.party, model.make, model.make_owner],
+        'section': [model.party, model.make, model.make_owner, model.section],
+        'wide_range': [model.party, model.make, model.make_owner, model.section, model.wide_range],
+        'classification': [model.party, model.make, model.make_owner, model.section, model.wide_range, model.classification],
+        'sub_classification': [model.party, model.make, model.make_owner, model.section, model.wide_range, model.classification, model.sub_classification],
+    }
+
+
+def parent_columns_for_level(level):
+    columns = hierarchy_config()[level]
+    if level == 'party':
+        return []
     if level == 'make':
-        p_q = db.session.query(
-            PartyDesignAverageDeliveryDaysSnapshot.party,
-            func.count(distinct(PartyDesignAverageDeliveryDaysSnapshot.design_id))
-        )
-        p_q = apply_filters_fn(p_q)
-        if p_party:
-            p_q = p_q.filter(PartyDesignAverageDeliveryDaysSnapshot.party == p_party)
-        for p_name, p_cnt in p_q.group_by(PartyDesignAverageDeliveryDaysSnapshot.party).all():
-            partition_totals[p_name] = int(p_cnt or 0)
-    elif level == 'classification':
-        p_q = db.session.query(
-            PartyDesignAverageDeliveryDaysSnapshot.party,
-            PartyDesignAverageDeliveryDaysSnapshot.make,
-            func.count(distinct(PartyDesignAverageDeliveryDaysSnapshot.design_id))
-        )
-        p_q = apply_filters_fn(p_q)
-        if p_party:
-            p_q = p_q.filter(PartyDesignAverageDeliveryDaysSnapshot.party == p_party)
-        if p_make:
-            p_q = p_q.filter(PartyDesignAverageDeliveryDaysSnapshot.make == p_make)
-        for p_name, m_name, p_cnt in p_q.group_by(
-            PartyDesignAverageDeliveryDaysSnapshot.party,
-            PartyDesignAverageDeliveryDaysSnapshot.make
-        ).all():
-            partition_totals[(p_name, m_name)] = int(p_cnt or 0)
-    elif level == 'sub_classification':
-        p_q = db.session.query(
-            PartyDesignAverageDeliveryDaysSnapshot.party,
-            PartyDesignAverageDeliveryDaysSnapshot.make,
-            PartyDesignAverageDeliveryDaysSnapshot.classification,
-            func.count(distinct(PartyDesignAverageDeliveryDaysSnapshot.design_id))
-        )
-        p_q = apply_filters_fn(p_q)
-        if p_party:
-            p_q = p_q.filter(PartyDesignAverageDeliveryDaysSnapshot.party == p_party)
-        if p_make:
-            p_q = p_q.filter(PartyDesignAverageDeliveryDaysSnapshot.make == p_make)
-        if p_class:
-            p_q = p_q.filter(PartyDesignAverageDeliveryDaysSnapshot.classification == p_class)
-        for p_name, m_name, c_name, p_cnt in p_q.group_by(
-            PartyDesignAverageDeliveryDaysSnapshot.party,
-            PartyDesignAverageDeliveryDaysSnapshot.make,
-            PartyDesignAverageDeliveryDaysSnapshot.classification
-        ).all():
-            partition_totals[(p_name, m_name, c_name)] = int(p_cnt or 0)
+        return columns[:1]
+    return columns[:-1]
 
+
+def apply_parent_values(query, parent_values):
+    model = PartyDesignAverageDeliveryDaysSnapshot
+    columns = {
+        'party': model.party,
+        'make': model.make,
+        'section': model.section,
+        'wide_range': model.wide_range,
+        'classification': model.classification,
+    }
+    for name, value in parent_values.items():
+        if value and name in columns:
+            query = query.filter(columns[name] == value)
+    return query
+
+
+def compute_rows_with_percentages(items, level, grand_total_designs, apply_filters_fn, parent_values=None):
+    group_cols = hierarchy_config()[level]
+    parent_cols = parent_columns_for_level(level)
+    partition_totals = {}
+    parent_values = parent_values or {}
+
+    if parent_cols:
+        partition_query = db.session.query(
+            *parent_cols,
+            func.count(distinct(PartyDesignAverageDeliveryDaysSnapshot.design_id)).label('design_count')
+        )
+        partition_query = apply_parent_values(apply_filters_fn(partition_query), parent_values)
+        for row in partition_query.group_by(*parent_cols).all():
+            key = tuple(row[index] for index in range(len(parent_cols)))
+            partition_totals[key] = int(row.design_count or 0)
+
+    field_positions = {
+        column.key: index
+        for index, column in enumerate(group_cols)
+    }
     processed_rows = []
-    for r in items:
-        design_count = int(r.design_count or 0)
-        count_pct = (design_count / grand_total_designs * 100) if grand_total_designs > 0 else 0.0
-        avg_days = float(r.avg_delivery_days or 0.0)
+    for row in items:
+        design_count = int(row.design_count or 0)
+        count_pct = (design_count / grand_total_designs * 100) if grand_total_designs else 0.0
+        parent_key = tuple(row[index] for index in range(len(parent_cols)))
+        partition_total = grand_total_designs if level == 'party' else partition_totals.get(parent_key, 0)
 
-        if level == 'party':
-            part_tot = grand_total_designs
-        elif level == 'make':
-            part_tot = partition_totals.get(r[0], grand_total_designs)
-        elif level == 'classification':
-            part_tot = partition_totals.get((r[0], r[1]), grand_total_designs)
-        elif level == 'sub_classification':
-            part_tot = partition_totals.get((r[0], r[1], r[3]), grand_total_designs)
-        else:
-            part_tot = grand_total_designs
-
-        part_pct = (design_count / part_tot * 100) if part_tot > 0 else 0.0
-
-        row_dict = {
-            'party': r[0] if len(r) > 0 else '',
-            'make': r[1] if level in ['make', 'classification', 'sub_classification'] else '',
-            'make_owner': r[2] if level in ['make', 'classification', 'sub_classification'] else '',
-            'classification': r[3] if level in ['classification', 'sub_classification'] else '',
-            'sub_classification': r[4] if level == 'sub_classification' else '',
+        processed_rows.append({
+            'party': row[field_positions['party']] if 'party' in field_positions else '',
+            'make': row[field_positions['make']] if 'make' in field_positions else '',
+            'make_owner': row[field_positions['make_owner']] if 'make_owner' in field_positions else '',
+            'section': row[field_positions['section']] if 'section' in field_positions else '',
+            'wide_range': row[field_positions['wide_range']] if 'wide_range' in field_positions else '',
+            'classification': row[field_positions['classification']] if 'classification' in field_positions else '',
+            'sub_classification': row[field_positions['sub_classification']] if 'sub_classification' in field_positions else '',
             'design_count': design_count,
             'design_count_pct': count_pct,
-            'partition_pct': part_pct,
-            'avg_delivery_days': avg_days,
-            'level': level
-        }
-        processed_rows.append(row_dict)
+            'partition_pct': (design_count / partition_total * 100) if partition_total else 0.0,
+            'avg_delivery_days': float(row.avg_delivery_days or 0.0),
+            'level': level,
+        })
     return processed_rows
 
 
@@ -163,6 +159,8 @@ def party_design_delivery_performance():
         party = request.args.get('party', '')
         make_owner = request.args.get('make_owner', '')
         make = request.args.get('make', '')
+        section = request.args.get('section', '')
+        wide_range = request.args.get('wide_range', '')
         classification = request.args.get('classification', '')
         sub_classification = request.args.get('sub_classification', '')
         order_type = request.args.get('order_type', '')
@@ -179,12 +177,16 @@ def party_design_delivery_performance():
                     (PartyDesignAverageDeliveryDaysSnapshot.party.ilike(f"%{search}%")) |
                     (PartyDesignAverageDeliveryDaysSnapshot.make_owner.ilike(f"%{search}%")) |
                     (PartyDesignAverageDeliveryDaysSnapshot.make.ilike(f"%{search}%")) |
+                    (PartyDesignAverageDeliveryDaysSnapshot.section.ilike(f"%{search}%")) |
+                    (PartyDesignAverageDeliveryDaysSnapshot.wide_range.ilike(f"%{search}%")) |
                     (PartyDesignAverageDeliveryDaysSnapshot.classification.ilike(f"%{search}%")) |
                     (PartyDesignAverageDeliveryDaysSnapshot.sub_classification.ilike(f"%{search}%"))
                 )
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.party, party)
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.make_owner, make_owner)
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.make, make)
+            query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.section, section)
+            query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.wide_range, wide_range)
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.classification, classification)
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.sub_classification, sub_classification)
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.order_type, order_type)
@@ -204,6 +206,8 @@ def party_design_delivery_performance():
             'parties': get_options(PartyDesignAverageDeliveryDaysSnapshot.party),
             'make_owners': get_options(PartyDesignAverageDeliveryDaysSnapshot.make_owner),
             'makes': get_options(PartyDesignAverageDeliveryDaysSnapshot.make),
+            'sections': get_options(PartyDesignAverageDeliveryDaysSnapshot.section),
+            'wide_ranges': get_options(PartyDesignAverageDeliveryDaysSnapshot.wide_range),
             'classifications': get_options(PartyDesignAverageDeliveryDaysSnapshot.classification),
             'sub_classifications': get_options(PartyDesignAverageDeliveryDaysSnapshot.sub_classification),
             'order_types': get_options(PartyDesignAverageDeliveryDaysSnapshot.order_type),
@@ -235,32 +239,18 @@ def party_design_delivery_performance():
 
         # Determine level hierarchy
         if not party:
-            group_cols = [PartyDesignAverageDeliveryDaysSnapshot.party]
             level = 'party'
-        elif party and not make:
-            group_cols = [
-                PartyDesignAverageDeliveryDaysSnapshot.party,
-                PartyDesignAverageDeliveryDaysSnapshot.make,
-                PartyDesignAverageDeliveryDaysSnapshot.make_owner
-            ]
+        elif not make:
             level = 'make'
-        elif party and make and not classification:
-            group_cols = [
-                PartyDesignAverageDeliveryDaysSnapshot.party,
-                PartyDesignAverageDeliveryDaysSnapshot.make,
-                PartyDesignAverageDeliveryDaysSnapshot.make_owner,
-                PartyDesignAverageDeliveryDaysSnapshot.classification
-            ]
+        elif not section:
+            level = 'section'
+        elif not wide_range:
+            level = 'wide_range'
+        elif not classification:
             level = 'classification'
         else:
-            group_cols = [
-                PartyDesignAverageDeliveryDaysSnapshot.party,
-                PartyDesignAverageDeliveryDaysSnapshot.make,
-                PartyDesignAverageDeliveryDaysSnapshot.make_owner,
-                PartyDesignAverageDeliveryDaysSnapshot.classification,
-                PartyDesignAverageDeliveryDaysSnapshot.sub_classification
-            ]
             level = 'sub_classification'
+        group_cols = hierarchy_config()[level]
 
         main_q = db.session.query(
             *group_cols,
@@ -273,10 +263,17 @@ def party_design_delivery_performance():
 
         pagination = paginate_with_fallback(main_q, page, per_page)
         processed_rows = compute_rows_with_percentages(
-            pagination.items, level, grand_total_designs, apply_filters,
-            p_party=party if party and ',' not in party else None,
-            p_make=make if make and ',' not in make else None,
-            p_class=classification if classification and ',' not in classification else None
+            pagination.items,
+            level,
+            grand_total_designs,
+            apply_filters,
+            parent_values={
+                'party': party if party and ',' not in party else '',
+                'make': make if make and ',' not in make else '',
+                'section': section if section and ',' not in section else '',
+                'wide_range': wide_range if wide_range and ',' not in wide_range else '',
+                'classification': classification if classification and ',' not in classification else '',
+            },
         )
 
         return render_template('party_design_delivery_performance.html',
@@ -302,6 +299,8 @@ def get_party_design_delivery_performance_partial():
         party = request.args.get('party', '')
         make_owner = request.args.get('make_owner', '')
         make = request.args.get('make', '')
+        section = request.args.get('section', '')
+        wide_range = request.args.get('wide_range', '')
         classification = request.args.get('classification', '')
         sub_classification = request.args.get('sub_classification', '')
         order_type = request.args.get('order_type', '')
@@ -311,6 +310,8 @@ def get_party_design_delivery_performance_partial():
 
         parent_party = request.args.get('parent_party', '')
         parent_make = request.args.get('parent_make', '')
+        parent_section = request.args.get('parent_section', '')
+        parent_wide_range = request.args.get('parent_wide_range', '')
         parent_classification = request.args.get('parent_classification', '')
 
         page = request.args.get('page', 1, type=int)
@@ -324,12 +325,16 @@ def get_party_design_delivery_performance_partial():
                     (PartyDesignAverageDeliveryDaysSnapshot.party.ilike(f"%{search}%")) |
                     (PartyDesignAverageDeliveryDaysSnapshot.make_owner.ilike(f"%{search}%")) |
                     (PartyDesignAverageDeliveryDaysSnapshot.make.ilike(f"%{search}%")) |
+                    (PartyDesignAverageDeliveryDaysSnapshot.section.ilike(f"%{search}%")) |
+                    (PartyDesignAverageDeliveryDaysSnapshot.wide_range.ilike(f"%{search}%")) |
                     (PartyDesignAverageDeliveryDaysSnapshot.classification.ilike(f"%{search}%")) |
                     (PartyDesignAverageDeliveryDaysSnapshot.sub_classification.ilike(f"%{search}%"))
                 )
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.party, party)
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.make_owner, make_owner)
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.make, make)
+            query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.section, section)
+            query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.wide_range, wide_range)
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.classification, classification)
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.sub_classification, sub_classification)
             query = apply_multi_filter(query, PartyDesignAverageDeliveryDaysSnapshot.order_type, order_type)
@@ -359,47 +364,21 @@ def get_party_design_delivery_performance_partial():
             'avg_delivery_days': f"{grand_avg_delivery_days:.1f}"
         }
 
-        # Hierarchy level logic
         if target_level:
             level = target_level
-        elif parent_classification and parent_make and parent_party:
-            level = 'sub_classification'
-        elif parent_make and parent_party:
-            level = 'classification'
-        elif parent_party:
-            level = 'make'
         elif not party:
             level = 'party'
-        elif party and not make:
+        elif not make:
             level = 'make'
-        elif party and make and not classification:
+        elif not section:
+            level = 'section'
+        elif not wide_range:
+            level = 'wide_range'
+        elif not classification:
             level = 'classification'
         else:
             level = 'sub_classification'
-
-        if level == 'party':
-            group_cols = [PartyDesignAverageDeliveryDaysSnapshot.party]
-        elif level == 'make':
-            group_cols = [
-                PartyDesignAverageDeliveryDaysSnapshot.party,
-                PartyDesignAverageDeliveryDaysSnapshot.make,
-                PartyDesignAverageDeliveryDaysSnapshot.make_owner
-            ]
-        elif level == 'classification':
-            group_cols = [
-                PartyDesignAverageDeliveryDaysSnapshot.party,
-                PartyDesignAverageDeliveryDaysSnapshot.make,
-                PartyDesignAverageDeliveryDaysSnapshot.make_owner,
-                PartyDesignAverageDeliveryDaysSnapshot.classification
-            ]
-        else:
-            group_cols = [
-                PartyDesignAverageDeliveryDaysSnapshot.party,
-                PartyDesignAverageDeliveryDaysSnapshot.make,
-                PartyDesignAverageDeliveryDaysSnapshot.make_owner,
-                PartyDesignAverageDeliveryDaysSnapshot.classification,
-                PartyDesignAverageDeliveryDaysSnapshot.sub_classification
-            ]
+        group_cols = hierarchy_config()[level]
 
         main_q = db.session.query(
             *group_cols,
@@ -408,12 +387,14 @@ def get_party_design_delivery_performance_partial():
         )
         main_q = apply_filters(main_q)
 
-        if parent_party:
-            main_q = main_q.filter(PartyDesignAverageDeliveryDaysSnapshot.party == parent_party)
-        if parent_make:
-            main_q = main_q.filter(PartyDesignAverageDeliveryDaysSnapshot.make == parent_make)
-        if parent_classification:
-            main_q = main_q.filter(PartyDesignAverageDeliveryDaysSnapshot.classification == parent_classification)
+        parent_values = {
+            'party': parent_party,
+            'make': parent_make,
+            'section': parent_section,
+            'wide_range': parent_wide_range,
+            'classification': parent_classification,
+        }
+        main_q = apply_parent_values(main_q, parent_values)
 
         main_q = main_q.group_by(*group_cols)
         main_q = apply_sort(main_q, group_cols, sort_by, sort_dir)
@@ -426,10 +407,17 @@ def get_party_design_delivery_performance_partial():
             items = pagination.items
 
         processed_rows = compute_rows_with_percentages(
-            items, level, grand_total_designs, apply_filters,
-            p_party=parent_party or (party if party and ',' not in party else None),
-            p_make=parent_make or (make if make and ',' not in make else None),
-            p_class=parent_classification or (classification if classification and ',' not in classification else None)
+            items,
+            level,
+            grand_total_designs,
+            apply_filters,
+            parent_values={
+                'party': parent_party or (party if party and ',' not in party else ''),
+                'make': parent_make or (make if make and ',' not in make else ''),
+                'section': parent_section or (section if section and ',' not in section else ''),
+                'wide_range': parent_wide_range or (wide_range if wide_range and ',' not in wide_range else ''),
+                'classification': parent_classification or (classification if classification and ',' not in classification else ''),
+            },
         )
 
         return render_template('partials/_view_party_design_delivery_performance.html',
@@ -463,6 +451,8 @@ def get_party_design_delivery_performance_options():
                 'parties': get_opts(PartyDesignAverageDeliveryDaysSnapshot.party),
                 'make_owners': get_opts(PartyDesignAverageDeliveryDaysSnapshot.make_owner),
                 'makes': get_opts(PartyDesignAverageDeliveryDaysSnapshot.make),
+                'sections': get_opts(PartyDesignAverageDeliveryDaysSnapshot.section),
+                'wide_ranges': get_opts(PartyDesignAverageDeliveryDaysSnapshot.wide_range),
                 'classifications': get_opts(PartyDesignAverageDeliveryDaysSnapshot.classification),
                 'sub_classifications': get_opts(PartyDesignAverageDeliveryDaysSnapshot.sub_classification),
                 'order_types': get_opts(PartyDesignAverageDeliveryDaysSnapshot.order_type),

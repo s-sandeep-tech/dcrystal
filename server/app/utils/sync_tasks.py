@@ -4222,6 +4222,13 @@ def sync_party_design_average_delivery_days_task(task_type_override=None, progre
 
         db.session.query(PartyDesignAverageDeliveryDaysSnapshot).delete()
 
+        def first_present(row, *keys):
+            for key in keys:
+                value = row.get(key)
+                if value is not None:
+                    return value
+            return None
+
         new_records = []
         for row in rows:
             new_records.append({
@@ -4232,9 +4239,16 @@ def sync_party_design_average_delivery_days_task(task_type_override=None, progre
                 'party': row.get('Party') or row.get('party'),
                 'make': row.get('Make') or row.get('make'),
                 'make_owner': row.get('Make Owner') or row.get('make_owner'),
+                'section': row.get('Section') or row.get('section'),
+                'wide_range': row.get('WideRange') or row.get('Wide Range') or row.get('wide_range'),
                 'classification': row.get('Classification') or row.get('classification'),
                 'sub_classification': row.get('Sub-Classification') or row.get('sub_classification'),
-                'average_delivery_days': row.get('Average Delivery Days') or row.get('Average delivery days') or row.get('average_delivery_days'),
+                'average_delivery_days': first_present(
+                    row,
+                    'Average Delivery Days',
+                    'Average delivery days',
+                    'average_delivery_days',
+                ),
                 'month': row.get('Month') or row.get('month'),
                 'source_file': 'ext_view.vw_party_design_average_delivery_days',
             })

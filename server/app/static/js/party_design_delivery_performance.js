@@ -8,6 +8,8 @@ const partyDesignFilters = {
     party: 'filter-party',
     make_owner: 'filter-make-owner',
     make: 'filter-make',
+    section: 'filter-section',
+    wide_range: 'filter-wide-range',
     classification: 'filter-classification',
     sub_classification: 'filter-sub-classification',
     order_type: 'filter-order-type',
@@ -168,7 +170,7 @@ function onSearchInput() {
     searchTimeout = setTimeout(applyGlobalFilters, 400);
 }
 
-async function togglePartyDesignRow(button, level, party, make, classification) {
+async function togglePartyDesignRow(button, level, party, make, section, wideRange, classification) {
     const row = button.closest('tr');
     const icon = button.querySelector('.material-symbols-outlined');
     if (!row || !icon) return;
@@ -190,8 +192,17 @@ async function togglePartyDesignRow(button, level, party, make, classification) 
     params.set('is_child_rows', 'true');
     params.set('parent_party', party || '');
     params.set('parent_make', make || '');
+    params.set('parent_section', section || '');
+    params.set('parent_wide_range', wideRange || '');
     params.set('parent_classification', classification || '');
-    params.set('target_level', level === 'party' ? 'make' : (level === 'make' ? 'classification' : 'sub_classification'));
+    const nextLevels = {
+        party: 'make',
+        make: 'section',
+        section: 'wide_range',
+        wide_range: 'classification',
+        classification: 'sub_classification'
+    };
+    params.set('target_level', nextLevels[level]);
 
     try {
         const response = await fetch(`/partial/party-design-delivery-performance?${params.toString()}`, {
