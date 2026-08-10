@@ -33,34 +33,34 @@
     <section class="party-matrix-kpis" aria-label="Performance summary">
         <div class="party-matrix-kpi">
             <span class="material-symbols-outlined kpi-blue">groups</span>
-            <div><small>Parties</small><strong>{{ "{:,}".format(stats.party_count) }}</strong></div>
+            <div><small>Parties</small><strong id="matrix-stat-parties">{{ "{:,}".format(stats.party_count) }}</strong></div>
         </div>
         <div class="party-matrix-kpi">
             <span class="material-symbols-outlined kpi-indigo">design_services</span>
-            <div><small>Distinct Designs</small><strong>{{ "{:,}".format(stats.design_count) }}</strong></div>
+            <div><small>Distinct Designs</small><strong id="matrix-stat-designs">{{ "{:,}".format(stats.design_count) }}</strong></div>
         </div>
         <div class="party-matrix-kpi">
             <span class="material-symbols-outlined kpi-cyan">scale</span>
-            <div><small>Order Weight</small><strong>{{ "{:,.3f}".format(stats.order_wt) }}</strong></div>
+            <div><small>Order Weight</small><strong id="matrix-stat-order-weight">{{ "{:,.3f}".format(stats.order_wt) }}</strong></div>
         </div>
         <div class="party-matrix-kpi">
             <span class="material-symbols-outlined kpi-green">local_shipping</span>
-            <div><small>Delivery Conversion</small><strong>{{ "{:.1f}".format(stats.delivery_pct) }}%</strong></div>
+            <div><small>Delivery Conversion</small><strong id="matrix-stat-delivery">{{ "{:.1f}".format(stats.delivery_pct) }}%</strong></div>
         </div>
         <div class="party-matrix-kpi">
             <span class="material-symbols-outlined kpi-amber">verified</span>
-            <div><small>HM Pass Rate</small><strong>{{ "{:.1f}".format(stats.hm_pass_pct) }}%</strong></div>
+            <div><small>HM Pass Rate</small><strong id="matrix-stat-hm-pass">{{ "{:.1f}".format(stats.hm_pass_pct) }}%</strong></div>
         </div>
         <div class="party-matrix-kpi">
             <span class="material-symbols-outlined kpi-violet">task_alt</span>
-            <div><small>QC Pass Rate</small><strong>{{ "{:.1f}".format(stats.qc_pass_pct) }}%</strong></div>
+            <div><small>QC Pass Rate</small><strong id="matrix-stat-qc-pass">{{ "{:.1f}".format(stats.qc_pass_pct) }}%</strong></div>
         </div>
     </section>
 
     <section class="party-matrix-charts">
         <article class="party-matrix-chart-panel party-matrix-chart-wide">
             <div class="party-matrix-panel-heading">
-                <div><h2>Order Coverage</h2><p>Top parties by ordered weight</p></div>
+                <div><h2>Order Coverage</h2><p>First 10 parties in the selected sort order</p></div>
                 <span class="material-symbols-outlined">stacked_bar_chart</span>
             </div>
             <div class="party-matrix-chart"><canvas id="party-order-coverage-chart"></canvas></div>
@@ -81,116 +81,7 @@
         </article>
     </section>
 
-    <section class="party-matrix-table-panel">
-        <div class="party-matrix-table-toolbar">
-            <div>
-                <h2>Party Comparison Matrix</h2>
-                <span>{{ pagination.total }} parties</span>
-            </div>
-            <label>
-                Rows
-                <select id="matrix-per-page" onchange="changeMatrixPerPage(this.value)">
-                    {% for value in [25, 50, 100] %}
-                    <option value="{{ value }}" {% if pagination.per_page == value %}selected{% endif %}>{{ value }}</option>
-                    {% endfor %}
-                </select>
-            </label>
-        </div>
-        <div class="party-matrix-table-scroll">
-            <table class="party-matrix-table">
-                <thead>
-                    <tr class="party-matrix-group-head">
-                        <th rowspan="2" class="matrix-party-col">Party</th>
-                        <th colspan="2">Design Delivery</th>
-                        <th colspan="4">Order Frequency</th>
-                        <th colspan="2">Allocation</th>
-                        <th colspan="2">Cancellation</th>
-                        <th colspan="2">Value Allocation</th>
-                        <th colspan="2">Quality</th>
-                        <th colspan="2">RO Delivery</th>
-                        <th colspan="2">Order Lifecycle</th>
-                        <th rowspan="2">Index</th>
-                        <th rowspan="2">Status</th>
-                    </tr>
-                    <tr>
-                        {% set headers = [
-                            ('design_count', 'Designs'),
-                            ('avg_delivery_days', 'Avg Days'),
-                            ('order_wt', 'Order Wt'),
-                            ('acceptance_pct', 'Accepted %'),
-                            ('delivery_pct', 'Delivered %'),
-                            ('cancellation_pct', 'Cancelled %'),
-                            ('allocated_designs', 'Allocated'),
-                            ('zone_count', 'Zones'),
-                            ('cancelled_order_count', 'Orders'),
-                            ('direct_cancelled_wt', 'Weight'),
-                            ('mc_value', 'MC Value'),
-                            ('stone_value', 'Stone Value'),
-                            ('hm_fail_pct', 'HM Failed %'),
-                            ('qc_fail_pct', 'QC Failed %'),
-                            ('ro_count', 'ROs'),
-                            ('ro_delivered_wt', 'Delivered Wt'),
-                            ('lifecycle_orders', 'Orders'),
-                            ('production_wt', 'Production Wt')
-                        ] %}
-                        {% for key, label in headers %}
-                        <th class="matrix-sortable {% if sort_by == key %}matrix-sort-active{% endif %}" onclick="sortPartyMatrix('{{ key }}')">
-                            <span>{{ label }}</span>
-                            <span class="material-symbols-outlined">{% if sort_by == key %}{{ 'arrow_upward' if sort_dir == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}</span>
-                        </th>
-                        {% endfor %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in rows %}
-                    <tr>
-                        <td class="matrix-party-cell">
-                            <span class="material-symbols-outlined">store</span>
-                            <strong>{{ row.party }}</strong>
-                        </td>
-                        <td>{{ "{:,}".format(row.design_count|default(0)) }}</td>
-                        <td>{{ "{:.1f}".format(row.avg_delivery_days|default(0)) }}</td>
-                        <td>{{ "{:,.3f}".format(row.order_wt|default(0)) }}</td>
-                        <td class="matrix-rate">{{ "{:.1f}".format(row.acceptance_pct) }}%</td>
-                        <td class="matrix-rate matrix-positive">{{ "{:.1f}".format(row.delivery_pct) }}%</td>
-                        <td class="matrix-rate {% if row.cancellation_pct > 10 %}matrix-negative{% endif %}">{{ "{:.1f}".format(row.cancellation_pct) }}%</td>
-                        <td>{{ "{:,}".format(row.allocated_designs|default(0)) }}</td>
-                        <td>{{ row.zone_count|default(0) }}</td>
-                        <td>{{ "{:,}".format(row.cancelled_order_count|default(0)) }}</td>
-                        <td>{{ "{:,.3f}".format(row.direct_cancelled_wt|default(0)) }}</td>
-                        <td>{{ "{:,.2f}".format(row.mc_value|default(0)) }}</td>
-                        <td>{{ "{:,.2f}".format(row.stone_value|default(0)) }}</td>
-                        <td class="matrix-rate">{{ "{:.1f}".format(row.hm_fail_pct) }}%</td>
-                        <td class="matrix-rate">{{ "{:.1f}".format(row.qc_fail_pct) }}%</td>
-                        <td>{{ row.ro_count|default(0) }}</td>
-                        <td>{{ "{:,.3f}".format(row.ro_delivered_wt|default(0)) }}</td>
-                        <td>{{ "{:,}".format(row.lifecycle_orders|default(0)) }}</td>
-                        <td>{{ "{:,.3f}".format(row.production_wt|default(0)) }}</td>
-                        <td class="matrix-index" title="Weighted from delivery, acceptance, cancellation control, HM pass, and QC pass rates.">
-                            <span>{{ "{:.1f}".format(row.performance_index) }}</span>
-                            <i style="--matrix-index: {{ [row.performance_index, 100]|min }}%"></i>
-                        </td>
-                        <td><span class="matrix-status matrix-status-{{ row.status|lower }}">{{ row.status }}</span></td>
-                    </tr>
-                    {% else %}
-                    <tr><td colspan="21" class="matrix-empty">No matching party data found.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div class="party-matrix-pagination">
-            <span>
-                {% if pagination.total %}
-                {{ ((pagination.page - 1) * pagination.per_page) + 1 }}-{{ [pagination.page * pagination.per_page, pagination.total]|min }} of {{ pagination.total }}
-                {% else %}0-0 of 0{% endif %}
-            </span>
-            <div>
-                <button onclick="changeMatrixPage({{ pagination.prev_num }})" {% if not pagination.has_prev %}disabled{% endif %} title="Previous page"><span class="material-symbols-outlined">chevron_left</span></button>
-                <strong>{{ pagination.page }} / {{ pagination.pages or 1 }}</strong>
-                <button onclick="changeMatrixPage({{ pagination.next_num }})" {% if not pagination.has_next %}disabled{% endif %} title="Next page"><span class="material-symbols-outlined">chevron_right</span></button>
-            </div>
-        </div>
-    </section>
+    {% include 'partials/_party_performance_matrix_table.html' %}
 </main>
 {% endblock %}
 

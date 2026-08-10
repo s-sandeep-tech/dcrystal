@@ -173,10 +173,39 @@
 
 .party-matrix-chart-panel,
 .party-matrix-table-panel {
+    position: relative;
     background: #fff;
     border: 1px solid #dbe2ea;
     border-radius: 7px;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.party-matrix-table-panel.matrix-ajax-loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: rgba(255, 255, 255, 0.72);
+    cursor: progress;
+}
+
+.party-matrix-table-panel.matrix-ajax-loading::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 6;
+    width: 22px;
+    height: 22px;
+    margin: -11px 0 0 -11px;
+    border: 3px solid #dbeafe;
+    border-top-color: #137fec;
+    border-radius: 50%;
+    animation: party-matrix-loader-spin 0.7s linear infinite;
+}
+
+@keyframes party-matrix-loader-spin {
+    to { transform: rotate(360deg); }
 }
 
 .party-matrix-chart-panel {

@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 from datetime import datetime
 
-from flask import render_template, request
+from flask import jsonify, render_template, request
 from sqlalchemy import distinct, func, select, union
 
 from app.dashboard import dashboard_bp
@@ -33,6 +33,15 @@ PARTY_SOURCES = [
     PartyOrderLifecycleSnapshot.party,
     PartyQcPassFailSnapshot.party,
 ]
+
+ALLOWED_MATRIX_SORTS = {
+    'party', 'design_count', 'avg_delivery_days', 'allocated_designs',
+    'zone_count', 'order_wt', 'acceptance_pct', 'delivery_pct',
+    'cancellation_pct', 'cancelled_order_count', 'direct_cancelled_wt',
+    'mc_value', 'stone_value', 'hm_pass_pct', 'hm_fail_pct', 'ro_count',
+    'ro_delivered_wt', 'lifecycle_orders', 'production_wt',
+    'qc_pass_pct', 'qc_fail_pct', 'performance_index',
+}
 
 
 def split_values(value):
@@ -328,24 +337,15 @@ def aggregate_stats(rows):
     }
 
 
-@dashboard_bp.route('/party-performance-matrix')
-def party_performance_matrix():
+def get_matrix_report_context(args, include_page_options=True):
     filters = {
-        'search': request.args.get('search', '').strip(),
-        'party': request.args.get('party', '').strip(),
-        'order_type': request.args.get('order_type', '').strip(),
+        'search': args.get('search', '').strip(),
+        'party': args.get('party', '').strip(),
+        'order_type': args.get('order_type', '').strip(),
     }
-    sort_by = request.args.get('sort_by', 'order_wt').strip()
-    sort_dir = request.args.get('sort_dir', 'desc').strip().lower()
-    allowed_sort = {
-        'party', 'design_count', 'avg_delivery_days', 'allocated_designs',
-        'zone_count', 'order_wt', 'acceptance_pct', 'delivery_pct',
-        'cancellation_pct', 'cancelled_order_count', 'direct_cancelled_wt',
-        'mc_value', 'stone_value', 'hm_pass_pct', 'hm_fail_pct', 'ro_count',
-        'ro_delivered_wt', 'lifecycle_orders', 'production_wt',
-        'qc_pass_pct', 'qc_fail_pct', 'performance_index',
-    }
-    if sort_by not in allowed_sort:
+    sort_by = args.get('sort_by', 'order_wt').strip()
+    sort_dir = args.get('sort_dir', 'desc').strip().lower()
+    if sort_by not in ALLOWED_MATRIX_SORTS:
         sort_by = 'order_wt'
     if sort_dir not in {'asc', 'desc'}:
         sort_dir = 'desc'
@@ -360,7 +360,7 @@ def party_performance_matrix():
         reverse=sort_dir == 'desc',
     )
 
-    chart_rows = sorted(rows, key=lambda row: row.get('order_wt', 0), reverse=True)[:10]
+    chart_rows = rows[:10]
     chart_data = {
         'labels': [row['party'] for row in chart_rows],
         'order_weight': [round(row.get('order_wt', 0), 3) for row in chart_rows],
@@ -378,8 +378,8 @@ def party_performance_matrix():
         'delivery_days': [round(row.get('avg_delivery_days', 0), 1) for row in chart_rows],
     }
 
-    page = max(request.args.get('page', 1, type=int), 1)
-    per_page = request.args.get('per_page', 50, type=int)
+    page = max(args.get('page', 1, type=int), 1)
+    per_page = args.get('per_page', 50, type=int)
     if per_page not in {25, 50, 100}:
         per_page = 50
     total = len(rows)
@@ -399,18 +399,88 @@ def party_performance_matrix():
         next_num=page + 1,
     )
 
+    context = {
+        'unread_count': Notification.query.filter_by(is_read=False).count(),
+        'sync_time': datetime.now(ZoneInfo('Asia/Kolkata')).strftime('%I:%M %p'),
+        'rows': page_rows,
+        'stats': stats,
+        'chart_data': chart_data,
+        'pagination': pagination,
+        'sort_by': sort_by,
+        'sort_dir': sort_dir,
+    }
+    if include_page_options:
+        context['filter_options'] = {
+            'parties': get_party_options(),
+            'order_types': get_common_options('order_type'),
+        }
+    return context
+
+
+@dashboard_bp.route('/party-performance-matrix')
+def party_performance_matrix():
+    sort_by = request.args.get('sort_by', 'order_wt').strip()
+    sort_dir = request.args.get('sort_dir', 'desc').strip().lower()
+    if sort_by not in ALLOWED_MATRIX_SORTS:
+        sort_by = 'order_wt'
+    if sort_dir not in {'asc', 'desc'}:
+        sort_dir = 'desc'
+
+    per_page = request.args.get('per_page', 50, type=int)
+    if per_page not in {25, 50, 100}:
+        per_page = 50
+
     return render_template(
         'party_performance_matrix.html',
         unread_count=Notification.query.filter_by(is_read=False).count(),
         sync_time=datetime.now(ZoneInfo('Asia/Kolkata')).strftime('%I:%M %p'),
-        rows=page_rows,
-        stats=stats,
-        chart_data=chart_data,
-        pagination=pagination,
+        rows=[],
+        stats={
+            'party_count': 0,
+            'design_count': 0,
+            'order_wt': 0,
+            'delivery_pct': 0,
+            'hm_pass_pct': 0,
+            'qc_pass_pct': 0,
+        },
+        chart_data={
+            'labels': [],
+            'order_weight': [],
+            'accepted_weight': [],
+            'delivered_weight': [],
+            'cancelled_weight': [],
+            'hm_fail_rate': [],
+            'qc_fail_rate': [],
+            'delivery_days': [],
+        },
+        pagination=SimpleNamespace(
+            page=1,
+            pages=0,
+            total=0,
+            per_page=per_page,
+            has_prev=False,
+            has_next=False,
+            prev_num=0,
+            next_num=2,
+        ),
         sort_by=sort_by,
         sort_dir=sort_dir,
+        initial_loading=True,
         filter_options={
             'parties': get_party_options(),
             'order_types': get_common_options('order_type'),
         },
     )
+
+
+@dashboard_bp.route('/partial/party-performance-matrix')
+def party_performance_matrix_partial():
+    context = get_matrix_report_context(request.args, include_page_options=False)
+    return jsonify({
+        'html': render_template(
+            'partials/_party_performance_matrix_table.html',
+            **context,
+        ),
+        'chart_data': context['chart_data'],
+        'stats': context['stats'],
+    })

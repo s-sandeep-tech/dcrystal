@@ -1,9 +1,10 @@
 (function () {
     const chartDataElement = document.getElementById('party-matrix-chart-data');
-    const chartData = chartDataElement ? JSON.parse(chartDataElement.textContent) : {};
+    let chartData = chartDataElement ? JSON.parse(chartDataElement.textContent) : {};
     const partyOptionsElement = document.getElementById('party-matrix-party-options');
     const partyOptions = partyOptionsElement ? JSON.parse(partyOptionsElement.textContent) : [];
     let partyMultiSelect;
+    const charts = {};
     const colors = {
         blue: '#137fec',
         green: '#10b981',
@@ -52,12 +53,12 @@
     }
 
     function buildCharts() {
-        if (typeof Chart === 'undefined' || !(chartData.labels || []).length) return;
+        if (typeof Chart === 'undefined') return;
         const failureRates = [...(chartData.hm_fail_rate || []), ...(chartData.qc_fail_rate || [])];
         const failureScaleMax = Math.min(100, Math.max(5, Math.ceil(Math.max(0, ...failureRates) / 5) * 5));
         const coverageBarStyle = { borderRadius: 3, barPercentage: 0.62, categoryPercentage: 0.78, maxBarThickness: 14 };
 
-        new Chart(document.getElementById('party-order-coverage-chart'), {
+        charts.orderCoverage = new Chart(document.getElementById('party-order-coverage-chart'), {
             type: 'bar',
             data: {
                 labels: chartData.labels,
@@ -71,7 +72,7 @@
             options: chartOptions(false)
         });
 
-        new Chart(document.getElementById('party-quality-chart'), {
+        charts.quality = new Chart(document.getElementById('party-quality-chart'), {
             type: 'bar',
             data: {
                 labels: chartData.labels,
@@ -83,7 +84,7 @@
             options: chartOptions(failureScaleMax)
         });
 
-        new Chart(document.getElementById('party-delivery-days-chart'), {
+        charts.deliveryDays = new Chart(document.getElementById('party-delivery-days-chart'), {
             type: 'line',
             data: {
                 labels: chartData.labels,
@@ -103,57 +104,137 @@
         });
     }
 
-    function navigate(mutator) {
-        const params = new URLSearchParams(window.location.search);
-        mutator(params);
-        window.location.href = `${window.location.pathname}?${params.toString()}`;
+    function updateCharts(data) {
+        chartData = data || {};
+        if (!charts.orderCoverage || !charts.quality || !charts.deliveryDays) return;
+
+        const labels = chartData.labels || [];
+        charts.orderCoverage.data.labels = labels;
+        charts.orderCoverage.data.datasets[0].data = chartData.order_weight || [];
+        charts.orderCoverage.data.datasets[1].data = chartData.accepted_weight || [];
+        charts.orderCoverage.data.datasets[2].data = chartData.delivered_weight || [];
+        charts.orderCoverage.data.datasets[3].data = chartData.cancelled_weight || [];
+        charts.orderCoverage.update();
+
+        charts.quality.data.labels = labels;
+        charts.quality.data.datasets[0].data = chartData.hm_fail_rate || [];
+        charts.quality.data.datasets[1].data = chartData.qc_fail_rate || [];
+        const failureRates = [...charts.quality.data.datasets[0].data, ...charts.quality.data.datasets[1].data];
+        const failureScaleMax = Math.min(100, Math.max(5, Math.ceil(Math.max(0, ...failureRates) / 5) * 5));
+        charts.quality.options.scales.y.max = failureScaleMax;
+        charts.quality.options.scales.y.suggestedMax = failureScaleMax;
+        charts.quality.update();
+
+        charts.deliveryDays.data.labels = labels;
+        charts.deliveryDays.data.datasets[0].data = chartData.delivery_days || [];
+        charts.deliveryDays.update();
+    }
+
+    function updateStats(stats) {
+        const values = {
+            'matrix-stat-parties': Number(stats.party_count || 0).toLocaleString(),
+            'matrix-stat-designs': Number(stats.design_count || 0).toLocaleString(),
+            'matrix-stat-order-weight': Number(stats.order_wt || 0).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
+            'matrix-stat-delivery': `${Number(stats.delivery_pct || 0).toFixed(1)}%`,
+            'matrix-stat-hm-pass': `${Number(stats.hm_pass_pct || 0).toFixed(1)}%`,
+            'matrix-stat-qc-pass': `${Number(stats.qc_pass_pct || 0).toFixed(1)}%`
+        };
+        Object.entries(values).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = value;
+        });
+    }
+
+    async function loadMatrixData(params) {
+        const panel = document.querySelector('.party-matrix-table-panel');
+        if (!panel) return;
+
+        panel.classList.add('matrix-ajax-loading');
+        panel.setAttribute('aria-busy', 'true');
+
+        try {
+            const response = await fetch(`/partial/party-performance-matrix?${params.toString()}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!response.ok) throw new Error(await response.text());
+
+            const payload = await response.json();
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = payload.html.trim();
+            const nextPanel = wrapper.firstElementChild;
+            if (!nextPanel) throw new Error('Matrix table response was empty.');
+
+            panel.replaceWith(nextPanel);
+            const query = params.toString();
+            window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+            updateCharts(payload.chart_data);
+            updateStats(payload.stats || {});
+        } catch (error) {
+            console.error('Unable to load party comparison matrix:', error);
+            panel.classList.remove('matrix-ajax-loading');
+            panel.removeAttribute('aria-busy');
+        }
     }
 
     window.applyPartyMatrixFilters = function () {
-        navigate((params) => {
-            const filters = {
-                order_type: 'matrix-filter-order-type',
-                sort_by: 'matrix-sort-by',
-                sort_dir: 'matrix-sort-dir'
-            };
-            const selectedParties = partyMultiSelect ? partyMultiSelect.getValues() : [];
-            if (selectedParties.length) params.set('party', selectedParties.join(','));
-            else params.delete('party');
-            Object.entries(filters).forEach(([name, id]) => {
-                const value = document.getElementById(id)?.value || '';
-                if (value) params.set(name, value);
-                else params.delete(name);
-            });
-            const search = document.getElementById('matrix-search')?.value.trim() || '';
-            if (search) params.set('search', search);
-            else params.delete('search');
-            params.set('page', '1');
+        const params = new URLSearchParams(window.location.search);
+        const filters = {
+            order_type: 'matrix-filter-order-type',
+            sort_by: 'matrix-sort-by',
+            sort_dir: 'matrix-sort-dir'
+        };
+        const selectedParties = partyMultiSelect ? partyMultiSelect.getValues() : [];
+        if (selectedParties.length) params.set('party', selectedParties.join(','));
+        else params.delete('party');
+        Object.entries(filters).forEach(([name, id]) => {
+            const value = document.getElementById(id)?.value || '';
+            if (value) params.set(name, value);
+            else params.delete(name);
         });
+        const search = document.getElementById('matrix-search')?.value.trim() || '';
+        if (search) params.set('search', search);
+        else params.delete('search');
+        params.set('page', '1');
+        loadMatrixData(params);
     };
 
     window.resetPartyMatrixFilters = function () {
-        window.location.href = window.location.pathname;
+        document.querySelectorAll('.matrix-filter-party-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        partyMultiSelect?.updateTriggerText();
+        const orderType = document.getElementById('matrix-filter-order-type');
+        const sortBy = document.getElementById('matrix-sort-by');
+        const sortDirection = document.getElementById('matrix-sort-dir');
+        const search = document.getElementById('matrix-search');
+        if (orderType) orderType.value = '';
+        if (sortBy) sortBy.value = 'order_wt';
+        if (sortDirection) sortDirection.value = 'desc';
+        if (search) search.value = '';
+        loadMatrixData(new URLSearchParams());
     };
 
     window.sortPartyMatrix = function (column) {
-        navigate((params) => {
-            const current = params.get('sort_by') || 'order_wt';
-            const direction = params.get('sort_dir') || 'desc';
-            params.set('sort_by', column);
-            params.set('sort_dir', current === column && direction === 'desc' ? 'asc' : 'desc');
-            params.set('page', '1');
-        });
+        const params = new URLSearchParams(window.location.search);
+        const current = params.get('sort_by') || 'order_wt';
+        const direction = params.get('sort_dir') || 'desc';
+        params.set('sort_by', column);
+        params.set('sort_dir', current === column && direction === 'desc' ? 'asc' : 'desc');
+        params.set('page', '1');
+        loadMatrixData(params);
     };
 
     window.changeMatrixPage = function (page) {
-        navigate((params) => params.set('page', String(page)));
+        const params = new URLSearchParams(window.location.search);
+        params.set('page', String(page));
+        loadMatrixData(params);
     };
 
     window.changeMatrixPerPage = function (value) {
-        navigate((params) => {
-            params.set('per_page', value);
-            params.set('page', '1');
-        });
+        const params = new URLSearchParams(window.location.search);
+        params.set('per_page', value);
+        params.set('page', '1');
+        loadMatrixData(params);
     };
 
     let searchTimer;
@@ -178,4 +259,5 @@
     partyMultiSelect.updateTriggerText();
 
     buildCharts();
+    loadMatrixData(new URLSearchParams(window.location.search));
 })();
