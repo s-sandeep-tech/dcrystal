@@ -4,8 +4,9 @@
         <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold tracking-wider" style="font-size: 8.4px;">
             <th class="col-expander text-center px-0 w-8"></th>
             {% set sortable_headers = [
-                ('hierarchy', 'Party Design Hierarchy', 'text-left', '', 'width: 50%;'),
+                ('hierarchy', 'Party Design Hierarchy', 'text-left', '', 'width: 45%;'),
                 ('design_count', 'Design Count', 'text-right', 'bg-gray-100/30', ''),
+                ('partition_pct', '% Design', 'text-right', 'bg-blue-50/20 dark:bg-blue-900/10', ''),
                 ('avg_delivery_days', 'Avg Delivery Days', 'text-right', 'bg-emerald-50/20', '')
             ] %}
             {% for sort_key, label, alignment, background, width_style in sortable_headers %}
@@ -58,6 +59,9 @@
         <span class="font-bold text-gray-700 dark:text-gray-200">{{ "{:,}".format(r.design_count) }}</span>
     </td>
     <td class="text-right px-2">
+        <span class="font-bold text-blue-600 dark:text-blue-400">{{ "%.2f"|format(r.partition_pct) }}%</span>
+    </td>
+    <td class="text-right px-2">
         <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ "%.1f"|format(r.avg_delivery_days) }} Days</span>
     </td>
 </tr>
@@ -65,7 +69,7 @@
 
 {% if not rows and not is_child_rows %}
 <tr>
-    <td colspan="4" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
+    <td colspan="5" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
 </tr>
 {% endif %}
 
@@ -74,8 +78,9 @@
     <tfoot class="bg-gray-50 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700 font-bold sticky bottom-0 z-10">
         <tr>
             <td colspan="2" class="px-2 py-3 text-left uppercase tracking-wider text-gray-500" style="font-size: 10.5px;">Grand Total</td>
-            <td class="text-right px-2"></td>
-            <td class="text-right px-2 text-emerald-600 text-xs">{{ stats.avg_delivery_days }} Days</td>
+            <td class="text-right px-2 text-gray-700 dark:text-gray-200 text-xs">{{ stats.total_designs if stats else '0' }}</td>
+            <td class="text-right px-2 text-blue-600 text-xs">100.00%</td>
+            <td class="text-right px-2 text-emerald-600 text-xs">{{ stats.avg_delivery_days if stats else '0.0' }} Days</td>
         </tr>
     </tfoot>
 </table>

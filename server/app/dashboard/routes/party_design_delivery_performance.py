@@ -28,6 +28,8 @@ def get_sort_params():
     allowed_columns = {
         'hierarchy',
         'design_count',
+        'design_count_pct',
+        'partition_pct',
         'avg_delivery_days',
     }
     sort_by = request.args.get('sort_by', 'hierarchy').strip().lower()
@@ -43,6 +45,8 @@ def apply_sort(query, group_cols, sort_by, sort_dir):
     design_count = func.count(distinct(model.design_id))
     sort_columns = {
         'design_count': design_count,
+        'design_count_pct': design_count,
+        'partition_pct': design_count,
         'avg_delivery_days': func.avg(model.average_delivery_days),
     }
     sort_target = sort_columns.get(sort_by, group_cols[-1])
@@ -62,6 +66,90 @@ def paginate_with_fallback(query, page, per_page):
             error_out=False,
         )
     return pagination
+
+
+def compute_rows_with_percentages(items, level, grand_total_designs, apply_filters_fn, p_party=None, p_make=None, p_class=None):
+    partition_totals = {}
+    if level == 'make':
+        p_q = db.session.query(
+            PartyDesignAverageDeliveryDaysSnapshot.party,
+            func.count(distinct(PartyDesignAverageDeliveryDaysSnapshot.design_id))
+        )
+        p_q = apply_filters_fn(p_q)
+        if p_party:
+            p_q = p_q.filter(PartyDesignAverageDeliveryDaysSnapshot.party == p_party)
+        for p_name, p_cnt in p_q.group_by(PartyDesignAverageDeliveryDaysSnapshot.party).all():
+            partition_totals[p_name] = int(p_cnt or 0)
+    elif level == 'classification':
+        p_q = db.session.query(
+            PartyDesignAverageDeliveryDaysSnapshot.party,
+            PartyDesignAverageDeliveryDaysSnapshot.make,
+            func.count(distinct(PartyDesignAverageDeliveryDaysSnapshot.design_id))
+        )
+        p_q = apply_filters_fn(p_q)
+        if p_party:
+            p_q = p_q.filter(PartyDesignAverageDeliveryDaysSnapshot.party == p_party)
+        if p_make:
+            p_q = p_q.filter(PartyDesignAverageDeliveryDaysSnapshot.make == p_make)
+        for p_name, m_name, p_cnt in p_q.group_by(
+            PartyDesignAverageDeliveryDaysSnapshot.party,
+            PartyDesignAverageDeliveryDaysSnapshot.make
+        ).all():
+            partition_totals[(p_name, m_name)] = int(p_cnt or 0)
+    elif level == 'sub_classification':
+        p_q = db.session.query(
+            PartyDesignAverageDeliveryDaysSnapshot.party,
+            PartyDesignAverageDeliveryDaysSnapshot.make,
+            PartyDesignAverageDeliveryDaysSnapshot.classification,
+            func.count(distinct(PartyDesignAverageDeliveryDaysSnapshot.design_id))
+        )
+        p_q = apply_filters_fn(p_q)
+        if p_party:
+            p_q = p_q.filter(PartyDesignAverageDeliveryDaysSnapshot.party == p_party)
+        if p_make:
+            p_q = p_q.filter(PartyDesignAverageDeliveryDaysSnapshot.make == p_make)
+        if p_class:
+            p_q = p_q.filter(PartyDesignAverageDeliveryDaysSnapshot.classification == p_class)
+        for p_name, m_name, c_name, p_cnt in p_q.group_by(
+            PartyDesignAverageDeliveryDaysSnapshot.party,
+            PartyDesignAverageDeliveryDaysSnapshot.make,
+            PartyDesignAverageDeliveryDaysSnapshot.classification
+        ).all():
+            partition_totals[(p_name, m_name, c_name)] = int(p_cnt or 0)
+
+    processed_rows = []
+    for r in items:
+        design_count = int(r.design_count or 0)
+        count_pct = (design_count / grand_total_designs * 100) if grand_total_designs > 0 else 0.0
+        avg_days = float(r.avg_delivery_days or 0.0)
+
+        if level == 'party':
+            part_tot = grand_total_designs
+        elif level == 'make':
+            part_tot = partition_totals.get(r[0], grand_total_designs)
+        elif level == 'classification':
+            part_tot = partition_totals.get((r[0], r[1]), grand_total_designs)
+        elif level == 'sub_classification':
+            part_tot = partition_totals.get((r[0], r[1], r[3]), grand_total_designs)
+        else:
+            part_tot = grand_total_designs
+
+        part_pct = (design_count / part_tot * 100) if part_tot > 0 else 0.0
+
+        row_dict = {
+            'party': r[0] if len(r) > 0 else '',
+            'make': r[1] if level in ['make', 'classification', 'sub_classification'] else '',
+            'make_owner': r[2] if level in ['make', 'classification', 'sub_classification'] else '',
+            'classification': r[3] if level in ['classification', 'sub_classification'] else '',
+            'sub_classification': r[4] if level == 'sub_classification' else '',
+            'design_count': design_count,
+            'design_count_pct': count_pct,
+            'partition_pct': part_pct,
+            'avg_delivery_days': avg_days,
+            'level': level
+        }
+        processed_rows.append(row_dict)
+    return processed_rows
 
 
 @dashboard_bp.route('/party-design-delivery-performance')
@@ -184,25 +272,12 @@ def party_design_delivery_performance():
         main_q = apply_sort(main_q, group_cols, sort_by, sort_dir)
 
         pagination = paginate_with_fallback(main_q, page, per_page)
-
-        processed_rows = []
-        for r in pagination.items:
-            design_count = int(r.design_count or 0)
-            count_pct = (design_count / grand_total_designs * 100) if grand_total_designs > 0 else 0.0
-            avg_days = float(r.avg_delivery_days or 0.0)
-
-            row_dict = {
-                'party': r[0] if len(r) > 0 else '',
-                'make': r[1] if level in ['make', 'classification', 'sub_classification'] else '',
-                'make_owner': r[2] if level in ['make', 'classification', 'sub_classification'] else '',
-                'classification': r[3] if level in ['classification', 'sub_classification'] else '',
-                'sub_classification': r[4] if level == 'sub_classification' else '',
-                'design_count': design_count,
-                'design_count_pct': count_pct,
-                'avg_delivery_days': avg_days,
-                'level': level
-            }
-            processed_rows.append(row_dict)
+        processed_rows = compute_rows_with_percentages(
+            pagination.items, level, grand_total_designs, apply_filters,
+            p_party=party if party and ',' not in party else None,
+            p_make=make if make and ',' not in make else None,
+            p_class=classification if classification and ',' not in classification else None
+        )
 
         return render_template('party_design_delivery_performance.html',
                              unread_count=unread_count,
@@ -350,24 +425,12 @@ def get_party_design_delivery_performance_partial():
             pagination = paginate_with_fallback(main_q, page, per_page)
             items = pagination.items
 
-        processed_rows = []
-        for r in items:
-            design_count = int(r.design_count or 0)
-            count_pct = (design_count / grand_total_designs * 100) if grand_total_designs > 0 else 0.0
-            avg_days = float(r.avg_delivery_days or 0.0)
-
-            row_dict = {
-                'party': r[0] if len(r) > 0 else '',
-                'make': r[1] if level in ['make', 'classification', 'sub_classification'] else '',
-                'make_owner': r[2] if level in ['make', 'classification', 'sub_classification'] else '',
-                'classification': r[3] if level in ['classification', 'sub_classification'] else '',
-                'sub_classification': r[4] if level == 'sub_classification' else '',
-                'design_count': design_count,
-                'design_count_pct': count_pct,
-                'avg_delivery_days': avg_days,
-                'level': level
-            }
-            processed_rows.append(row_dict)
+        processed_rows = compute_rows_with_percentages(
+            items, level, grand_total_designs, apply_filters,
+            p_party=parent_party or (party if party and ',' not in party else None),
+            p_make=parent_make or (make if make and ',' not in make else None),
+            p_class=parent_classification or (classification if classification and ',' not in classification else None)
+        )
 
         return render_template('partials/_view_party_design_delivery_performance.html',
                              rows=processed_rows,
