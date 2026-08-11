@@ -19,16 +19,16 @@
             <thead>
                 <tr class="party-matrix-group-head">
                     <th rowspan="2" class="matrix-party-col">Party</th>
-                    <th colspan="2">Design Delivery</th>
-                    <th colspan="4">Order Frequency</th>
-                    <th colspan="2">Allocation</th>
-                    <th colspan="2">Cancellation</th>
-                    <th colspan="2">Value Allocation</th>
-                    <th colspan="2">Quality</th>
-                    <th colspan="2">RO Delivery</th>
-                    <th colspan="2">Order Lifecycle</th>
-                    <th rowspan="2">Index</th>
-                    <th rowspan="2">Status</th>
+                    <th colspan="2" class="matrix-group matrix-group-design">Design Delivery</th>
+                    <th colspan="4" class="matrix-group matrix-group-orders">Order Frequency</th>
+                    <th colspan="2" class="matrix-group matrix-group-allocation">Allocation</th>
+                    <th colspan="2" class="matrix-group matrix-group-cancellation">Cancellation</th>
+                    <th colspan="2" class="matrix-group matrix-group-value">Value Allocation</th>
+                    <th colspan="2" class="matrix-group matrix-group-quality">Quality</th>
+                    <th colspan="2" class="matrix-group matrix-group-ro">RO Delivery</th>
+                    <th colspan="2" class="matrix-group matrix-group-lifecycle">Order Lifecycle</th>
+                    <th rowspan="2" class="matrix-standalone-head">Index</th>
+                    <th rowspan="2" class="matrix-standalone-head">Status</th>
                 </tr>
                 <tr>
                     {% set headers = [
@@ -52,7 +52,7 @@
                         ('production_wt', 'Production Wt')
                     ] %}
                     {% for key, label in headers %}
-                    <th class="matrix-sortable {% if sort_by == key %}matrix-sort-active{% endif %}" onclick="sortPartyMatrix('{{ key }}')">
+                    <th class="matrix-sortable {% if loop.index in [1, 3, 7, 9, 11, 13, 15, 17] %}matrix-column-group-start{% endif %} {% if sort_by == key %}matrix-sort-active{% endif %}" onclick="sortPartyMatrix('{{ key }}')">
                         <span>{{ label }}</span>
                         <span class="material-symbols-outlined">{% if sort_by == key %}{{ 'arrow_upward' if sort_dir == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}</span>
                     </th>
