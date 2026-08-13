@@ -214,6 +214,19 @@
         loadMatrixData(new URLSearchParams());
     };
 
+    window.togglePartyMatrixSidebar = function (show) {
+        const sidebar = document.getElementById('party-matrix-sidebar');
+        const openButton = document.getElementById('matrix-filter-open');
+        if (!sidebar || !openButton) return;
+
+        const shouldShow = typeof show === 'boolean'
+            ? show
+            : sidebar.classList.contains('is-collapsed');
+        sidebar.classList.toggle('is-collapsed', !shouldShow);
+        sidebar.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+        openButton.setAttribute('aria-expanded', shouldShow ? 'true' : 'false');
+    };
+
     window.sortPartyMatrix = function (column) {
         const params = new URLSearchParams(window.location.search);
         const current = params.get('sort_by') || 'order_wt';

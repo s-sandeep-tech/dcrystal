@@ -19,6 +19,10 @@
             <p>Consolidated party performance across design, order, allocation, quality, and delivery.</p>
         </div>
         <div class="party-matrix-header-actions">
+            <button id="matrix-filter-open" class="party-matrix-filter-open" type="button"
+                onclick="togglePartyMatrixSidebar()" title="Toggle filters" aria-label="Toggle filters" aria-expanded="true">
+                <span class="material-symbols-outlined">filter_alt</span>
+            </button>
             <label class="party-matrix-search" for="matrix-search">
                 <span class="material-symbols-outlined">search</span>
                 <input id="matrix-search" value="{{ request.args.get('search', '') }}" placeholder="Search party..." autocomplete="off">
@@ -86,11 +90,17 @@
 {% endblock %}
 
 {% block sidebar %}
-<aside class="party-matrix-sidebar">
+<aside id="party-matrix-sidebar" class="party-matrix-sidebar">
     <div class="party-matrix-sidebar-body">
         <div class="party-matrix-filter-title">
             <h2><span class="material-symbols-outlined">filter_alt</span> Filters</h2>
-            <button onclick="resetPartyMatrixFilters()">Reset</button>
+            <div class="party-matrix-filter-title-actions">
+                <button class="party-matrix-filter-reset" type="button" onclick="resetPartyMatrixFilters()">Reset</button>
+                <button class="party-matrix-filter-close" type="button" onclick="togglePartyMatrixSidebar(false)"
+                    title="Hide filters" aria-label="Hide filters">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
         </div>
         <div id="matrix-filter-party"></div>
         <label>Order Type
