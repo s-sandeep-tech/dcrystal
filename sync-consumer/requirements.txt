@@ -5,7 +5,6 @@ gunicorn
 Flask-SQLAlchemy
 psycopg2-binary
 flask-socketio
-eventlet
 flask-jwt-extended
 passlib
 bcrypt==3.1.7

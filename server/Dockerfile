@@ -10,4 +10,4 @@ COPY . .
 # Set PYTHONPATH to include current directory for package resolution
 ENV PYTHONPATH=/app
 
-CMD ["python", "run.py"]
+CMD ["gunicorn", "--config", "gunicorn.conf.py", "app:create_app()"]

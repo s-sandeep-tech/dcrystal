@@ -1,15 +1,24 @@
 import json
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from app.extensions import redis_client as r
+from sqlalchemy import text
+
+from app.extensions import db, redis_client as r
 
 api_bp = Blueprint('api', __name__)
 
 @api_bp.route('/health')
 def health():
     try:
-        return jsonify({"status": "healthy", "redis": r.ping()})
+        redis_healthy = bool(r.ping())
+        db.session.execute(text('SELECT 1'))
+        return jsonify({
+            "status": "healthy",
+            "database": True,
+            "redis": redis_healthy,
+        })
     except Exception as e:
+        db.session.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @api_bp.route('/update', methods=['POST'])

@@ -4,6 +4,7 @@ import logging
 import threading
 import sys
 import os
+import redis
 
 # DEFENSIVE: Explicitly manage the search path
 base_dir = os.path.abspath(os.path.dirname(__file__))
@@ -80,6 +81,17 @@ logger = logging.getLogger("SyncConsumer")
 
 flask_app = create_app()
 
+# Queue workers intentionally block while waiting for work. redis-py 8 defaults
+# socket reads to five seconds, so use a dedicated connection without a read
+# timeout for BLPOP instead of the request-oriented shared Redis client.
+queue_redis_client = redis.Redis(
+    host=os.getenv('REDIS_HOST', 'localhost'),
+    port=int(os.getenv('REDIS_PORT', '6379')),
+    decode_responses=True,
+    socket_timeout=None,
+    socket_connect_timeout=5,
+)
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Sync Queue Worker (original behaviour — unchanged)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -89,7 +101,7 @@ def process_sync_queue():
     while True:
         task_data = None
         try:
-            _, task_data_json = redis_client.blpop('sync_queue')
+            _, task_data_json = queue_redis_client.blpop('sync_queue')
 
             task_data = json.loads(task_data_json)
             task_type = task_data.get('type')
@@ -101,7 +113,6 @@ def process_sync_queue():
                 from app.models.core import SyncLog
                 from app.extensions import db
                 from datetime import datetime
-                import time
                 
                 sync_log = SyncLog(
                     task_name=task_type,
@@ -260,7 +271,7 @@ def process_export_queue():
 
     while True:
         try:
-            _, task_data_json = redis_client.blpop('export_queue')
+            _, task_data_json = queue_redis_client.blpop('export_queue')
 
             task_data = json.loads(task_data_json)
             task_type = task_data.get('type')

@@ -16,7 +16,11 @@ db = SQLAlchemy()
 # SocketIO
 from flask_socketio import SocketIO
 # Using Redis as message queue for multi-process support
-socketio = SocketIO(cors_allowed_origins="*", message_queue=f'redis://{REDIS_HOST}:{REDIS_PORT}')
+socketio = SocketIO(
+    async_mode="threading",
+    cors_allowed_origins="*",
+    message_queue=f'redis://{REDIS_HOST}:{REDIS_PORT}',
+)
 
 # JWT
 from flask_jwt_extended import JWTManager
