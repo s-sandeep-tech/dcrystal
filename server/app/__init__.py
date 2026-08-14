@@ -32,8 +32,8 @@ def create_app():
     if not db_uri.startswith('sqlite:'):
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
             "pool_pre_ping": True,
-            "pool_size": int(os.getenv('SQLALCHEMY_POOL_SIZE', '4')),
-            "max_overflow": int(os.getenv('SQLALCHEMY_MAX_OVERFLOW', '2')),
+            "pool_size": int(os.getenv('SQLALCHEMY_POOL_SIZE', '2')),
+            "max_overflow": int(os.getenv('SQLALCHEMY_MAX_OVERFLOW', '0')),
             "pool_recycle": int(os.getenv('SQLALCHEMY_POOL_RECYCLE', '1800')),
             "pool_timeout": int(os.getenv('SQLALCHEMY_POOL_TIMEOUT', '30')),
             "connect_args": {

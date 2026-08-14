@@ -8,7 +8,7 @@ def env_int(name, default):
 bind = os.getenv("GUNICORN_BIND", "0.0.0.0:5000")
 worker_class = "gthread"
 workers = env_int("GUNICORN_WORKERS", 4)
-threads = env_int("GUNICORN_THREADS", 4)
+threads = env_int("GUNICORN_THREADS", 2)
 
 timeout = env_int("GUNICORN_TIMEOUT", 300)
 graceful_timeout = env_int("GUNICORN_GRACEFUL_TIMEOUT", 60)
@@ -22,4 +22,3 @@ accesslog = "-"
 errorlog = "-"
 capture_output = True
 preload_app = False
-
