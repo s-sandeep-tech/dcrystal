@@ -4309,25 +4309,13 @@ def sync_location_wise_old_gold_settlement_transfer_task(task_type_override=None
                 transfer_stwt,
                 transfer_netwt,
                 locationtype
-            FROM muziris.BI_OldPurchaseDtls;"
+            FROM muziris."BI_OldPurchaseDtls"
         """
 
         start_time = time.time()
         cur.execute("SET statement_timeout = 0")
-        try:
-            cur.execute(query)
-            rows = cur.fetchall()
-        except Exception as qe:
-            logger.warning(f"Default query failed ({qe}), trying fallback query...")
-            conn.rollback()
-            fallback_query = "SELECT * FROM ext_view.vw_location_wise_old_gold_settlement_transfer"
-            try:
-                cur.execute(fallback_query)
-                rows = cur.fetchall()
-            except Exception:
-                conn.rollback()
-                cur.execute('SELECT * FROM "location_wise_old_gold_settlement_transfer"')
-                rows = cur.fetchall()
+        cur.execute(query)
+        rows = cur.fetchall()
 
         duration = time.time() - start_time
         logger.info(f"LocationWiseOldGoldSettlementTransfer query took {duration:.2f} seconds.")
@@ -4402,4 +4390,3 @@ def sync_location_wise_old_gold_settlement_transfer_task(task_type_override=None
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
-
