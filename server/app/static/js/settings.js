@@ -87,7 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             syncProvisionStatusBtn, syncSizeLevelNIPBarcodeBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn,
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, 
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, 
-                            syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn
+                            syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
+                            syncCollectionWiseAverageDeliveryDaysBtn, syncLocationWiseOldGoldBtn
                         ].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
                         });
@@ -114,7 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             syncProvisionStatusBtn, syncSizeLevelNIPBarcodeBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn,
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, 
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, 
-                            syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn
+                            syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
+                            syncCollectionWiseAverageDeliveryDaysBtn, syncLocationWiseOldGoldBtn
                         ].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
                         });
