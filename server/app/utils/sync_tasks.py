@@ -4309,7 +4309,7 @@ def sync_location_wise_old_gold_settlement_transfer_task(task_type_override=None
                 transfer_stwt,
                 transfer_netwt,
                 locationtype
-            FROM Muziris."OldGoldSettlementTransfer"
+            FROM muziris.BI_OldPurchaseDtls;"
         """
 
         start_time = time.time()
