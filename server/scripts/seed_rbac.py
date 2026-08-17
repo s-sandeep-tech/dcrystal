@@ -59,6 +59,7 @@ def seed_rbac():
             {"title": "Branch Weight Allocation & Refillv2", "url": "/branchweightv2", "icon": "dvr", "order": 60},
             {"title": "StageLevel Delay Report", "url": "/stageleveldelay", "icon": "query_stats", "order": 65},
             {"title": "Owner Wise Summary", "url": "/ownerwiseordersummary", "icon": "person_pin", "order": 70},
+            {"title": "Location-wise Old Gold Settlement & Transfer Summary", "url": "/location-wise-old-gold-settlement-transfer-summary", "icon": "monetization_on", "order": 70.5},
             {"title": "Party Design Delivery Performance", "url": "/party-design-delivery-performance", "icon": "analytics", "order": 71},
             {"title": "Party Order Acceptance, Cancellation & Delivery Performance", "url": "/party-order-accept-cancel-delivery-performance", "icon": "fact_check", "order": 71.5},
             {"title": "Party Design Location Allocation", "url": "/party-design-location-allocation", "icon": "pin_drop", "order": 71.8},

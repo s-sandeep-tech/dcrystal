@@ -46,7 +46,8 @@ from ..models.snapshots import (
     ActiveOrderDetailsSnapshot,
     SizeLevelNIPBarcodeSnapshot,
     SizeLevelNIPBarcodeStaging,
-    CollectionWiseAverageDeliveryDaysSnapshot
+    CollectionWiseAverageDeliveryDaysSnapshot,
+    LocationWiseOldGoldSettlementTransferSnapshot
 )
 
 from flask import current_app
@@ -4277,3 +4278,128 @@ def sync_party_design_average_delivery_days_task(task_type_override=None, progre
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
+
+
+def sync_location_wise_old_gold_settlement_transfer_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+    conn = None
+    TASK_TYPE = task_type_override or 'location_wise_old_gold_settlement_transfer'
+
+    def emit(status, message, progress):
+        emit_combined_sync_update(status, message, progress, TASK_TYPE, progress_range, is_subtask)
+
+    try:
+        emit('processing', 'Starting Location-wise Old Gold Settlement & Transfer Sync...', 5)
+        conn = get_kjch_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        emit('processing', 'Fetching data from KJCH database...', 20)
+        query = """
+            SELECT 
+                transdate,
+                locationname,
+                office,
+                division,
+                groupname,
+                purity,
+                grwt,
+                stwt,
+                netwt,
+                settlementmode,
+                transfer_grwt,
+                transfer_stwt,
+                transfer_netwt,
+                locationtype
+            FROM Muziris."OldGoldSettlementTransfer"
+        """
+
+        start_time = time.time()
+        cur.execute("SET statement_timeout = 0")
+        try:
+            cur.execute(query)
+            rows = cur.fetchall()
+        except Exception as qe:
+            logger.warning(f"Default query failed ({qe}), trying fallback query...")
+            conn.rollback()
+            fallback_query = "SELECT * FROM ext_view.vw_location_wise_old_gold_settlement_transfer"
+            try:
+                cur.execute(fallback_query)
+                rows = cur.fetchall()
+            except Exception:
+                conn.rollback()
+                cur.execute('SELECT * FROM "location_wise_old_gold_settlement_transfer"')
+                rows = cur.fetchall()
+
+        duration = time.time() - start_time
+        logger.info(f"LocationWiseOldGoldSettlementTransfer query took {duration:.2f} seconds.")
+        emit('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot database...', 50)
+
+        LocationWiseOldGoldSettlementTransferSnapshot.__table__.create(db.engine, checkfirst=True)
+        db.session.query(LocationWiseOldGoldSettlementTransferSnapshot).delete()
+
+        def parse_date(val):
+            if not val:
+                return None
+            if isinstance(val, date):
+                return val
+            if isinstance(val, datetime):
+                return val.date()
+            if isinstance(val, str):
+                for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%Y/%m/%d'):
+                    try:
+                        return datetime.strptime(val.strip(), fmt).date()
+                    except ValueError:
+                        pass
+            return None
+
+        def to_float(val):
+            try:
+                return float(val or 0.0)
+            except (ValueError, TypeError):
+                return 0.0
+
+        new_records = []
+        updated_at = datetime.utcnow()
+        for r in rows:
+            new_records.append({
+                'transdate': parse_date(r.get('transdate') or r.get('TransDate')),
+                'locationname': str(r.get('locationname') or r.get('LocationName') or '').strip(),
+                'office': str(r.get('office') or r.get('Office') or '').strip(),
+                'division': str(r.get('division') or r.get('Division') or '').strip(),
+                'groupname': str(r.get('groupname') or r.get('GroupName') or '').strip(),
+                'purity': str(r.get('purity') or r.get('Purity') or '').strip(),
+                'grwt': to_float(r.get('grwt') or r.get('GrWt') or r.get('gross_wt')),
+                'stwt': to_float(r.get('stwt') or r.get('StWt') or r.get('stone_wt')),
+                'netwt': to_float(r.get('netwt') or r.get('NetWt') or r.get('net_wt')),
+                'settlementmode': str(r.get('settlementmode') or r.get('SettlementMode') or '').strip(),
+                'transfer_grwt': to_float(r.get('transfer_grwt') or r.get('TransferGrWt') or r.get('transfer_gross_wt')),
+                'transfer_stwt': to_float(r.get('transfer_stwt') or r.get('TransferStWt') or r.get('transfer_stone_wt')),
+                'transfer_netwt': to_float(r.get('transfer_netwt') or r.get('TransferNetWt') or r.get('transfer_net_wt')),
+                'locationtype': str(r.get('locationtype') or r.get('LocationType') or '').strip(),
+                'updated_at': updated_at
+            })
+
+        if new_records:
+            chunk_size = 5000
+            for i in range(0, len(new_records), chunk_size):
+                db.session.bulk_insert_mappings(LocationWiseOldGoldSettlementTransferSnapshot, new_records[i:i + chunk_size])
+
+        db.session.commit()
+
+        try:
+            redis_client.flushdb()
+            cache_msg = " Cache cleared."
+        except Exception as ce:
+            logger.error(f"Failed to clear cache during LocationWiseOldGoldSettlementTransfer sync: {ce}")
+            cache_msg = " Cache clear failed."
+
+        emit('success', f'Sync completed! {len(rows)} records updated.{cache_msg}', 100)
+        return {"status": "success", "count": len(rows)}
+    except Exception as e:
+        db.session.rollback()
+        error_msg = str(e)
+        logger.error(f"LocationWiseOldGoldSettlementTransfer Sync error: {error_msg}")
+        emit('error', f'Sync failed: {error_msg}', 0)
+        return {"status": "error", "message": error_msg}
+    finally:
+        if conn: conn.close()
+

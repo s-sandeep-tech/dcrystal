@@ -77,6 +77,14 @@ window.REPORT_MENU_DATA = [
                 description: "Ownership-level order summary by make, collection, and classification.",
                 tags: ["owner", "summary", "orders"]
             },
+            {
+                id: "location-wise-old-gold-settlement-transfer-summary",
+                title: "Location-wise Old Gold Settlement & Transfer Summary",
+                href: "/location-wise-old-gold-settlement-transfer-summary",
+                icon: "monetization_on",
+                description: "Aging matrix and settlement summary for old gold across offices, locations, divisions, and groups.",
+                tags: ["old gold", "settlement", "transfer", "location", "aging", "summary"]
+            },
 
             {
                 id: "showroom-wise-order",

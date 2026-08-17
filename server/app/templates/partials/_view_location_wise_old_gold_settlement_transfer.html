@@ -1,0 +1,362 @@
+{% if not is_child_rows %}
+<table class="enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header table-fixed">
+    <colgroup>
+        <col class="w-[3%]">
+        <col class="w-[21%]">
+        <col class="w-[7.5%]">
+        <col class="w-[7.5%]">
+        <col class="w-[7.5%]">
+        <col class="w-[7.5%]">
+        <col class="w-[7.5%]">
+        <col class="w-[7.5%]">
+        <col class="w-[7.5%]">
+        <col class="w-[7.5%]">
+        <col class="w-[8%]">
+        <col class="w-[8%]">
+    </colgroup>
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider select-none border-b border-gray-200 dark:border-gray-700">
+            <th rowspan="2" class="col-expander text-center px-0 w-[3%] border-r border-gray-200 dark:border-gray-700"></th>
+            <th rowspan="2" class="text-left px-2 w-[21%] cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 group border-r border-gray-200 dark:border-gray-700" onclick="handleSort('hierarchy')">
+                <div class="flex items-center gap-1">
+                    <span>Hierarchy Details</span>
+                    <span class="material-symbols-outlined text-[12px] {% if sort_by == 'hierarchy' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {% if sort_by == 'hierarchy' %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            <th colspan="2" class="text-center px-1 py-1 w-[15%] bg-emerald-50/40 text-emerald-800 dark:text-emerald-300 border-r border-gray-200 dark:border-gray-700 font-bold">2 - 5 Days</th>
+            <th colspan="2" class="text-center px-1 py-1 w-[15%] bg-amber-50/40 text-amber-800 dark:text-amber-300 border-r border-gray-200 dark:border-gray-700 font-bold">6 - 10 Days</th>
+            <th colspan="2" class="text-center px-1 py-1 w-[15%] bg-orange-50/40 text-orange-800 dark:text-orange-300 border-r border-gray-200 dark:border-gray-700 font-bold">11 - 15 Days</th>
+            <th colspan="2" class="text-center px-1 py-1 w-[15%] bg-red-50/40 text-red-800 dark:text-red-300 border-r border-gray-200 dark:border-gray-700 font-bold">&gt; 15 Days</th>
+            <th colspan="2" class="text-center px-1 py-1 w-[16%] bg-gray-100/60 text-gray-800 dark:text-gray-200 font-bold">Total</th>
+        </tr>
+        <tr class="bg-gray-50/80 dark:bg-gray-800/80 text-gray-500 uppercase font-semibold text-[8px] tracking-wider select-none">
+            <!-- 2-5 Days Subheaders -->
+            <th class="text-right px-1 py-1 w-[7.5%] bg-emerald-50/20 cursor-pointer hover:bg-emerald-100/30 group" onclick="handleSort('days_2_5_settle')">
+                <div class="flex items-center justify-end gap-0.5">
+                    <span>Settle</span>
+                    <span class="material-symbols-outlined text-[10px] {% if sort_by in ['days_2_5', 'days_2_5_settle'] %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {% if sort_by in ['days_2_5', 'days_2_5_settle'] %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-1 py-1 w-[7.5%] bg-emerald-50/10 text-indigo-600 border-r border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-emerald-100/30 group" onclick="handleSort('days_2_5_trans')">
+                <div class="flex items-center justify-end gap-0.5">
+                    <span>Transfer</span>
+                    <span class="material-symbols-outlined text-[10px] {% if sort_by == 'days_2_5_trans' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {% if sort_by == 'days_2_5_trans' %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+
+            <!-- 6-10 Days Subheaders -->
+            <th class="text-right px-1 py-1 w-[7.5%] bg-amber-50/20 cursor-pointer hover:bg-amber-100/30 group" onclick="handleSort('days_6_10_settle')">
+                <div class="flex items-center justify-end gap-0.5">
+                    <span>Settle</span>
+                    <span class="material-symbols-outlined text-[10px] {% if sort_by in ['days_6_10', 'days_6_10_settle'] %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {% if sort_by in ['days_6_10', 'days_6_10_settle'] %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-1 py-1 w-[7.5%] bg-amber-50/10 text-indigo-600 border-r border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-amber-100/30 group" onclick="handleSort('days_6_10_trans')">
+                <div class="flex items-center justify-end gap-0.5">
+                    <span>Transfer</span>
+                    <span class="material-symbols-outlined text-[10px] {% if sort_by == 'days_6_10_trans' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {% if sort_by == 'days_6_10_trans' %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+
+            <!-- 11-15 Days Subheaders -->
+            <th class="text-right px-1 py-1 w-[7.5%] bg-orange-50/20 cursor-pointer hover:bg-orange-100/30 group" onclick="handleSort('days_11_15_settle')">
+                <div class="flex items-center justify-end gap-0.5">
+                    <span>Settle</span>
+                    <span class="material-symbols-outlined text-[10px] {% if sort_by in ['days_11_15', 'days_11_15_settle'] %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {% if sort_by in ['days_11_15', 'days_11_15_settle'] %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-1 py-1 w-[7.5%] bg-orange-50/10 text-indigo-600 border-r border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-orange-100/30 group" onclick="handleSort('days_11_15_trans')">
+                <div class="flex items-center justify-end gap-0.5">
+                    <span>Transfer</span>
+                    <span class="material-symbols-outlined text-[10px] {% if sort_by == 'days_11_15_trans' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {% if sort_by == 'days_11_15_trans' %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+
+            <!-- >15 Days Subheaders -->
+            <th class="text-right px-1 py-1 w-[7.5%] bg-red-50/20 cursor-pointer hover:bg-red-100/30 group" onclick="handleSort('days_gt_15_settle')">
+                <div class="flex items-center justify-end gap-0.5">
+                    <span>Settle</span>
+                    <span class="material-symbols-outlined text-[10px] {% if sort_by in ['days_gt_15', 'days_gt_15_settle'] %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {% if sort_by in ['days_gt_15', 'days_gt_15_settle'] %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-1 py-1 w-[7.5%] bg-red-50/10 text-indigo-600 border-r border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-red-100/30 group" onclick="handleSort('days_gt_15_trans')">
+                <div class="flex items-center justify-end gap-0.5">
+                    <span>Transfer</span>
+                    <span class="material-symbols-outlined text-[10px] {% if sort_by == 'days_gt_15_trans' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {% if sort_by == 'days_gt_15_trans' %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+
+            <!-- Total Subheaders -->
+            <th class="text-right px-1 py-1 w-[8%] bg-gray-100/30 cursor-pointer hover:bg-gray-200/40 group" onclick="handleSort('total_settle')">
+                <div class="flex items-center justify-end gap-0.5">
+                    <span>Settle</span>
+                    <span class="material-symbols-outlined text-[10px] {% if sort_by in ['total_wt', 'total_settle'] %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {% if sort_by in ['total_wt', 'total_settle'] %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-1 py-1 w-[8%] bg-indigo-50/20 text-indigo-600 cursor-pointer hover:bg-indigo-100/30 group" onclick="handleSort('total_trans')">
+                <div class="flex items-center justify-end gap-0.5">
+                    <span>Transfer</span>
+                    <span class="material-symbols-outlined text-[10px] {% if sort_by in ['transfer_wt', 'total_trans'] %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {% if sort_by in ['transfer_wt', 'total_trans'] %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
+                    </span>
+                </div>
+            </th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+{% endif %}
+
+        {% for r in rows %}
+        <tr class="parent-row hover:bg-blue-50/30 group animate-fade-in"
+            data-level="{{ r.level }}"
+            data-office="{{ r.office|e }}"
+            data-location="{{ r.locationname|e }}"
+            data-division="{{ r.division|e }}"
+            data-group="{{ r.groupname|e }}"
+            data-purity="{{ r.purity|e }}">
+            <td class="text-center px-0 w-[3%] overflow-hidden">
+                {% if r.level != 'purity' %}
+                <button onclick="toggleRow(this, '{{ r.level }}', '{{ (r.level == 'office' and r.office or (r.level == 'locationname' and r.locationname or (r.level == 'division' and r.division or r.groupname)))|e }}', '{{ r.office|e }}', '{{ r.locationname|e }}', '{{ r.division|e }}')"
+                    class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none"
+                    title="Toggle details">
+                    <span class="material-symbols-outlined text-[14px]">add_circle</span>
+                </button>
+                {% else %}
+                <span class="material-symbols-outlined text-[8px] text-gray-300">fiber_manual_record</span>
+                {% endif %}
+            </td>
+            <td class="px-2 font-bold w-[21%] overflow-hidden border-r border-gray-100 dark:border-gray-800">
+                <div class="flex items-center gap-1.5 truncate"
+                    style="padding-left: {{ '0px' if r.level == 'office' else ('10px' if r.level == 'locationname' else ('20px' if r.level == 'division' else ('30px' if r.level == 'groupname' else '40px'))) }}">
+                    <span class="material-symbols-outlined text-[13px] text-gray-400 shrink-0">
+                        {% if r.level == 'office' %}corporate_fare
+                        {% elif r.level == 'locationname' %}storefront
+                        {% elif r.level == 'division' %}category
+                        {% elif r.level == 'groupname' %}workspaces
+                        {% else %}military_tech{% endif %}
+                    </span>
+                    <span class="text-gray-800 dark:text-gray-200 truncate" title="{{ r.label }}">{{ r.label }}</span>
+                </div>
+            </td>
+
+            <!-- 2-5 Days Settlement -->
+            <td class="text-right px-1.5 py-1.5 w-[7.5%] tabular-nums overflow-hidden" {% if r.grwt_2_5 and r.grwt_2_5 > 0 %}title="Gross: {{ "%.3f"|format(r.grwt_2_5) }}&#10;Net: {{ "%.3f"|format(r.netwt_2_5) }}{% if r.stwt_2_5 and r.stwt_2_5 > 0 %}&#10;Stone: {{ "%.3f"|format(r.stwt_2_5) }}{% endif %}"{% endif %}>
+                {% if r.grwt_2_5 and r.grwt_2_5 > 0 %}
+                <span class="font-bold text-emerald-600 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.grwt_2_5) }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600">-</span>
+                {% endif %}
+            </td>
+            <!-- 2-5 Days Transfer -->
+            <td class="text-right px-1.5 py-1.5 w-[7.5%] tabular-nums overflow-hidden border-r border-gray-100 dark:border-gray-800" {% if r.transfer_grwt_2_5 and r.transfer_grwt_2_5 > 0 %}title="Transfer Gross: {{ "%.3f"|format(r.transfer_grwt_2_5) }}&#10;Transfer Net: {{ "%.3f"|format(r.transfer_netwt_2_5) }}{% if r.transfer_stwt_2_5 and r.transfer_stwt_2_5 > 0 %}&#10;Transfer Stone: {{ "%.3f"|format(r.transfer_stwt_2_5) }}{% endif %}"{% endif %}>
+                {% if r.transfer_grwt_2_5 and r.transfer_grwt_2_5 > 0 %}
+                <span class="font-bold text-indigo-600 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.transfer_grwt_2_5) }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600">-</span>
+                {% endif %}
+            </td>
+
+            <!-- 6-10 Days Settlement -->
+            <td class="text-right px-1.5 py-1.5 w-[7.5%] tabular-nums overflow-hidden" {% if r.grwt_6_10 and r.grwt_6_10 > 0 %}title="Gross: {{ "%.3f"|format(r.grwt_6_10) }}&#10;Net: {{ "%.3f"|format(r.netwt_6_10) }}{% if r.stwt_6_10 and r.stwt_6_10 > 0 %}&#10;Stone: {{ "%.3f"|format(r.stwt_6_10) }}{% endif %}"{% endif %}>
+                {% if r.grwt_6_10 and r.grwt_6_10 > 0 %}
+                <span class="font-bold text-amber-600 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.grwt_6_10) }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600">-</span>
+                {% endif %}
+            </td>
+            <!-- 6-10 Days Transfer -->
+            <td class="text-right px-1.5 py-1.5 w-[7.5%] tabular-nums overflow-hidden border-r border-gray-100 dark:border-gray-800" {% if r.transfer_grwt_6_10 and r.transfer_grwt_6_10 > 0 %}title="Transfer Gross: {{ "%.3f"|format(r.transfer_grwt_6_10) }}&#10;Transfer Net: {{ "%.3f"|format(r.transfer_netwt_6_10) }}{% if r.transfer_stwt_6_10 and r.transfer_stwt_6_10 > 0 %}&#10;Transfer Stone: {{ "%.3f"|format(r.transfer_stwt_6_10) }}{% endif %}"{% endif %}>
+                {% if r.transfer_grwt_6_10 and r.transfer_grwt_6_10 > 0 %}
+                <span class="font-bold text-indigo-600 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.transfer_grwt_6_10) }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600">-</span>
+                {% endif %}
+            </td>
+
+            <!-- 11-15 Days Settlement -->
+            <td class="text-right px-1.5 py-1.5 w-[7.5%] tabular-nums overflow-hidden" {% if r.grwt_11_15 and r.grwt_11_15 > 0 %}title="Gross: {{ "%.3f"|format(r.grwt_11_15) }}&#10;Net: {{ "%.3f"|format(r.netwt_11_15) }}{% if r.stwt_11_15 and r.stwt_11_15 > 0 %}&#10;Stone: {{ "%.3f"|format(r.stwt_11_15) }}{% endif %}"{% endif %}>
+                {% if r.grwt_11_15 and r.grwt_11_15 > 0 %}
+                <span class="font-bold text-orange-600 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.grwt_11_15) }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600">-</span>
+                {% endif %}
+            </td>
+            <!-- 11-15 Days Transfer -->
+            <td class="text-right px-1.5 py-1.5 w-[7.5%] tabular-nums overflow-hidden border-r border-gray-100 dark:border-gray-800" {% if r.transfer_grwt_11_15 and r.transfer_grwt_11_15 > 0 %}title="Transfer Gross: {{ "%.3f"|format(r.transfer_grwt_11_15) }}&#10;Transfer Net: {{ "%.3f"|format(r.transfer_netwt_11_15) }}{% if r.transfer_stwt_11_15 and r.transfer_stwt_11_15 > 0 %}&#10;Transfer Stone: {{ "%.3f"|format(r.transfer_stwt_11_15) }}{% endif %}"{% endif %}>
+                {% if r.transfer_grwt_11_15 and r.transfer_grwt_11_15 > 0 %}
+                <span class="font-bold text-indigo-600 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.transfer_grwt_11_15) }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600">-</span>
+                {% endif %}
+            </td>
+
+            <!-- >15 Days Settlement -->
+            <td class="text-right px-1.5 py-1.5 w-[7.5%] tabular-nums overflow-hidden" {% if r.grwt_gt_15 and r.grwt_gt_15 > 0 %}title="Gross: {{ "%.3f"|format(r.grwt_gt_15) }}&#10;Net: {{ "%.3f"|format(r.netwt_gt_15) }}{% if r.stwt_gt_15 and r.stwt_gt_15 > 0 %}&#10;Stone: {{ "%.3f"|format(r.stwt_gt_15) }}{% endif %}"{% endif %}>
+                {% if r.grwt_gt_15 and r.grwt_gt_15 > 0 %}
+                <span class="font-bold text-red-600 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.grwt_gt_15) }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600">-</span>
+                {% endif %}
+            </td>
+            <!-- >15 Days Transfer -->
+            <td class="text-right px-1.5 py-1.5 w-[7.5%] tabular-nums overflow-hidden border-r border-gray-100 dark:border-gray-800" {% if r.transfer_grwt_gt_15 and r.transfer_grwt_gt_15 > 0 %}title="Transfer Gross: {{ "%.3f"|format(r.transfer_grwt_gt_15) }}&#10;Transfer Net: {{ "%.3f"|format(r.transfer_netwt_gt_15) }}{% if r.transfer_stwt_gt_15 and r.transfer_stwt_gt_15 > 0 %}&#10;Transfer Stone: {{ "%.3f"|format(r.transfer_stwt_gt_15) }}{% endif %}"{% endif %}>
+                {% if r.transfer_grwt_gt_15 and r.transfer_grwt_gt_15 > 0 %}
+                <span class="font-bold text-indigo-600 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.transfer_grwt_gt_15) }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600">-</span>
+                {% endif %}
+            </td>
+
+            <!-- Total Settlement -->
+            <td class="text-right px-1.5 py-1.5 w-[8%] tabular-nums overflow-hidden" {% if r.tot_grwt and r.tot_grwt > 0 %}title="Total Gross: {{ "%.3f"|format(r.tot_grwt) }}&#10;Total Net: {{ "%.3f"|format(r.tot_netwt) }}{% if r.tot_stwt and r.tot_stwt > 0 %}&#10;Total Stone: {{ "%.3f"|format(r.tot_stwt) }}{% endif %}"{% endif %}>
+                {% if r.tot_grwt and r.tot_grwt > 0 %}
+                <span class="font-bold text-gray-900 dark:text-white cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.tot_grwt) }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600">-</span>
+                {% endif %}
+            </td>
+            <!-- Total Transfer -->
+            <td class="text-right px-1.5 py-1.5 w-[8%] tabular-nums overflow-hidden" {% if r.tot_transfer_grwt and r.tot_transfer_grwt > 0 %}title="Total Transfer Gross: {{ "%.3f"|format(r.tot_transfer_grwt) }}&#10;Total Transfer Net: {{ "%.3f"|format(r.tot_transfer_netwt) }}{% if r.tot_transfer_stwt and r.tot_transfer_stwt > 0 %}&#10;Total Transfer Stone: {{ "%.3f"|format(r.tot_transfer_stwt) }}{% endif %}"{% endif %}>
+                {% if r.tot_transfer_grwt and r.tot_transfer_grwt > 0 %}
+                <span class="font-bold text-indigo-600 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.tot_transfer_grwt) }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600">-</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+
+        {% if not rows and not is_child_rows %}
+        <tr>
+            <td colspan="12" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
+        </tr>
+        {% endif %}
+
+{% if not is_child_rows %}
+    </tbody>
+    <tfoot class="bg-gray-50 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700 font-bold sticky bottom-0 z-10">
+        <tr>
+            <td colspan="2" class="px-2 py-2 text-left uppercase tracking-wider text-gray-500 text-[10px] w-[24%] overflow-hidden border-r border-gray-200 dark:border-gray-700">Grand Total</td>
+            <!-- 2-5 Days Settlement -->
+            <td class="text-right px-1.5 py-2 w-[7.5%] tabular-nums overflow-hidden" {% if stats and stats.grwt_2_5 and stats.grwt_2_5 != '0.000' and stats.grwt_2_5 != '0' %}title="Gross: {{ stats.grwt_2_5 }}&#10;Net: {{ stats.netwt_2_5 }}{% if stats.stwt_2_5 and stats.stwt_2_5 != '0.000' and stats.stwt_2_5 != '0' %}&#10;Stone: {{ stats.stwt_2_5 }}{% endif %}"{% endif %}>
+                {% if stats and stats.grwt_2_5 and stats.grwt_2_5 != '0.000' and stats.grwt_2_5 != '0' %}
+                <span class="text-emerald-600 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.grwt_2_5 }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
+                {% endif %}
+            </td>
+            <!-- 2-5 Days Transfer -->
+            <td class="text-right px-1.5 py-2 w-[7.5%] tabular-nums overflow-hidden border-r border-gray-200 dark:border-gray-700" {% if stats and stats.transfer_grwt_2_5 and stats.transfer_grwt_2_5 != '0.000' and stats.transfer_grwt_2_5 != '0' %}title="Transfer Gross: {{ stats.transfer_grwt_2_5 }}&#10;Transfer Net: {{ stats.transfer_netwt_2_5 }}{% if stats.transfer_stwt_2_5 and stats.transfer_stwt_2_5 != '0.000' and stats.transfer_stwt_2_5 != '0' %}&#10;Transfer Stone: {{ stats.transfer_stwt_2_5 }}{% endif %}"{% endif %}>
+                {% if stats and stats.transfer_grwt_2_5 and stats.transfer_grwt_2_5 != '0.000' and stats.transfer_grwt_2_5 != '0' %}
+                <span class="text-indigo-600 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.transfer_grwt_2_5 }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
+                {% endif %}
+            </td>
+
+            <!-- 6-10 Days Settlement -->
+            <td class="text-right px-1.5 py-2 w-[7.5%] tabular-nums overflow-hidden" {% if stats and stats.grwt_6_10 and stats.grwt_6_10 != '0.000' and stats.grwt_6_10 != '0' %}title="Gross: {{ stats.grwt_6_10 }}&#10;Net: {{ stats.netwt_6_10 }}{% if stats.stwt_6_10 and stats.stwt_6_10 != '0.000' and stats.stwt_6_10 != '0' %}&#10;Stone: {{ stats.stwt_6_10 }}{% endif %}"{% endif %}>
+                {% if stats and stats.grwt_6_10 and stats.grwt_6_10 != '0.000' and stats.grwt_6_10 != '0' %}
+                <span class="text-amber-600 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.grwt_6_10 }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
+                {% endif %}
+            </td>
+            <!-- 6-10 Days Transfer -->
+            <td class="text-right px-1.5 py-2 w-[7.5%] tabular-nums overflow-hidden border-r border-gray-200 dark:border-gray-700" {% if stats and stats.transfer_grwt_6_10 and stats.transfer_grwt_6_10 != '0.000' and stats.transfer_grwt_6_10 != '0' %}title="Transfer Gross: {{ stats.transfer_grwt_6_10 }}&#10;Transfer Net: {{ stats.transfer_netwt_6_10 }}{% if stats.transfer_stwt_6_10 and stats.transfer_stwt_6_10 != '0.000' and stats.transfer_stwt_6_10 != '0' %}&#10;Transfer Stone: {{ stats.transfer_stwt_6_10 }}{% endif %}"{% endif %}>
+                {% if stats and stats.transfer_grwt_6_10 and stats.transfer_grwt_6_10 != '0.000' and stats.transfer_grwt_6_10 != '0' %}
+                <span class="text-indigo-600 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.transfer_grwt_6_10 }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
+                {% endif %}
+            </td>
+
+            <!-- 11-15 Days Settlement -->
+            <td class="text-right px-1.5 py-2 w-[7.5%] tabular-nums overflow-hidden" {% if stats and stats.grwt_11_15 and stats.grwt_11_15 != '0.000' and stats.grwt_11_15 != '0' %}title="Gross: {{ stats.grwt_11_15 }}&#10;Net: {{ stats.netwt_11_15 }}{% if stats.stwt_11_15 and stats.stwt_11_15 != '0.000' and stats.stwt_11_15 != '0' %}&#10;Stone: {{ stats.stwt_11_15 }}{% endif %}"{% endif %}>
+                {% if stats and stats.grwt_11_15 and stats.grwt_11_15 != '0.000' and stats.grwt_11_15 != '0' %}
+                <span class="text-orange-600 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.grwt_11_15 }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
+                {% endif %}
+            </td>
+            <!-- 11-15 Days Transfer -->
+            <td class="text-right px-1.5 py-2 w-[7.5%] tabular-nums overflow-hidden border-r border-gray-200 dark:border-gray-700" {% if stats and stats.transfer_grwt_11_15 and stats.transfer_grwt_11_15 != '0.000' and stats.transfer_grwt_11_15 != '0' %}title="Transfer Gross: {{ stats.transfer_grwt_11_15 }}&#10;Transfer Net: {{ stats.transfer_netwt_11_15 }}{% if stats.transfer_stwt_11_15 and stats.transfer_stwt_11_15 != '0.000' and stats.transfer_stwt_11_15 != '0' %}&#10;Transfer Stone: {{ stats.transfer_stwt_11_15 }}{% endif %}"{% endif %}>
+                {% if stats and stats.transfer_grwt_11_15 and stats.transfer_grwt_11_15 != '0.000' and stats.transfer_grwt_11_15 != '0' %}
+                <span class="text-indigo-600 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.transfer_grwt_11_15 }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
+                {% endif %}
+            </td>
+
+            <!-- >15 Days Settlement -->
+            <td class="text-right px-1.5 py-2 w-[7.5%] tabular-nums overflow-hidden" {% if stats and stats.grwt_gt_15 and stats.grwt_gt_15 != '0.000' and stats.grwt_gt_15 != '0' %}title="Gross: {{ stats.grwt_gt_15 }}&#10;Net: {{ stats.netwt_gt_15 }}{% if stats.stwt_gt_15 and stats.stwt_gt_15 != '0.000' and stats.stwt_gt_15 != '0' %}&#10;Stone: {{ stats.stwt_gt_15 }}{% endif %}"{% endif %}>
+                {% if stats and stats.grwt_gt_15 and stats.grwt_gt_15 != '0.000' and stats.grwt_gt_15 != '0' %}
+                <span class="text-red-600 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.grwt_gt_15 }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
+                {% endif %}
+            </td>
+            <!-- >15 Days Transfer -->
+            <td class="text-right px-1.5 py-2 w-[7.5%] tabular-nums overflow-hidden border-r border-gray-200 dark:border-gray-700" {% if stats and stats.transfer_grwt_gt_15 and stats.transfer_grwt_gt_15 != '0.000' and stats.transfer_grwt_gt_15 != '0' %}title="Transfer Gross: {{ stats.transfer_grwt_gt_15 }}&#10;Transfer Net: {{ stats.transfer_netwt_gt_15 }}{% if stats.transfer_stwt_gt_15 and stats.transfer_stwt_gt_15 != '0.000' and stats.transfer_stwt_gt_15 != '0' %}&#10;Transfer Stone: {{ stats.transfer_stwt_gt_15 }}{% endif %}"{% endif %}>
+                {% if stats and stats.transfer_grwt_gt_15 and stats.transfer_grwt_gt_15 != '0.000' and stats.transfer_grwt_gt_15 != '0' %}
+                <span class="text-indigo-600 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.transfer_grwt_gt_15 }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
+                {% endif %}
+            </td>
+
+            <!-- Total Settlement -->
+            <td class="text-right px-1.5 py-2 w-[8%] tabular-nums overflow-hidden" {% if stats and stats.total_grwt and stats.total_grwt != '0.000' and stats.total_grwt != '0' %}title="Total Gross: {{ stats.total_grwt }}&#10;Total Net: {{ stats.total_netwt }}{% if stats.total_stwt and stats.total_stwt != '0.000' and stats.total_stwt != '0' %}&#10;Total Stone: {{ stats.total_stwt }}{% endif %}"{% endif %}>
+                {% if stats and stats.total_grwt and stats.total_grwt != '0.000' and stats.total_grwt != '0' %}
+                <span class="text-gray-900 dark:text-white text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.total_grwt }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
+                {% endif %}
+            </td>
+            <!-- Total Transfer -->
+            <td class="text-right px-1.5 py-2 w-[8%] tabular-nums overflow-hidden" {% if stats and stats.transfer_grwt and stats.transfer_grwt != '0.000' and stats.transfer_grwt != '0' %}title="Total Transfer Gross: {{ stats.transfer_grwt }}&#10;Total Transfer Net: {{ stats.transfer_netwt }}{% if stats.transfer_stwt and stats.transfer_stwt != '0.000' and stats.transfer_stwt != '0' %}&#10;Transfer Stone: {{ stats.transfer_stwt }}{% endif %}"{% endif %}>
+                {% if stats and stats.transfer_grwt and stats.transfer_grwt != '0.000' and stats.transfer_grwt != '0' %}
+                <span class="text-indigo-600 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.transfer_grwt }}</span>
+                {% else %}
+                <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
+                {% endif %}
+            </td>
+        </tr>
+    </tfoot>
+</table>
+
+<!-- Hidden pagination metadata for JS to read -->
+<div class="pagination-meta hidden"
+    data-page="{{ pagination.page if pagination else 1 }}"
+    data-pages="{{ pagination.pages if pagination else 1 }}"
+    data-total="{{ pagination.total if pagination else 0 }}"
+    data-per-page="{{ pagination.per_page if pagination else 50 }}"
+    data-level="{{ current_level or 'office' }}"
+    data-sort-by="{{ sort_by or 'hierarchy' }}"
+    data-sort-order="{{ sort_order or 'asc' }}">
+</div>
+
+<script id="stats-metadata" type="application/json">
+{{ stats | tojson | safe }}
+</script>
+{% endif %}

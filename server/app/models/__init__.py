@@ -31,7 +31,8 @@ from .snapshots import (
     PartyRoWiseDeliverySnapshot,
     PartyOrderLifecycleSnapshot,
     PartyQcPassFailSnapshot,
-    DesignAllocationInfoSnapshot
+    DesignAllocationInfoSnapshot,
+    LocationWiseOldGoldSettlementTransferSnapshot
 )
 
 from .rbac import Role, Permission, Menu, RoleMenu, RolePermission, UserRole, AuditLog, UserPasswordHistory
@@ -86,6 +87,7 @@ __all__ = [
     'PartyOrderLifecycleSnapshot',
     'PartyQcPassFailSnapshot',
     'DesignAllocationInfoSnapshot',
+    'LocationWiseOldGoldSettlementTransferSnapshot',
     'AKTTransactionPerformance'
 ]
 

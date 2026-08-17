@@ -3301,3 +3301,25 @@ class DesignAllocationInfoSnapshot(db.Model):
     snapshot_date = db.Column(db.Date)
     source_file = db.Column(db.Text)
     imported_at = db.Column(db.DateTime(timezone=True), default=db.func.now())
+
+
+class LocationWiseOldGoldSettlementTransferSnapshot(db.Model):
+    __tablename__ = 'location_wise_old_gold_settlement_transfer_snapshot'
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    transdate = db.Column(db.Date, index=True)
+    locationname = db.Column(db.String(200), index=True)
+    office = db.Column(db.String(100), index=True)
+    division = db.Column(db.String(100), index=True)
+    groupname = db.Column(db.String(100), index=True)
+    purity = db.Column(db.String(50), index=True)
+    grwt = db.Column(db.Numeric(18, 4), default=0.0)
+    stwt = db.Column(db.Numeric(18, 4), default=0.0)
+    netwt = db.Column(db.Numeric(18, 4), default=0.0)
+    settlementmode = db.Column(db.String(100))
+    transfer_grwt = db.Column(db.Numeric(18, 4), default=0.0)
+    transfer_stwt = db.Column(db.Numeric(18, 4), default=0.0)
+    transfer_netwt = db.Column(db.Numeric(18, 4), default=0.0)
+    locationtype = db.Column(db.String(100))
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
