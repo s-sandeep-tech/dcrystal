@@ -66,6 +66,7 @@ def get_aggregation_columns():
     trans_date = func.cast(LocationWiseOldGoldSettlementTransferSnapshot.transdate, db.Date)
     curr_date = func.current_date()
 
+    cond_today = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date == curr_date)
     cond_2_5 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(curr_date - 5, curr_date - 2))
     cond_6_10 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(curr_date - 10, curr_date - 6))
     cond_11_15 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(curr_date - 15, curr_date - 11))
@@ -76,6 +77,16 @@ def get_aggregation_columns():
         func.coalesce(func.sum(LocationWiseOldGoldSettlementTransferSnapshot.grwt), 0).label('tot_grwt'),
         func.coalesce(func.sum(LocationWiseOldGoldSettlementTransferSnapshot.netwt), 0).label('tot_netwt'),
         func.coalesce(func.sum(LocationWiseOldGoldSettlementTransferSnapshot.stwt), 0).label('tot_stwt'),
+
+        # Today settlement
+        func.coalesce(func.sum(case((cond_today, LocationWiseOldGoldSettlementTransferSnapshot.grwt), else_=0)), 0).label('grwt_today'),
+        func.coalesce(func.sum(case((cond_today, LocationWiseOldGoldSettlementTransferSnapshot.netwt), else_=0)), 0).label('netwt_today'),
+        func.coalesce(func.sum(case((cond_today, LocationWiseOldGoldSettlementTransferSnapshot.stwt), else_=0)), 0).label('stwt_today'),
+
+        # Today transfer
+        func.coalesce(func.sum(case((cond_today, LocationWiseOldGoldSettlementTransferSnapshot.transfer_grwt), else_=0)), 0).label('transfer_grwt_today'),
+        func.coalesce(func.sum(case((cond_today, LocationWiseOldGoldSettlementTransferSnapshot.transfer_netwt), else_=0)), 0).label('transfer_netwt_today'),
+        func.coalesce(func.sum(case((cond_today, LocationWiseOldGoldSettlementTransferSnapshot.transfer_stwt), else_=0)), 0).label('transfer_stwt_today'),
 
         # 2-5 days settlement
         func.coalesce(func.sum(case((cond_2_5, LocationWiseOldGoldSettlementTransferSnapshot.grwt), else_=0)), 0).label('grwt_2_5'),
@@ -137,6 +148,13 @@ def compute_global_stats(base_query):
             return 0.0
         return min(100.0, round((float(val or 0.0) / tot_grwt) * 100.0, 1))
 
+    grwt_today = float(stat_row.grwt_today if stat_row else 0.0)
+    netwt_today = float(stat_row.netwt_today if stat_row else 0.0)
+    stwt_today = float(stat_row.stwt_today if stat_row else 0.0)
+    trans_grwt_today = float(stat_row.transfer_grwt_today if stat_row else 0.0)
+    trans_netwt_today = float(stat_row.transfer_netwt_today if stat_row else 0.0)
+    trans_stwt_today = float(stat_row.transfer_stwt_today if stat_row else 0.0)
+
     grwt_2_5 = float(stat_row.grwt_2_5 if stat_row else 0.0)
     netwt_2_5 = float(stat_row.netwt_2_5 if stat_row else 0.0)
     stwt_2_5 = float(stat_row.stwt_2_5 if stat_row else 0.0)
@@ -177,6 +195,13 @@ def compute_global_stats(base_query):
         'total_grwt': f"{tot_grwt:,.3f}",
         'total_netwt': f"{tot_netwt:,.3f}",
         'total_stwt': f"{tot_stwt:,.3f}",
+
+        'grwt_today': f"{grwt_today:,.3f}",
+        'netwt_today': f"{netwt_today:,.3f}",
+        'stwt_today': f"{stwt_today:,.3f}",
+        'transfer_grwt_today': f"{trans_grwt_today:,.3f}",
+        'transfer_netwt_today': f"{trans_netwt_today:,.3f}",
+        'transfer_stwt_today': f"{trans_stwt_today:,.3f}",
 
         'grwt_2_5': f"{grwt_2_5:,.3f}",
         'netwt_2_5': f"{netwt_2_5:,.3f}",
@@ -241,12 +266,17 @@ def get_sort_order_clause(sort_by, sort_order, group_cols):
     trans_date = func.cast(LocationWiseOldGoldSettlementTransferSnapshot.transdate, db.Date)
     curr_date = func.current_date()
 
+    cond_today = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date == curr_date)
     cond_2_5 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(curr_date - 5, curr_date - 2))
     cond_6_10 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(curr_date - 10, curr_date - 6))
     cond_11_15 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(curr_date - 15, curr_date - 11))
     cond_gt_15 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date < curr_date - 15)
 
     sort_map = {
+        'today': func.coalesce(func.sum(case((cond_today, LocationWiseOldGoldSettlementTransferSnapshot.grwt), else_=0)), 0),
+        'today_settle': func.coalesce(func.sum(case((cond_today, LocationWiseOldGoldSettlementTransferSnapshot.grwt), else_=0)), 0),
+        'today_trans': func.coalesce(func.sum(case((cond_today, LocationWiseOldGoldSettlementTransferSnapshot.transfer_grwt), else_=0)), 0),
+
         'days_2_5': func.coalesce(func.sum(case((cond_2_5, LocationWiseOldGoldSettlementTransferSnapshot.grwt), else_=0)), 0),
         'days_2_5_settle': func.coalesce(func.sum(case((cond_2_5, LocationWiseOldGoldSettlementTransferSnapshot.grwt), else_=0)), 0),
         'days_2_5_trans': func.coalesce(func.sum(case((cond_2_5, LocationWiseOldGoldSettlementTransferSnapshot.transfer_grwt), else_=0)), 0),
@@ -415,6 +445,13 @@ def get_location_wise_old_gold_partial():
                 'purity': pur,
                 'label': label,
                 'level': level,
+                'grwt_today': float(r.grwt_today or 0.0),
+                'netwt_today': float(r.netwt_today or 0.0),
+                'stwt_today': float(r.stwt_today or 0.0),
+                'transfer_grwt_today': float(r.transfer_grwt_today or 0.0),
+                'transfer_netwt_today': float(r.transfer_netwt_today or 0.0),
+                'transfer_stwt_today': float(r.transfer_stwt_today or 0.0),
+
                 'grwt_2_5': float(r.grwt_2_5 or 0.0),
                 'netwt_2_5': float(r.netwt_2_5 or 0.0),
                 'stwt_2_5': float(r.stwt_2_5 or 0.0),
