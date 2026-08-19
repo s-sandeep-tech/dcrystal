@@ -220,37 +220,13 @@
         </div>
         <div class="space-y-3">
             <!-- Office Filter -->
-            <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Office</label>
-                <select id="filter-office" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Offices</option>
-                    {% for off in filter_options.offices %}
-                    <option value="{{ off }}" {% if request.args.get('office') == off %}selected{% endif %}>{{ off }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+            <div id="filter-office-container"></div>
 
             <!-- Location Filter -->
-            <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Location</label>
-                <select id="filter-location" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Locations</option>
-                    {% for loc in filter_options.locations %}
-                    <option value="{{ loc }}" {% if request.args.get('location') == loc %}selected{% endif %}>{{ loc }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+            <div id="filter-location-container"></div>
 
             <!-- Division Filter -->
-            <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Division</label>
-                <select id="filter-division" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Divisions</option>
-                    {% for div in filter_options.divisions %}
-                    <option value="{{ div }}" {% if request.args.get('division') == div %}selected{% endif %}>{{ div }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+            <div id="filter-division-container"></div>
 
             <!-- Group Filter -->
             <div class="space-y-1">
@@ -264,15 +240,7 @@
             </div>
 
             <!-- Purity Filter -->
-            <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Purity</label>
-                <select id="filter-purity" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All Purities</option>
-                    {% for pur in filter_options.purities %}
-                    <option value="{{ pur }}" {% if request.args.get('purity') == pur %}selected{% endif %}>{{ pur }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+            <div id="filter-purity-container"></div>
 
             <!-- Date Filter -->
             <div class="pt-2 border-t border-gray-100 dark:border-gray-800">
@@ -302,5 +270,9 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/location_wise_old_gold_settlement_transfer.js') }}"></script>
+<script>
+    window.OLD_GOLD_FILTER_OPTIONS = {{ filter_options|tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
+<script src="{{ url_for('static', filename='js/location_wise_old_gold_settlement_transfer.js', v='20260819-1') }}"></script>
 {% endblock %}

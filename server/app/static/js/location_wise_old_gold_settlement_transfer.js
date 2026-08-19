@@ -1,5 +1,40 @@
 let currentZoom = parseFloat(localStorage.getItem('oldgold-zoom')) || 1.0;
 let searchTimeout;
+const oldGoldMultiSelects = {};
+
+function initializeMultiSelectFilters() {
+    if (typeof CustomMultiSelect === 'undefined') return;
+
+    const options = window.OLD_GOLD_FILTER_OPTIONS || {};
+    const definitions = {
+        office: ['Office', 'All Offices', options.offices || []],
+        location: ['Location', 'All Locations', options.locations || []],
+        division: ['Division', 'All Divisions', options.divisions || []],
+        purity: ['Purity', 'All Purities', options.purities || []]
+    };
+    const urlParams = new URLSearchParams(window.location.search);
+
+    Object.entries(definitions).forEach(([key, [label, defaultText, values]]) => {
+        const containerId = `filter-${key}-container`;
+        if (!document.getElementById(containerId)) return;
+
+        const instance = new CustomMultiSelect({
+            containerId,
+            label,
+            defaultText,
+            options: values.map(value => ({ value: String(value), label: String(value) }))
+        });
+        oldGoldMultiSelects[key] = instance;
+
+        const selectedValues = new Set(
+            (urlParams.get(key) || '').split(',').map(value => value.trim()).filter(Boolean)
+        );
+        document.querySelectorAll(`.${containerId}-checkbox`).forEach(checkbox => {
+            checkbox.checked = selectedValues.has(checkbox.value);
+        });
+        instance.updateTriggerText();
+    });
+}
 
 function adjustZoom(delta, reset = false) {
     const tableArea = document.getElementById('table-area');
@@ -252,11 +287,7 @@ function applyGlobalFilters() {
     const urlParams = new URLSearchParams(window.location.search);
 
     const filterMappings = {
-        'office': 'filter-office',
-        'location': 'filter-location',
-        'division': 'filter-division',
         'group': 'filter-group',
-        'purity': 'filter-purity',
         'search': 'hierarchy-search',
         'from_date': 'filter-from-date',
         'to_date': 'filter-to-date',
@@ -281,14 +312,22 @@ function applyGlobalFilters() {
         }
     }
 
+    ['office', 'location', 'division', 'purity'].forEach(param => {
+        const value = oldGoldMultiSelects[param]?.getValues().join(',') || '';
+        if (value) {
+            urlParams.set(param, value);
+        } else {
+            urlParams.delete(param);
+        }
+    });
+
     urlParams.set('page', 1);
     updateUrlAndLoad(urlParams);
 }
 
 function resetGlobalFilters() {
     const inputs = [
-        'filter-office', 'filter-location', 'filter-division',
-        'filter-group', 'filter-purity', 'hierarchy-search',
+        'filter-group', 'hierarchy-search',
         'filter-from-date', 'filter-to-date'
     ];
 
@@ -296,6 +335,8 @@ function resetGlobalFilters() {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
+
+    Object.values(oldGoldMultiSelects).forEach(instance => instance.reset());
 
     const dateCheckbox = document.getElementById('enable-date-filter');
     if (dateCheckbox) dateCheckbox.checked = false;
@@ -363,7 +404,7 @@ function initPaginationFromDOM() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+    initializeMultiSelectFilters();
     adjustZoom(0, false);
     loadViewData();
 });
-

@@ -11,6 +11,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def split_filter_values(value):
+    return [item.strip() for item in (value or '').split(',') if item.strip()]
+
+
 def ensure_table_exists():
     try:
         LocationWiseOldGoldSettlementTransferSnapshot.__table__.create(db.engine, checkfirst=True)
@@ -20,11 +24,11 @@ def ensure_table_exists():
 
 def build_filters(query):
     search = request.args.get('search', '').strip()
-    office = request.args.get('office', '').strip()
-    location = request.args.get('location', '').strip()
-    division = request.args.get('division', '').strip()
+    offices = split_filter_values(request.args.get('office'))
+    locations = split_filter_values(request.args.get('location'))
+    divisions = split_filter_values(request.args.get('division'))
     group_name = request.args.get('group', '').strip()
-    purity = request.args.get('purity', '').strip()
+    purities = split_filter_values(request.args.get('purity'))
     from_date = request.args.get('from_date', '').strip()
     to_date = request.args.get('to_date', '').strip()
     enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
@@ -36,16 +40,16 @@ def build_filters(query):
             (LocationWiseOldGoldSettlementTransferSnapshot.division.ilike(f"%{search}%")) |
             (LocationWiseOldGoldSettlementTransferSnapshot.groupname.ilike(f"%{search}%"))
         )
-    if office:
-        query = query.filter(LocationWiseOldGoldSettlementTransferSnapshot.office == office)
-    if location:
-        query = query.filter(LocationWiseOldGoldSettlementTransferSnapshot.locationname == location)
-    if division:
-        query = query.filter(LocationWiseOldGoldSettlementTransferSnapshot.division == division)
+    if offices:
+        query = query.filter(LocationWiseOldGoldSettlementTransferSnapshot.office.in_(offices))
+    if locations:
+        query = query.filter(LocationWiseOldGoldSettlementTransferSnapshot.locationname.in_(locations))
+    if divisions:
+        query = query.filter(LocationWiseOldGoldSettlementTransferSnapshot.division.in_(divisions))
     if group_name:
         query = query.filter(LocationWiseOldGoldSettlementTransferSnapshot.groupname == group_name)
-    if purity:
-        query = query.filter(LocationWiseOldGoldSettlementTransferSnapshot.purity == purity)
+    if purities:
+        query = query.filter(LocationWiseOldGoldSettlementTransferSnapshot.purity.in_(purities))
 
     if enable_date_filter and from_date and to_date:
         try:
