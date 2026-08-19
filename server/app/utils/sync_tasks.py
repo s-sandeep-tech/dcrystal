@@ -4168,7 +4168,13 @@ def sync_collection_wise_average_delivery_days_task(task_type_override=None, pro
                 'supplier_id': row.get('supplier_id'),
                 'supplier_name': row.get('supplier_name'),
                 'delivery_days': row.get('delivery_days'),
-                'order_period': row.get('order_period')
+                'order_period': row.get('order_period'),
+                'classification_owner': row.get('classification_owner'),
+                'make_owner': row.get('make_owner'),
+                'collection_owner': row.get('collection_owner'),
+                'classification_user_code': row.get('classification_user_code'),
+                'make_user_code': row.get('make_user_code'),
+                'collection_user_code': row.get('collection_user_code')
             })
 
         if new_records:

@@ -3110,6 +3110,12 @@ class CollectionWiseAverageDeliveryDaysSnapshot(db.Model):
     supplier_name = db.Column(db.Text)
     delivery_days = db.Column(db.Integer)
     order_period = db.Column(db.Text)
+    classification_owner = db.Column(db.Text)
+    make_owner = db.Column(db.Text)
+    collection_owner = db.Column(db.Text)
+    classification_user_code = db.Column(db.Text)
+    make_user_code = db.Column(db.Text)
+    collection_user_code = db.Column(db.Text)
 
 
 class PartyDesignAverageDeliveryDaysSnapshot(db.Model):
@@ -3322,4 +3328,3 @@ class LocationWiseOldGoldSettlementTransferSnapshot(db.Model):
     transfer_netwt = db.Column(db.Numeric(18, 4), default=0.0)
     locationtype = db.Column(db.String(100))
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
-

@@ -11,6 +11,16 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+KMU_MAKES = (
+    'KMU - KERALA',
+    'KMU 999 COIN',
+    'KMU B2B',
+    'KMU KARNATAKA',
+    'KMU MH',
+    'KMU-COIN',
+    'KMU-TN',
+)
+
 def split_filter_values(value):
     return [v.strip() for v in (value or '').split(',') if v.strip()]
 
@@ -196,9 +206,29 @@ def build_delivery_display_rows(records):
     return prepared_rows
 
 
+def apply_owner_visibility_filter(query):
+    roles = [role.upper() for role in session.get('roles', [])]
+    if 'ADMIN' in roles or 'MANAGER_2' in roles:
+        return query
+
+    snapshot = CollectionWiseAverageDeliveryDaysSnapshot
+    if 'MANAGER_KMU' in roles:
+        return query.filter(snapshot.make.in_(KMU_MAKES))
+
+    user_id = str(session.get('user_id') or '').strip()
+    if not user_id:
+        return query
+
+    return query.filter(
+        (func.trim(snapshot.make_user_code) == user_id)
+        | (func.trim(snapshot.collection_user_code) == user_id)
+    )
+
+
 def get_distinct(column):
     try:
         query = db.session.query(distinct(column)).filter(column.isnot(None))
+        query = apply_owner_visibility_filter(query)
         results = query.order_by(column).all()
         return [str(r[0]) if isinstance(r[0], (int, float)) or hasattr(r[0], 'as_tuple') else r[0] for r in results if r[0] is not None and str(r[0]).strip() != '']
     except Exception as e:
@@ -207,7 +237,9 @@ def get_distinct(column):
 
 
 def build_snapshot_query(args):
-    query = CollectionWiseAverageDeliveryDaysSnapshot.query
+    query = apply_owner_visibility_filter(
+        CollectionWiseAverageDeliveryDaysSnapshot.query
+    )
 
     # Search filter
     search = args.get('search', '').strip()
