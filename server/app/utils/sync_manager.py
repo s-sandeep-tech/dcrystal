@@ -29,7 +29,7 @@ SCHEDULED_ALL_SYNC_TASKS = (
     'party_delay_management',
     'order_fulfillment_aging_matrix',
     'collection_wise_average_delivery_days',
-    'party_design_average_delivery_days',
+    'party_performance_matrix',
     'location_wise_old_gold_settlement_transfer',
 )
 
@@ -65,6 +65,7 @@ ALLOWED_SYNC_TASKS = {
     'size_level_nip_barcode',
     'collection_wise_average_delivery_days',
     'party_design_average_delivery_days',
+    'party_performance_matrix',
     'location_wise_old_gold_settlement_transfer',
 }
 
@@ -225,6 +226,9 @@ def sync_party_design_average_delivery_days_data(user_id=None):
     return enqueue_sync_task('party_design_average_delivery_days', user_id)
 
 
+def sync_party_performance_matrix_data(user_id=None):
+    return enqueue_sync_task('party_performance_matrix', user_id)
+
+
 def sync_location_wise_old_gold_settlement_transfer_data(user_id=None):
     return enqueue_sync_task('location_wise_old_gold_settlement_transfer', user_id)
-

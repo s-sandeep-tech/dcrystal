@@ -57,6 +57,7 @@ try:
         sync_size_level_nip_barcode_task,
         sync_collection_wise_average_delivery_days_task,
         sync_party_design_average_delivery_days_task,
+        sync_party_performance_matrix_task,
         sync_location_wise_old_gold_settlement_transfer_task,
         emit_sync_update
     )
@@ -215,6 +216,8 @@ def process_sync_queue():
                         res = sync_collection_wise_average_delivery_days_task()
                     elif task_type == 'party_design_average_delivery_days':
                         res = sync_party_design_average_delivery_days_task()
+                    elif task_type == 'party_performance_matrix':
+                        res = sync_party_performance_matrix_task()
                     elif task_type == 'location_wise_old_gold_settlement_transfer':
                         res = sync_location_wise_old_gold_settlement_transfer_task()
                     else:

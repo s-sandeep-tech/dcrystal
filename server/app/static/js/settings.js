@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, 
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, 
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
-                            syncCollectionWiseAverageDeliveryDaysBtn, syncLocationWiseOldGoldBtn
+                            syncCollectionWiseAverageDeliveryDaysBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn
                         ].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
                         });
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, 
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, 
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
-                            syncCollectionWiseAverageDeliveryDaysBtn, syncLocationWiseOldGoldBtn
+                            syncCollectionWiseAverageDeliveryDaysBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn
                         ].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
                         });
@@ -168,6 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncPartyDelayManagementBtn = document.getElementById('sync-party-delay-management-btn');
     const syncOrderFulfillmentAgingMatrixBtn = document.getElementById('sync-order-fulfillment-aging-matrix-btn');
     const syncCollectionWiseAverageDeliveryDaysBtn = document.getElementById('sync-collection-wise-average-delivery-days-btn');
+    const syncPartyPerformanceMatrixBtn = document.getElementById('sync-party-performance-matrix-btn');
     const syncLocationWiseOldGoldBtn = document.getElementById('sync-location-wise-old-gold-btn');
     const syncAllBtn = document.getElementById('sync-all-btn');
 
@@ -235,6 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncPartyDelayManagementBtn) syncPartyDelayManagementBtn.addEventListener('click', () => triggerSync(syncPartyDelayManagementBtn, window.SETTINGS_CONFIG.syncPartyDelayManagementUrl, 'Vendor Delay Management Sync', 'party_delay_management'));
     if (syncOrderFulfillmentAgingMatrixBtn) syncOrderFulfillmentAgingMatrixBtn.addEventListener('click', () => triggerSync(syncOrderFulfillmentAgingMatrixBtn, window.SETTINGS_CONFIG.syncOrderFulfillmentValueAgingMatrixUrl, 'Order Fulfillment Value Aging Matrix Sync', 'order_fulfillment_aging_matrix'));
     if (syncCollectionWiseAverageDeliveryDaysBtn) syncCollectionWiseAverageDeliveryDaysBtn.addEventListener('click', () => triggerSync(syncCollectionWiseAverageDeliveryDaysBtn, window.SETTINGS_CONFIG.syncCollectionWiseAverageDeliveryDaysUrl || '/api/sync/collection-wise-average-delivery-days', 'Collection Wise Average Delivery Days Sync', 'collection_wise_average_delivery_days'));
+    if (syncPartyPerformanceMatrixBtn) syncPartyPerformanceMatrixBtn.addEventListener('click', () => triggerSync(syncPartyPerformanceMatrixBtn, window.SETTINGS_CONFIG.syncPartyPerformanceMatrixUrl, 'Party Performance Matrix Sync', 'party_performance_matrix'));
     if (syncLocationWiseOldGoldBtn) syncLocationWiseOldGoldBtn.addEventListener('click', () => triggerSync(syncLocationWiseOldGoldBtn, window.SETTINGS_CONFIG.syncLocationWiseOldGoldSettlementTransferUrl, 'Location-wise Old Gold Settlement & Transfer Sync', 'location_wise_old_gold_settlement_transfer'));
 
 
@@ -310,6 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { url: '/settings/sync-hm-delay-management', label: 'HM Delay Management', type: 'hm_delay_management' },
                 { url: '/settings/sync-party-delay-management', label: 'Vendor Delay Management', type: 'party_delay_management' },
                 { url: window.SETTINGS_CONFIG.syncOrderFulfillmentValueAgingMatrixUrl, label: 'Order Fulfillment Value Aging Matrix', type: 'order_fulfillment_aging_matrix' },
+                { url: window.SETTINGS_CONFIG.syncPartyPerformanceMatrixUrl, label: 'Party Performance Matrix', type: 'party_performance_matrix' },
                 { url: window.SETTINGS_CONFIG.syncLocationWiseOldGoldSettlementTransferUrl, label: 'Location-wise Old Gold Settlement & Transfer', type: 'location_wise_old_gold_settlement_transfer' },
             ];
 

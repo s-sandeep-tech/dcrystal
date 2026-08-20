@@ -1,4 +1,5 @@
 import psycopg2
+from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
 from sqlalchemy import text
@@ -47,6 +48,15 @@ from ..models.snapshots import (
     SizeLevelNIPBarcodeSnapshot,
     SizeLevelNIPBarcodeStaging,
     CollectionWiseAverageDeliveryDaysSnapshot,
+    PartyDesignAverageDeliveryDaysSnapshot,
+    PartyOrderAcceptCancelDeliverySnapshot,
+    PartyDesignLocationAllocationSnapshot,
+    PartyOrderCancellationSnapshot,
+    PartyMcStoneValueAllocationSnapshot,
+    PartyHallmarkPassFailSnapshot,
+    PartyRoWiseDeliverySnapshot,
+    PartyOrderLifecycleSnapshot,
+    PartyQcPassFailSnapshot,
     LocationWiseOldGoldSettlementTransferSnapshot
 )
 
@@ -4203,87 +4213,254 @@ def sync_collection_wise_average_delivery_days_task(task_type_override=None, pro
         if conn: conn.close()
 
 
-def sync_party_design_average_delivery_days_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+PARTY_PERFORMANCE_SYNC_SPECS = (
+    {
+        'view': 'vw_party_design_info',
+        'model': PartyDesignAverageDeliveryDaysSnapshot,
+        'required': ('design_id', 'design_code', 'party', 'average_delivery_days'),
+    },
+    {
+        'view': 'vw_party_order_accept_cancel_and_delivered_frequency',
+        'model': PartyOrderAcceptCancelDeliverySnapshot,
+        'required': ('supplier', 'order_wt', 'accepted_wt', 'cancelled_wt', 'delivered_wt'),
+    },
+    {
+        'view': 'vw_party_design_allocation_location_info',
+        'model': PartyDesignLocationAllocationSnapshot,
+        'required': ('party', 'design_id', 'delivered_weight'),
+    },
+    {
+        'view': 'vw_cancelled_info',
+        'model': PartyOrderCancellationSnapshot,
+        'required': ('supplier', 'order_no', 'order_wt', 'cancelled_wt'),
+    },
+    {
+        'view': 'vw_party_mc_and_stone_value_allocation',
+        'model': PartyMcStoneValueAllocationSnapshot,
+        'required': ('party', 'total_mc_value', 'stone_value'),
+    },
+    {
+        'view': 'vw_party_hallmark_pass_and_fail_info',
+        'model': PartyHallmarkPassFailSnapshot,
+        'required': ('party', 'hm_issue_pcs', 'hm_passed_pcs', 'hm_failed_pcs'),
+    },
+    {
+        'view': 'vw_party_ro_wise_delivery_info',
+        'model': PartyRoWiseDeliverySnapshot,
+        'required': ('party', 'delivery_ro', 'delivered_weight'),
+    },
+    {
+        'view': 'vw_order_info',
+        'model': PartyOrderLifecycleSnapshot,
+        'required': ('party', 'order_number', 'order_weight', 'production_weight', 'delivered_weight'),
+    },
+    {
+        'view': 'vw_party_qc_pass_and_fail_info',
+        'model': PartyQcPassFailSnapshot,
+        'required': ('party', 'qc_issue_pcs', 'qc_passed_pcs', 'qc_failed_pcs'),
+    },
+)
+
+
+PARTY_PERFORMANCE_COLUMN_ALIASES = {
+    'party_type': ('partytype',),
+    'hallmarking_center': ('hallmark_center',),
+    'hm_issue_pcs': ('hm_issue_total_pieces', 'hm_issue_pieces'),
+    'hm_issue_wt': ('hm_issue_total_weight',),
+    'hm_passed_pcs': ('hm_passed_total_pieces', 'hm_passed_pieces'),
+    'hm_passed_wt': ('hm_passed_total_weight',),
+    'hm_failed_pcs': ('hm_failed_total_pieces', 'hm_failed_pieces'),
+    'hm_failed_wt': ('hm_failed_total_weight',),
+    'qc_issue_pcs': ('qc_issue_total_pieces', 'qc_issue_pieces'),
+    'qc_issue_wt': ('qc_issue_total_weight',),
+    'qc_passed_pcs': ('qc_passed_total_pieces', 'qc_passed_pieces'),
+    'qc_passed_wt': ('qc_passed_total_weight',),
+    'qc_failed_pcs': ('qc_failed_total_pieces', 'qc_failed_pieces'),
+    'qc_failed_wt': ('qc_failed_total_weight',),
+}
+
+
+def _normalise_party_sync_column(value):
+    return ''.join(character for character in str(value or '').lower() if character.isalnum())
+
+
+def _party_sync_month_number(value):
+    if value is None:
+        return None
+    month_names = {
+        'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+        'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+    }
+    return month_names.get(str(value).strip().lower()[:3])
+
+
+def _map_party_performance_rows(model, view_name, rows, source_columns, required_columns):
+    source_lookup = {
+        _normalise_party_sync_column(column): column
+        for column in source_columns
+    }
+    model_columns = [
+        column.name for column in model.__table__.columns
+        if column.name not in {'id', 'snapshot_date', 'source_file', 'imported_at'}
+    ]
+    non_nullable_columns = {
+        column.name for column in model.__table__.columns
+        if not column.nullable
+        and column.name not in {'id', 'snapshot_date', 'source_file', 'imported_at'}
+    }
+    generated_columns = {'source_row_number', 'month_number'}
+    field_sources = {}
+
+    for column_name in model_columns:
+        if column_name in generated_columns:
+            continue
+        candidates = (column_name,) + PARTY_PERFORMANCE_COLUMN_ALIASES.get(column_name, ())
+        source_name = next(
+            (
+                source_lookup[_normalise_party_sync_column(candidate)]
+                for candidate in candidates
+                if _normalise_party_sync_column(candidate) in source_lookup
+            ),
+            None,
+        )
+        if source_name:
+            field_sources[column_name] = source_name
+
+    missing = [column for column in required_columns if column not in field_sources]
+    if missing:
+        raise ValueError(
+            f"ext_view.{view_name} is missing required mapped columns: {', '.join(missing)}"
+        )
+
+    snapshot_date = date.today()
+    mapped_rows = []
+    for row_number, row in enumerate(rows, start=1):
+        mapped = {
+            column_name: row.get(source_name)
+            for column_name, source_name in field_sources.items()
+        }
+        if 'source_row_number' in model_columns:
+            mapped['source_row_number'] = row_number
+        if 'month_number' in model_columns:
+            mapped['month_number'] = _party_sync_month_number(mapped.get('month'))
+        mapped['snapshot_date'] = snapshot_date
+        mapped['source_file'] = f'ext_view.{view_name}'
+
+        empty_required = [
+            column for column in non_nullable_columns
+            if mapped.get(column) is None or str(mapped.get(column)).strip() == ''
+        ]
+        if empty_required:
+            raise ValueError(
+                f"ext_view.{view_name} row {row_number} has empty required values: "
+                f"{', '.join(empty_required)}"
+            )
+        mapped_rows.append(mapped)
+
+    return mapped_rows
+
+
+def _fetch_party_performance_source(cur, spec):
+    view_name = spec['view']
+    cur.execute(sql.SQL('SELECT * FROM {}.{}').format(
+        sql.Identifier('ext_view'),
+        sql.Identifier(view_name),
+    ))
+    rows = cur.fetchall()
+    source_columns = [description.name for description in cur.description]
+    return _map_party_performance_rows(
+        spec['model'],
+        view_name,
+        rows,
+        source_columns,
+        spec['required'],
+    )
+
+
+def _sync_party_performance_specs(specs, task_type, progress_range=(0, 100), is_subtask=False):
     conn = None
-    TASK_TYPE = task_type_override or 'party_design_average_delivery_days'
 
     def emit(status, message, progress):
-        emit_combined_sync_update(status, message, progress, TASK_TYPE, progress_range, is_subtask)
+        emit_combined_sync_update(
+            status, message, progress, task_type, progress_range, is_subtask
+        )
 
     try:
-        emit('processing', 'Starting Party Design Average Delivery Days Sync...', 5)
+        emit('processing', 'Starting Party Performance Matrix Sync...', 5)
         conn = get_external_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute('SET statement_timeout = 0')
 
-        emit('processing', 'Fetching data from external view for party design average delivery days...', 20)
-        query = "SELECT * FROM ext_view.vw_party_design_average_delivery_days"
+        prepared = []
+        total_specs = len(specs)
+        for index, spec in enumerate(specs, start=1):
+            view_name = spec['view']
+            progress = 5 + int(index / total_specs * 45)
+            emit('processing', f'Fetching ext_view.{view_name} ({index}/{total_specs})...', progress)
+            started_at = time.time()
+            mapped_rows = _fetch_party_performance_source(cur, spec)
+            logger.info(
+                'Party performance source ext_view.%s returned %s rows in %.2f seconds',
+                view_name,
+                len(mapped_rows),
+                time.time() - started_at,
+            )
+            prepared.append((spec, mapped_rows))
 
-        start_time = time.time()
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        duration = time.time() - start_time
-
-        logger.info(f"PartyDesignAverageDeliveryDays query took {duration:.2f} seconds.")
-        emit('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot database...', 50)
-
-        db.session.query(PartyDesignAverageDeliveryDaysSnapshot).delete()
-
-        def first_present(row, *keys):
-            for key in keys:
-                value = row.get(key)
-                if value is not None:
-                    return value
-            return None
-
-        new_records = []
-        for row in rows:
-            new_records.append({
-                'design_id': row.get('Design Id') or row.get('Design ID') or row.get('design_id'),
-                'design_code': row.get('Design Code') or row.get('design_code'),
-                'order_type': row.get('OrderType') or row.get('order_type'),
-                'provision_type': row.get('Provision Type') or row.get('ProvisionType') or row.get('provision_type'),
-                'party': row.get('Party') or row.get('party'),
-                'make': row.get('Make') or row.get('make'),
-                'make_owner': row.get('Make Owner') or row.get('make_owner'),
-                'section': row.get('Section') or row.get('section'),
-                'wide_range': row.get('WideRange') or row.get('Wide Range') or row.get('wide_range'),
-                'classification': row.get('Classification') or row.get('classification'),
-                'sub_classification': row.get('Sub-Classification') or row.get('sub_classification'),
-                'average_delivery_days': first_present(
-                    row,
-                    'Average Delivery Days',
-                    'Average delivery days',
-                    'average_delivery_days',
-                ),
-                'month': row.get('Month') or row.get('month'),
-                'source_file': 'ext_view.vw_party_design_average_delivery_days',
-            })
-
-        if new_records:
-            chunk_size = 5000
-            for i in range(0, len(new_records), chunk_size):
-                db.session.bulk_insert_mappings(PartyDesignAverageDeliveryDaysSnapshot, new_records[i:i + chunk_size])
+        emit('processing', 'All sources validated. Replacing local snapshots...', 55)
+        counts = {}
+        for index, (spec, mapped_rows) in enumerate(prepared, start=1):
+            model = spec['model']
+            db.session.query(model).delete(synchronize_session=False)
+            for offset in range(0, len(mapped_rows), 5000):
+                db.session.bulk_insert_mappings(model, mapped_rows[offset:offset + 5000])
+            counts[model.__tablename__] = len(mapped_rows)
+            emit(
+                'processing',
+                f'Updated {model.__tablename__} ({index}/{total_specs})...',
+                55 + int(index / total_specs * 40),
+            )
 
         db.session.commit()
 
         try:
             redis_client.flushdb()
-            cache_msg = " Cache cleared."
-        except Exception as ce:
-            logger.error(f"Failed to clear cache during PartyDesignAverageDeliveryDays sync: {ce}")
-            cache_msg = " Cache clear failed."
+            cache_message = ' Cache cleared.'
+        except Exception as cache_error:
+            logger.error('Failed to clear cache during Party Performance Matrix sync: %s', cache_error)
+            cache_message = ' Cache clear failed.'
 
-        emit('success', f'Sync completed! {len(rows)} records updated.{cache_msg}', 100)
-        return {"status": "success", "count": len(rows)}
-    except Exception as e:
+        total_rows = sum(counts.values())
+        emit('success', f'Sync completed! {total_rows} records updated.{cache_message}', 100)
+        return {'status': 'success', 'count': total_rows, 'counts': counts}
+    except Exception as error:
         db.session.rollback()
-        error_msg = str(e)
-        logger.error(f"PartyDesignAverageDeliveryDays Sync error: {error_msg}")
-        emit('error', f'Sync failed: {error_msg}', 0)
-        return {"status": "error", "message": error_msg}
+        error_message = str(error)
+        logger.exception('Party Performance Matrix Sync error: %s', error_message)
+        emit('error', f'Sync failed: {error_message}', 0)
+        return {'status': 'error', 'message': error_message}
     finally:
-        if conn: conn.close()
+        if conn:
+            conn.close()
+
+
+def sync_party_design_average_delivery_days_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+    """Backward-compatible single-source sync using the renamed design view."""
+    return _sync_party_performance_specs(
+        PARTY_PERFORMANCE_SYNC_SPECS[:1],
+        task_type_override or 'party_design_average_delivery_days',
+        progress_range,
+        is_subtask,
+    )
+
+
+def sync_party_performance_matrix_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+    return _sync_party_performance_specs(
+        PARTY_PERFORMANCE_SYNC_SPECS,
+        task_type_override or 'party_performance_matrix',
+        progress_range,
+        is_subtask,
+    )
 
 
 def sync_location_wise_old_gold_settlement_transfer_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:

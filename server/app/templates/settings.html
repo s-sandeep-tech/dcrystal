@@ -418,6 +418,25 @@
                                     </button>
                                 </div>
 
+                                <div id="sync-wrapper-party_performance_matrix"
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-violet-500/10 rounded-lg flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-violet-600 text-xl">grid_view</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Party Performance Matrix Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Refresh all nine party performance source snapshots</p>
+                                            <span class="text-[9px] font-black text-violet-600 dark:text-violet-400/90 block mt-1 uppercase tracking-wider">Atomic Full Refresh</span>
+                                        </div>
+                                    </div>
+                                    <button id="sync-party-performance-matrix-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-violet-700 transition-all shadow-md shadow-violet-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
+                                </div>
+
 
 
                                 <div id="sync-wrapper-hallmarking_delayed"
@@ -1435,6 +1454,7 @@
             syncPendingOrderDetailsUrl: "{{ url_for('dashboard.sync_pending_order_details') }}",
             syncActiveOrderDetailsUrl: "{{ url_for('dashboard.sync_active_order_details') }}",
             syncCollectionWiseAverageDeliveryDaysUrl: "{{ url_for('dashboard.trigger_sync_collection_wise_average_delivery_days') }}",
+            syncPartyPerformanceMatrixUrl: "{{ url_for('dashboard.settings_sync_party_performance_matrix') }}",
             syncLocationWiseOldGoldSettlementTransferUrl: "{{ url_for('dashboard.sync_location_wise_old_gold_settlement_transfer') }}",
             syncLogsUrl: "{{ url_for('dashboard.get_sync_logs') }}",
 
