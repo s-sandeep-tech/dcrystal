@@ -155,9 +155,13 @@ def build_matrix(filters):
         )
 
     model = PartyDesignLocationAllocationSnapshot
+    allocated_design_count = func.coalesce(
+        func.sum(model.total_design_count),
+        func.count(distinct(model.design_id)),
+    )
     query = db.session.query(
         model.party.label('party'),
-        func.count(distinct(model.design_id)).label('allocated_designs'),
+        allocated_design_count.label('allocated_designs'),
         func.count(distinct(model.zone)).label('zone_count'),
         func.sum(model.delivered_weight).label('allocation_delivered_wt'),
     ).group_by(model.party)

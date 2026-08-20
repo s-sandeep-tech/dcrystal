@@ -11,6 +11,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def design_count_expression():
+    model = PartyDesignLocationAllocationSnapshot
+    return func.coalesce(
+        func.sum(model.total_design_count),
+        func.count(func.distinct(model.design_id)),
+    )
+
+
 def split_filter_values(value):
     return [v.strip() for v in (value or '').split(',') if v.strip()]
 
@@ -37,7 +45,7 @@ def get_sort_params():
 def apply_sort(query, group_cols, sort_by, sort_dir):
     model = PartyDesignLocationAllocationSnapshot
     sort_columns = {
-        'design_count': func.count(func.distinct(model.design_id)),
+        'design_count': design_count_expression(),
         'delivered_weight': func.sum(model.delivered_weight),
     }
     sort_target = sort_columns.get(sort_by, group_cols[-1])
@@ -98,7 +106,7 @@ def party_design_location_allocation():
 
         # Global Aggregate Stats
         agg_cols = [
-            func.count(func.distinct(PartyDesignLocationAllocationSnapshot.design_id)).label('total_design_count'),
+            design_count_expression().label('total_design_count'),
             func.sum(PartyDesignLocationAllocationSnapshot.delivered_weight).label('total_delivered_weight')
         ]
         agg_q = db.session.query(*agg_cols)
@@ -129,7 +137,7 @@ def party_design_location_allocation():
             level = 'make'
 
         row_agg_cols = [
-            func.count(func.distinct(PartyDesignLocationAllocationSnapshot.design_id)).label('design_cnt'),
+            design_count_expression().label('design_cnt'),
             func.sum(PartyDesignLocationAllocationSnapshot.delivered_weight).label('del_wt')
         ]
 
@@ -203,7 +211,7 @@ def get_party_design_location_allocation_partial():
 
         # Global Aggregate Stats
         agg_cols = [
-            func.count(func.distinct(PartyDesignLocationAllocationSnapshot.design_id)).label('total_design_count'),
+            design_count_expression().label('total_design_count'),
             func.sum(PartyDesignLocationAllocationSnapshot.delivered_weight).label('total_delivered_weight')
         ]
         agg_q = db.session.query(*agg_cols)
@@ -244,7 +252,7 @@ def get_party_design_location_allocation_partial():
             ]
 
         row_agg_cols = [
-            func.count(func.distinct(PartyDesignLocationAllocationSnapshot.design_id)).label('design_cnt'),
+            design_count_expression().label('design_cnt'),
             func.sum(PartyDesignLocationAllocationSnapshot.delivered_weight).label('del_wt')
         ]
 

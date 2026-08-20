@@ -4223,11 +4223,12 @@ PARTY_PERFORMANCE_SYNC_SPECS = (
         'view': 'vw_party_order_accept_cancel_and_delivered_frequency',
         'model': PartyOrderAcceptCancelDeliverySnapshot,
         'required': ('supplier', 'order_wt', 'accepted_wt', 'cancelled_wt', 'delivered_wt'),
+        'month_with_year': True,
     },
     {
         'view': 'vw_party_design_allocation_location_info',
         'model': PartyDesignLocationAllocationSnapshot,
-        'required': ('party', 'design_id', 'delivered_weight'),
+        'required': ('party', 'total_design_count', 'delivered_weight'),
     },
     {
         'view': 'vw_cancelled_info',
@@ -4263,7 +4264,13 @@ PARTY_PERFORMANCE_SYNC_SPECS = (
 
 
 PARTY_PERFORMANCE_COLUMN_ALIASES = {
-    'party_type': ('partytype',),
+    'design_code': ('design_no',),
+    'order_type': ('order_type_description',),
+    'provision_type': ('order_request_type_description',),
+    'party': ('supplier_name',),
+    'party_type': ('partytype', 'party_tpe'),
+    'total_design_count': ('total_design_count', 'design_count'),
+    'total_metal_weight': ('total_metal_value',),
     'hallmarking_center': ('hallmark_center',),
     'hm_issue_pcs': ('hm_issue_total_pieces', 'hm_issue_pieces'),
     'hm_issue_wt': ('hm_issue_total_weight',),
@@ -4294,7 +4301,20 @@ def _party_sync_month_number(value):
     return month_names.get(str(value).strip().lower()[:3])
 
 
-def _map_party_performance_rows(model, view_name, rows, source_columns, required_columns):
+def _party_sync_month_with_year(month, year):
+    if month is None or year is None:
+        return month
+    month_text = str(month).strip()
+    year_text = str(year).strip()
+    if not month_text or not year_text or year_text in month_text:
+        return month
+    return f'{month_text} {year_text}'
+
+
+def _map_party_performance_rows(spec, rows, source_columns):
+    model = spec['model']
+    view_name = spec['view']
+    required_columns = spec['required']
     source_lookup = {
         _normalise_party_sync_column(column): column
         for column in source_columns
@@ -4343,6 +4363,12 @@ def _map_party_performance_rows(model, view_name, rows, source_columns, required
             mapped['source_row_number'] = row_number
         if 'month_number' in model_columns:
             mapped['month_number'] = _party_sync_month_number(mapped.get('month'))
+        if spec.get('month_with_year') and 'month' in mapped:
+            year_source = source_lookup.get('year')
+            mapped['month'] = _party_sync_month_with_year(
+                mapped.get('month'),
+                row.get(year_source) if year_source else None,
+            )
         mapped['snapshot_date'] = snapshot_date
         mapped['source_file'] = f'ext_view.{view_name}'
 
@@ -4369,11 +4395,9 @@ def _fetch_party_performance_source(cur, spec):
     rows = cur.fetchall()
     source_columns = [description.name for description in cur.description]
     return _map_party_performance_rows(
-        spec['model'],
-        view_name,
+        spec,
         rows,
         source_columns,
-        spec['required'],
     )
 
 
