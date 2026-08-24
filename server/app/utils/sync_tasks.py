@@ -4251,7 +4251,7 @@ PARTY_PERFORMANCE_SYNC_SPECS = (
         'required': ('party', 'delivery_ro', 'delivered_weight'),
     },
     {
-        'view': 'vw_order_info',
+        'view': 'vw_order_info2',
         'model': PartyOrderLifecycleSnapshot,
         'required': ('party', 'order_number', 'order_weight', 'production_weight', 'delivered_weight'),
     },
@@ -4414,6 +4414,8 @@ def _sync_party_performance_specs(specs, task_type, progress_range=(0, 100), is_
         conn = get_external_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute('SET statement_timeout = 0')
+        # Some source functions reference Crystal tables without schema qualifiers.
+        cur.execute('SET search_path TO crystal, ext_view, public')
 
         prepared = []
         total_specs = len(specs)
@@ -4422,7 +4424,12 @@ def _sync_party_performance_specs(specs, task_type, progress_range=(0, 100), is_
             progress = 5 + int(index / total_specs * 45)
             emit('processing', f'Fetching ext_view.{view_name} ({index}/{total_specs})...', progress)
             started_at = time.time()
-            mapped_rows = _fetch_party_performance_source(cur, spec)
+            try:
+                mapped_rows = _fetch_party_performance_source(cur, spec)
+            except Exception as source_error:
+                raise RuntimeError(
+                    f'Failed fetching ext_view.{view_name}: {source_error}'
+                ) from source_error
             logger.info(
                 'Party performance source ext_view.%s returned %s rows in %.2f seconds',
                 view_name,
