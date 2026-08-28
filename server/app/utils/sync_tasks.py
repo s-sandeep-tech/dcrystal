@@ -4401,7 +4401,14 @@ def _fetch_party_performance_source(cur, spec):
     )
 
 
-def _sync_party_performance_specs(specs, task_type, progress_range=(0, 100), is_subtask=False):
+def _sync_party_performance_specs_once(
+    specs,
+    task_type,
+    progress_range=(0, 100),
+    is_subtask=False,
+    attempt=1,
+    max_attempts=1,
+):
     conn = None
 
     def emit(status, message, progress):
@@ -4410,7 +4417,12 @@ def _sync_party_performance_specs(specs, task_type, progress_range=(0, 100), is_
         )
 
     try:
-        emit('processing', 'Starting Party Performance Matrix Sync...', 5)
+        emit(
+            'processing',
+            f'Starting Party Performance Matrix Sync '
+            f'(Attempt {attempt}/{max_attempts})...',
+            5,
+        )
         conn = get_external_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute('SET statement_timeout = 0')
@@ -4467,12 +4479,64 @@ def _sync_party_performance_specs(specs, task_type, progress_range=(0, 100), is_
     except Exception as error:
         db.session.rollback()
         error_message = str(error)
-        logger.exception('Party Performance Matrix Sync error: %s', error_message)
-        emit('error', f'Sync failed: {error_message}', 0)
+        logger.exception(
+            'Party Performance Matrix Sync failed on attempt %s/%s: %s',
+            attempt,
+            max_attempts,
+            error_message,
+        )
         return {'status': 'error', 'message': error_message}
     finally:
         if conn:
             conn.close()
+
+
+def _sync_party_performance_specs(
+    specs,
+    task_type,
+    progress_range=(0, 100),
+    is_subtask=False,
+):
+    max_attempts = 3
+    last_result = None
+
+    for attempt in range(1, max_attempts + 1):
+        last_result = _sync_party_performance_specs_once(
+            specs,
+            task_type,
+            progress_range,
+            is_subtask,
+            attempt,
+            max_attempts,
+        )
+        if last_result.get('status') == 'success':
+            return last_result
+
+        if attempt < max_attempts:
+            emit_combined_sync_update(
+                'processing',
+                f'Party Performance Matrix Sync attempt {attempt}/{max_attempts} '
+                f'failed. Retrying in 5 seconds...',
+                0,
+                task_type,
+                progress_range,
+                is_subtask,
+            )
+            time.sleep(5)
+
+    error_message = (last_result or {}).get('message', 'Unknown synchronization error')
+    emit_combined_sync_update(
+        'error',
+        f'Sync failed after {max_attempts} attempts: {error_message}',
+        0,
+        task_type,
+        progress_range,
+        is_subtask,
+    )
+    return {
+        'status': 'error',
+        'message': f'Sync failed after {max_attempts} attempts: {error_message}',
+    }
 
 
 def sync_party_design_average_delivery_days_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
@@ -4588,11 +4652,15 @@ def sync_location_wise_old_gold_settlement_transfer_task(task_type_override=None
         db.session.commit()
 
         try:
-            redis_client.flushdb()
-            cache_msg = " Cache cleared."
+            cache_pattern = 'location_wise_old_gold_report:*'
+            cache_keys = list(redis_client.scan_iter(match=cache_pattern, count=500))
+            if cache_keys:
+                for start in range(0, len(cache_keys), 500):
+                    redis_client.delete(*cache_keys[start:start + 500])
+            cache_msg = f" Report cache cleared ({len(cache_keys)} keys)."
         except Exception as ce:
             logger.error(f"Failed to clear cache during LocationWiseOldGoldSettlementTransfer sync: {ce}")
-            cache_msg = " Cache clear failed."
+            cache_msg = " Report cache clear failed; snapshot-versioned keys will prevent stale data."
 
         emit('success', f'Sync completed! {len(rows)} records updated.{cache_msg}', 100)
         return {"status": "success", "count": len(rows)}

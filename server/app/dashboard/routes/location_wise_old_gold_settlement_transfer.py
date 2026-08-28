@@ -2,13 +2,56 @@ from flask import render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.dashboard import dashboard_bp
 from app.models import Notification, User, LocationWiseOldGoldSettlementTransferSnapshot
-from app.extensions import db
+from app.extensions import db, redis_client
 from sqlalchemy import func, case
 from datetime import datetime
 from zoneinfo import ZoneInfo
+import hashlib
+import json
 import logging
 
 logger = logging.getLogger(__name__)
+
+OLD_GOLD_REPORT_CACHE_PREFIX = 'location_wise_old_gold_report'
+OLD_GOLD_REPORT_CACHE_TTL = 21600
+
+
+def get_snapshot_cache_token():
+    latest_update = (
+        db.session.query(LocationWiseOldGoldSettlementTransferSnapshot.updated_at)
+        .order_by(LocationWiseOldGoldSettlementTransferSnapshot.id.desc())
+        .limit(1)
+        .scalar()
+    )
+    return latest_update.isoformat() if latest_update else 'empty'
+
+
+def build_report_cache_key(cache_section, snapshot_token, request_args=None):
+    payload = {
+        'snapshot': snapshot_token,
+        # Aging buckets use CURRENT_DATE, so a cache must not cross midnight.
+        'report_date': datetime.now(ZoneInfo('Asia/Kolkata')).date().isoformat(),
+        'args': sorted((request_args or {}).items()),
+    }
+    digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, default=str).encode('utf-8')
+    ).hexdigest()
+    return f'{OLD_GOLD_REPORT_CACHE_PREFIX}:{cache_section}:{digest}'
+
+
+def get_cached_value(cache_key):
+    try:
+        return redis_client.get(cache_key)
+    except Exception as exc:
+        logger.warning('Old gold report cache read failed: %s', exc)
+        return None
+
+
+def set_cached_value(cache_key, value):
+    try:
+        redis_client.setex(cache_key, OLD_GOLD_REPORT_CACHE_TTL, value)
+    except Exception as exc:
+        logger.warning('Old gold report cache write failed: %s', exc)
 
 
 def split_filter_values(value):
@@ -262,6 +305,21 @@ def fetch_filter_options():
     }
 
 
+def fetch_cached_filter_options():
+    snapshot_token = get_snapshot_cache_token()
+    cache_key = build_report_cache_key('options', snapshot_token)
+    cached_options = get_cached_value(cache_key)
+    if cached_options:
+        try:
+            return json.loads(cached_options)
+        except (TypeError, ValueError):
+            logger.warning('Ignoring invalid cached old gold filter options')
+
+    filter_options = fetch_filter_options()
+    set_cached_value(cache_key, json.dumps(filter_options, default=str))
+    return filter_options
+
+
 def get_sort_order_clause(sort_by, sort_order, group_cols):
     trans_date = func.cast(LocationWiseOldGoldSettlementTransferSnapshot.transdate, db.Date)
     curr_date = func.current_date()
@@ -317,7 +375,7 @@ def location_wise_old_gold_settlement_transfer_summary():
         ensure_table_exists()
         unread_count = Notification.query.filter_by(is_read=False).count()
         sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
-        filter_options = fetch_filter_options()
+        filter_options = fetch_cached_filter_options()
 
         return render_template(
             'location_wise_old_gold_settlement_transfer.html',
@@ -340,6 +398,16 @@ def location_wise_old_gold_settlement_transfer_summary():
 def get_location_wise_old_gold_partial():
     try:
         ensure_table_exists()
+        snapshot_token = get_snapshot_cache_token()
+        cache_key = build_report_cache_key(
+            'partial',
+            snapshot_token,
+            request.args.to_dict(flat=False),
+        )
+        cached_html = get_cached_value(cache_key)
+        if cached_html:
+            return cached_html
+
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
 
@@ -493,7 +561,7 @@ def get_location_wise_old_gold_partial():
         stats_query = build_filters(stats_query)
         stats = compute_global_stats(stats_query)
 
-        return render_template(
+        rendered_html = render_template(
             'partials/_view_location_wise_old_gold_settlement_transfer.html',
             rows=processed_rows,
             pagination=pagination if not is_child_rows else None,
@@ -505,6 +573,8 @@ def get_location_wise_old_gold_partial():
             sort_order=sort_order,
             stats=stats
         )
+        set_cached_value(cache_key, rendered_html)
+        return rendered_html
     except Exception as e:
         logger.error(f"Error in get_location_wise_old_gold_partial: {str(e)}", exc_info=True)
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
@@ -514,7 +584,7 @@ def get_location_wise_old_gold_partial():
 def location_wise_old_gold_options():
     try:
         ensure_table_exists()
-        return jsonify(fetch_filter_options())
+        return jsonify(fetch_cached_filter_options())
     except Exception as e:
         logger.error(f"Error in location_wise_old_gold_options: {str(e)}")
         return jsonify({"error": str(e)}), 500
