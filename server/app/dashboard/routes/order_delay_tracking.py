@@ -93,6 +93,7 @@ def order_delay_tracking_options():
 def get_order_delay_tracking_partial():
     try:
         latest_date_query = db.session.query(func.max(OrderDelayTrackingSnapshot.snapshot_date)).scalar()
+        username = session.get('username')
         
         # Filters from Sidebar
         f_supplier = request.args.get('supplier', '')
@@ -269,6 +270,7 @@ def get_order_delay_tracking_partial():
 @jwt_required()
 def get_order_delay_tracking_details():
     try:
+        username = session.get('username')
         classification_owner = request.args.get('classification_owner')
         make_owner = request.args.get('make_owner')
         collection_owner = request.args.get('collection_owner')
