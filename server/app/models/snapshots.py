@@ -3150,6 +3150,16 @@ class PartyOrderAcceptCancelDeliverySnapshot(db.Model):
     supplier = db.Column(db.Text)
     party_type = db.Column(db.Text)
     make = db.Column(db.Text)
+    party_id = db.Column(db.Integer)
+    classification_owner_id = db.Column(db.Integer)
+    classification_owner = db.Column(db.String(256))
+    make_owner_id = db.Column(db.Integer)
+    make_owner = db.Column(db.String(256))
+    collection_owner_id = db.Column(db.Integer)
+    collection_owner = db.Column(db.String(256))
+    classification_owner_emp_code = db.Column(db.String(256))
+    make_owner_emp_code = db.Column(db.String(256))
+    collection_owner_emp_code = db.Column(db.String(256))
     order_wt = db.Column(db.Numeric(18, 3))
     order_pcs = db.Column(db.BigInteger)
     accepted_wt = db.Column(db.Numeric(18, 3))
@@ -3161,6 +3171,12 @@ class PartyOrderAcceptCancelDeliverySnapshot(db.Model):
     snapshot_date = db.Column(db.Date)
     source_file = db.Column(db.Text)
     imported_at = db.Column(db.DateTime(timezone=True), default=db.func.now())
+
+    __table_args__ = (
+        db.Index('ix_party_freq_class_owner_code', 'classification_owner_emp_code'),
+        db.Index('ix_party_freq_make_owner_code', 'make_owner_emp_code'),
+        db.Index('ix_party_freq_collection_owner_code', 'collection_owner_emp_code'),
+    )
 
 
 class PartyDesignLocationAllocationSnapshot(db.Model):
