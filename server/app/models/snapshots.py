@@ -3219,8 +3219,18 @@ class PartyMcStoneValueAllocationSnapshot(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)
     party = db.Column(db.String(100))
     make = db.Column(db.String(100))
+    make_owner = db.Column(db.String(256))
     order_type = db.Column(db.String(50))
     provision_type = db.Column(db.String(50))
+    party_id = db.Column(db.Integer)
+    classification_owner_id = db.Column(db.Integer)
+    classification_owner = db.Column(db.String(256))
+    make_owner_id = db.Column(db.Integer)
+    collection_owner_id = db.Column(db.Integer)
+    collection_owner = db.Column(db.String(256))
+    classification_owner_emp_code = db.Column(db.String(256))
+    collection_owner_emp_code = db.Column(db.String(256))
+    make_owner_emp_code = db.Column(db.String(256))
     total_metal_weight = db.Column(db.Numeric(20, 3))
     total_mc_value = db.Column(db.Numeric(20, 2))
     stone_weight = db.Column(db.Numeric(18, 3))
@@ -3228,6 +3238,12 @@ class PartyMcStoneValueAllocationSnapshot(db.Model):
     snapshot_date = db.Column(db.Date)
     source_file = db.Column(db.Text)
     imported_at = db.Column(db.DateTime(timezone=True), default=db.func.now())
+
+    __table_args__ = (
+        db.Index('ix_party_mc_class_owner_code', 'classification_owner_emp_code'),
+        db.Index('ix_party_mc_make_owner_code', 'make_owner_emp_code'),
+        db.Index('ix_party_mc_collection_owner_code', 'collection_owner_emp_code'),
+    )
 
 
 class PartyHallmarkPassFailSnapshot(db.Model):
