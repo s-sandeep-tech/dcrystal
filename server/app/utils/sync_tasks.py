@@ -4251,7 +4251,7 @@ PARTY_PERFORMANCE_SYNC_SPECS = (
         'required': ('party', 'delivery_ro', 'delivered_weight'),
     },
     {
-        'view': 'vw_order_infov2',
+        'view': 'vw_order_info_v2',
         'model': PartyOrderLifecycleSnapshot,
         'required': ('party', 'order_number', 'order_weight', 'production_weight', 'delivered_weight'),
     },
