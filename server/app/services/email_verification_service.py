@@ -122,29 +122,32 @@ def send_verification_email(user, token):
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MIS Account Activation</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; -webkit-font-smoothing: antialiased;">
+<body style="margin: 0; padding: 0; background-color: #f8f6f2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #2d2627; -webkit-font-smoothing: antialiased;">
   <!-- Preheader preview text in inbox -->
-  <div style="display: none; font-size: 1px; color: #f1f5f9; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
+  <div style="display: none; font-size: 1px; color: #f8f6f2; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
     {preheader} &zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
   </div>
 
-  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f1f5f9; padding: 36px 12px;">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8f6f2; padding: 36px 12px;">
     <tr>
       <td align="center">
         <!-- Main Card Container -->
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; background-color: #ffffff; border: 1px solid #e8dfd2; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 18px rgba(120, 16, 33, 0.06);">
           
-          <!-- Header Banner -->
+          <!-- Header Banner (Kalyan Jewellers Royal Maroon) -->
           <tr>
-            <td style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); background-color: #0f172a; padding: 28px 36px; border-bottom: 3px solid #2563eb;">
+            <td style="background: linear-gradient(135deg, #500812 0%, #781021 100%); background-color: #600a16; padding: 26px 36px; border-bottom: 3px solid #c5a059;">
               <table border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
-                  <td>
-                    <div style="font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; text-transform: uppercase;">
-                      <span style="color: #60a5fa;">◆</span> MIS
+                  <td align="left" valign="middle">
+                    <img src="https://www.kalyanjewellers.net/images/kalyan_logo.svg" alt="Kalyan Jewellers" height="42" style="display: block; border: 0; outline: none; height: 42px; width: auto; max-width: 160px;" />
+                  </td>
+                  <td align="right" valign="middle">
+                    <div style="font-size: 16px; font-weight: 800; color: #ffd875; letter-spacing: 1px; text-transform: uppercase;">
+                      MIS PORTAL
                     </div>
-                    <div style="font-size: 12px; color: #94a3b8; margin-top: 4px; font-weight: 500; letter-spacing: 0.3px;">
-                      Kalyan Jewellers Portal
+                    <div style="font-size: 11px; color: #f1dfbf; margin-top: 2px; font-weight: 400; letter-spacing: 0.3px;">
+                      Enterprise System
                     </div>
                   </td>
                 </tr>
@@ -155,27 +158,27 @@ def send_verification_email(user, token):
           <!-- Main Content -->
           <tr>
             <td style="padding: 36px 36px 28px 36px;">
-              <h1 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 700; color: #0f172a; line-height: 1.3;">
+              <h1 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 700; color: #500812; line-height: 1.3;">
                 Account Activation Request
               </h1>
               
-              <p style="margin: 0 0 18px 0; font-size: 15px; line-height: 1.6; color: #334155;">
+              <p style="margin: 0 0 18px 0; font-size: 15px; line-height: 1.6; color: #332a2c;">
                 Hello <strong>{display_name}</strong>,
               </p>
               
-              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #475569;">
-                Your user account has been registered on the <strong>MIS</strong> management portal. To activate your access and verify your corporate email address, please click the button below.
+              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #55484a;">
+                Your user account has been registered on the Kalyan Jewellers <strong>MIS</strong> management portal. To activate your access and verify your corporate email address, please click the button below.
               </p>
 
-              <!-- Call to Action Button -->
+              <!-- Call to Action Button (Kalyan Maroon / Gold Theme) -->
               <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 28px 0 32px 0;">
                 <tr>
                   <td align="center">
                     <table border="0" cellpadding="0" cellspacing="0">
                       <tr>
-                        <td align="center" style="border-radius: 8px; background-color: #2563eb;">
-                          <a href="{safe_url}" target="_blank" style="font-size: 15px; font-weight: 700; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; display: inline-block; letter-spacing: 0.2px; background-color: #2563eb; border: 1px solid #1d4ed8;">
-                            Activate My Account &rarr;
+                        <td align="center" style="border-radius: 8px; background-color: #781021; box-shadow: 0 3px 8px rgba(120, 16, 33, 0.25);">
+                          <a href="{safe_url}" target="_blank" style="font-size: 15px; font-weight: 700; color: #ffffff; text-decoration: none; padding: 14px 34px; border-radius: 8px; display: inline-block; letter-spacing: 0.3px; background-color: #781021; border: 1px solid #500812;">
+                            Activate Account &rarr;
                           </a>
                         </td>
                       </tr>
@@ -184,14 +187,14 @@ def send_verification_email(user, token):
                 </tr>
               </table>
 
-              <!-- Notice Box -->
-              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #3b82f6; border-radius: 6px; margin: 0 0 24px 0;">
+              <!-- Notice Box (Ivory with Gold border) -->
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #faf7f2; border: 1px solid #ede3d4; border-left: 4px solid #c5a059; border-radius: 6px; margin: 0 0 24px 0;">
                 <tr>
                   <td style="padding: 14px 18px;">
                     <table border="0" cellpadding="0" cellspacing="0" width="100%">
                       <tr>
-                        <td style="font-size: 13px; color: #475569; line-height: 1.5;">
-                          <strong style="color: #1e293b;">Security Note:</strong> This single-use verification link will expire in <strong>{ttl_hours} hours</strong>. If you did not request this account, please ignore this email.
+                        <td style="font-size: 13px; color: #5c4e48; line-height: 1.5;">
+                          <strong style="color: #600a16;">Security Note:</strong> This single-use activation link will expire in <strong>{ttl_hours} hours</strong>. If you did not expect this account, please ignore this email.
                         </td>
                       </tr>
                     </table>
@@ -200,12 +203,12 @@ def send_verification_email(user, token):
               </table>
 
               <!-- Fallback Direct Link -->
-              <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 24px;">
-                <p style="margin: 0 0 8px 0; font-size: 12px; color: #64748b; line-height: 1.4;">
+              <div style="border-top: 1px solid #ede3d4; padding-top: 20px; margin-top: 24px;">
+                <p style="margin: 0 0 8px 0; font-size: 12px; color: #786d67; line-height: 1.4;">
                   If the button above does not work, copy and paste this link into your browser:
                 </p>
                 <p style="margin: 0; font-size: 12px; line-height: 1.4; word-break: break-all;">
-                  <a href="{safe_url}" style="color: #2563eb; text-decoration: underline;">{safe_url}</a>
+                  <a href="{safe_url}" style="color: #781021; text-decoration: underline; font-weight: 500;">{safe_url}</a>
                 </p>
               </div>
 
@@ -214,12 +217,12 @@ def send_verification_email(user, token):
 
           <!-- Footer -->
           <tr>
-            <td style="background-color: #f8fafc; padding: 22px 36px; border-top: 1px solid #e2e8f0; text-align: center;">
-              <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 600; color: #475569;">
+            <td style="background-color: #fbf9f5; padding: 22px 36px; border-top: 1px solid #ede3d4; text-align: center;">
+              <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 700; color: #600a16; letter-spacing: 0.2px;">
                 Kalyan Jewellers India Limited
               </p>
-              <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.4;">
-                This is an automated administrative notification. Please do not reply to this email.
+              <p style="margin: 0; font-size: 11px; color: #91847e; line-height: 1.4;">
+                This is an automated administrative notification from MIS Portal. Please do not reply to this email.
               </p>
             </td>
           </tr>
