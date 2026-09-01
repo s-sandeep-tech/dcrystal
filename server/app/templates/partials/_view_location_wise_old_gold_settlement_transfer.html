@@ -38,7 +38,7 @@
             <!-- Today Subheaders -->
             <th class="text-right px-1 py-1 w-[7.5%] bg-emerald-50/30 cursor-pointer hover:bg-emerald-100/50 group" onclick="handleSort('today_settle')">
                 <div class="flex items-center justify-end gap-0.5">
-                    <span>Settle</span>
+                    <span>Pending</span>
                     <span class="material-symbols-outlined text-[10px] {% if sort_by in ['today', 'today_settle'] %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
                         {% if sort_by in ['today', 'today_settle'] %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
                     </span>
@@ -56,7 +56,7 @@
             <!-- 2-5 Days Subheaders -->
             <th class="text-right px-1 py-1 w-[7.5%] bg-slate-50/40 cursor-pointer hover:bg-slate-100/60 group" onclick="handleSort('days_2_5_settle')">
                 <div class="flex items-center justify-end gap-0.5">
-                    <span>Settle</span>
+                    <span>Pending</span>
                     <span class="material-symbols-outlined text-[10px] {% if sort_by in ['days_2_5', 'days_2_5_settle'] %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
                         {% if sort_by in ['days_2_5', 'days_2_5_settle'] %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
                     </span>
@@ -74,7 +74,7 @@
             <!-- 6-10 Days Subheaders -->
             <th class="text-right px-1 py-1 w-[7.5%] bg-slate-50/40 cursor-pointer hover:bg-slate-100/60 group" onclick="handleSort('days_6_10_settle')">
                 <div class="flex items-center justify-end gap-0.5">
-                    <span>Settle</span>
+                    <span>Pending</span>
                     <span class="material-symbols-outlined text-[10px] {% if sort_by in ['days_6_10', 'days_6_10_settle'] %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
                         {% if sort_by in ['days_6_10', 'days_6_10_settle'] %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
                     </span>
@@ -92,7 +92,7 @@
             <!-- 11-15 Days Subheaders -->
             <th class="text-right px-1 py-1 w-[7.5%] bg-amber-50/30 cursor-pointer hover:bg-amber-100/40 group" onclick="handleSort('days_11_15_settle')">
                 <div class="flex items-center justify-end gap-0.5">
-                    <span>Settle</span>
+                    <span>Pending</span>
                     <span class="material-symbols-outlined text-[10px] {% if sort_by in ['days_11_15', 'days_11_15_settle'] %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
                         {% if sort_by in ['days_11_15', 'days_11_15_settle'] %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
                     </span>
@@ -110,7 +110,7 @@
             <!-- >15 Days Subheaders -->
             <th class="text-right px-1 py-1 w-[7.5%] bg-rose-50/30 cursor-pointer hover:bg-rose-100/40 group" onclick="handleSort('days_gt_15_settle')">
                 <div class="flex items-center justify-end gap-0.5">
-                    <span>Settle</span>
+                    <span>Pending</span>
                     <span class="material-symbols-outlined text-[10px] {% if sort_by in ['days_gt_15', 'days_gt_15_settle'] %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
                         {% if sort_by in ['days_gt_15', 'days_gt_15_settle'] %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
                     </span>
@@ -128,7 +128,7 @@
             <!-- Total Subheaders -->
             <th class="text-right px-1 py-1 w-[8%] bg-slate-100/70 text-slate-800 dark:text-slate-200 cursor-pointer hover:bg-slate-200/60 group" onclick="handleSort('total_settle')">
                 <div class="flex items-center justify-end gap-0.5">
-                    <span>Settle</span>
+                    <span>Pending</span>
                     <span class="material-symbols-outlined text-[10px] {% if sort_by in ['total_wt', 'total_settle'] %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
                         {% if sort_by in ['total_wt', 'total_settle'] %}{{ 'arrow_upward' if sort_order == 'asc' else 'arrow_downward' }}{% else %}unfold_more{% endif %}
                     </span>
