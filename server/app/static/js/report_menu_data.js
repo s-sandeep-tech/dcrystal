@@ -79,10 +79,10 @@ window.REPORT_MENU_DATA = [
             },
             {
                 id: "location-wise-old-gold-settlement-transfer-summary",
-                title: "Location-wise Old Gold Settlement & Transfer Summary",
+                title: "Location-wise Old Gold Pending & Transfer Summary",
                 href: "/location-wise-old-gold-settlement-transfer-summary",
                 icon: "monetization_on",
-                description: "Aging matrix and settlement summary for old gold across offices, locations, divisions, and groups.",
+                description: "Aging matrix and pending summary for old gold across offices, locations, divisions, and groups.",
                 tags: ["old gold", "settlement", "transfer", "location", "aging", "summary"]
             },
 
