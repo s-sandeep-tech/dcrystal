@@ -7,7 +7,7 @@ from app.models.rbac import Role, Menu, UserRole, RoleMenu, Permission, RolePerm
 from app.utils.decorators import require_role, require_perm
 from app.utils.rbac_cache import increment_rbac_version, invalidate_user_cache, get_user_permissions
 from datetime import datetime
-from app.api.auth import validate_password_strength
+from app.api.auth import validate_company_email, validate_password_strength
 
 admin_rbac_bp = Blueprint('admin_rbac', __name__)
 
@@ -192,6 +192,11 @@ def manage_users():
         
         if not username or not email or not password or not user_id:
             return jsonify({"msg": "All fields are required"}), 400
+
+        is_valid, email_or_error = validate_company_email(email)
+        if not is_valid:
+            return jsonify({"msg": email_or_error}), 400
+        email = email_or_error
             
         if User.query.filter_by(username=username).first():
             return jsonify({"msg": "Username already exists"}), 400
@@ -237,8 +242,13 @@ def update_delete_user(id):
         
     if request.method == 'PUT':
         data = request.json
+        email = data.get('email', user.email)
+        is_valid, email_or_error = validate_company_email(email)
+        if not is_valid:
+            return jsonify({"msg": email_or_error}), 400
+
         user.username = data.get('username', user.username)
-        user.email = data.get('email', user.email)
+        user.email = email_or_error
         user.user_id = data.get('user_id', user.user_id)
         
         if data.get('password'):

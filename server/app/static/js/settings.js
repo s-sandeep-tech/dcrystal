@@ -648,10 +648,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const id = document.getElementById('manageUserId').value;
         const bizId = document.getElementById('manageUserBizId').value.toUpperCase();
         const username = document.getElementById('manageUsername').value;
-        const email = document.getElementById('manageUserEmail').value;
+        const email = document.getElementById('manageUserEmail').value.trim().toLowerCase();
         const password = document.getElementById('manageUserPassword').value;
 
         if (!id && !password) return showToast('Password is required for new users', 'error');
+        if (!/^[^@\s]+@kalyanjewellers\.tech$/i.test(email)) {
+            return showToast('Email must use the @kalyanjewellers.tech domain', 'error');
+        }
 
         const payload = { user_id: bizId, username, email };
         if (password) payload.password = password;

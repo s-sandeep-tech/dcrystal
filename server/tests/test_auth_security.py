@@ -5,6 +5,7 @@ from app import create_app
 from app.extensions import db
 from app.models import User, LoginAttemptLog
 from app.services.auth_service import auth_service
+from app.api.auth import validate_company_email
 
 class AuthSecurityTestCase(unittest.TestCase):
     def setUp(self):
@@ -82,6 +83,21 @@ class AuthSecurityTestCase(unittest.TestCase):
             log = LoginAttemptLog.query.filter_by(username_submitted='nonexistent').first()
             self.assertIsNotNone(log)
             self.assertEqual(log.status, 'failure')
+
+    def test_company_email_validation(self):
+        valid, normalized = validate_company_email(' SandeepS@KalyanJewellers.Tech ')
+        self.assertTrue(valid)
+        self.assertEqual(normalized, 'sandeeps@kalyanjewellers.tech')
+
+        for email in (
+            'sandeeps@example.com',
+            'sandeeps@sub.kalyanjewellers.tech',
+            '@kalyanjewellers.tech',
+            'sandeeps@kalyanjewellers.tech.example.com',
+        ):
+            valid, error = validate_company_email(email)
+            self.assertFalse(valid)
+            self.assertIn('@kalyanjewellers.tech', error)
 
     def test_clear_lockout_endpoint(self):
         # 1. Login as Admin to get token (simplifying by mocking or using a real user if needed)

@@ -10,6 +10,16 @@ import re
 
 auth_bp = Blueprint('auth', __name__)
 
+ALLOWED_EMAIL_DOMAIN = 'kalyanjewellers.tech'
+
+
+def validate_company_email(email):
+    """Allow user accounts only for the configured company email domain."""
+    normalized_email = (email or '').strip().lower()
+    if not re.fullmatch(r'[^@\s]+@' + re.escape(ALLOWED_EMAIL_DOMAIN), normalized_email):
+        return False, f"Email must use the @{ALLOWED_EMAIL_DOMAIN} domain"
+    return True, normalized_email
+
 def validate_password_strength(password):
     """
     Minimum 6 characters, at least one uppercase, one lowercase, one number, 
@@ -106,6 +116,11 @@ def register():
 
     if not user_id or not username or not password or not email:
         return jsonify({"msg": "Missing required fields"}), 400
+
+    is_valid, email_or_error = validate_company_email(email)
+    if not is_valid:
+        return jsonify({"msg": email_or_error}), 400
+    email = email_or_error
 
     if User.query.filter_by(user_id=user_id).first():
         return jsonify({"msg": "User ID already exists"}), 400
