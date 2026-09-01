@@ -557,6 +557,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         users.forEach(u => {
+            const verificationPending = Boolean(u.email_verification_pending);
+            const statusLabel = u.is_active ? 'Active' : (verificationPending ? 'Pending verification' : 'Disabled');
+            const statusClass = u.is_active
+                ? 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 border border-green-100 dark:border-green-800/30'
+                : (verificationPending
+                    ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 border border-amber-100 dark:border-amber-800/30'
+                    : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-800/30');
             const tr = document.createElement('tr');
             tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors border-b border-gray-100 dark:border-gray-800";
             tr.innerHTML = `
@@ -564,8 +571,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="px-4 py-3 font-bold text-gray-900 dark:text-white">
                     <div class="flex items-center gap-2">
                         ${u.username}
-                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider ${u.is_active ? 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400 border border-green-100 dark:border-green-800/30' : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-800/30'}">
-                            ${u.is_active ? 'Active' : 'Disabled'}
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider ${statusClass}">
+                            ${statusLabel}
                         </span>
                     </div>
                 </td>
@@ -589,6 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button onclick="openForceResetModal(${u.id})" class="text-gray-400 hover:text-orange-500 transition-colors p-1 ml-1" title="Force Password Reset"><span class="material-symbols-outlined text-[16px]">lock_reset</span></button>
                     `}
                     ${(u.failed_attempt_count > 0 || u.lockout_until) ? `<button onclick="clearUserLockout(${u.id})" class="text-gray-400 hover:text-green-500 transition-colors p-1 ml-1" title="Clear Lockout"><span class="material-symbols-outlined text-[16px]">restart_alt</span></button>` : ''}
+                    ${verificationPending ? `<button onclick="resendUserVerification(${u.id})" class="text-gray-400 hover:text-primary transition-colors p-1 ml-1" title="Resend Verification"><span class="material-symbols-outlined text-[16px]">forward_to_inbox</span></button>` : ''}
                     <button onclick="editUser(${u.id})" class="text-gray-400 hover:text-primary transition-colors p-1 ml-1" title="Edit User"><span class="material-symbols-outlined text-[16px]">edit</span></button>
                     <button onclick="toggleUserStatus(${u.id}, ${u.is_active})" class="text-gray-400 ${u.is_active ? 'hover:text-red-500' : 'hover:text-green-500'} transition-colors p-1 ml-1" title="${u.is_active ? 'Disable User' : 'Enable User'}">
                         <span class="material-symbols-outlined text-[16px]">${u.is_active ? 'person_off' : 'person_check'}</span>
@@ -669,7 +677,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
-                showToast(`User ${id ? 'updated' : 'created'} successfully`, 'success');
+                const data = await res.json();
+                showToast(
+                    data.msg || `User ${id ? 'updated' : 'created'} successfully`,
+                    data.email_sent === false ? 'warning' : 'success'
+                );
                 window.closeUserModal();
                 fetchUsers(userCurrentPage);
             } else {
@@ -738,6 +750,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     window.toggleUserStatus = toggleUserStatus;
+
+    async function resendUserVerification(id) {
+        try {
+            const res = await fetch(`/api/admin/users/${id}/resend-verification`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            const data = await res.json();
+            showToast(data.msg || 'Unable to resend verification email', res.ok ? 'success' : 'error');
+            if (res.ok) fetchUsers(userCurrentPage);
+        } catch (e) {
+            console.error(e);
+            showToast('Network error', 'error');
+        }
+    }
+    window.resendUserVerification = resendUserVerification;
 
     window.openChangePasswordModal = function (id) {
         const user = gManagedUsers.find(u => u.id === id);

@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, current_app, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.extensions import db
 from app.models.auth import User
@@ -8,6 +8,7 @@ from app.utils.decorators import require_role, require_perm
 from app.utils.rbac_cache import increment_rbac_version, invalidate_user_cache, get_user_permissions
 from datetime import datetime
 from app.api.auth import validate_company_email, validate_password_strength
+from app.services.email_verification_service import issue_verification_token, send_verification_email
 
 admin_rbac_bp = Blueprint('admin_rbac', __name__)
 
@@ -205,19 +206,32 @@ def manage_users():
         if User.query.filter_by(user_id=user_id).first():
             return jsonify({"msg": "User ID already exists"}), 400
             
-        user = User(username=username, email=email, user_id=user_id)
+        user = User(username=username, email=email, user_id=user_id, is_active=False)
         
         is_valid, error_msg = validate_password_strength(password)
         if not is_valid:
             return jsonify({"msg": error_msg}), 400
             
         user.set_password(password)
+        verification_token = issue_verification_token(user)
         db.session.add(user)
         db.session.commit()
+
+        email_sent = True
+        try:
+            send_verification_email(user, verification_token)
+        except Exception as exc:
+            email_sent = False
+            current_app.logger.error("Failed to send verification email for user %s: %s", user.id, exc)
         
         log_audit(get_jwt_identity(), "CREATE", "USER", user.id, {"username": user.username})
         db.session.commit()
-        return jsonify({"msg": "User created", "id": user.id}), 201
+        return jsonify({
+            "msg": "User created. Verification email sent." if email_sent else
+                   "User created but verification email delivery failed. Use Resend Verification.",
+            "id": user.id,
+            "email_sent": email_sent,
+        }), 201
 
 @admin_rbac_bp.route('/users/<int:id>', methods=['PUT', 'DELETE'])
 @jwt_required()
@@ -247,9 +261,19 @@ def update_delete_user(id):
         if not is_valid:
             return jsonify({"msg": email_or_error}), 400
 
+        email_changed = email_or_error != user.email.strip().lower()
+        if email_changed and User.query.filter(User.email == email_or_error, User.id != user.id).first():
+            return jsonify({"msg": "Email already exists"}), 400
+
         user.username = data.get('username', user.username)
         user.email = email_or_error
         user.user_id = data.get('user_id', user.user_id)
+        verification_token = None
+        if email_changed:
+            user.email_verified_at = None
+            user.is_active = False
+            user.session_version += 1
+            verification_token = issue_verification_token(user)
         
         if data.get('password'):
             # Security: Admins cannot reset other ADMIN passwords through this UI
@@ -270,8 +294,25 @@ def update_delete_user(id):
             db.session.add(history)
             
         db.session.commit()
+
+        email_sent = None
+        if verification_token:
+            email_sent = True
+            try:
+                send_verification_email(user, verification_token)
+            except Exception as exc:
+                email_sent = False
+                current_app.logger.error("Failed to send verification email for user %s: %s", user.id, exc)
+
         log_audit(get_jwt_identity(), "UPDATE", "USER", id, {"username": user.username})
         db.session.commit()
+        if email_sent is False:
+            return jsonify({
+                "msg": "User updated, but verification email delivery failed. Use Resend Verification.",
+                "email_sent": False,
+            })
+        if email_sent:
+            return jsonify({"msg": "User updated. Verification email sent.", "email_sent": True})
         return jsonify({"msg": "User updated"})
 
 @admin_rbac_bp.route('/users/<int:user_id>/password', methods=['PUT'])
@@ -339,6 +380,13 @@ def toggle_user_status(user_id):
     if user.id == current_user_id:
         return jsonify({"msg": "You cannot disable your own account."}), 400
         
+    if (
+        not user.is_active
+        and user.email_verified_at is None
+        and user.email_verification_token_hash
+    ):
+        return jsonify({"msg": "This user must verify their email before the account can be enabled."}), 400
+
     user.is_active = not user.is_active
     action = "ENABLE" if user.is_active else "DISABLE"
     
@@ -353,6 +401,35 @@ def toggle_user_status(user_id):
         "msg": f"User {user.username} has been {'enabled' if user.is_active else 'disabled'}",
         "is_active": user.is_active
     }), 200
+
+
+@admin_rbac_bp.route('/users/<int:user_id>/resend-verification', methods=['POST'])
+@jwt_required()
+@require_role('ADMIN')
+def resend_user_verification(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.email_verified_at:
+        return jsonify({"msg": "This email address is already verified."}), 400
+
+    verification_token = issue_verification_token(user)
+    user.is_active = False
+    db.session.commit()
+
+    try:
+        send_verification_email(user, verification_token)
+    except Exception as exc:
+        current_app.logger.error("Failed to resend verification email for user %s: %s", user.id, exc)
+        return jsonify({"msg": "Verification email could not be sent. Check SMTP configuration."}), 502
+
+    log_audit(
+        get_jwt_identity(),
+        "RESEND_EMAIL_VERIFICATION",
+        "USER",
+        user.id,
+        {"username": user.username, "email": user.email},
+    )
+    db.session.commit()
+    return jsonify({"msg": f"Verification email sent to {user.email}."}), 200
 
 @admin_rbac_bp.route('/users/<int:user_id>/force-password-reset', methods=['POST'])
 @jwt_required()

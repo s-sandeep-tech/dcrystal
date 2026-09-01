@@ -6,6 +6,7 @@ from app.extensions import db
 from app.models import User, LoginAttemptLog
 from app.services.auth_service import auth_service
 from app.api.auth import validate_company_email
+from app.services.email_verification_service import issue_verification_token
 
 class AuthSecurityTestCase(unittest.TestCase):
     def setUp(self):
@@ -98,6 +99,29 @@ class AuthSecurityTestCase(unittest.TestCase):
             valid, error = validate_company_email(email)
             self.assertFalse(valid)
             self.assertIn('@kalyanjewellers.tech', error)
+
+    def test_email_verification_activates_pending_user_once(self):
+        with self.app.app_context():
+            user = User(
+                user_id='pendinguser',
+                username='pendinguser',
+                email='pendinguser@kalyanjewellers.tech',
+                is_active=False,
+            )
+            user.set_password('Password1!')
+            token = issue_verification_token(user)
+            db.session.add(user)
+            db.session.commit()
+
+            response = self.client.get(f'/api/auth/verify-email?token={token}')
+            self.assertEqual(response.status_code, 200)
+            db.session.refresh(user)
+            self.assertTrue(user.is_active)
+            self.assertIsNotNone(user.email_verified_at)
+            self.assertIsNone(user.email_verification_token_hash)
+
+            reused = self.client.get(f'/api/auth/verify-email?token={token}')
+            self.assertEqual(reused.status_code, 400)
 
     def test_clear_lockout_endpoint(self):
         # 1. Login as Admin to get token (simplifying by mocking or using a real user if needed)

@@ -1,9 +1,14 @@
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, current_app, jsonify, render_template, request, session
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app.models import User, UserPasswordHistory, LoginAttemptLog, AuditLog
 from app.extensions import db, limiter
-from datetime import timedelta
+from datetime import datetime, timedelta
 from app.services.auth_service import auth_service
+from app.services.email_verification_service import (
+    hash_verification_token,
+    issue_verification_token,
+    send_verification_email,
+)
 from app.utils.decorators import require_role
 
 import re
@@ -124,19 +129,76 @@ def register():
 
     if User.query.filter_by(user_id=user_id).first():
         return jsonify({"msg": "User ID already exists"}), 400
+    if User.query.filter_by(username=username).first():
+        return jsonify({"msg": "Username already exists"}), 400
+    if User.query.filter_by(email=email).first():
+        return jsonify({"msg": "Email already exists"}), 400
 
-    new_user = User(user_id=user_id, username=username, email=email)
+    new_user = User(user_id=user_id, username=username, email=email, is_active=False)
     
     is_valid, error_msg = validate_password_strength(password)
     if not is_valid:
         return jsonify({"msg": error_msg}), 400
         
     new_user.set_password(password)
-    
+    verification_token = issue_verification_token(new_user)
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({"msg": "User created successfully"}), 201
+    email_sent = True
+    try:
+        send_verification_email(new_user, verification_token)
+    except Exception as exc:
+        email_sent = False
+        current_app.logger.error("Failed to send verification email for user %s: %s", new_user.id, exc)
+
+    return jsonify({
+        "msg": "User created. Verification email sent." if email_sent else
+               "User created but the verification email could not be sent. Ask an administrator to resend it.",
+        "email_sent": email_sent,
+    }), 201
+
+
+@auth_bp.route('/verify-email', methods=['GET'])
+@limiter.limit("30 per minute per IP")
+def verify_email():
+    token = (request.args.get('token') or '').strip()
+    if not token:
+        return render_template(
+            'email_verification_result.html',
+            success=False,
+            message='The activation link is invalid.',
+        ), 400
+
+    user = User.query.filter_by(
+        email_verification_token_hash=hash_verification_token(token)
+    ).first()
+    now = datetime.utcnow()
+    if not user:
+        return render_template(
+            'email_verification_result.html',
+            success=False,
+            message='The activation link is invalid or has already been used.',
+        ), 400
+
+    if not user.email_verification_expires_at or user.email_verification_expires_at < now:
+        return render_template(
+            'email_verification_result.html',
+            success=False,
+            message='The activation link has expired. Contact an administrator to resend it.',
+        ), 410
+
+    user.email_verified_at = now
+    user.email_verification_token_hash = None
+    user.email_verification_expires_at = None
+    user.is_active = True
+    db.session.commit()
+
+    return render_template(
+        'email_verification_result.html',
+        success=True,
+        message='Your email has been verified and your account is now active.',
+    )
 
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()

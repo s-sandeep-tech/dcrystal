@@ -21,6 +21,10 @@ class User(db.Model):
     last_login_at = db.Column(db.DateTime, nullable=True)
     last_login_ip = db.Column(db.String(45), nullable=True) # 45 for IPv6 support
     session_version = db.Column(db.Integer, default=0, nullable=False)
+    email_verified_at = db.Column(db.DateTime, nullable=True)
+    email_verification_token_hash = db.Column(db.String(64), nullable=True, index=True)
+    email_verification_sent_at = db.Column(db.DateTime, nullable=True)
+    email_verification_expires_at = db.Column(db.DateTime, nullable=True)
     
     # Password reset fields
     must_reset_password = db.Column(db.Boolean, default=False)
@@ -46,6 +50,12 @@ class User(db.Model):
             'roles': [r.name for r in self.roles],
             'failed_attempt_count': self.failed_attempt_count,
             'lockout_until': self.lockout_until.isoformat() + 'Z' if self.lockout_until else None,
+            'email_verified_at': self.email_verified_at.isoformat() + 'Z' if self.email_verified_at else None,
+            'email_verification_pending': bool(
+                not self.is_active
+                and self.email_verified_at is None
+                and self.email_verification_token_hash
+            ),
             'must_reset_password': self.must_reset_password,
             'last_reset_initiated_at': self.last_reset_initiated_at.isoformat() + 'Z' if self.last_reset_initiated_at else None
         }
@@ -96,5 +106,4 @@ class ThirdPartyApiClient(db.Model):
         import hmac
         incoming_hash = hashlib.sha256(raw_token.encode('utf-8')).hexdigest()
         return hmac.compare_digest(self.token_hash, incoming_hash)
-
 
