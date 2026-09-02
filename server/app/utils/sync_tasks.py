@@ -4729,9 +4729,9 @@ def sync_weekly_delivery_order_summary_task(task_type_override=None, progress_ra
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute('SET statement_timeout = 0')
 
-        emit('processing', 'Fetching ext_view.vw_weekly_delivery_order_summary...', 20)
+        emit('processing', 'Fetching ext_view.vw_weekly_delivery_order_details...', 20)
         started_at = time.time()
-        cursor.execute('SELECT * FROM ext_view.vw_weekly_delivery_order_summary')
+        cursor.execute('SELECT * FROM ext_view.vw_weekly_delivery_order_details')
         source_columns = {normalize_key(column.name) for column in cursor.description}
         required_columns = {
             'classification', 'make', 'collection', 'party', 'purity',
