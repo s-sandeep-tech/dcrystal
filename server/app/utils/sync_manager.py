@@ -67,6 +67,7 @@ ALLOWED_SYNC_TASKS = {
     'party_design_average_delivery_days',
     'party_performance_matrix',
     'location_wise_old_gold_settlement_transfer',
+    'weekly_delivery_order_summary',
 }
 
 
@@ -232,3 +233,7 @@ def sync_party_performance_matrix_data(user_id=None):
 
 def sync_location_wise_old_gold_settlement_transfer_data(user_id=None):
     return enqueue_sync_task('location_wise_old_gold_settlement_transfer', user_id)
+
+
+def sync_weekly_delivery_order_summary_data(user_id=None):
+    return enqueue_sync_task('weekly_delivery_order_summary', user_id)

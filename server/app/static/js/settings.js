@@ -88,7 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, 
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, 
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
-                            syncCollectionWiseAverageDeliveryDaysBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn
+                            syncCollectionWiseAverageDeliveryDaysBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn,
+                            syncWeeklyDeliveryOrderSummaryBtn
                         ].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
                         });
@@ -116,7 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, 
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, 
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
-                            syncCollectionWiseAverageDeliveryDaysBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn
+                            syncCollectionWiseAverageDeliveryDaysBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn,
+                            syncWeeklyDeliveryOrderSummaryBtn
                         ].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
                         });
@@ -170,6 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncCollectionWiseAverageDeliveryDaysBtn = document.getElementById('sync-collection-wise-average-delivery-days-btn');
     const syncPartyPerformanceMatrixBtn = document.getElementById('sync-party-performance-matrix-btn');
     const syncLocationWiseOldGoldBtn = document.getElementById('sync-location-wise-old-gold-btn');
+    const syncWeeklyDeliveryOrderSummaryBtn = document.getElementById('sync-weekly-delivery-order-summary-btn');
     const syncAllBtn = document.getElementById('sync-all-btn');
 
 
@@ -238,6 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncCollectionWiseAverageDeliveryDaysBtn) syncCollectionWiseAverageDeliveryDaysBtn.addEventListener('click', () => triggerSync(syncCollectionWiseAverageDeliveryDaysBtn, window.SETTINGS_CONFIG.syncCollectionWiseAverageDeliveryDaysUrl || '/api/sync/collection-wise-average-delivery-days', 'Collection Wise Average Delivery Days Sync', 'collection_wise_average_delivery_days'));
     if (syncPartyPerformanceMatrixBtn) syncPartyPerformanceMatrixBtn.addEventListener('click', () => triggerSync(syncPartyPerformanceMatrixBtn, window.SETTINGS_CONFIG.syncPartyPerformanceMatrixUrl, 'Party Performance Matrix Sync', 'party_performance_matrix'));
     if (syncLocationWiseOldGoldBtn) syncLocationWiseOldGoldBtn.addEventListener('click', () => triggerSync(syncLocationWiseOldGoldBtn, window.SETTINGS_CONFIG.syncLocationWiseOldGoldSettlementTransferUrl, 'Location-wise Old Gold Settlement & Transfer Sync', 'location_wise_old_gold_settlement_transfer'));
+    if (syncWeeklyDeliveryOrderSummaryBtn) syncWeeklyDeliveryOrderSummaryBtn.addEventListener('click', () => triggerSync(syncWeeklyDeliveryOrderSummaryBtn, window.SETTINGS_CONFIG.syncWeeklyDeliveryOrderSummaryUrl, 'Weekly Delivery Order Summary Sync', 'weekly_delivery_order_summary'));
 
 
 
@@ -314,6 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { url: window.SETTINGS_CONFIG.syncOrderFulfillmentValueAgingMatrixUrl, label: 'Order Fulfillment Value Aging Matrix', type: 'order_fulfillment_aging_matrix' },
                 { url: window.SETTINGS_CONFIG.syncPartyPerformanceMatrixUrl, label: 'Party Performance Matrix', type: 'party_performance_matrix' },
                 { url: window.SETTINGS_CONFIG.syncLocationWiseOldGoldSettlementTransferUrl, label: 'Location-wise Old Gold Settlement & Transfer', type: 'location_wise_old_gold_settlement_transfer' },
+                { url: window.SETTINGS_CONFIG.syncWeeklyDeliveryOrderSummaryUrl, label: 'Weekly Delivery Order Summary', type: 'weekly_delivery_order_summary' },
             ];
 
             setSyncLoading(syncAllBtn, 'Processing');

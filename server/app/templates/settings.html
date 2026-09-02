@@ -731,6 +731,25 @@
                                     </button>
                                 </div>
 
+                                <div id="sync-wrapper-weekly_delivery_order_summary"
+                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-blue-500 text-xl">calendar_view_week</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Weekly Delivery Order Summary Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh from ext_view.vw_weekly_delivery_order_summary</p>
+                                            <span class="text-[9px] font-black text-blue-600 dark:text-blue-400/90 block mt-1 uppercase tracking-wider">Manual Sync</span>
+                                        </div>
+                                    </div>
+                                    <button id="sync-weekly-delivery-order-summary-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-blue-600 transition-all shadow-md shadow-blue-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
+                                </div>
+
                             </div>
 
                             <div
@@ -1456,6 +1475,7 @@
             syncCollectionWiseAverageDeliveryDaysUrl: "{{ url_for('dashboard.trigger_sync_collection_wise_average_delivery_days') }}",
             syncPartyPerformanceMatrixUrl: "{{ url_for('dashboard.settings_sync_party_performance_matrix') }}",
             syncLocationWiseOldGoldSettlementTransferUrl: "{{ url_for('dashboard.sync_location_wise_old_gold_settlement_transfer') }}",
+            syncWeeklyDeliveryOrderSummaryUrl: "{{ url_for('dashboard.settings_sync_weekly_delivery_order_summary') }}",
             syncLogsUrl: "{{ url_for('dashboard.get_sync_logs') }}",
 
 
@@ -1464,5 +1484,5 @@
             notificationsUrl: "{{ url_for('dashboard.get_settings_notifications') }}"
         };
     </script>
-    <script src="{{ url_for('static', filename='js/settings.js', v='20260728-2') }}"></script>
+    <script src="{{ url_for('static', filename='js/settings.js', v='20260902-1') }}"></script>
     {% endblock %}

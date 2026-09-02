@@ -1,0 +1,82 @@
+{% if not is_child_rows %}
+<table class="enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider">
+            <th rowspan="2" class="col-expander text-center px-0 w-8"></th>
+            <th rowspan="2" class="text-left px-2 min-w-[220px]">Drill Down</th>
+            <th colspan="3" class="text-center px-2 bg-gray-100/50 border-x border-gray-200">Completion Weight</th>
+            <th colspan="5" class="text-center px-2 bg-blue-50/50">Delivery Week</th>
+        </tr>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider">
+            <th class="text-right px-2 bg-cyan-50/30">Hallmarked</th>
+            <th class="text-right px-2 bg-amber-50/30">QC Completed</th>
+            <th class="text-right px-2 bg-emerald-50/30">Total Weight</th>
+            {% for week in week_windows %}
+            <th class="text-right px-2 bg-blue-50/30 min-w-[120px]">
+                <span class="block text-primary">{{ week.title }}</span>
+                <span class="block text-[7px] font-medium text-gray-400 normal-case">{{ week.start.isoformat() }} - {{ week.end.isoformat() }}</span>
+            </th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+{% endif %}
+
+{% for row in rows %}
+<tr class="parent-row hover:bg-blue-50/30 group animate-fade-in" data-level="{{ row.level }}" data-path="{{ row.path|tojson|forceescape }}">
+    <td class="text-center px-0">
+        {% if row.level != 'party' %}
+        <button onclick="toggleRow(this)" class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none" title="Expand {{ row.label }}">
+            <span class="material-symbols-outlined text-[14px]">add_circle</span>
+        </button>
+        {% else %}
+        <span class="material-symbols-outlined text-[8px] text-gray-200">fiber_manual_record</span>
+        {% endif %}
+    </td>
+    <td class="px-2 font-bold">
+        <div class="flex items-center gap-1" style="padding-left: {{ {'classification': 0, 'make': 12, 'collection': 24, 'purity': 36, 'party': 48}[row.level] }}px">
+            <span class="material-symbols-outlined text-[12px] text-gray-300">
+                {% if row.level == 'classification' %}account_tree{% elif row.level == 'make' %}precision_manufacturing{% elif row.level == 'collection' %}category{% elif row.level == 'purity' %}diamond{% else %}storefront{% endif %}
+            </span>
+            {{ row.label }}
+        </div>
+    </td>
+    <td class="text-right px-2 font-bold text-cyan-600">{{ "%.3f"|format(row.hallmark_weight) }}</td>
+    <td class="text-right px-2 font-bold text-amber-600">{{ "%.3f"|format(row.qc_weight) }}</td>
+    <td class="text-right px-2 font-bold text-emerald-600">{{ "%.3f"|format(row.total_weight) }}</td>
+    {% for week in week_windows %}
+    <td class="text-right px-2 font-bold text-blue-600">{{ "%.3f"|format(row[week.key]) }}</td>
+    {% endfor %}
+</tr>
+{% endfor %}
+
+{% if not rows and not is_child_rows %}
+<tr><td colspan="10" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td></tr>
+{% endif %}
+
+{% if not is_child_rows %}
+    </tbody>
+    <tfoot class="bg-gray-50 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700 font-bold sticky bottom-0 z-10">
+        <tr>
+            <td colspan="2" class="px-2 py-3 text-left uppercase tracking-wider text-gray-500 text-[10px]">Grand Total</td>
+            <td class="text-right px-2 text-cyan-600">{{ stats.hallmark_weight }}</td>
+            <td class="text-right px-2 text-amber-600">{{ stats.qc_weight }}</td>
+            <td class="text-right px-2 text-emerald-600">{{ stats.total_weight }}</td>
+            {% for week in week_windows %}
+            <td class="text-right px-2 text-blue-600">{{ stats[week.key] }}</td>
+            {% endfor %}
+        </tr>
+    </tfoot>
+</table>
+
+<script id="stats-metadata" type="application/json">{{ stats|tojson }}</script>
+<div class="pagination-meta hidden"
+     data-page="{{ pagination.page if pagination else 1 }}"
+     data-per-page="{{ pagination.per_page if pagination else 50 }}"
+     data-total="{{ pagination.total if pagination else 0 }}"
+     data-prev-num="{{ pagination.prev_num if pagination and pagination.has_prev else '' }}"
+     data-next-num="{{ pagination.next_num if pagination and pagination.has_next else '' }}"
+     data-has-prev="{{ 'true' if pagination and pagination.has_prev else 'false' }}"
+     data-has-next="{{ 'true' if pagination and pagination.has_next else 'false' }}"
+     data-level="{{ current_level }}"></div>
+{% endif %}

@@ -78,6 +78,14 @@ window.REPORT_MENU_DATA = [
                 tags: ["owner", "summary", "orders"]
             },
             {
+                id: "weekly-delivery-order-summary",
+                title: "Weekly Delivery Order Summary",
+                href: "/weekly-delivery-order-summary",
+                icon: "calendar_view_week",
+                description: "Five-week delivery plan with hallmark, QC, and balance weights by product hierarchy.",
+                tags: ["weekly", "delivery", "orders", "hallmark", "qc"]
+            },
+            {
                 id: "location-wise-old-gold-settlement-transfer-summary",
                 title: "Location-wise Old Gold Pending & Transfer Summary",
                 href: "/location-wise-old-gold-settlement-transfer-summary",

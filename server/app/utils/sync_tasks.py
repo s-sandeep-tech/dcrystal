@@ -57,13 +57,15 @@ from ..models.snapshots import (
     PartyRoWiseDeliverySnapshot,
     PartyOrderLifecycleSnapshot,
     PartyQcPassFailSnapshot,
-    LocationWiseOldGoldSettlementTransferSnapshot
+    LocationWiseOldGoldSettlementTransferSnapshot,
+    WeeklyDeliveryOrderSummarySnapshot
 )
 
 from flask import current_app
 import os
 import time
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 import json
 import logging
 import threading
@@ -4672,3 +4674,140 @@ def sync_location_wise_old_gold_settlement_transfer_task(task_type_override=None
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
+
+
+def sync_weekly_delivery_order_summary_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+    conn = None
+    task_type = task_type_override or 'weekly_delivery_order_summary'
+
+    def emit(status, message, progress):
+        emit_combined_sync_update(
+            status,
+            message,
+            progress,
+            task_type,
+            progress_range,
+            is_subtask,
+        )
+
+    def normalize_key(key):
+        return str(key).strip().lower().replace(' ', '_')
+
+    def normalized_row(row):
+        return {
+            normalize_key(key): value
+            for key, value in row.items()
+        }
+
+    def parse_delivery_week(value):
+        if not value:
+            return None
+        if isinstance(value, datetime):
+            return value.date()
+        if isinstance(value, date):
+            return value
+
+        raw_value = str(value).strip()
+        candidates = [raw_value, raw_value[:10]]
+        for candidate in candidates:
+            for date_format in ('%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%Y/%m/%d'):
+                try:
+                    return datetime.strptime(candidate, date_format).date()
+                except ValueError:
+                    continue
+        return None
+
+    def decimal_value(value):
+        try:
+            return Decimal(str(value or 0))
+        except (InvalidOperation, TypeError, ValueError):
+            return Decimal('0')
+
+    try:
+        emit('processing', 'Starting Weekly Delivery Order Summary Sync...', 5)
+        conn = get_external_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute('SET statement_timeout = 0')
+
+        emit('processing', 'Fetching ext_view.vw_weekly_delivery_order_summary...', 20)
+        started_at = time.time()
+        cursor.execute('SELECT * FROM ext_view.vw_weekly_delivery_order_summary')
+        source_columns = {normalize_key(column.name) for column in cursor.description}
+        required_columns = {
+            'classification', 'make', 'collection', 'party', 'purity',
+            'order_type', 'order_request_type', 'delivery_week', 'weight',
+            'hallmark_completed_weight', 'qc_completed_weight',
+        }
+        missing_columns = sorted(required_columns - source_columns)
+        if missing_columns:
+            raise ValueError(
+                'Source view is missing required columns: '
+                + ', '.join(missing_columns)
+            )
+        source_rows = cursor.fetchall()
+        duration = time.time() - started_at
+
+        emit(
+            'processing',
+            f'Fetched {len(source_rows):,} records in {duration:.1f}s. Updating snapshot...',
+            55,
+        )
+
+        WeeklyDeliveryOrderSummarySnapshot.__table__.create(db.engine, checkfirst=True)
+        db.session.query(WeeklyDeliveryOrderSummarySnapshot).delete()
+
+        updated_at = datetime.utcnow()
+        records = []
+        invalid_week_count = 0
+        for source_row in source_rows:
+            row = normalized_row(source_row)
+            delivery_week = parse_delivery_week(row.get('delivery_week'))
+            if delivery_week is None:
+                invalid_week_count += 1
+                continue
+            records.append({
+                'classification': str(row.get('classification') or '').strip(),
+                'make': str(row.get('make') or '').strip(),
+                'collection': str(row.get('collection') or '').strip(),
+                'party': str(row.get('party') or '').strip(),
+                'purity': str(row.get('purity') or '').strip(),
+                'order_type': str(row.get('order_type') or '').strip(),
+                'order_request_type': str(row.get('order_request_type') or '').strip(),
+                'delivery_week': delivery_week,
+                'weight': decimal_value(row.get('weight')),
+                'hallmark_completed_weight': decimal_value(
+                    row.get('hallmark_completed_weight')
+                ),
+                'qc_completed_weight': decimal_value(row.get('qc_completed_weight')),
+                'updated_at': updated_at,
+            })
+
+        for start in range(0, len(records), 5000):
+            db.session.bulk_insert_mappings(
+                WeeklyDeliveryOrderSummarySnapshot,
+                records[start:start + 5000],
+            )
+        db.session.commit()
+
+        skipped_message = (
+            f' {invalid_week_count:,} records skipped due to an invalid delivery week.'
+            if invalid_week_count else ''
+        )
+        emit(
+            'success',
+            f'Sync completed! {len(records):,} records updated.{skipped_message}',
+            100,
+        )
+        return {
+            'status': 'success',
+            'count': len(records),
+            'skipped': invalid_week_count,
+        }
+    except Exception as exc:
+        db.session.rollback()
+        logger.exception('Weekly Delivery Order Summary sync failed')
+        emit('error', f'Sync failed: {exc}', 0)
+        return {'status': 'error', 'message': str(exc)}
+    finally:
+        if conn:
+            conn.close()

@@ -3472,3 +3472,25 @@ class LocationWiseOldGoldSettlementTransferSnapshot(db.Model):
     transfer_netwt = db.Column(db.Numeric(18, 4), default=0.0)
     locationtype = db.Column(db.String(100))
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class WeeklyDeliveryOrderSummarySnapshot(db.Model):
+    __tablename__ = 'weekly_delivery_order_summary_snapshot'
+
+    id = db.Column(
+        db.BigInteger().with_variant(db.Integer, 'sqlite'),
+        primary_key=True,
+        autoincrement=True,
+    )
+    classification = db.Column(db.String(150), index=True)
+    make = db.Column(db.String(150), index=True)
+    collection = db.Column(db.String(200), index=True)
+    party = db.Column(db.String(250), index=True)
+    purity = db.Column(db.String(50), index=True)
+    order_type = db.Column(db.String(150), index=True)
+    order_request_type = db.Column(db.String(150), index=True)
+    delivery_week = db.Column(db.Date, index=True)
+    weight = db.Column(db.Numeric(18, 3), default=0.0)
+    hallmark_completed_weight = db.Column(db.Numeric(18, 3), default=0.0)
+    qc_completed_weight = db.Column(db.Numeric(18, 3), default=0.0)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
