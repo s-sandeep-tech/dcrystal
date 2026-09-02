@@ -27,7 +27,7 @@
                     </span>
                 </div>
             </th>
-            <th colspan="2" class="text-center px-1 py-1 w-[15%] bg-emerald-50/60 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300 border-r border-gray-200 dark:border-gray-700 font-bold">Today</th>
+            <th colspan="2" class="text-center px-1 py-1 w-[15%] bg-emerald-50/60 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300 border-r border-gray-200 dark:border-gray-700 font-bold">1 Day</th>
             <th colspan="2" class="text-center px-1 py-1 w-[15%] bg-slate-100/70 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 border-r border-gray-200 dark:border-gray-700 font-bold">2 - 5 Days</th>
             <th colspan="2" class="text-center px-1 py-1 w-[15%] bg-slate-100/70 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 border-r border-gray-200 dark:border-gray-700 font-bold">6 - 10 Days</th>
             <th colspan="2" class="text-center px-1 py-1 w-[15%] bg-amber-50/50 text-amber-900/90 dark:bg-amber-950/20 dark:text-amber-300 border-r border-gray-200 dark:border-gray-700 font-bold">11 - 15 Days</th>
@@ -35,7 +35,7 @@
             <th colspan="2" class="text-center px-1 py-1 w-[16%] bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 font-bold">Total</th>
         </tr>
         <tr class="bg-gray-50/80 dark:bg-gray-800/80 text-gray-500 uppercase font-semibold text-[8px] tracking-wider select-none">
-            <!-- Today Subheaders -->
+            <!-- Previous-day subheaders -->
             <th class="text-right px-1 py-1 w-[7.5%] bg-emerald-50/30 cursor-pointer hover:bg-emerald-100/50 group" onclick="handleSort('today_settle')">
                 <div class="flex items-center justify-end gap-0.5">
                     <span>Pending</span>
@@ -180,7 +180,7 @@
                 </div>
             </td>
 
-            <!-- Today Settlement -->
+            <!-- Previous-day pending -->
             <td class="text-right px-1.5 py-1.5 w-[7.5%] tabular-nums overflow-hidden bg-emerald-50/20" {% if r.grwt_today and r.grwt_today > 0 %}title="Gross: {{ "%.3f"|format(r.grwt_today) }}&#10;Net: {{ "%.3f"|format(r.netwt_today) }}{% if r.stwt_today and r.stwt_today > 0 %}&#10;Stone: {{ "%.3f"|format(r.stwt_today) }}{% endif %}"{% endif %}>
                 {% if r.grwt_today and r.grwt_today > 0 %}
                 <span class="font-bold text-emerald-700 dark:text-emerald-400 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.grwt_today) }}</span>
@@ -188,7 +188,7 @@
                 <span class="text-gray-300 dark:text-gray-600">-</span>
                 {% endif %}
             </td>
-            <!-- Today Transfer -->
+            <!-- Previous-day transfer -->
             <td class="text-right px-1.5 py-1.5 w-[7.5%] tabular-nums overflow-hidden bg-emerald-50/20 border-r border-gray-100 dark:border-gray-800" {% if r.transfer_grwt_today and r.transfer_grwt_today > 0 %}title="Transfer Gross: {{ "%.3f"|format(r.transfer_grwt_today) }}&#10;Transfer Net: {{ "%.3f"|format(r.transfer_netwt_today) }}{% if r.transfer_stwt_today and r.transfer_stwt_today > 0 %}&#10;Transfer Stone: {{ "%.3f"|format(r.transfer_stwt_today) }}{% endif %}"{% endif %}>
                 {% if r.transfer_grwt_today and r.transfer_grwt_today > 0 %}
                 <span class="font-bold text-blue-700 dark:text-blue-400 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.transfer_grwt_today) }}</span>
@@ -295,7 +295,7 @@
     <tfoot class="bg-gray-50 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700 font-bold sticky bottom-0 z-10">
         <tr>
             <td colspan="2" class="px-2 py-2 text-left uppercase tracking-wider text-gray-500 text-[10px] w-[24%] overflow-hidden border-r border-gray-200 dark:border-gray-700">Grand Total</td>
-            <!-- Today Settlement -->
+            <!-- Previous-day pending -->
             <td class="text-right px-1.5 py-2 w-[7.5%] tabular-nums overflow-hidden bg-emerald-50/20" {% if stats and stats.grwt_today and stats.grwt_today != '0.000' and stats.grwt_today != '0' %}title="Gross: {{ stats.grwt_today }}&#10;Net: {{ stats.netwt_today }}{% if stats.stwt_today and stats.stwt_today != '0.000' and stats.stwt_today != '0' %}&#10;Stone: {{ stats.stwt_today }}{% endif %}"{% endif %}>
                 {% if stats and stats.grwt_today and stats.grwt_today != '0.000' and stats.grwt_today != '0' %}
                 <span class="text-emerald-700 dark:text-emerald-400 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.grwt_today }}</span>
@@ -303,7 +303,7 @@
                 <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
                 {% endif %}
             </td>
-            <!-- Today Transfer -->
+            <!-- Previous-day transfer -->
             <td class="text-right px-1.5 py-2 w-[7.5%] tabular-nums overflow-hidden bg-emerald-50/20 border-r border-gray-200 dark:border-gray-700" {% if stats and stats.transfer_grwt_today and stats.transfer_grwt_today != '0.000' and stats.transfer_grwt_today != '0' %}title="Transfer Gross: {{ stats.transfer_grwt_today }}&#10;Transfer Net: {{ stats.transfer_netwt_today }}{% if stats.transfer_stwt_today and stats.transfer_stwt_today != '0.000' and stats.transfer_stwt_today != '0' %}&#10;Transfer Stone: {{ stats.transfer_stwt_today }}{% endif %}"{% endif %}>
                 {% if stats and stats.transfer_grwt_today and stats.transfer_grwt_today != '0.000' and stats.transfer_grwt_today != '0' %}
                 <span class="text-blue-700 dark:text-blue-400 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.transfer_grwt_today }}</span>

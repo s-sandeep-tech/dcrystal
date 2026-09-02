@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 OLD_GOLD_REPORT_CACHE_PREFIX = 'location_wise_old_gold_report'
 OLD_GOLD_REPORT_CACHE_TTL = 21600
+OLD_GOLD_REPORT_BUCKET_VERSION = 'previous-day-v1'
 
 
 def get_snapshot_cache_token():
@@ -29,6 +30,7 @@ def get_snapshot_cache_token():
 def build_report_cache_key(cache_section, snapshot_token, request_args=None):
     payload = {
         'snapshot': snapshot_token,
+        'bucket_version': OLD_GOLD_REPORT_BUCKET_VERSION,
         # Aging buckets use CURRENT_DATE, so a cache must not cross midnight.
         'report_date': datetime.now(ZoneInfo('Asia/Kolkata')).date().isoformat(),
         'args': sorted((request_args or {}).items()),
@@ -113,7 +115,7 @@ def get_aggregation_columns():
     trans_date = func.cast(LocationWiseOldGoldSettlementTransferSnapshot.transdate, db.Date)
     curr_date = func.current_date()
 
-    cond_today = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date == curr_date)
+    cond_today = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date == curr_date - 1)
     cond_2_5 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(curr_date - 5, curr_date - 2))
     cond_6_10 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(curr_date - 10, curr_date - 6))
     cond_11_15 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(curr_date - 15, curr_date - 11))
@@ -125,12 +127,12 @@ def get_aggregation_columns():
         func.coalesce(func.sum(LocationWiseOldGoldSettlementTransferSnapshot.netwt), 0).label('tot_netwt'),
         func.coalesce(func.sum(LocationWiseOldGoldSettlementTransferSnapshot.stwt), 0).label('tot_stwt'),
 
-        # Today settlement
+        # Previous-day pending
         func.coalesce(func.sum(case((cond_today, LocationWiseOldGoldSettlementTransferSnapshot.grwt), else_=0)), 0).label('grwt_today'),
         func.coalesce(func.sum(case((cond_today, LocationWiseOldGoldSettlementTransferSnapshot.netwt), else_=0)), 0).label('netwt_today'),
         func.coalesce(func.sum(case((cond_today, LocationWiseOldGoldSettlementTransferSnapshot.stwt), else_=0)), 0).label('stwt_today'),
 
-        # Today transfer
+        # Previous-day transfer
         func.coalesce(func.sum(case((cond_today, LocationWiseOldGoldSettlementTransferSnapshot.transfer_grwt), else_=0)), 0).label('transfer_grwt_today'),
         func.coalesce(func.sum(case((cond_today, LocationWiseOldGoldSettlementTransferSnapshot.transfer_netwt), else_=0)), 0).label('transfer_netwt_today'),
         func.coalesce(func.sum(case((cond_today, LocationWiseOldGoldSettlementTransferSnapshot.transfer_stwt), else_=0)), 0).label('transfer_stwt_today'),
@@ -329,7 +331,7 @@ def get_sort_order_clause(sort_by, sort_order, group_cols):
     trans_date = func.cast(LocationWiseOldGoldSettlementTransferSnapshot.transdate, db.Date)
     curr_date = func.current_date()
 
-    cond_today = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date == curr_date)
+    cond_today = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date == curr_date - 1)
     cond_2_5 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(curr_date - 5, curr_date - 2))
     cond_6_10 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(curr_date - 10, curr_date - 6))
     cond_11_15 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(curr_date - 15, curr_date - 11))
