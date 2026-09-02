@@ -225,6 +225,9 @@
             <!-- Location Filter -->
             <div id="filter-location-container"></div>
 
+            <!-- Location Type Filter -->
+            <div id="filter-locationtype-container"></div>
+
             <!-- Division Filter -->
             <div id="filter-division-container"></div>
 
@@ -274,5 +277,5 @@
     window.OLD_GOLD_FILTER_OPTIONS = {{ filter_options|tojson }};
 </script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/location_wise_old_gold_settlement_transfer.js', v='20260819-1') }}"></script>
+<script src="{{ url_for('static', filename='js/location_wise_old_gold_settlement_transfer.js', v='20260902-1') }}"></script>
 {% endblock %}

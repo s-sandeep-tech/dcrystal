@@ -9,6 +9,7 @@ function initializeMultiSelectFilters() {
     const definitions = {
         office: ['Office', 'All Offices', options.offices || []],
         location: ['Location', 'All Locations', options.locations || []],
+        locationtype: ['Location Type', 'All Location Types', options.locationtypes || []],
         division: ['Division', 'All Divisions', options.divisions || []],
         purity: ['Purity', 'All Purities', options.purities || []]
     };
@@ -312,7 +313,7 @@ function applyGlobalFilters() {
         }
     }
 
-    ['office', 'location', 'division', 'purity'].forEach(param => {
+    ['office', 'location', 'locationtype', 'division', 'purity'].forEach(param => {
         const value = oldGoldMultiSelects[param]?.getValues().join(',') || '';
         if (value) {
             urlParams.set(param, value);

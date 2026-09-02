@@ -69,6 +69,7 @@ def build_filters(query):
     search = request.args.get('search', '').strip()
     offices = split_filter_values(request.args.get('office'))
     locations = split_filter_values(request.args.get('location'))
+    location_types = split_filter_values(request.args.get('locationtype'))
     divisions = split_filter_values(request.args.get('division'))
     group_name = request.args.get('group', '').strip()
     purities = split_filter_values(request.args.get('purity'))
@@ -80,6 +81,7 @@ def build_filters(query):
         query = query.filter(
             (LocationWiseOldGoldSettlementTransferSnapshot.office.ilike(f"%{search}%")) |
             (LocationWiseOldGoldSettlementTransferSnapshot.locationname.ilike(f"%{search}%")) |
+            (LocationWiseOldGoldSettlementTransferSnapshot.locationtype.ilike(f"%{search}%")) |
             (LocationWiseOldGoldSettlementTransferSnapshot.division.ilike(f"%{search}%")) |
             (LocationWiseOldGoldSettlementTransferSnapshot.groupname.ilike(f"%{search}%"))
         )
@@ -87,6 +89,8 @@ def build_filters(query):
         query = query.filter(LocationWiseOldGoldSettlementTransferSnapshot.office.in_(offices))
     if locations:
         query = query.filter(LocationWiseOldGoldSettlementTransferSnapshot.locationname.in_(locations))
+    if location_types:
+        query = query.filter(LocationWiseOldGoldSettlementTransferSnapshot.locationtype.in_(location_types))
     if divisions:
         query = query.filter(LocationWiseOldGoldSettlementTransferSnapshot.division.in_(divisions))
     if group_name:
@@ -299,6 +303,7 @@ def fetch_filter_options():
     return {
         'offices': get_distinct(LocationWiseOldGoldSettlementTransferSnapshot.office),
         'locations': get_distinct(LocationWiseOldGoldSettlementTransferSnapshot.locationname),
+        'locationtypes': get_distinct(LocationWiseOldGoldSettlementTransferSnapshot.locationtype),
         'divisions': get_distinct(LocationWiseOldGoldSettlementTransferSnapshot.division),
         'groups': get_distinct(LocationWiseOldGoldSettlementTransferSnapshot.groupname),
         'purities': [str(p) for p in get_distinct(LocationWiseOldGoldSettlementTransferSnapshot.purity)],
@@ -307,7 +312,7 @@ def fetch_filter_options():
 
 def fetch_cached_filter_options():
     snapshot_token = get_snapshot_cache_token()
-    cache_key = build_report_cache_key('options', snapshot_token)
+    cache_key = build_report_cache_key('options-v2', snapshot_token)
     cached_options = get_cached_value(cache_key)
     if cached_options:
         try:
