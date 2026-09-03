@@ -3,8 +3,8 @@ from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 from datetime import datetime
 
-from flask import jsonify, render_template, request
-from sqlalchemy import distinct, func, select, union
+from flask import jsonify, render_template, request, session
+from sqlalchemy import distinct, func, or_, select, union
 
 from app.dashboard import dashboard_bp
 from app.extensions import db
@@ -60,7 +60,33 @@ def ratio(numerator, denominator):
     return (float(numerator or 0) / float(denominator or 0) * 100) if denominator else 0.0
 
 
+def current_user_owner_condition(model):
+    roles = {
+        str(role).strip().upper().replace('-', '_').replace(' ', '_')
+        for role in session.get('roles', [])
+    }
+    if roles & {'ADMIN', 'MANAGER_2', 'MANAGER-BIC'}:
+        return None
+
+    user_id = str(session.get('user_id') or '').strip()
+    if not user_id:
+        return None
+
+    conditions = []
+    if hasattr(model, 'make_owner_emp_code'):
+        conditions.append(func.trim(model.make_owner_emp_code) == user_id)
+    if hasattr(model, 'collection_owner_emp_code'):
+        conditions.append(func.trim(model.collection_owner_emp_code) == user_id)
+    return or_(*conditions) if conditions else None
+
+
+def apply_owner_visibility_filter(query, model):
+    owner_condition = current_user_owner_condition(model)
+    return query.filter(owner_condition) if owner_condition is not None else query
+
+
 def apply_common_filters(query, model, party_column, filters):
+    query = apply_owner_visibility_filter(query, model)
     parties = split_values(filters['party'])
     if parties:
         query = query.filter(party_column.in_(parties))
@@ -73,13 +99,16 @@ def apply_common_filters(query, model, party_column, filters):
 
 
 def get_party_options():
-    selects = [
-        select(func.trim(column).label('party')).where(
+    selects = []
+    for column in PARTY_SOURCES:
+        statement = select(func.trim(column).label('party')).where(
             column.isnot(None),
             func.trim(column) != '',
         )
-        for column in PARTY_SOURCES
-    ]
+        owner_condition = current_user_owner_condition(column.class_)
+        if owner_condition is not None:
+            statement = statement.where(owner_condition)
+        selects.append(statement)
     source = union(*selects).subquery()
     return db.session.execute(
         select(source.c.party).order_by(func.lower(source.c.party), source.c.party)
@@ -92,13 +121,16 @@ def get_common_options(column_name):
         for column in PARTY_SOURCES
         if hasattr(column.class_, column_name)
     ]
-    selects = [
-        select(func.trim(column).label('value')).where(
+    selects = []
+    for column in columns:
+        statement = select(func.trim(column).label('value')).where(
             column.isnot(None),
             func.trim(column) != '',
         )
-        for column in columns
-    ]
+        owner_condition = current_user_owner_condition(column.class_)
+        if owner_condition is not None:
+            statement = statement.where(owner_condition)
+        selects.append(statement)
     source = union(*selects).subquery()
     return db.session.execute(
         select(source.c.value).order_by(func.lower(source.c.value), source.c.value)
