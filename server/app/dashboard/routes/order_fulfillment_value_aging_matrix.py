@@ -74,8 +74,22 @@ BEGIN
         WITH base AS (
             SELECT *
             FROM {table_expression}
-            WHERE invoicedate >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'
-              AND invoicedate <  DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
+            WHERE (
+                invoicedate >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'
+                AND invoicedate < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
+            )
+            OR (
+                order_date_range IS NOT NULL
+                AND order_date_range <> ''
+                AND LOWER(split_part(order_date_range, ' ', 1)) IN (
+                    SELECT LOWER(TO_CHAR(month_start, 'Mon'))
+                    FROM generate_series(
+                        DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months',
+                        DATE_TRUNC('month', CURRENT_DATE),
+                        INTERVAL '1 month'
+                    ) month_start
+                )
+            )
         ),
 
         order_summary AS (
@@ -116,7 +130,7 @@ BEGIN
 
                 ROUND(COALESCE(o.order_amount, 0) / 100000.0, 2) AS "Order Amount",
                 %s,
-                ROUND(SUM(b.inv_netvalue) / 100000.0, 2) AS "Grand Total"
+                ROUND(COALESCE(SUM(b.inv_netvalue), 0) / 100000.0, 2) AS "Grand Total"
 
             FROM base b
             LEFT JOIN order_summary o
@@ -475,7 +489,7 @@ def get_order_fulfillment_partial():
 
         params = {
             'matrix_mode': matrix_mode,
-            'matrix_version': '2026_07_13_01',
+            'matrix_version': '2026_09_02_01',
             'purchase_office': purchase_office if purchase_office else None,
             'supplier_name': supplier_name if supplier_name else None,
             'group_name': group_name if group_name else None,
