@@ -1348,6 +1348,176 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function setupMenuIconBrowser() {
+        const input = document.getElementById('menuIcon');
+        if (!input) return;
+        if (input.iconBrowser) {
+            input.iconBrowser.reset();
+            return;
+        }
+        let icons = [...new Set([
+            'grid_view', 'dashboard', 'home', 'menu', 'folder', 'folder_open',
+            'description', 'summarize', 'assessment', 'analytics', 'bar_chart',
+            'pie_chart', 'show_chart', 'query_stats', 'monitoring', 'table_chart',
+            'table_view', 'view_list', 'list_alt', 'inventory', 'inventory_2',
+            'warehouse', 'store', 'storefront', 'shopping_cart', 'shopping_bag',
+            'receipt_long', 'request_quote', 'payments', 'account_balance',
+            'account_balance_wallet', 'currency_rupee', 'paid', 'sell', 'diamond',
+            'category', 'widgets', 'precision_manufacturing', 'local_shipping',
+            'assignment', 'assignment_turned_in', 'fact_check', 'check_circle',
+            'pending_actions', 'schedule', 'history', 'event', 'calendar_month',
+            'person', 'people', 'groups', 'person_pin', 'badge', 'manage_accounts',
+            'location_on', 'map', 'public', 'business', 'domain', 'hub',
+            'sync', 'refresh', 'swap_horiz', 'compare_arrows', 'compare',
+            'download', 'upload', 'cloud_download', 'cloud_upload', 'print',
+            'search', 'filter_alt', 'sort', 'tune', 'settings', 'build',
+            'admin_panel_settings', 'security', 'lock', 'key', 'verified_user',
+            'notifications', 'mail', 'chat', 'help', 'info', 'warning', 'error',
+            'flag', 'star', 'bookmark', 'favorite', 'done_all', 'cancel',
+            ...gMenus.map(menu => menu.icon).filter(Boolean)
+        ])].sort();
+        const host = input.parentElement;
+        host.classList.add('relative');
+        const label = host.querySelector('label');
+        if (label) label.htmlFor = input.id;
+        input.autocomplete = 'off';
+        const trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.className = 'mt-1 flex w-full items-center gap-2 rounded border border-gray-200 dark:border-gray-700 px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800';
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.setAttribute('aria-controls', 'menu-icon-browser');
+        const preview = document.createElement('span');
+        preview.className = 'material-symbols-outlined text-primary';
+        preview.setAttribute('aria-hidden', 'true');
+        trigger.append(preview, document.createTextNode('Browse icons ▾'));
+        const panel = document.createElement('div');
+        panel.id = 'menu-icon-browser';
+        panel.hidden = true;
+        panel.className = 'absolute left-0 right-0 z-50 mt-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-2 shadow-xl';
+        const search = document.createElement('input');
+        search.type = 'search';
+        search.placeholder = 'Search icons…';
+        search.setAttribute('aria-label', 'Search menu icons');
+        search.className = 'w-full rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1 text-sm';
+        const results = document.createElement('div');
+        results.className = 'mt-2 grid grid-cols-3 gap-1 overflow-y-auto';
+        results.style.maxHeight = '180px';
+        results.setAttribute('aria-label', 'Available menu icons');
+        const status = document.createElement('p');
+        status.className = 'mt-1 text-xs text-gray-500';
+        status.setAttribute('role', 'status');
+        const more = document.createElement('button');
+        more.type = 'button';
+        more.className = 'mt-1 w-full rounded p-1 text-xs text-primary';
+        more.textContent = 'Load more icons';
+        more.hidden = true;
+        panel.append(search, status, results, more);
+        host.append(trigger, panel);
+        let matches = [];
+        let shown = 0;
+        let catalogLoaded = false;
+        let catalogLoading = false;
+        let catalogFailed = false;
+        async function loadCatalog() {
+            if (catalogLoaded || catalogLoading) return;
+            catalogLoading = true;
+            catalogFailed = false;
+            render();
+            try {
+                const response = await fetch('/static/data/material-symbols.json?v=20260907-1');
+                if (!response.ok) throw new Error('Unable to load icon catalog');
+                const data = await response.json();
+                if (!Array.isArray(data.icons) || !data.icons.every(icon => typeof icon === 'string' && /^[a-z0-9_]+$/.test(icon))) throw new Error('Invalid icon catalog');
+                icons = [...new Set([...data.icons, ...icons])].sort();
+                catalogLoaded = true;
+            } catch (error) {
+                console.error('Icon catalog:', error);
+                catalogFailed = true;
+            } finally {
+                catalogLoading = false;
+                render();
+            }
+        }
+        function close() {
+            panel.hidden = true;
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+        function render() {
+            results.replaceChildren();
+            results.scrollTop = 0;
+            const query = search.value.trim().toLowerCase().replace(/\s+/g, '_');
+            matches = icons.filter(icon => icon.includes(query));
+            shown = 0;
+            appendBatch();
+        }
+        function appendBatch() {
+            const batch = matches.slice(shown, shown + 60);
+            batch.forEach(icon => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.title = icon;
+                button.setAttribute('aria-label', icon.replace(/_/g, ' '));
+                button.setAttribute('aria-pressed', String(input.value === icon));
+                button.className = 'flex min-w-0 flex-col items-center gap-1 rounded p-2 hover:bg-blue-50 dark:hover:bg-gray-800 focus:ring-2 focus:ring-primary';
+                const symbol = document.createElement('span');
+                symbol.className = 'material-symbols-outlined text-primary';
+                symbol.setAttribute('aria-hidden', 'true');
+                symbol.textContent = icon;
+                const name = document.createElement('span');
+                name.className = 'w-full truncate text-[9px] text-gray-600 dark:text-gray-300';
+                name.textContent = icon.replace(/_/g, ' ');
+                button.append(symbol, name);
+                button.addEventListener('click', () => {
+                    input.value = icon;
+                    preview.textContent = icon;
+                    input.dispatchEvent(new Event('change', {bubbles: true}));
+                    close();
+                    trigger.focus();
+                });
+                results.append(button);
+            });
+            shown += batch.length;
+            more.hidden = shown >= matches.length;
+            status.textContent = catalogLoading ? 'Loading full catalog…'
+                : catalogFailed ? 'Catalog unavailable; showing common icons. Reopen to retry.'
+                : `${shown} of ${matches.length} icons shown`;
+            if (!results.childElementCount) {
+                const empty = document.createElement('p');
+                empty.className = 'col-span-3 p-2 text-xs text-gray-500';
+                empty.textContent = 'No matching icons. You can enter a Material Symbol name in the field above.';
+                results.append(empty);
+            }
+        }
+        trigger.addEventListener('click', () => {
+            if (!panel.hidden) { close(); return; }
+            search.value = '';
+            render();
+            panel.hidden = false;
+            trigger.setAttribute('aria-expanded', 'true');
+            search.focus();
+            loadCatalog();
+        });
+        more.addEventListener('click', appendBatch);
+        results.addEventListener('scroll', () => {
+            if (shown < matches.length && results.scrollTop + results.clientHeight >= results.scrollHeight - 80) appendBatch();
+        });
+        search.addEventListener('input', render);
+        panel.addEventListener('keydown', event => {
+            if (event.key === 'Enter' && event.target === search) event.preventDefault();
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                close();
+                trigger.focus();
+            }
+        });
+        document.addEventListener('click', event => { if (!host.contains(event.target)) close(); });
+        host.addEventListener('focusout', event => { if (!host.contains(event.relatedTarget)) close(); });
+        input.addEventListener('input', () => { preview.textContent = input.value.trim() || 'grid_view'; });
+        input.iconBrowser = {reset() { close(); preview.textContent = input.value.trim() || 'grid_view'; }};
+        input.iconBrowser.reset();
+    }
+
     window.openMenuModal = function (menu = null) {
         const modal = document.getElementById('menuModal');
         const content = document.getElementById('menuModalContent');
@@ -1366,6 +1536,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (menuForm) menuForm.reset();
             document.getElementById('menuId').value = '';
         }
+        setupMenuIconBrowser();
         if (modal && content) {
             modal.classList.remove('hidden');
             setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);

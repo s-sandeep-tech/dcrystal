@@ -2,7 +2,20 @@
     {{ "{:,.3f}".format(value|float) if value is not none else '0.000' }}
 {%- endmacro %}
 
+{% macro short_percent_background(value) -%}
+    --short-fill: {{ [0, [value|float, 100]|min]|max }}%;
+{%- endmacro %}
+
 <style>
+    #locationHierarchyTable .short-percent-cell,
+    #locationHierarchyTotalsTable .short-percent-cell {
+        background-image: linear-gradient(to right,
+            rgba(96, 165, 250, 0.18) 0%,
+            rgba(96, 165, 250, 0.18) var(--short-fill),
+            transparent var(--short-fill),
+            transparent 100%);
+    }
+
     #locationHierarchyTable,
     #locationHierarchyTotalsTable {
         table-layout: fixed;
@@ -34,8 +47,8 @@
     </div>
 
     <div class="flex flex-1 flex-col overflow-auto custom-scrollbar">
-        <table id="locationHierarchyTable" class="w-full min-w-[1200px] border-collapse text-left text-[10px]">
-            <thead class="sticky top-0 z-20 bg-[#edf3fa] text-[9px] font-bold uppercase text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+        <table id="locationHierarchyTable" class="w-full min-w-[1200px] border-collapse text-left text-[11px]">
+            <thead class="sticky top-0 z-20 bg-[#edf3fa] text-[10px] font-bold uppercase text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                 <tr>
                     <th class="border border-gray-300 px-3 py-2">
                         <div class="flex items-center justify-between gap-3">
@@ -92,7 +105,7 @@
                     <td class="border border-gray-300 px-2 py-1.5 text-right font-mono font-semibold text-red-500">{{ weight_value(row.short_wt) }}</td>
                     <td class="border border-gray-300 px-2 py-1.5 text-right font-mono font-semibold text-green-600">{{ weight_value(row.excess_wt) }}</td>
                     <td class="border border-gray-300 px-2 py-1.5 text-right font-mono font-semibold {% if row.net_short_excess|float < 0 %}text-red-500{% elif row.net_short_excess|float > 0 %}text-green-600{% endif %}">{{ weight_value(row.net_short_excess) }}</td>
-                    <td class="border border-gray-300 px-2 py-1.5 text-right font-mono">{{ "{:,.1f}%".format(row.short_percent|float) }}</td>
+                    <td class="short-percent-cell border border-gray-300 px-2 py-1.5 text-right font-mono" style="{{ short_percent_background(row.short_percent) }}">{{ "{:,.1f}%".format(row.short_percent|float) }}</td>
                 </tr>
                 {% else %}
                 <tr><td colspan="9" class="p-12 text-center text-gray-400">No hierarchy data found for this location.</td></tr>
@@ -100,7 +113,7 @@
             </tbody>
         </table>
             {% if rows %}
-        <table id="locationHierarchyTotalsTable" class="sticky bottom-0 z-20 mt-auto w-full min-w-[1200px] shrink-0 border-collapse bg-gray-100 text-left text-[10px] font-bold text-gray-900 shadow-[0_-2px_6px_rgba(15,23,42,0.08)] dark:bg-gray-800 dark:text-white">
+        <table id="locationHierarchyTotalsTable" class="sticky bottom-0 z-20 mt-auto w-full min-w-[1200px] shrink-0 border-collapse bg-gray-100 text-left text-[11px] font-bold text-gray-900 shadow-[0_-2px_6px_rgba(15,23,42,0.08)] dark:bg-gray-800 dark:text-white">
             <tfoot>
                 <tr>
                     <td class="border border-gray-300 px-3 py-2">Location Total</td>
@@ -111,7 +124,7 @@
                     <td class="border border-gray-300 px-2 py-2 text-right font-mono text-red-500">{{ weight_value(totals.short_wt) }}</td>
                     <td class="border border-gray-300 px-2 py-2 text-right font-mono text-green-600">{{ weight_value(totals.excess_wt) }}</td>
                     <td class="border border-gray-300 px-2 py-2 text-right font-mono {% if totals.net_short_excess|float < 0 %}text-red-500{% elif totals.net_short_excess|float > 0 %}text-green-600{% endif %}">{{ weight_value(totals.net_short_excess) }}</td>
-                    <td class="border border-gray-300 px-2 py-2 text-right font-mono">{{ "{:,.1f}%".format(totals.short_percent|float) }}</td>
+                    <td class="short-percent-cell border border-gray-300 px-2 py-2 text-right font-mono" style="{{ short_percent_background(totals.short_percent) }}">{{ "{:,.1f}%".format(totals.short_percent|float) }}</td>
                 </tr>
             </tfoot>
         </table>
