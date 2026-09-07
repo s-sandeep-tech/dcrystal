@@ -1,0 +1,475 @@
+{# Macro Definitions #}
+
+{% macro render_row(label, prov_gr_wt, in_shop_wt, ordered_wt, in_transit_wt, short_pcs, excess_pcs, short_wt, excess_wt, short_percent, prov_pcs=none, is_grand_total=false, is_category=false, indent=false, is_parent=1, classification=none, collection=none, section_detail=none, sr_no=none, show_drilldown=false, show_location_details=false) %}
+<tr class="{% if is_grand_total %}bg-[#d6d6d6] dark:bg-gray-700 font-bold{% elif is_category %}bg-[#e3f2fd] dark:bg-blue-900/30 font-bold{% else %}bg-white dark:bg-gray-800{% endif %} {% if is_parent == 1 and (classification or collection or section_detail) %}cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 parent-row{% elif is_parent == 0 %}child-row hidden{% endif %}"
+    {% if classification %}data-classification="{{ classification }}"{% endif %}
+    {% if collection %}data-collection="{{ collection }}"{% endif %}
+    {% if section_detail %}data-section-detail="{{ section_detail }}"{% endif %}
+    {% if is_parent == 1 and classification %}onclick="toggleClassification('{{ classification }}')"{% endif %}
+    {% if is_parent == 1 and collection %}onclick="toggleCollection('{{ collection }}')"{% endif %}
+    {% if is_parent == 1 and section_detail %}onclick="toggleSectionDetails('{{ section_detail }}')"{% endif %}>
+    {% if sr_no is not none %}
+    <td class="px-1 py-0.5 border border-gray-300 text-center w-6 text-gray-500 font-medium h-6">{{ sr_no if sr_no else '' }}</td>
+    {% endif %}
+    <td class="px-2 py-0.5 border border-gray-300 text-left {% if indent %}pl-4{% endif %} h-6">
+        <div class="flex items-center gap-1 h-full">
+            {% if is_parent == 1 and classification %}
+                <span class="inline-flex items-center justify-center w-4 transition-transform duration-200 toggle-arrow cursor-pointer" id="arrow-{{ classification }}">▶</span>
+            {% endif %}
+            {% if is_parent == 1 and collection %}
+                <span class="inline-flex items-center justify-center w-4 transition-transform duration-200 toggle-arrow cursor-pointer" id="arrow-col-{{ collection }}">▶</span>
+            {% endif %}
+            {% if is_parent == 1 and section_detail %}
+                <span class="inline-flex items-center justify-center w-4 transition-transform duration-200 toggle-arrow cursor-pointer" id="arrow-sec-{{ section_detail }}">▶</span>
+            {% endif %}
+            {% if is_parent == 0 %}
+                <span class="inline-flex items-center justify-center text-gray-400 w-4">→</span>
+            {% endif %}
+            <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ label or '-' }}</span>
+            {% if show_drilldown and not is_grand_total and not is_category and is_parent == 1 %}
+                <button onclick="openDrillDownModal('{{ label }}')" class="ml-1 text-primary hover:text-blue-700 transition-colors p-0.5 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center shrink-0" title="Click to see drill-down">
+                    <span class="material-symbols-outlined text-[14px]">analytics</span>
+                </button>
+            {% endif %}
+            {% if show_location_details and not is_grand_total %}
+                <button type="button" onclick='openLocationDetailsModal({{ label|tojson }}, event)' class="ml-1 size-5 inline-flex items-center justify-center text-primary hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors shrink-0" title="View location hierarchy details" aria-label="View details for {{ label }}">
+                    <span class="material-symbols-outlined text-[15px]">table_view</span>
+                </button>
+            {% endif %}
+        </div>
+    </td>
+    {% if prov_pcs is not none %}
+    <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.0f}".format(prov_pcs) }}</td>
+    {% endif %}
+    <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.3f}".format(prov_gr_wt) if prov_gr_wt is not none else '0' }}</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.3f}".format(in_shop_wt) if in_shop_wt is not none else '0' }}</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.3f}".format(in_transit_wt) if in_transit_wt is not none else '0' }}</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right text-red-500 {% if short_pcs > 0 %}font-bold{% endif %}">
+        {{ "{:,.0f}".format(short_pcs) if short_pcs is not none else '0' }}
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right text-green-600 {% if excess_pcs > 0 %}font-bold{% endif %}">
+        {{ "{:,.0f}".format(excess_pcs) if excess_pcs is not none else '0' }}
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right text-red-500 {% if short_wt > 0 %}font-bold{% endif %}">
+        {{ "{:,.3f}".format(short_wt) if short_wt is not none else '0' }}
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right text-green-600 {% if excess_wt > 0 %}font-bold{% endif %}">
+        {{ "{:,.3f}".format(excess_wt) if excess_wt is not none else '0' }}
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right relative min-w-[58px]">
+        {% if short_percent is not none and not is_grand_total %}
+        <div class="absolute top-0 left-0 h-full bg-red-100 dark:bg-red-900/20 opacity-60" style="width: {{ short_percent if short_percent <= 100 else 100 }}%;"></div>
+        {% endif %}
+        <span class="relative z-10 {% if short_percent > 0 %}text-red-500 font-bold{% endif %}">{{ "{:,.1f}%".format(short_percent) if short_percent is not none else '0.0%' }}</span>
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.3f}".format(ordered_wt) if ordered_wt is not none else '0' }}</td>
+</tr>
+{% endmacro %}
+
+{% macro render_std_table(title, rows, category_labels=none, show_pcs=false, show_sr_no=false, show_drilldown=false, show_location_details=false) %}
+<div class="overflow-x-auto shadow-sm">
+    <table class="w-full text-[10px] border-collapse border border-gray-300">
+        <thead>
+            <tr class="bg-[#fce4ec] dark:bg-pink-900/30">
+                {% if show_sr_no %}
+                <th class="px-1 py-1 border border-gray-300 text-center font-bold text-gray-700 w-6">#</th>
+                {% endif %}
+                <th class="px-2 py-1 border border-gray-300 text-left font-bold text-gray-700">
+                    <div class="flex items-center justify-between gap-1">
+                        <span>{{ title }}</span>
+                        <div class="flex items-center gap-2">
+                            {% if title == 'Classification Wise' %}
+                            <span class="material-symbols-outlined text-[14px] cursor-pointer hover:text-primary transition-colors select-none" 
+                                  id="expand-shrink-all-class"
+                                  onclick="toggleAllClassifications(this)"
+                                  title="Expand/Shrink All">keyboard_double_arrow_down</span>
+                            {% elif title == 'Collection Wise' %}
+                            <span class="material-symbols-outlined text-[14px] cursor-pointer hover:text-primary transition-colors select-none" 
+                                  id="expand-shrink-all-coll"
+                                  onclick="toggleAllCollections(this)"
+                                  title="Expand/Shrink All">keyboard_double_arrow_down</span>
+                            {% elif title == 'Section Details' %}
+                            <span class="material-symbols-outlined text-[14px] cursor-pointer hover:text-primary transition-colors select-none" 
+                                  id="expand-shrink-all-secd"
+                                  onclick="toggleAllSectionDetails(this)"
+                                  title="Expand/Shrink All">keyboard_double_arrow_down</span>
+                            {% endif %}
+                            {% if title == 'Make Wise' or title == 'Section Wise' or title == 'Purity Wise' or title == 'Collection Wise' or title == 'Section Details' %}
+                            {% set filter_id = 'make' if title == 'Make Wise' else ('section' if (title == 'Section Wise' or title == 'Section Details') else ('collection' if title == 'Collection Wise' else 'purity')) %}
+                            <span class="header-filter-container material-symbols-outlined text-[14px] cursor-pointer hover:text-primary transition-colors" 
+                                  data-id="{{ filter_id }}" 
+                                  onclick="toggleHeaderFilter(event, '{{ filter_id }}')">filter_alt</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </th>
+                {% if show_pcs %}
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('prov_pcs')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Prov Pcs</span>
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'prov_pcs' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'prov_pcs' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'prov_pcs' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                    </div>
+                </th>
+                {% endif %}
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('prov_gr_wt')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Prov Gr.Wt</span>
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'prov_gr_wt' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'prov_gr_wt' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'prov_gr_wt' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('in_shop_wt')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>In Shop Wt</span>
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'in_shop_wt' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'in_shop_wt' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'in_shop_wt' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('in_transit_wt')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Transit Wt</span>
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'in_transit_wt' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'in_transit_wt' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'in_transit_wt' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('short_pcs')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Short Pcs</span>
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'short_pcs' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'short_pcs' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'short_pcs' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('excess_pcs')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Excess Pcs</span>
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'excess_pcs' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'excess_pcs' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'excess_pcs' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('short_wt')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Short Wt</span>
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'short_wt' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'short_wt' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'short_wt' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('excess_wt')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Excess Wt</span>
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'excess_wt' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'excess_wt' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'excess_wt' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('short_percent')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Short %</span>
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'short_percent' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'short_percent' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'short_percent' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('ordered_wt')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Ordered Wt</span>
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'ordered_wt' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'ordered_wt' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'ordered_wt' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                    </div>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set totals = {'pcs':0, 'prov_gr_wt': 0, 'in_shop_wt': 0, 'ordered_wt': 0, 'in_transit_wt': 0, 'short_pcs': 0, 'excess_pcs': 0, 'short_wt': 0, 'excess_wt': 0, 'short_percent_weight': 0, 'has_grand': false, 'sr': 0} %}
+            
+            {# Detect if we should use category summing #}
+            {% set use_cats = false %}
+            {% if category_labels is not none %}
+                {% for row in rows %}
+                    {% if row.report_label in category_labels %}{% set use_cats = true %}{% endif %}
+                {% endfor %}
+            {% endif %}
+
+            {% for row in rows %}
+                {% set is_gt = row.report_label == 'Grand Total' %}
+                {% set is_cat = category_labels is not none and row.report_label in category_labels %}
+                
+                {% if is_gt %}
+                    {% if totals.update({'has_grand': true}) %}{% endif %}
+                    {{ render_row(row.report_label, row.prov_gr_wt, row.in_shop_wt, row.ordered_wt, row.in_transit_wt, row.short_pcs, row.excess_pcs, row.short_wt, row.excess_wt, row.short_percent, prov_pcs=(row.prov_pcs if show_pcs else none), is_grand_total=true, sr_no=('' if show_sr_no else none)) }}
+                {% else %}
+                    {% if use_cats %}
+                        {% if is_cat %}
+                            {% if totals.update({
+                                'pcs': totals.pcs + (row.prov_pcs or 0),
+                                'prov_gr_wt': totals.prov_gr_wt + (row.prov_gr_wt or 0), 
+                                'in_shop_wt': totals.in_shop_wt + (row.in_shop_wt or 0),
+                                'ordered_wt': totals.ordered_wt + (row.ordered_wt or 0),
+                                'in_transit_wt': totals.in_transit_wt + (row.in_transit_wt or 0),
+                                'short_pcs': totals.short_pcs + (row.short_pcs or 0),
+                                'excess_pcs': totals.excess_pcs + (row.excess_pcs or 0),
+                                'short_wt': totals.short_wt + (row.short_wt or 0),
+                                'excess_wt': totals.excess_wt + (row.excess_wt or 0),
+                                'short_percent_weight': totals.short_percent_weight + ((row.short_percent or 0) * (row.prov_gr_wt or 0))
+                            }) %}{% endif %}
+                        {% endif %}
+                    {% else %}
+                        {% if row.is_parent != 0 %}
+                            {% if totals.update({
+                                'pcs': totals.pcs + (row.prov_pcs or 0),
+                                'prov_gr_wt': totals.prov_gr_wt + (row.prov_gr_wt or 0), 
+                                'in_shop_wt': totals.in_shop_wt + (row.in_shop_wt or 0),
+                                'ordered_wt': totals.ordered_wt + (row.ordered_wt or 0),
+                                'in_transit_wt': totals.in_transit_wt + (row.in_transit_wt or 0),
+                                'short_pcs': totals.short_pcs + (row.short_pcs or 0),
+                                'excess_pcs': totals.excess_pcs + (row.excess_pcs or 0),
+                                'short_wt': totals.short_wt + (row.short_wt or 0),
+                                'excess_wt': totals.excess_wt + (row.excess_wt or 0),
+                                'short_percent_weight': totals.short_percent_weight + ((row.short_percent or 0) * (row.prov_gr_wt or 0))
+                            }) %}{% endif %}
+                        {% endif %}
+                    {% endif %}
+                    
+                    {% if row.is_parent != 0 %}
+                        {% if totals.update({'sr': totals.sr + 1}) %}{% endif %}
+                    {% endif %}
+                    
+                    {{ render_row(row.report_label, row.prov_gr_wt, row.in_shop_wt, row.ordered_wt, row.in_transit_wt, row.short_pcs, row.excess_pcs, row.short_wt, row.excess_wt, row.short_percent,
+                                 prov_pcs=(row.prov_pcs if show_pcs else none),
+                                 is_category=is_cat, 
+                                 indent=(use_cats and not is_cat),
+                                 is_parent=(row.is_parent if row.is_parent is not none else 1),
+                                 classification=row.classification,
+                                 collection=row.collection,
+                                 section_detail=row.sec_name,
+                                 sr_no=(totals.sr if show_sr_no else none),
+                                 show_drilldown=show_drilldown,
+                                 show_location_details=show_location_details) }}
+                {% endif %}
+            {% endfor %}
+            {% if not totals.has_grand and rows|length > 0 %}
+                {% set gt_short_percent = (totals.short_percent_weight / totals.prov_gr_wt) if totals.prov_gr_wt != 0 else 0 %}
+                {{ render_row('Grand Total', totals.prov_gr_wt, totals.in_shop_wt, totals.ordered_wt, totals.in_transit_wt, totals.short_pcs, totals.excess_pcs, totals.short_wt, totals.excess_wt, gt_short_percent, prov_pcs=(totals.pcs if show_pcs else none), is_grand_total=true, sr_no=('' if show_sr_no else none)) }}
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}
+
+{# Group rows by report_section #}
+{% set segments = {} %}
+{% for row in rows %}
+    {% if row.report_label != 'Grand Total' %}
+        {% set section = row.report_section %}
+        {% if section not in segments %}
+            {% set _ = segments.update({section: []}) %}
+        {% endif %}
+        {% set _ = segments[section].append(row) %}
+    {% endif %}
+{% endfor %}
+
+<div class="w-full bg-white dark:bg-gray-900 p-4 min-h-screen">
+    <div class="flex flex-col gap-8">
+        
+        {# Section 1: Location Summary #}
+        {% if 'Location Summary' in segments %}
+            {{ render_std_table('Location Summary', segments['Location Summary'], show_pcs=true, show_sr_no=true, show_location_details=true) }}
+        {% endif %}
+
+        {# Wider tables for sections that need room for all stock metrics. #}
+        {% if 'Purity Wise' in segments %}
+        <div class="w-full">
+            {{ render_std_table('Purity Wise', segments['Purity Wise']) }}
+        </div>
+        {% endif %}
+
+        {% if 'Make Wise' in segments %}
+        <div class="w-full">
+            {{ render_std_table('Make Wise', segments['Make Wise']) }}
+        </div>
+        {% endif %}
+
+        {% if 'Classification Wise' in segments %}
+        <div class="w-full">
+            {{ render_std_table('Classification Wise', segments['Classification Wise'], category_labels=['BRAND', 'GENERIC', 'LIFE STYLE']) }}
+        </div>
+        {% endif %}
+
+        {% if 'Provision Type Wise' in segments %}
+        <div class="w-full">
+            {{ render_std_table('Provision Type Wise', segments['Provision Type Wise']) }}
+        </div>
+        {% endif %}
+
+        {% if 'Section Wise' in segments %}
+        <div class="w-full">
+            {{ render_std_table('Section Wise', segments['Section Wise'], show_pcs=true, show_drilldown=true) }}
+        </div>
+        {% endif %}
+
+        {% if 'Provision Mode Wise' in segments %}
+        <div class="w-full">
+            {{ render_std_table('Provision Mode Wise', segments['Provision Mode Wise']) }}
+        </div>
+        {% endif %}
+
+        {% if 'Collection Wise' in segments %}
+        <div class="w-full">
+            {{ render_std_table('Collection Wise', segments['Collection Wise']) }}
+        </div>
+        {% endif %}
+
+        {% if 'Section Details' in segments %}
+        <div class="w-full">
+            {{ render_std_table('Section Details', segments['Section Details'], show_pcs=true, show_drilldown=true) }}
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<script>
+    function toggleClassification(classification) {
+        const rows = document.querySelectorAll(`tr[data-classification="${classification}"].child-row`);
+        const arrow = document.getElementById(`arrow-${classification}`);
+        
+        rows.forEach(row => {
+            row.classList.toggle('hidden');
+        });
+
+        if (arrow) {
+            if (rows[0] && !rows[0].classList.contains('hidden')) {
+                arrow.style.transform = 'rotate(90deg)';
+            } else {
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+
+    function toggleCollection(collection) {
+        const rows = document.querySelectorAll(`tr[data-collection="${collection}"].child-row`);
+        const arrow = document.getElementById(`arrow-col-${collection}`);
+        
+        rows.forEach(row => {
+            row.classList.toggle('hidden');
+        });
+
+        if (arrow) {
+            if (rows[0] && !rows[0].classList.contains('hidden')) {
+                arrow.style.transform = 'rotate(90deg)';
+            } else {
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+
+    function toggleAllClassifications(icon) {
+        const isExpanding = icon.textContent === 'keyboard_double_arrow_down';
+        const parentRows = document.querySelectorAll('.parent-row[data-classification]');
+        
+        parentRows.forEach(parent => {
+            const classification = parent.getAttribute('data-classification');
+            const childRows = document.querySelectorAll(`tr[data-classification="${classification}"].child-row`);
+            const arrow = document.getElementById(`arrow-${classification}`);
+            
+            childRows.forEach(row => {
+                if (isExpanding) {
+                    row.classList.remove('hidden');
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+            
+            if (arrow) {
+                arrow.style.transform = isExpanding ? 'rotate(90deg)' : 'rotate(0deg)';
+            }
+        });
+        
+        icon.textContent = isExpanding ? 'keyboard_double_arrow_up' : 'keyboard_double_arrow_down';
+    }
+
+    function toggleAllCollections(icon) {
+        const isExpanding = icon.textContent === 'keyboard_double_arrow_down';
+        const parentRows = document.querySelectorAll('.parent-row[data-collection]');
+        
+        parentRows.forEach(parent => {
+            const collection = parent.getAttribute('data-collection');
+            const childRows = document.querySelectorAll(`tr[data-collection="${collection}"].child-row`);
+            const arrow = document.getElementById(`arrow-col-${collection}`);
+            
+            childRows.forEach(row => {
+                if (isExpanding) {
+                    row.classList.remove('hidden');
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+            
+            if (arrow) {
+                arrow.style.transform = isExpanding ? 'rotate(90deg)' : 'rotate(0deg)';
+            }
+        });
+        
+        icon.textContent = isExpanding ? 'keyboard_double_arrow_up' : 'keyboard_double_arrow_down';
+    }
+
+    function toggleSectionDetails(sectionDetail) {
+        const rows = document.querySelectorAll(`tr[data-section-detail="${sectionDetail}"].child-row`);
+        const arrow = document.getElementById(`arrow-sec-${sectionDetail}`);
+        
+        rows.forEach(row => {
+            row.classList.toggle('hidden');
+        });
+
+        if (arrow) {
+            if (rows[0] && !rows[0].classList.contains('hidden')) {
+                arrow.style.transform = 'rotate(90deg)';
+            } else {
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+
+    function toggleAllSectionDetails(icon) {
+        const isExpanding = icon.textContent === 'keyboard_double_arrow_down';
+        const parentRows = document.querySelectorAll('.parent-row[data-section-detail]');
+        
+        parentRows.forEach(parent => {
+            const sectionDetail = parent.getAttribute('data-section-detail');
+            const childRows = document.querySelectorAll(`tr[data-section-detail="${sectionDetail}"].child-row`);
+            const arrow = document.getElementById(`arrow-sec-${sectionDetail}`);
+            
+            childRows.forEach(row => {
+                if (isExpanding) {
+                    row.classList.remove('hidden');
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+            
+            if (arrow) {
+                arrow.style.transform = isExpanding ? 'rotate(90deg)' : 'rotate(0deg)';
+            }
+        });
+        
+        icon.textContent = isExpanding ? 'keyboard_double_arrow_up' : 'keyboard_double_arrow_down';
+    }
+</script>

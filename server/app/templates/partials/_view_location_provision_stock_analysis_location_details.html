@@ -1,0 +1,120 @@
+{% macro weight_value(value) -%}
+    {{ "{:,.3f}".format(value|float) if value is not none else '0.000' }}
+{%- endmacro %}
+
+<style>
+    #locationHierarchyTable,
+    #locationHierarchyTotalsTable {
+        table-layout: fixed;
+    }
+
+    #locationHierarchyTable th:first-child,
+    #locationHierarchyTable td:first-child,
+    #locationHierarchyTotalsTable td:first-child {
+        width: 420px;
+        min-width: 420px;
+        max-width: 420px;
+    }
+</style>
+
+<div class="flex h-full min-w-0 flex-col overflow-hidden bg-white dark:bg-gray-900">
+    <div class="shrink-0 border-b border-gray-200 bg-gray-50 px-4 py-2 dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex items-center justify-between gap-4">
+            <div class="min-w-0 flex-1">
+                <p class="text-[11px] font-semibold text-gray-700 dark:text-gray-200">{{ detail_location }} product hierarchy</p>
+                <div class="mt-1 flex max-w-full items-center overflow-x-auto whitespace-nowrap pb-1 text-[8px] font-bold uppercase text-gray-500 custom-scrollbar">
+                    {% for level_name in ['Group', 'Purity', 'Classification', 'Sub Classification', 'Section', 'Type', 'Make', 'Master Collection', 'Collection', 'Sub Section', 'Gender', 'Wide Range', 'Range Weight'] %}
+                        {% if not loop.first %}<span class="mx-1.5 shrink-0 text-gray-300 dark:text-gray-600">→</span>{% endif %}
+                        <span class="shrink-0 rounded-sm border border-gray-200 bg-white px-1.5 py-0.5 dark:border-gray-700 dark:bg-gray-800">{{ level_name }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            <span class="rounded bg-blue-50 px-2 py-1 text-[10px] font-bold text-primary dark:bg-blue-900/30">{{ "{:,}".format(rows|length) }} hierarchy nodes</span>
+        </div>
+    </div>
+
+    <div class="flex flex-1 flex-col overflow-auto custom-scrollbar">
+        <table id="locationHierarchyTable" class="w-full min-w-[1200px] border-collapse text-left text-[10px]">
+            <thead class="sticky top-0 z-20 bg-[#edf3fa] text-[9px] font-bold uppercase text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                <tr>
+                    <th class="border border-gray-300 px-3 py-2">
+                        <div class="flex items-center justify-between gap-3">
+                            <span>Drill Down</span>
+                            <button type="button" data-expanded="false" onclick="toggleAllLocationHierarchy(this, event)" class="inline-flex size-6 items-center justify-center rounded text-primary hover:bg-blue-100 dark:hover:bg-blue-900/40" title="Expand all hierarchy levels" aria-label="Expand all hierarchy levels">
+                                <span class="material-symbols-outlined text-[17px]">unfold_more</span>
+                            </button>
+                        </div>
+                    </th>
+                    <th class="min-w-[105px] border border-gray-300 px-2 py-2 text-right">Prov Gr.Wt</th>
+                    <th class="min-w-[105px] border border-gray-300 px-2 py-2 text-right">In Shop Wt</th>
+                    <th class="min-w-[100px] border border-gray-300 px-2 py-2 text-right">Transit Wt</th>
+                    <th class="min-w-[105px] border border-gray-300 px-2 py-2 text-right">Ordered Wt</th>
+                    <th class="min-w-[90px] border border-gray-300 px-2 py-2 text-right text-red-600">Short</th>
+                    <th class="min-w-[90px] border border-gray-300 px-2 py-2 text-right text-green-700">Excess</th>
+                    <th class="min-w-[130px] border border-gray-300 px-2 py-2 text-right">Net Short / Excess</th>
+                    <th class="min-w-[80px] border border-gray-300 px-2 py-2 text-right">Short %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr data-tree-row data-node-id="{{ row.node_id }}" data-parent-id="{{ row.parent_id }}" data-level="{{ row.level_id }}"
+                    class="{% if row.level_id > 1 %}hidden {% endif %}{% if row.level_id == 1 %}bg-gray-100 font-bold dark:bg-gray-800{% elif row.level_id == 2 %}bg-blue-50/40 font-semibold dark:bg-blue-900/10{% elif row.is_leaf %}bg-white dark:bg-gray-900{% else %}bg-gray-50/60 font-semibold dark:bg-gray-800/40{% endif %} hover:bg-blue-50 dark:hover:bg-blue-900/10">
+                    <td class="border border-gray-300 px-2 py-0">
+                        <div class="flex min-h-8 min-w-0 items-stretch">
+                            {% for continues in row.tree_ancestor_continuations %}
+                            <span class="relative w-[1.15rem] shrink-0 self-stretch">
+                                {% if continues %}<span class="absolute inset-y-0 left-1/2 border-l border-slate-300 dark:border-slate-600"></span>{% endif %}
+                            </span>
+                            {% endfor %}
+                            {% if row.level_id > 1 %}
+                            <span class="relative w-[1.15rem] shrink-0 self-stretch">
+                                <span class="absolute left-1/2 top-0 border-l border-slate-300 dark:border-slate-600 {% if row.is_last_sibling %}h-1/2{% else %}bottom-0{% endif %}"></span>
+                                <span class="absolute left-1/2 top-1/2 w-1/2 border-t border-slate-300 dark:border-slate-600"></span>
+                            </span>
+                            {% endif %}
+                            <div class="flex min-w-0 flex-1 items-center py-1.5">
+                            {% if not row.is_leaf %}
+                            <button type="button" data-tree-toggle onclick="toggleDrilldownTreeNode(this, event)" class="mr-1 inline-flex size-5 shrink-0 items-center justify-center rounded text-gray-500 hover:bg-blue-100 hover:text-primary" aria-label="Expand {{ row.hierarchy_label }}">
+                                <span class="material-symbols-outlined text-[17px]">arrow_right</span>
+                            </button>
+                            {% else %}
+                            <span class="material-symbols-outlined mr-2 ml-1 text-[8px] text-gray-300">fiber_manual_record</span>
+                            {% endif %}
+                            <span class="mr-2 shrink-0 rounded-sm border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[8px] font-bold uppercase text-blue-600 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-300">{{ row.hierarchy_level_name }}</span>
+                            <span class="truncate" title="{{ row.hierarchy_label }}">{{ row.hierarchy_label }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="border border-gray-300 px-2 py-1.5 text-right font-mono">{{ weight_value(row.prov_gr_wt) }}</td>
+                    <td class="border border-gray-300 px-2 py-1.5 text-right font-mono">{{ weight_value(row.in_shop_wt) }}</td>
+                    <td class="border border-gray-300 px-2 py-1.5 text-right font-mono">{{ weight_value(row.in_transit_wt) }}</td>
+                    <td class="border border-gray-300 px-2 py-1.5 text-right font-mono">{{ weight_value(row.ordered_wt) }}</td>
+                    <td class="border border-gray-300 px-2 py-1.5 text-right font-mono font-semibold text-red-500">{{ weight_value(row.short_wt) }}</td>
+                    <td class="border border-gray-300 px-2 py-1.5 text-right font-mono font-semibold text-green-600">{{ weight_value(row.excess_wt) }}</td>
+                    <td class="border border-gray-300 px-2 py-1.5 text-right font-mono font-semibold {% if row.net_short_excess|float < 0 %}text-red-500{% elif row.net_short_excess|float > 0 %}text-green-600{% endif %}">{{ weight_value(row.net_short_excess) }}</td>
+                    <td class="border border-gray-300 px-2 py-1.5 text-right font-mono">{{ "{:,.1f}%".format(row.short_percent|float) }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="p-12 text-center text-gray-400">No hierarchy data found for this location.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+            {% if rows %}
+        <table id="locationHierarchyTotalsTable" class="sticky bottom-0 z-20 mt-auto w-full min-w-[1200px] shrink-0 border-collapse bg-gray-100 text-left text-[10px] font-bold text-gray-900 shadow-[0_-2px_6px_rgba(15,23,42,0.08)] dark:bg-gray-800 dark:text-white">
+            <tfoot>
+                <tr>
+                    <td class="border border-gray-300 px-3 py-2">Location Total</td>
+                    <td class="border border-gray-300 px-2 py-2 text-right font-mono">{{ weight_value(totals.prov_gr_wt) }}</td>
+                    <td class="border border-gray-300 px-2 py-2 text-right font-mono">{{ weight_value(totals.in_shop_wt) }}</td>
+                    <td class="border border-gray-300 px-2 py-2 text-right font-mono">{{ weight_value(totals.in_transit_wt) }}</td>
+                    <td class="border border-gray-300 px-2 py-2 text-right font-mono">{{ weight_value(totals.ordered_wt) }}</td>
+                    <td class="border border-gray-300 px-2 py-2 text-right font-mono text-red-500">{{ weight_value(totals.short_wt) }}</td>
+                    <td class="border border-gray-300 px-2 py-2 text-right font-mono text-green-600">{{ weight_value(totals.excess_wt) }}</td>
+                    <td class="border border-gray-300 px-2 py-2 text-right font-mono {% if totals.net_short_excess|float < 0 %}text-red-500{% elif totals.net_short_excess|float > 0 %}text-green-600{% endif %}">{{ weight_value(totals.net_short_excess) }}</td>
+                    <td class="border border-gray-300 px-2 py-2 text-right font-mono">{{ "{:,.1f}%".format(totals.short_percent|float) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+            {% endif %}
+    </div>
+</div>

@@ -1,0 +1,1234 @@
+let currentSearch = '';
+let filterValues = {
+    location: '',
+    purity: '',
+    classification: '',
+    make: '',
+    collection: '',
+    section: '',
+    prov_type: '',
+    provision_mode: '',
+    branch_type: '',
+    branch_status: '',
+    business_head: '',
+    state: '',
+    sort_by: '',
+    sort_order: 'none'
+};
+let locationMultiSelect;
+let stateMultiSelect;
+let branchTypeMultiSelect;
+let branchStatusMultiSelect;
+let makeMultiSelect;
+let sectionMultiSelect;
+let makeHeaderFilter;
+let sectionHeaderFilter;
+let purityHeaderFilter;
+let collectionMultiSelect;
+let collectionHeaderFilter;
+
+document.addEventListener('DOMContentLoaded', () => {
+    locationMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-location-container',
+        label: 'Location',
+        defaultText: 'All Locations',
+        options: []
+    });
+
+    branchStatusMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-branch-status-container',
+        label: 'Branch Status',
+        defaultText: 'All Branch Statuses',
+        options: []
+    });
+
+    branchTypeMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-branch-type-container',
+        label: 'Branch Type',
+        defaultText: 'All Branch Types',
+        options: []
+    });
+
+    stateMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-state-container',
+        label: 'State',
+        defaultText: 'All States',
+        options: []
+    });
+
+    sectionMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-section-container',
+        label: 'Section',
+        defaultText: 'All Sections',
+        options: []
+    });
+
+    makeMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-make-container',
+        label: 'Make',
+        defaultText: 'All Makes',
+        options: [],
+        onSearch: async (query, callback) => {
+            try {
+                const response = await fetch(`/api/location-provision-stock-analysis/makes/search?q=${encodeURIComponent(query)}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Make search failed:', err);
+                callback([]);
+            }
+        }
+    });
+
+    collectionMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-collection-container',
+        label: 'Collection',
+        defaultText: 'All Collections',
+        options: [],
+        onSearch: async (query, callback) => {
+            try {
+                const response = await fetch(`/api/location-provision-stock-analysis/collections/search?q=${encodeURIComponent(query)}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Collection search failed:', err);
+                callback([]);
+            }
+        }
+    });
+
+    makeHeaderFilter = new HeaderFilter({
+        id: 'make',
+        title: 'Make Wise',
+        onApply: (values) => {
+            applyFilters();
+        },
+        onClear: () => {
+            applyFilters();
+        },
+        onSearch: async (query, callback) => {
+            try {
+                const response = await fetch(`/api/location-provision-stock-analysis/makes/search?q=${encodeURIComponent(query)}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Make header search failed:', err);
+                callback([]);
+            }
+        }
+    });
+
+    sectionHeaderFilter = new HeaderFilter({
+        id: 'section',
+        title: 'Section Wise',
+        onApply: (values) => {
+            applyFilters();
+        },
+        onClear: () => {
+            applyFilters();
+        }
+    });
+
+    purityHeaderFilter = new HeaderFilter({
+        id: 'purity',
+        title: 'Purity Wise',
+        onApply: (values) => {
+            applyFilters();
+        },
+        onClear: () => {
+            applyFilters();
+        }
+    });
+
+    collectionHeaderFilter = new HeaderFilter({
+        id: 'collection',
+        title: 'Collection Wise',
+        onApply: (values) => {
+            applyFilters();
+        },
+        onClear: () => {
+            applyFilters();
+        },
+        onSearch: async (query, callback) => {
+            try {
+                const response = await fetch(`/api/location-provision-stock-analysis/collections/search?q=${encodeURIComponent(query)}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Collection header search failed:', err);
+                callback([]);
+            }
+        }
+    });
+
+    loadOptions();
+    loadReport();
+
+    // Reset export cooldown flag when export completes (success or failure)
+    if (window.socket) {
+        window.socket.on('new_notification', function (data) {
+            if (data.title && data.title.includes('Location Provision & Stock Analysis')) {
+                localStorage.removeItem('last_provision_stock_analysis_export_time');
+            }
+        });
+    }
+});
+
+async function loadOptions() {
+    try {
+        const response = await fetch('/api/location-provision-stock-analysis/options', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+        });
+        const data = await response.json();
+
+        const config = [
+            { id: 'filter-purity', data: data.purities },
+            { id: 'filter-classification', data: data.classifications },
+            { id: 'filter-prov-type', data: data.prov_types },
+            { id: 'filter-provision-mode', data: data.provision_modes },
+            { id: 'filter-business-head', data: data.business_heads }
+        ];
+
+        if (locationMultiSelect) locationMultiSelect.populateOptions(data.locations);
+        if (branchStatusMultiSelect) branchStatusMultiSelect.populateOptions(data.branch_statuses);
+        if (branchTypeMultiSelect) branchTypeMultiSelect.populateOptions(data.branch_types);
+        if (stateMultiSelect) stateMultiSelect.populateOptions(data.states);
+        if (sectionMultiSelect) sectionMultiSelect.populateOptions(data.sections);
+        // makeMultiSelect is now dynamic
+        if (makeHeaderFilter) makeHeaderFilter.setOptions([]); 
+        if (sectionHeaderFilter) sectionHeaderFilter.setOptions(data.sections);
+        if (purityHeaderFilter) purityHeaderFilter.setOptions(data.purities);
+        // collectionMultiSelect is now dynamic
+        if (collectionHeaderFilter) collectionHeaderFilter.setOptions([]); // Initially empty or we can add search here too
+
+        config.forEach(item => {
+            const select = document.getElementById(item.id);
+            if (select && item.data) {
+                item.data.forEach(opt => {
+                    const el = document.createElement('option');
+                    el.value = opt;
+                    el.textContent = opt;
+                    select.appendChild(el);
+                });
+            }
+        });
+    } catch (err) {
+        console.error('Failed to load filter options:', err);
+    }
+}
+
+async function loadReport() {
+    const tableArea = document.getElementById('view-location-provision-stock-analysis');
+    const mainContainer = document.getElementById('table-area');
+    const progressBar = document.getElementById('report-progress');
+    if (!tableArea) return;
+    
+    mainContainer.classList.add('opacity-50', 'pointer-events-none');
+    if (progressBar) progressBar.classList.remove('hidden');
+
+    try {
+        const params = new URLSearchParams({
+            search: currentSearch,
+            ...filterValues
+        });
+
+        // Optimization: Don't send sort_order if sort_by is empty
+        if (!filterValues.sort_by) {
+            params.delete('sort_order');
+        } else if (filterValues.sort_order === 'none') {
+            params.delete('sort_by');
+            params.delete('sort_order');
+        }
+
+        const response = await fetch(`/partial/location-provision-stock-analysis?${params}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+        });
+        const html = await response.text();
+        tableArea.innerHTML = html;
+
+        // Re-execute scripts in the partial
+        const scripts = tableArea.getElementsByTagName('script');
+        for (let i = 0; i < scripts.length; i++) {
+            eval(scripts[i].innerText);
+        }
+
+        // Apply filter highlight to header icons if filtered
+        if (makeHeaderFilter && makeHeaderFilter.selectedValues.length > 0) {
+            const icon = document.querySelector('.header-filter-container[data-id="make"]');
+            if (icon) icon.classList.add('filtered');
+        }
+        if (sectionHeaderFilter && sectionHeaderFilter.selectedValues.length > 0) {
+            const icon = document.querySelector('.header-filter-container[data-id="section"]');
+            if (icon) icon.classList.add('filtered');
+        }
+        if (purityHeaderFilter && purityHeaderFilter.selectedValues.length > 0) {
+            const icon = document.querySelector('.header-filter-container[data-id="purity"]');
+            if (icon) icon.classList.add('filtered');
+        }
+        if (collectionHeaderFilter && collectionHeaderFilter.selectedValues.length > 0) {
+            const icon = document.querySelector('.header-filter-container[data-id="collection"]');
+            if (icon) icon.classList.add('filtered');
+        }
+    } catch (err) {
+        console.error('Failed to load report:', err);
+        tableArea.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Failed to load data: ${err.message}</div>`;
+    } finally {
+        mainContainer.classList.remove('opacity-50', 'pointer-events-none');
+        if (progressBar) progressBar.classList.add('hidden');
+    }
+}
+
+function onSearchInput(val) {
+    currentSearch = val;
+    clearTimeout(window.searchTimeout);
+    window.searchTimeout = setTimeout(() => {
+        loadReport();
+    }, 300);
+}
+
+function applyFilters() {
+    filterValues.branch_type = '';
+    filterValues.branch_status = '';
+    filterValues.business_head = document.getElementById('filter-business-head').value;
+
+    if (locationMultiSelect) filterValues.location = locationMultiSelect.getValues().join(',');
+    if (branchStatusMultiSelect) filterValues.branch_status = branchStatusMultiSelect.getValues().join(',');
+    if (branchTypeMultiSelect) filterValues.branch_type = branchTypeMultiSelect.getValues().join(',');
+    if (stateMultiSelect) filterValues.state = stateMultiSelect.getValues().join(',');
+
+    filterValues.purity = document.getElementById('filter-purity').value;
+    filterValues.classification = document.getElementById('filter-classification').value;
+    filterValues.prov_type = document.getElementById('filter-prov-type').value;
+    filterValues.provision_mode = document.getElementById('filter-provision-mode').value;
+
+    // Combine Sidebar and Header Filter
+    let sidebarMakes = makeMultiSelect ? makeMultiSelect.getValues() : [];
+    let headerMakes = makeHeaderFilter ? makeHeaderFilter.selectedValues : [];
+    let combinedMakes = new Set([...sidebarMakes, ...headerMakes]);
+    filterValues.make = Array.from(combinedMakes).join(',');
+
+    let sidebarSections = sectionMultiSelect ? sectionMultiSelect.getValues() : [];
+    let headerSections = sectionHeaderFilter ? sectionHeaderFilter.selectedValues : [];
+    let combinedSections = new Set([...sidebarSections, ...headerSections]);
+    filterValues.section = Array.from(combinedSections).join(',');
+
+    const puritySelect = document.getElementById('filter-purity');
+    let sidebarPurity = puritySelect ? puritySelect.value : '';
+    let headerPurities = purityHeaderFilter ? purityHeaderFilter.selectedValues : [];
+    let combinedPurities = new Set(headerPurities);
+    if (sidebarPurity) combinedPurities.add(sidebarPurity);
+    filterValues.purity = Array.from(combinedPurities).join(',');
+
+    let sidebarCollections = collectionMultiSelect ? collectionMultiSelect.getValues() : [];
+    let headerCollections = collectionHeaderFilter ? collectionHeaderFilter.selectedValues : [];
+    let combinedCollections = new Set([...sidebarCollections, ...headerCollections]);
+    filterValues.collection = Array.from(combinedCollections).join(',');
+    
+    loadReport();
+}
+
+function resetFilters() {
+    Object.keys(filterValues).forEach(key => filterValues[key] = '');
+    currentSearch = '';
+    
+    const filterIds = [
+        'filter-purity', 'filter-classification', 
+        'filter-prov-type', 'filter-provision-mode',
+        'filter-business-head'
+    ];
+    filterIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    if (locationMultiSelect) locationMultiSelect.reset();
+    if (branchStatusMultiSelect) branchStatusMultiSelect.reset();
+    if (branchTypeMultiSelect) branchTypeMultiSelect.reset();
+    if (stateMultiSelect) stateMultiSelect.reset();
+    if (sectionMultiSelect) sectionMultiSelect.reset();
+    if (makeMultiSelect) makeMultiSelect.reset();
+    if (collectionMultiSelect) collectionMultiSelect.reset();
+    
+    if (makeHeaderFilter) makeHeaderFilter.setSelectedValues([]);
+    if (sectionHeaderFilter) sectionHeaderFilter.setSelectedValues([]);
+    if (purityHeaderFilter) purityHeaderFilter.setSelectedValues([]);
+    if (collectionHeaderFilter) collectionHeaderFilter.setSelectedValues([]);
+
+    filterValues.sort_by = '';
+    filterValues.sort_order = 'none';
+
+    const searchInput = document.getElementById('report-search');
+    if (searchInput) searchInput.value = '';
+    
+    loadReport();
+}
+
+function toggleSort(column) {
+    if (filterValues.sort_by === column) {
+        if (filterValues.sort_order === 'asc') {
+            filterValues.sort_order = 'desc';
+        } else if (filterValues.sort_order === 'desc') {
+            filterValues.sort_order = 'none';
+            filterValues.sort_by = '';
+        } else {
+            filterValues.sort_order = 'asc';
+        }
+    } else {
+        filterValues.sort_by = column;
+        filterValues.sort_order = 'asc';
+    }
+    loadReport();
+}
+
+function adjustZoom(delta, reset = false) {
+    const main = document.getElementById('location-provision-stock-analysis-main');
+    if (!main) return;
+    
+    let currentZoom = parseFloat(main.getAttribute('data-zoom') || '1');
+
+    if (reset) currentZoom = 1;
+    else currentZoom += delta;
+
+    currentZoom = Math.max(0.7, Math.min(1.5, currentZoom));
+    main.style.zoom = currentZoom;
+    main.setAttribute('data-zoom', currentZoom);
+    
+    const zoomText = document.getElementById('zoom-level');
+    if (zoomText) zoomText.textContent = `${Math.round(currentZoom * 100)}%`;
+}
+
+// Global toggle for header filters
+function toggleHeaderFilter(event, id) {
+    event.stopPropagation();
+    const icon = event.currentTarget;
+    
+    if (id === 'make' && makeHeaderFilter) {
+        if (makeHeaderFilter.isOpen) {
+            makeHeaderFilter.close();
+            icon.classList.remove('active');
+        } else {
+            document.querySelectorAll('.header-filter-container').forEach(el => el.classList.remove('active'));
+            icon.classList.add('active');
+            makeHeaderFilter.render(icon);
+        }
+    } else if (id === 'section' && sectionHeaderFilter) {
+        if (sectionHeaderFilter.isOpen) {
+            sectionHeaderFilter.close();
+            icon.classList.remove('active');
+        } else {
+            document.querySelectorAll('.header-filter-container').forEach(el => el.classList.remove('active'));
+            icon.classList.add('active');
+            sectionHeaderFilter.render(icon);
+        }
+    } else if (id === 'purity' && purityHeaderFilter) {
+        if (purityHeaderFilter.isOpen) {
+            purityHeaderFilter.close();
+            icon.classList.remove('active');
+        } else {
+            document.querySelectorAll('.header-filter-container').forEach(el => el.classList.remove('active'));
+            icon.classList.add('active');
+            purityHeaderFilter.render(icon);
+        }
+    } else if (id === 'collection' && collectionHeaderFilter) {
+        if (collectionHeaderFilter.isOpen) {
+            collectionHeaderFilter.close();
+            icon.classList.remove('active');
+        } else {
+            document.querySelectorAll('.header-filter-container').forEach(el => el.classList.remove('active'));
+            icon.classList.add('active');
+            collectionHeaderFilter.render(icon);
+        }
+    }
+}
+
+/**
+ * Drill-down Modal Functions
+ */
+
+async function openDrillDownModal(sectionName) {
+    const modal = document.getElementById('drillDownModal');
+    const container = document.getElementById('drillDownContainer');
+    const title = document.getElementById('drillDownTitle');
+    const loader = document.getElementById('modal-loader');
+    const contentArea = document.getElementById('modal-content-area');
+    const progressBar = document.getElementById('modal-progress');
+    const subtitle = document.getElementById('drillDownSubtitle');
+    const footerNote = document.getElementById('drillDownFooterNote');
+    const loadingLabel = document.getElementById('modal-loading-label');
+
+    if (!modal || !container) return;
+
+    container.style.maxWidth = '63rem';
+    if (subtitle) subtitle.textContent = 'Hierarchy View';
+    if (footerNote) footerNote.textContent = 'Showing Section → Purity → Type → Wide Range → Range Weight hierarchy.';
+    if (loadingLabel) loadingLabel.textContent = 'Fetching Hierarchy Data...';
+
+    // Show modal structure
+    modal.classList.remove('hidden');
+    // Trigger animation next frame
+    requestAnimationFrame(() => {
+        container.classList.remove('translate-x-full');
+    });
+
+    // Set title
+    title.textContent = `${sectionName} - Section Drill-down`;
+
+    // Show loading state
+    loader.classList.remove('hidden');
+    if (progressBar) progressBar.classList.remove('hidden');
+    contentArea.innerHTML = '';
+
+    try {
+        // Collect all current report filters
+        const params = new URLSearchParams({
+            ...filterValues,
+            drill_section: sectionName // Explicitly filter by the clicked section
+        });
+
+        const response = await fetch(`/api/location-provision-stock-analysis/drilldown?${params}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch drill-down data');
+
+        const html = await response.text();
+        contentArea.innerHTML = html;
+
+    } catch (err) {
+        console.error('Drill-down error:', err);
+        contentArea.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-full p-12 text-center">
+                <span class="material-symbols-outlined text-4xl text-red-500 mb-4">error</span>
+                <h4 class="text-sm font-bold text-gray-800 dark:text-white mb-2">Something went wrong</h4>
+                <p class="text-xs text-gray-500">${err.message}</p>
+                <button onclick="openDrillDownModal('${sectionName}')" class="mt-6 px-4 py-2 bg-primary text-white text-[10px] font-bold rounded uppercase tracking-wider">Try Again</button>
+            </div>
+        `;
+    } finally {
+        loader.classList.add('hidden');
+        if (progressBar) progressBar.classList.add('hidden');
+    }
+}
+
+async function openLocationDetailsModal(locationName, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    const modal = document.getElementById('drillDownModal');
+    const container = document.getElementById('drillDownContainer');
+    const title = document.getElementById('drillDownTitle');
+    const subtitle = document.getElementById('drillDownSubtitle');
+    const footerNote = document.getElementById('drillDownFooterNote');
+    const loadingLabel = document.getElementById('modal-loading-label');
+    const loader = document.getElementById('modal-loader');
+    const contentArea = document.getElementById('modal-content-area');
+    const progressBar = document.getElementById('modal-progress');
+
+    if (!modal || !container || !contentArea) return;
+
+    container.style.maxWidth = '96vw';
+    if (title) title.textContent = `${locationName} - Location Details`;
+    if (subtitle) subtitle.textContent = 'Product Hierarchy and Stock Position';
+    if (footerNote) footerNote.textContent = 'Short and excess use direct snapshot weights; net is excess minus short.';
+    if (loadingLabel) loadingLabel.textContent = 'Fetching Location Details...';
+
+    modal.classList.remove('hidden');
+    requestAnimationFrame(() => container.classList.remove('translate-x-full'));
+    loader?.classList.remove('hidden');
+    progressBar?.classList.remove('hidden');
+    contentArea.innerHTML = '';
+
+    try {
+        const params = new URLSearchParams({
+            ...filterValues,
+            detail_location: locationName
+        });
+        const response = await fetch(
+            `/api/location-provision-stock-analysis/location-details?${params}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                }
+            }
+        );
+
+        if (!response.ok) throw new Error('Failed to fetch location details');
+        contentArea.innerHTML = await response.text();
+    } catch (err) {
+        console.error('Location details error:', err);
+        contentArea.innerHTML = `
+            <div class="flex h-full flex-col items-center justify-center p-12 text-center">
+                <span class="material-symbols-outlined mb-4 text-4xl text-red-500">error</span>
+                <h4 class="mb-2 text-sm font-bold text-gray-800 dark:text-white">Unable to load location details</h4>
+                <p class="text-xs text-gray-500">${err.message}</p>
+            </div>
+        `;
+    } finally {
+        loader?.classList.add('hidden');
+        progressBar?.classList.add('hidden');
+    }
+}
+window.openLocationDetailsModal = openLocationDetailsModal;
+
+function toggleDrilldownTreeNode(buttonEl, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    const currentRow = buttonEl.closest('tr[data-tree-row]');
+    if (!currentRow) return;
+
+    const nodeId = currentRow.dataset.nodeId;
+    if (!nodeId) return;
+
+    const iconSpan = buttonEl.querySelector('.material-symbols-outlined');
+    const isExpanded = iconSpan ? iconSpan.textContent.trim() === 'arrow_drop_down' : true;
+
+    if (isExpanded) {
+        if (iconSpan) iconSpan.textContent = 'arrow_right';
+        collapseDrilldownChildren(currentRow.parentElement, nodeId);
+    } else {
+        if (iconSpan) iconSpan.textContent = 'arrow_drop_down';
+        expandDrilldownChildren(currentRow.parentElement, nodeId);
+    }
+}
+window.toggleDrilldownTreeNode = toggleDrilldownTreeNode;
+
+function setAllLocationHierarchyRows(expanded, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    const table = document.getElementById('locationHierarchyTable');
+    if (!table) return;
+
+    table.querySelectorAll('tbody tr[data-tree-row]').forEach((row) => {
+        const level = Number(row.dataset.level || 1);
+        row.classList.toggle('hidden', !expanded && level > 1);
+    });
+
+    table.querySelectorAll('[data-tree-toggle] .material-symbols-outlined').forEach((icon) => {
+        icon.textContent = expanded ? 'arrow_drop_down' : 'arrow_right';
+    });
+}
+
+function toggleAllLocationHierarchy(button, event) {
+    const expand = button.dataset.expanded !== 'true';
+    setAllLocationHierarchyRows(expand, event);
+    button.dataset.expanded = String(expand);
+    button.title = expand
+        ? 'Collapse all hierarchy levels'
+        : 'Expand all hierarchy levels';
+    button.setAttribute('aria-label', button.title);
+
+    const icon = button.querySelector('.material-symbols-outlined');
+    if (icon) icon.textContent = expand ? 'unfold_less' : 'unfold_more';
+}
+
+window.toggleAllLocationHierarchy = toggleAllLocationHierarchy;
+
+// Each popup response creates a new tbody; its index is collected when replaced.
+const drilldownChildIndexes = new WeakMap();
+
+function getDrilldownChildIndex(tbody) {
+    let index = drilldownChildIndexes.get(tbody);
+    if (!index) {
+        index = new Map();
+        tbody.querySelectorAll('tr[data-tree-row]').forEach(row => {
+            const parentId = row.dataset.parentId;
+            if (!index.has(parentId)) index.set(parentId, []);
+            index.get(parentId).push({
+                row,
+                icon: row.querySelector('[data-tree-toggle] .material-symbols-outlined')
+            });
+        });
+        drilldownChildIndexes.set(tbody, index);
+    }
+    return index;
+}
+
+function collapseDrilldownChildren(tbody, parentNodeId) {
+    const index = getDrilldownChildIndex(tbody);
+    const pending = [...(index.get(parentNodeId) || [])];
+    while (pending.length) {
+        const { row, icon } = pending.pop();
+        row.classList.add('hidden');
+        if (icon) icon.textContent = 'arrow_right';
+        for (const child of index.get(row.dataset.nodeId) || []) pending.push(child);
+    }
+}
+
+function expandDrilldownChildren(tbody, parentNodeId) {
+    const index = getDrilldownChildIndex(tbody);
+    const childRows = index.get(parentNodeId) || [];
+    childRows.forEach(({ row, icon }) => {
+        row.classList.remove('hidden');
+        const isChildExpanded = icon ? icon.textContent.trim() === 'arrow_drop_down' : false;
+        const childNodeId = row.dataset.nodeId;
+
+        if (isChildExpanded && childNodeId) {
+            expandDrilldownChildren(tbody, childNodeId);
+        } else if (childNodeId) {
+            // Keep grandchildren collapsed
+            collapseDrilldownChildren(tbody, childNodeId);
+        }
+    });
+}
+
+function closeDrillDownModal() {
+    const modal = document.getElementById('drillDownModal');
+    const container = document.getElementById('drillDownContainer');
+
+    if (!modal || !container) return;
+
+    // Trigger close animation
+    container.classList.add('translate-x-full');
+
+    // Hide backdrop after animation
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+}
+
+function buildHierarchyDetailParams(link) {
+    return new URLSearchParams({
+        ...filterValues,
+        drill_level: link.dataset.level,
+        drill_section: link.dataset.section,
+        drill_purity: link.dataset.purity,
+        drill_type: link.dataset.type,
+        drill_wide_range: link.dataset.wideRange,
+        drill_range_weight: link.dataset.rangeWeight,
+        drill_section_ids: link.dataset.sectionIds,
+        drill_purity_ids: link.dataset.purityIds,
+        drill_type_ids: link.dataset.typeIds,
+        drill_wide_range_ids: link.dataset.wideRangeIds,
+        page: '1'
+    });
+}
+
+function setHierarchyDetailsPath(path, link) {
+    const pathParts = [link.dataset.section];
+    if (Number(link.dataset.level) >= 2) pathParts.push(link.dataset.purity || 'Unknown Purity');
+    if (Number(link.dataset.level) >= 3) pathParts.push(link.dataset.type || 'Unknown Type');
+    if (Number(link.dataset.level) >= 4) pathParts.push(link.dataset.wideRange || 'Unknown Range');
+    if (Number(link.dataset.level) >= 5) pathParts.push(link.dataset.rangeWeight || 'Unknown Weight');
+    path.textContent = pathParts.join(' / ');
+}
+
+let activeInShopDetailParams = null;
+let inShopDetailsRequestController = null;
+let inShopDetailsTimeout = null;
+
+async function openInShopDetailsModal(link) {
+    const modal = document.getElementById('inShopDetailsModal');
+    const path = document.getElementById('inShopDetailsPath');
+    if (!modal) return;
+
+    activeInShopDetailParams = buildHierarchyDetailParams(link);
+    setHierarchyDetailsPath(path, link);
+    modal.classList.remove('hidden');
+    await loadInShopDetails();
+}
+
+window.openInShopDetailsModal = openInShopDetailsModal;
+
+async function loadInShopDetails(page) {
+    if (!activeInShopDetailParams) return;
+    if (page) activeInShopDetailParams.set('page', String(page));
+
+    const loader = document.getElementById('inShopDetailsLoader');
+    const content = document.getElementById('inShopDetailsContent');
+    if (inShopDetailsRequestController) inShopDetailsRequestController.abort();
+    const requestController = new AbortController();
+    inShopDetailsRequestController = requestController;
+    loader.classList.remove('hidden');
+    const requestTimeout = window.setTimeout(() => requestController.abort(), 30000);
+    inShopDetailsTimeout = requestTimeout;
+
+    try {
+        const response = await fetch(`/api/location-provision-stock-analysis/in-shop-details?${activeInShopDetailParams}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+            signal: requestController.signal
+        });
+        const html = await response.text();
+        content.innerHTML = html;
+        if (!response.ok) throw new Error('Failed to load in-shop barcode details');
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            if (inShopDetailsRequestController === requestController) {
+                content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">The barcode details request timed out. Please retry.</div>';
+            }
+            return;
+        }
+        console.error('In-shop detail error:', error);
+        content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">Unable to load barcode details.</div>';
+    } finally {
+        window.clearTimeout(requestTimeout);
+        if (inShopDetailsTimeout === requestTimeout) inShopDetailsTimeout = null;
+        if (inShopDetailsRequestController === requestController) {
+            loader.classList.add('hidden');
+            inShopDetailsRequestController = null;
+        }
+    }
+}
+
+function toggleModalFullscreen(containerId, buttonEl) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const iconSpan = buttonEl ? buttonEl.querySelector('.material-symbols-outlined') : null;
+    const isFullscreen = container.classList.contains('inset-0');
+
+    if (isFullscreen) {
+        container.classList.remove('inset-0', 'rounded-none');
+        container.classList.add('inset-4', 'md:inset-8', 'lg:inset-12', 'rounded-lg');
+        if (iconSpan) iconSpan.textContent = 'fullscreen';
+        if (buttonEl) buttonEl.title = 'Fullscreen';
+    } else {
+        container.classList.remove('inset-4', 'md:inset-8', 'lg:inset-12', 'rounded-lg');
+        container.classList.add('inset-0', 'rounded-none');
+        if (iconSpan) iconSpan.textContent = 'fullscreen_exit';
+        if (buttonEl) buttonEl.title = 'Exit Fullscreen';
+    }
+}
+window.toggleModalFullscreen = toggleModalFullscreen;
+
+function resetModalFullscreen(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.classList.remove('inset-0', 'rounded-none');
+    container.classList.add('inset-4', 'md:inset-8', 'lg:inset-12', 'rounded-lg');
+    const headerBtn = container.querySelector('button[title="Exit Fullscreen"], button[title="Fullscreen"], button[title="Toggle Fullscreen"]');
+    if (headerBtn) {
+        headerBtn.title = 'Toggle Fullscreen';
+        const iconSpan = headerBtn.querySelector('.material-symbols-outlined');
+        if (iconSpan) iconSpan.textContent = 'fullscreen';
+    }
+}
+
+function closeInShopDetailsModal() {
+    const modal = document.getElementById('inShopDetailsModal');
+    window.clearTimeout(inShopDetailsTimeout);
+    inShopDetailsTimeout = null;
+    if (inShopDetailsRequestController) inShopDetailsRequestController.abort();
+    if (modal) modal.classList.add('hidden');
+    resetModalFullscreen('inShopDetailsContainer');
+    inShopDetailsRequestController = null;
+    activeInShopDetailParams = null;
+}
+
+let activeProvisionDetailParams = null;
+let provisionDetailsRequestController = null;
+let provisionDetailsTimeout = null;
+
+async function openProvisionDetailsModal(link) {
+    const modal = document.getElementById('provisionDetailsModal');
+    const path = document.getElementById('provisionDetailsPath');
+    if (!modal) return;
+
+    activeProvisionDetailParams = buildHierarchyDetailParams(link);
+    setHierarchyDetailsPath(path, link);
+    modal.classList.remove('hidden');
+    await loadProvisionDetails();
+}
+
+window.openProvisionDetailsModal = openProvisionDetailsModal;
+
+async function loadProvisionDetails(page) {
+    if (!activeProvisionDetailParams) return;
+    if (page) activeProvisionDetailParams.set('page', String(page));
+
+    const loader = document.getElementById('provisionDetailsLoader');
+    const content = document.getElementById('provisionDetailsContent');
+    if (provisionDetailsRequestController) provisionDetailsRequestController.abort();
+    const requestController = new AbortController();
+    provisionDetailsRequestController = requestController;
+    loader.classList.remove('hidden');
+    const requestTimeout = window.setTimeout(() => requestController.abort(), 30000);
+    provisionDetailsTimeout = requestTimeout;
+
+    try {
+        const response = await fetch(`/api/location-provision-stock-analysis/provision-details?${activeProvisionDetailParams}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+            signal: requestController.signal
+        });
+        const html = await response.text();
+        content.innerHTML = html;
+        if (!response.ok) throw new Error('Failed to load provision details');
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            if (provisionDetailsRequestController === requestController) {
+                content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">The provision details request timed out. Please retry.</div>';
+            }
+            return;
+        }
+        console.error('Provision detail error:', error);
+        content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">Unable to load provision details.</div>';
+    } finally {
+        window.clearTimeout(requestTimeout);
+        if (provisionDetailsTimeout === requestTimeout) provisionDetailsTimeout = null;
+        if (provisionDetailsRequestController === requestController) {
+            loader.classList.add('hidden');
+            provisionDetailsRequestController = null;
+        }
+    }
+}
+
+function closeProvisionDetailsModal() {
+    const modal = document.getElementById('provisionDetailsModal');
+    window.clearTimeout(provisionDetailsTimeout);
+    provisionDetailsTimeout = null;
+    if (provisionDetailsRequestController) provisionDetailsRequestController.abort();
+    if (modal) modal.classList.add('hidden');
+    resetModalFullscreen('provisionDetailsContainer');
+    provisionDetailsRequestController = null;
+    activeProvisionDetailParams = null;
+}
+
+let activeStockComparisonParams = null;
+let stockComparisonRequestController = null;
+let stockComparisonTimeout = null;
+const comparisonBarcodeControllers = new Set();
+
+function buildComparisonBarcodeParams(toggle, page = 1) {
+    const fieldMap = {
+        branchId: 'branch_id',
+        divisionId: 'division_id',
+        groupId: 'group_id',
+        purityId: 'purity_id',
+        classificationId: 'classification_id',
+        subClassificationId: 'sub_classification_id',
+        sectionId: 'section_id',
+        typeId: 'type_id',
+        makeId: 'make_id',
+        collectionId: 'collection_id',
+        masterCollectionId: 'master_collection_id',
+        subSectionId: 'sub_section_id',
+        wideRangeId: 'wide_range_id',
+        genderId: 'gender_id',
+        sizeId: 'size_id',
+        screwTypeId: 'screw_type_id',
+        rangeWeight: 'range_weight'
+    };
+    const params = new URLSearchParams({ page: String(page) });
+    Object.entries(fieldMap).forEach(([datasetKey, parameterName]) => {
+        params.set(parameterName, toggle.dataset[datasetKey] || '');
+    });
+    return params;
+}
+
+async function loadComparisonBarcodeDetails(toggle, page = 1) {
+    const pairBody = toggle.closest('tbody');
+    const content = pairBody?.querySelector('[data-comparison-barcode-content]');
+    if (!content) return;
+
+    const requestController = new AbortController();
+    comparisonBarcodeControllers.add(requestController);
+    content.innerHTML = `
+        <div class="px-4 py-4 flex items-center gap-2 text-[10px] font-semibold text-gray-500">
+            <span class="size-4 border-2 border-blue-100 border-t-primary rounded-full animate-spin"></span>
+            Loading barcode details...
+        </div>
+    `;
+
+    const requestTimeout = window.setTimeout(() => requestController.abort(), 30000);
+    try {
+        const params = buildComparisonBarcodeParams(toggle, page);
+        const response = await fetch(
+            `/api/location-provision-stock-analysis/stock-comparison-barcodes?${params}`,
+            {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+                signal: requestController.signal
+            }
+        );
+        content.innerHTML = await response.text();
+        if (response.ok) {
+            toggle.dataset.barcodeDetailsLoaded = 'true';
+        }
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            content.innerHTML = '<div class="px-4 py-4 text-[10px] font-semibold text-red-500">The barcode request timed out. Please retry.</div>';
+        } else {
+            console.error('Comparison barcode detail error:', error);
+            content.innerHTML = '<div class="px-4 py-4 text-[10px] font-semibold text-red-500">Unable to load barcode details.</div>';
+        }
+    } finally {
+        window.clearTimeout(requestTimeout);
+        comparisonBarcodeControllers.delete(requestController);
+    }
+}
+
+async function openStockComparisonModal(link) {
+    const modal = document.getElementById('stockComparisonModal');
+    const path = document.getElementById('stockComparisonPath');
+    if (!modal) return;
+
+    activeStockComparisonParams = buildHierarchyDetailParams(link);
+    setHierarchyDetailsPath(path, link);
+    modal.classList.remove('hidden');
+    await loadStockComparison();
+}
+
+window.openStockComparisonModal = openStockComparisonModal;
+
+async function loadStockComparison(page) {
+    if (!activeStockComparisonParams) return;
+    if (page) activeStockComparisonParams.set('page', String(page));
+
+    const loader = document.getElementById('stockComparisonLoader');
+    const content = document.getElementById('stockComparisonContent');
+    if (stockComparisonRequestController) stockComparisonRequestController.abort();
+    const requestController = new AbortController();
+    stockComparisonRequestController = requestController;
+    loader.classList.remove('hidden');
+    const requestTimeout = window.setTimeout(() => requestController.abort(), 30000);
+    stockComparisonTimeout = requestTimeout;
+
+    try {
+        const response = await fetch(`/api/location-provision-stock-analysis/stock-comparison?${activeStockComparisonParams}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+            signal: requestController.signal
+        });
+        const html = await response.text();
+        content.innerHTML = html;
+        if (!response.ok) throw new Error('Failed to compare provision and NIP rows');
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            if (stockComparisonRequestController === requestController) {
+                content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">The comparison request timed out. Please retry.</div>';
+            }
+            return;
+        }
+        console.error('Stock comparison error:', error);
+        content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">Unable to compare provision and NIP rows.</div>';
+    } finally {
+        window.clearTimeout(requestTimeout);
+        if (stockComparisonTimeout === requestTimeout) stockComparisonTimeout = null;
+        if (stockComparisonRequestController === requestController) {
+            loader.classList.add('hidden');
+            stockComparisonRequestController = null;
+        }
+    }
+}
+
+function closeStockComparisonModal() {
+    const modal = document.getElementById('stockComparisonModal');
+    window.clearTimeout(stockComparisonTimeout);
+    stockComparisonTimeout = null;
+    if (stockComparisonRequestController) stockComparisonRequestController.abort();
+    comparisonBarcodeControllers.forEach(controller => controller.abort());
+    comparisonBarcodeControllers.clear();
+    if (modal) modal.classList.add('hidden');
+    resetModalFullscreen('stockComparisonContainer');
+    stockComparisonRequestController = null;
+    activeStockComparisonParams = null;
+}
+
+window.closeStockComparisonModal = closeStockComparisonModal;
+
+document.addEventListener('click', (event) => {
+    const sourceHighlightButton = event.target.closest('[data-comparison-highlight-source]');
+    if (sourceHighlightButton) {
+        const comparisonContent = document.getElementById('stockComparisonContent');
+        const source = sourceHighlightButton.dataset.comparisonHighlightSource;
+        const shouldHighlight = sourceHighlightButton.getAttribute('aria-pressed') !== 'true';
+
+        comparisonContent?.querySelectorAll('[data-comparison-highlight-source]').forEach(button => {
+            button.setAttribute('aria-pressed', 'false');
+            button.classList.remove('text-primary', 'underline');
+        });
+        comparisonContent?.querySelectorAll('[data-comparison-source]').forEach(row => {
+            row.classList.remove('comparison-row-highlight');
+        });
+
+        if (shouldHighlight) {
+            sourceHighlightButton.setAttribute('aria-pressed', 'true');
+            sourceHighlightButton.classList.add('text-primary', 'underline');
+            comparisonContent?.querySelectorAll(
+                `[data-comparison-source="${source}"][data-comparison-has-pieces="true"]`
+            ).forEach(row => {
+                row.classList.add('comparison-row-highlight');
+            });
+        }
+        return;
+    }
+
+    const barcodePageButton = event.target.closest('[data-comparison-barcode-page]');
+    if (barcodePageButton && !barcodePageButton.disabled) {
+        const pairBody = barcodePageButton.closest('tbody');
+        const toggle = pairBody?.querySelector('[data-comparison-nip-toggle]');
+        if (toggle) {
+            loadComparisonBarcodeDetails(toggle, Number(barcodePageButton.dataset.comparisonBarcodePage));
+        }
+        return;
+    }
+
+    const nipToggle = event.target.closest('[data-comparison-nip-toggle]');
+    if (nipToggle && !nipToggle.disabled) {
+        const pairBody = nipToggle.closest('tbody');
+        const detailRow = pairBody?.querySelector('[data-comparison-nip-detail]');
+        const icon = nipToggle.querySelector('[data-comparison-nip-icon]');
+        if (detailRow) {
+            const willExpand = detailRow.classList.contains('hidden');
+            detailRow.classList.toggle('hidden', !willExpand);
+            nipToggle.setAttribute('aria-expanded', String(willExpand));
+            nipToggle.title = willExpand ? 'Hide NIP row details' : 'Show NIP row details';
+            if (icon) icon.textContent = willExpand ? 'expand_more' : 'chevron_right';
+            if (willExpand && nipToggle.dataset.barcodeDetailsLoaded !== 'true') {
+                loadComparisonBarcodeDetails(nipToggle);
+            }
+        }
+        return;
+    }
+
+    const comparisonLink = event.target.closest('[data-comparison-detail]');
+    if (comparisonLink) {
+        event.preventDefault();
+        openStockComparisonModal(comparisonLink);
+        return;
+    }
+
+    const provisionLink = event.target.closest('[data-provision-detail]');
+    if (provisionLink) {
+        event.preventDefault();
+        openProvisionDetailsModal(provisionLink);
+        return;
+    }
+
+    const detailLink = event.target.closest('[data-in-shop-detail]');
+    if (detailLink) {
+        event.preventDefault();
+        openInShopDetailsModal(detailLink);
+        return;
+    }
+
+    const pageButton = event.target.closest('[data-in-shop-page]');
+    if (pageButton && !pageButton.disabled) {
+        loadInShopDetails(Number(pageButton.dataset.inShopPage));
+        return;
+    }
+
+    const provisionPageButton = event.target.closest('[data-provision-page]');
+    if (provisionPageButton && !provisionPageButton.disabled) {
+        loadProvisionDetails(Number(provisionPageButton.dataset.provisionPage));
+        return;
+    }
+
+    const comparisonPageButton = event.target.closest('[data-comparison-page]');
+    if (comparisonPageButton && !comparisonPageButton.disabled) {
+        loadStockComparison(Number(comparisonPageButton.dataset.comparisonPage));
+    }
+});
+
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    const comparisonModal = document.getElementById('stockComparisonModal');
+    if (comparisonModal && !comparisonModal.classList.contains('hidden')) {
+        closeStockComparisonModal();
+        return;
+    }
+    const detailsModal = document.getElementById('inShopDetailsModal');
+    if (detailsModal && !detailsModal.classList.contains('hidden')) {
+        closeInShopDetailsModal();
+        return;
+    }
+    const provisionModal = document.getElementById('provisionDetailsModal');
+    if (provisionModal && !provisionModal.classList.contains('hidden')) {
+        closeProvisionDetailsModal();
+    }
+});
+
+async function exportToExcel() {
+    const btn = document.getElementById('btn-export-excel');
+    if (!btn) return;
+
+    const COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
+    const lastExportTime = localStorage.getItem('last_provision_stock_analysis_export_time');
+    const now = Date.now();
+
+    if (lastExportTime) {
+        const timePassed = now - parseInt(lastExportTime, 10);
+        if (timePassed < COOLDOWN_MS) {
+            showToast('Warning', 'Already export is in progress...', 'warning');
+            return;
+        }
+    }
+
+    const icon = document.getElementById('export-btn-icon');
+    const label = document.getElementById('export-btn-label');
+    const originalIcon = icon ? icon.innerText : 'download';
+    const originalLabel = label ? label.innerText : 'Export';
+
+    try {
+        // Disable button and show loading state
+        btn.disabled = true;
+        if (icon) {
+            icon.innerText = 'sync';
+            icon.classList.add('animate-spin');
+        }
+        if (label) label.innerText = 'Queuing...';
+
+        // Extract current active filters
+        const activeFilters = {
+            search: currentSearch,
+            location: filterValues.location,
+            purity: filterValues.purity,
+            classification: filterValues.classification,
+            make: filterValues.make,
+            collection: filterValues.collection,
+            section: filterValues.section,
+            prov_type: filterValues.prov_type,
+            provision_mode: filterValues.provision_mode,
+            branch_type: filterValues.branch_type,
+            branch_status: filterValues.branch_status,
+            business_head: filterValues.business_head,
+            state: filterValues.state,
+            sort_by: filterValues.sort_by,
+            sort_order: filterValues.sort_order
+        };
+
+        const response = await fetch('/api/location-provision-stock-analysis/export', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            },
+            body: JSON.stringify({
+                filters: activeFilters,
+                socket_id: window.socket?.id
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.message || 'Failed to queue export');
+        }
+
+        localStorage.setItem('last_provision_stock_analysis_export_time', Date.now().toString());
+        showToast('Success', 'Export job enqueued. You will be notified when the file is ready.', 'success');
+
+    } catch (error) {
+        console.error('Export error:', error);
+        showToast('Error', error.message || 'Failed to trigger export', 'error');
+    } finally {
+        // Restore button state
+        btn.disabled = false;
+        if (icon) {
+            icon.innerText = originalIcon;
+            icon.classList.remove('animate-spin');
+        }
+        if (label) label.innerText = originalLabel;
+    }
+}

@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}Location Provision & Stock Analysis{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
+{% endblock %}
+
+{% block content %}
+<main id="location-provision-stock-analysis-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    <!-- Header -->
+    <div class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <h2 class="text-sm font-bold tracking-tight">Location Provision & Stock Analysis <span class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded uppercase tracking-widest text-gray-500">v1.0</span></h2>
+        </div>
+        <div class="flex items-center gap-3">
+            {% if 'report.export' in permissions or 'ADMIN' in permissions %}
+            <!-- Export Button -->
+            <button id="btn-export-excel" onclick="exportToExcel()"
+                title="Export all filtered data to Excel"
+                class="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded transition-colors shadow-sm uppercase tracking-wider">
+                <span id="export-btn-icon" class="material-symbols-outlined text-[14px]">download</span>
+                <span id="export-btn-label">Export</span>
+            </button>
+            {% endif %}
+
+            <!-- Zoom Controls -->
+            <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
+                <button onclick="adjustZoom(-0.1)" class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors" title="Zoom Out">-</button>
+                <button id="zoom-level" onclick="adjustZoom(0, true)" class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700" title="Reset Zoom">100%</button>
+                <button onclick="adjustZoom(0.1)" class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors" title="Zoom In">+</button>
+            </div>
+            <div class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
+                <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
+                <input id="report-search" class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0" placeholder="Search..." type="text" oninput="onSearchInput(this.value)" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Strip -->
+    <div class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <span class="material-symbols-outlined text-[14px]">info</span>
+            <span>Showing Location Provision & Stock Analysis summaries. Use sidebar filters to explore deeper.</span>
+        </div>
+
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
+            <span id="sync-time-info" class="flex items-center gap-1 font-medium uppercase tracking-wider">
+                <span class="material-symbols-outlined text-[14px] {% if not is_today %}text-red-600 dark:text-red-500{% endif %}">schedule</span>
+                {{ sync_time }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Table Container -->
+    <div id="table-area" class="flex-1 overflow-auto relative">
+        <!-- Progress Bar -->
+        <div id="report-progress" class="absolute top-0 left-0 right-0 h-0.5 bg-primary/20 overflow-hidden hidden z-10">
+            <div class="h-full bg-primary w-1/3 animate-[progress_1s_ease-in-out_infinite]"></div>
+        </div>
+        <style>
+            @keyframes progress {
+                0% { left: -33%; }
+                100% { left: 100%; }
+            }
+            #report-progress div { position: absolute; }
+        </style>
+
+        <div id="view-location-provision-stock-analysis" class="dashboard-view">
+            {% include 'partials/_view_location_provision_stock_analysis.html' %}
+        </div>
+    </div>
+</main>
+
+<!-- Drill-down Modal -->
+<div id="drillDownModal" class="fixed inset-0 z-[100] hidden overflow-hidden">
+    <!-- Backdrop with blur -->
+    <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeDrillDownModal()"></div>
+    
+    <!-- Modal Content Container -->
+    <div class="absolute inset-y-0 right-0 w-full max-w-[63rem] bg-white dark:bg-gray-900 shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-full" id="drillDownContainer">
+        <!-- Close Button (Floating) -->
+        <button onclick="closeDrillDownModal()" class="absolute -left-12 top-4 size-10 bg-white dark:bg-gray-800 text-gray-500 hover:text-red-500 rounded-l-xl shadow-lg flex items-center justify-center transition-colors group">
+            <span class="material-symbols-outlined group-hover:rotate-90 transition-transform duration-300">close</span>
+        </button>
+
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-gray-900 shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="size-10 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary">analytics</span>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-gray-800 dark:text-white" id="drillDownTitle">Section Drill-down</h3>
+                    <p id="drillDownSubtitle" class="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-0.5">Hierarchy View</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div id="modal-last-refresh" class="text-[9px] text-gray-400 font-medium bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded">
+                    LATEST SYNC: {{ sync_time }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Bar for Modal -->
+        <div id="modal-progress" class="h-0.5 w-full bg-gray-100 dark:bg-gray-800 overflow-hidden hidden">
+            <div class="h-full bg-primary w-1/3 animate-[progress_1.5s_ease-in-out_infinite]"></div>
+        </div>
+
+        <!-- Modal Table Body -->
+        <div id="drillDownBody" class="flex-1 overflow-hidden relative">
+            <!-- Loading State -->
+            <div id="modal-loader" class="absolute inset-0 z-20 bg-white/80 dark:bg-gray-900/80 flex flex-col items-center justify-center hidden">
+                <div class="relative">
+                    <div class="size-12 border-4 border-blue-100 dark:border-blue-900/30 rounded-full"></div>
+                    <div class="absolute inset-0 size-12 border-4 border-t-primary rounded-full animate-spin"></div>
+                </div>
+                <p id="modal-loading-label" class="mt-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest animate-pulse">Fetching Hierarchy Data...</p>
+            </div>
+
+            <!-- Content will be injected here -->
+            <div id="modal-content-area" class="h-full"></div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="px-6 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20 flex justify-between items-center shrink-0">
+            <p id="drillDownFooterNote" class="text-[10px] text-gray-400 italic">Showing Section → Purity → Type → Wide Range → Range Weight hierarchy.</p>
+            <button onclick="closeDrillDownModal()" class="px-4 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-[10px] font-bold rounded uppercase transition-colors">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Provision details modal -->
+<div id="provisionDetailsModal" class="fixed inset-0 z-[110] hidden overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="provisionDetailsTitle">
+    <div class="absolute inset-0 bg-gray-900/70 backdrop-blur-sm" onclick="closeProvisionDetailsModal()"></div>
+    <div id="provisionDetailsContainer" class="absolute inset-4 md:inset-8 lg:inset-12 bg-white dark:bg-gray-900 shadow-2xl rounded-lg overflow-hidden flex flex-col transition-all duration-200">
+        <header class="px-5 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="size-9 rounded-md bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-primary text-xl">inventory</span>
+                </div>
+                <div class="min-w-0">
+                    <h3 id="provisionDetailsTitle" class="text-sm font-bold text-gray-900 dark:text-white truncate">Provision Details</h3>
+                    <p id="provisionDetailsPath" class="text-[10px] text-gray-500 truncate mt-0.5"></p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1">
+                <button type="button" onclick="toggleModalFullscreen('provisionDetailsContainer', this)" class="size-8 flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-white rounded focus:outline-none focus:ring-2 focus:ring-primary/30" title="Toggle Fullscreen">
+                    <span class="material-symbols-outlined text-xl">fullscreen</span>
+                </button>
+                <button type="button" onclick="closeProvisionDetailsModal()" class="size-8 flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-white rounded focus:outline-none focus:ring-2 focus:ring-primary/30" title="Close">
+                    <span class="material-symbols-outlined text-xl">close</span>
+                </button>
+            </div>
+        </header>
+        <div class="flex-1 min-h-0 overflow-hidden relative">
+            <div id="provisionDetailsLoader" class="absolute inset-0 z-20 bg-white/90 dark:bg-gray-900/90 flex items-center justify-center hidden">
+                <div class="flex items-center gap-3 text-xs font-semibold text-gray-500">
+                    <span class="size-5 border-2 border-blue-100 border-t-primary rounded-full animate-spin"></span>
+                    Loading provision details...
+                </div>
+            </div>
+            <div id="provisionDetailsContent" class="h-full overflow-hidden"></div>
+        </div>
+    </div>
+</div>
+
+<!-- In-shop barcode details modal -->
+<div id="inShopDetailsModal" class="fixed inset-0 z-[110] hidden overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="inShopDetailsTitle">
+    <div class="absolute inset-0 bg-gray-900/70 backdrop-blur-sm" onclick="closeInShopDetailsModal()"></div>
+    <div id="inShopDetailsContainer" class="absolute inset-4 md:inset-8 lg:inset-12 bg-white dark:bg-gray-900 shadow-2xl rounded-lg overflow-hidden flex flex-col transition-all duration-200">
+        <header class="px-5 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="size-9 rounded-md bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-primary text-xl">inventory_2</span>
+                </div>
+                <div class="min-w-0">
+                    <h3 id="inShopDetailsTitle" class="text-sm font-bold text-gray-900 dark:text-white truncate">In-shop Barcode Details</h3>
+                    <p id="inShopDetailsPath" class="text-[10px] text-gray-500 truncate mt-0.5"></p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1">
+                <button type="button" onclick="toggleModalFullscreen('inShopDetailsContainer', this)" class="size-8 flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-white rounded focus:outline-none focus:ring-2 focus:ring-primary/30" title="Toggle Fullscreen">
+                    <span class="material-symbols-outlined text-xl">fullscreen</span>
+                </button>
+                <button type="button" onclick="closeInShopDetailsModal()" class="size-8 flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-white rounded focus:outline-none focus:ring-2 focus:ring-primary/30" title="Close">
+                    <span class="material-symbols-outlined text-xl">close</span>
+                </button>
+            </div>
+        </header>
+        <div id="inShopDetailsBody" class="flex-1 min-h-0 overflow-hidden relative">
+            <div id="inShopDetailsLoader" class="absolute inset-0 z-20 bg-white/90 dark:bg-gray-900/90 flex items-center justify-center hidden">
+                <div class="flex items-center gap-3 text-xs font-semibold text-gray-500">
+                    <span class="size-5 border-2 border-blue-100 border-t-primary rounded-full animate-spin"></span>
+                    Loading barcode details...
+                </div>
+            </div>
+            <div id="inShopDetailsContent" class="h-full overflow-hidden"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Provision versus NIP comparison modal -->
+<div id="stockComparisonModal" class="fixed inset-0 z-[120] hidden overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="stockComparisonTitle">
+    <div class="absolute inset-0 bg-gray-900/70 backdrop-blur-sm" onclick="closeStockComparisonModal()"></div>
+    <div id="stockComparisonContainer" class="absolute inset-4 md:inset-8 lg:inset-12 bg-white dark:bg-gray-900 shadow-2xl rounded-lg overflow-hidden flex flex-col transition-all duration-200">
+        <header class="px-5 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="size-9 rounded-md bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-primary text-xl">difference</span>
+                </div>
+                <div class="min-w-0">
+                    <h3 id="stockComparisonTitle" class="text-sm font-bold text-gray-900 dark:text-white truncate">Provision / NIP Comparison</h3>
+                    <p id="stockComparisonPath" class="text-[10px] text-gray-500 truncate mt-0.5"></p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1">
+                <button type="button" onclick="toggleModalFullscreen('stockComparisonContainer', this)" class="size-8 flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-white rounded focus:outline-none focus:ring-2 focus:ring-primary/30" title="Toggle Fullscreen">
+                    <span class="material-symbols-outlined text-xl">fullscreen</span>
+                </button>
+                <button type="button" onclick="closeStockComparisonModal()" class="size-8 flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-white rounded focus:outline-none focus:ring-2 focus:ring-primary/30" title="Close">
+                    <span class="material-symbols-outlined text-xl">close</span>
+                </button>
+            </div>
+        </header>
+        <div class="flex-1 min-h-0 overflow-hidden relative">
+            <div id="stockComparisonLoader" class="absolute inset-0 z-20 bg-white/90 dark:bg-gray-900/90 flex items-center justify-center hidden">
+                <div class="flex items-center gap-3 text-xs font-semibold text-gray-500">
+                    <span class="size-5 border-2 border-blue-100 border-t-primary rounded-full animate-spin"></span>
+                    Comparing provision and NIP rows...
+                </div>
+            </div>
+            <div id="stockComparisonContent" class="h-full overflow-hidden"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block sidebar %}
+<aside class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xs font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> FILTERS
+            </h2>
+            <button onclick="resetFilters()" class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+        </div>
+        <div class="space-y-4">
+            <!-- Location (Multi-select) -->
+            <div id="filter-location-container">
+                <div class="space-y-1.5 relative" id="filter-location-container-multiselect-container">
+                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Location</label>
+                    <div id="filter-location-container-trigger" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 border dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2 cursor-pointer flex justify-between items-center transition-colors hover:border-gray-300 dark:hover:border-gray-600">
+                        <span id="filter-location-container-text" class="truncate text-gray-700 dark:text-gray-300">All Locations</span>
+                        <span class="material-symbols-outlined text-[16px] text-gray-400 pointer-events-none transition-transform duration-200" id="filter-location-container-icon">expand_more</span>
+                    </div>
+                    
+                    <div id="filter-location-container-dropdown" class="hidden absolute left-0 right-0 top-[100%] mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50 flex flex-col max-h-96 overflow-hidden">
+                        <div class="p-2 border-b border-gray-100 dark:border-gray-700 shrink-0 bg-white dark:bg-gray-800 z-10 sticky top-0">
+                            <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1.5">
+                                <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
+                                <input type="text" id="filter-location-container-search" placeholder="Search..." class="w-full bg-transparent border-none text-[11px] p-0 focus:ring-0 placeholder:text-gray-400 text-gray-700 dark:text-gray-200" />
+                            </div>
+                        </div>
+                        <div id="filter-location-container-options-list" class="overflow-y-auto flex-1 p-1">
+                            <!-- Options dynamically loaded -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Branch Type -->
+            <div id="filter-branch-type-container"></div>
+            <!-- Branch Status -->
+            <div id="filter-branch-status-container"></div>
+            <!-- State (Multi-select) -->
+            <div id="filter-state-container"></div>
+            <!-- Business Head -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Business Head</label>
+                <select id="filter-business-head" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Business Heads</option>
+                </select>
+            </div>
+            <!-- Purity -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Purity</label>
+                <select id="filter-purity" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Purities</option>
+                </select>
+            </div>
+            <!-- Classification -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Classification</label>
+                <select id="filter-classification" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Classifications</option>
+                </select>
+            </div>
+            <!-- Make -->
+            <div id="filter-make-container"></div>
+            <!-- Collection -->
+            <div id="filter-collection-container"></div>
+            <!-- Section -->
+            <div id="filter-section-container"></div>
+            <!-- Provision Type -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Provision Type</label>
+                <select id="filter-prov-type" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Types</option>
+                </select>
+            </div>
+            <!-- Provision Mode Filter -->
+            <div class="space-y-1.5">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Branch Provision type</label>
+                <select id="filter-provision-mode" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Modes</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <!-- Fixed Footer for Apply Button -->
+    <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark shrink-0">
+        <button onclick="applyFilters()" class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2 transition-all">
+            <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
+        </button>
+    </div>
+</aside>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
+<script src="{{ url_for('static', filename='js/header_filter.js') }}"></script>
+<script src="{{ url_for('static', filename='js/location_provision_stock_analysis.js', v='20260904-3') }}"></script>
+{% endblock %}

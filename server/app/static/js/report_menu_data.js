@@ -225,6 +225,14 @@ window.REPORT_MENU_DATA = [
                 tags: ["stock", "location", "physical"]
             },
             {
+                id: "location-provision-stock-analysis",
+                title: "Location Provision & Stock Analysis",
+                href: "/location-provision-stock-analysis",
+                icon: "analytics",
+                description: "Analyze location provision, physical stock, and variance details.",
+                tags: ["stock", "location", "provision", "analysis"]
+            },
+            {
                 id: "provision-stock-status",
                 title: "Provision Stock Status",
                 href: "/provision-stock-status",
