@@ -321,6 +321,24 @@
                 <div id="filter-make-container"></div>
             </div>
             <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Customer Order Type</label>
+                <select id="filter-customer-order-type" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                    <option value="">All Customer Order Types</option>
+                    {% for value in filter_options.customer_order_types %}
+                    <option value="{{ value }}" {% if request.args.get('customer_order_type') == value %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Is MSME Party</label>
+                <select id="filter-is-discount-party" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs p-2">
+                    <option value="">All Parties</option>
+                    {% for value in filter_options.discount_party_values %}
+                    <option value="{{ value }}" {% if request.args.get('is_discount_party') == value %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-1">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order Type</label>
                 <select id="filter-order-type"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
@@ -480,6 +498,6 @@
 <script>
     window.ownerWiseAvailableMakes = {{ filter_options.makes | tojson | safe }};
 </script>
-<script src="{{ url_for('static', filename='js/owner_wise_order.js') }}"></script>
+<script src="{{ url_for('static', filename='js/owner_wise_order.js', v='20260907-1') }}"></script>
 <script src="{{ url_for('static', filename='js/leaf_node_modal.js') }}"></script>
 {% endblock %}

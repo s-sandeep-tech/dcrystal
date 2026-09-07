@@ -209,6 +209,7 @@ class OwnerWiseOrderSummarySnapshot(db.Model):
     customer_order_type = db.Column(
         'customer_order_type', db.Text, primary_key=True, default='', server_default=''
     )
+    is_discount_party = db.Column('is_discount_party', db.Text, primary_key=True, default='', server_default='')
     
     classification_owner = db.Column('Classification Owner', db.Text, primary_key=True)
     collection_owner = db.Column('Collection Owner', db.Text, primary_key=True)

@@ -99,6 +99,8 @@ def owner_wise_order_summary():
         classification = request.args.get('classification', '')
         make = request.args.get('make', '')
         order_type = request.args.get('order_type', '')
+        customer_order_type = request.args.get('customer_order_type', '')
+        is_discount_party = request.args.get('is_discount_party', '')
         order_status_filter = get_order_status_filter()
         from_date = request.args.get('from_date', '')
         to_date = request.args.get('to_date', '')
@@ -141,6 +143,10 @@ def owner_wise_order_summary():
             query = apply_make_filter(query, make)
             if order_type:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
+            if customer_order_type:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.customer_order_type == customer_order_type)
+            if is_discount_party:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.is_discount_party == is_discount_party)
             if order_ro:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_ro == order_ro)
             if order_request_type:
@@ -196,6 +202,8 @@ def owner_wise_order_summary():
             return apply_owner_visibility_filter(q)
 
         filter_options = {
+            'customer_order_types': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.customer_order_type)).distinct().order_by(OwnerWiseOrderSummarySnapshot.customer_order_type).all() if r[0]],
+            'discount_party_values': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.is_discount_party)).distinct().order_by(OwnerWiseOrderSummarySnapshot.is_discount_party).all() if r[0]],
             'divisions': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.division)).distinct().order_by(OwnerWiseOrderSummarySnapshot.division).all() if r[0]],
             'groups': [r[0] for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.group_name)).distinct().order_by(OwnerWiseOrderSummarySnapshot.group_name).all() if r[0]],
             'purities': [str(r[0]) for r in apply_options_filter(db.session.query(OwnerWiseOrderSummarySnapshot.purity)).distinct().order_by(OwnerWiseOrderSummarySnapshot.purity).all() if r[0]],
@@ -347,6 +355,8 @@ def get_owner_wise_partial():
         classification = request.args.get('classification', '')
         make = request.args.get('make', '')
         order_type = request.args.get('order_type', '')
+        customer_order_type = request.args.get('customer_order_type', '')
+        is_discount_party = request.args.get('is_discount_party', '')
         order_status_filter = get_order_status_filter()
         from_date = request.args.get('from_date', '')
         to_date = request.args.get('to_date', '')
@@ -394,6 +404,10 @@ def get_owner_wise_partial():
             query = apply_make_filter(query, make)
             if order_type:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
+            if customer_order_type:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.customer_order_type == customer_order_type)
+            if is_discount_party:
+                query = query.filter(OwnerWiseOrderSummarySnapshot.is_discount_party == is_discount_party)
             if order_ro:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.order_ro == order_ro)
             if order_request_type:
@@ -570,6 +584,8 @@ def get_leaf_detail():
         classification = request.args.get('classification', '')
         make = request.args.get('make', '')
         order_type = request.args.get('order_type', '')
+        customer_order_type = request.args.get('customer_order_type', '')
+        is_discount_party = request.args.get('is_discount_party', '')
         order_status_filter = get_order_status_filter()
         from_date = request.args.get('from_date', '')
         to_date = request.args.get('to_date', '')
@@ -610,6 +626,10 @@ def get_leaf_detail():
         query = apply_make_filter(query, make)
         if order_type:
             query = query.filter(OwnerWiseOrderSummarySnapshot.order_type == order_type)
+        if customer_order_type:
+            query = query.filter(OwnerWiseOrderSummarySnapshot.customer_order_type == customer_order_type)
+        if is_discount_party:
+            query = query.filter(OwnerWiseOrderSummarySnapshot.is_discount_party == is_discount_party)
         if order_ro:
             query = query.filter(OwnerWiseOrderSummarySnapshot.order_ro == order_ro)
         if order_request_type:
