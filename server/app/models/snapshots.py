@@ -833,6 +833,16 @@ class ProvisionStockRawSnapshot(db.Model):
             'idx_provision_stock_popup_path',
             'section', 'type', 'wide_range', 'range_weight',
         ),
+        db.Index('idx_provision_stock_location', 'location'),
+        db.Index('idx_provision_stock_branch_id', 'branch_id'),
+        db.Index(
+            'idx_provision_stock_business_head_emp_code',
+            'business_head_emp_code',
+        ),
+        db.Index('idx_provision_stock_collection', 'collection'),
+        db.Index('idx_provision_stock_make', 'make'),
+        db.Index('idx_provision_stock_section', 'section'),
+        db.Index('idx_provision_stock_state', 'state'),
     )
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
@@ -2907,6 +2917,8 @@ class PendingOrderDetailsSnapshot(db.Model):
     branch_type = db.Column('branch_type', db.Text)
     branch_provision_type = db.Column('branch_provision_type', db.Text)
     qc_ro = db.Column('qc_ro', db.Text)
+    customer_order_type = db.Column('customer_order_type', db.Text)
+    is_discount_party = db.Column('is_discount_party', db.Text)
 
     accept_pending_pcs = db.Column('accept_pending_pcs', db.Numeric(18, 3))
     accept_pending_wt = db.Column('accept_pending_wt', db.Numeric(18, 3))

@@ -91,6 +91,8 @@ def pending_order_details():
         classification = request.args.get('classification', '')
         make = request.args.get('make', '')
         order_type = request.args.get('order_type', '')
+        customer_order_type = request.args.get('customer_order_type', '')
+        is_discount_party = request.args.get('is_discount_party', '')
         order_ro = request.args.get('order_ro', '')
         order_request_type = request.args.get('order_request_type', '')
         provision_type = request.args.get('provision_type', '')
@@ -129,6 +131,10 @@ def pending_order_details():
             query = apply_make_filter(query, make)
             if order_type:
                 query = query.filter(PendingOrderDetailsSnapshot.order_type == order_type)
+            if customer_order_type:
+                query = query.filter(PendingOrderDetailsSnapshot.customer_order_type == customer_order_type)
+            if is_discount_party:
+                query = query.filter(PendingOrderDetailsSnapshot.is_discount_party == is_discount_party)
             if order_ro:
                 query = query.filter(PendingOrderDetailsSnapshot.order_ro == order_ro)
             if order_request_type:
@@ -181,6 +187,8 @@ def pending_order_details():
             'classifications': [r[0] for r in apply_options_filter(db.session.query(PendingOrderDetailsSnapshot.classification)).distinct().order_by(PendingOrderDetailsSnapshot.classification).all() if r[0]],
             'makes': [r[0] for r in apply_options_filter(db.session.query(PendingOrderDetailsSnapshot.make)).distinct().order_by(PendingOrderDetailsSnapshot.make).all() if r[0]],
             'order_types': [r[0] for r in apply_options_filter(db.session.query(PendingOrderDetailsSnapshot.order_type)).distinct().order_by(PendingOrderDetailsSnapshot.order_type).all() if r[0]],
+            'customer_order_types': [r[0] for r in apply_options_filter(db.session.query(PendingOrderDetailsSnapshot.customer_order_type)).distinct().order_by(PendingOrderDetailsSnapshot.customer_order_type).all() if r[0]],
+            'is_discount_parties': [r[0] for r in apply_options_filter(db.session.query(PendingOrderDetailsSnapshot.is_discount_party)).distinct().order_by(PendingOrderDetailsSnapshot.is_discount_party).all() if r[0]],
             'order_request_types': [r[0] for r in apply_options_filter(db.session.query(PendingOrderDetailsSnapshot.order_request_type)).distinct().order_by(PendingOrderDetailsSnapshot.order_request_type).all() if r[0]],
             'provision_types': [r[0] for r in apply_options_filter(db.session.query(PendingOrderDetailsSnapshot.provision_type)).distinct().order_by(PendingOrderDetailsSnapshot.provision_type).all() if r[0]],
             'branch_provision_types': [r[0] for r in apply_options_filter(db.session.query(PendingOrderDetailsSnapshot.branch_provision_type)).distinct().order_by(PendingOrderDetailsSnapshot.branch_provision_type).all() if r[0]],
@@ -326,6 +334,8 @@ def get_pending_order_details_partial():
         classification = request.args.get('classification', '')
         make = request.args.get('make', '')
         order_type = request.args.get('order_type', '')
+        customer_order_type = request.args.get('customer_order_type', '')
+        is_discount_party = request.args.get('is_discount_party', '')
         order_ro = request.args.get('order_ro', '')
         order_request_type = request.args.get('order_request_type', '')
         provision_type = request.args.get('provision_type', '')
@@ -380,6 +390,10 @@ def get_pending_order_details_partial():
             query = apply_make_filter(query, make)
             if order_type:
                 query = query.filter(PendingOrderDetailsSnapshot.order_type == order_type)
+            if customer_order_type:
+                query = query.filter(PendingOrderDetailsSnapshot.customer_order_type == customer_order_type)
+            if is_discount_party:
+                query = query.filter(PendingOrderDetailsSnapshot.is_discount_party == is_discount_party)
             if order_ro:
                 query = query.filter(PendingOrderDetailsSnapshot.order_ro == order_ro)
             if order_request_type:
@@ -509,6 +523,8 @@ def get_pending_order_details_leaf_detail():
         classification = request.args.get('classification', '')
         make = request.args.get('make', '')
         order_type = request.args.get('order_type', '')
+        customer_order_type = request.args.get('customer_order_type', '')
+        is_discount_party = request.args.get('is_discount_party', '')
         order_ro = request.args.get('order_ro', '')
         order_request_type = request.args.get('order_request_type', '')
         provision_type = request.args.get('provision_type', '')
@@ -547,6 +563,10 @@ def get_pending_order_details_leaf_detail():
         query = apply_make_filter(query, make)
         if order_type:
             query = query.filter(PendingOrderDetailsSnapshot.order_type == order_type)
+        if customer_order_type:
+            query = query.filter(PendingOrderDetailsSnapshot.customer_order_type == customer_order_type)
+        if is_discount_party:
+            query = query.filter(PendingOrderDetailsSnapshot.is_discount_party == is_discount_party)
         if order_ro:
             query = query.filter(PendingOrderDetailsSnapshot.order_ro == order_ro)
         if order_request_type:

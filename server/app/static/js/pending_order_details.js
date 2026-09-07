@@ -53,6 +53,8 @@ function getFilterValues() {
         classification: document.getElementById('filter-classification')?.value || '',
         make: makeMultiSelect ? makeMultiSelect.getValues().join(',') : '',
         order_type: document.getElementById('filter-order-type')?.value || '',
+        customer_order_type: document.getElementById('filter-customer-order-type')?.value || '',
+        is_discount_party: document.getElementById('filter-is-discount-party')?.value || '',
         order_ro: document.getElementById('filter-order-ro')?.value || '',
         qc_ro: document.getElementById('filter-qc-ro')?.value || '',
         order_request_type: document.getElementById('filter-order-request-type')?.value || '',

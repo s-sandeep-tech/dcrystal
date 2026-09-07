@@ -28,6 +28,8 @@
                 <th class="px-3 py-2">Supplier / Detail</th>
                 <th class="px-2 py-2 text-right font-bold text-emerald-600">Total Pend Pcs/Wt</th>
                 <th class="px-2 py-2">Order Type</th>
+                <th class="px-2 py-2">Cust Order Type</th>
+                <th class="px-2 py-2">Discount Party</th>
                 <th class="px-2 py-2">Order RO</th>
                 <th class="px-2 py-2">Make</th>
                 <th class="px-2 py-2">Collection</th>
@@ -56,6 +58,8 @@
                 <td class="px-2 py-2 text-right font-bold text-emerald-600 bg-emerald-50/10">
                     {{ s.total_pcs|int }} / {{ "%.3f"|format(s.total_weight) }}
                 </td>
+                <td class="px-2 py-2 text-gray-400 font-normal">--</td>
+                <td class="px-2 py-2 text-gray-400 font-normal">--</td>
                 <td class="px-2 py-2 text-gray-400 font-normal">--</td>
                 <td class="px-2 py-2 text-gray-400 font-normal">--</td>
                 <td class="px-2 py-2 text-gray-400 font-normal">--</td>
@@ -97,6 +101,8 @@
                     {{ rec.total_pcs|int }} / {{ "%.3f"|format(rec.total_weight) }}
                 </td>
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.order_type or '' }}</td>
+                <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.customer_order_type or '' }}</td>
+                <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.is_discount_party or '' }}</td>
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.order_ro or '' }}</td>
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.make or '' }}</td>
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.collection or '' }}</td>

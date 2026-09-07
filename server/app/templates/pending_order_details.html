@@ -290,6 +290,24 @@
                 </select>
             </div>
             <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Customer Order Type</label>
+                <select id="filter-customer-order-type" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Customer Order Types</option>
+                    {% for cot in filter_options.customer_order_types %}
+                    <option value="{{ cot }}" {% if request.args.get('customer_order_type') == cot %}selected{% endif %}>{{ cot }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Is Discount Party</label>
+                <select id="filter-is-discount-party" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All</option>
+                    {% for idp in filter_options.is_discount_parties %}
+                    <option value="{{ idp }}" {% if request.args.get('is_discount_party') == idp %}selected{% endif %}>{{ idp }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="space-y-1">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order RO</label>
                 <select id="filter-order-ro" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All ROs</option>
