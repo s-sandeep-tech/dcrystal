@@ -329,7 +329,7 @@ FROM delivery_report_last_6_months;
     """
 
 
-@dashboard_bp.route('/order_fulfillment_value_aging_matrix')
+@dashboard_bp.route('/order_fulfillment_value_aging_matrix_v2')
 def order_fulfillment_value_aging_matrix():
     try:
         unread_count = Notification.query.filter_by(is_read=False).count()

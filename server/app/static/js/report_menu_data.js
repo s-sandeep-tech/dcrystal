@@ -32,7 +32,7 @@ window.REPORT_MENU_DATA = [
             {
                 id: "order-fulfillment-value-aging",
                 title: "Order Fulfillment Value Aging Matrix",
-                href: "/order_fulfillment_value_aging_matrix",
+                href: "/order_fulfillment_value_aging_matrix_v2",
                 icon: "table_chart",
                 description: "Compare order value buckets against delivery value buckets.",
                 tags: ["fulfillment", "aging", "matrix"]
