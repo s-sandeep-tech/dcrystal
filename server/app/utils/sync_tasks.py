@@ -74,7 +74,7 @@ import traceback
 
 logger = logging.getLogger(__name__)
 
-def emit_sync_update(status, message, progress=0, data_type=None):
+def emit_sync_update(status, message, progress=0, data_type=None, metadata=None):
     """Utility to emit real-time updates via SocketIO and Redis bridge."""
     payload = {
         'status': status,
@@ -82,6 +82,8 @@ def emit_sync_update(status, message, progress=0, data_type=None):
         'progress': progress,
         'type': data_type
     }
+    if metadata:
+        payload.update(metadata)
     # 1. Emit via Flask-SocketIO (for consistency)
     socketio.emit('sync_update', payload)
     
@@ -2144,12 +2146,18 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
         # Using a small epsilon for float/decimal comparison if necessary, but here we expect exact match or identifiable loss
         sum_matched = (abs(float(local_sum_wt) - float(source_sum_wt)) < 0.001)
 
+        snapshot_date = db.session.query(db.func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
+        sync_metadata = {
+            'snapshot_version': snapshot_date.isoformat() if snapshot_date else None,
+            'sync_time': snapshot_date.strftime('%d, %I:%M %p') if snapshot_date else '',
+            'validation_passed': count_matched and sum_matched,
+        }
         if count_matched and sum_matched:
-            emit_sync_update('success', f'Sync completed & validated! {total_records:,} records updated.', 100, DATA_TYPE)
+            emit_sync_update('success', f'Sync completed & validated! {total_records:,} records updated.', 100, DATA_TYPE, metadata=sync_metadata)
         else:
             warn_msg = f"Sync finished with DISCREPANCY! Source: {total_to_sync} rows / {source_sum_wt} wt. Local: {local_count} rows / {local_sum_wt} wt."
             logger.warning(warn_msg)
-            emit_sync_update('success', f'Sync finished with validation warnings. Please check logs.', 100, DATA_TYPE)
+            emit_sync_update('success', f'Sync finished with validation warnings. Please check logs.', 100, DATA_TYPE, metadata=sync_metadata)
 
         return {"status": "success", "count": total_records, "validation": {"match": count_matched and sum_matched}}
 

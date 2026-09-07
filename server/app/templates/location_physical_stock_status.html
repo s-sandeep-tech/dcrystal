@@ -7,6 +7,15 @@
 {% endblock %}
 
 {% block content %}
+<dialog id="stock-refresh-dialog" data-snapshot-version="{{ snapshot_version }}" aria-labelledby="stock-refresh-title" aria-describedby="stock-refresh-message" class="rounded-xl p-6 shadow-xl w-full max-w-md bg-white text-gray-800 dark:bg-gray-800 dark:text-white backdrop:bg-black/50">
+    <h3 id="stock-refresh-title" class="text-lg font-bold">Updated stock data is available</h3>
+    <p id="stock-refresh-message" class="mt-3 text-sm">The background sync has completed. Would you like to refresh this report to view the latest stock data? Your current filters will be kept.</p>
+    <p id="stock-refresh-error" class="mt-3 text-sm text-red-600" role="alert" hidden></p>
+    <div class="mt-5 flex justify-end gap-3">
+        <button id="stock-refresh-no" type="button" class="rounded border px-4 py-2 text-sm">No, keep current</button>
+        <button id="stock-refresh-yes" type="button" class="rounded bg-blue-600 px-4 py-2 text-sm text-white">Yes, refresh</button>
+    </div>
+</dialog>
 <main id="location-physical-stock-status-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
     <!-- Header -->
     <div class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
@@ -331,5 +340,5 @@
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script src="{{ url_for('static', filename='js/header_filter.js') }}"></script>
-<script src="{{ url_for('static', filename='js/location_physical_stock_status.js', v='20260724-5') }}"></script>
+<script src="{{ url_for('static', filename='js/location_physical_stock_status.js', v='20260907-1') }}"></script>
 {% endblock %}

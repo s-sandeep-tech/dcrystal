@@ -26,6 +26,71 @@ let sectionHeaderFilter;
 let purityHeaderFilter;
 let collectionMultiSelect;
 let collectionHeaderFilter;
+let reportRequestId = 0;
+
+function setupStockRefreshPrompt() {
+    const dialog = document.getElementById('stock-refresh-dialog');
+    const yes = document.getElementById('stock-refresh-yes');
+    const no = document.getElementById('stock-refresh-no');
+    const error = document.getElementById('stock-refresh-error');
+    let lastVersion = dialog.dataset.snapshotVersion;
+    let pending = null;
+    let refreshing = false;
+
+    function showPending() {
+        if (!pending || refreshing) return;
+        document.getElementById('stock-refresh-message').textContent = pending.validation_passed === false
+            ? 'The background sync has completed with validation warnings. Updated stock data is available, but some totals may need verification. Would you like to refresh this report? Your current filters will be kept.'
+            : 'The background sync has completed. Would you like to refresh this report to view the latest stock data? Your current filters will be kept.';
+        error.hidden = true;
+        if (!dialog.open) dialog.showModal();
+    }
+
+    function dismiss() {
+        if (refreshing) return;
+        pending = null;
+        dialog.close();
+    }
+    no.addEventListener('click', dismiss);
+    dialog.addEventListener('cancel', event => { event.preventDefault(); dismiss(); });
+    yes.addEventListener('click', async () => {
+        if (refreshing || !pending) return;
+        const update = pending;
+        refreshing = true;
+        yes.disabled = no.disabled = true;
+        yes.textContent = 'Refreshing…';
+        error.hidden = true;
+        clearTimeout(window.searchTimeout);
+        try {
+            await loadOptions(true);
+            if (!await loadReport(true)) throw new Error('The report changed while refreshing. Please try again.');
+            ['drillDownModal', 'inShopDetailsModal', 'provisionDetailsModal', 'stockComparisonModal'].forEach(id => {
+                document.getElementById(id)?.classList.add('hidden');
+            });
+            document.getElementById('sync-time-info').textContent = update.sync_time;
+            document.getElementById('modal-last-refresh').textContent = `LATEST SYNC: ${update.sync_time}`;
+            if (pending === update) pending = null;
+            dialog.close();
+        } catch (err) {
+            error.textContent = 'Unable to refresh the report. Please try again, or keep the current view.';
+            error.hidden = false;
+        } finally {
+            refreshing = false;
+            yes.disabled = no.disabled = false;
+            yes.textContent = 'Yes, refresh';
+            if (!dialog.open) showPending();
+        }
+    });
+
+    // The shared socket reconnects automatically; register this handler only once.
+    if (window.socket) window.socket.on('sync_update', data => {
+        if (data.type !== 'provision_stock_status' || data.status !== 'success' || !data.snapshot_version) return;
+        if (lastVersion && data.snapshot_version <= lastVersion) return;
+        lastVersion = data.snapshot_version;
+        pending = data;
+        showPending();
+    });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     locationMultiSelect = new CustomMultiSelect({
@@ -169,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    setupStockRefreshPrompt();
     loadOptions();
     loadReport();
 
@@ -182,11 +248,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-async function loadOptions() {
+async function loadOptions(throwOnError = false) {
     try {
         const response = await fetch('/api/location-physical-stock-status/options', {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
         });
+        if (!response.ok) throw new Error('Failed to load filter options');
         const data = await response.json();
 
         const config = [
@@ -197,11 +264,20 @@ async function loadOptions() {
             { id: 'filter-business-head', data: data.business_heads }
         ];
 
-        if (locationMultiSelect) locationMultiSelect.populateOptions(data.locations);
-        if (branchStatusMultiSelect) branchStatusMultiSelect.populateOptions(data.branch_statuses);
-        if (branchTypeMultiSelect) branchTypeMultiSelect.populateOptions(data.branch_types);
-        if (stateMultiSelect) stateMultiSelect.populateOptions(data.states);
-        if (sectionMultiSelect) sectionMultiSelect.populateOptions(data.sections);
+        function populatePreservingSelection(control, options) {
+            if (!control) return;
+            const selected = control.getValues();
+            control.populateOptions([...new Set([...(options || []), ...selected])]);
+            document.querySelectorAll(`.${control.containerId}-checkbox`).forEach(checkbox => {
+                checkbox.checked = selected.includes(checkbox.value);
+            });
+            control.updateTriggerText();
+        }
+        populatePreservingSelection(locationMultiSelect, data.locations);
+        populatePreservingSelection(branchStatusMultiSelect, data.branch_statuses);
+        populatePreservingSelection(branchTypeMultiSelect, data.branch_types);
+        populatePreservingSelection(stateMultiSelect, data.states);
+        populatePreservingSelection(sectionMultiSelect, data.sections);
         // makeMultiSelect is now dynamic
         if (makeHeaderFilter) makeHeaderFilter.setOptions([]); 
         if (sectionHeaderFilter) sectionHeaderFilter.setOptions(data.sections);
@@ -212,20 +288,28 @@ async function loadOptions() {
         config.forEach(item => {
             const select = document.getElementById(item.id);
             if (select && item.data) {
-                item.data.forEach(opt => {
+                const selected = select.value;
+                const placeholder = select.options[0]?.cloneNode(true);
+                select.replaceChildren();
+                if (placeholder) select.appendChild(placeholder);
+                const options = [...new Set([...item.data, ...(selected ? [selected] : [])])];
+                options.forEach(opt => {
                     const el = document.createElement('option');
                     el.value = opt;
                     el.textContent = opt;
                     select.appendChild(el);
                 });
+                select.value = selected;
             }
         });
     } catch (err) {
         console.error('Failed to load filter options:', err);
+        if (throwOnError) throw err;
     }
 }
 
-async function loadReport() {
+async function loadReport(throwOnError = false) {
+    const requestId = ++reportRequestId;
     const tableArea = document.getElementById('view-location-physical-stock-status');
     const mainContainer = document.getElementById('table-area');
     const progressBar = document.getElementById('report-progress');
@@ -251,7 +335,9 @@ async function loadReport() {
         const response = await fetch(`/partial/location-physical-stock-status?${params}`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
         });
+        if (!response.ok) throw new Error('Failed to load report');
         const html = await response.text();
+        if (requestId !== reportRequestId) return false;
         tableArea.innerHTML = html;
 
         // Re-execute scripts in the partial
@@ -277,12 +363,17 @@ async function loadReport() {
             const icon = document.querySelector('.header-filter-container[data-id="collection"]');
             if (icon) icon.classList.add('filtered');
         }
+        return true;
     } catch (err) {
         console.error('Failed to load report:', err);
+        if (throwOnError) throw err;
+        if (requestId !== reportRequestId) return false;
         tableArea.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Failed to load data: ${err.message}</div>`;
     } finally {
-        mainContainer.classList.remove('opacity-50', 'pointer-events-none');
-        if (progressBar) progressBar.classList.add('hidden');
+        if (requestId === reportRequestId) {
+            mainContainer.classList.remove('opacity-50', 'pointer-events-none');
+            if (progressBar) progressBar.classList.add('hidden');
+        }
     }
 }
 

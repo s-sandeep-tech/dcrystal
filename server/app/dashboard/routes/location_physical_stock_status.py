@@ -52,7 +52,8 @@ def location_physical_stock_status():
         else:
             sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d, %I:%M %p")
             
-        return render_template('location_physical_stock_status.html', sync_time=sync_time, is_today=is_today)
+        return render_template('location_physical_stock_status.html', sync_time=sync_time, is_today=is_today,
+                               snapshot_version=snapshot_date.isoformat() if snapshot_date else '')
     except Exception as e:
         logger.error(f"Error in location_physical_stock_status: {str(e)}")
         return f"Error: {str(e)}", 500
@@ -81,7 +82,7 @@ def location_physical_stock_status_options():
 
         # Check cache first
         snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
-        date_str = snapshot_date.strftime("%Y%m%d%H%M%S") if snapshot_date else "latest"
+        date_str = snapshot_date.isoformat() if snapshot_date else "latest"
         
         # Role-aware cache key
         cache_suffix = "all"
@@ -290,7 +291,8 @@ def get_location_physical_stock_status_partial():
 
         # Redis Caching Logic
         snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
-        cache_key = generate_cache_key("loc_phys_stock_status_partial", snapshot_date, **params)
+        cache_key = generate_cache_key("loc_phys_stock_status_partial", snapshot_date,
+                                       snapshot_version=snapshot_date.isoformat() if snapshot_date else 'empty', **params)
         
         cached_html = redis_client.get(cache_key)
         if cached_html:
