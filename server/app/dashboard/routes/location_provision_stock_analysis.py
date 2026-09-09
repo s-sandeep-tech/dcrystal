@@ -19,7 +19,7 @@ FRANCHISE_INDIA_BRANCH_TYPE = 'FRANCHISE_SHOP'
 
 
 def is_franchise_india_head(roles):
-    return FRANCHISE_INDIA_HEAD_ROLE in roles
+    return FRANCHISE_INDIA_HEAD_ROLE in roles and 'SUPER_ADMIN' not in roles
 
 
 def apply_franchise_india_branch_param(params, roles):
@@ -260,7 +260,7 @@ def get_location_provision_stock_analysis_partial():
         # Redis Caching Logic
         snapshot_date = LocationProvisionStockAnalysisData.latest_snapshot_date()
         cache_key = generate_cache_key(
-            "location_provision_stock_analysis_partial_v8",
+            "location_provision_stock_analysis_partial_v9",
             snapshot_date,
             **params,
         )

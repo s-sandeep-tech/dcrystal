@@ -102,9 +102,9 @@ location_summary AS (
         SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
         SUM(in_transit_wt) AS in_transit_wt,
         SUM(COALESCE(short_pcs, 0)) AS short_pcs,
-        SUM(COALESCE(excess_pcs, 0)) AS excess_pcs,
+        SUM(COALESCE(excess_pcs, 0) + COALESCE(not_in_prov_pcs, 0)) AS excess_pcs,
         SUM(COALESCE(short_gr_wt, 0)) AS short_wt,
-        SUM(COALESCE(excess_gr_weight, 0)) AS excess_wt,
+        SUM(COALESCE(excess_gr_weight, 0) + COALESCE(not_in_prov_gr_weight, 0)) AS excess_wt,
         ROUND(
             CASE WHEN SUM(COALESCE(prov_gr_wt, 0)) = 0 THEN 0 ELSE SUM(COALESCE(short_percent, 0) * COALESCE(prov_gr_wt, 0)) / SUM(COALESCE(prov_gr_wt, 0)) END, 2
         ) AS short_percent,
@@ -131,9 +131,9 @@ purity_wise AS (
         SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
         SUM(in_transit_wt) AS in_transit_wt,
         SUM(COALESCE(short_pcs, 0)) AS short_pcs,
-        SUM(COALESCE(excess_pcs, 0)) AS excess_pcs,
+        SUM(COALESCE(excess_pcs, 0) + COALESCE(not_in_prov_pcs, 0)) AS excess_pcs,
         SUM(COALESCE(short_gr_wt, 0)) AS short_wt,
-        SUM(COALESCE(excess_gr_weight, 0)) AS excess_wt,
+        SUM(COALESCE(excess_gr_weight, 0) + COALESCE(not_in_prov_gr_weight, 0)) AS excess_wt,
         ROUND(
             CASE WHEN SUM(COALESCE(prov_gr_wt, 0)) = 0 THEN 0 ELSE SUM(COALESCE(short_percent, 0) * COALESCE(prov_gr_wt, 0)) / SUM(COALESCE(prov_gr_wt, 0)) END, 2
         ) AS short_percent,
@@ -181,9 +181,9 @@ classification_wise AS (
             SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
             SUM(in_transit_wt) AS in_transit_wt,
             SUM(COALESCE(short_pcs, 0)) AS short_pcs,
-            SUM(COALESCE(excess_pcs, 0)) AS excess_pcs,
+            SUM(COALESCE(excess_pcs, 0) + COALESCE(not_in_prov_pcs, 0)) AS excess_pcs,
             SUM(COALESCE(short_gr_wt, 0)) AS short_wt,
-            SUM(COALESCE(excess_gr_weight, 0)) AS excess_wt,
+            SUM(COALESCE(excess_gr_weight, 0) + COALESCE(not_in_prov_gr_weight, 0)) AS excess_wt,
             ROUND(
                 CASE WHEN SUM(COALESCE(prov_gr_wt, 0)) = 0 THEN 0 ELSE SUM(COALESCE(short_percent, 0) * COALESCE(prov_gr_wt, 0)) / SUM(COALESCE(prov_gr_wt, 0)) END, 2
             ) AS short_percent,
@@ -205,9 +205,9 @@ classification_wise AS (
             SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
             SUM(in_transit_wt) AS in_transit_wt,
             SUM(COALESCE(short_pcs, 0)) AS short_pcs,
-            SUM(COALESCE(excess_pcs, 0)) AS excess_pcs,
+            SUM(COALESCE(excess_pcs, 0) + COALESCE(not_in_prov_pcs, 0)) AS excess_pcs,
             SUM(COALESCE(short_gr_wt, 0)) AS short_wt,
-            SUM(COALESCE(excess_gr_weight, 0)) AS excess_wt,
+            SUM(COALESCE(excess_gr_weight, 0) + COALESCE(not_in_prov_gr_weight, 0)) AS excess_wt,
             ROUND(
                 CASE WHEN SUM(COALESCE(prov_gr_wt, 0)) = 0 THEN 0 ELSE SUM(COALESCE(short_percent, 0) * COALESCE(prov_gr_wt, 0)) / SUM(COALESCE(prov_gr_wt, 0)) END, 2
             ) AS short_percent,
@@ -255,9 +255,9 @@ collection_wise AS (
             SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
             SUM(in_transit_wt) AS in_transit_wt,
             SUM(COALESCE(short_pcs, 0)) AS short_pcs,
-            SUM(COALESCE(excess_pcs, 0)) AS excess_pcs,
+            SUM(COALESCE(excess_pcs, 0) + COALESCE(not_in_prov_pcs, 0)) AS excess_pcs,
             SUM(COALESCE(short_gr_wt, 0)) AS short_wt,
-            SUM(COALESCE(excess_gr_weight, 0)) AS excess_wt,
+            SUM(COALESCE(excess_gr_weight, 0) + COALESCE(not_in_prov_gr_weight, 0)) AS excess_wt,
             ROUND(
                 CASE WHEN SUM(COALESCE(prov_gr_wt, 0)) = 0 THEN 0 ELSE SUM(COALESCE(short_percent, 0) * COALESCE(prov_gr_wt, 0)) / SUM(COALESCE(prov_gr_wt, 0)) END, 2
             ) AS short_percent,
@@ -279,9 +279,9 @@ collection_wise AS (
             SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
             SUM(in_transit_wt) AS in_transit_wt,
             SUM(COALESCE(short_pcs, 0)) AS short_pcs,
-            SUM(COALESCE(excess_pcs, 0)) AS excess_pcs,
+            SUM(COALESCE(excess_pcs, 0) + COALESCE(not_in_prov_pcs, 0)) AS excess_pcs,
             SUM(COALESCE(short_gr_wt, 0)) AS short_wt,
-            SUM(COALESCE(excess_gr_weight, 0)) AS excess_wt,
+            SUM(COALESCE(excess_gr_weight, 0) + COALESCE(not_in_prov_gr_weight, 0)) AS excess_wt,
             ROUND(
                 CASE WHEN SUM(COALESCE(prov_gr_wt, 0)) = 0 THEN 0 ELSE SUM(COALESCE(short_percent, 0) * COALESCE(prov_gr_wt, 0)) / SUM(COALESCE(prov_gr_wt, 0)) END, 2
             ) AS short_percent,
@@ -329,9 +329,9 @@ section_details_wise AS (
             SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
             SUM(in_transit_wt) AS in_transit_wt,
             SUM(COALESCE(short_pcs, 0)) AS short_pcs,
-            SUM(COALESCE(excess_pcs, 0)) AS excess_pcs,
+            SUM(COALESCE(excess_pcs, 0) + COALESCE(not_in_prov_pcs, 0)) AS excess_pcs,
             SUM(COALESCE(short_gr_wt, 0)) AS short_wt,
-            SUM(COALESCE(excess_gr_weight, 0)) AS excess_wt,
+            SUM(COALESCE(excess_gr_weight, 0) + COALESCE(not_in_prov_gr_weight, 0)) AS excess_wt,
             ROUND(
                 CASE WHEN SUM(COALESCE(prov_gr_wt, 0)) = 0 THEN 0 ELSE SUM(COALESCE(short_percent, 0) * COALESCE(prov_gr_wt, 0)) / SUM(COALESCE(prov_gr_wt, 0)) END, 2
             ) AS short_percent,
@@ -353,9 +353,9 @@ section_details_wise AS (
             SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
             SUM(in_transit_wt) AS in_transit_wt,
             SUM(COALESCE(short_pcs, 0)) AS short_pcs,
-            SUM(COALESCE(excess_pcs, 0)) AS excess_pcs,
+            SUM(COALESCE(excess_pcs, 0) + COALESCE(not_in_prov_pcs, 0)) AS excess_pcs,
             SUM(COALESCE(short_gr_wt, 0)) AS short_wt,
-            SUM(COALESCE(excess_gr_weight, 0)) AS excess_wt,
+            SUM(COALESCE(excess_gr_weight, 0) + COALESCE(not_in_prov_gr_weight, 0)) AS excess_wt,
             ROUND(
                 CASE WHEN SUM(COALESCE(prov_gr_wt, 0)) = 0 THEN 0 ELSE SUM(COALESCE(short_percent, 0) * COALESCE(prov_gr_wt, 0)) / SUM(COALESCE(prov_gr_wt, 0)) END, 2
             ) AS short_percent,
@@ -382,9 +382,9 @@ make_wise AS (
         SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
         SUM(in_transit_wt) AS in_transit_wt,
         SUM(COALESCE(short_pcs, 0)) AS short_pcs,
-        SUM(COALESCE(excess_pcs, 0)) AS excess_pcs,
+        SUM(COALESCE(excess_pcs, 0) + COALESCE(not_in_prov_pcs, 0)) AS excess_pcs,
         SUM(COALESCE(short_gr_wt, 0)) AS short_wt,
-        SUM(COALESCE(excess_gr_weight, 0)) AS excess_wt,
+        SUM(COALESCE(excess_gr_weight, 0) + COALESCE(not_in_prov_gr_weight, 0)) AS excess_wt,
         ROUND(
             CASE WHEN SUM(COALESCE(prov_gr_wt, 0)) = 0 THEN 0 ELSE SUM(COALESCE(short_percent, 0) * COALESCE(prov_gr_wt, 0)) / SUM(COALESCE(prov_gr_wt, 0)) END, 2
         ) AS short_percent,
@@ -411,9 +411,9 @@ prov_type_wise AS (
         SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
         SUM(in_transit_wt) AS in_transit_wt,
         SUM(COALESCE(short_pcs, 0)) AS short_pcs,
-        SUM(COALESCE(excess_pcs, 0)) AS excess_pcs,
+        SUM(COALESCE(excess_pcs, 0) + COALESCE(not_in_prov_pcs, 0)) AS excess_pcs,
         SUM(COALESCE(short_gr_wt, 0)) AS short_wt,
-        SUM(COALESCE(excess_gr_weight, 0)) AS excess_wt,
+        SUM(COALESCE(excess_gr_weight, 0) + COALESCE(not_in_prov_gr_weight, 0)) AS excess_wt,
         ROUND(
             CASE WHEN SUM(COALESCE(prov_gr_wt, 0)) = 0 THEN 0 ELSE SUM(COALESCE(short_percent, 0) * COALESCE(prov_gr_wt, 0)) / SUM(COALESCE(prov_gr_wt, 0)) END, 2
         ) AS short_percent,
@@ -440,9 +440,9 @@ section_wise AS (
         SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
         SUM(in_transit_wt) AS in_transit_wt,
         SUM(COALESCE(short_pcs, 0)) AS short_pcs,
-        SUM(COALESCE(excess_pcs, 0)) AS excess_pcs,
+        SUM(COALESCE(excess_pcs, 0) + COALESCE(not_in_prov_pcs, 0)) AS excess_pcs,
         SUM(COALESCE(short_gr_wt, 0)) AS short_wt,
-        SUM(COALESCE(excess_gr_weight, 0)) AS excess_wt,
+        SUM(COALESCE(excess_gr_weight, 0) + COALESCE(not_in_prov_gr_weight, 0)) AS excess_wt,
         ROUND(
             CASE WHEN SUM(COALESCE(prov_gr_wt, 0)) = 0 THEN 0 ELSE SUM(COALESCE(short_percent, 0) * COALESCE(prov_gr_wt, 0)) / SUM(COALESCE(prov_gr_wt, 0)) END, 2
         ) AS short_percent,
@@ -469,9 +469,9 @@ provision_mode_wise AS (
         SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
         SUM(in_transit_wt) AS in_transit_wt,
         SUM(COALESCE(short_pcs, 0)) AS short_pcs,
-        SUM(COALESCE(excess_pcs, 0)) AS excess_pcs,
+        SUM(COALESCE(excess_pcs, 0) + COALESCE(not_in_prov_pcs, 0)) AS excess_pcs,
         SUM(COALESCE(short_gr_wt, 0)) AS short_wt,
-        SUM(COALESCE(excess_gr_weight, 0)) AS excess_wt,
+        SUM(COALESCE(excess_gr_weight, 0) + COALESCE(not_in_prov_gr_weight, 0)) AS excess_wt,
         ROUND(
             CASE WHEN SUM(COALESCE(prov_gr_wt, 0)) = 0 THEN 0 ELSE SUM(COALESCE(short_percent, 0) * COALESCE(prov_gr_wt, 0)) / SUM(COALESCE(prov_gr_wt, 0)) END, 2
         ) AS short_percent,
@@ -666,6 +666,7 @@ base AS (
         req_only,
         short_gr_wt,
         excess_gr_weight,
+        not_in_prov_gr_weight,
         short_percent
     FROM filtered
 )
@@ -695,8 +696,8 @@ SELECT
     SUM(COALESCE(in_transit_wt, 0)) AS in_transit_wt,
     SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
     SUM(COALESCE(short_gr_wt, 0)) AS short_wt,
-    SUM(COALESCE(excess_gr_weight, 0)) AS excess_wt,
-    SUM(COALESCE(excess_gr_weight, 0) - COALESCE(short_gr_wt, 0)) AS net_short_excess,
+    SUM(COALESCE(excess_gr_weight, 0) + COALESCE(not_in_prov_gr_weight, 0)) AS excess_wt,
+    SUM(COALESCE(excess_gr_weight, 0) + COALESCE(not_in_prov_gr_weight, 0) - COALESCE(short_gr_wt, 0)) AS net_short_excess,
     SUM(COALESCE(short_percent, 0) * COALESCE(prov_gr_wt, 0)) AS short_percent_weight,
     ROUND(
         CASE

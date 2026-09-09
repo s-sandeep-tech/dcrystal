@@ -539,7 +539,7 @@ async function openLocationDetailsModal(locationName, event) {
     container.style.maxWidth = '96vw';
     if (title) title.textContent = `${locationName} - Location Details`;
     if (subtitle) subtitle.textContent = 'Product Hierarchy and Stock Position';
-    if (footerNote) footerNote.textContent = 'Short and excess use direct snapshot weights; net is excess minus short.';
+    if (footerNote) footerNote.textContent = 'Excess includes stock outside provision; net is excess minus short.';
     if (loadingLabel) loadingLabel.textContent = 'Fetching Location Details...';
 
     modal.classList.remove('hidden');
