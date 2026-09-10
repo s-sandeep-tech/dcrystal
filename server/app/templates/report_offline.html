@@ -17,11 +17,13 @@
 
         <div class="mt-6 flex flex-col gap-3 sm:flex-row">
             <a href="{{ url_for('dashboard.index') }}"
-                class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                class="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                <span class="material-symbols-outlined text-[17px]" aria-hidden="true">arrow_back</span>
                 Back to dashboard
             </a>
             <button type="button" onclick="window.location.reload()"
-                class="inline-flex items-center justify-center rounded-md border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                class="inline-flex items-center justify-center gap-2 rounded-md border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                <span class="material-symbols-outlined text-[17px]" aria-hidden="true">refresh</span>
                 Check again
             </button>
         </div>
