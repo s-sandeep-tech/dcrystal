@@ -1,5 +1,6 @@
 from flask import render_template, session, redirect, url_for, request, current_app
 from app.dashboard import dashboard_bp
+from app.utils.decorators import require_role
 from app.models import (
     Order,
     DashboardStats,
@@ -45,6 +46,8 @@ def my_account():
 
 @dashboard_bp.route('/settings')
 def settings():
+    if request.args.get('tab') == 'report-status' and 'SUPER_ADMIN' not in session.get('roles', []):
+        return render_template('errors/403.html', permission='SUPER_ADMIN'), 403
     user_id = session.get('user_id')
     if not user_id:
         return redirect(url_for('dashboard.login'))
@@ -760,29 +763,20 @@ def check_report_offline():
     if request.endpoint in excluded_endpoints or request.endpoint is None:
         return
         
-    # Check if user is an admin - administrators are exempt
-    user_roles = session.get('roles', [])
-    if 'ADMIN' in user_roles:
-        return
+    # Offline report pages apply to every role, including SUPER_ADMIN.
         
-    # Check current path/endpoint in Redis for offline status
-    from app.extensions import redis_client
-    
-    # Check if this specific URL is marked offline in Redis
-    # We store offline statuses in Redis as dcrystal:offline_reports: <json_dict>
+    # Use the database as the authority, so failed/stale Redis updates cannot
+    # hide an offline report or keep a report offline after it is enabled.
     current_path = request.path
-    try:
-        offline_reports_json = redis_client.get('dcrystal:offline_reports')
-        if offline_reports_json:
-            offline_reports = json.loads(offline_reports_json)
-            if current_path in offline_reports and offline_reports[current_path]:
-                return redirect(url_for('dashboard.report_offline', next=current_path))
-    except Exception as e:
-        print(f"Error checking offline status: {e}")
+    from app.models.rbac import Menu
+    if Menu.query.filter_by(url=current_path, is_offline=True).first():
+        return redirect(url_for('dashboard.report_offline', next=current_path))
 
 @dashboard_bp.route('/report-offline')
 def report_offline():
-    return render_template('report_offline.html')
+    from app.models.rbac import Menu
+    menu = Menu.query.filter_by(url=request.args.get('next', ''), is_offline=True).first()
+    return render_template('report_offline.html', offline_message=menu.offline_message if menu else '')
 
 @dashboard_bp.route('/force-reset')
 def force_reset():
@@ -794,6 +788,7 @@ def force_reset():
     return render_template('force_reset.html')
 
 @dashboard_bp.route('/settings/report-offline-status')
+@require_role('SUPER_ADMIN')
 def get_report_offline_status():
     from flask import session
     from app.models.rbac import Menu
@@ -804,9 +799,11 @@ def get_report_offline_status():
     menus = Menu.query.filter(Menu.url != None, Menu.url != '#', Menu.url != '').all()
     status_data = {menu.url: menu.is_offline for menu in menus}
     
-    return {"status": "success", "reports": status_data}
+    return {"status": "success", "reports": status_data,
+            "messages": {menu.url: menu.offline_message for menu in menus}}
 
 @dashboard_bp.route('/settings/toggle-report-offline', methods=['POST'])
+@require_role('SUPER_ADMIN')
 def toggle_report_offline():
     from flask import request, session
     from app.models.rbac import Menu
@@ -816,9 +813,15 @@ def toggle_report_offline():
     if 'ADMIN' not in session.get('roles', []):
         return {"status": "error", "message": "Unauthorized"}, 403
         
-    data = request.get_json()
+    data = request.get_json() or {}
     report_url = data.get('url')
     is_offline = data.get('is_offline', False)
+    message = data.get('offline_message', '')
+    if not isinstance(is_offline, bool) or not isinstance(message, str):
+        return {"status": "error", "message": "Invalid status or message"}, 400
+    message = message.strip()
+    if len(message) > 1000 or (is_offline and not message):
+        return {"status": "error", "message": "Enter an offline message (1–1000 characters)."}, 400
     
     if not report_url:
         return {"status": "error", "message": "URL is required"}, 400
@@ -829,6 +832,7 @@ def toggle_report_offline():
         return {"status": "error", "message": "Report not found"}, 404
         
     menu.is_offline = is_offline
+    menu.offline_message = message
     db.session.commit()
     
     # Update Redis cache

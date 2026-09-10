@@ -26,9 +26,7 @@
                 </h1>
 
                 <p class="text-gray-500 dark:text-gray-400 text-[14px] md:text-[15px] font-medium leading-relaxed mb-8">
-                    This specific report is currently undergoing scheduled maintenance or is temporarily disabled by the
-                    administrator.
-                    Standard access is restricted to ensure data integrity during updates.
+                    {{ offline_message or 'This report is temporarily unavailable. Please try again later.' }}
                 </p>
 
                 <!-- Status Badge -->

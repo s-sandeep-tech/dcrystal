@@ -27,6 +27,7 @@ class Menu(db.Model):
     sort_order = db.Column(db.Integer, default=0)
     permission_required = db.Column(db.String(100), db.ForeignKey('permissions.name', ondelete='SET NULL'))
     is_offline = db.Column(db.Boolean, default=False)
+    offline_message = db.Column(db.Text, nullable=False, default='', server_default='')
     
     # Self-referential relationship for hierarchical menus
     children = db.relationship('Menu', backref=db.backref('parent', remote_side=[id]))

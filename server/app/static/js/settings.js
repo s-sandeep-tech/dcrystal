@@ -3107,6 +3107,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const reportSearchInput = document.getElementById('report-search');
     const refreshReportStatusBtn = document.getElementById('refresh-report-status-btn');
 
+    let reportOfflineMessages = {};
+    const reportMessageInputs = new Map();
     async function fetchReportStatus() {
         if (!reportStatusTbody) return;
         
@@ -3128,6 +3130,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (data.status === 'success') {
                 gReportStatuses = data.reports;
+                reportOfflineMessages = data.messages || {};
                 renderReportStatusTable();
             } else {
                 showToast(data.message || 'Failed to fetch status', 'error');
@@ -3140,6 +3143,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderReportStatusTable() {
         if (!reportStatusTbody) return;
+        reportMessageInputs.clear();
         
         const filter = reportSearchInput ? reportSearchInput.value.toLowerCase() : '';
         reportStatusTbody.innerHTML = '';
@@ -3198,14 +3202,37 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </td>
             `;
+            const messageInput = document.createElement('textarea');
+            messageInput.className = 'mt-2 w-full rounded border border-gray-200 dark:border-gray-700 bg-transparent p-2 text-xs';
+            messageInput.placeholder = 'Message users will see while this report is offline';
+            messageInput.setAttribute('aria-label', `Offline message for ${reportName}`);
+            messageInput.maxLength = 1000;
+            messageInput.value = reportOfflineMessages[url] || '';
+            messageInput.addEventListener('input', () => { reportOfflineMessages[url] = messageInput.value; });
+            tr.cells[0].appendChild(messageInput);
+            reportMessageInputs.set(url, messageInput);
+            if (isOffline) {
+                const saveMessage = document.createElement('button');
+                saveMessage.type = 'button';
+                saveMessage.textContent = 'Save message';
+                saveMessage.className = 'mt-2 text-xs text-primary';
+                saveMessage.addEventListener('click', () => window.toggleReportOfflineStatus(url, true));
+                tr.cells[0].appendChild(saveMessage);
+            }
             reportStatusTbody.appendChild(tr);
         });
     }
 
     window.toggleReportOfflineStatus = async function(url, isOffline) {
+        const offlineMessage = (reportMessageInputs.get(url)?.value || '').trim();
+        if (isOffline && !offlineMessage) {
+            showToast('Enter a message to show while the report is offline.', 'error');
+            reportMessageInputs.get(url)?.focus();
+            return;
+        }
         const confirmed = await showConfirmModal(
             `Confirm Status Change`,
-            `Are you sure you want to set "${url}" to ${isOffline ? 'OFFLINE' : 'ONLINE'}? This will affect access for all non-admin users immediately.`
+            `Set "${url}" to ${isOffline ? 'OFFLINE' : 'ONLINE'}? Offline report pages show the saved message to all users, including administrators.`
         );
         if (!confirmed) return;
 
@@ -3216,7 +3243,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${window.jwtToken}`
                 },
-                body: JSON.stringify({ url, is_offline: isOffline })
+                body: JSON.stringify({ url, is_offline: isOffline, offline_message: offlineMessage })
             });
             const data = await res.json();
             if (data.status === 'success') {
