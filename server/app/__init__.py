@@ -58,7 +58,7 @@ def create_app():
         token_version = jwt_payload.get('session_version')
         
         user = User.query.get(user_id)
-        if not user:
+        if not user or not user.is_active:
             return True
             
         # If token doesn't have a version (old token), or version doesn't match, revoke it
@@ -182,6 +182,30 @@ def create_app():
                 # If token is invalid or expired, flag it for removal to prevent redundant attempts
                 g.clear_token_cookie = True
                 app.logger.warning(f"Invalid JWT detected during session restoration: {str(e)}")
+
+    @app.before_request
+    def refresh_effective_session_roles():
+        # Signed sessions must not retain privileges after a role change.
+        if request.endpoint == 'static':
+            return
+        bearer_user = None
+        if request.blueprint in {'dashboard', 'admin_rbac'} and request.headers.get('Authorization'):
+            try:
+                verify_jwt_in_request()
+                bearer_user = db.session.get(User, int(get_jwt_identity()))
+            except Exception:
+                from flask import jsonify
+                return jsonify(msg='Invalid or expired authorization.'), 401
+        if session.get('user_id') or bearer_user:
+            from app.utils.access_policy import effective_roles
+            user = bearer_user or User.query.filter_by(user_id=str(session['user_id'])).first()
+            if not user or not user.is_active:
+                session.clear()
+                return
+            session['roles'] = sorted(effective_roles(user))
+            session['is_admin'] = 'ADMIN' in session['roles']
+            session['user_id'] = user.user_id
+            session['username'] = user.username
 
     @app.before_request
     def enforce_forced_password_reset():

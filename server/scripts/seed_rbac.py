@@ -36,7 +36,7 @@ def seed_rbac():
 
         # 2. Create Roles
         print("Creating roles...")
-        roles_data = ['ADMIN', 'MANAGER_1', 'MANAGER_2', 'MANAGER_3', 'USER']
+        roles_data = ['SUPER_ADMIN', 'ADMIN', 'MANAGER_1', 'MANAGER_2', 'MANAGER_3', 'USER']
         role_objects = {}
         for r in roles_data:
             role = Role.query.filter_by(name=r).first()

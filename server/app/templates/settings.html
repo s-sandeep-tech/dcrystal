@@ -1444,6 +1444,7 @@
     {% block extra_scripts %}
     <script>
         window.SETTINGS_CONFIG = {
+            isSuperAdmin: {{ ('SUPER_ADMIN' in session.get('roles', [])) | tojson }},
             syncDataUrl: "{{ url_for('dashboard.sync_data') }}",
             syncProcessDelayUrl: "{{ url_for('dashboard.sync_process_delay') }}",
             syncOutstandingPOUrl: "{{ url_for('dashboard.sync_outstanding_po') }}",
@@ -1484,5 +1485,5 @@
             notificationsUrl: "{{ url_for('dashboard.get_settings_notifications') }}"
         };
     </script>
-    <script src="{{ url_for('static', filename='js/settings.js', v='20260907-2') }}"></script>
+    <script src="{{ url_for('static', filename='js/settings.js', v='20260909-super-admin') }}"></script>
     {% endblock %}

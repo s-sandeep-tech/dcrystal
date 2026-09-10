@@ -609,6 +609,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button onclick="deleteUser(${u.id})" class="text-gray-400 hover:text-red-500 transition-colors p-1 ml-1" title="Delete User"><span class="material-symbols-outlined text-[16px]">delete</span></button>
                 </td>
             `;
+            if ((u.roles || []).includes('SUPER_ADMIN') && !window.SETTINGS_CONFIG.isSuperAdmin) {
+                tr.querySelectorAll('button').forEach(button => {
+                    button.disabled = true;
+                    button.title = 'Protected SUPER_ADMIN account';
+                    button.classList.add('opacity-30', 'cursor-not-allowed');
+                });
+            }
             tbody.appendChild(tr);
         });
     }
@@ -1110,9 +1117,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button onclick="openRolePermissionModal(${r.id})" class="text-gray-400 hover:text-primary transition-colors p-1" title="Manage Permissions"><span class="material-symbols-outlined text-[16px]">security</span></button>
                     <button onclick="openRoleMenuModal(${r.id})" class="text-gray-400 hover:text-primary transition-colors p-1 ml-1" title="Assign Menus"><span class="material-symbols-outlined text-[16px]">account_tree</span></button>
                     <button onclick="editRole(${r.id})" class="text-gray-400 hover:text-primary transition-colors p-1 ml-1" title="Edit Role"><span class="material-symbols-outlined text-[16px]">edit</span></button>
-                    ${r.name !== 'ADMIN' ? `<button onclick="deleteRole(${r.id})" class="text-gray-400 hover:text-red-500 transition-colors p-1 ml-1" title="Delete"><span class="material-symbols-outlined text-[16px]">delete</span></button>` : ''}
+                    ${!['ADMIN', 'SUPER_ADMIN'].includes(r.name) ? `<button onclick="deleteRole(${r.id})" class="text-gray-400 hover:text-red-500 transition-colors p-1 ml-1" title="Delete"><span class="material-symbols-outlined text-[16px]">delete</span></button>` : ''}
                 </td>
             `;
+            if (r.name === 'SUPER_ADMIN' && !window.SETTINGS_CONFIG.isSuperAdmin) {
+                tr.querySelectorAll('button').forEach(button => {
+                    button.disabled = true;
+                    button.title = 'Protected SUPER_ADMIN role';
+                    button.classList.add('opacity-30', 'cursor-not-allowed');
+                });
+            }
             tbody.appendChild(tr);
         });
     }
@@ -1747,6 +1761,7 @@ document.addEventListener('DOMContentLoaded', () => {
         grid.innerHTML = '';
         gRoles.forEach(r => {
             const permCount = r.permission_count || 0;
+            if (r.name === 'SUPER_ADMIN' && !window.SETTINGS_CONFIG.isSuperAdmin) return;
             grid.innerHTML += `
                 <label class="flex items-start p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg cursor-pointer hover:border-primary hover:shadow-sm transition-all group">
                     <div class="flex items-center h-5">

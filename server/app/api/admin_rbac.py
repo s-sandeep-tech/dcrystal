@@ -9,8 +9,78 @@ from app.utils.rbac_cache import increment_rbac_version, invalidate_user_cache, 
 from datetime import datetime
 from app.api.auth import validate_company_email, validate_password_strength
 from app.services.email_verification_service import issue_verification_token, send_verification_email
+from app.utils.access_policy import is_super_admin
 
 admin_rbac_bp = Blueprint('admin_rbac', __name__)
+
+@admin_rbac_bp.before_request
+def protect_super_admin_management():
+    """Guard every mutation, including password, status and role mapping APIs."""
+    if request.method not in {'POST', 'PUT', 'PATCH', 'DELETE'}:
+        return
+    from flask_jwt_extended import verify_jwt_in_request
+    from app.utils.access_policy import is_super_admin
+    verify_jwt_in_request()
+    # Serialize privileged membership changes, preventing concurrent last-admin removal.
+    super_role = Role.query.filter_by(name='SUPER_ADMIN').with_for_update().first()
+    actor = db.session.get(User, int(get_jwt_identity()))
+    elevated = is_super_admin(actor)
+    data = request.get_json(silent=True) or {}
+    args = request.view_args or {}
+    endpoint = request.endpoint.rsplit('.', 1)[-1]
+    role_id = args.get('role_id')
+    if role_id is not None:
+        role = db.session.get(Role, role_id)
+        if role and role.name == 'SUPER_ADMIN':
+            if not elevated:
+                return jsonify(msg='Only SUPER_ADMIN can manage this role.'), 403
+            if endpoint == 'update_delete_role' and (
+                request.method == 'DELETE' or data.get('name', role.name) != role.name
+            ):
+                return jsonify(msg='The SUPER_ADMIN system role cannot be deleted or renamed.'), 400
+    if endpoint in {'manage_roles', 'update_delete_role'}:
+        if str(data.get('name', '')).strip().upper() == 'SUPER_ADMIN':
+            if not elevated:
+                return jsonify(msg='Only SUPER_ADMIN can manage this role.'), 403
+            if data.get('name') != 'SUPER_ADMIN':
+                return jsonify(msg='Use the canonical role name SUPER_ADMIN.'), 400
+    # Role names are not grantable permissions.
+    if endpoint in {'manage_permissions', 'update_delete_permission'}:
+        perm = db.session.get(Permission, args['perm_id']) if 'perm_id' in args else None
+        if str(data.get('name', '')).strip().upper() in {'ADMIN', 'SUPER_ADMIN'} or (perm and perm.name in {'ADMIN', 'SUPER_ADMIN'}):
+            return jsonify(msg='Administrator role names are reserved, not permissions.'), 400
+    target_id = args.get('u_id', args.get('user_id', args.get('id')))
+    target = db.session.get(User, target_id) if target_id is not None else None
+    target_super = bool(target and any(r.name == 'SUPER_ADMIN' for r in target.roles))
+    if target_super and not elevated:
+        return jsonify(msg='Only SUPER_ADMIN can manage SUPER_ADMIN accounts.'), 403
+    if endpoint == 'manage_user_roles':
+        role_ids = data.get('role_ids', [])
+        if not isinstance(role_ids, list) or any(type(rid) is not int for rid in role_ids):
+            return jsonify(msg='role_ids must be a list of integer role IDs.'), 400
+        if len(set(role_ids)) != len(role_ids) or Role.query.filter(Role.id.in_(role_ids)).count() != len(role_ids):
+            return jsonify(msg='Unknown or duplicate role IDs.'), 400
+        if super_role and super_role.id in role_ids and not elevated:
+            return jsonify(msg='Only SUPER_ADMIN can assign SUPER_ADMIN.'), 403
+    removes_access = (
+        request.method == 'DELETE'
+        or endpoint in {'toggle_user_status', 'resend_user_verification'}
+        or (endpoint == 'manage_user_roles' and super_role and super_role.id not in data.get('role_ids', []))
+        or (endpoint == 'update_delete_user' and target and str(data.get('email', target.email)).strip().lower() != target.email.strip().lower())
+    )
+    if target_super and target.is_active and removes_access:
+        active_count = User.query.join(UserRole, UserRole.user_id == User.id).filter(
+            UserRole.role_id == super_role.id, User.is_active.is_(True)
+        ).count()
+        if active_count <= 1:
+            return jsonify(msg='Cannot remove or disable the last active SUPER_ADMIN.'), 400
+
+
+@admin_rbac_bp.after_request
+def refresh_admin_authorization_cache(response):
+    if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'} and response.status_code < 300:
+        increment_rbac_version()
+    return response
 
 def log_audit(user_id, action, t_type, t_id, details):
     db.session.add(AuditLog(
@@ -141,10 +211,12 @@ def manage_user_roles(u_id):
         db.session.add(UserRole(user_id=u_id, role_id=rid))
         
     # Edge Case: Prevent removing ADMIN from yourself
-    if current_user_id == u_id and admin_role and admin_role.id not in role_ids:
+    if current_user_id == u_id and admin_role and admin_role.id not in role_ids and 'SUPER_ADMIN' not in get_user_permissions(current_user_id):
         db.session.rollback()
         return jsonify({"msg": "Cannot remove your own ADMIN role"}), 400
 
+    target_user = User.query.get_or_404(u_id)
+    target_user.session_version += 1
     db.session.commit()
     invalidate_user_cache(u_id)
     log_audit(current_user_id, "UPDATE_USER_ROLES", "USER", str(u_id), {"roles": role_ids})
@@ -277,7 +349,7 @@ def update_delete_user(id):
         
         if data.get('password'):
             # Security: Admins cannot reset other ADMIN passwords through this UI
-            if user.is_admin:
+            if user.is_admin and not is_super_admin(db.session.get(User, int(get_jwt_identity()))):
                 return jsonify({"msg": "Administrator passwords cannot be reset through the user management interface."}), 403
             
             is_valid, error_msg = validate_password_strength(data.get('password'))
@@ -327,7 +399,7 @@ def change_user_password(user_id):
         return jsonify({"msg": "Password is required"}), 400
         
     # Security: Admins cannot reset other ADMIN passwords through this UI
-    if user.is_admin:
+    if user.is_admin and not is_super_admin(db.session.get(User, int(get_jwt_identity()))):
         return jsonify({"msg": "Administrator passwords cannot be reset through the user management interface."}), 403
         
     # Validate password strength
@@ -440,7 +512,7 @@ def force_password_reset(user_id):
     invalidate_sessions = data.get('invalidate_sessions', False)
     
     # Security: Admins cannot reset other ADMIN passwords through this interface
-    if user.is_admin:
+    if user.is_admin and not is_super_admin(db.session.get(User, int(get_jwt_identity()))):
         return jsonify({"msg": "Administrator accounts cannot be forced to reset through this interface."}), 403
         
     # Check "once per day" constraint

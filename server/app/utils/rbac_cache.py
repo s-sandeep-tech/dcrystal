@@ -3,6 +3,7 @@ import logging
 from app.extensions import redis_client, db
 from app.models import User
 from app.models.rbac import Role, Permission, Menu, UserRole, RolePermission, RoleMenu
+from app.utils.access_policy import effective_roles
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,8 @@ def invalidate_user_cache(user_id):
         v = get_rbac_version()
         redis_client.delete(f"user:{user_id}:v{v}:permissions")
         redis_client.delete(f"user:{user_id}:v{v}:menus")
+        redis_client.delete(f"user:{user_id}:v{v}:permissions:super-v1")
+        redis_client.delete(f"user:{user_id}:v{v}:menus:super-v1")
     except Exception as e:
         logger.error(f"Redis error invalidating cache for user {user_id}: {e}")
 
@@ -33,7 +36,7 @@ def increment_rbac_version():
 
 def get_user_permissions(user_id):
     v = get_rbac_version()
-    cache_key = f"user:{user_id}:v{v}:permissions"
+    cache_key = f"user:{user_id}:v{v}:permissions:super-v1"
     try:
         if v != 'fallback' and redis_client.exists(cache_key):
             return set(redis_client.smembers(cache_key))
@@ -54,11 +57,11 @@ def get_user_permissions(user_id):
         logger.error(f"Error querying user {user_id}: {e}")
         return set()
 
-    if not user:
+    if not user or not user.is_active:
         return set()
         
     roles = db.session.query(Role).join(UserRole).filter(UserRole.user_id == user.id).all()
-    perms = set()
+    perms = effective_roles(user)
     is_admin = user.is_admin or user.username == 'admin' # Double fallback for admin
     
     for r in roles:
@@ -66,7 +69,8 @@ def get_user_permissions(user_id):
         if r.name == 'ADMIN':
             is_admin = True
         for p in r.permissions:
-            perms.add(p.name)
+            if p.name not in {'ADMIN', 'SUPER_ADMIN'}:
+                perms.add(p.name)
             
     if is_admin:
         perms.add('ADMIN') # Virtual permission for ADMIN role
@@ -83,7 +87,7 @@ def get_user_permissions(user_id):
 def build_menu_tree(user_id):
     # Try cache
     v = get_rbac_version()
-    cache_key = f"user:{user_id}:v{v}:menus"
+    cache_key = f"user:{user_id}:v{v}:menus:super-v1"
     try:
         if v != 'fallback':
             cached = redis_client.get(cache_key)

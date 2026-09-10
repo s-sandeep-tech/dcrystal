@@ -22,7 +22,7 @@ FRANCHISE_INDIA_BRANCH_TYPE = 'FRANCHISE_SHOP'
 
 
 def is_franchise_india_head(roles):
-    return FRANCHISE_INDIA_HEAD_ROLE in roles
+    return FRANCHISE_INDIA_HEAD_ROLE in roles and 'SUPER_ADMIN' not in roles
 
 
 def apply_franchise_india_branch_filter(query, roles):

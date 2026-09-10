@@ -20,7 +20,13 @@ def require_perm(permission_name):
 
             user_id = get_jwt_identity()
             perms = get_user_permissions(user_id)
-            if 'ADMIN' not in perms and permission_name not in perms:
+            if permission_name == 'SUPER_ADMIN':
+                from app.models.auth import User
+                from app.extensions import db
+                from app.utils.access_policy import is_super_admin
+                if not is_super_admin(db.session.get(User, int(user_id))):
+                    return jsonify(msg='SUPER_ADMIN role required.'), 403
+            if (permission_name == 'SUPER_ADMIN' and 'SUPER_ADMIN' not in perms) or ('ADMIN' not in perms and permission_name not in perms):
                 if request.path.startswith('/api/'):
                     return jsonify({"msg": f"Forbidden. Missing permission: {permission_name}"}), 403
                 return render_template('errors/403.html', permission=permission_name), 403
@@ -44,12 +50,18 @@ def require_role(role_name):
                 return redirect(url_for('dashboard.login'))
 
             user_id = get_jwt_identity()
-            perms = get_user_permissions(user_id)
-            
             required_roles = [role_name] if isinstance(role_name, str) else role_name
             
             # Authorization passes if user is ADMIN or has ANY of the required roles
-            if 'ADMIN' not in perms and not any(r in perms for r in required_roles):
+            from app.models.auth import User
+            from app.extensions import db
+            from app.utils.access_policy import effective_roles
+            actor = db.session.get(User, int(user_id))
+            actual_roles = effective_roles(actor) if actor and actor.is_active else set()
+            allowed = any(r in actual_roles for r in required_roles)
+            if 'SUPER_ADMIN' not in required_roles and 'ADMIN' in actual_roles:
+                allowed = True
+            if not allowed:
                 if request.path.startswith('/api/'):
                     return jsonify({"msg": f"Forbidden. One of these roles required: {required_roles}"}), 403
                 return render_template('errors/403.html', permission=str(required_roles)), 403
@@ -163,4 +175,3 @@ def require_api_client(ip_env_var='ALLOWED_THIRD_PARTY_IPS'):
             return fn(*args, **kwargs)
         return wrapper
     return decorator
-

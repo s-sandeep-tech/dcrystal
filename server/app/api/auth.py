@@ -70,7 +70,8 @@ def login():
 
     if user and user.check_password(password):
         # SHOWROOM_MANAGER network restriction check
-        user_roles = [r.name for r in user.roles]
+        from app.utils.access_policy import effective_roles
+        user_roles = sorted(effective_roles(user))
         if 'SHOWROOM_MANAGER' in user_roles:
             access_channel = request.headers.get('X-Access-Channel')
             if access_channel != 'private':
@@ -80,7 +81,7 @@ def login():
         # Store in session for server-side auth checks (e.g. data filtering)
         session['user_id'] = user.user_id
         session['username'] = user.username
-        session['is_admin'] = user.is_admin
+        session['is_admin'] = 'ADMIN' in user_roles
         session['roles'] = user_roles
         session['must_reset_password'] = user.must_reset_password
         
@@ -287,7 +288,8 @@ def get_auth_status(user_id):
     # Check if requester is admin
     admin_id = get_jwt_identity()
     admin = User.query.get(admin_id)
-    if not admin or not admin.is_admin:
+    from app.utils.access_policy import effective_roles
+    if not admin or 'ADMIN' not in effective_roles(admin):
         return jsonify({"msg": "Admin access required"}), 403
 
     user = User.query.filter_by(user_id=user_id).first()
