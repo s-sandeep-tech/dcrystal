@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-    function showConfirmModal(title, message) {
+    function showConfirmModal(title, message, messageOptions = null) {
         return new Promise((resolve) => {
             const modal = document.getElementById('confirmModal');
             const content = document.getElementById('confirmModalContent');
@@ -256,12 +256,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
             titleEl.textContent = title;
             messageEl.textContent = message;
+            let messageInput = null;
+            if (messageOptions) {
+                messageInput = document.createElement('textarea');
+                messageInput.className = 'mb-4 w-full rounded border border-gray-200 dark:border-gray-700 bg-transparent p-3 text-sm';
+                messageInput.rows = 4;
+                messageInput.maxLength = 1000;
+                messageInput.required = true;
+                messageInput.placeholder = 'Enter the message users will see while this report is offline';
+                messageInput.setAttribute('aria-label', 'Offline message');
+                messageInput.value = messageOptions.value || '';
+                messageEl.after(messageInput);
+                messageInput.addEventListener('input', () => messageInput.setCustomValidity(''));
+            }
 
             modal.classList.remove('hidden');
             setTimeout(() => {
                 modal.classList.add('opacity-100');
                 content.classList.remove('scale-95');
-                content.classList.add('scale-100');
+                    content.classList.add('scale-100');
             }, 10);
 
             const cleanup = (result) => {
@@ -272,12 +285,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     modal.classList.add('hidden');
                     cancelBtn.removeEventListener('click', onCancel);
                     proceedBtn.removeEventListener('click', onProceed);
+                    messageInput?.remove();
                     resolve(result);
                 }, 200);
             };
 
             const onCancel = () => cleanup(false);
-            const onProceed = () => cleanup(true);
+            const onProceed = () => {
+                if (messageInput && !messageInput.value.trim()) {
+                    messageInput.setCustomValidity('Please enter an offline message.');
+                    messageInput.reportValidity();
+                    return;
+                }
+                cleanup(messageInput ? { message: messageInput.value.trim() } : true);
+            };
 
             cancelBtn.addEventListener('click', onCancel);
             proceedBtn.addEventListener('click', onProceed);
@@ -3108,7 +3129,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const refreshReportStatusBtn = document.getElementById('refresh-report-status-btn');
 
     let reportOfflineMessages = {};
-    const reportMessageInputs = new Map();
     async function fetchReportStatus() {
         if (!reportStatusTbody) return;
         
@@ -3143,7 +3163,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderReportStatusTable() {
         if (!reportStatusTbody) return;
-        reportMessageInputs.clear();
         
         const filter = reportSearchInput ? reportSearchInput.value.toLowerCase() : '';
         reportStatusTbody.innerHTML = '';
@@ -3202,19 +3221,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </td>
             `;
-            const messageInput = document.createElement('textarea');
-            messageInput.className = 'mt-2 w-full rounded border border-gray-200 dark:border-gray-700 bg-transparent p-2 text-xs';
-            messageInput.placeholder = 'Message users will see while this report is offline';
-            messageInput.setAttribute('aria-label', `Offline message for ${reportName}`);
-            messageInput.maxLength = 1000;
-            messageInput.value = reportOfflineMessages[url] || '';
-            messageInput.addEventListener('input', () => { reportOfflineMessages[url] = messageInput.value; });
-            tr.cells[0].appendChild(messageInput);
-            reportMessageInputs.set(url, messageInput);
             if (isOffline) {
                 const saveMessage = document.createElement('button');
                 saveMessage.type = 'button';
-                saveMessage.textContent = 'Save message';
+                saveMessage.textContent = 'Edit offline message';
                 saveMessage.className = 'mt-2 text-xs text-primary';
                 saveMessage.addEventListener('click', () => window.toggleReportOfflineStatus(url, true));
                 tr.cells[0].appendChild(saveMessage);
@@ -3224,17 +3234,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.toggleReportOfflineStatus = async function(url, isOffline) {
-        const offlineMessage = (reportMessageInputs.get(url)?.value || '').trim();
-        if (isOffline && !offlineMessage) {
-            showToast('Enter a message to show while the report is offline.', 'error');
-            reportMessageInputs.get(url)?.focus();
-            return;
-        }
         const confirmed = await showConfirmModal(
             `Confirm Status Change`,
-            `Set "${url}" to ${isOffline ? 'OFFLINE' : 'ONLINE'}? Offline report pages show the saved message to all users, including administrators.`
+            `Set "${url}" to ${isOffline ? 'OFFLINE' : 'ONLINE'}? Offline report pages show the saved message to all users, including administrators.`,
+            isOffline ? { value: reportOfflineMessages[url] || '' } : null
         );
         if (!confirmed) return;
+        const offlineMessage = isOffline ? confirmed.message : (reportOfflineMessages[url] || '');
 
         try {
             const res = await fetch('/settings/toggle-report-offline', {
@@ -3249,6 +3255,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.status === 'success') {
                 showToast(data.message, 'success');
                 gReportStatuses[url] = isOffline;
+                reportOfflineMessages[url] = offlineMessage;
                 renderReportStatusTable();
             } else {
                 showToast(data.message || 'Update failed', 'error');
