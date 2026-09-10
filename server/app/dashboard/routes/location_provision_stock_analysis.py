@@ -260,7 +260,7 @@ def get_location_provision_stock_analysis_partial():
         # Redis Caching Logic
         snapshot_date = LocationProvisionStockAnalysisData.latest_snapshot_date()
         cache_key = generate_cache_key(
-            "location_provision_stock_analysis_partial_v9",
+            "location_provision_stock_analysis_partial_v11",
             snapshot_date,
             **params,
         )
@@ -276,7 +276,7 @@ def get_location_provision_stock_analysis_partial():
         numeric_cols = [
             'prov_pcs', 'prov_gr_wt', 'in_shop_wt', 'ordered_wt',
             'in_transit_wt', 'short_pcs', 'excess_pcs', 'short_wt',
-            'excess_wt', 'short_percent',
+            'excess_wt', 'net_short_excess', 'short_percent',
         ]
         if sort_by in numeric_cols:
             sections = {}

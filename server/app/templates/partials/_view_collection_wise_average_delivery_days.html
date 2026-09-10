@@ -66,7 +66,7 @@
                     </th>
                     <th scope="col" class="px-3 py-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group" onclick="toggleSort('morr_received_date')">
                         <div class="flex items-center gap-1">
-                            <span>MORR Receipt</span>
+                            <span>Office Receipt</span>
                             <span class="material-symbols-outlined text-[14px] {% if sort_by == 'morr_received_date' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
                                 {{ 'arrow_upward' if (sort_by == 'morr_received_date' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'morr_received_date' and sort_order == 'desc') else 'unfold_more') }}
                             </span>
@@ -104,7 +104,7 @@
                             </span>
                         </div>
                     </th>
-                    <th scope="col" class="px-3 py-1.5">Complaint Status</th>
+                    <th scope="col" class="px-3 py-1.5">Compliance Status</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">

@@ -520,6 +520,7 @@ SELECT
     excess_pcs,
     short_wt,
     excess_wt,
+    COALESCE(excess_wt, 0) - COALESCE(short_wt, 0) AS net_short_excess,
     short_percent,
     section_sort,
     row_sort

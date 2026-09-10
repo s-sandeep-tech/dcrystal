@@ -34,8 +34,8 @@ class LocationProvisionStockAnalysisExport:
         sheet.title = 'Provision Stock Analysis'
         headers = (
             'Report Section', 'Detail', 'Provision Pcs', 'Provision Gross Wt',
-            'In Shop Wt', 'Transit Wt', 'Short Pcs', 'Excess Pcs', 'Short Wt',
-            'Excess Wt', 'Short %', 'Ordered Wt',
+            'In Shop Wt', 'Transit Wt', 'Short Pcs', 'Excess Pcs', 'Short %', 'Short Wt',
+            'Excess Wt', 'Net Short / Excess', 'Ordered Wt',
         )
         sheet.append(headers)
 
@@ -55,15 +55,16 @@ class LocationProvisionStockAnalysisExport:
                 row.get('in_transit_wt'),
                 row.get('short_pcs'),
                 row.get('excess_pcs'),
+                row.get('short_percent'),
                 row.get('short_wt'),
                 row.get('excess_wt'),
-                row.get('short_percent'),
+                (row.get('excess_wt') or 0) - (row.get('short_wt') or 0),
                 row.get('ordered_wt'),
             ))
 
         sheet.freeze_panes = 'A2'
         sheet.auto_filter.ref = sheet.dimensions
-        widths = (22, 36, 15, 20, 16, 16, 14, 14, 16, 16, 12, 16)
+        widths = (22, 36, 15, 20, 16, 16, 14, 14, 12, 16, 16, 20, 16)
         for index, width in enumerate(widths, start=1):
             sheet.column_dimensions[chr(64 + index)].width = width
 

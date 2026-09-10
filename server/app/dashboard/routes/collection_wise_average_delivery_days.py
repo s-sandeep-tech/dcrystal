@@ -37,7 +37,7 @@ def build_process_timeline(record):
         ('QC Issued', record.qc_issue_date),
         ('QC Received', record.qc_receipt_date),
         ('Crystal Invoice', record.crystal_invoice_date),
-        ('MORR Received', record.morr_received_date),
+        ('Office Receipt', record.morr_received_date),
         ('Muziris In-Shop', record.muziris_inshop_received_date),
     ]
     start_date = stages[0][1]

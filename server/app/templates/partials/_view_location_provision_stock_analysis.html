@@ -50,17 +50,21 @@
     <td class="px-2 py-0.5 border border-gray-300 text-right text-green-600 {% if excess_pcs > 0 %}font-bold{% endif %}">
         {{ "{:,.0f}".format(excess_pcs) if excess_pcs is not none else '0' }}
     </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right relative min-w-[58px]">
+        {% if short_percent is not none and not is_grand_total %}
+        <div class="absolute top-0 left-0 h-full bg-red-100 dark:bg-red-900/20 opacity-60" style="width: {{ short_percent if short_percent <= 100 else 100 }}%;"></div>
+        {% endif %}
+        <span class="relative z-10 {% if short_percent > 0 %}text-red-500 font-bold{% endif %}">{{ "{:,.1f}%".format(short_percent) if short_percent is not none else '0.0%' }}</span>
+    </td>
     <td class="px-2 py-0.5 border border-gray-300 text-right text-red-500 {% if short_wt > 0 %}font-bold{% endif %}">
         {{ "{:,.3f}".format(short_wt) if short_wt is not none else '0' }}
     </td>
     <td class="px-2 py-0.5 border border-gray-300 text-right text-green-600 {% if excess_wt > 0 %}font-bold{% endif %}">
         {{ "{:,.3f}".format(excess_wt) if excess_wt is not none else '0' }}
     </td>
-    <td class="px-2 py-0.5 border border-gray-300 text-right relative min-w-[58px]">
-        {% if short_percent is not none and not is_grand_total %}
-        <div class="absolute top-0 left-0 h-full bg-red-100 dark:bg-red-900/20 opacity-60" style="width: {{ short_percent if short_percent <= 100 else 100 }}%;"></div>
-        {% endif %}
-        <span class="relative z-10 {% if short_percent > 0 %}text-red-500 font-bold{% endif %}">{{ "{:,.1f}%".format(short_percent) if short_percent is not none else '0.0%' }}</span>
+    {% set net_short_excess = (excess_wt or 0) - (short_wt or 0) %}
+    <td class="px-2 py-0.5 border border-gray-300 text-right {% if net_short_excess < 0 %}text-red-500 font-bold{% elif net_short_excess > 0 %}text-green-600 font-bold{% endif %}">
+        {{ "{:,.3f}".format(net_short_excess) }}
     </td>
     <td class="px-2 py-0.5 border border-gray-300 text-right">{{ "{:,.3f}".format(ordered_wt) if ordered_wt is not none else '0' }}</td>
 </tr>
@@ -160,6 +164,15 @@
                     </div>
                 </th>
                 <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('short_percent')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Short %</span>
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'short_percent' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'short_percent' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'short_percent' and sort_order == 'desc') else 'unfold_more') }}
+                        </span>
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
                     onclick="toggleSort('short_wt')">
                     <div class="flex items-center justify-end gap-1">
                         <span>Short Wt</span>
@@ -178,14 +191,15 @@
                     </div>
                 </th>
                 <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
-                    onclick="toggleSort('short_percent')">
+                    onclick="toggleSort('net_short_excess')" title="Excess Wt minus Short Wt; negative means net short">
                     <div class="flex items-center justify-end gap-1">
-                        <span>Short %</span>
-                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'short_percent' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
-                            {{ 'arrow_upward' if (sort_by == 'short_percent' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'short_percent' and sort_order == 'desc') else 'unfold_more') }}
+                        <span>Net Short / Excess</span>
+                        <span class="material-symbols-outlined text-[14px] {% if sort_by == 'net_short_excess' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                            {{ 'arrow_upward' if (sort_by == 'net_short_excess' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'net_short_excess' and sort_order == 'desc') else 'unfold_more') }}
                         </span>
                     </div>
                 </th>
+
                 <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
                     onclick="toggleSort('ordered_wt')">
                     <div class="flex items-center justify-end gap-1">

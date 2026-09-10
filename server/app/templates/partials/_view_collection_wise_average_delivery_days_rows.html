@@ -78,7 +78,7 @@
                     <span class="font-bold tabular-nums text-primary">{{ item.office_to_shop_days }}d</span>
                     {% elif item.office_to_shop_status == 'pending' %}
                     <div class="font-bold tabular-nums text-amber-600 dark:text-amber-400">Pending</div>
-                    <div class="text-[9px] tabular-nums text-gray-400">{{ item.office_to_shop_pending_days }}d since MORR</div>
+                    <div class="text-[9px] tabular-nums text-gray-400">{{ item.office_to_shop_pending_days }}d since office receipt</div>
                     {% elif item.office_to_shop_status == 'invalid' %}
                     <span class="font-medium text-red-500 dark:text-red-400">Invalid dates</span>
                     {% else %}
