@@ -62,14 +62,6 @@ window.REPORT_MENU_DATA = [
                 tags: ["pending", "order", "details", "owner"]
             },
             {
-                id: "active-order-details",
-                title: "Active Orders Report",
-                href: "/active-order-details",
-                icon: "pending_actions",
-                description: "Hierarchical summary of active counts and weights across production stages.",
-                tags: ["active", "order", "details", "owner"]
-            },
-            {
                 id: "owner-wise-order",
                 title: "Owner Wise Order Summary",
                 href: "/ownerwiseordersummary",
