@@ -3143,6 +3143,7 @@ class PartyDesignAverageDeliveryDaysSnapshot(db.Model):
     order_type = db.Column(db.String(250), nullable=False)
     provision_type = db.Column(db.String(250), nullable=False)
     party = db.Column(db.String(255), nullable=False)
+    location = db.Column(db.String(250))
     party_id = db.Column(db.Integer)
     make = db.Column(db.String(100), nullable=False)
     make_owner = db.Column(db.String(250), nullable=False)
@@ -3169,6 +3170,7 @@ class PartyDesignAverageDeliveryDaysSnapshot(db.Model):
         db.Index('ix_party_design_class_owner_code', 'classification_owner_emp_code'),
         db.Index('ix_party_design_make_owner_code', 'make_owner_emp_code'),
         db.Index('ix_party_design_collection_owner_code', 'collection_owner_emp_code'),
+        db.Index('ix_party_design_location', 'location'),
     )
 
 
@@ -3181,6 +3183,7 @@ class PartyOrderAcceptCancelDeliverySnapshot(db.Model):
     order_type = db.Column(db.Text)
     provision_type = db.Column(db.Text)
     supplier = db.Column(db.Text)
+    location = db.Column(db.String(250))
     party_type = db.Column(db.Text)
     make = db.Column(db.Text)
     party_id = db.Column(db.Integer)
@@ -3209,6 +3212,7 @@ class PartyOrderAcceptCancelDeliverySnapshot(db.Model):
         db.Index('ix_party_freq_class_owner_code', 'classification_owner_emp_code'),
         db.Index('ix_party_freq_make_owner_code', 'make_owner_emp_code'),
         db.Index('ix_party_freq_collection_owner_code', 'collection_owner_emp_code'),
+        db.Index('ix_party_freq_location', 'location'),
     )
 
 
@@ -3217,6 +3221,7 @@ class PartyDesignLocationAllocationSnapshot(db.Model):
 
     id = db.Column(db.BigInteger, primary_key=True)
     party = db.Column(db.String(150))
+    location = db.Column(db.String(250))
     party_id = db.Column(db.Integer)
     zone = db.Column(db.String(50))
     order_type = db.Column(db.Text)
@@ -3242,6 +3247,7 @@ class PartyDesignLocationAllocationSnapshot(db.Model):
         db.Index('ix_party_design_location_class_owner_code', 'classification_owner_emp_code'),
         db.Index('ix_party_design_location_make_owner_code', 'make_owner_emp_code'),
         db.Index('ix_party_design_location_collection_owner_code', 'collection_owner_emp_code'),
+        db.Index('ix_party_design_allocation_location', 'location'),
     )
 
 
@@ -3253,6 +3259,7 @@ class PartyOrderCancellationSnapshot(db.Model):
     order_type = db.Column(db.Text)
     provision_type = db.Column(db.Text)
     supplier = db.Column(db.String(150))
+    location = db.Column(db.String(250))
     party_id = db.Column(db.Integer)
     make = db.Column(db.String(100))
     make_owner = db.Column(db.String(250), nullable=True)
@@ -3274,6 +3281,7 @@ class PartyOrderCancellationSnapshot(db.Model):
         db.Index('ix_party_cancel_class_owner_code', 'classification_owner_emp_code'),
         db.Index('ix_party_cancel_make_owner_code', 'make_owner_emp_code'),
         db.Index('ix_party_cancel_collection_owner_code', 'collection_owner_emp_code'),
+        db.Index('ix_party_cancel_location', 'location'),
     )
 
 
@@ -3282,6 +3290,7 @@ class PartyMcStoneValueAllocationSnapshot(db.Model):
 
     id = db.Column(db.BigInteger, primary_key=True)
     party = db.Column(db.String(250))
+    location = db.Column(db.String(250))
     make = db.Column(db.String(100))
     make_owner = db.Column(db.String(256))
     order_type = db.Column(db.Text)
@@ -3307,6 +3316,7 @@ class PartyMcStoneValueAllocationSnapshot(db.Model):
         db.Index('ix_party_mc_class_owner_code', 'classification_owner_emp_code'),
         db.Index('ix_party_mc_make_owner_code', 'make_owner_emp_code'),
         db.Index('ix_party_mc_collection_owner_code', 'collection_owner_emp_code'),
+        db.Index('ix_party_mc_location', 'location'),
     )
 
 
@@ -3316,6 +3326,7 @@ class PartyHallmarkPassFailSnapshot(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)
     source_row_number = db.Column(db.Integer)
     party = db.Column(db.String(250))
+    location = db.Column(db.String(250))
     party_id = db.Column(db.Integer)
     hallmarking_center = db.Column(db.String(150))
     year = db.Column(db.Integer)
@@ -3346,6 +3357,7 @@ class PartyHallmarkPassFailSnapshot(db.Model):
         db.Index('ix_party_hallmark_class_owner_code', 'classification_owner_emp_code'),
         db.Index('ix_party_hallmark_make_owner_code', 'make_owner_emp_code'),
         db.Index('ix_party_hallmark_collection_owner_code', 'collection_owner_emp_code'),
+        db.Index('ix_party_hallmark_location', 'location'),
     )
 
 
@@ -3354,6 +3366,7 @@ class PartyRoWiseDeliverySnapshot(db.Model):
 
     id = db.Column(db.BigInteger, primary_key=True)
     party = db.Column(db.String(250))
+    location = db.Column(db.String(250))
     party_id = db.Column(db.Integer)
     delivery_ro = db.Column(db.String(250))
     order_type = db.Column(db.String(250))
@@ -3377,6 +3390,7 @@ class PartyRoWiseDeliverySnapshot(db.Model):
         db.Index('ix_party_ro_class_owner_code', 'classification_owner_emp_code'),
         db.Index('ix_party_ro_make_owner_code', 'make_owner_emp_code'),
         db.Index('ix_party_ro_collection_owner_code', 'collection_owner_emp_code'),
+        db.Index('ix_party_ro_location', 'location'),
     )
 
 
@@ -3421,6 +3435,7 @@ class PartyQcPassFailSnapshot(db.Model):
 
     id = db.Column(db.BigInteger, primary_key=True)
     party = db.Column(db.String(250))
+    location = db.Column(db.String(250))
     party_id = db.Column(db.Integer)
     month = db.Column(db.String(15))
     month_number = db.Column(db.SmallInteger)
@@ -3449,6 +3464,7 @@ class PartyQcPassFailSnapshot(db.Model):
         db.Index('ix_party_qc_class_owner_code', 'classification_owner_emp_code'),
         db.Index('ix_party_qc_make_owner_code', 'make_owner_emp_code'),
         db.Index('ix_party_qc_collection_owner_code', 'collection_owner_emp_code'),
+        db.Index('ix_party_qc_location', 'location'),
     )
 
 

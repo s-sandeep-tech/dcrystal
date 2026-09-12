@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify, session
+from flask import jsonify, render_template, request, session
 from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
 from app.models import Notification, ActiveOrderDetailsSnapshot, OwnerWiseOrderSummarySnapshot
@@ -50,7 +50,7 @@ def apply_owner_visibility_filter(query):
         )
     return query
 
-@dashboard_bp.route('/activeorderdetails')
+@dashboard_bp.route('/active-order-details')
 def active_order_details():
     try:
         unread_count = Notification.query.filter_by(is_read=False).count()
@@ -286,6 +286,7 @@ def active_order_details():
         return f"Error: {str(e)}", 500
 
 @dashboard_bp.route('/partial/activeorderdetails')
+@dashboard_bp.route('/partial/active-order-details')
 @jwt_required()
 def get_active_order_details_partial():
     try:
@@ -465,7 +466,8 @@ def get_active_order_details_partial():
         logger.error(f"Error in get_active_order_details_partial: {str(e)}")
         return f"Error: {str(e)}", 500
 
-@dashboard_bp.route('/partial/pendingorderdetails/leaf_detail')
+@dashboard_bp.route('/partial/activeorderdetails/leaf_detail')
+@dashboard_bp.route('/partial/active-order-details/leaf-details')
 @jwt_required()
 def get_active_order_details_leaf_detail():
     try:

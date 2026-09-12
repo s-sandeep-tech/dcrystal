@@ -610,7 +610,8 @@
     text-transform: uppercase;
 }
 
-.party-matrix-sidebar-body > #matrix-filter-party {
+.party-matrix-sidebar-body > #matrix-filter-party,
+.party-matrix-sidebar-body > #matrix-filter-location {
     position: relative;
     z-index: 20;
     margin-bottom: 12px;

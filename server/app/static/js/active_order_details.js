@@ -128,7 +128,7 @@ async function toggleRow(btn, level, value, grandparentValue = null) {
             params.set('parent_value', value);
             if (grandparentValue) params.set('grandparent_value', grandparentValue);
 
-            const response = await fetch(`/partial/activeorderdetails?${params.toString()}`, {
+            const response = await fetch(`/partial/active-order-details?${params.toString()}`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}`
                 }
@@ -180,7 +180,7 @@ async function openLeafModal(classificationOwner, makeOwner, collectionOwner) {
     params.set('parent_collection_owner', collectionOwner);
 
     try {
-        const response = await fetch(`/partial/activeorderdetails/leaf_detail?${params.toString()}`);
+        const response = await fetch(`/partial/active-order-details/leaf-details?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch details');
         content.innerHTML = await response.text();
     } catch (e) {

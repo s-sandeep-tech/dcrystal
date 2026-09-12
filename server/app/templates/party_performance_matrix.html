@@ -103,6 +103,7 @@
             </div>
         </div>
         <div id="matrix-filter-party"></div>
+        <div id="matrix-filter-location"></div>
         <label>Order Type
             <select id="matrix-filter-order-type">
                 <option value="">All Order Types</option>
@@ -140,6 +141,7 @@
 {% block extra_scripts %}
 <script id="party-matrix-chart-data" type="application/json">{{ chart_data|tojson }}</script>
 <script id="party-matrix-party-options" type="application/json">{{ filter_options.parties|tojson }}</script>
+<script id="party-matrix-location-options" type="application/json">{{ filter_options.locations|tojson }}</script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script src="{{ url_for('static', filename='js/party_performance_matrix.js') }}"></script>
 {% endblock %}

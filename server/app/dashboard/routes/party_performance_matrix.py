@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 from datetime import datetime
 
 from flask import jsonify, render_template, request, session
-from sqlalchemy import distinct, func, or_, select, union
+from sqlalchemy import distinct, false, func, or_, select, union
 
 from app.dashboard import dashboard_bp
 from app.extensions import db
@@ -95,6 +95,12 @@ def apply_common_filters(query, model, party_column, filters):
     order_types = split_values(filters['order_type'])
     if order_types and hasattr(model, 'order_type'):
         query = query.filter(model.order_type.in_(order_types))
+    locations = split_values(filters['location'])
+    if locations:
+        if hasattr(model, 'location'):
+            query = query.filter(model.location.in_(locations))
+        else:
+            query = query.filter(false())
     return query
 
 
@@ -378,6 +384,7 @@ def get_matrix_report_context(args, include_page_options=True):
         'search': args.get('search', '').strip(),
         'party': args.get('party', '').strip(),
         'order_type': args.get('order_type', '').strip(),
+        'location': args.get('location', '').strip(),
     }
     sort_by = args.get('sort_by', 'order_wt').strip()
     sort_dir = args.get('sort_dir', 'desc').strip().lower()
@@ -449,6 +456,7 @@ def get_matrix_report_context(args, include_page_options=True):
         context['filter_options'] = {
             'parties': get_party_options(),
             'order_types': get_common_options('order_type'),
+            'locations': get_common_options('location'),
         }
     return context
 
@@ -505,6 +513,7 @@ def party_performance_matrix():
         filter_options={
             'parties': get_party_options(),
             'order_types': get_common_options('order_type'),
+            'locations': get_common_options('location'),
         },
     )
 

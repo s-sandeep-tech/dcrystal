@@ -3,7 +3,10 @@
     let chartData = chartDataElement ? JSON.parse(chartDataElement.textContent) : {};
     const partyOptionsElement = document.getElementById('party-matrix-party-options');
     const partyOptions = partyOptionsElement ? JSON.parse(partyOptionsElement.textContent) : [];
+    const locationOptionsElement = document.getElementById('party-matrix-location-options');
+    const locationOptions = locationOptionsElement ? JSON.parse(locationOptionsElement.textContent) : [];
     let partyMultiSelect;
+    let locationMultiSelect;
     const charts = {};
     const colors = {
         blue: '#137fec',
@@ -184,8 +187,11 @@
             sort_dir: 'matrix-sort-dir'
         };
         const selectedParties = partyMultiSelect ? partyMultiSelect.getValues() : [];
+        const selectedLocations = locationMultiSelect ? locationMultiSelect.getValues() : [];
         if (selectedParties.length) params.set('party', selectedParties.join(','));
         else params.delete('party');
+        if (selectedLocations.length) params.set('location', selectedLocations.join(','));
+        else params.delete('location');
         Object.entries(filters).forEach(([name, id]) => {
             const value = document.getElementById(id)?.value || '';
             if (value) params.set(name, value);
@@ -199,10 +205,8 @@
     };
 
     window.resetPartyMatrixFilters = function () {
-        document.querySelectorAll('.matrix-filter-party-checkbox').forEach(checkbox => {
-            checkbox.checked = false;
-        });
-        partyMultiSelect?.updateTriggerText();
+        partyMultiSelect?.reset();
+        locationMultiSelect?.reset();
         const orderType = document.getElementById('matrix-filter-order-type');
         const sortBy = document.getElementById('matrix-sort-by');
         const sortDirection = document.getElementById('matrix-sort-dir');
@@ -270,6 +274,21 @@
         checkbox.checked = selectedParties.includes(checkbox.value);
     });
     partyMultiSelect.updateTriggerText();
+
+    locationMultiSelect = new CustomMultiSelect({
+        containerId: 'matrix-filter-location',
+        label: 'Location',
+        defaultText: 'All Locations',
+        options: locationOptions
+    });
+    const selectedLocations = (new URLSearchParams(window.location.search).get('location') || '')
+        .split(',')
+        .map(value => value.trim())
+        .filter(Boolean);
+    document.querySelectorAll('.matrix-filter-location-checkbox').forEach(checkbox => {
+        checkbox.checked = selectedLocations.includes(checkbox.value);
+    });
+    locationMultiSelect.updateTriggerText();
 
     buildCharts();
     loadMatrixData(new URLSearchParams(window.location.search));
