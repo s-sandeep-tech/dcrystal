@@ -3402,6 +3402,7 @@ class PartyOrderLifecycleSnapshot(db.Model):
     order_type = db.Column(db.Text)
     provision_type = db.Column(db.Text)
     party = db.Column(db.String(250))
+    location = db.Column(db.String(250))
     party_id = db.Column(db.Integer)
     make = db.Column(db.String(100))
     make_owner = db.Column(db.String(250))
@@ -3427,6 +3428,7 @@ class PartyOrderLifecycleSnapshot(db.Model):
         db.Index('ix_party_lifecycle_class_owner_code', 'classification_owner_emp_code'),
         db.Index('ix_party_lifecycle_make_owner_code', 'make_owner_emp_code'),
         db.Index('ix_party_lifecycle_collection_owner_code', 'collection_owner_emp_code'),
+        db.Index('ix_party_lifecycle_location', 'location'),
     )
 
 
