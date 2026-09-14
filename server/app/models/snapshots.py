@@ -3528,3 +3528,56 @@ class WeeklyDeliveryOrderSummarySnapshot(db.Model):
     hallmark_completed_weight = db.Column(db.Numeric(18, 3), default=0.0)
     qc_completed_weight = db.Column(db.Numeric(18, 3), default=0.0)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PartyMakeCapacityDetailsSnapshot(db.Model):
+    __tablename__ = 'party_make_capacity_details_snapshot'
+
+    id = db.Column(
+        db.BigInteger().with_variant(db.Integer, 'sqlite'),
+        primary_key=True,
+        autoincrement=True,
+    )
+    supplier = db.Column(db.String(255), index=True)
+    make = db.Column(db.String(150), index=True)
+    party_capacity_kg = db.Column(db.Numeric(14, 4), default=0.0)
+    order_ro = db.Column(db.String(100), index=True)
+    location = db.Column(db.String(150), index=True)
+    provision_type = db.Column(db.Text, index=True)
+    branch_type = db.Column(db.Text, index=True)
+    is_msme = db.Column(db.Boolean, default=False, index=True)
+    group_name = db.Column('group', db.String(150), index=True)
+    purity = db.Column(db.String(50), index=True)
+    division = db.Column(db.String(100), index=True)
+    classification = db.Column(db.String(150), index=True)
+    collection = db.Column(db.String(150), index=True)
+    order_type = db.Column(db.String(100), index=True)
+    order_request_type = db.Column(db.String(100), index=True)
+
+    process_pending_pcs = db.Column(db.BigInteger, default=0)
+    process_pending_wt = db.Column(db.Numeric(18, 3), default=0.0)
+    barcode_pending_pcs = db.Column(db.BigInteger, default=0)
+    barcode_pending_wt = db.Column(db.Numeric(18, 3), default=0.0)
+    hallmark_pending_pcs = db.Column(db.BigInteger, default=0)
+    hallmark_pending_wt = db.Column(db.Numeric(18, 3), default=0.0)
+    qc_issue_pending_pcs = db.Column(db.BigInteger, default=0)
+    qc_issue_pending_wt = db.Column(db.Numeric(18, 3), default=0.0)
+    qc_complete_pending_pcs = db.Column(db.BigInteger, default=0)
+    qc_complete_pending_wt = db.Column(db.Numeric(18, 3), default=0.0)
+    invoice_pending_pcs = db.Column(db.BigInteger, default=0)
+    invoice_pending_wt = db.Column(db.Numeric(18, 3), default=0.0)
+    receipt_pending_pcs = db.Column(db.BigInteger, default=0)
+    receipt_pending_wt = db.Column(db.Numeric(18, 3), default=0.0)
+    total_pcs = db.Column(db.BigInteger, default=0)
+    total_wt = db.Column(db.Numeric(18, 3), default=0.0)
+
+    snapshot_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def to_dict(self):
+        return {
+            c.name: getattr(self, c.name).isoformat()
+            if isinstance(getattr(self, c.name), (datetime, date))
+            else getattr(self, c.name)
+            for c in self.__table__.columns
+        }

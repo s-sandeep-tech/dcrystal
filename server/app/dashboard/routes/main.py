@@ -144,6 +144,16 @@ def sync_active_order_details():
     return result, 200 if result.get('status') == 'success' else 500
 
 
+@dashboard_bp.route('/settings/sync-party-make-capacity-details', methods=['POST'])
+def sync_party_make_capacity_details():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
+        
+    from app.utils.sync_manager import sync_party_make_capacity_details_data
+    result = sync_party_make_capacity_details_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500
+
+
 @dashboard_bp.route('/settings/sync-owner-showroom', methods=['POST'])
 def sync_owner_and_showroom_wise():
     """Enqueues the combined Owner Wise + Showroom Wise Order Summary sync task."""

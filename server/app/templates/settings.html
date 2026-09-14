@@ -747,6 +747,22 @@
                                     </div>
                                     <button id="sync-weekly-delivery-order-summary-btn"
                                         class="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-blue-600 transition-all shadow-md shadow-blue-500/20">
+                                </div>
+
+                                <div id="sync-wrapper-party_make_capacity_details"
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-purple-500 text-xl">balance</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Supplier Capacity Plan Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh from ext_view.vw_party_make_capacity_details</p>
+                                            <span class="text-[9px] font-black text-purple-600 dark:text-purple-400/90 block mt-1 uppercase tracking-wider">Manual Sync</span>
+                                        </div>
+                                    </div>
+                                    <button id="sync-party-make-capacity-details-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-purple-600 transition-all shadow-md shadow-purple-500/20">
                                         <span class="material-symbols-outlined text-[14px]">sync</span>
                                         Sync Now
                                     </button>
@@ -1481,6 +1497,7 @@
             syncPartyPerformanceMatrixUrl: "{{ url_for('dashboard.settings_sync_party_performance_matrix') }}",
             syncLocationWiseOldGoldSettlementTransferUrl: "{{ url_for('dashboard.sync_location_wise_old_gold_settlement_transfer') }}",
             syncWeeklyDeliveryOrderSummaryUrl: "{{ url_for('dashboard.settings_sync_weekly_delivery_order_summary') }}",
+            syncPartyMakeCapacityDetailsUrl: "{{ url_for('dashboard.sync_party_make_capacity_details') }}",
             syncLogsUrl: "{{ url_for('dashboard.get_sync_logs') }}",
 
 

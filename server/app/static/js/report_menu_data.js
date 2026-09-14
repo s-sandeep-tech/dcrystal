@@ -62,6 +62,14 @@ window.REPORT_MENU_DATA = [
                 tags: ["pending", "order", "details", "owner"]
             },
             {
+                id: "party-make-capacity",
+                title: "Supplier Capacity Plan Report",
+                href: "/party-make-capacity-report",
+                icon: "balance",
+                description: "Analyze supplier monthly production capacity vs WIP stage backlog with hierarchical drill-down and bottleneck detection.",
+                tags: ["supplier", "party", "capacity", "make", "wip", "backlog", "pending", "diff"]
+            },
+            {
                 id: "owner-wise-order",
                 title: "Owner Wise Order Summary",
                 href: "/ownerwiseordersummary",

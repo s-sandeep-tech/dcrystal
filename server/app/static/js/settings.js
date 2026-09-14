@@ -173,6 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncPartyPerformanceMatrixBtn = document.getElementById('sync-party-performance-matrix-btn');
     const syncLocationWiseOldGoldBtn = document.getElementById('sync-location-wise-old-gold-btn');
     const syncWeeklyDeliveryOrderSummaryBtn = document.getElementById('sync-weekly-delivery-order-summary-btn');
+    const syncPartyMakeCapacityDetailsBtn = document.getElementById('sync-party-make-capacity-details-btn');
     const syncAllBtn = document.getElementById('sync-all-btn');
 
 
@@ -242,6 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncPartyPerformanceMatrixBtn) syncPartyPerformanceMatrixBtn.addEventListener('click', () => triggerSync(syncPartyPerformanceMatrixBtn, window.SETTINGS_CONFIG.syncPartyPerformanceMatrixUrl, 'Party Performance Matrix Sync', 'party_performance_matrix'));
     if (syncLocationWiseOldGoldBtn) syncLocationWiseOldGoldBtn.addEventListener('click', () => triggerSync(syncLocationWiseOldGoldBtn, window.SETTINGS_CONFIG.syncLocationWiseOldGoldSettlementTransferUrl, 'Location-wise Old Gold Settlement & Transfer Sync', 'location_wise_old_gold_settlement_transfer'));
     if (syncWeeklyDeliveryOrderSummaryBtn) syncWeeklyDeliveryOrderSummaryBtn.addEventListener('click', () => triggerSync(syncWeeklyDeliveryOrderSummaryBtn, window.SETTINGS_CONFIG.syncWeeklyDeliveryOrderSummaryUrl, 'Weekly Delivery Order Summary Sync', 'weekly_delivery_order_summary'));
+    if (syncPartyMakeCapacityDetailsBtn) syncPartyMakeCapacityDetailsBtn.addEventListener('click', () => triggerSync(syncPartyMakeCapacityDetailsBtn, window.SETTINGS_CONFIG.syncPartyMakeCapacityDetailsUrl, 'Supplier Capacity Plan Sync', 'party_make_capacity_details'));
 
 
 

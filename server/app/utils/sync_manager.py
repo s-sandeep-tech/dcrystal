@@ -237,3 +237,7 @@ def sync_location_wise_old_gold_settlement_transfer_data(user_id=None):
 
 def sync_weekly_delivery_order_summary_data(user_id=None):
     return enqueue_sync_task('weekly_delivery_order_summary', user_id)
+
+
+def sync_party_make_capacity_details_data(user_id=None):
+    return enqueue_sync_task('party_make_capacity_details', user_id)
