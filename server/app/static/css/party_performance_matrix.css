@@ -617,6 +617,10 @@
     margin-bottom: 12px;
 }
 
+.party-matrix-sidebar-body > #matrix-filter-party {
+    z-index: 21;
+}
+
 .party-matrix-sidebar select {
     width: 100%;
     margin-top: 5px;
