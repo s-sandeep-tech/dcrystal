@@ -255,6 +255,16 @@ function renderTableRows(suppliers) {
                 ${formatNumber(sup.capacity_wt_kg_per_month, 3)}
             </td>
 
+            <!-- Col 11: Total Wt in KG -->
+            <td class="px-2 py-2 text-right border-r border-gray-200 dark:border-gray-800 font-extrabold text-gray-900 dark:text-gray-100">
+                ${formatNumber(sup.total_wt_in_kg, 4)}
+            </td>
+
+            <!-- Col 12: Diff (KG) -->
+            <td class="px-2 py-2 text-right border-r border-gray-200 dark:border-gray-800 ${diffColor}">
+                ${diffSign}${formatNumber(sup.diff, 3)}
+            </td>
+
             <!-- Col 4: Process Wt -->
             <td class="px-2 py-2 text-right border-r border-gray-200 dark:border-gray-800">${formatNumber(sup.process_pending_wt, 3)}</td>
 
@@ -278,16 +288,6 @@ function renderTableRows(suppliers) {
             <!-- Col 10: Total WIP Wt (g) -->
             <td class="px-2 py-2 text-right border-r border-gray-200 dark:border-gray-800 font-extrabold text-gray-900 dark:text-gray-100">
                 ${formatNumber(sup.total_wt, 3)}
-            </td>
-
-            <!-- Col 11: Total Wt in KG -->
-            <td class="px-2 py-2 text-right border-r border-gray-200 dark:border-gray-800 font-extrabold text-gray-900 dark:text-gray-100">
-                ${formatNumber(sup.total_wt_in_kg, 4)}
-            </td>
-
-            <!-- Col 12: Diff (KG) -->
-            <td class="px-2 py-2 text-right border-r border-gray-200 dark:border-gray-800 ${diffColor}">
-                ${diffSign}${formatNumber(sup.diff, 3)}
             </td>
 
             <!-- Col 13: Utilization % -->
@@ -352,6 +352,16 @@ function renderTableRows(suppliers) {
                     ${formatNumber(m.capacity_wt_kg_per_month, 3)}
                 </td>
 
+                <!-- Col 11: Total Wt in KG -->
+                <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800 font-bold">
+                    ${formatNumber(m.total_wt_in_kg, 4)}
+                </td>
+
+                <!-- Col 12: Diff (KG) -->
+                <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800 ${mDiffColor}">
+                    ${mDiffSign}${formatNumber(m.diff, 3)}
+                </td>
+
                 <!-- Col 4: Process Wt -->
                 <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800">${formatNumber(m.process_pending_wt, 3)}</td>
 
@@ -375,16 +385,6 @@ function renderTableRows(suppliers) {
                 <!-- Col 10: Total WIP Wt (g) -->
                 <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800 font-bold">
                     ${formatNumber(m.total_wt, 3)}
-                </td>
-
-                <!-- Col 11: Total Wt in KG -->
-                <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800 font-bold">
-                    ${formatNumber(m.total_wt_in_kg, 4)}
-                </td>
-
-                <!-- Col 12: Diff (KG) -->
-                <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800 ${mDiffColor}">
-                    ${mDiffSign}${formatNumber(m.diff, 3)}
                 </td>
 
                 <!-- Col 13: Utilization % -->

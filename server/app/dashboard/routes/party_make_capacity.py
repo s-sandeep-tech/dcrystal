@@ -543,10 +543,10 @@ def api_party_make_capacity_export():
         red_font = Font(name="Calibri", size=9, bold=True, color="DC2626")
 
         headers = [
-            "supplier", "make", "Actual Capacity (kg)",
+            "supplier", "make", "Actual Capacity (kg)", "Total Pending (kg)", "Balance (kg)",
             "process_pending_wt", "barcode_pending_wt", "hallmark_pending_wt",
             "qc_issue_pending_wt", "qc_complete_pending_wt", "invoice_pending_wt",
-            "total_wt", "total_wt in kg", "diff", "utilization_pct",
+            "total_wt", "utilization_pct",
             "primary_bottleneck", "qc_rework_pct", "receipt_pending_wt", "ro_count"
         ]
 
@@ -568,6 +568,8 @@ def api_party_make_capacity_export():
                 sup['supplier'],
                 f"ALL MAKES ({len(sup['makes'])})",
                 sup['capacity_wt_kg_per_month'],
+                sup['total_wt_in_kg'],
+                sup['diff'],
                 sup['process_pending_wt'],
                 sup['barcode_pending_wt'],
                 sup['hallmark_pending_wt'],
@@ -575,8 +577,6 @@ def api_party_make_capacity_export():
                 sup['qc_complete_pending_wt'],
                 sup['invoice_pending_wt'],
                 sup['total_wt'],
-                sup['total_wt_in_kg'],
-                sup['diff'],
                 f"{sup['utilization_pct']}%",
                 sup['primary_bottleneck'],
                 f"{sup['qc_rework_pct']}%",
@@ -598,6 +598,8 @@ def api_party_make_capacity_export():
                     f"  ↳ {sup['supplier']}",
                     m['make'],
                     m['capacity_wt_kg_per_month'],
+                    m['total_wt_in_kg'],
+                    m['diff'],
                     m['process_pending_wt'],
                     m['barcode_pending_wt'],
                     m['hallmark_pending_wt'],
@@ -605,8 +607,6 @@ def api_party_make_capacity_export():
                     m['qc_complete_pending_wt'],
                     m['invoice_pending_wt'],
                     m['total_wt'],
-                    m['total_wt_in_kg'],
-                    m['diff'],
                     f"{m['utilization_pct']}%",
                     m['primary_bottleneck'],
                     f"{m['qc_rework_pct']}%",
@@ -617,7 +617,7 @@ def api_party_make_capacity_export():
                 for col_idx, cell in enumerate(ws[row_num], 1):
                     cell.font = child_font
                     cell.border = cell_border
-                    if col_idx == 12: # diff column
+                    if col_idx == 5: # Balance column
                         cell.font = red_font if m['diff'] < 0 else green_font
                     if isinstance(cell.value, (int, float)):
                         cell.number_format = "#,##0.000" if isinstance(cell.value, float) else "#,##0"
