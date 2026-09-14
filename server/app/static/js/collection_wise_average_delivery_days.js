@@ -214,6 +214,14 @@ function renderSupplierDeliveryTimes(data) {
         countBadge.textContent = `${formatCollectionSummaryNumber(count)} supplier${count === 1 ? '' : 's'}`;
     }
 
+    const dayScale = suppliers.reduce((maximum, supplier) => Math.max(
+        maximum,
+        Number(supplier.delivery_days) || 0,
+        Number(supplier.actual_avg_days) || 0,
+        Number(supplier.oldest_inshop_pending_days) || 0
+    ), 1);
+    const dayWidth = value => `${Math.min(100, Math.max(0, (Number(value) || 0) / dayScale * 100))}%`;
+
     suppliers.forEach(supplier => {
         const row = document.createElement('div');
         row.className = 'grid grid-cols-[minmax(0,140px)_minmax(90px,1fr)_68px] sm:grid-cols-[minmax(0,260px)_minmax(120px,1fr)_78px] items-center gap-3';
@@ -262,7 +270,7 @@ function renderSupplierDeliveryTimes(data) {
         identity.append(name, performance, pending);
 
         const track = document.createElement('div');
-        track.className = 'relative h-4 overflow-hidden rounded bg-gray-100 dark:bg-gray-800';
+        track.className = 'flex flex-col gap-1 min-w-0';
         track.title = `Configured target: ${supplier.delivery_days || 0} days${
             oldestPendingDays === null || oldestPendingDays === undefined
                 ? '; no Muziris in-shop pending'
@@ -270,8 +278,16 @@ function renderSupplierDeliveryTimes(data) {
         }`;
 
         const targetBar = document.createElement('div');
-        targetBar.className = 'absolute left-0 top-0 h-[7px] rounded bg-primary transition-[width] duration-300';
-        targetBar.style.width = `${Math.min(Math.max(Number(supplier.progress_percent || 0), 0), 100)}%`;
+        targetBar.className = 'h-[7px] rounded bg-primary transition-[width] duration-300';
+        targetBar.style.width = dayWidth(supplier.delivery_days);
+        targetBar.title = `Target: ${supplier.delivery_days || 0} days`;
+
+        const completedBar = document.createElement('div');
+        completedBar.className = 'h-[7px] rounded bg-violet-500 transition-[width] duration-300';
+        completedBar.style.width = dayWidth(supplier.actual_avg_days);
+        completedBar.title = supplier.actual_avg_days == null
+            ? 'No completed delivery data'
+            : `Completed average: ${actualAverage} (order to office receipt)`;
 
         const pendingBar = document.createElement('div');
         const pendingBarClasses = {
@@ -279,14 +295,20 @@ function renderSupplierDeliveryTimes(data) {
             near_target: 'bg-amber-500',
             past_target: 'bg-red-500'
         };
-        pendingBar.className = `absolute bottom-0 left-0 h-[7px] rounded transition-[width] duration-300 ${
+        pendingBar.className = `h-[7px] rounded transition-[width] duration-300 ${
             pendingBarClasses[supplier.pending_status] || 'bg-transparent'
         }`;
-        pendingBar.style.width = `${Math.min(
-            Math.max(Number(supplier.pending_progress_percent || 0), 0),
-            100
-        )}%`;
-        track.append(targetBar, pendingBar);
+        pendingBar.style.width = dayWidth(pendingCount ? oldestPendingDays : 0);
+        pendingBar.title = pending.textContent;
+        [targetBar, completedBar, pendingBar].forEach(bar => {
+            const lane = document.createElement('div');
+            lane.className = 'h-[7px] overflow-hidden rounded bg-gray-100 dark:bg-gray-800';
+            lane.title = bar.title;
+            lane.setAttribute('role', 'img');
+            lane.setAttribute('aria-label', bar.title);
+            lane.appendChild(bar);
+            track.appendChild(lane);
+        });
 
         const days = document.createElement('p');
         days.className = 'text-right text-[10px] font-bold text-gray-900 dark:text-white tabular-nums whitespace-nowrap';
