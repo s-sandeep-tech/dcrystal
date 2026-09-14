@@ -321,6 +321,8 @@ def build_snapshot_query(args):
 def build_collection_summary_query(args):
     snapshot = CollectionWiseAverageDeliveryDaysSnapshot
     tat_days = snapshot.morr_received_date - snapshot.ordered_date
+    office_age = func.coalesce(snapshot.morr_received_date, func.current_date()) - snapshot.ordered_date
+    office_pending = and_(snapshot.morr_received_date.is_(None), snapshot.ordered_date.isnot(None))
     office_to_shop_days = case(
         (
             and_(
@@ -366,6 +368,11 @@ def build_collection_summary_query(args):
         'max_office_to_shop_days': func.max(office_to_shop_days),
         'office_to_shop_completed_count': func.count(office_to_shop_days),
         'avg_delivery_days': func.avg(snapshot.delivery_days),
+        'combined_avg_days': func.avg(office_age),
+        'completed_day_contribution': func.sum(case((snapshot.morr_received_date.isnot(None), office_age), else_=0)) * 1.0 / func.nullif(func.count(office_age), 0),
+        'pending_day_contribution': func.sum(case((office_pending, office_age), else_=0)) * 1.0 / func.nullif(func.count(office_age), 0),
+        'office_pending_count': func.sum(case((office_pending, 1), else_=0)),
+        'office_overdue_count': func.sum(case((and_(office_pending, office_age > snapshot.delivery_days), 1), else_=0)),
         'avg_sla_variance': func.avg(sla_variance),
         'compliance_pct': compliant_count * 100.0 / func.nullif(completed_count, 0),
         'delayed_count': func.sum(
@@ -432,6 +439,11 @@ def build_collection_summary_display_rows(rows):
                     else None
                 ),
                 'office_to_shop_completed_count': int(row.office_to_shop_completed_count or 0),
+                'combined_avg_days': float(row.combined_avg_days) if row.combined_avg_days is not None else None,
+                'completed_day_contribution': float(row.completed_day_contribution) if row.completed_day_contribution is not None else None,
+                'pending_day_contribution': float(row.pending_day_contribution) if row.pending_day_contribution is not None else None,
+                'office_pending_count': int(row.office_pending_count or 0),
+                'office_overdue_count': int(row.office_overdue_count or 0),
                 'avg_delivery_days': (
                     float(row.avg_delivery_days)
                     if row.avg_delivery_days is not None

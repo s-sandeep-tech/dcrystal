@@ -414,10 +414,7 @@ function openCollectionSummaryModal(detail) {
         complianceBadge.className = `inline-flex rounded px-2 py-1 text-[9px] font-bold uppercase tracking-wider ${colorClass}`;
     }
 
-    const complianceBar = document.getElementById('collection-summary-compliance-bar');
-    if (complianceBar) {
-        complianceBar.style.width = `${Math.min(Math.max(compliance, 0), 100)}%`;
-    }
+    renderCollectionSummaryTiming(detail);
 
     collectionSummaryPreviousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -598,6 +595,57 @@ function renderDeliveryTimeline(stages) {
 
         list.appendChild(item);
     });
+}
+
+function renderCollectionSummaryTiming(detail) {
+    const container = document.getElementById('collection-summary-timing-bars');
+    if (!container) return;
+    container.replaceChildren();
+    const target = detail.avg_delivery_days;
+    const average = detail.combined_avg_days;
+    const scale = Math.max(Number(target) || 0, Number(average) || 0) || 1;
+    const completed = detail.completed_day_contribution;
+    const pending = detail.pending_day_contribution;
+    const labels = document.createElement('div');
+    labels.className = 'flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[10px] mb-2';
+    [
+        ['Target (avg)', target, 'bg-primary'],
+        ['Completed contribution', completed, 'bg-emerald-300 dark:bg-emerald-600'],
+        ['Pending contribution', pending, 'bg-yellow-400'],
+        ['Combined average', average, 'bg-gray-400']
+    ].forEach(([label, value, swatchColor]) => {
+        const item = document.createElement('span');
+        item.className = 'inline-flex items-center gap-2 text-gray-500';
+        const swatch = document.createElement('span');
+        swatch.className = `h-1.5 w-4 rounded ${swatchColor}`;
+        swatch.setAttribute('aria-hidden', 'true');
+        const text = document.createElement('span');
+        text.textContent = `${label}: ${value == null ? '\u2014' : formatCollectionSummaryNumber(value, 1) + ' days'}`;
+        item.append(swatch, text);
+        labels.appendChild(item);
+    });
+    const track = document.createElement('div');
+    track.className = 'relative overflow-hidden rounded bg-gray-100 dark:bg-gray-800';
+    track.style.height = '12px';
+    track.setAttribute('role', 'img');
+    track.setAttribute('aria-label', labels.textContent);
+    track.title = 'Blue: target. Green: completed day contribution. Yellow: pending day contribution. Contributions sum to the combined average, using all dated records as the denominator.';
+    const body = document.createElement('div');
+    body.className = 'absolute left-0 bottom-0 flex';
+    body.style.height = '9px';
+    body.style.width = `${Math.max(0, Number(average) || 0) / scale * 100}%`;
+    [[completed, 'bg-emerald-300 dark:bg-emerald-600'], [pending, 'bg-yellow-400']].forEach(([value, segmentColor]) => {
+        const segment = document.createElement('div');
+        segment.className = `h-full ${segmentColor}`;
+        segment.style.width = `${Number(average) > 0 ? Math.max(0, Number(value) || 0) / Number(average) * 100 : 0}%`;
+        body.appendChild(segment);
+    });
+    const targetStrip = document.createElement('div');
+    targetStrip.className = 'absolute left-0 top-0 bg-primary';
+    targetStrip.style.height = '3px';
+    targetStrip.style.width = `${Math.max(0, Number(target) || 0) / scale * 100}%`;
+    track.append(body, targetStrip);
+    container.append(labels, track);
 }
 
 function renderDeliveryTimingProgress(detail) {
