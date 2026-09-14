@@ -265,6 +265,28 @@ function renderTableRows(suppliers) {
                 ${diffSign}${formatNumber(sup.diff, 3)}
             </td>
 
+            <!-- Col 13: Utilization % -->
+            <td class="px-2 py-2 border-r border-gray-200 dark:border-gray-800">
+                <div class="flex items-center gap-1.5 justify-end">
+                    <span class="font-bold text-[10px] ${utilTextColor}">${sup.utilization_pct}%</span>
+                    <div class="w-10 bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
+                        <div class="${utilColor} h-full rounded-full" style="width: ${Math.min(100, sup.utilization_pct)}%"></div>
+                    </div>
+                </div>
+            </td>
+
+            <!-- Col 14: Primary Bottleneck Stage -->
+            <td class="px-2 py-2 text-center border-r border-gray-200 dark:border-gray-800">
+                <span class="inline-block px-1.5 py-0.5 rounded text-[8px] font-bold ${getBottleneckBadgeClass(sup.primary_bottleneck)}">
+                    ${sup.primary_bottleneck}
+                </span>
+            </td>
+
+            <!-- Col 15: QC Rework % -->
+            <td class="px-2 py-2 text-right border-r border-gray-200 dark:border-gray-800 ${sup.qc_rework_pct > 5 ? 'text-rose-600 font-bold' : 'text-gray-500'}">
+                ${sup.qc_rework_pct}%
+            </td>
+
             <!-- Col 4: Process Wt -->
             <td class="px-2 py-2 text-right border-r border-gray-200 dark:border-gray-800">${formatNumber(sup.process_pending_wt, 3)}</td>
 
@@ -288,28 +310,6 @@ function renderTableRows(suppliers) {
             <!-- Col 10: Total WIP Wt (g) -->
             <td class="px-2 py-2 text-right border-r border-gray-200 dark:border-gray-800 font-extrabold text-gray-900 dark:text-gray-100">
                 ${formatNumber(sup.total_wt, 3)}
-            </td>
-
-            <!-- Col 13: Utilization % -->
-            <td class="px-2 py-2 border-r border-gray-200 dark:border-gray-800">
-                <div class="flex items-center gap-1.5 justify-end">
-                    <span class="font-bold text-[10px] ${utilTextColor}">${sup.utilization_pct}%</span>
-                    <div class="w-10 bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
-                        <div class="${utilColor} h-full rounded-full" style="width: ${Math.min(100, sup.utilization_pct)}%"></div>
-                    </div>
-                </div>
-            </td>
-
-            <!-- Col 14: Primary Bottleneck Stage -->
-            <td class="px-2 py-2 text-center border-r border-gray-200 dark:border-gray-800">
-                <span class="inline-block px-1.5 py-0.5 rounded text-[8px] font-bold ${getBottleneckBadgeClass(sup.primary_bottleneck)}">
-                    ${sup.primary_bottleneck}
-                </span>
-            </td>
-
-            <!-- Col 15: QC Rework % -->
-            <td class="px-2 py-2 text-right border-r border-gray-200 dark:border-gray-800 ${sup.qc_rework_pct > 5 ? 'text-rose-600 font-bold' : 'text-gray-500'}">
-                ${sup.qc_rework_pct}%
             </td>
 
             <!-- Col 16: In-Transit Lag Wt -->
@@ -362,6 +362,23 @@ function renderTableRows(suppliers) {
                     ${mDiffSign}${formatNumber(m.diff, 3)}
                 </td>
 
+                <!-- Col 13: Utilization % -->
+                <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800">
+                    <span class="text-[9px] font-semibold">${m.utilization_pct}%</span>
+                </td>
+
+                <!-- Col 14: Bottleneck Stage -->
+                <td class="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-800">
+                    <span class="inline-block px-1 py-0.2 rounded text-[7px] font-bold ${getBottleneckBadgeClass(m.primary_bottleneck)}">
+                        ${m.primary_bottleneck}
+                    </span>
+                </td>
+
+                <!-- Col 15: QC Rework % -->
+                <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800 text-gray-500">
+                    ${m.qc_rework_pct}%
+                </td>
+
                 <!-- Col 4: Process Wt -->
                 <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800">${formatNumber(m.process_pending_wt, 3)}</td>
 
@@ -385,23 +402,6 @@ function renderTableRows(suppliers) {
                 <!-- Col 10: Total WIP Wt (g) -->
                 <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800 font-bold">
                     ${formatNumber(m.total_wt, 3)}
-                </td>
-
-                <!-- Col 13: Utilization % -->
-                <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800">
-                    <span class="text-[9px] font-semibold">${m.utilization_pct}%</span>
-                </td>
-
-                <!-- Col 14: Bottleneck Stage -->
-                <td class="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-800">
-                    <span class="inline-block px-1 py-0.2 rounded text-[7px] font-bold ${getBottleneckBadgeClass(m.primary_bottleneck)}">
-                        ${m.primary_bottleneck}
-                    </span>
-                </td>
-
-                <!-- Col 15: QC Rework % -->
-                <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800 text-gray-500">
-                    ${m.qc_rework_pct}%
                 </td>
 
                 <!-- Col 16: Transit Lag Wt -->

@@ -544,10 +544,10 @@ def api_party_make_capacity_export():
 
         headers = [
             "supplier", "make", "Actual Capacity (kg)", "Total Pending (kg)", "Balance (kg)",
+            "utilization_pct", "primary_bottleneck", "qc_rework_pct",
             "process_pending_wt", "barcode_pending_wt", "hallmark_pending_wt",
             "qc_issue_pending_wt", "qc_complete_pending_wt", "invoice_pending_wt",
-            "total_wt", "utilization_pct",
-            "primary_bottleneck", "qc_rework_pct", "receipt_pending_wt", "ro_count"
+            "total_wt", "receipt_pending_wt", "ro_count"
         ]
 
         ws.append(headers)
@@ -570,6 +570,9 @@ def api_party_make_capacity_export():
                 sup['capacity_wt_kg_per_month'],
                 sup['total_wt_in_kg'],
                 sup['diff'],
+                f"{sup['utilization_pct']}%",
+                sup['primary_bottleneck'],
+                f"{sup['qc_rework_pct']}%",
                 sup['process_pending_wt'],
                 sup['barcode_pending_wt'],
                 sup['hallmark_pending_wt'],
@@ -577,9 +580,6 @@ def api_party_make_capacity_export():
                 sup['qc_complete_pending_wt'],
                 sup['invoice_pending_wt'],
                 sup['total_wt'],
-                f"{sup['utilization_pct']}%",
-                sup['primary_bottleneck'],
-                f"{sup['qc_rework_pct']}%",
                 sup['receipt_pending_wt'],
                 sup['ro_count']
             ]
@@ -600,6 +600,9 @@ def api_party_make_capacity_export():
                     m['capacity_wt_kg_per_month'],
                     m['total_wt_in_kg'],
                     m['diff'],
+                    f"{m['utilization_pct']}%",
+                    m['primary_bottleneck'],
+                    f"{m['qc_rework_pct']}%",
                     m['process_pending_wt'],
                     m['barcode_pending_wt'],
                     m['hallmark_pending_wt'],
@@ -607,9 +610,6 @@ def api_party_make_capacity_export():
                     m['qc_complete_pending_wt'],
                     m['invoice_pending_wt'],
                     m['total_wt'],
-                    f"{m['utilization_pct']}%",
-                    m['primary_bottleneck'],
-                    f"{m['qc_rework_pct']}%",
                     m['receipt_pending_wt'],
                     m['ro_count']
                 ]
