@@ -10,6 +10,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def owner_group_value(column):
+    return func.coalesce(func.nullif(func.trim(column), ''), 'Unknown')
+
+
 def split_filter_values(value):
     return [v.strip() for v in (value or '').split(',') if v.strip()]
 
@@ -283,6 +287,7 @@ def pending_order_details():
             func.sum(PendingOrderDetailsSnapshot.total_weight).label('tot_wt')
         ]
 
+        group_cols = [owner_group_value(column) for column in group_cols]
         main_q = db.session.query(*(group_cols + row_agg_cols))
         main_q = apply_filters(main_q)
         main_q = main_q.group_by(*group_cols).order_by(*group_cols)
@@ -371,11 +376,11 @@ def get_pending_order_details_partial():
                 query = query.filter(PendingOrderDetailsSnapshot.supplier == supplier)
             
             if parent_level == 'classification_owner':
-                query = query.filter(PendingOrderDetailsSnapshot.classification_owner == parent_value)
+                query = query.filter(owner_group_value(PendingOrderDetailsSnapshot.classification_owner) == parent_value)
             elif parent_level == 'make_owner':
                 query = query.filter(
-                    PendingOrderDetailsSnapshot.classification_owner == grandparent_value,
-                    PendingOrderDetailsSnapshot.make_owner == parent_value
+                    owner_group_value(PendingOrderDetailsSnapshot.classification_owner) == grandparent_value,
+                    owner_group_value(PendingOrderDetailsSnapshot.make_owner) == parent_value
                 )
             else:
                 if classification_owner:
@@ -459,6 +464,7 @@ def get_pending_order_details_partial():
             func.sum(PendingOrderDetailsSnapshot.total_weight).label('tot_wt')
         ]
 
+        group_cols = [owner_group_value(column) for column in group_cols]
         main_q = db.session.query(*(group_cols + row_agg_cols))
         main_q = apply_filters(main_q)
         main_q = main_q.group_by(*group_cols).order_by(*group_cols)
@@ -538,9 +544,9 @@ def get_pending_order_details_leaf_detail():
         parent_collection_owner = request.args.get('parent_collection_owner', '')
 
         query = PendingOrderDetailsSnapshot.query.filter(
-            PendingOrderDetailsSnapshot.classification_owner == parent_classification_owner,
-            PendingOrderDetailsSnapshot.make_owner == parent_make_owner,
-            PendingOrderDetailsSnapshot.collection_owner == parent_collection_owner
+            owner_group_value(PendingOrderDetailsSnapshot.classification_owner) == parent_classification_owner,
+            owner_group_value(PendingOrderDetailsSnapshot.make_owner) == parent_make_owner,
+            owner_group_value(PendingOrderDetailsSnapshot.collection_owner) == parent_collection_owner
         )
 
         if search:
