@@ -53,7 +53,11 @@
                     <span id="collection-summary-compliance-badge"
                         class="inline-flex rounded px-2 py-1 text-[9px] font-bold uppercase tracking-wider">-</span>
                 </div>
-                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div class="rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 px-3 py-2.5" title="Average configured delivery target across the filtered records">
+                        <p class="text-[8px] font-bold uppercase tracking-wider text-gray-400">Target (avg)</p>
+                        <p id="collection-summary-target" class="mt-1 text-sm font-bold text-primary tabular-nums">-</p>
+                    </div>
                     <div class="rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 px-3 py-2.5">
                         <p class="text-[8px] font-bold uppercase tracking-wider text-gray-400">Average</p>
                         <p id="collection-summary-average" class="mt-1 text-sm font-bold tabular-nums">-</p>
@@ -144,15 +148,14 @@
                 <div id="collection-summary-supplier-columns"
                     class="hidden mt-3 grid-cols-[minmax(0,140px)_minmax(90px,1fr)_68px] sm:grid-cols-[minmax(0,260px)_minmax(120px,1fr)_78px] items-center gap-3 text-[7px] font-bold uppercase tracking-wider text-gray-400">
                     <span>Supplier Performance</span>
-                    <span>Target / Completed / Pending Age</span>
-                    <span class="text-right">Configured Days</span>
+                    <span>Target / Completed + Pending (Avg Days)</span>
+                    <span class="text-right">Days</span>
                 </div>
                 <div id="collection-summary-supplier-legend"
                     class="hidden mt-2 flex-wrap items-center gap-x-3 gap-y-1 text-[8px] text-gray-500 dark:text-gray-400">
                     <span class="inline-flex items-center gap-1"><span class="h-1.5 w-4 rounded bg-primary"></span>Target</span>
-                    <span class="inline-flex items-center gap-1" title="Average days from order to office receipt"><span class="h-1.5 w-4 rounded bg-violet-500"></span>Completed (avg days)</span>
-                    <span class="inline-flex items-center gap-1"><span class="h-1.5 w-4 rounded bg-emerald-500"></span>Pending within target</span>
-                    <span class="inline-flex items-center gap-1"><span class="h-1.5 w-4 rounded bg-amber-500"></span>Near target</span>
+                    <span class="inline-flex items-center gap-1"><span class="h-1.5 w-4 rounded bg-emerald-500"></span>Within target</span>
+                    <span class="inline-flex items-center gap-1"><span class="h-1.5 w-4 rounded bg-amber-500"></span>Pending within target</span>
                     <span class="inline-flex items-center gap-1"><span class="h-1.5 w-4 rounded bg-red-500"></span>Past target</span>
                 </div>
                 <div id="collection-summary-supplier-list"

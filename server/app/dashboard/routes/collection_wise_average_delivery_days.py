@@ -564,6 +564,7 @@ def get_collection_wise_average_delivery_days_collection_rows():
         )
     except Exception as e:
         logger.error(f"Error rendering collection delivery detail rows: {str(e)}")
+        db.session.rollback()
         return render_template(
             'partials/_view_collection_wise_average_delivery_days_rows.html',
             rows=[],
@@ -585,6 +586,8 @@ def get_collection_supplier_delivery_times():
         snapshot = CollectionWiseAverageDeliveryDaysSnapshot
         supplier_days = func.max(snapshot.delivery_days)
         tat_days = snapshot.morr_received_date - snapshot.ordered_date
+        office_age = func.coalesce(snapshot.morr_received_date, func.current_date()) - snapshot.ordered_date
+        office_pending = and_(snapshot.morr_received_date.is_(None), snapshot.ordered_date.isnot(None))
         is_inshop_pending = and_(
             snapshot.morr_received_date.isnot(None),
             snapshot.muziris_inshop_received_date.is_(None),
@@ -614,6 +617,9 @@ def get_collection_supplier_delivery_times():
                 supplier_days.label('delivery_days'),
                 func.count(distinct(snapshot.barcode_no)).label('barcode_count'),
                 func.avg(tat_days).label('actual_avg_days'),
+                func.avg(office_age).label('combined_avg_days'),
+                func.sum(case((office_pending, 1), else_=0)).label('office_pending_count'),
+                func.sum(case((and_(office_pending, office_age > snapshot.delivery_days), 1), else_=0)).label('office_overdue_count'),
                 func.avg(tat_days - snapshot.delivery_days).label('avg_variance_days'),
                 (
                     compliant_count * 100.0 / func.nullif(completed_count, 0)
@@ -666,6 +672,9 @@ def get_collection_supplier_delivery_times():
                 'supplier_name': row.supplier_name,
                 'delivery_days': target_days,
                 'barcode_count': int(row.barcode_count or 0),
+                'combined_avg_days': round(float(row.combined_avg_days), 1) if row.combined_avg_days is not None else None,
+                'office_pending_count': int(row.office_pending_count or 0),
+                'office_overdue_count': int(row.office_overdue_count or 0),
                 'actual_avg_days': (
                     round(float(row.actual_avg_days), 1)
                     if row.actual_avg_days is not None
