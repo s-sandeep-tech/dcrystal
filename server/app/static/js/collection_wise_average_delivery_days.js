@@ -600,6 +600,44 @@ function renderDeliveryTimeline(stages) {
     });
 }
 
+function renderDeliveryTimingProgress(detail) {
+    const container = document.getElementById('delivery-timeline-progress');
+    if (!container) return;
+    container.replaceChildren();
+    const completed = detail.office_receipt_completed ?? (detail.tat_days != null);
+    const elapsed = completed ? detail.tat_days : detail.office_pending_age_days;
+    const target = detail.delivery_days;
+    const scale = Math.max(Number(target) || 0, Number(elapsed) || 0) || 1;
+    const hasTarget = target != null && Number(target) > 0;
+    const late = hasTarget && elapsed != null && Number(elapsed) > Number(target);
+    const color = elapsed == null || !hasTarget ? 'bg-gray-400'
+        : late ? 'bg-red-500' : completed ? 'bg-emerald-500' : 'bg-amber-500';
+    [
+        ['Target', target, 'bg-primary'],
+        [completed ? 'Completed: order to office receipt' : 'Pending: awaiting office receipt', elapsed, color]
+    ].forEach(([label, value, barColor]) => {
+        const row = document.createElement('div');
+        row.className = 'grid grid-cols-[minmax(0,1fr)_64px] sm:grid-cols-[180px_minmax(0,1fr)_64px] items-center gap-2 text-[10px]';
+        const name = document.createElement('span');
+        name.className = 'col-span-2 sm:col-span-1 text-gray-500';
+        name.textContent = label;
+        const track = document.createElement('div');
+        track.className = 'h-2 rounded bg-gray-100 dark:bg-gray-800 overflow-hidden';
+        track.setAttribute('role', 'img');
+        track.setAttribute('aria-label', `${label}: ${value == null ? 'No data' : value + ' days'}${late && label !== 'Target' ? ', past target' : ''}`);
+        track.title = track.getAttribute('aria-label');
+        const bar = document.createElement('div');
+        bar.className = `h-full rounded ${barColor}`;
+        bar.style.width = `${Math.max(0, Number(value) || 0) / scale * 100}%`;
+        track.appendChild(bar);
+        const days = document.createElement('span');
+        days.className = 'text-right font-bold tabular-nums whitespace-nowrap';
+        days.textContent = value == null ? '\u2014' : `${formatCollectionSummaryNumber(value)} days`;
+        row.append(name, track, days);
+        container.appendChild(row);
+    });
+}
+
 function openDeliveryTimelineModal(detail) {
     const modal = document.getElementById('delivery-timeline-modal');
     if (!modal) return;
@@ -668,6 +706,7 @@ function openDeliveryTimelineModal(detail) {
     setDeliveryModalText('delivery-modal-received-location', detail.received_location || '-');
     setDeliveryModalText('delivery-modal-current-location', detail.current_location || '-');
 
+    renderDeliveryTimingProgress(detail);
     renderDeliveryTimeline(detail.timeline);
     renderStageDurationsTable(detail.stage_durations);
 

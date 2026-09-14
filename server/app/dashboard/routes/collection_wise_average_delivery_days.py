@@ -170,6 +170,9 @@ def build_delivery_display_rows(records):
                 'screw_type': record.screw_type or '-',
                 'weight': float(record.weight) if record.weight is not None else None,
                 'tat_days': tat_days,
+                'office_receipt_completed': record.morr_received_date is not None,
+                'office_pending_age_days': max((datetime.now(ZoneInfo('Asia/Kolkata')).date() - record.ordered_date).days, 0)
+                if record.ordered_date and not record.morr_received_date else None,
                 'office_to_shop_days': office_to_shop_days,
                 'office_to_shop_pending_days': office_to_shop_pending_days,
                 'office_to_shop_status': office_to_shop_status,
