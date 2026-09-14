@@ -55,6 +55,7 @@
 .capacity-table { min-width: 2350px; }
 .capacity-table th:first-child { width: 300px; }
 .capacity-table th { width: 128px; }
+.capacity-table th.capacity-column { width: 160px; min-width: 160px; white-space: nowrap; }
 .capacity-table thead .sticky-col-1 { z-index: 40; }
 .capacity-table .sticky-col-1 { background-color: #f8fafc; }
 .dark .capacity-table .sticky-col-1 { background-color: #111827; }
@@ -171,9 +172,9 @@
                     </th>
 
                     <!-- Actual capacity from party_capacity_kg -->
-                    <th class="px-2 py-2 text-right bg-header-blue border-r border-blue-200 dark:border-blue-900 w-28 cursor-pointer hover:bg-blue-200" onclick="sortByColumn('capacity_wt_kg_per_month')">
+                    <th class="capacity-column px-2 py-2 text-right bg-header-blue border-r border-blue-200 dark:border-blue-900 cursor-pointer hover:bg-blue-200" title="Actual Capacity (kg)" onclick="sortByColumn('capacity_wt_kg_per_month')">
                         <div class="flex items-center justify-end gap-1">
-                            <span>Actual Capacity (kg)</span>
+                            <span>Capacity (kg)</span>
                             <span class="material-symbols-outlined text-[11px] text-blue-600">unfold_more</span>
                         </div>
                     </th>
