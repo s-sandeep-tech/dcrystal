@@ -250,9 +250,6 @@ function renderTableRows(suppliers) {
                 </div>
             </td>
 
-            <!-- Col 2: Actually Capacity -->
-            <td class="px-2 py-2 text-right bg-amber-50/20 text-gray-400 border-r border-gray-200 dark:border-gray-800">-</td>
-
             <!-- Col 3: Capacity Kg -->
             <td class="px-2 py-2 text-right border-r border-gray-200 dark:border-gray-800 text-blue-700 dark:text-blue-300 font-extrabold">
                 ${formatNumber(sup.capacity_wt_kg_per_month, 3)}
@@ -349,9 +346,6 @@ function renderTableRows(suppliers) {
                         </button>
                     </div>
                 </td>
-
-                <!-- Col 2: Actually Capacity -->
-                <td class="px-2 py-1.5 text-right bg-amber-50/10 text-gray-400 border-r border-gray-200 dark:border-gray-800">-</td>
 
                 <!-- Col 3: Capacity Kg -->
                 <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800 font-medium">

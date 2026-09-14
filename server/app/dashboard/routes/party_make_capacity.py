@@ -543,7 +543,7 @@ def api_party_make_capacity_export():
         red_font = Font(name="Calibri", size=9, bold=True, color="DC2626")
 
         headers = [
-            "supplier", "make", "Actualy Capacity", "capacity_wt_kg_per_month",
+            "supplier", "make", "Actual Capacity (kg)",
             "process_pending_wt", "barcode_pending_wt", "hallmark_pending_wt",
             "qc_issue_pending_wt", "qc_complete_pending_wt", "invoice_pending_wt",
             "total_wt", "total_wt in kg", "diff", "utilization_pct",
@@ -556,7 +556,7 @@ def api_party_make_capacity_export():
             cell.font = header_font
             cell.border = cell_border
             cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-            if col_num == 3: # Actualy Capacity
+            if col_num == 3: # Actual Capacity
                 cell.fill = peach_fill
             else:
                 cell.fill = blue_header_fill
@@ -567,7 +567,6 @@ def api_party_make_capacity_export():
             sup_row = [
                 sup['supplier'],
                 f"ALL MAKES ({len(sup['makes'])})",
-                "",
                 sup['capacity_wt_kg_per_month'],
                 sup['process_pending_wt'],
                 sup['barcode_pending_wt'],
@@ -598,7 +597,6 @@ def api_party_make_capacity_export():
                 make_row = [
                     f"  ↳ {sup['supplier']}",
                     m['make'],
-                    "",
                     m['capacity_wt_kg_per_month'],
                     m['process_pending_wt'],
                     m['barcode_pending_wt'],
@@ -619,7 +617,7 @@ def api_party_make_capacity_export():
                 for col_idx, cell in enumerate(ws[row_num], 1):
                     cell.font = child_font
                     cell.border = cell_border
-                    if col_idx == 13: # diff column
+                    if col_idx == 12: # diff column
                         cell.font = red_font if m['diff'] < 0 else green_font
                     if isinstance(cell.value, (int, float)):
                         cell.number_format = "#,##0.000" if isinstance(cell.value, float) else "#,##0"

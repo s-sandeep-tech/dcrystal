@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, 
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
                             syncCollectionWiseAverageDeliveryDaysBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn,
-                            syncWeeklyDeliveryOrderSummaryBtn
+                            syncWeeklyDeliveryOrderSummaryBtn, syncPartyMakeCapacityDetailsBtn
                         ].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
                         });
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, 
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
                             syncCollectionWiseAverageDeliveryDaysBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn,
-                            syncWeeklyDeliveryOrderSummaryBtn
+                            syncWeeklyDeliveryOrderSummaryBtn, syncPartyMakeCapacityDetailsBtn
                         ].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
                         });
@@ -342,6 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { url: window.SETTINGS_CONFIG.syncPartyPerformanceMatrixUrl, label: 'Party Performance Matrix', type: 'party_performance_matrix' },
                 { url: window.SETTINGS_CONFIG.syncLocationWiseOldGoldSettlementTransferUrl, label: 'Location-wise Old Gold Settlement & Transfer', type: 'location_wise_old_gold_settlement_transfer' },
                 { url: window.SETTINGS_CONFIG.syncWeeklyDeliveryOrderSummaryUrl, label: 'Weekly Delivery Order Summary', type: 'weekly_delivery_order_summary' },
+                { url: window.SETTINGS_CONFIG.syncPartyMakeCapacityDetailsUrl, label: 'Supplier Capacity Plan Details', type: 'party_make_capacity_details' },
             ];
 
             setSyncLoading(syncAllBtn, 'Processing');
