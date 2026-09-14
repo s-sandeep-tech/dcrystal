@@ -31,6 +31,8 @@ SCHEDULED_ALL_SYNC_TASKS = (
     'collection_wise_average_delivery_days',
     'party_performance_matrix',
     'location_wise_old_gold_settlement_transfer',
+    'weekly_delivery_order_summary',
+    'party_make_capacity_details',
 )
 
 ALLOWED_SYNC_TASKS = {
@@ -68,6 +70,7 @@ ALLOWED_SYNC_TASKS = {
     'party_performance_matrix',
     'location_wise_old_gold_settlement_transfer',
     'weekly_delivery_order_summary',
+    'party_make_capacity_details',
 }
 
 
