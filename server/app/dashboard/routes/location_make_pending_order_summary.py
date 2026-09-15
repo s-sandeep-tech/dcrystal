@@ -1,4 +1,4 @@
-from flask import g, render_template, request, session
+from flask import g, render_template, request, session, jsonify
 from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
 from app.models import Notification, PendingOrderDetailsSnapshot, OwnerWiseOrderSummarySnapshot
@@ -246,6 +246,21 @@ def location_make_pending_order_summary():
             'make_owners': get_distinct_list(PendingOrderDetailsSnapshot.make_owner)
         }
 
+        return render_template('location_make_pending_order_summary.html', unread_count=unread_count,
+                               sync_time=sync_time, stats=None, rows=[], pagination=None,
+                               current_level='location', filter_options=filter_options)
+    except Exception as e:
+        db.session.rollback()
+        logger.exception('Error loading location-make report page')
+        return 'Unable to load report page', 500
+
+
+@dashboard_bp.route('/api/location-make-pending-order-summary/data')
+@jwt_required()
+def location_make_pending_order_summary_data():
+    try:
+        page = max(1, request.args.get('page', 1, type=int))
+        per_page = min(100, max(1, request.args.get('per_page', 50, type=int)))
         # Global Top Stats Aggregation
         agg_cols = [
             func.sum(PendingOrderDetailsSnapshot.accept_pending_pcs).label('total_accept_pcs'),
@@ -329,19 +344,13 @@ def location_make_pending_order_summary():
                 'level': 'location'
             })
 
-        return render_template(
-            'location_make_pending_order_summary.html',
-            unread_count=unread_count,
-            sync_time=sync_time,
-            stats=stats,
-            rows=processed_rows,
-            pagination=pagination,
-            current_level='location',
-            filter_options=filter_options
-        )
+        html = render_template('partials/_view_location_make_pending_order_summary.html',
+                               rows=processed_rows, pagination=pagination, current_level='location', is_child=False)
+        return jsonify(html=html, stats=stats, total=pagination.total, count=len(processed_rows))
     except Exception as e:
         logger.error(f"Error in location_make_pending_order_summary: {str(e)}")
-        return f"Error: {str(e)}", 500
+        db.session.rollback()
+        return jsonify(error='Unable to load report data'), 500
 
 
 @dashboard_bp.route('/partial/location-make-pending-order-summary')

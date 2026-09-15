@@ -1,6 +1,55 @@
 let currentZoom = parseFloat(localStorage.getItem('location-make-zoom')) || 1.0;
 let makeMultiSelect;
 let locationMultiSelect;
+let reportController;
+
+window.addEventListener('load', () => loadLocationMakeReport(), { once: true });
+
+async function loadLocationMakeReport() {
+    reportController?.abort();
+    const controller = new AbortController();
+    reportController = controller;
+    const body = document.getElementById('view-location-make-pending');
+    const stats = document.getElementById('location-make-stats');
+    const info = document.getElementById('pagination-info');
+    stats.style.visibility = 'hidden';
+    stats.setAttribute('aria-busy', 'true');
+    body.setAttribute('aria-busy', 'true');
+    info.textContent = 'Loading report...';
+    body.innerHTML = '<div class="p-6 flex items-center justify-center gap-2 text-xs text-gray-500" role="status"><span class="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>Loading report...</div>';
+    try {
+        const headers = {};
+        const token = localStorage.getItem('access_token');
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const response = await fetch(`/api/location-make-pending-order-summary/data${window.location.search}`, { headers, signal: controller.signal });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (controller !== reportController) return;
+        body.innerHTML = data.html;
+        for (const [key, value] of Object.entries(data.stats)) {
+            const id = key.replaceAll('_', '-');
+            if (key.endsWith('_perc')) {
+                const bar = document.getElementById(`stat-${id.replace(/-perc$/, '-bar')}`);
+                if (bar) bar.style.width = `${value}%`;
+            } else {
+                const element = document.getElementById(`stat-${id}`);
+                if (element) element.textContent = `${value}${key.endsWith('_pcs') ? ' Pcs' : ''}`;
+            }
+        }
+        stats.style.visibility = 'visible';
+        info.textContent = `Showing ${data.count} of ${data.total} locations`;
+        adjustZoom(0);
+    } catch (error) {
+        if (error.name === 'AbortError' || controller !== reportController) return;
+        info.textContent = 'Report unavailable';
+        body.innerHTML = '<div class="p-6 text-center text-xs text-red-500" role="alert">Unable to load report data. <button class="text-primary underline" onclick="loadLocationMakeReport()">Retry</button></div>';
+    } finally {
+        if (controller === reportController) {
+            stats.setAttribute('aria-busy', 'false');
+            body.setAttribute('aria-busy', 'false');
+        }
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     adjustZoom(0);
@@ -89,7 +138,8 @@ function applyFilters() {
     }
     const perPage = document.getElementById('per-page-select')?.value;
     if (perPage) params.set('per_page', perPage);
-    window.location.search = params.toString();
+    history.replaceState(null, '', `${window.location.pathname}?${params}`);
+    loadLocationMakeReport();
 }
 
 function resetGlobalFilters() {
@@ -100,13 +150,15 @@ function changePerPage(val) {
     const urlParams = new URLSearchParams(window.location.search);
     urlParams.set('per_page', val);
     urlParams.set('page', 1);
-    window.location.search = urlParams.toString();
+    history.replaceState(null, '', `${window.location.pathname}?${urlParams}`);
+    loadLocationMakeReport();
 }
 
 function changePage(page) {
     const urlParams = new URLSearchParams(window.location.search);
     urlParams.set('page', page);
-    window.location.search = urlParams.toString();
+    history.replaceState(null, '', `${window.location.pathname}?${urlParams}`);
+    loadLocationMakeReport();
 }
 
 function onSearchInput(val) {

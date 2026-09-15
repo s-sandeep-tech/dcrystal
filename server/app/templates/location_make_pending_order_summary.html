@@ -49,7 +49,7 @@
     </div>
 
     <!-- Stats Grid (8 stages) -->
-    <div class="grid grid-cols-8 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+    <div id="location-make-stats" aria-busy="true" style="visibility: hidden" class="grid grid-cols-8 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
         <!-- Accept Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase">Accept Pending Wt</p>
@@ -174,7 +174,7 @@
             </div>
             <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
             <span id="pagination-info" class="font-medium">
-                Showing {{ rows|length }} locations
+                Loading report...
             </span>
         </div>
     </div>
@@ -182,7 +182,7 @@
     <!-- Table Container -->
     <div id="table-area" class="flex-1 overflow-auto relative">
         <div id="view-location-make-pending" class="dashboard-view">
-            {% include 'partials/_view_location_make_pending_order_summary.html' %}
+            <div class="p-6 flex items-center justify-center gap-2 text-xs text-gray-500" role="status"><span class="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>Loading report...</div>
         </div>
     </div>
 
