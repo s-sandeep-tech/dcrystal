@@ -1,5 +1,6 @@
 let currentZoom = parseFloat(localStorage.getItem('location-make-zoom')) || 1.0;
 let makeMultiSelect;
+let locationMultiSelect;
 
 document.addEventListener('DOMContentLoaded', () => {
     adjustZoom(0);
@@ -13,6 +14,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const urlParams = new URLSearchParams(window.location.search);
+        locationMultiSelect = new CustomMultiSelect({
+            containerId: 'filter-location-container',
+            label: 'Location',
+            defaultText: 'All Locations',
+            options: window.locationMakePendingAvailableLocations || []
+        });
+        const selectedLocations = (urlParams.get('location') || '').split(',').map(v => v.trim()).filter(Boolean);
+        document.querySelectorAll('.filter-location-container-checkbox').forEach(cb => {
+            cb.checked = selectedLocations.includes(cb.value);
+        });
+        locationMultiSelect.updateTriggerText();
         const makeVal = urlParams.get('make');
         if (makeVal && makeMultiSelect) {
             const selectedMakes = makeVal.split(',').map(v => v.trim()).filter(Boolean);
@@ -45,7 +57,7 @@ function adjustZoom(delta, reset = false) {
 
 function getFilterValues() {
     return {
-        location: document.getElementById('filter-location')?.value || '',
+        location: locationMultiSelect ? locationMultiSelect.getValues().join(',') : '',
         division: document.getElementById('filter-division')?.value || '',
         group: document.getElementById('filter-group')?.value || '',
         purity: document.getElementById('filter-purity')?.value || '',

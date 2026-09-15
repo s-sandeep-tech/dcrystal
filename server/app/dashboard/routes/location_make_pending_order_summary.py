@@ -118,8 +118,9 @@ def build_filter_query(base_query):
             (PendingOrderDetailsSnapshot.order_ro.ilike(f"%{search}%"))
         )
 
-    if location:
-        query = query.filter(PendingOrderDetailsSnapshot.location == location)
+    locations = split_filter_values(location)
+    if locations:
+        query = query.filter(PendingOrderDetailsSnapshot.location.in_(locations))
     if division:
         query = query.filter(PendingOrderDetailsSnapshot.division == division)
     if group_name:
