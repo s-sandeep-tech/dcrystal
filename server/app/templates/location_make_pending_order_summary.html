@@ -52,7 +52,7 @@
     <div id="location-make-stats" aria-busy="true" class="grid grid-cols-8 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
         <!-- Accept Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Accept Pending Wt</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1"><span class="material-symbols-outlined text-gray-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">pending_actions</span><span>Accept Pending Wt</span></p>
             <div class="flex flex-col">
                 <p id="stat-accept-wt" class="text-sm font-bold text-gray-600">{{ stats.accept_wt if stats else '-' }}</p>
                 <p id="stat-accept-pcs" class="text-[9px] text-gray-500/70 font-medium">{{ stats.accept_pcs if stats else '-' }} Pcs</p>
@@ -64,7 +64,7 @@
 
         <!-- Process Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Process Pending Wt</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1"><span class="material-symbols-outlined text-yellow-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">precision_manufacturing</span><span>Process Pending Wt</span></p>
             <div class="flex flex-col">
                 <p id="stat-process-wt" class="text-sm font-bold text-yellow-600">{{ stats.process_wt if stats else '-' }}</p>
                 <p id="stat-process-pcs" class="text-[9px] text-yellow-600/70 font-medium">{{ stats.process_pcs if stats else '-' }} Pcs</p>
@@ -76,7 +76,7 @@
 
         <!-- Barcode Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Barcode Pending Wt</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1"><span class="material-symbols-outlined text-blue-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">barcode</span><span>Barcode Pending Wt</span></p>
             <div class="flex flex-col">
                 <p id="stat-barcode-wt" class="text-sm font-bold text-blue-600">{{ stats.barcode_wt if stats else '-' }}</p>
                 <p id="stat-barcode-pcs" class="text-[9px] text-blue-600/70 font-medium">{{ stats.barcode_pcs if stats else '-' }} Pcs</p>
@@ -88,7 +88,7 @@
 
         <!-- Hallmark Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Hallmark Pending Wt</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1"><span class="material-symbols-outlined text-indigo-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">verified</span><span>Hallmark Pending Wt</span></p>
             <div class="flex flex-col">
                 <p id="stat-hallmark-wt" class="text-sm font-bold text-indigo-600">{{ stats.hallmark_wt if stats else '-' }}</p>
                 <p id="stat-hallmark-pcs" class="text-[9px] text-indigo-600/70 font-medium">{{ stats.hallmark_pcs if stats else '-' }} Pcs</p>
@@ -106,7 +106,7 @@
                     onmouseleave="hideInfoTooltip()">info</span>
             </div>
 
-            <p class="text-[9px] text-gray-500 font-bold uppercase">QC Issue Pending Wt</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1"><span class="material-symbols-outlined text-red-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">report_problem</span><span>QC Issue Pending Wt</span></p>
             <div class="flex flex-col">
                 <p id="stat-qc-issue-wt" class="text-sm font-bold text-red-600">{{ stats.qc_issue_wt if stats else '-' }}</p>
                 <p id="stat-qc-issue-pcs" class="text-[9px] text-red-600/70 font-medium">{{ stats.qc_issue_pcs if stats else '-' }} Pcs</p>
@@ -118,7 +118,7 @@
 
         <!-- QC Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">QC Pending Wt</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1"><span class="material-symbols-outlined text-purple-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">fact_check</span><span>QC Pending Wt</span></p>
             <div class="flex flex-col">
                 <p id="stat-qc-complete-wt" class="text-sm font-bold text-purple-600">{{ stats.qc_complete_wt if stats else '-' }}</p>
                 <p id="stat-qc-complete-pcs" class="text-[9px] text-purple-600/70 font-medium">{{ stats.qc_complete_pcs if stats else '-' }} Pcs</p>
@@ -130,7 +130,7 @@
 
         <!-- Invoice Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Invoice Pending Wt</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1"><span class="material-symbols-outlined text-cyan-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">receipt_long</span><span>Invoice Pending Wt</span></p>
             <div class="flex flex-col">
                 <p id="stat-invoice-wt" class="text-sm font-bold text-cyan-600">{{ stats.invoice_wt if stats else '-' }}</p>
                 <p id="stat-invoice-pcs" class="text-[9px] text-cyan-600/70 font-medium">{{ stats.invoice_pcs if stats else '-' }} Pcs</p>
@@ -142,7 +142,7 @@
 
         <!-- Total Pending -->
         <div class="p-2 text-center bg-emerald-50/10 dark:bg-emerald-950/10">
-            <p class="text-[9px] text-gray-500 font-bold uppercase">Total Pending Wt</p>
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1"><span class="material-symbols-outlined text-emerald-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">inventory_2</span><span>Total Pending Wt</span></p>
             <div class="flex flex-col">
                 <p id="stat-total-wt" class="text-sm font-bold text-emerald-600">{{ stats.total_wt if stats else '-' }}</p>
                 <p id="stat-total-pcs" class="text-[9px] text-emerald-600/70 font-medium">{{ stats.total_pcs if stats else '-' }} Pcs</p>
