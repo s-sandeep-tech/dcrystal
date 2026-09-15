@@ -483,7 +483,10 @@ def api_party_make_capacity_drilldown():
             query = query.filter(PartyMakeCapacityDetailsSnapshot.make == make)
 
         query = apply_capacity_filters(query)
-        orders = query.limit(500).all()
+        page = max(1, request.args.get('page', 1, type=int))
+        per_page = 50
+        total = query.count()
+        orders = query.order_by(PartyMakeCapacityDetailsSnapshot.location, PartyMakeCapacityDetailsSnapshot.id).offset((page - 1) * per_page).limit(per_page).all()
 
         results = []
         for o in orders:
@@ -509,7 +512,8 @@ def api_party_make_capacity_drilldown():
                 'total_wt': wip_wt
             })
 
-        return jsonify({'status': 'success', 'data': results, 'count': len(results)})
+        return jsonify({'status': 'success', 'data': results, 'count': len(results), 'total': total,
+                        'page': page, 'pages': max(1, (total + per_page - 1) // per_page)})
     except Exception as e:
         logger.error(f"Error in api_party_make_capacity_drilldown: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500

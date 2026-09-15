@@ -646,7 +646,9 @@ function resetAllFilters() {
 }
 
 /* ─── Order Drilldown Modal Functions ─── */
-async function openDrilldown(supplier, make) {
+let drilldownRequest = 0;
+async function openDrilldown(supplier, make, page = 1) {
+    const requestId = ++drilldownRequest;
     const modal = document.getElementById('drilldown-modal');
     const subtitle = document.getElementById('drilldown-subtitle');
     const tbody = document.getElementById('drilldown-table-body');
@@ -657,10 +659,16 @@ async function openDrilldown(supplier, make) {
     if (subtitle) subtitle.innerText = `${supplier} ➔ ${make}`;
     if (tbody) tbody.innerHTML = '';
     if (spinner) spinner.classList.remove('hidden');
+    const previous = document.getElementById('drilldown-prev');
+    const next = document.getElementById('drilldown-next');
+    previous.disabled = next.disabled = true;
+    document.getElementById('drilldown-count').textContent = 'Loading records...';
+    document.getElementById('drilldown-page').textContent = '';
 
     try {
         const queryParams = new URLSearchParams();
         queryParams.set('supplier', supplier);
+        queryParams.set('page', page);
         if (make) queryParams.set('make', make);
 
         // Pass along active filters
@@ -671,26 +679,37 @@ async function openDrilldown(supplier, make) {
         const res = await fetch(`/api/party-make-capacity/drilldown?${queryParams.toString()}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const result = await res.json();
+        if (requestId !== drilldownRequest) return;
+        if (result.status !== 'success') throw new Error(result.message || 'Request failed');
+        document.getElementById('drilldown-count').textContent = `${result.total ?? result.count} records`;
+        document.getElementById('drilldown-page').textContent = `${result.page || page} / ${result.pages || 1}`;
+        previous.disabled = page <= 1;
+        next.disabled = page >= (result.pages || 1);
+        previous.onclick = () => openDrilldown(supplier, make, page - 1);
+        next.onclick = () => openDrilldown(supplier, make, page + 1);
 
         if (spinner) spinner.classList.add('hidden');
 
         if (result.status === 'success' && result.data && tbody) {
             if (result.data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" class="text-center py-6 text-gray-400">No individual order records found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="13" class="text-center py-6 text-gray-400">No backlog records match these filters</td></tr>';
                 return;
             }
             result.data.forEach(o => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-blue-50/20 dark:hover:bg-gray-800/40';
                 tr.innerHTML = `
-                    <td class="px-3 py-2 font-semibold text-primary text-xs">${escapeHtml(o.order_ro)}</td>
+                    <td class="px-3 py-2 font-semibold text-gray-700 dark:text-gray-200">${escapeHtml(o.order_ro)}</td>
                     <td class="px-3 py-2 text-gray-700 dark:text-gray-300 text-xs">${escapeHtml(o.location)}</td>
                     <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-300">${escapeHtml(o.division)} / ${escapeHtml(o.group)}</td>
                     <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-300">${escapeHtml(o.purity)}</td>
                     <td class="px-3 py-2 text-[10px] uppercase font-medium text-gray-500">${escapeHtml(o.order_type)}</td>
                     <td class="px-3 py-2 text-right text-xs">${formatNumber(o.process_pending_wt, 3)}</td>
+                    <td class="px-3 py-2 text-right">${formatNumber(o.barcode_pending_wt, 3)}</td>
                     <td class="px-3 py-2 text-right text-xs">${formatNumber(o.hallmark_pending_wt, 3)}</td>
+                    <td class="px-3 py-2 text-right">${formatNumber(o.qc_issue_pending_wt, 3)}</td>
                     <td class="px-3 py-2 text-right text-xs">${formatNumber(o.qc_complete_pending_wt, 3)}</td>
+                    <td class="px-3 py-2 text-right">${formatNumber(o.invoice_pending_wt, 3)}</td>
                     <td class="px-3 py-2 text-right font-bold text-xs text-gray-900 dark:text-gray-100">${formatNumber(o.total_wt, 3)}</td>
                     <td class="px-3 py-2 text-right text-xs text-cyan-600 font-semibold">${formatNumber(o.receipt_pending_wt, 3)}</td>
                 `;
@@ -698,12 +717,16 @@ async function openDrilldown(supplier, make) {
             });
         }
     } catch (err) {
+        if (requestId !== drilldownRequest) return;
         console.error('Failed to load drilldown:', err);
         if (spinner) spinner.classList.add('hidden');
+        document.getElementById('drilldown-count').textContent = 'Unable to load records';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="13" class="text-center py-6 text-red-500">Unable to load backlog details. Close and reopen to retry.</td></tr>';
     }
 }
 
 function closeDrilldownModal() {
+    drilldownRequest++;
     const modal = document.getElementById('drilldown-modal');
     if (modal) modal.classList.add('hidden');
 }
