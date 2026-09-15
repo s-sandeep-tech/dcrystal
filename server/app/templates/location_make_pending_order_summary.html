@@ -49,13 +49,13 @@
     </div>
 
     <!-- Stats Grid (8 stages) -->
-    <div id="location-make-stats" aria-busy="true" style="visibility: hidden" class="grid grid-cols-8 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+    <div id="location-make-stats" aria-busy="true" class="grid grid-cols-8 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
         <!-- Accept Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase">Accept Pending Wt</p>
             <div class="flex flex-col">
-                <p id="stat-accept-wt" class="text-sm font-bold text-gray-600">{{ stats.accept_wt if stats else '0.000' }}</p>
-                <p id="stat-accept-pcs" class="text-[9px] text-gray-500/70 font-medium">{{ stats.accept_pcs if stats else '0' }} Pcs</p>
+                <p id="stat-accept-wt" class="text-sm font-bold text-gray-600">{{ stats.accept_wt if stats else '-' }}</p>
+                <p id="stat-accept-pcs" class="text-[9px] text-gray-500/70 font-medium">{{ stats.accept_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-accept-bar" class="h-full bg-gray-500 transition-all duration-500" style="width: {{ stats.accept_perc if stats else 0 }}%"></div>
@@ -66,8 +66,8 @@
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase">Process Pending Wt</p>
             <div class="flex flex-col">
-                <p id="stat-process-wt" class="text-sm font-bold text-yellow-600">{{ stats.process_wt if stats else '0.000' }}</p>
-                <p id="stat-process-pcs" class="text-[9px] text-yellow-600/70 font-medium">{{ stats.process_pcs if stats else '0' }} Pcs</p>
+                <p id="stat-process-wt" class="text-sm font-bold text-yellow-600">{{ stats.process_wt if stats else '-' }}</p>
+                <p id="stat-process-pcs" class="text-[9px] text-yellow-600/70 font-medium">{{ stats.process_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-process-bar" class="h-full bg-yellow-500 transition-all duration-500" style="width: {{ stats.process_perc if stats else 0 }}%"></div>
@@ -78,8 +78,8 @@
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase">Barcode Pending Wt</p>
             <div class="flex flex-col">
-                <p id="stat-barcode-wt" class="text-sm font-bold text-blue-600">{{ stats.barcode_wt if stats else '0.000' }}</p>
-                <p id="stat-barcode-pcs" class="text-[9px] text-blue-600/70 font-medium">{{ stats.barcode_pcs if stats else '0' }} Pcs</p>
+                <p id="stat-barcode-wt" class="text-sm font-bold text-blue-600">{{ stats.barcode_wt if stats else '-' }}</p>
+                <p id="stat-barcode-pcs" class="text-[9px] text-blue-600/70 font-medium">{{ stats.barcode_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-barcode-bar" class="h-full bg-blue-500 transition-all duration-500" style="width: {{ stats.barcode_perc if stats else 0 }}%"></div>
@@ -90,8 +90,8 @@
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase">Hallmark Pending Wt</p>
             <div class="flex flex-col">
-                <p id="stat-hallmark-wt" class="text-sm font-bold text-indigo-600">{{ stats.hallmark_wt if stats else '0.000' }}</p>
-                <p id="stat-hallmark-pcs" class="text-[9px] text-indigo-600/70 font-medium">{{ stats.hallmark_pcs if stats else '0' }} Pcs</p>
+                <p id="stat-hallmark-wt" class="text-sm font-bold text-indigo-600">{{ stats.hallmark_wt if stats else '-' }}</p>
+                <p id="stat-hallmark-pcs" class="text-[9px] text-indigo-600/70 font-medium">{{ stats.hallmark_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-hallmark-bar" class="h-full bg-indigo-500 transition-all duration-500" style="width: {{ stats.hallmark_perc if stats else 0 }}%"></div>
@@ -108,8 +108,8 @@
 
             <p class="text-[9px] text-gray-500 font-bold uppercase">QC Issue Pending Wt</p>
             <div class="flex flex-col">
-                <p id="stat-qc-issue-wt" class="text-sm font-bold text-red-600">{{ stats.qc_issue_wt if stats else '0.000' }}</p>
-                <p id="stat-qc-issue-pcs" class="text-[9px] text-red-600/70 font-medium">{{ stats.qc_issue_pcs if stats else '0' }} Pcs</p>
+                <p id="stat-qc-issue-wt" class="text-sm font-bold text-red-600">{{ stats.qc_issue_wt if stats else '-' }}</p>
+                <p id="stat-qc-issue-pcs" class="text-[9px] text-red-600/70 font-medium">{{ stats.qc_issue_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-qc-issue-bar" class="h-full bg-red-500 transition-all duration-500" style="width: {{ stats.qc_issue_perc if stats else 0 }}%"></div>
@@ -120,8 +120,8 @@
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase">QC Pending Wt</p>
             <div class="flex flex-col">
-                <p id="stat-qc-complete-wt" class="text-sm font-bold text-purple-600">{{ stats.qc_complete_wt if stats else '0.000' }}</p>
-                <p id="stat-qc-complete-pcs" class="text-[9px] text-purple-600/70 font-medium">{{ stats.qc_complete_pcs if stats else '0' }} Pcs</p>
+                <p id="stat-qc-complete-wt" class="text-sm font-bold text-purple-600">{{ stats.qc_complete_wt if stats else '-' }}</p>
+                <p id="stat-qc-complete-pcs" class="text-[9px] text-purple-600/70 font-medium">{{ stats.qc_complete_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-qc-complete-bar" class="h-full bg-purple-500 transition-all duration-500" style="width: {{ stats.qc_complete_perc if stats else 0 }}%"></div>
@@ -132,8 +132,8 @@
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase">Invoice Pending Wt</p>
             <div class="flex flex-col">
-                <p id="stat-invoice-wt" class="text-sm font-bold text-cyan-600">{{ stats.invoice_wt if stats else '0.000' }}</p>
-                <p id="stat-invoice-pcs" class="text-[9px] text-cyan-600/70 font-medium">{{ stats.invoice_pcs if stats else '0' }} Pcs</p>
+                <p id="stat-invoice-wt" class="text-sm font-bold text-cyan-600">{{ stats.invoice_wt if stats else '-' }}</p>
+                <p id="stat-invoice-pcs" class="text-[9px] text-cyan-600/70 font-medium">{{ stats.invoice_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-invoice-bar" class="h-full bg-cyan-500 transition-all duration-500" style="width: {{ stats.invoice_perc if stats else 0 }}%"></div>
@@ -144,11 +144,11 @@
         <div class="p-2 text-center bg-emerald-50/10 dark:bg-emerald-950/10">
             <p class="text-[9px] text-gray-500 font-bold uppercase">Total Pending Wt</p>
             <div class="flex flex-col">
-                <p id="stat-total-wt" class="text-sm font-bold text-emerald-600">{{ stats.total_wt if stats else '0.000' }}</p>
-                <p id="stat-total-pcs" class="text-[9px] text-emerald-600/70 font-medium">{{ stats.total_pcs if stats else '0' }} Pcs</p>
+                <p id="stat-total-wt" class="text-sm font-bold text-emerald-600">{{ stats.total_wt if stats else '-' }}</p>
+                <p id="stat-total-pcs" class="text-[9px] text-emerald-600/70 font-medium">{{ stats.total_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div class="h-full bg-emerald-500" style="width: 100%"></div>
+                <div id="stat-total-bar" class="h-full bg-emerald-500" style="width: {{ 100 if stats else 0 }}%"></div>
             </div>
         </div>
     </div>

@@ -12,7 +12,10 @@ async function loadLocationMakeReport() {
     const body = document.getElementById('view-location-make-pending');
     const stats = document.getElementById('location-make-stats');
     const info = document.getElementById('pagination-info');
-    stats.style.visibility = 'hidden';
+    stats.querySelectorAll('[id^="stat-"]').forEach(element => {
+        if (element.id.endsWith('-bar')) element.style.width = '0%';
+        else element.textContent = element.id.endsWith('-pcs') ? '- Pcs' : '-';
+    });
     stats.setAttribute('aria-busy', 'true');
     body.setAttribute('aria-busy', 'true');
     info.textContent = 'Loading report...';
@@ -36,7 +39,7 @@ async function loadLocationMakeReport() {
                 if (element) element.textContent = `${value}${key.endsWith('_pcs') ? ' Pcs' : ''}`;
             }
         }
-        stats.style.visibility = 'visible';
+        document.getElementById('stat-total-bar').style.width = '100%';
         info.textContent = `Showing ${data.count} of ${data.total} locations`;
         adjustZoom(0);
     } catch (error) {
