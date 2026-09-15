@@ -308,6 +308,7 @@ def sync_pending_order_details_task(task_type_override=None, progress_range=(0, 
         new_records = []
         for row in rows:
             new_records.append({
+                'location': row.get('location'),
                 'supplier': row.get('supplier'),
                 'order_type': row.get('order_type'),
                 'order_request_type': row.get('order_request_type'),
