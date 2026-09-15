@@ -62,6 +62,14 @@ window.REPORT_MENU_DATA = [
                 tags: ["pending", "order", "details", "owner"]
             },
             {
+                id: "location-make-pending-order-summary",
+                title: "Location & Make Pending Order Summary",
+                href: "/location-make-pending-order-summary",
+                icon: "pin_drop",
+                description: "Hierarchical pending order summary grouped by Location and Make across all production stages.",
+                tags: ["location", "make", "pending", "order", "summary", "stages"]
+            },
+            {
                 id: "party-make-capacity",
                 title: "Supplier Capacity & Backlog Analysis",
                 href: "/party-make-capacity-report",
