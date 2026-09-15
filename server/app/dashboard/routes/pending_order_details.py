@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 def owner_group_value(column):
-    return func.coalesce(func.nullif(func.trim(column), ''), 'Unknown')
+    return func.coalesce(func.nullif(func.trim(column), ''), 'NULL')
 
 
 def split_filter_values(value):
@@ -297,7 +297,7 @@ def pending_order_details():
         processed_rows = []
         for r in pagination.items:
             row_dict = {
-                'classification_owner': r[0] or 'Unknown',
+                'classification_owner': r[0] or 'NULL',
                 'make_owner': r[1] if level in ['make_owner', 'collection_owner'] else '',
                 'collection_owner': r[2] if level == 'collection_owner' else '',
                 'accept_pcs': int(r.accept_pcs or 0), 'accept_wt': float(r.accept_wt or 0),
@@ -474,7 +474,7 @@ def get_pending_order_details_partial():
             processed_rows = []
             for r in items:
                 row_dict = {
-                    'classification_owner': r[0] or 'Unknown',
+                    'classification_owner': r[0] or 'NULL',
                     'make_owner': r[1] if level in ['make_owner', 'collection_owner'] else '',
                     'collection_owner': r[2] if level == 'collection_owner' else '',
                     'accept_pcs': int(r.accept_pcs or 0), 'accept_wt': float(r.accept_wt or 0),
@@ -494,7 +494,7 @@ def get_pending_order_details_partial():
         processed_rows = []
         for r in pagination.items:
             row_dict = {
-                'classification_owner': r[0] or 'Unknown',
+                'classification_owner': r[0] or 'NULL',
                 'make_owner': r[1] if level in ['make_owner', 'collection_owner'] else '',
                 'collection_owner': r[2] if level == 'collection_owner' else '',
                 'accept_pcs': int(r.accept_pcs or 0), 'accept_wt': float(r.accept_wt or 0),
@@ -605,7 +605,7 @@ def get_pending_order_details_leaf_detail():
         from collections import defaultdict
         grouped_records = defaultdict(list)
         for rec in records:
-            supplier_key = rec.supplier or 'Unknown Supplier'
+            supplier_key = rec.supplier or 'NULL'
             grouped_records[supplier_key].append(rec)
             
         supplier_summaries = []
