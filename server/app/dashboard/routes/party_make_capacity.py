@@ -527,7 +527,7 @@ def api_party_make_capacity_export():
 
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "Supplier Capacity Plan"
+        ws.title = "Supplier Capacity & Backlog"
 
         # Styling definitions matching reference sheet
         peach_fill = PatternFill(start_color="FCE5CD", end_color="FCE5CD", fill_type="solid")
@@ -630,7 +630,7 @@ def api_party_make_capacity_export():
             ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"supplier_capacity_plan_{timestamp}.xlsx"
+        filename = f"supplier_capacity_backlog_analysis_{timestamp}.xlsx"
         filepath = os.path.join(EXPORTS_DIR, filename)
         wb.save(filepath)
 

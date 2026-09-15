@@ -1,5 +1,5 @@
 /**
- * Supplier Capacity Plan Report - Interactive Frontend Controller
+ * Supplier Capacity & Backlog Analysis - Interactive Frontend Controller
  * Supports Hierarchical Drill-down (Supplier -> Make), 14-point Filters,
  * Analytical Lag Metrics, Dynamic Accordion, and Excel Export.
  */

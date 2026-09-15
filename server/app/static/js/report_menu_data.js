@@ -63,7 +63,7 @@ window.REPORT_MENU_DATA = [
             },
             {
                 id: "party-make-capacity",
-                title: "Supplier Capacity Plan Report",
+                title: "Supplier Capacity & Backlog Analysis",
                 href: "/party-make-capacity-report",
                 icon: "balance",
                 description: "Analyze supplier monthly production capacity vs WIP stage backlog with hierarchical drill-down and bottleneck detection.",

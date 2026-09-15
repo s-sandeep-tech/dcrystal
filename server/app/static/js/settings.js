@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncPartyPerformanceMatrixBtn) syncPartyPerformanceMatrixBtn.addEventListener('click', () => triggerSync(syncPartyPerformanceMatrixBtn, window.SETTINGS_CONFIG.syncPartyPerformanceMatrixUrl, 'Party Performance Matrix Sync', 'party_performance_matrix'));
     if (syncLocationWiseOldGoldBtn) syncLocationWiseOldGoldBtn.addEventListener('click', () => triggerSync(syncLocationWiseOldGoldBtn, window.SETTINGS_CONFIG.syncLocationWiseOldGoldSettlementTransferUrl, 'Location-wise Old Gold Settlement & Transfer Sync', 'location_wise_old_gold_settlement_transfer'));
     if (syncWeeklyDeliveryOrderSummaryBtn) syncWeeklyDeliveryOrderSummaryBtn.addEventListener('click', () => triggerSync(syncWeeklyDeliveryOrderSummaryBtn, window.SETTINGS_CONFIG.syncWeeklyDeliveryOrderSummaryUrl, 'Weekly Delivery Order Summary Sync', 'weekly_delivery_order_summary'));
-    if (syncPartyMakeCapacityDetailsBtn) syncPartyMakeCapacityDetailsBtn.addEventListener('click', () => triggerSync(syncPartyMakeCapacityDetailsBtn, window.SETTINGS_CONFIG.syncPartyMakeCapacityDetailsUrl, 'Supplier Capacity Plan Sync', 'party_make_capacity_details'));
+    if (syncPartyMakeCapacityDetailsBtn) syncPartyMakeCapacityDetailsBtn.addEventListener('click', () => triggerSync(syncPartyMakeCapacityDetailsBtn, window.SETTINGS_CONFIG.syncPartyMakeCapacityDetailsUrl, 'Supplier Capacity & Backlog Analysis Sync', 'party_make_capacity_details'));
 
 
 
@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { url: window.SETTINGS_CONFIG.syncPartyPerformanceMatrixUrl, label: 'Party Performance Matrix', type: 'party_performance_matrix' },
                 { url: window.SETTINGS_CONFIG.syncLocationWiseOldGoldSettlementTransferUrl, label: 'Location-wise Old Gold Settlement & Transfer', type: 'location_wise_old_gold_settlement_transfer' },
                 { url: window.SETTINGS_CONFIG.syncWeeklyDeliveryOrderSummaryUrl, label: 'Weekly Delivery Order Summary', type: 'weekly_delivery_order_summary' },
-                { url: window.SETTINGS_CONFIG.syncPartyMakeCapacityDetailsUrl, label: 'Supplier Capacity Plan Details', type: 'party_make_capacity_details' },
+                { url: window.SETTINGS_CONFIG.syncPartyMakeCapacityDetailsUrl, label: 'Supplier Capacity & Backlog Analysis', type: 'party_make_capacity_details' },
             ];
 
             setSyncLoading(syncAllBtn, 'Processing');
