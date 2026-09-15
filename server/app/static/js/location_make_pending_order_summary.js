@@ -1,6 +1,7 @@
 let currentZoom = parseFloat(localStorage.getItem('location-make-zoom')) || 1.0;
 let makeMultiSelect;
 let locationMultiSelect;
+let branchTypeMultiSelect;
 let reportController;
 
 window.addEventListener('load', () => loadLocationMakeReport(), { once: true });
@@ -12,10 +13,6 @@ async function loadLocationMakeReport() {
     const body = document.getElementById('view-location-make-pending');
     const stats = document.getElementById('location-make-stats');
     const info = document.getElementById('pagination-info');
-    stats.querySelectorAll('[id^="stat-"]').forEach(element => {
-        if (element.id.endsWith('-bar')) element.style.width = '0%';
-        else element.textContent = element.id.endsWith('-pcs') ? '- Pcs' : '-';
-    });
     stats.setAttribute('aria-busy', 'true');
     body.setAttribute('aria-busy', 'true');
     info.textContent = 'Loading report...';
@@ -77,6 +74,17 @@ document.addEventListener('DOMContentLoaded', () => {
             cb.checked = selectedLocations.includes(cb.value);
         });
         locationMultiSelect.updateTriggerText();
+        branchTypeMultiSelect = new CustomMultiSelect({
+            containerId: 'filter-branch-type-container',
+            label: 'Branch Type',
+            defaultText: 'All Branch Types',
+            options: window.locationMakePendingAvailableBranchTypes || []
+        });
+        const selectedBranchTypes = (urlParams.get('branch_type') || '').split(',').map(v => v.trim()).filter(Boolean);
+        document.querySelectorAll('.filter-branch-type-container-checkbox').forEach(cb => {
+            cb.checked = selectedBranchTypes.includes(cb.value);
+        });
+        branchTypeMultiSelect.updateTriggerText();
         const makeVal = urlParams.get('make');
         if (makeVal && makeMultiSelect) {
             const selectedMakes = makeVal.split(',').map(v => v.trim()).filter(Boolean);
@@ -125,7 +133,7 @@ function getFilterValues() {
         order_request_type: document.getElementById('filter-order-request-type')?.value || '',
         provision_type: document.getElementById('filter-provision-type')?.value || '',
         branch_provision_type: document.getElementById('filter-branch-provision-type')?.value || '',
-        branch_type: document.getElementById('filter-branch-type')?.value || '',
+        branch_type: branchTypeMultiSelect ? branchTypeMultiSelect.getValues().join(',') : '',
         classification_owner: document.getElementById('filter-classification-owner')?.value || '',
         collection_owner: document.getElementById('filter-collection-owner')?.value || '',
         make_owner: document.getElementById('filter-make-owner')?.value || '',

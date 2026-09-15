@@ -154,8 +154,9 @@ def build_filter_query(base_query):
         query = query.filter(PendingOrderDetailsSnapshot.provision_type == provision_type)
     if branch_provision_type:
         query = query.filter(PendingOrderDetailsSnapshot.branch_provision_type == branch_provision_type)
-    if branch_type:
-        query = query.filter(PendingOrderDetailsSnapshot.branch_type == branch_type)
+    branch_types = split_filter_values(branch_type)
+    if branch_types:
+        query = query.filter(PendingOrderDetailsSnapshot.branch_type.in_(branch_types))
     if qc_ro:
         query = query.filter(PendingOrderDetailsSnapshot.qc_ro == qc_ro)
 
