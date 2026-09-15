@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
 from app.models import Notification, PendingOrderDetailsSnapshot, OwnerWiseOrderSummarySnapshot
 from app.extensions import db
-from sqlalchemy import false, func
+from sqlalchemy import String, false, func
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from collections import defaultdict
@@ -217,7 +217,10 @@ def location_make_pending_order_summary():
                 opts_base = apply_owner_visibility_filter(opts_base)
 
         def get_distinct_list(column):
-            return [r[0] for r in opts_base.with_entities(column).filter(column.isnot(None), column != '').distinct().order_by(column).all() if r[0]]
+            query = opts_base.with_entities(column).filter(column.isnot(None))
+            if isinstance(column.type, String):
+                query = query.filter(column != '')
+            return [r[0] for r in query.distinct().order_by(column).all()]
 
         filter_options = {
             'locations': get_distinct_list(PendingOrderDetailsSnapshot.location),
