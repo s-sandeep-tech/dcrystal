@@ -40,7 +40,7 @@ def determine_primary_bottleneck(process_wt, barcode_wt, hallmark_wt, qc_issue_w
         ('PROCESS', float(process_wt or 0)),
         ('BARCODE', float(barcode_wt or 0)),
         ('HALLMARK', float(hallmark_wt or 0)),
-        ('QC ISSUE', float(qc_issue_pending_wt or 0) if 'qc_issue_pending_wt' in locals() else float(qc_issue_wt or 0)),
+        ('QC ISSUE', float(qc_issue_wt or 0)),
         ('QC COMPLETE', float(qc_complete_wt or 0)),
         ('INVOICE', float(invoice_wt or 0))
     ]
