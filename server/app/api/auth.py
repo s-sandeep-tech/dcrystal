@@ -15,14 +15,15 @@ import re
 
 auth_bp = Blueprint('auth', __name__)
 
-ALLOWED_EMAIL_DOMAIN = 'kalyanjewellers.tech'
+ALLOWED_EMAIL_DOMAINS = ('kalyanjewellers.tech', 'kalyanjewellers.net')
 
 
 def validate_company_email(email):
-    """Allow user accounts only for the configured company email domain."""
+    """Allow user accounts only for the configured company email domains."""
     normalized_email = (email or '').strip().lower()
-    if not re.fullmatch(r'[^@\s]+@' + re.escape(ALLOWED_EMAIL_DOMAIN), normalized_email):
-        return False, f"Email must use the @{ALLOWED_EMAIL_DOMAIN} domain"
+    domains = '|'.join(re.escape(domain) for domain in ALLOWED_EMAIL_DOMAINS)
+    if not re.fullmatch(r'[^@\s]+@(?:' + domains + ')', normalized_email):
+        return False, "Email must use the @kalyanjewellers.tech or @kalyanjewellers.net domain"
     return True, normalized_email
 
 def validate_password_strength(password):

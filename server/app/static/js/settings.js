@@ -696,8 +696,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = document.getElementById('manageUserPassword').value;
 
         if (!id && !password) return showToast('Password is required for new users', 'error');
-        if (!/^[^@\s]+@kalyanjewellers\.tech$/i.test(email)) {
-            return showToast('Email must use the @kalyanjewellers.tech domain', 'error');
+        if (!/^[^@\s]+@kalyanjewellers\.(tech|net)$/i.test(email)) {
+            return showToast('Email must use the @kalyanjewellers.tech or @kalyanjewellers.net domain', 'error');
         }
 
         const payload = { user_id: bizId, username, email };
