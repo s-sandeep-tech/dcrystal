@@ -452,11 +452,8 @@ def toggle_user_status(user_id):
     if user.id == current_user_id:
         return jsonify({"msg": "You cannot disable your own account."}), 400
         
-    if (
-        not user.is_active
-        and user.email_verified_at is None
-        and user.email_verification_token_hash
-    ):
+    # Strict email verification: No admin overrides allowed
+    if not user.is_active and user.email_verified_at is None:
         return jsonify({"msg": "This user must verify their email before the account can be enabled."}), 400
 
     user.is_active = not user.is_active
@@ -465,6 +462,11 @@ def toggle_user_status(user_id):
     # Force session invalidation on disable
     if not user.is_active:
         user.session_version += 1
+    else:
+        # Re-enabling an already verified account clears any active lockout
+        user.failed_attempt_count = 0
+        user.lockout_until = None
+        user.last_failed_at = None
     
     log_audit(current_user_id, action, "USER", user_id, {"username": user.username, "new_status": user.is_active})
     

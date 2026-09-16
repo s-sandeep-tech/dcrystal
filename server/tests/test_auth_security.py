@@ -134,8 +134,76 @@ class AuthSecurityTestCase(unittest.TestCase):
             self.assertIsNotNone(user.email_verified_at)
             self.assertIsNone(user.email_verification_token_hash)
 
+            # Verify audit log entry was created for successful verification
+            from app.models import AuditLog
+            audit = AuditLog.query.filter_by(user_id=user.id, action="EMAIL_VERIFIED").first()
+            self.assertIsNotNone(audit)
+            self.assertEqual(audit.target_type, "USER")
+            self.assertEqual(audit.details.get("email"), user.email)
+
             reused = self.client.get(f'/api/auth/verify-email?token={token}')
             self.assertEqual(reused.status_code, 400)
+
+    def test_toggle_user_status_strict_email_verification_no_admin_override(self):
+        with self.app.app_context():
+            from flask_jwt_extended import create_access_token
+            admin_user = User(user_id='admin_test', username='admin_test', email='admin_test@example.com', is_admin=True, is_active=True)
+            admin_user.set_password('admin123!')
+            db.session.add(admin_user)
+
+            # Create an unverified disabled user
+            unverified_user = User(user_id='unverified', username='unverified', email='unverified@example.com', is_active=False, email_verified_at=None)
+            unverified_user.set_password('pass123!')
+            db.session.add(unverified_user)
+            db.session.commit()
+
+            access_token = create_access_token(
+                identity=str(admin_user.id),
+                additional_claims={'session_version': admin_user.session_version}
+            )
+            headers = {'Authorization': f'Bearer {access_token}'}
+
+            # Admin attempts to toggle/enable unverified user - must fail with 400 (strict email verification, no admin override)
+            response = self.client.post(f'/api/admin/users/{unverified_user.id}/toggle-status', headers=headers)
+            self.assertEqual(response.status_code, 400)
+            self.assertIn("must verify their email", response.get_json().get("msg", ""))
+            db.session.refresh(unverified_user)
+            self.assertFalse(unverified_user.is_active)
+
+    def test_toggle_user_status_re_enabling_clears_lockout_for_verified_user(self):
+        with self.app.app_context():
+            from flask_jwt_extended import create_access_token
+            admin_user = User(user_id='admin_test2', username='admin_test2', email='admin_test2@example.com', is_admin=True, is_active=True)
+            admin_user.set_password('admin123!')
+            db.session.add(admin_user)
+
+            # Verified user that got disabled and locked out
+            verified_user = User(
+                user_id='verified_locked',
+                username='verified_locked',
+                email='verified_locked@example.com',
+                is_active=False,
+                email_verified_at=datetime.utcnow(),
+                failed_attempt_count=5,
+                lockout_until=datetime.utcnow() + timedelta(minutes=15)
+            )
+            verified_user.set_password('pass123!')
+            db.session.add(verified_user)
+            db.session.commit()
+
+            access_token = create_access_token(
+                identity=str(admin_user.id),
+                additional_claims={'session_version': admin_user.session_version}
+            )
+            headers = {'Authorization': f'Bearer {access_token}'}
+
+            # Admin re-enables the account
+            response = self.client.post(f'/api/admin/users/{verified_user.id}/toggle-status', headers=headers)
+            self.assertEqual(response.status_code, 200)
+            db.session.refresh(verified_user)
+            self.assertTrue(verified_user.is_active)
+            self.assertEqual(verified_user.failed_attempt_count, 0)
+            self.assertIsNone(verified_user.lockout_until)
 
     def test_clear_lockout_endpoint(self):
         # 1. Login as Admin to get token (simplifying by mocking or using a real user if needed)

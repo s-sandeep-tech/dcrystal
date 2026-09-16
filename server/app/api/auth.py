@@ -195,7 +195,23 @@ def verify_email():
     user.email_verification_token_hash = None
     user.email_verification_expires_at = None
     user.is_active = True
+
+    db.session.add(AuditLog(
+        user_id=user.id,
+        action="EMAIL_VERIFIED",
+        target_type="USER",
+        target_id=str(user.id),
+        details={
+            "email": user.email,
+            "username": user.username,
+            "user_id": user.user_id,
+            "ip": request.headers.get('X-Forwarded-For', request.remote_addr),
+            "user_agent": request.headers.get('User-Agent'),
+            "method": "email_token"
+        }
+    ))
     db.session.commit()
+    current_app.logger.info("User %s (%s) verified email successfully.", user.id, user.username)
 
     return render_template(
         'email_verification_result.html',
