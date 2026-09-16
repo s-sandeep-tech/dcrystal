@@ -3,8 +3,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.dashboard import dashboard_bp
 from app.models import Notification, CollectionWiseAverageDeliveryDaysSnapshot
 from app.extensions import db
-from app.utils.decorators import require_perm
-from sqlalchemy import and_, case, func, distinct
+from app.utils.decorators import require_perm, require_report_access, require_role
+from sqlalchemy import and_, case, func, distinct, false
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import logging
@@ -210,6 +210,10 @@ def build_delivery_display_rows(records):
 
 
 def apply_owner_visibility_filter(query):
+    user_id = str(session.get('user_id') or '').strip()
+    if not user_id:
+        return query.filter(false())
+
     roles = [role.upper() for role in session.get('roles', [])]
     if 'ADMIN' in roles or 'MANAGER_2' in roles:
         return query
@@ -217,10 +221,6 @@ def apply_owner_visibility_filter(query):
     snapshot = CollectionWiseAverageDeliveryDaysSnapshot
     if 'MANAGER_KMU' in roles:
         return query.filter(snapshot.make.in_(KMU_MAKES))
-
-    user_id = str(session.get('user_id') or '').strip()
-    if not user_id:
-        return query
 
     return query.filter(
         (func.trim(snapshot.make_user_code) == user_id)
@@ -470,6 +470,7 @@ def build_collection_summary_display_rows(rows):
 
 
 @dashboard_bp.route('/collection-wise-average-delivery-days')
+@require_report_access('/collection-wise-average-delivery-days')
 def collection_wise_average_delivery_days_page():
     try:
         unread_count = Notification.query.filter_by(is_read=False).count()
@@ -492,6 +493,8 @@ def collection_wise_average_delivery_days_page():
 
 
 @dashboard_bp.route('/partial/collection-wise-average-delivery-days')
+@jwt_required()
+@require_report_access('/collection-wise-average-delivery-days')
 def get_collection_wise_average_delivery_days_partial():
     try:
         page = request.args.get('page', 1, type=int)
@@ -549,6 +552,8 @@ def get_collection_wise_average_delivery_days_partial():
 
 
 @dashboard_bp.route('/partial/collection-wise-average-delivery-days/collection-rows')
+@jwt_required()
+@require_report_access('/collection-wise-average-delivery-days')
 def get_collection_wise_average_delivery_days_collection_rows():
     try:
         collection = request.args.get('group_collection', '').strip()
@@ -588,6 +593,7 @@ def get_collection_wise_average_delivery_days_collection_rows():
 
 
 @dashboard_bp.route('/api/collection-wise-average-delivery-days/supplier-delivery-times')
+@require_report_access('/collection-wise-average-delivery-days')
 def get_collection_supplier_delivery_times():
     try:
         collection = request.args.get('group_collection', '').strip()
@@ -733,6 +739,7 @@ def get_collection_supplier_delivery_times():
 
 
 @dashboard_bp.route('/api/collection-wise-average-delivery-days/options')
+@require_report_access('/collection-wise-average-delivery-days')
 def get_collection_wise_average_delivery_days_options():
     try:
         locations = get_distinct(CollectionWiseAverageDeliveryDaysSnapshot.location)
@@ -764,20 +771,17 @@ def get_collection_wise_average_delivery_days_options():
 
 
 @dashboard_bp.route('/api/sync/collection-wise-average-delivery-days', methods=['POST'])
-@jwt_required(optional=True)
+@require_role(['ADMIN', 'DATA_SYNC_USER'])
 def trigger_sync_collection_wise_average_delivery_days():
     from app.utils.sync_manager import sync_collection_wise_average_delivery_days_data
     from app.models.auth import User
-    user_id = session.get('user_id') or get_jwt_identity()
-    if user_id and str(user_id).isdigit():
-        user = User.query.get(int(user_id))
-        if user:
-            user_id = user.user_id
-    return jsonify(sync_collection_wise_average_delivery_days_data(user_id))
+    user = db.session.get(User, int(get_jwt_identity()))
+    return jsonify(sync_collection_wise_average_delivery_days_data(user.user_id))
 
 
 @dashboard_bp.route('/api/collection-wise-average-delivery-days/export', methods=['POST'])
 @jwt_required()
+@require_report_access('/collection-wise-average-delivery-days')
 @require_perm('report.export')
 def queue_collection_wise_average_delivery_days_export():
     try:
