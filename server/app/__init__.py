@@ -5,6 +5,9 @@ import os
 
 def create_app():
     app = Flask(__name__)
+    from .utils.security_config import signing_key, session_is_current
+    app.config['JWT_SECRET_KEY'] = signing_key('JWT_SECRET_KEY')
+    app.config['SECRET_KEY'] = signing_key('SECRET_KEY')
     CORS(app)
     # Import models to register them with SQLAlchemy
     from .models import (
@@ -40,8 +43,6 @@ def create_app():
                 "connect_timeout": int(os.getenv('SQLALCHEMY_CONNECT_TIMEOUT', '30'))
             }
         }
-    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'super-secret-key-change-me')
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-123')
     app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
     app.config['JWT_ACCESS_COOKIE_NAME'] = 'access_token'
     app.config['JWT_COOKIE_CSRF_PROTECT'] = False
@@ -168,8 +169,9 @@ def create_app():
                     user = User.query.get(user_primary_id)
                     if user:
                         # Validate session version for restored sessions too
-                        if token_version is not None and user.session_version == token_version:
+                        if user.is_active and token_version is not None and user.session_version == token_version:
                             session['user_id'] = user.user_id
+                            session['session_version'] = token_version
                             session['username'] = user.username
                             session['is_admin'] = user.is_admin
                             session['roles'] = [r.name for r in user.roles]
@@ -194,14 +196,19 @@ def create_app():
                 verify_jwt_in_request()
                 bearer_user = db.session.get(User, int(get_jwt_identity()))
             except Exception:
-                from flask import jsonify
                 return jsonify(msg='Invalid or expired authorization.'), 401
         if session.get('user_id') or bearer_user:
             from app.utils.access_policy import effective_roles
             user = bearer_user or User.query.filter_by(user_id=str(session['user_id'])).first()
-            if not user or not user.is_active:
+            if not user or not user.is_active or (not bearer_user and not session_is_current(user, session)):
                 session.clear()
-                return
+                if request.endpoint in {'auth.login', 'auth.logout', 'dashboard.login', 'dashboard.logout'}:
+                    return
+                g.clear_token_cookie = True
+                if request.path.startswith('/api/') or request.method != 'GET':
+                    return jsonify(msg='Session revoked. Please log in again.'), 401
+                return redirect(url_for('dashboard.login'))
+            session['session_version'] = user.session_version
             session['roles'] = sorted(effective_roles(user))
             session['is_admin'] = 'ADMIN' in session['roles']
             session['user_id'] = user.user_id

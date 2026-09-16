@@ -7,6 +7,7 @@ from flask import render_template, request, jsonify, session, send_file, abort, 
 from sqlalchemy import func, case, and_, or_
 
 from app.dashboard import dashboard_bp
+from app.utils.decorators import require_report_access
 from app.extensions import db
 from app.models import Notification, ExportDownloadLog
 from app.models.snapshots import PartyMakeCapacityDetailsSnapshot
@@ -167,6 +168,7 @@ def fetch_all_filter_options():
 
 
 @dashboard_bp.route('/party-make-capacity-report')
+@require_report_access('/party-make-capacity-report')
 def party_make_capacity_report():
     try:
         unread_count = 0
@@ -189,6 +191,7 @@ def party_make_capacity_report():
 
 
 @dashboard_bp.route('/api/party-make-capacity/filter-options')
+@require_report_access('/party-make-capacity-report')
 def api_party_make_capacity_filter_options():
     return jsonify(fetch_all_filter_options())
 
@@ -437,6 +440,7 @@ def get_aggregated_capacity_data():
 
 
 @dashboard_bp.route('/api/party-make-capacity/data')
+@require_report_access('/party-make-capacity-report')
 def api_party_make_capacity_data():
     try:
         suppliers_list, global_kpis = get_aggregated_capacity_data()
@@ -468,6 +472,7 @@ def api_party_make_capacity_data():
 
 
 @dashboard_bp.route('/api/party-make-capacity/drilldown')
+@require_report_access('/party-make-capacity-report')
 def api_party_make_capacity_drilldown():
     try:
         supplier = request.args.get('supplier', '').strip()
@@ -520,6 +525,7 @@ def api_party_make_capacity_drilldown():
 
 
 @dashboard_bp.route('/api/party-make-capacity/export')
+@require_report_access('/party-make-capacity-report')
 def api_party_make_capacity_export():
     try:
         import openpyxl

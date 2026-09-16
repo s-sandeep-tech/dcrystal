@@ -11,6 +11,13 @@ from app.services.email_verification_service import issue_verification_token
 class AuthSecurityTestCase(unittest.TestCase):
     def setUp(self):
         import os
+        from unittest.mock import patch
+        keys = patch.dict(os.environ, {
+            'SECRET_KEY': 'test-only-session-key-with-at-least-32-characters',
+            'JWT_SECRET_KEY': 'test-only-jwt-key-with-at-least-32-characters',
+        })
+        keys.start()
+        self.addCleanup(keys.stop)
         os.environ['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         self.app = create_app()
         self.app.config['TESTING'] = True

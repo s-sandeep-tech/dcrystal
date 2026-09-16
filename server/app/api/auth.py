@@ -81,6 +81,7 @@ def login():
 
         # Store in session for server-side auth checks (e.g. data filtering)
         session['user_id'] = user.user_id
+        session['session_version'] = user.session_version
         session['username'] = user.username
         session['is_admin'] = 'ADMIN' in user_roles
         session['roles'] = user_roles

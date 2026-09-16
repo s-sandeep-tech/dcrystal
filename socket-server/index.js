@@ -16,7 +16,10 @@ const io = new Server(server, {
 
 app.use(express.json());
 
-const JWT_SECRET = process.env.JWT_SECRET_KEY || 'super-secret-key-change-me';
+const JWT_SECRET = process.env.JWT_SECRET_KEY;
+if (!JWT_SECRET || JWT_SECRET.trim().length < 32 || JWT_SECRET === 'super-secret-key-change-me') {
+  throw new Error('JWT_SECRET_KEY must be configured with a random secret of at least 32 characters');
+}
 
 // Authentication middleware for standard socket connections
 io.use((socket, next) => {

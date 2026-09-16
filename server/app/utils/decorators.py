@@ -34,6 +34,40 @@ def require_perm(permission_name):
         return wrapper
     return decorator
 
+def require_report_access(report_url):
+    """Protect report APIs with the same role/menu grants as the report page."""
+    def decorator(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            try:
+                verify_jwt_in_request()
+            except Exception:
+                if request.path.startswith('/api/'):
+                    return jsonify(msg='Unauthorized. Please log in.'), 401
+                return redirect(url_for('dashboard.login'))
+            from app.extensions import db
+            from app.models.auth import User
+            from app.utils.access_policy import effective_roles
+            try:
+                user = db.session.get(User, int(get_jwt_identity()))
+            except (ValueError, TypeError):
+                user = None
+            if not user or not user.is_active:
+                return jsonify(msg='Unauthorized. Please log in.'), 401
+            roles = effective_roles(user)
+            if 'ADMIN' not in roles:
+                permissions = roles | {p.name for r in user.roles for p in r.permissions
+                                       if p.name not in {'ADMIN', 'SUPER_ADMIN'}}
+                allowed = any(m.url == report_url and
+                              (not m.permission_required or m.permission_required in permissions)
+                              for r in user.roles for m in r.menus)
+                if not allowed:
+                    return jsonify(msg='Forbidden. Report access required.'), 403
+            return fn(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
 def require_role(role_name):
     """
     Decorator to ensure user holds a specific role (or one of several roles).
