@@ -61,7 +61,7 @@ class HighSecurityTests(unittest.TestCase):
         routes = [n for n in functions if any(isinstance(d, ast.Call)
                   and isinstance(d.func, ast.Attribute) and d.func.attr == 'route'
                   for d in n.decorator_list)]
-        self.assertEqual(len(routes), 5)
+        self.assertEqual(len(routes), 6)
         for node in routes:
             self.assertTrue(any(isinstance(d, ast.Call) and isinstance(d.func, ast.Name)
                                 and d.func.id == 'require_report_access' for d in node.decorator_list), node.name)

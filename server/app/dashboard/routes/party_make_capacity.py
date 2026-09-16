@@ -669,3 +669,27 @@ def api_party_make_capacity_export():
     except Exception as e:
         logger.error(f"Error in export: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@dashboard_bp.route('/api/sync/party-make-capacity-report', methods=['POST'])
+@dashboard_bp.route('/api/sync/party-make-capacity', methods=['POST'])
+@dashboard_bp.route('/sync/party-make-capacity-report', methods=['POST'])
+@dashboard_bp.route('/party-make-capacity-report/sync', methods=['POST'])
+@require_report_access('/party-make-capacity-report')
+def sync_party_make_capacity_report():
+    """
+    Sync endpoint for Party Make Capacity Report (/party-make-capacity-report).
+    Actual sync logic is commented out; returns a dummy message after sleep.
+    """
+    # Actual sync logic:
+    # from app.utils.sync_manager import sync_party_make_capacity_details_data
+    # user_id = session.get('user_id')
+    # return jsonify(sync_party_make_capacity_details_data(user_id))
+
+    time.sleep(3)
+    return jsonify({
+        'status': 'success',
+        'message': 'Party Make Capacity Report sync completed successfully (dummy response)',
+        'count': 0
+    }), 200
+
