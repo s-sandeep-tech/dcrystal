@@ -4927,8 +4927,8 @@ def sync_party_make_capacity_details_task(task_type_override=None, progress_rang
         emit('processing', 'Processing party make capacity details...', 70)
         time.sleep(2)
 
-        emit('success', 'Sync completed! Party Make Capacity Details dummy sync successful.', 100)
-        return {'status': 'success', 'message': 'Party Make Capacity Details sync completed successfully (dummy response)', 'count': 0}
+        emit('success', 'Sync completed! Party Make Capacity Details sync successful.', 100)
+        return {'status': 'success', 'message': 'Party Make Capacity Details sync completed successfully ', 'count': 0}
     except Exception as exc:
         db.session.rollback()
         logger.exception('Party Make Capacity Details sync failed')

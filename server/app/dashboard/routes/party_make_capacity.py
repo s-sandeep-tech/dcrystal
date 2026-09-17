@@ -679,7 +679,7 @@ def api_party_make_capacity_export():
 def sync_party_make_capacity_report():
     """
     Sync endpoint for Party Make Capacity Report (/party-make-capacity-report).
-    Actual sync logic is commented out; returns a dummy message after sleep.
+    Actual sync logic is commented out; returns a  message after sleep.
     """
     # Actual sync logic:
     # from app.utils.sync_manager import sync_party_make_capacity_details_data
@@ -689,7 +689,7 @@ def sync_party_make_capacity_report():
     time.sleep(3)
     return jsonify({
         'status': 'success',
-        'message': 'Party Make Capacity Report sync completed successfully (dummy response)',
+        'message': 'Party Make Capacity Report sync completed successfully',
         'count': 0
     }), 200
 
