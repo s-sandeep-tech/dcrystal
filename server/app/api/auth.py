@@ -12,10 +12,15 @@ from app.services.email_verification_service import (
 from app.utils.decorators import require_role
 
 import re
+from html import escape
 
 auth_bp = Blueprint('auth', __name__)
 
 ALLOWED_EMAIL_DOMAINS = ('kalyanjewellers.tech', 'kalyanjewellers.net')
+
+
+def encode_log_text(value):
+    return escape(str(value), quote=True) if value is not None else None
 
 
 def validate_company_email(email):
@@ -332,10 +337,11 @@ def get_recent_logs():
     logs = LoginAttemptLog.query.order_by(LoginAttemptLog.timestamp.desc()).limit(50).all()
     return jsonify([{
         "id": log.id,
-        "username": log.username_submitted,
-        "ip": log.ip_address,
-        "status": log.status,
-        "reason": log.failure_reason,
+        "username": encode_log_text(log.username_submitted),
+        "ip": encode_log_text(log.ip_address),
+        "status": encode_log_text(log.status),
+        "reason": encode_log_text(log.failure_reason),
+        "html_encoded": True,
         "timestamp": log.timestamp.isoformat() + 'Z' if log.timestamp else None
     } for log in logs])
 
@@ -366,11 +372,12 @@ def get_login_logs():
     return jsonify({
         "logs": [{
             "id": log.id,
-            "user_code": log.user_id if log.user_id else log.username_submitted,
-            "user_name": username if username else "-",
-            "ip": log.ip_address,
-            "status": log.status,
-            "reason": log.failure_reason,
+            "user_code": encode_log_text(log.user_id if log.user_id else log.username_submitted),
+            "user_name": encode_log_text(username if username else "-"),
+            "ip": encode_log_text(log.ip_address),
+            "status": encode_log_text(log.status),
+            "reason": encode_log_text(log.failure_reason),
+            "html_encoded": True,
             "timestamp": log.timestamp.isoformat() + 'Z' if log.timestamp else None
         } for log, username in pagination.items],
         "total": pagination.total,

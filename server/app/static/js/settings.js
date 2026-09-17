@@ -2678,17 +2678,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const localTime = log.timestamp ? new Date(log.timestamp).toLocaleString('en-IN', istOptions) : 'N/A';
 
             tr.innerHTML = `
-                <td class="px-4 py-3 text-gray-500 font-mono">${localTime}</td>
-                <td class="px-4 py-3 font-mono text-primary font-bold">${log.user_code || '---'}</td>
-                <td class="px-4 py-3 font-bold text-gray-900 dark:text-white">${log.user_name}</td>
-                <td class="px-4 py-3 font-mono">${log.ip}</td>
+                <td class="px-4 py-3 text-gray-500 font-mono"></td>
+                <td class="px-4 py-3 font-mono text-primary font-bold"></td>
+                <td class="px-4 py-3 font-bold text-gray-900 dark:text-white"></td>
+                <td class="px-4 py-3 font-mono"></td>
                 <td class="px-4 py-3">
-                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider ${statusClass} border border-transparent">
-                        ${log.status}
-                    </span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider border border-transparent"></span>
                 </td>
-                <td class="px-4 py-3 text-gray-400">${log.reason || '-'}</td>
+                <td class="px-4 py-3 text-gray-400"></td>
             `;
+            // Login IDs and forwarded IP headers can contain attacker-controlled HTML.
+            const cells = tr.children;
+            cells[0].textContent = localTime;
+            cells[1].textContent = log.user_code || '---';
+            cells[2].textContent = log.user_name || '-';
+            cells[3].textContent = log.ip || '-';
+            const statusBadge = cells[4].firstElementChild;
+            statusBadge.classList.add(...statusClass.split(' '));
+            statusBadge.textContent = log.status || '-';
+            cells[5].textContent = log.reason || '-';
             tbody.appendChild(tr);
         });
     }
