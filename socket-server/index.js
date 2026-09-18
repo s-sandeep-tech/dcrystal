@@ -8,6 +8,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   path: "/realtimedata/",
+  pingInterval: 10000, // 10s ping prevents Azure App Gateway 20s idle timeout
+  pingTimeout: 5000,   // 5s pong timeout
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
