@@ -40,6 +40,19 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchReportData();
 });
 
+function toggleCapacityFilters() {
+    const sidebar = document.getElementById('capacity-sidebar');
+    const button = document.getElementById('capacity-filter-toggle');
+    if (!sidebar || !button) return;
+
+    const hidden = sidebar.style.display !== 'none';
+    sidebar.style.display = hidden ? 'none' : '';
+    button.setAttribute('aria-expanded', String(!hidden));
+    const label = hidden ? 'Show filters' : 'Hide filters';
+    button.setAttribute('aria-label', label);
+    button.title = label;
+}
+
 function adjustZoom(delta, reset = false) {
     if (reset) {
         state.zoomLevel = 1.0;

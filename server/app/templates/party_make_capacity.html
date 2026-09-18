@@ -89,7 +89,7 @@
 {% endblock %}
 
 {% block content %}
-<main id="capacity-report-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+<main id="capacity-report-main" class="flex-1 min-w-0 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
     <!-- Top Header Bar -->
     <div class="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex flex-wrap items-center justify-between gap-3 ">
         <div class="flex items-center gap-3">
@@ -103,7 +103,12 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+            <button id="capacity-filter-toggle" type="button" onclick="toggleCapacityFilters()"
+                class="w-8 h-8 shrink-0 inline-flex items-center justify-center rounded border border-gray-200 dark:border-gray-700 text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                aria-controls="capacity-sidebar" aria-expanded="true" aria-label="Hide filters" title="Hide filters">
+                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">filter_alt</span>
+            </button>
             <!-- Zoom Controls -->
             <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2 text-[10px]">
                 <button onclick="adjustZoom(-0.1)" class="p-1 px-2 font-bold text-gray-500 hover:text-primary transition-colors" title="Zoom Out">-</button>
