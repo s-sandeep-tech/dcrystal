@@ -213,6 +213,7 @@ def get_aggregated_capacity_data():
         PartyMakeCapacityDetailsSnapshot.supplier.label('supplier'),
         PartyMakeCapacityDetailsSnapshot.make.label('make'),
         func.max(PartyMakeCapacityDetailsSnapshot.party_capacity_kg).label('party_capacity_kg'),
+        func.max(PartyMakeCapacityDetailsSnapshot.actual_capacity_kg).label('actual_capacity_kg'),
         func.sum(PartyMakeCapacityDetailsSnapshot.process_pending_pcs).label('process_pending_pcs'),
         func.sum(PartyMakeCapacityDetailsSnapshot.process_pending_wt).label('process_pending_wt'),
         func.sum(PartyMakeCapacityDetailsSnapshot.barcode_pending_pcs).label('barcode_pending_pcs'),
@@ -221,6 +222,7 @@ def get_aggregated_capacity_data():
         func.sum(PartyMakeCapacityDetailsSnapshot.hallmark_pending_wt).label('hallmark_pending_wt'),
         func.sum(PartyMakeCapacityDetailsSnapshot.qc_issue_pending_pcs).label('qc_issue_pending_pcs'),
         func.sum(PartyMakeCapacityDetailsSnapshot.qc_issue_pending_wt).label('qc_issue_pending_wt'),
+        func.sum(PartyMakeCapacityDetailsSnapshot.correction_wt).label('correction_wt'),
         func.sum(PartyMakeCapacityDetailsSnapshot.qc_complete_pending_pcs).label('qc_complete_pending_pcs'),
         func.sum(PartyMakeCapacityDetailsSnapshot.qc_complete_pending_wt).label('qc_complete_pending_wt'),
         func.sum(PartyMakeCapacityDetailsSnapshot.invoice_pending_pcs).label('invoice_pending_pcs'),
@@ -231,7 +233,10 @@ def get_aggregated_capacity_data():
         func.sum(PartyMakeCapacityDetailsSnapshot.total_wt).label('total_wt'),
         func.count(func.distinct(PartyMakeCapacityDetailsSnapshot.order_ro)).label('ro_count'),
         func.sum(urgent_expr).label('urgent_wt'),
-        func.bool_or(PartyMakeCapacityDetailsSnapshot.is_msme).label('is_msme')
+        func.bool_or(PartyMakeCapacityDetailsSnapshot.is_msme).label('is_msme'),
+        func.min(case(
+            (PartyMakeCapacityDetailsSnapshot.is_orders.is_(False), 1), else_=0
+        )).label('all_no_orders')
     )
 
     agg_query = apply_capacity_filters(agg_query)
@@ -257,6 +262,7 @@ def get_aggregated_capacity_data():
         barc_wt = float(r.barcode_pending_wt or 0.0)
         hm_wt = float(r.hallmark_pending_wt or 0.0)
         qc_iss_wt = float(r.qc_issue_pending_wt or 0.0)
+        correction_wt = float(r.correction_wt or 0.0)
         qc_comp_wt = float(r.qc_complete_pending_wt or 0.0)
         inv_wt = float(r.invoice_pending_wt or 0.0)
         rcpt_wt = float(r.receipt_pending_wt or 0.0)
@@ -269,14 +275,15 @@ def get_aggregated_capacity_data():
         diff = round(make_cap - wip_total_kg, 4)
         util_pct = round((wip_total_kg / make_cap * 100), 1) if make_cap > 0 else 0.0
         bottleneck = determine_primary_bottleneck(proc_wt, barc_wt, hm_wt, qc_iss_wt, qc_comp_wt, inv_wt)
-        qc_rework_pct = round((qc_iss_wt / wip_total_g * 100), 1) if wip_total_g > 0 else 0.0
+        qc_rework_pct = round((correction_wt / wip_total_g * 100), 1) if wip_total_g > 0 else 0.0
         avg_piece_wt = round((wip_total_g / tot_pcs), 2) if tot_pcs > 0 else 0.0
         urg_pct = round((urg_wt / wip_total_g * 100), 1) if wip_total_g > 0 else 0.0
 
         make_data = {
+            'is_orders': not bool(r.all_no_orders),
             'make': make_name,
             'supplier': sup_name,
-            'actual_capacity': None,
+            'actual_capacity': float(r.actual_capacity_kg) if r.actual_capacity_kg is not None else None,
             'capacity_wt_kg_per_month': make_cap,
             'process_pending_pcs': int(r.process_pending_pcs or 0),
             'process_pending_wt': round(proc_wt, 3),
@@ -300,6 +307,7 @@ def get_aggregated_capacity_data():
             'utilization_pct': util_pct,
             'primary_bottleneck': bottleneck,
             'qc_rework_pct': qc_rework_pct,
+            'correction_wt': correction_wt,
             'avg_piece_wt': avg_piece_wt,
             'urgent_order_pct': urg_pct,
             'ro_count': int(r.ro_count or 0),
@@ -308,6 +316,7 @@ def get_aggregated_capacity_data():
 
         if sup_name not in suppliers_dict:
             suppliers_dict[sup_name] = {
+                'is_orders': False,
                 'supplier': sup_name,
                 'actual_capacity': None,
                 'capacity_wt_kg_per_month': 0.0,
@@ -333,6 +342,7 @@ def get_aggregated_capacity_data():
                 'utilization_pct': 0.0,
                 'primary_bottleneck': 'NONE',
                 'qc_rework_pct': 0.0,
+                'correction_wt': 0.0,
                 'avg_piece_wt': 0.0,
                 'urgent_order_pct': 0.0,
                 'ro_count': 0,
@@ -341,6 +351,10 @@ def get_aggregated_capacity_data():
             }
 
         sup = suppliers_dict[sup_name]
+        # Capacity repeats across detail records: max per make, then sum makes.
+        if make_data['actual_capacity'] is not None:
+            sup['actual_capacity'] = (sup['actual_capacity'] or 0.0) + make_data['actual_capacity']
+        sup['is_orders'] = sup['is_orders'] or make_data['is_orders']
         sup['capacity_wt_kg_per_month'] += make_cap
         sup['process_pending_pcs'] += make_data['process_pending_pcs']
         sup['process_pending_wt'] += make_data['process_pending_wt']
@@ -350,6 +364,7 @@ def get_aggregated_capacity_data():
         sup['hallmark_pending_wt'] += make_data['hallmark_pending_wt']
         sup['qc_issue_pending_pcs'] += make_data['qc_issue_pending_pcs']
         sup['qc_issue_pending_wt'] += make_data['qc_issue_pending_wt']
+        sup['correction_wt'] += make_data['correction_wt']
         sup['qc_complete_pending_pcs'] += make_data['qc_complete_pending_pcs']
         sup['qc_complete_pending_wt'] += make_data['qc_complete_pending_wt']
         sup['invoice_pending_pcs'] += make_data['invoice_pending_pcs']
@@ -390,7 +405,7 @@ def get_aggregated_capacity_data():
             sup['process_pending_wt'], sup['barcode_pending_wt'], sup['hallmark_pending_wt'],
             sup['qc_issue_pending_wt'], sup['qc_complete_pending_wt'], sup['invoice_pending_wt']
         )
-        sup['qc_rework_pct'] = round((sup['qc_issue_pending_wt'] / sup['total_wt'] * 100), 1) if sup['total_wt'] > 0 else 0.0
+        sup['qc_rework_pct'] = round((sup['correction_wt'] / sup['total_wt'] * 100), 1) if sup['total_wt'] > 0 else 0.0
         sup['avg_piece_wt'] = round((sup['total_wt'] / sup['total_pcs']), 2) if sup['total_pcs'] > 0 else 0.0
 
         # Global stats accumulation
@@ -398,7 +413,7 @@ def get_aggregated_capacity_data():
         global_kpis['total_wip_wt'] += sup['total_wt']
         global_kpis['total_wip_kg'] += sup['total_wt_in_kg']
         global_kpis['total_transit_kg'] += sup['receipt_pending_wt_kg']
-        global_kpis['total_qc_rework_kg'] += (sup['qc_issue_pending_wt'] / 1000.0)
+        global_kpis['total_qc_rework_kg'] += (sup['correction_wt'] / 1000.0)
 
         if sup['diff'] < 0:
             global_kpis['over_capacity_count'] += 1
@@ -431,10 +446,15 @@ def get_aggregated_capacity_data():
     sort_order = request.args.get('sort_order', 'asc').strip().lower()
     reverse = (sort_order == 'desc')
 
-    if sort_by in ['capacity_wt_kg_per_month', 'total_wt', 'total_wt_in_kg', 'diff', 'utilization_pct', 'qc_rework_pct', 'receipt_pending_wt_kg']:
+    if sort_by in ['actual_capacity', 'capacity_wt_kg_per_month', 'total_wt', 'total_wt_in_kg', 'diff', 'utilization_pct', 'qc_rework_pct', 'receipt_pending_wt_kg']:
         suppliers_list.sort(key=lambda s: s.get(sort_by, 0.0) or 0.0, reverse=reverse)
     else:
         suppliers_list.sort(key=lambda s: str(s.get('supplier', '')).upper(), reverse=reverse)
+
+    # Stable partition keeps the selected sort within each order-status group.
+    suppliers_list.sort(key=lambda s: s['is_orders'] is False)
+    for sup in suppliers_list:
+        sup['makes'].sort(key=lambda m: m['is_orders'] is False)
 
     return suppliers_list, global_kpis
 
@@ -491,12 +511,17 @@ def api_party_make_capacity_drilldown():
         page = max(1, request.args.get('page', 1, type=int))
         per_page = 50
         total = query.count()
-        orders = query.order_by(PartyMakeCapacityDetailsSnapshot.location, PartyMakeCapacityDetailsSnapshot.id).offset((page - 1) * per_page).limit(per_page).all()
+        orders = query.order_by(
+            case((PartyMakeCapacityDetailsSnapshot.is_orders.is_(False), 1), else_=0),
+            PartyMakeCapacityDetailsSnapshot.location,
+            PartyMakeCapacityDetailsSnapshot.id
+        ).offset((page - 1) * per_page).limit(per_page).all()
 
         results = []
         for o in orders:
             wip_wt = float(o.process_pending_wt or 0) + float(o.barcode_pending_wt or 0) + float(o.hallmark_pending_wt or 0) + float(o.qc_issue_pending_wt or 0) + float(o.qc_complete_pending_wt or 0) + float(o.invoice_pending_wt or 0)
             results.append({
+                'is_orders': o.is_orders,
                 'order_ro': o.order_ro or '',
                 'location': o.location or '',
                 'division': o.division or '',
@@ -553,7 +578,7 @@ def api_party_make_capacity_export():
         red_font = Font(name="Calibri", size=9, bold=True, color="DC2626")
 
         headers = [
-            "supplier", "make", "Actual Capacity (kg)", "Total Pending (kg)", "Balance (kg)",
+            "supplier", "make", "Act. Capacity (kg)", "Capacity (kg)", "Total Pending (kg)", "Balance (kg)",
             "utilization_pct", "primary_bottleneck", "qc_rework_pct",
             "process_pending_wt", "barcode_pending_wt", "hallmark_pending_wt",
             "qc_issue_pending_wt", "qc_complete_pending_wt", "invoice_pending_wt",
@@ -566,7 +591,7 @@ def api_party_make_capacity_export():
             cell.font = header_font
             cell.border = cell_border
             cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-            if col_num == 3: # Actual Capacity
+            if col_num in (3, 4): # Capacity columns
                 cell.fill = peach_fill
             else:
                 cell.fill = blue_header_fill
@@ -577,6 +602,7 @@ def api_party_make_capacity_export():
             sup_row = [
                 sup['supplier'],
                 f"ALL MAKES ({len(sup['makes'])})",
+                sup['actual_capacity'],
                 sup['capacity_wt_kg_per_month'],
                 sup['total_wt_in_kg'],
                 sup['diff'],
@@ -607,6 +633,7 @@ def api_party_make_capacity_export():
                 make_row = [
                     f"  ↳ {sup['supplier']}",
                     m['make'],
+                    m['actual_capacity'],
                     m['capacity_wt_kg_per_month'],
                     m['total_wt_in_kg'],
                     m['diff'],
@@ -627,7 +654,7 @@ def api_party_make_capacity_export():
                 for col_idx, cell in enumerate(ws[row_num], 1):
                     cell.font = child_font
                     cell.border = cell_border
-                    if col_idx == 5: # Balance column
+                    if col_idx == 6: # Balance column
                         cell.font = red_font if m['diff'] < 0 else green_font
                     if isinstance(cell.value, (int, float)):
                         cell.number_format = "#,##0.000" if isinstance(cell.value, float) else "#,##0"
@@ -692,4 +719,3 @@ def sync_party_make_capacity_report():
         'message': 'Party Make Capacity Report sync completed successfully',
         'count': 0
     }), 200
-

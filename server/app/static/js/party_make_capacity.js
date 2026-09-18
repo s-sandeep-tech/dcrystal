@@ -228,6 +228,7 @@ function renderTableRows(suppliers) {
         const parentTr = document.createElement('tr');
         parentTr.id = `sup-row-${supSafeId}`;
         parentTr.className = 'bg-parent-row border-b border-gray-200 dark:border-gray-800 font-bold hover:bg-blue-50/40 dark:hover:bg-gray-800/60 transition-colors cursor-pointer select-none';
+        parentTr.classList.toggle('capacity-no-orders', sup.is_orders === false);
         parentTr.onclick = (e) => {
             // Don't toggle if clicking a specific drilldown button
             if (e.target.closest('.no-accordion')) return;
@@ -264,6 +265,9 @@ function renderTableRows(suppliers) {
             </td>
 
             <!-- Col 3: Capacity Kg -->
+            <td class="px-2 py-2 text-right border-r border-gray-200 dark:border-gray-800 font-extrabold">
+                ${sup.actual_capacity == null ? '-' : formatNumber(sup.actual_capacity, 3)}
+            </td>
             <td class="px-2 py-2 text-right border-r border-gray-200 dark:border-gray-800 text-blue-700 dark:text-blue-300 font-extrabold">
                 ${formatNumber(sup.capacity_wt_kg_per_month, 3)}
             </td>
@@ -341,6 +345,7 @@ function renderTableRows(suppliers) {
         sup.makes.forEach((m) => {
             const childTr = document.createElement('tr');
             childTr.className = `child-row bg-child-row border-b border-gray-100 dark:border-gray-850 hover:bg-blue-50/20 dark:hover:bg-gray-800/40 transition-colors ${isExpanded ? '' : 'hidden'}`;
+            childTr.classList.toggle('capacity-no-orders', m.is_orders === false);
             childTr.setAttribute('data-parent-supplier', sup.supplier);
 
             const mDiffColor = m.diff < 0 ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-emerald-600 dark:text-emerald-400 font-bold';
@@ -361,6 +366,9 @@ function renderTableRows(suppliers) {
                 </td>
 
                 <!-- Col 3: Capacity Kg -->
+                <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800 font-medium">
+                    ${m.actual_capacity == null ? '-' : formatNumber(m.actual_capacity, 3)}
+                </td>
                 <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800 font-medium">
                     ${formatNumber(m.capacity_wt_kg_per_month, 3)}
                 </td>
@@ -711,6 +719,7 @@ async function openDrilldown(supplier, make, page = 1) {
             result.data.forEach(o => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-blue-50/20 dark:hover:bg-gray-800/40';
+                tr.classList.toggle('capacity-no-orders', o.is_orders === false);
                 tr.innerHTML = `
                     <td class="px-3 py-2 font-semibold text-gray-700 dark:text-gray-200">${escapeHtml(o.order_ro)}</td>
                     <td class="px-3 py-2 text-gray-700 dark:text-gray-300 text-xs">${escapeHtml(o.location)}</td>

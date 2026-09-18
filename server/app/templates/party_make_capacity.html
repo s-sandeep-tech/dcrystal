@@ -58,7 +58,7 @@
 #capacity-drilldown-table th { font-size: 10px; text-transform: uppercase; color: #6b7280; }
 #capacity-drilldown-table td { font-variant-numeric: tabular-nums; }
 .dark #capacity-drilldown-table th, .dark #capacity-drilldown-table td { border-color: #374151; }
-.capacity-table { min-width: 2350px; }
+.capacity-table { min-width: 2510px; }
 .capacity-table th:first-child { width: 300px; }
 .capacity-table th { width: 128px; }
 .capacity-table th.capacity-column { width: 160px; min-width: 160px; white-space: nowrap; }
@@ -85,6 +85,16 @@
 .dark .capacity-stat-value[data-tone="good"] { color: #34d399; }
 @media (max-width: 1200px) { .capacity-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 8px; padding: 6px 4px; } .capacity-stat:nth-child(3n) { border-right: 0; } }
 @media (max-width: 600px) { .capacity-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .capacity-stat:nth-child(3n) { border-right: 1px solid #f1f5f9; } .capacity-stat:nth-child(2n) { border-right: 0; } }
+    tr.capacity-no-orders,
+    tr.capacity-no-orders:hover,
+    tr.capacity-no-orders > td {
+        background-color: #e5e7eb !important;
+    }
+    .dark tr.capacity-no-orders,
+    .dark tr.capacity-no-orders:hover,
+    .dark tr.capacity-no-orders > td {
+        background-color: #374151 !important;
+    }
 </style>
 {% endblock %}
 
@@ -182,8 +192,13 @@
                         </div>
                     </th>
 
-                    <!-- Actual capacity from party_capacity_kg -->
-                    <th class="capacity-column px-2 py-2 text-right bg-header-blue border-r border-blue-200 dark:border-blue-900 cursor-pointer hover:bg-blue-200" title="Actual Capacity (kg)" onclick="sortByColumn('capacity_wt_kg_per_month')">
+                    <th class="capacity-column px-2 py-2 text-right bg-header-blue border-r border-blue-200 dark:border-blue-900 cursor-pointer hover:bg-blue-200" title="Actual Capacity (kg)" onclick="sortByColumn('actual_capacity')">
+                        <div class="flex items-center justify-end gap-1">
+                            <span>Act. Capacity (KG)</span>
+                            <span class="material-symbols-outlined text-[11px] text-blue-600">unfold_more</span>
+                        </div>
+                    </th>
+                    <th class="capacity-column px-2 py-2 text-right bg-header-blue border-r border-blue-200 dark:border-blue-900 cursor-pointer hover:bg-blue-200" title="Capacity (kg)" onclick="sortByColumn('capacity_wt_kg_per_month')">
                         <div class="flex items-center justify-end gap-1">
                             <span>Capacity (kg)</span>
                             <span class="material-symbols-outlined text-[11px] text-blue-600">unfold_more</span>

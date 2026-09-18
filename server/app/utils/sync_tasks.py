@@ -4836,11 +4836,11 @@ def sync_party_make_capacity_details_task(task_type_override=None, progress_rang
 
     def to_decimal(val):
         if val is None or val == '':
-            return 0.0
+            return Decimal('0')
         try:
-            return float(val)
-        except (ValueError, TypeError):
-            return 0.0
+            return Decimal(str(val))
+        except (InvalidOperation, ValueError, TypeError):
+            return Decimal('0')
 
     def to_int(val):
         if val is None or val == '':
@@ -4878,6 +4878,10 @@ def sync_party_make_capacity_details_task(task_type_override=None, progress_rang
                 'supplier': str(row.get('supplier') or '').strip(),
                 'make': str(row.get('make') or '').strip(),
                 'party_capacity_kg': to_decimal(row.get('party_capacity_kg')),
+                'actual_capacity_kg': to_decimal(row['actual_capacity_kg']) if row.get('actual_capacity_kg') is not None else None,
+                'correction_pcs': to_decimal(row['correction_pcs']) if row.get('correction_pcs') is not None else None,
+                'correction_wt': to_decimal(row['correction_wt']) if row.get('correction_wt') is not None else None,
+                'is_orders': row.get('is_orders'),
                 'order_ro': str(row.get('order_ro') or '').strip(),
                 'location': str(row.get('location') or '').strip(),
                 'provision_type': str(row.get('provision_type') or '').strip(),
