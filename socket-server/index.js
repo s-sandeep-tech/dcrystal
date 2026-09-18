@@ -86,7 +86,22 @@ async function start() {
   io.on('connection', (socket) => {
     const ipAddress = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
     const userId = socket.user ? (socket.user.sub || socket.user.user_id || socket.user.username || 'System') : 'Guest';
-    console.log(`User connected: ${userId} (${socket.id})`);
+    const connectedAt = Date.now();
+    const initialTransport = socket.conn.transport.name;
+    // Allowlisted fields only: never log handshake headers, auth tokens or raw errors.
+    const logConnection = (event, details = {}) => {
+      console.log(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        event,
+        user_id: userId,
+        socket_id: socket.id,
+        transport: socket.conn.transport.name,
+        initial_transport: initialTransport,
+        duration_ms: Date.now() - connectedAt,
+        active_connections: connectedUsers.size,
+        ...details
+      }));
+    };
 
     connectedUsers.set(socket.id, {
       sid: socket.id,
@@ -94,6 +109,11 @@ async function start() {
       username: socket.user ? (socket.user.username || socket.user.name || 'Unknown') : 'Guest',
       ip_address: ipAddress,
       connected_at: new Date().toISOString()
+    });
+    logConnection('socket_connected');
+
+    socket.conn.on('upgrade', (transport) => {
+      logConnection('socket_transport_upgraded', { transport: transport.name });
     });
 
     socket.on('subscribe_view', (viewId) => {
@@ -107,8 +127,9 @@ async function start() {
       }
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', (reason) => {
       connectedUsers.delete(socket.id);
+      logConnection('socket_disconnected', { reason });
     });
   });
 
