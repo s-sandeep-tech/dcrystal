@@ -80,6 +80,27 @@ class CapacityOrderStatusTests(unittest.TestCase):
             self.assertEqual(len(rows), 1)
             self.assertFalse(rows[0]['is_orders'])
 
+    def test_vendor_type_filters_capacity_not_actual_capacity(self):
+        db.session.add_all([
+            Snapshot(supplier='Vendors', make='Discount', party_capacity_kg=2,
+                     actual_capacity_kg=0),
+            Snapshot(supplier='Vendors', make='Negative', party_capacity_kg=-1),
+            Snapshot(supplier='Vendors', make='Non Discount', party_capacity_kg=0,
+                     actual_capacity_kg=5),
+        ])
+        db.session.commit()
+        for kind, names, capacity in [
+            ('discount', ['Discount', 'Negative'], 1),
+            ('non_discount', ['Non Discount'], 0),
+            ('', ['Discount', 'Negative', 'Non Discount'], 1),
+        ]:
+            with self.app.test_request_context('/?supplier=Vendors&vendor_type=' + kind):
+                rows, kpis = get_aggregated_capacity_data()
+                self.assertEqual([m['make'] for m in rows[0]['makes']], names)
+                self.assertEqual(kpis['total_capacity_kg'], capacity)
+                detail = api_party_make_capacity_drilldown.__wrapped__().get_json()
+                self.assertEqual(detail['total'], len(names))
+
     def test_rework_uses_correction_weight_and_weighted_supplier_total(self):
         db.session.add_all([
             Snapshot(supplier='Rework', make='A', process_pending_wt=80,

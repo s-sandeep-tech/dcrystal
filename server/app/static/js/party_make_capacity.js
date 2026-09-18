@@ -27,7 +27,8 @@ let state = {
         collection: '',
         order_type: '',
         order_request_type: '',
-        is_msme: ''
+        is_msme: '',
+        vendor_type: ''
     },
     expandedSuppliers: new Set(),
     zoomLevel: 1.0,
@@ -102,7 +103,8 @@ function updateActiveFilterBadges() {
             count++;
             const chip = document.createElement('span');
             chip.className = 'inline-flex items-center gap-1 bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded font-medium text-[9px] border border-blue-200 dark:border-blue-800';
-            chip.innerHTML = `<span>${k.replace('_', ' ')}: <b>${v}</b></span><button onclick="removeFilter('${k}')" class="text-blue-600 hover:text-blue-900 font-bold ml-1">×</button>`;
+            const displayValue = k === 'vendor_type' ? (v === 'discount' ? 'Discount Vendor' : 'Non Discount Vendor') : v;
+            chip.innerHTML = `<span>${k.replace('_', ' ')}: <b>${escapeHtml(displayValue)}</b></span><button onclick="removeFilter('${k}')" class="text-blue-600 hover:text-blue-900 font-bold ml-1">×</button>`;
             chipsContainer.appendChild(chip);
         }
     }
@@ -592,6 +594,7 @@ function openFilterDrawer() {
     setVal('adv-filter-order-type', state.filters.order_type);
     setVal('adv-filter-order-request-type', state.filters.order_request_type);
     setVal('adv-filter-is-msme', state.filters.is_msme);
+    setVal('adv-filter-vendor-type', state.filters.vendor_type);
 }
 
 function closeFilterDrawer() {
@@ -620,6 +623,7 @@ function applyDrawerFilters() {
     state.filters.order_type = getVal('adv-filter-order-type');
     state.filters.order_request_type = getVal('adv-filter-order-request-type');
     state.filters.is_msme = getVal('adv-filter-is-msme');
+    state.filters.vendor_type = getVal('adv-filter-vendor-type');
 
     // Sync quick filters
     const qMake = document.getElementById('quick-filter-make');

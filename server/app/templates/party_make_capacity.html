@@ -385,6 +385,14 @@
 <select id="capacity-status" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 rounded text-xs p-2"><option value="all">All</option><option value="over_capacity">Over-Capacity</option><option value="under_capacity">Available</option><option value="severe_overload">Critical (&gt;120%)</option></select>
             <!-- Drawer Form Body -->
             <div class="space-y-3 mt-3 text-[11px]">
+                <div>
+                    <label for="adv-filter-vendor-type" class="block font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-[9px] mb-1">Vendor Type</label>
+                    <select id="adv-filter-vendor-type" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-2 text-xs text-gray-800 dark:text-gray-200">
+                        <option value="">All Vendors</option>
+                        <option value="discount">Discount Vendor</option>
+                        <option value="non_discount">Non Discount Vendor</option>
+                    </select>
+                </div>
                 <!-- 1. Party / Supplier -->
                 <div>
                     <label class="block font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-[9px] mb-1">Party (Supplier)</label>

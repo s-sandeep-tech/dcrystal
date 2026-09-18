@@ -52,6 +52,11 @@ def determine_primary_bottleneck(process_wt, barcode_wt, hallmark_wt, qc_issue_w
 
 
 def apply_capacity_filters(query):
+    vendor_type = request.args.get('vendor_type', '').strip().lower()
+    if vendor_type == 'discount':
+        query = query.filter(PartyMakeCapacityDetailsSnapshot.party_capacity_kg != 0)
+    elif vendor_type == 'non_discount':
+        query = query.filter(PartyMakeCapacityDetailsSnapshot.party_capacity_kg == 0)
     search = request.args.get('search', '').strip()
     order_ro = request.args.get('order_ro', '')
     location = request.args.get('location', '')
