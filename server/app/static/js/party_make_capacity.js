@@ -356,12 +356,14 @@ function renderTableRows(suppliers) {
                 <td class="sticky-col-1 px-3 py-1.5 capacity-child-indent border-r border-gray-200 dark:border-gray-800 bg-inherit" style="padding-left: 34px !important;">
                     <div class="flex items-center gap-1.5 text-gray-600 dark:text-gray-300">
                         <span class="material-symbols-outlined text-[13px] text-gray-400">precision_manufacturing</span>
+                        ${m.is_orders === false ? `<span class="font-medium">${escapeHtml(m.make)}</span>` : `
                         <span class="font-medium hover:text-primary cursor-pointer no-accordion" onclick="openDrilldown('${escapeHtml(sup.supplier)}', '${escapeHtml(m.make)}')">
                             ${escapeHtml(m.make)}
                         </span>
                         <button onclick="openDrilldown('${escapeHtml(sup.supplier)}', '${escapeHtml(m.make)}')" class="no-accordion ml-1 text-gray-400 hover:text-primary" title="Inspect Orders">
                             <span class="material-symbols-outlined text-[12px]">open_in_new</span>
                         </button>
+                        `}
                     </div>
                 </td>
 
@@ -669,6 +671,9 @@ function resetAllFilters() {
 /* ─── Order Drilldown Modal Functions ─── */
 let drilldownRequest = 0;
 async function openDrilldown(supplier, make, page = 1) {
+    const supplierRow = state.cachedData.find(row => row.supplier === supplier);
+    const makeRow = supplierRow?.makes.find(row => row.make === make);
+    if (supplierRow?.is_orders === false || makeRow?.is_orders === false) return;
     const requestId = ++drilldownRequest;
     const modal = document.getElementById('drilldown-modal');
     const subtitle = document.getElementById('drilldown-subtitle');
