@@ -4828,7 +4828,6 @@ def sync_weekly_delivery_order_summary_task(task_type_override=None, progress_ra
 
 
 def sync_party_make_capacity_details_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
-    conn = None
     TASK_TYPE = task_type_override or 'party_make_capacity_details'
 
     def emit(status, message, progress):
@@ -4850,84 +4849,94 @@ def sync_party_make_capacity_details_task(task_type_override=None, progress_rang
         except (ValueError, TypeError):
             return 0
 
-    try:
-        emit('processing', 'Starting Party Make Capacity Details Sync...', 5)
+    max_attempts = 6  # Initial attempt plus five retries.
+    for attempt in range(1, max_attempts + 1):
+        conn = None
+        try:
+            emit('processing', f'Starting Party Make Capacity Details Sync (Attempt {attempt}/{max_attempts})...', 5)
 
-        conn = get_external_db_connection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+            conn = get_external_db_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-        emit('processing', 'Fetching data from Azure PostgreSQL...', 20)
-        started_at = time.time()
-        cursor.execute("SET statement_timeout = 0")
-        query = "SELECT * FROM ext_view.vw_party_make_capacity_details"
-        cursor.execute(query)
-        source_rows = cursor.fetchall()
-        duration = time.time() - started_at
+            emit('processing', 'Fetching data from Azure PostgreSQL...', 20)
+            started_at = time.time()
+            cursor.execute("SET statement_timeout = 0")
+            query = "SELECT * FROM ext_view.vw_party_make_capacity_details"
+            cursor.execute(query)
+            source_rows = cursor.fetchall()
+            duration = time.time() - started_at
 
-        logger.info(f"vw_party_make_capacity_details query took {duration:.2f} seconds.")
-        emit('processing', f'Fetched {len(source_rows):,} records in {duration:.1f}s. Updating local snapshot...', 50)
+            logger.info(f"vw_party_make_capacity_details query took {duration:.2f} seconds.")
+            emit('processing', f'Fetched {len(source_rows):,} records in {duration:.1f}s. Updating local snapshot...', 50)
 
-        PartyMakeCapacityDetailsSnapshot.__table__.create(db.engine, checkfirst=True)
-        db.session.query(PartyMakeCapacityDetailsSnapshot).delete()
+            PartyMakeCapacityDetailsSnapshot.__table__.create(db.engine, checkfirst=True)
+            db.session.query(PartyMakeCapacityDetailsSnapshot).delete()
 
-        today = date.today()
-        now = datetime.utcnow()
-        records = []
-        for row in source_rows:
-            records.append({
-                'supplier': str(row.get('supplier') or '').strip(),
-                'make': str(row.get('make') or '').strip(),
-                'party_capacity_kg': to_decimal(row.get('party_capacity_kg')),
-                'actual_capacity_kg': to_decimal(row['actual_capacity_kg']) if row.get('actual_capacity_kg') is not None else None,
-                'correction_pcs': to_decimal(row['correction_pcs']) if row.get('correction_pcs') is not None else None,
-                'correction_wt': to_decimal(row['correction_wt']) if row.get('correction_wt') is not None else None,
-                'is_orders': row.get('is_orders'),
-                'order_ro': str(row.get('order_ro') or '').strip(),
-                'location': str(row.get('location') or '').strip(),
-                'provision_type': str(row.get('provision_type') or '').strip(),
-                'branch_type': str(row.get('branch_type') or '').strip(),
-                'is_msme': bool(row.get('is_msme')),
-                'group_name': str(row.get('group') or '').strip(),
-                'purity': str(row.get('purity') or '').strip(),
-                'division': str(row.get('division') or '').strip(),
-                'classification': str(row.get('classification') or '').strip(),
-                'collection': str(row.get('collection') or '').strip(),
-                'order_type': str(row.get('order_type') or '').strip(),
-                'order_request_type': str(row.get('order_request_type') or '').strip(),
-                'process_pending_pcs': to_int(row.get('process_pending_pcs')),
-                'process_pending_wt': to_decimal(row.get('process_pending_wt')),
-                'barcode_pending_pcs': to_int(row.get('barcode_pending_pcs')),
-                'barcode_pending_wt': to_decimal(row.get('barcode_pending_wt')),
-                'hallmark_pending_pcs': to_int(row.get('hallmark_pending_pcs')),
-                'hallmark_pending_wt': to_decimal(row.get('hallmark_pending_wt')),
-                'qc_issue_pending_pcs': to_int(row.get('qc_issue_pending_pcs')),
-                'qc_issue_pending_wt': to_decimal(row.get('qc_issue_pending_wt')),
-                'qc_complete_pending_pcs': to_int(row.get('qc_complete_pending_pcs')),
-                'qc_complete_pending_wt': to_decimal(row.get('qc_complete_pending_wt')),
-                'invoice_pending_pcs': to_int(row.get('invoice_pending_pcs')),
-                'invoice_pending_wt': to_decimal(row.get('invoice_pending_wt')),
-                'receipt_pending_pcs': to_int(row.get('receipt_pending_pcs')),
-                'receipt_pending_wt': to_decimal(row.get('receipt_pending_wt')),
-                'total_pcs': to_int(row.get('total_pcs')),
-                'total_wt': to_decimal(row.get('total_wt')),
-                'snapshot_date': today,
-                'updated_at': now,
-            })
+            today = date.today()
+            now = datetime.utcnow()
+            records = []
+            for row in source_rows:
+                records.append({
+                    'supplier': str(row.get('supplier') or '').strip(),
+                    'make': str(row.get('make') or '').strip(),
+                    'party_capacity_kg': to_decimal(row.get('party_capacity_kg')),
+                    'actual_capacity_kg': to_decimal(row['actual_capacity_kg']) if row.get('actual_capacity_kg') is not None else None,
+                    'correction_pcs': to_decimal(row['correction_pcs']) if row.get('correction_pcs') is not None else None,
+                    'correction_wt': to_decimal(row['correction_wt']) if row.get('correction_wt') is not None else None,
+                    'is_orders': row.get('is_orders'),
+                    'order_ro': str(row.get('order_ro') or '').strip(),
+                    'location': str(row.get('location') or '').strip(),
+                    'provision_type': str(row.get('provision_type') or '').strip(),
+                    'branch_type': str(row.get('branch_type') or '').strip(),
+                    'is_msme': bool(row.get('is_msme')),
+                    'group_name': str(row.get('group') or '').strip(),
+                    'purity': str(row.get('purity') or '').strip(),
+                    'division': str(row.get('division') or '').strip(),
+                    'classification': str(row.get('classification') or '').strip(),
+                    'collection': str(row.get('collection') or '').strip(),
+                    'order_type': str(row.get('order_type') or '').strip(),
+                    'order_request_type': str(row.get('order_request_type') or '').strip(),
+                    'process_pending_pcs': to_int(row.get('process_pending_pcs')),
+                    'process_pending_wt': to_decimal(row.get('process_pending_wt')),
+                    'barcode_pending_pcs': to_int(row.get('barcode_pending_pcs')),
+                    'barcode_pending_wt': to_decimal(row.get('barcode_pending_wt')),
+                    'hallmark_pending_pcs': to_int(row.get('hallmark_pending_pcs')),
+                    'hallmark_pending_wt': to_decimal(row.get('hallmark_pending_wt')),
+                    'qc_issue_pending_pcs': to_int(row.get('qc_issue_pending_pcs')),
+                    'qc_issue_pending_wt': to_decimal(row.get('qc_issue_pending_wt')),
+                    'qc_complete_pending_pcs': to_int(row.get('qc_complete_pending_pcs')),
+                    'qc_complete_pending_wt': to_decimal(row.get('qc_complete_pending_wt')),
+                    'invoice_pending_pcs': to_int(row.get('invoice_pending_pcs')),
+                    'invoice_pending_wt': to_decimal(row.get('invoice_pending_wt')),
+                    'receipt_pending_pcs': to_int(row.get('receipt_pending_pcs')),
+                    'receipt_pending_wt': to_decimal(row.get('receipt_pending_wt')),
+                    'total_pcs': to_int(row.get('total_pcs')),
+                    'total_wt': to_decimal(row.get('total_wt')),
+                    'snapshot_date': today,
+                    'updated_at': now,
+                })
 
-        for start in range(0, len(records), 5000):
-            db.session.bulk_insert_mappings(
-                PartyMakeCapacityDetailsSnapshot,
-                records[start:start + 5000]
-            )
-        db.session.commit()
+            for start in range(0, len(records), 5000):
+                db.session.bulk_insert_mappings(
+                    PartyMakeCapacityDetailsSnapshot,
+                    records[start:start + 5000]
+                )
+            db.session.commit()
 
-        emit('success', f'Sync completed! {len(records):,} records updated.', 100)
-        return {'status': 'success', 'count': len(records)}
-    except Exception as exc:
-        db.session.rollback()
-        logger.exception('Party Make Capacity Details sync failed')
-        emit('error', f'Sync failed: {exc}', 0)
-        return {'status': 'error', 'message': str(exc)}
-    finally:
-        if conn:
-            conn.close()
+            emit('success', f'Sync completed! {len(records):,} records updated.', 100)
+            return {'status': 'success', 'count': len(records)}
+        except Exception as exc:
+            db.session.rollback()
+            logger.exception('Party Make Capacity Details sync failed (attempt %s/%s)', attempt, max_attempts)
+            if attempt == max_attempts:
+                message = f'Sync failed after {max_attempts} attempts: {exc}'
+                emit('error', message, 0)
+                return {'status': 'error', 'message': message}
+            emit('processing', f'Attempt {attempt}/{max_attempts} failed. Retrying in 5s...', 0)
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    logger.warning('Failed to close capacity sync source connection', exc_info=True)
+        time.sleep(5)
