@@ -273,16 +273,16 @@ def get_aggregated_capacity_data():
         rcpt_wt = float(r.receipt_pending_wt or 0.0)
         tot_pcs = int(r.total_pcs or 0)
         urg_wt = float(r.urgent_wt or 0.0)
+        stage_sum = proc_wt + barc_wt + hm_wt + qc_iss_wt + qc_comp_wt + inv_wt
+        tot_wt = float(r.total_wt) if (r.total_wt is not None and float(r.total_wt) > 0) else stage_sum
+        tot_wt_kg = round(tot_wt / 1000.0, 4)
 
-        # Total WIP pending weight is sum of 6 WIP stages
-        wip_total_g = proc_wt + barc_wt + hm_wt + qc_iss_wt + qc_comp_wt + inv_wt
-        wip_total_kg = round(wip_total_g / 1000.0, 4)
-        diff = round(make_cap - wip_total_kg, 4)
-        util_pct = round((wip_total_kg / make_cap * 100), 1) if make_cap > 0 else 0.0
+        diff = round(make_cap - tot_wt_kg, 4)
+        util_pct = round((tot_wt_kg / make_cap * 100), 1) if make_cap > 0 else 0.0
         bottleneck = determine_primary_bottleneck(proc_wt, barc_wt, hm_wt, qc_iss_wt, qc_comp_wt, inv_wt)
-        qc_rework_pct = round((correction_wt / wip_total_g * 100), 1) if wip_total_g > 0 else 0.0
-        avg_piece_wt = round((wip_total_g / tot_pcs), 2) if tot_pcs > 0 else 0.0
-        urg_pct = round((urg_wt / wip_total_g * 100), 1) if wip_total_g > 0 else 0.0
+        qc_rework_pct = round((correction_wt / tot_wt * 100), 1) if tot_wt > 0 else 0.0
+        avg_piece_wt = round((tot_wt / tot_pcs), 2) if tot_pcs > 0 else 0.0
+        urg_pct = round((urg_wt / tot_wt * 100), 1) if tot_wt > 0 else 0.0
 
         make_data = {
             'is_orders': not bool(r.all_no_orders),
@@ -306,8 +306,8 @@ def get_aggregated_capacity_data():
             'receipt_pending_wt': round(rcpt_wt, 3),
             'receipt_pending_wt_kg': round(rcpt_wt / 1000.0, 4),
             'total_pcs': tot_pcs,
-            'total_wt': round(wip_total_g, 3),
-            'total_wt_in_kg': wip_total_kg,
+            'total_wt': round(tot_wt, 3),
+            'total_wt_in_kg': tot_wt_kg,
             'diff': diff,
             'utilization_pct': util_pct,
             'primary_bottleneck': bottleneck,
@@ -524,7 +524,10 @@ def api_party_make_capacity_drilldown():
 
         results = []
         for o in orders:
-            wip_wt = float(o.process_pending_wt or 0) + float(o.barcode_pending_wt or 0) + float(o.hallmark_pending_wt or 0) + float(o.qc_issue_pending_wt or 0) + float(o.qc_complete_pending_wt or 0) + float(o.invoice_pending_wt or 0)
+            stage_sum = (float(o.process_pending_wt or 0) + float(o.barcode_pending_wt or 0) +
+                         float(o.hallmark_pending_wt or 0) + float(o.qc_issue_pending_wt or 0) +
+                         float(o.qc_complete_pending_wt or 0) + float(o.invoice_pending_wt or 0))
+            tot_wt = float(o.total_wt) if (o.total_wt is not None and float(o.total_wt) > 0) else stage_sum
             results.append({
                 'is_orders': o.is_orders,
                 'order_ro': o.order_ro or '',
@@ -544,7 +547,7 @@ def api_party_make_capacity_drilldown():
                 'invoice_pending_wt': float(o.invoice_pending_wt or 0),
                 'receipt_pending_wt': float(o.receipt_pending_wt or 0),
                 'total_pcs': int(o.total_pcs or 0),
-                'total_wt': wip_wt
+                'total_wt': round(tot_wt, 3)
             })
 
         return jsonify({'status': 'success', 'data': results, 'count': len(results), 'total': total,
