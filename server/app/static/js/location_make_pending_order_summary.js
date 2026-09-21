@@ -2,6 +2,7 @@ let currentZoom = parseFloat(localStorage.getItem('location-make-zoom')) || 1.0;
 let makeMultiSelect;
 let locationMultiSelect;
 let branchTypeMultiSelect;
+let orderTypeMultiSelect;
 let reportController;
 
 window.addEventListener('load', () => loadLocationMakeReport(), { once: true });
@@ -85,6 +86,17 @@ document.addEventListener('DOMContentLoaded', () => {
             cb.checked = selectedBranchTypes.includes(cb.value);
         });
         branchTypeMultiSelect.updateTriggerText();
+        orderTypeMultiSelect = new CustomMultiSelect({
+            containerId: 'filter-order-type-container',
+            label: 'Order Type',
+            defaultText: 'All Order Types',
+            options: window.locationMakePendingAvailableOrderTypes || []
+        });
+        const selectedOrderTypes = (urlParams.get('order_type') || '').split(',').map(v => v.trim()).filter(Boolean);
+        document.querySelectorAll('.filter-order-type-container-checkbox').forEach(cb => {
+            cb.checked = selectedOrderTypes.includes(cb.value);
+        });
+        orderTypeMultiSelect.updateTriggerText();
         const makeVal = urlParams.get('make');
         if (makeVal && makeMultiSelect) {
             const selectedMakes = makeVal.split(',').map(v => v.trim()).filter(Boolean);
@@ -125,7 +137,7 @@ function getFilterValues() {
         classification: document.getElementById('filter-classification')?.value || '',
         make: makeMultiSelect ? makeMultiSelect.getValues().join(',') : '',
         collection: document.getElementById('filter-collection')?.value || '',
-        order_type: document.getElementById('filter-order-type')?.value || '',
+        order_type: orderTypeMultiSelect ? orderTypeMultiSelect.getValues().join(',') : '',
         customer_order_type: document.getElementById('filter-customer-order-type')?.value || '',
         is_msme: document.getElementById('filter-is-msme')?.value || '',
         order_ro: document.getElementById('filter-order-ro')?.value || '',

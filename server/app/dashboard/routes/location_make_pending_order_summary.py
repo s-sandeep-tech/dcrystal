@@ -140,8 +140,9 @@ def build_filter_query(base_query):
     query = apply_make_filter(query, make)
     if collection:
         query = query.filter(PendingOrderDetailsSnapshot.collection == collection)
-    if order_type:
-        query = query.filter(PendingOrderDetailsSnapshot.order_type == order_type)
+    order_types = split_filter_values(order_type)
+    if order_types:
+        query = query.filter(PendingOrderDetailsSnapshot.order_type.in_(order_types))
     if customer_order_type:
         query = query.filter(PendingOrderDetailsSnapshot.customer_order_type == customer_order_type)
     if is_msme:
