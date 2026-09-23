@@ -119,7 +119,7 @@ def compute_barcode_bayesian_stage_risk(record, delivery_target_days, tat_days):
             'breach_risk_pct': 0.0,
             'risk_level': 'Delivered On-Time' if variance <= 0 else 'Delivered with Delay',
             'risk_class': 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/40' if variance <= 0 else 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/40',
-            'risk_note': f"Delivered to Muziris in-shop on {record.muziris_inshop_received_date.strftime('%d-%b-%Y')}. Total Workshop TAT: {tat_days} days.",
+            'risk_note': f"Delivered to Muziris in-shop on {record.muziris_inshop_received_date.strftime('%d-%b-%Y')}. Total Party to Office TAT: {tat_days} days.",
             'active_stage': 'Muziris In-Shop (Completed)',
             'days_in_stage': 0,
             'confidence': 'Actual Audited',
