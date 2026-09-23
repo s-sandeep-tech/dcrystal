@@ -127,8 +127,18 @@
                             class="flex w-full items-center gap-2 text-left group">
                             <span data-collection-toggle-icon class="material-symbols-outlined text-[16px] text-gray-400 group-hover:text-primary transition-transform">chevron_right</span>
                             <span class="min-w-0">
-                                <span class="block font-bold text-[11px] text-gray-900 dark:text-white truncate">
-                                    {{ row.collection or '-' }}
+                                <span class="flex items-center gap-1.5 font-bold text-[11px] text-gray-900 dark:text-white truncate">
+                                    <span class="truncate">{{ row.collection or '-' }}</span>
+                                    {% if item.is_low_sample %}
+                                    <span class="inline-flex shrink-0 items-center px-1.5 py-0.5 rounded text-[8px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200/60 dark:border-amber-700/40" title="Low sample size ({{ item.completed_count }} completed). Shrunk toward category baseline in summary modal.">
+                                        N={{ item.completed_count }}
+                                    </span>
+                                    {% elif item.has_high_inflight_risk %}
+                                    <span class="inline-flex shrink-0 items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-semibold bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200/60 dark:border-red-700/40" title="High in-flight breach risk on pending pipeline. Open summary modal for details.">
+                                        <span class="size-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                                        Risk
+                                    </span>
+                                    {% endif %}
                                 </span>
                                 <span class="block text-[9px] text-gray-400 truncate">
                                     {{ "{:,.0f}".format(row.barcode_count|float) }} barcodes · {{ row.master_collection or '-' }}

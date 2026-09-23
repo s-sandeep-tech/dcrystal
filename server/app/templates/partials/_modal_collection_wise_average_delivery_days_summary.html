@@ -1,11 +1,11 @@
 <div id="collection-summary-modal"
-    class="fixed inset-0 z-[105] hidden items-center justify-center p-4"
+    class="fixed inset-0 z-[105] hidden items-center justify-center p-2 sm:p-3"
     role="dialog" aria-modal="true" aria-labelledby="collection-summary-title" aria-hidden="true">
     <button type="button" data-collection-summary-close
         class="absolute inset-0 size-full bg-gray-900/50 cursor-default"
         aria-label="Close collection summary"></button>
 
-    <section class="relative w-full max-w-4xl max-h-[88vh] overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl flex flex-col">
+    <section class="relative w-full max-w-5xl h-full max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-1.5rem)] overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl flex flex-col">
         <header class="px-5 py-3.5 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between gap-4 shrink-0">
             <div class="flex items-center gap-3 min-w-0">
                 <div class="size-9 rounded bg-blue-50 dark:bg-blue-900/20 text-primary flex items-center justify-center shrink-0">
@@ -80,6 +80,68 @@
                     </div>
                 </div>
                 <div id="collection-summary-timing-bars" class="mt-3 space-y-2" aria-label="Target and combined delivery days"></div>
+            </div>
+
+            <!-- Bayesian Reliability & Predictive Forecast -->
+            <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-800 bg-gradient-to-r from-blue-50/50 via-indigo-50/30 to-purple-50/20 dark:from-blue-950/25 dark:via-indigo-950/15 dark:to-purple-950/10">
+                <div class="flex items-center justify-between gap-4 mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="size-6 rounded bg-primary/10 text-primary flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[15px]">psychology</span>
+                        </div>
+                        <div>
+                            <p class="text-[9px] font-bold uppercase tracking-widest text-primary">Bayesian Reliability &amp; Forecast</p>
+                            <p class="text-[9px] text-gray-400">Empirical Bayes shrinkage &amp; in-flight survival risk</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span id="collection-summary-bayes-confidence"
+                            class="inline-flex rounded px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                            -
+                        </span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <!-- 1. Empirical Bayes Adjusted TAT -->
+                    <div class="rounded border border-gray-200 dark:border-gray-700/80 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm p-3 shadow-xs">
+                        <div class="flex items-center justify-between">
+                            <p class="text-[8px] font-bold uppercase tracking-wider text-gray-400">Bayesian Adjusted TAT</p>
+                            <span class="material-symbols-outlined text-[13px] text-gray-400 cursor-help" title="Empirical Bayes shrinkage mean: stabilizes observed small-sample average with global category prior">help</span>
+                        </div>
+                        <p id="collection-summary-bayes-adjusted" class="mt-1 text-sm font-bold text-gray-900 dark:text-white tabular-nums">-</p>
+                        <p id="collection-summary-bayes-shrinkage-note" class="mt-0.5 text-[8.5px] text-gray-500 dark:text-gray-400 truncate">Shrunk toward prior baseline</p>
+                    </div>
+
+                    <!-- 2. 90% Credible Range -->
+                    <div class="rounded border border-gray-200 dark:border-gray-700/80 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm p-3 shadow-xs">
+                        <div class="flex items-center justify-between">
+                            <p class="text-[8px] font-bold uppercase tracking-wider text-gray-400">90% Credible Range</p>
+                            <span class="material-symbols-outlined text-[13px] text-gray-400 cursor-help" title="90% Bayesian posterior credible interval: true delivery turnaround time falls in this window with 90% probability">help</span>
+                        </div>
+                        <p id="collection-summary-bayes-credible" class="mt-1 text-sm font-bold text-gray-900 dark:text-white tabular-nums">-</p>
+                        <p id="collection-summary-bayes-credible-sub" class="mt-0.5 text-[8.5px] text-gray-500 dark:text-gray-400">Statistical uncertainty window</p>
+                    </div>
+
+                    <!-- 3. In-Flight Breach Risk -->
+                    <div class="rounded border border-gray-200 dark:border-gray-700/80 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm p-3 shadow-xs">
+                        <div class="flex items-center justify-between">
+                            <p class="text-[8px] font-bold uppercase tracking-wider text-gray-400">In-Flight Breach Risk</p>
+                            <span class="material-symbols-outlined text-[13px] text-gray-400 cursor-help" title="Bayesian survival probability of overdue delivery for current in-flight pending barcodes">help</span>
+                        </div>
+                        <p id="collection-summary-bayes-inflight" class="mt-1 text-sm font-bold tabular-nums">-</p>
+                        <p id="collection-summary-bayes-inflight-sub" class="mt-0.5 text-[8.5px] text-gray-500 dark:text-gray-400">Active pending pipeline</p>
+                    </div>
+                </div>
+
+                <div id="collection-summary-bayes-smoothed-row" class="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-[8.5px] text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200/60 dark:border-gray-700/60">
+                    <span class="flex items-center gap-1.5">
+                        <span class="size-1.5 rounded-full bg-primary"></span>
+                        Smoothed compliance: <strong id="collection-summary-bayes-compliance" class="font-bold text-gray-700 dark:text-gray-200">-</strong>
+                        <span class="text-gray-400">(Beta-Binomial shrinkage against raw sample noise)</span>
+                    </span>
+                    <span id="collection-summary-bayes-sample-info" class="font-medium text-gray-400">Completed sample: -</span>
+                </div>
             </div>
 
             <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-800">

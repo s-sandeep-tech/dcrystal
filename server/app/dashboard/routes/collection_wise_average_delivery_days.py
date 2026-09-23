@@ -400,11 +400,138 @@ def build_collection_summary_query(args):
     return query, metrics
 
 
+def compute_bayesian_delivery_metrics(row, global_mu0=14.0, global_comp0=82.0, prior_weight_m=5.0):
+    """
+    Computes Empirical Bayes shrinkage and predictive metrics for a collection summary row:
+    - Empirical Bayes shrinkage for average TAT (James-Stein / normal conjugate model)
+    - 90% Bayesian posterior credible range
+    - Beta-Binomial smoothed compliance rate
+    - In-flight survival breach risk probability
+    """
+    barcode_count = int(row.barcode_count or 0)
+    office_pending_count = int(row.office_pending_count or 0)
+    completed_count = max(barcode_count - office_pending_count, 0)
+
+    # If completed_count is 0 but avg_tat_days exists, treat completed_count as at least 1
+    if completed_count == 0 and row.avg_tat_days is not None:
+        completed_count = 1
+
+    raw_tat = float(row.avg_tat_days) if row.avg_tat_days is not None else None
+
+    # Empirical Bayes TAT shrinkage
+    if raw_tat is not None and completed_count > 0:
+        w = completed_count / (completed_count + prior_weight_m)
+        bayes_adjusted_tat = (w * raw_tat) + ((1.0 - w) * global_mu0)
+        shrinkage_diff = bayes_adjusted_tat - raw_tat
+    else:
+        bayes_adjusted_tat = global_mu0
+        shrinkage_diff = 0.0
+
+    # 90% Credible Range Estimation (z = 1.645)
+    p90 = float(row.p90_tat_days) if row.p90_tat_days is not None else None
+    median = float(row.median_tat_days) if row.median_tat_days is not None else None
+
+    if p90 is not None and median is not None and p90 > median:
+        s = max((p90 - median) / 1.28, 2.0)
+    elif raw_tat is not None:
+        s = max(raw_tat * 0.35, 2.5)
+    else:
+        s = 4.0
+
+    effective_n = completed_count + prior_weight_m
+    se = s / (effective_n ** 0.5)
+    margin_error = 1.645 * se
+    credible_min = max(round(bayes_adjusted_tat - margin_error, 1), 0.0)
+    credible_max = max(round(bayes_adjusted_tat + margin_error, 1), round(credible_min + 0.5, 1))
+
+    # Beta-Binomial smoothed compliance (Prior: global compliance with prior sample size 8)
+    prior_alpha = (global_comp0 / 100.0) * 8.0
+    prior_beta = 8.0 - prior_alpha
+    raw_compliance = float(row.compliance_pct) if row.compliance_pct is not None else None
+    if raw_compliance is not None and completed_count > 0:
+        k = completed_count * (raw_compliance / 100.0)
+        bayes_compliance = ((k + prior_alpha) / (completed_count + 8.0)) * 100.0
+    else:
+        bayes_compliance = global_comp0
+
+    # In-flight breach risk for active pending orders
+    office_overdue_count = int(row.office_overdue_count or 0)
+    avg_pending_age = float(row.avg_pending_age_days) if row.avg_pending_age_days is not None else None
+    delivery_target = float(row.avg_delivery_days) if row.avg_delivery_days is not None else 15.0
+
+    if office_pending_count <= 0:
+        inflight_risk_pct = 0.0
+        orders_at_risk = 0
+    else:
+        if avg_pending_age is not None:
+            if avg_pending_age >= delivery_target:
+                age_risk = 0.85
+            elif avg_pending_age >= delivery_target * 0.75:
+                age_risk = 0.55
+            elif avg_pending_age >= delivery_target * 0.5:
+                age_risk = 0.30
+            else:
+                age_risk = 0.15
+        else:
+            age_risk = 0.20
+
+        overdue_ratio = office_overdue_count / float(office_pending_count)
+        combined_risk = min(max(0.6 * overdue_ratio + 0.4 * age_risk, 0.05), 0.98)
+        inflight_risk_pct = round(combined_risk * 100.0, 1)
+        orders_at_risk = max(office_overdue_count, int(round(office_pending_count * combined_risk)))
+
+    # Confidence Classification
+    if completed_count >= 30:
+        confidence_level = 'High Confidence'
+        confidence_class = 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/40'
+    elif completed_count >= 10:
+        confidence_level = 'Moderate Confidence'
+        confidence_class = 'text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/40'
+    else:
+        confidence_level = 'Low Volume (Prior-Guided)'
+        confidence_class = 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/40'
+
+    is_low_sample = (completed_count < 5)
+    has_high_inflight_risk = (office_pending_count > 0 and inflight_risk_pct >= 70.0)
+
+    return {
+        'bayes_adjusted_tat': round(bayes_adjusted_tat, 1),
+        'bayes_raw_tat': round(raw_tat, 1) if raw_tat is not None else None,
+        'bayes_shrinkage_diff': round(shrinkage_diff, 1),
+        'bayes_credible_min': credible_min,
+        'bayes_credible_max': credible_max,
+        'bayes_smoothed_compliance': round(bayes_compliance, 1),
+        'bayes_inflight_risk_pct': inflight_risk_pct,
+        'bayes_orders_at_risk': orders_at_risk,
+        'confidence_level': confidence_level,
+        'confidence_class': confidence_class,
+        'completed_count': completed_count,
+        'office_pending_count': office_pending_count,
+        'is_low_sample': is_low_sample,
+        'has_high_inflight_risk': has_high_inflight_risk,
+    }
+
+
 def build_collection_summary_display_rows(rows):
+    # Compute global prior baselines from available result set
+    valid_tats = [float(r.avg_tat_days) for r in rows if r.avg_tat_days is not None]
+    global_mu0 = sum(valid_tats) / len(valid_tats) if valid_tats else 14.0
+    valid_comps = [float(r.compliance_pct) for r in rows if r.compliance_pct is not None]
+    global_comp0 = sum(valid_comps) / len(valid_comps) if valid_comps else 82.0
+
     display_rows = []
     for row in rows:
+        bayes = compute_bayesian_delivery_metrics(
+            row,
+            global_mu0=global_mu0,
+            global_comp0=global_comp0,
+            prior_weight_m=5.0
+        )
         display_rows.append({
             'record': row,
+            'completed_count': bayes['completed_count'],
+            'is_low_sample': bayes['is_low_sample'],
+            'has_high_inflight_risk': bayes['has_high_inflight_risk'],
             'modal_data': {
                 'collection': row.collection or '-',
                 'master_collection': row.master_collection or '-',
@@ -464,6 +591,21 @@ def build_collection_summary_display_rows(rows):
                     else None
                 ),
                 'last_morr_received_date': date_to_iso(row.last_morr_received_date),
+                # Bayesian Reliability & Forecast Metrics
+                'bayes_adjusted_tat': bayes['bayes_adjusted_tat'],
+                'bayes_raw_tat': bayes['bayes_raw_tat'],
+                'bayes_shrinkage_diff': bayes['bayes_shrinkage_diff'],
+                'bayes_credible_min': bayes['bayes_credible_min'],
+                'bayes_credible_max': bayes['bayes_credible_max'],
+                'bayes_smoothed_compliance': bayes['bayes_smoothed_compliance'],
+                'bayes_inflight_risk_pct': bayes['bayes_inflight_risk_pct'],
+                'bayes_orders_at_risk': bayes['bayes_orders_at_risk'],
+                'bayes_confidence_level': bayes['confidence_level'],
+                'bayes_confidence_class': bayes['confidence_class'],
+                'bayes_completed_count': bayes['completed_count'],
+                'bayes_pending_count': bayes['office_pending_count'],
+                'is_low_sample': bayes['is_low_sample'],
+                'has_high_inflight_risk': bayes['has_high_inflight_risk'],
             },
         })
     return display_rows
