@@ -831,6 +831,46 @@ function openDeliveryTimelineModal(detail) {
     setDeliveryModalText('delivery-modal-received-location', detail.received_location || '-');
     setDeliveryModalText('delivery-modal-current-location', detail.current_location || '-');
 
+    // Bayesian Reliability & Forecast
+    const bayes = detail.bayes_risk;
+    if (bayes) {
+        const badgeEl = document.getElementById('delivery-modal-bayes-risk-badge');
+        if (badgeEl) {
+            badgeEl.textContent = bayes.risk_level || '-';
+            badgeEl.className = `inline-flex rounded px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-wider ${bayes.risk_class || ''}`;
+        }
+
+        setDeliveryModalText(
+            'delivery-modal-bayes-predicted',
+            bayes.predicted_tat_days != null ? `${formatCollectionSummaryNumber(bayes.predicted_tat_days, 1)} days` : '-'
+        );
+        const predSubEl = document.getElementById('delivery-modal-bayes-predicted-sub');
+        if (predSubEl) {
+            predSubEl.textContent = detail.delivery_days != null ? `Target SLA: ${detail.delivery_days} days` : 'SLA not configured';
+        }
+
+        const probEl = document.getElementById('delivery-modal-bayes-prob');
+        if (probEl) {
+            probEl.textContent = `${formatCollectionSummaryNumber(bayes.breach_risk_pct, 1)}%`;
+            if (bayes.breach_risk_pct >= 70) {
+                probEl.className = 'mt-0.5 text-sm font-bold tabular-nums text-red-500 dark:text-red-400';
+            } else if (bayes.breach_risk_pct >= 35) {
+                probEl.className = 'mt-0.5 text-sm font-bold tabular-nums text-amber-500 dark:text-amber-400';
+            } else {
+                probEl.className = 'mt-0.5 text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400';
+            }
+        }
+
+        setDeliveryModalText('delivery-modal-bayes-stage', bayes.active_stage || '-');
+        const stageSubEl = document.getElementById('delivery-modal-bayes-stage-sub');
+        if (stageSubEl) {
+            stageSubEl.textContent = bayes.days_in_stage != null ? `${bayes.days_in_stage} days elapsed in stage` : '-';
+        }
+
+        setDeliveryModalText('delivery-modal-bayes-note', bayes.risk_note || '-');
+        setDeliveryModalText('delivery-modal-bayes-confidence', bayes.confidence || 'Bayesian Survival');
+    }
+
     renderDeliveryTimingProgress(detail);
     renderDeliveryTimeline(detail.timeline);
     renderStageDurationsTable(detail.stage_durations);

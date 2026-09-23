@@ -96,6 +96,130 @@ def build_process_timeline(record):
     return timeline, stage_durations
 
 
+def compute_barcode_bayesian_stage_risk(record, delivery_target_days, tat_days):
+    """
+    Computes Bayesian predictive risk for a single barcode order in Collection Timeline:
+    - If Workshop delivery is pending (morr_received_date IS NULL):
+        Calculates posterior probability of exceeding delivery_target_days based on elapsed days and current stage.
+    - If Workshop delivery is completed but Muziris In-Shop is pending:
+        Calculates office-to-shop transit delay risk.
+    - If fully completed:
+        Returns completed performance confirmation.
+    """
+    now_date = datetime.now(ZoneInfo('Asia/Kolkata')).date()
+    target_days = float(delivery_target_days) if delivery_target_days is not None else 15.0
+
+    # 1. Fully completed
+    if record.morr_received_date is not None and record.muziris_inshop_received_date is not None:
+        variance = (record.morr_received_date - record.ordered_date).days - target_days if record.ordered_date else 0
+        return {
+            'state': 'completed',
+            'state_label': 'Fulfilled',
+            'predicted_tat_days': tat_days,
+            'breach_risk_pct': 0.0,
+            'risk_level': 'Delivered On-Time' if variance <= 0 else 'Delivered with Delay',
+            'risk_class': 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/40' if variance <= 0 else 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/40',
+            'risk_note': f"Delivered to Muziris in-shop on {record.muziris_inshop_received_date.strftime('%d-%b-%Y')}. Total Workshop TAT: {tat_days} days.",
+            'active_stage': 'Muziris In-Shop (Completed)',
+            'days_in_stage': 0,
+            'confidence': 'Actual Audited',
+        }
+
+    # 2. Workshop delivery pending (at HM, QC, etc.)
+    if record.morr_received_date is None:
+        ordered_date = record.ordered_date or now_date
+        elapsed_days = max((now_date - ordered_date).days, 0)
+
+        stage_checkpoints = [
+            (record.crystal_invoice_date, 'Crystal Invoice', 0.85),
+            (record.qc_receipt_date, 'QC Received', 0.75),
+            (record.qc_issue_date, 'QC Issued', 0.60),
+            (record.hm_receipt_date, 'HM Received', 0.50),
+            (record.hm_issue_date, 'HM Issued', 0.30),
+            (record.ordered_date, 'Order Placed', 0.10),
+        ]
+
+        active_stage = 'Order Placed'
+        stage_progress = 0.10
+        last_date = ordered_date
+        for dt, name, prog in stage_checkpoints:
+            if dt is not None:
+                active_stage = name
+                stage_progress = prog
+                last_date = dt
+                break
+
+        days_in_stage = max((now_date - last_date).days, 0)
+        expected_remaining = max(round(target_days * (1.0 - stage_progress), 1), 2.0)
+        predicted_tat = round(elapsed_days + expected_remaining, 1)
+
+        remaining_budget = target_days - elapsed_days
+        if remaining_budget <= 0:
+            breach_risk_pct = min(round(90.0 + min(abs(remaining_budget) * 2.0, 9.9), 1), 99.9)
+            risk_level = 'SLA Overdue'
+            risk_class = 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/40'
+            risk_note = f"Overdue by {int(abs(remaining_budget))} days. Current stage: {active_stage} ({days_in_stage}d in stage)"
+        else:
+            buffer_ratio = (remaining_budget - expected_remaining) / max(target_days * 0.35, 2.5)
+            prob = 1.0 / (1.0 + (2.71828 ** (buffer_ratio * 1.8)))
+            breach_risk_pct = min(max(round(prob * 100.0, 1), 2.0), 95.0)
+
+            if breach_risk_pct >= 70.0:
+                risk_level = 'High Breach Risk'
+                risk_class = 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/40'
+                risk_note = f"Only {int(remaining_budget)}d remaining to SLA. Stage progress ({int(stage_progress*100)}%) is behind schedule."
+            elif breach_risk_pct >= 35.0:
+                risk_level = 'Moderate Risk'
+                risk_class = 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/40'
+                risk_note = f"{int(remaining_budget)}d remaining buffer. Active in {active_stage} for {days_in_stage}d."
+            else:
+                risk_level = 'On Track'
+                risk_class = 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/40'
+                risk_note = f"Production on track ({int(remaining_budget)}d buffer remaining vs {int(target_days)}d target)."
+
+        return {
+            'state': 'workshop_pending',
+            'state_label': 'In Production',
+            'predicted_tat_days': predicted_tat,
+            'breach_risk_pct': breach_risk_pct,
+            'risk_level': risk_level,
+            'risk_class': risk_class,
+            'risk_note': risk_note,
+            'active_stage': active_stage,
+            'days_in_stage': days_in_stage,
+            'elapsed_days': elapsed_days,
+            'confidence': 'Bayesian Survival Forecast',
+        }
+
+    # 3. Workshop completed, awaiting Muziris In-Shop receipt
+    morr_date = record.morr_received_date
+    transit_days = max((now_date - morr_date).days, 0)
+    expected_transit_benchmark = 5.0
+    if transit_days > expected_transit_benchmark:
+        transit_risk_pct = min(round(50.0 + (transit_days - expected_transit_benchmark) * 10.0, 1), 95.0)
+        risk_level = 'Transit Overdue' if transit_days > 10 else 'Transit Delayed'
+        risk_class = 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/40'
+        risk_note = f"Workshop finished on {morr_date.strftime('%d-%b-%Y')} ({tat_days}d TAT). Head Office transit pending {transit_days}d."
+    else:
+        transit_risk_pct = round(max(transit_days / expected_transit_benchmark * 30.0, 5.0), 1)
+        risk_level = 'In Transit'
+        risk_class = 'text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/40'
+        risk_note = f"Workshop completed in {tat_days}d. In transit to shop for {transit_days}d."
+
+    return {
+        'state': 'inshop_pending',
+        'state_label': 'Awaiting Shop Receipt',
+        'predicted_tat_days': tat_days,
+        'breach_risk_pct': transit_risk_pct,
+        'risk_level': risk_level,
+        'risk_class': risk_class,
+        'risk_note': risk_note,
+        'active_stage': 'Office to Muziris In-Shop',
+        'days_in_stage': transit_days,
+        'confidence': 'Transit Forecast',
+    }
+
+
 def build_delivery_display_rows(records):
     prepared_rows = []
     tat_values = []
@@ -144,6 +268,7 @@ def build_delivery_display_rows(records):
 
         product_parts = [value for value in (record.section, record.type) if value]
         timeline, stage_durations = build_process_timeline(record)
+        bayes_risk = compute_barcode_bayesian_stage_risk(record, delivery_target_days, tat_days)
 
         prepared_rows.append({
             'record': record,
@@ -190,6 +315,7 @@ def build_delivery_display_rows(records):
                 'current_location': record.current_location or '-',
                 'timeline': timeline,
                 'stage_durations': stage_durations,
+                'bayes_risk': bayes_risk,
             },
         })
 

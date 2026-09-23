@@ -1,7 +1,11 @@
 """Unit tests for Empirical Bayes delivery metrics in collection wise delivery days report."""
 import unittest
 from collections import namedtuple
-from app.dashboard.routes.collection_wise_average_delivery_days import compute_bayesian_delivery_metrics
+from app.dashboard.routes.collection_wise_average_delivery_days import (
+    compute_bayesian_delivery_metrics,
+    compute_barcode_bayesian_stage_risk,
+)
+from datetime import date, timedelta
 
 RowMock = namedtuple('RowMock', [
     'barcode_count',
@@ -14,6 +18,17 @@ RowMock = namedtuple('RowMock', [
     'office_overdue_count',
     'avg_pending_age_days',
 ], defaults=[0, 0, None, None, None, 15.0, None, 0, None])
+
+BarcodeMock = namedtuple('BarcodeMock', [
+    'ordered_date',
+    'hm_issue_date',
+    'hm_receipt_date',
+    'qc_issue_date',
+    'qc_receipt_date',
+    'crystal_invoice_date',
+    'morr_received_date',
+    'muziris_inshop_received_date',
+], defaults=[None]*8)
 
 class TestBayesianDeliveryMetrics(unittest.TestCase):
     def test_small_sample_shrinkage(self):
@@ -64,6 +79,32 @@ class TestBayesianDeliveryMetrics(unittest.TestCase):
         self.assertGreater(res['bayes_inflight_risk_pct'], 70.0)
         self.assertTrue(res['has_high_inflight_risk'])
         self.assertGreaterEqual(res['bayes_orders_at_risk'], 8)
+
+    def test_barcode_completed_state(self):
+        today = date.today()
+        rec = BarcodeMock(
+            ordered_date=today - timedelta(days=14),
+            morr_received_date=today - timedelta(days=2),
+            muziris_inshop_received_date=today,
+        )
+        res = compute_barcode_bayesian_stage_risk(rec, delivery_target_days=15, tat_days=12)
+        self.assertEqual(res['state'], 'completed')
+        self.assertEqual(res['breach_risk_pct'], 0.0)
+        self.assertIn('Delivered On-Time', res['risk_level'])
+
+    def test_barcode_overdue_in_production(self):
+        today = date.today()
+        rec = BarcodeMock(
+            ordered_date=today - timedelta(days=20),
+            hm_issue_date=today - timedelta(days=16),
+            hm_receipt_date=today - timedelta(days=10),
+            morr_received_date=None,
+        )
+        res = compute_barcode_bayesian_stage_risk(rec, delivery_target_days=15, tat_days=None)
+        self.assertEqual(res['state'], 'workshop_pending')
+        self.assertGreaterEqual(res['breach_risk_pct'], 90.0)
+        self.assertEqual(res['risk_level'], 'SLA Overdue')
+        self.assertEqual(res['active_stage'], 'HM Received')
 
 if __name__ == '__main__':
     unittest.main()
