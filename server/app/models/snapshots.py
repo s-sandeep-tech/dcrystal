@@ -3556,7 +3556,12 @@ class PartyMakeCapacityDetailsSnapshot(db.Model):
     order_type = db.Column(db.String(250), index=True)
     order_request_type = db.Column(db.String(250), index=True)
 
-    correction_pcs = db.Column(db.Numeric())
+    make_owner = db.Column(db.String(250))
+    collection_owner = db.Column(db.String(250))
+    collection_owner_emp_code = db.Column(db.String(256))
+    make_owner_emp_code = db.Column(db.String(256))
+
+    correction_pcs = db.Column(db.BigInteger)
     correction_wt = db.Column(db.Numeric())
     is_orders = db.Column(db.Boolean)
 

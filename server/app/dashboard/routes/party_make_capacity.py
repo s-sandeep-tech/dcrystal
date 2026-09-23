@@ -4,7 +4,8 @@ import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from flask import render_template, request, jsonify, session, send_file, abort, current_app
-from sqlalchemy import func, case, and_, or_
+from sqlalchemy import func, case, and_, or_, false
+from flask_jwt_extended import get_jwt_identity
 
 from app.dashboard import dashboard_bp
 from app.utils.decorators import require_report_access
@@ -13,6 +14,34 @@ from app.models import Notification, ExportDownloadLog
 from app.models.snapshots import PartyMakeCapacityDetailsSnapshot
 
 logger = logging.getLogger(__name__)
+
+
+def capacity_owner_condition():
+    from app.models.auth import User
+    from app.utils.access_policy import effective_roles
+
+    try:
+        identity = get_jwt_identity()
+        user = db.session.get(User, int(identity)) if identity is not None else None
+    except (RuntimeError, ValueError, TypeError):
+        return false()
+    if not user or not user.is_active:
+        return false()
+    roles = {role.upper() for role in effective_roles(user)}
+    if roles & {'ADMIN', 'SUPER_ADMIN', 'BIC_MANAGER', 'MANAGER_2'}:
+        return None
+    if 'MANAGER_KMU' in roles:
+        return PartyMakeCapacityDetailsSnapshot.make.in_([
+            'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA',
+            'KMU MH', 'KMU-COIN', 'KMU-TN',
+        ])
+    employee_code = str(user.user_id or '').strip()
+    if not employee_code:
+        return false()
+    return or_(
+        func.trim(PartyMakeCapacityDetailsSnapshot.make_owner_emp_code) == employee_code,
+        func.trim(PartyMakeCapacityDetailsSnapshot.collection_owner_emp_code) == employee_code,
+    )
 
 # Exports directory configuration
 if os.path.isdir('/app/uploads'):
@@ -52,6 +81,9 @@ def determine_primary_bottleneck(process_wt, barcode_wt, hallmark_wt, qc_issue_w
 
 
 def apply_capacity_filters(query):
+    owner_condition = capacity_owner_condition()
+    if owner_condition is not None:
+        query = query.filter(owner_condition)
     vendor_type = request.args.get('vendor_type', '').strip().lower()
     if vendor_type == 'discount':
         query = query.filter(PartyMakeCapacityDetailsSnapshot.party_capacity_kg != 0)
@@ -143,8 +175,12 @@ def apply_capacity_filters(query):
 
 def fetch_all_filter_options():
     try:
+        owner_condition = capacity_owner_condition()
         def get_distinct(column):
-            rows = db.session.query(column).distinct().order_by(column).all()
+            query = db.session.query(column)
+            if owner_condition is not None:
+                query = query.filter(owner_condition)
+            rows = query.distinct().order_by(column).all()
             return [str(r[0]).strip() for r in rows if r[0] is not None and str(r[0]).strip()]
 
         return {

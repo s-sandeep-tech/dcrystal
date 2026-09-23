@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from flask import Flask
 from app.extensions import db
@@ -22,6 +23,9 @@ class BoolOr:
 
 class CapacityOrderStatusTests(unittest.TestCase):
     def setUp(self):
+        visibility = patch('app.dashboard.routes.party_make_capacity.capacity_owner_condition', return_value=None)
+        visibility.start()
+        self.addCleanup(visibility.stop)
         self.app = Flask(__name__)
         self.app.config.update(TESTING=True, SQLALCHEMY_DATABASE_URI='sqlite:///:memory:')
         db.init_app(self.app)
