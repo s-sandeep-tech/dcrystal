@@ -226,6 +226,14 @@ def build_delivery_display_rows(records):
     delivery_target_values = []
 
     for record in records:
+        party_to_shop_days = None
+        party_to_shop_status = 'not_started'
+        if record.ordered_date and record.muziris_inshop_received_date:
+            elapsed = (record.muziris_inshop_received_date - record.ordered_date).days
+            party_to_shop_status = 'completed' if elapsed >= 0 else 'invalid'
+            party_to_shop_days = elapsed if elapsed >= 0 else None
+        elif record.ordered_date:
+            party_to_shop_status = 'pending'
         tat_days = None
         office_to_shop_days = None
         office_to_shop_pending_days = None
@@ -272,6 +280,8 @@ def build_delivery_display_rows(records):
 
         prepared_rows.append({
             'record': record,
+            'party_to_shop_days': party_to_shop_days,
+            'party_to_shop_status': party_to_shop_status,
             'tat_days': tat_days,
             'office_to_shop_days': office_to_shop_days,
             'office_to_shop_pending_days': office_to_shop_pending_days,
@@ -446,6 +456,13 @@ def build_snapshot_query(args):
 
 def build_collection_summary_query(args):
     snapshot = CollectionWiseAverageDeliveryDaysSnapshot
+    party_to_shop_days = case(
+        (and_(snapshot.ordered_date.isnot(None),
+              snapshot.muziris_inshop_received_date.isnot(None),
+              snapshot.muziris_inshop_received_date >= snapshot.ordered_date),
+         snapshot.muziris_inshop_received_date - snapshot.ordered_date),
+        else_=None,
+    )
     tat_days = snapshot.morr_received_date - snapshot.ordered_date
     office_age = func.coalesce(snapshot.morr_received_date, func.current_date()) - snapshot.ordered_date
     office_pending = and_(snapshot.morr_received_date.is_(None), snapshot.ordered_date.isnot(None))
@@ -485,6 +502,7 @@ def build_collection_summary_query(args):
         'first_ordered_date': func.min(snapshot.ordered_date),
         'last_ordered_date': func.max(snapshot.ordered_date),
         'avg_tat_days': func.avg(tat_days),
+        'avg_party_to_shop_days': func.avg(party_to_shop_days),
         'median_tat_days': func.percentile_cont(0.5).within_group(tat_days),
         'p90_tat_days': func.percentile_cont(0.9).within_group(tat_days),
         'max_tat_days': func.max(tat_days),
@@ -779,6 +797,7 @@ def get_collection_wise_average_delivery_days_partial():
             'ordered_date': metrics['last_ordered_date'],
             'morr_received_date': metrics['last_morr_received_date'],
             'tat_days': metrics['avg_tat_days'],
+            'party_to_shop_days': metrics['avg_party_to_shop_days'],
             'office_to_shop_days': metrics['avg_office_to_shop_days'],
             'sla_variance': metrics['avg_tat_days'],
             'muziris_inshop_received_date': metrics['awaiting_inshop_count'],
