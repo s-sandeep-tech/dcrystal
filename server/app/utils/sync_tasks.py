@@ -4200,7 +4200,9 @@ def sync_collection_wise_average_delivery_days_task(task_type_override=None, pro
                 'collection_owner': row.get('collection_owner'),
                 'classification_user_code': row.get('classification_user_code'),
                 'make_user_code': row.get('make_user_code'),
-                'collection_user_code': row.get('collection_user_code')
+                'collection_user_code': row.get('collection_user_code'),
+                'is_re_ordered': row.get('is_re_ordered'),
+                'in_transit_days': row.get('in_transit_days')
             })
 
         if new_records:

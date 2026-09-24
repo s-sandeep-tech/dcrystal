@@ -30,6 +30,7 @@ let filterValues = {
     section: '',
     branch_type: '',
     order_period: '',
+    is_re_ordered: 'false',
     sort_by: '',
     sort_order: 'none',
     page: 1,
@@ -929,6 +930,7 @@ function collectFilterValues() {
     filterValues.section = document.getElementById('filter-section')?.value || '';
     filterValues.branch_type = document.getElementById('filter-branch-type')?.value || '';
     filterValues.order_period = document.getElementById('filter-order-period')?.value || '';
+    filterValues.is_re_ordered = document.getElementById('filter-is-re-ordered')?.value || 'false';
     if (locationMultiSelect && typeof locationMultiSelect.getValues === 'function') {
         filterValues.location = locationMultiSelect.getValues().join(',');
     }
@@ -953,6 +955,7 @@ function resetFilters() {
         section: '',
         branch_type: '',
         order_period: '',
+        is_re_ordered: 'false',
         sort_by: '',
         sort_order: 'none',
         page: 1,
@@ -970,6 +973,8 @@ function resetFilters() {
         const select = document.getElementById(id);
         if (select) select.value = '';
     });
+    const reorderedSelect = document.getElementById('filter-is-re-ordered');
+    if (reorderedSelect) reorderedSelect.value = 'false';
 
     loadReportData();
 }

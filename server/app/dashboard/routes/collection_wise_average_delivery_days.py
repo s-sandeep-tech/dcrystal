@@ -326,6 +326,8 @@ def build_delivery_display_rows(records):
                 'timeline': timeline,
                 'stage_durations': stage_durations,
                 'bayes_risk': bayes_risk,
+                'is_re_ordered': bool(record.is_re_ordered) if record.is_re_ordered is not None else None,
+                'in_transit_days': record.in_transit_days,
             },
         })
 
@@ -450,6 +452,24 @@ def build_snapshot_query(args):
     order_periods = split_filter_values(args.get('order_period'))
     if order_periods:
         query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.order_period.in_(order_periods))
+
+    # Re-Ordered filter (defaults to 'false' / Non Re-Ordered if not specified)
+    raw_is_re_ordered = args.get('is_re_ordered')
+    if raw_is_re_ordered is None:
+        is_re_ordered = 'false'
+    else:
+        is_re_ordered = raw_is_re_ordered.strip().lower()
+
+    if is_re_ordered in ('false', '0', 'no'):
+        query = query.filter(
+            or_(
+                CollectionWiseAverageDeliveryDaysSnapshot.is_re_ordered.is_(False),
+                CollectionWiseAverageDeliveryDaysSnapshot.is_re_ordered.is_(None)
+            )
+        )
+    elif is_re_ordered in ('true', '1', 'yes'):
+        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.is_re_ordered.is_(True))
+    # If is_re_ordered in ('all', ''), no filter is applied (All Orders)
 
     return query
 

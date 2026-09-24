@@ -3133,6 +3133,8 @@ class CollectionWiseAverageDeliveryDaysSnapshot(db.Model):
     classification_user_code = db.Column(db.Text)
     make_user_code = db.Column(db.Text)
     collection_user_code = db.Column(db.Text)
+    is_re_ordered = db.Column(db.Boolean)
+    in_transit_days = db.Column(db.Integer)
 
 
 class PartyDesignAverageDeliveryDaysSnapshot(db.Model):
