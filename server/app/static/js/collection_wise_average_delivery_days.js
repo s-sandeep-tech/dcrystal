@@ -6,6 +6,18 @@ document.addEventListener('DOMContentLoaded', () => {
     loadReportData();
 });
 
+function toggleCollectionFilters() {
+    const sidebar = document.getElementById('collection-filter-sidebar');
+    const button = document.getElementById('collection-filter-toggle');
+    if (!sidebar || !button) return;
+    const hidden = sidebar.style.display !== 'none';
+    sidebar.style.display = hidden ? 'none' : '';
+    button.setAttribute('aria-expanded', String(!hidden));
+    const label = hidden ? 'Show filters' : 'Hide filters';
+    button.setAttribute('aria-label', label);
+    button.title = label;
+}
+
 let filterValues = {
     search: '',
     location: '',

@@ -7,16 +7,16 @@
 {% endblock %}
 
 {% block content %}
-<main id="collection-wise-average-delivery-days-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+<main id="collection-wise-average-delivery-days-main" class="flex-1 min-w-0 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
     <!-- Header -->
-    <div class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
+    <div class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex flex-wrap gap-2 items-center justify-between">
         <div class="flex items-center gap-4">
             <h2 class="text-sm font-bold tracking-tight text-gray-800 dark:text-white">
                 Collection wise average delivery days
                 <span class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded uppercase tracking-widest text-gray-500">v1.0</span>
             </h2>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
             {% if 'report.export' in permissions or 'ADMIN' in permissions %}
             <!-- Export Button -->
             <button id="btn-export-excel" onclick="exportToExcel()"
@@ -28,6 +28,11 @@
             {% endif %}
 
             <!-- Zoom Controls -->
+            <button id="collection-filter-toggle" type="button" onclick="toggleCollectionFilters()"
+                class="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-200 dark:border-gray-700 text-primary hover:bg-blue-50 dark:hover:bg-gray-800"
+                aria-controls="collection-filter-sidebar" aria-expanded="true" aria-label="Hide filters" title="Hide filters">
+                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">filter_alt</span>
+            </button>
             <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
                 <button onclick="adjustZoom(-0.1)" class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors" title="Zoom Out">-</button>
                 <button id="zoom-level" onclick="adjustZoom(0, true)" class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700" title="Reset Zoom">100%</button>
@@ -100,7 +105,7 @@
 {% endblock %}
 
 {% block sidebar %}
-<aside class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+<aside id="collection-filter-sidebar" class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
     <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-xs font-bold flex items-center gap-2 text-gray-800 dark:text-white">

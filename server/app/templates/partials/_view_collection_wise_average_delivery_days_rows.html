@@ -9,19 +9,17 @@
 </div>
 {% else %}
 <div class="overflow-x-auto border-y border-blue-100 dark:border-blue-900/40 bg-blue-50/20 dark:bg-blue-950/10">
-    <table class="w-full min-w-[1200px] table-fixed border-collapse text-left">
+    <table class="w-full min-w-[1100px] table-fixed border-collapse text-left">
         <colgroup>
-            <col class="w-[15%]">
-            <col class="w-[7%]">
-            <col class="w-[9%]">
-            <col class="w-[9%]">
+            <col class="w-[18%]">
             <col class="w-[9%]">
             <col class="w-[11%]">
-            <col class="w-[6%]">
+            <col class="w-[11%]">
             <col class="w-[12%]">
-            <col class="w-[6%]">
+            <col class="w-[12%]">
             <col class="w-[7%]">
-            <col class="w-[9%]">
+            <col class="w-[13%]">
+            <col class="w-[7%]">
         </colgroup>
         <tbody class="divide-y divide-blue-100/70 dark:divide-blue-900/30">
             {% for item in rows %}
@@ -112,12 +110,6 @@
                     <span class="inline-flex px-1.5 py-0.5 rounded text-[8.5px] font-bold uppercase tracking-wider whitespace-nowrap bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                         {{ item.status_label }}
                     </span>
-                </td>
-                <td class="px-3 py-1.5 align-middle font-medium whitespace-nowrap">
-                    {{ row.ordered_date.strftime('%d-%b-%Y') if row.ordered_date else '-' }}
-                </td>
-                <td class="px-3 py-1.5 align-middle font-medium whitespace-nowrap">
-                    {{ row.morr_received_date.strftime('%d-%b-%Y') if row.morr_received_date else '-' }}
                 </td>
             </tr>
             {% endfor %}
