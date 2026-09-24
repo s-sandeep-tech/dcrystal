@@ -92,9 +92,13 @@
                     <div
                         class="rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 px-3 py-2.5">
                         <p class="text-[8px] font-bold uppercase tracking-wider text-gray-400">Delayed</p>
-                        <p id="collection-summary-delayed"
+                        <p
                             title="Delayed / completed records with valid delivery targets"
-                            class="mt-1 text-sm font-bold text-red-500 dark:text-red-400 tabular-nums">-</p>
+                            class="mt-1 flex flex-wrap items-baseline gap-1 tabular-nums">
+                            <span id="collection-summary-delayed" class="text-sm font-bold text-red-500 dark:text-red-400">-</span>
+                            <span class="text-[10px] font-medium text-gray-400" aria-hidden="true">/</span>
+                            <span id="collection-summary-delayed-total" class="text-[10px] font-medium text-gray-500 dark:text-gray-400">-</span>
+                        </p>
                     </div>
                 </div>
                 <div id="collection-summary-timing-bars" class="mt-3 space-y-2"
