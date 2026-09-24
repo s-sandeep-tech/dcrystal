@@ -259,7 +259,7 @@ def build_delivery_display_rows(records):
             delivery_target_values.append(delivery_target_days)
 
         variance_days = (
-            tat_days - delivery_target_days
+            tat_days - (delivery_target_days + (record.in_transit_days or 0))
             if tat_days is not None and delivery_target_days is not None
             else None
         )
@@ -513,7 +513,7 @@ def build_collection_summary_query(args):
     )
     eligible_tat = case((valid_target, tat_days), else_=None)
     sla_variance = case(
-        (valid_target, tat_days - snapshot.delivery_days),
+        (valid_target, tat_days - (snapshot.delivery_days + func.coalesce(snapshot.in_transit_days, 0))),
         else_=None,
     )
     completed_count = func.count(eligible_tat)
@@ -559,6 +559,7 @@ def build_collection_summary_query(args):
         'office_pending_count': func.sum(case((office_pending, 1), else_=0)),
         'office_overdue_count': func.sum(case((and_(assessed_pending, office_age > snapshot.delivery_days), 1), else_=0)),
         'avg_sla_variance': func.avg(sla_variance),
+        'sla_delayed_count': func.sum(case((sla_variance > 0, 1), else_=0)),
         'compliance_pct': compliant_count * 100.0 / func.nullif(completed_count, 0),
         'delayed_count': func.sum(
             case((and_(valid_target, tat_days > snapshot.delivery_days), 1), else_=0)
@@ -815,7 +816,7 @@ def get_collection_wise_average_delivery_days_partial():
             'tat_days': metrics['avg_tat_days'],
             'party_to_shop_days': metrics['avg_party_to_shop_days'],
             'office_to_shop_days': metrics['avg_office_to_shop_days'],
-            'sla_variance': metrics['avg_tat_days'],
+            'sla_variance': metrics['avg_sla_variance'],
             'muziris_inshop_received_date': metrics['awaiting_inshop_count'],
             'compliance_pct': metrics['compliance_pct'],
         }

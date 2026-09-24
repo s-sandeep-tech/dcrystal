@@ -15,9 +15,9 @@
             <col class="w-[9%]">
             <col class="w-[11%]">
             <col class="w-[11%]">
-            <col class="w-[12%]">
-            <col class="w-[12%]">
             <col class="w-[7%]">
+            <col class="w-[12%]">
+            <col class="w-[12%]">
             <col class="w-[13%]">
             <col class="w-[7%]">
         </colgroup>
@@ -64,6 +64,18 @@
                     <span class="font-medium text-gray-400">Not started</span>
                     {% endif %}
                 </td>
+                <td class="px-3 py-1.5 align-middle font-bold tabular-nums whitespace-nowrap
+                    {% if item.variance_days is none %}text-gray-400
+                    {% elif item.variance_days > 0 %}text-red-500 dark:text-red-400
+                    {% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
+                    {% if item.variance_days is none %}
+                        -
+                    {% elif item.variance_days > 0 %}
+                        +{{ item.variance_days }}d
+                    {% else %}
+                        {{ item.variance_days }}d
+                    {% endif %}
+                </td>
                 <td class="px-3 py-1.5 align-middle">
                     <div class="flex items-center gap-3">
                         <div class="relative h-1.5 flex-1 overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
@@ -87,18 +99,6 @@
                     <span class="font-medium text-red-500 dark:text-red-400">Invalid dates</span>
                     {% else %}
                     <span class="font-medium text-gray-400">Not started</span>
-                    {% endif %}
-                </td>
-                <td class="px-3 py-1.5 align-middle font-bold tabular-nums whitespace-nowrap
-                    {% if item.variance_days is none %}text-gray-400
-                    {% elif item.variance_days > 0 %}text-red-500 dark:text-red-400
-                    {% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
-                    {% if item.variance_days is none %}
-                        -
-                    {% elif item.variance_days > 0 %}
-                        +{{ item.variance_days }}d
-                    {% else %}
-                        {{ item.variance_days }}d
                     {% endif %}
                 </td>
                 <td class="px-3 py-1.5 align-middle">

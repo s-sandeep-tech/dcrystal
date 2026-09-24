@@ -23,9 +23,9 @@
                 <col class="w-[9%]">
                 <col class="w-[11%]">
                 <col class="w-[11%]">
-                <col class="w-[12%]">
-                <col class="w-[12%]">
                 <col class="w-[7%]">
+                <col class="w-[12%]">
+                <col class="w-[12%]">
                 <col class="w-[13%]">
                 <col class="w-[7%]">
             </colgroup>
@@ -61,6 +61,14 @@
                             <span class="material-symbols-outlined text-[14px] {% if sort_by == 'party_to_shop_days' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">{{ 'arrow_upward' if (sort_by == 'party_to_shop_days' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'party_to_shop_days' and sort_order == 'desc') else 'unfold_more') }}</span>
                         </div>
                     </th>
+                    <th scope="col" class="px-3 py-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group" onclick="toggleSort('sla_variance')">
+                        <div class="flex items-center gap-1">
+                            <span>SLA Var.</span>
+                            <span class="material-symbols-outlined text-[14px] {% if sort_by == 'sla_variance' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                                {{ 'arrow_upward' if (sort_by == 'sla_variance' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'sla_variance' and sort_order == 'desc') else 'unfold_more') }}
+                            </span>
+                        </div>
+                    </th>
                     <th scope="col" class="px-3 py-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group" onclick="toggleSort('tat_days')">
                         <div class="flex items-center gap-1">
                             <span>Party to Office TAT</span>
@@ -74,14 +82,6 @@
                             <span>Office-to-Shop TAT</span>
                             <span class="material-symbols-outlined text-[14px] {% if sort_by == 'office_to_shop_days' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
                                 {{ 'arrow_upward' if (sort_by == 'office_to_shop_days' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'office_to_shop_days' and sort_order == 'desc') else 'unfold_more') }}
-                            </span>
-                        </div>
-                    </th>
-                    <th scope="col" class="px-3 py-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group" onclick="toggleSort('sla_variance')">
-                        <div class="flex items-center gap-1">
-                            <span>SLA Var.</span>
-                            <span class="material-symbols-outlined text-[14px] {% if sort_by == 'sla_variance' %}text-primary{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
-                                {{ 'arrow_upward' if (sort_by == 'sla_variance' and sort_order == 'asc') else ('arrow_downward' if (sort_by == 'sla_variance' and sort_order == 'desc') else 'unfold_more') }}
                             </span>
                         </div>
                     </th>
@@ -159,6 +159,13 @@
                         <div class="text-[9px] text-gray-400">No completed receipts</div>
                         {% endif %}
                     </td>
+                    <td class="px-3 py-2 align-middle font-bold tabular-nums whitespace-nowrap
+                        {% if variance > 0 %}text-red-500 dark:text-red-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
+                        {{ '+' if variance > 0 else '' }}{{ "{:,.1f}".format(variance) }}d
+                        <div class="text-[9px] font-medium text-gray-400">
+                            {{ "{:,.0f}".format(row.sla_delayed_count|float) }} delayed
+                        </div>
+                    </td>
                     <td class="px-3 py-2 align-middle">
                         <div class="font-bold tabular-nums {% if variance > 0 %}text-red-500 dark:text-red-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
                             {{ "{:,.1f}".format(avg_tat) }}d average
@@ -179,13 +186,6 @@
                         <div class="font-medium text-gray-400">-</div>
                         <div class="text-[9px] text-gray-400">No completed receipts</div>
                         {% endif %}
-                    </td>
-                    <td class="px-3 py-2 align-middle font-bold tabular-nums whitespace-nowrap
-                        {% if variance > 0 %}text-red-500 dark:text-red-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
-                        {{ '+' if variance > 0 else '' }}{{ "{:,.1f}".format(variance) }}d
-                        <div class="text-[9px] font-medium text-gray-400">
-                            {{ "{:,.0f}".format(row.delayed_count|float) }} delayed
-                        </div>
                     </td>
                     <td class="px-3 py-2 align-middle">
                         <div class="font-bold tabular-nums text-gray-800 dark:text-gray-200">
