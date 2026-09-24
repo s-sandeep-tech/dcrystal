@@ -553,6 +553,7 @@ def build_collection_summary_query(args):
         'max_office_to_shop_days': func.max(office_to_shop_days),
         'office_to_shop_completed_count': func.count(office_to_shop_days),
         'avg_delivery_days': func.avg(snapshot.delivery_days),
+        'avg_in_transit_days': func.avg(snapshot.in_transit_days),
         'combined_avg_days': func.avg(office_age),
         'completed_day_contribution': func.sum(case((snapshot.morr_received_date.isnot(None), office_age), else_=0)) * 1.0 / func.nullif(func.count(office_age), 0),
         'pending_day_contribution': func.sum(case((office_pending, office_age), else_=0)) * 1.0 / func.nullif(func.count(office_age), 0),
@@ -737,6 +738,11 @@ def build_collection_summary_display_rows(rows, global_mu0=None, global_comp0=No
                 'avg_sla_variance': (
                     float(row.avg_sla_variance)
                     if row.avg_sla_variance is not None
+                    else None
+                ),
+                'avg_in_transit_days': (
+                    float(row.avg_in_transit_days)
+                    if row.avg_in_transit_days is not None
                     else None
                 ),
                 'compliance_pct': float(row.compliance_pct) if row.compliance_pct is not None else None,

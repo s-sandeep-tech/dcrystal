@@ -315,6 +315,9 @@ function openCollectionSummaryModal(detail) {
     setCollectionSummaryText('collection-summary-p90', `${formatCollectionSummaryNumber(detail.p90_tat_days, 1)} days`);
     setCollectionSummaryText('collection-summary-maximum', `${formatCollectionSummaryNumber(detail.max_tat_days)} days`);
     setCollectionSummaryText('collection-summary-delayed', formatCollectionSummaryNumber(detail.delayed_count));
+    setCollectionSummaryText('collection-summary-office-target', detail.avg_in_transit_days == null
+        ? '\u2014'
+        : `${formatCollectionSummaryNumber(detail.avg_in_transit_days, 1)} days`);
     setCollectionSummaryText(
         'collection-summary-office-average',
         detail.avg_office_to_shop_days === null || detail.avg_office_to_shop_days === undefined
