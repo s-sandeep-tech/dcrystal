@@ -4,7 +4,7 @@ from app.dashboard import dashboard_bp
 from app.models import Notification, CollectionWiseAverageDeliveryDaysSnapshot
 from app.extensions import db
 from app.utils.decorators import require_perm, require_report_access, require_role
-from sqlalchemy import and_, case, func, distinct, false
+from sqlalchemy import and_, or_, case, func, distinct, false
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import logging
@@ -456,6 +456,7 @@ def build_snapshot_query(args):
 
 def build_collection_summary_query(args):
     snapshot = CollectionWiseAverageDeliveryDaysSnapshot
+    as_on_date = datetime.now(ZoneInfo('Asia/Kolkata')).date()
     party_to_shop_days = case(
         (and_(snapshot.ordered_date.isnot(None),
               snapshot.muziris_inshop_received_date.isnot(None),
@@ -465,12 +466,13 @@ def build_collection_summary_query(args):
     )
     tat_days = case(
         (and_(snapshot.ordered_date.isnot(None), snapshot.morr_received_date.isnot(None),
-              snapshot.morr_received_date >= snapshot.ordered_date),
+              snapshot.morr_received_date >= snapshot.ordered_date,
+              snapshot.morr_received_date <= as_on_date),
          snapshot.morr_received_date - snapshot.ordered_date), else_=None,
     )
-    office_age = func.coalesce(snapshot.morr_received_date, func.current_date()) - snapshot.ordered_date
+    office_age = func.coalesce(snapshot.morr_received_date, as_on_date) - snapshot.ordered_date
     office_pending = and_(snapshot.morr_received_date.is_(None), snapshot.ordered_date.isnot(None),
-                          snapshot.ordered_date <= func.current_date())
+                          snapshot.ordered_date <= as_on_date)
     valid_target = and_(snapshot.delivery_days.isnot(None), snapshot.delivery_days >= 0)
     assessed_pending = and_(office_pending, valid_target)
     office_to_shop_days = case(
@@ -515,6 +517,7 @@ def build_collection_summary_query(args):
         'compliance_eligible_count': completed_count,
         'compliant_count': compliant_count,
         'office_assessed_pending_count': func.sum(case((assessed_pending, 1), else_=0)),
+        'office_pending_exposure_days': func.sum(case((office_pending, office_age), else_=0)),
         'avg_party_to_shop_days': func.avg(party_to_shop_days),
         'median_tat_days': func.percentile_cont(0.5).within_group(tat_days),
         'p90_tat_days': func.percentile_cont(0.9).within_group(tat_days),
@@ -620,7 +623,30 @@ def collection_delivery_baselines(query):
     )
 
 
-def build_collection_summary_display_rows(rows, global_mu0=None, global_comp0=None):
+def collection_pending_buckets(args, rows):
+    """One aggregate query for the visible groups, using the same access filters."""
+    if not rows:
+        return {}
+    snapshot = CollectionWiseAverageDeliveryDaysSnapshot
+    as_on_date = datetime.now(ZoneInfo('Asia/Kolkata')).date()
+    age = as_on_date - snapshot.ordered_date
+    query = build_snapshot_query(args).filter(
+        snapshot.morr_received_date.is_(None),
+        snapshot.ordered_date.isnot(None), snapshot.ordered_date <= as_on_date,
+        or_(*(and_(snapshot.collection == row.collection,
+                   snapshot.master_collection == row.master_collection) for row in rows)),
+    ).with_entities(snapshot.collection, snapshot.master_collection, age.label('age'),
+                    snapshot.delivery_days, func.count(snapshot.id)).group_by(
+        snapshot.collection, snapshot.master_collection, snapshot.ordered_date, snapshot.delivery_days)
+    buckets = {}
+    for collection, master, elapsed, target, count in query.all():
+        buckets.setdefault((collection, master), []).append((elapsed, target, count))
+    return buckets
+
+
+def build_collection_summary_display_rows(rows, global_mu0=None, global_comp0=None, pending_buckets=None):
+    from app.services.collection_delivery_forecast import delivery_forecast
+    pending_buckets = pending_buckets or {}
     display_rows = []
     for row in rows:
         bayes = compute_bayesian_delivery_metrics(
@@ -635,6 +661,10 @@ def build_collection_summary_display_rows(rows, global_mu0=None, global_comp0=No
             'is_low_sample': bayes['is_low_sample'],
             'has_high_inflight_risk': bayes['has_high_inflight_risk'],
             'modal_data': {
+                'bayesian_forecast': delivery_forecast(
+                    row.valid_tat_count, row.tat_sum_days, row.office_pending_exposure_days,
+                    pending_buckets.get((row.collection, row.master_collection), [])),
+                'forecast_as_on': datetime.now(ZoneInfo('Asia/Kolkata')).date().isoformat(),
                 'collection': row.collection or '-',
                 'master_collection': row.master_collection or '-',
                 'barcode_count': int(row.barcode_count or 0),
@@ -778,7 +808,9 @@ def get_collection_wise_average_delivery_days_partial():
 
         return render_template(
             'partials/_view_collection_wise_average_delivery_days.html',
-            rows=build_collection_summary_display_rows(pagination.items, baseline_tat, baseline_compliance),
+            rows=build_collection_summary_display_rows(
+                pagination.items, baseline_tat, baseline_compliance,
+                collection_pending_buckets(request.args, pagination.items)),
             total_records=pagination.total,
             page=page,
             per_page=per_page,

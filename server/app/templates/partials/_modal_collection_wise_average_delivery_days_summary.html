@@ -90,7 +90,7 @@
                             <span class="material-symbols-outlined text-[15px]">psychology</span>
                         </div>
                         <div>
-                            <p class="text-[9px] font-bold uppercase tracking-widest text-primary">Delivery Estimates &amp; Pending Status</p>
+                            <p class="text-[9px] font-bold uppercase tracking-widest text-primary">Bayesian Delivery Forecast</p>
                             <p class="text-[9px] text-gray-400">Order date to office receipt</p>
                         </div>
                     </div>
@@ -106,28 +106,28 @@
                     <!-- 1. Empirical Bayes Adjusted TAT -->
                     <div class="rounded border border-gray-200 dark:border-gray-700/80 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm p-3 shadow-xs">
                         <div class="flex items-center justify-between">
-                            <p class="text-[8px] font-bold uppercase tracking-wider text-gray-400">Adjusted Average TAT</p>
-                            <span class="material-symbols-outlined text-[13px] text-gray-400 cursor-help" title="Completed-record mean blended with the full filtered baseline using a fixed weight of 5. Not a delivery forecast.">help</span>
+                            <p class="text-[8px] font-bold uppercase tracking-wider text-gray-400">Predicted Delivery Time</p>
+                            <span class="material-symbols-outlined text-[13px] text-gray-400 cursor-help" title="Posterior predictive mean under an exponential survival model. Gamma prior shape 1, rate 1 day. Includes completed times and pending exposure; assumes constant hazard and independent records.">help</span>
                         </div>
                         <p id="collection-summary-bayes-adjusted" class="mt-1 text-sm font-bold text-gray-900 dark:text-white tabular-nums">-</p>
-                        <p id="collection-summary-bayes-shrinkage-note" class="mt-0.5 text-[8.5px] text-gray-500 dark:text-gray-400 truncate">Adjusted toward filtered baseline</p>
+                        <p id="collection-summary-bayes-shrinkage-note" class="mt-0.5 text-[8.5px] text-gray-500 dark:text-gray-400 truncate">Posterior predictive mean</p>
                     </div>
 
-                    <!-- 2. Estimated Mean Range -->
+                    <!-- 2. 90% Predictive Interval -->
                     <div class="rounded border border-gray-200 dark:border-gray-700/80 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm p-3 shadow-xs">
                         <div class="flex items-center justify-between">
-                            <p class="text-[8px] font-bold uppercase tracking-wider text-gray-400">Estimated Mean Range</p>
-                            <span class="material-symbols-outlined text-[13px] text-gray-400 cursor-help" title="Approximate 90% interval for the observed mean using sample standard deviation. Requires at least 30 valid records and assumes independent observations; not an individual delivery window or a validated forecast.">help</span>
+                            <p class="text-[8px] font-bold uppercase tracking-wider text-gray-400">90% Predictive Interval</p>
+                            <span class="material-symbols-outlined text-[13px] text-gray-400 cursor-help" title="Central 90% posterior predictive interval for a new office receipt. Includes parameter and outcome uncertainty. Model-based, not historically calibrated.">help</span>
                         </div>
                         <p id="collection-summary-bayes-credible" class="mt-1 text-sm font-bold text-gray-900 dark:text-white tabular-nums">-</p>
                         <p id="collection-summary-bayes-credible-sub" class="mt-0.5 text-[8.5px] text-gray-500 dark:text-gray-400">Statistical uncertainty window</p>
                     </div>
 
-                    <!-- 3. Office Pending Overdue -->
+                    <!-- 3. Predicted Target Breach -->
                     <div class="rounded border border-gray-200 dark:border-gray-700/80 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm p-3 shadow-xs">
                         <div class="flex items-center justify-between">
-                            <p class="text-[8px] font-bold uppercase tracking-wider text-gray-400">Office Pending Overdue</p>
-                            <span class="material-symbols-outlined text-[13px] text-gray-400 cursor-help" title="Observed overdue share among records awaiting office receipt with a valid target. Shop-pending records are not included.">help</span>
+                            <p class="text-[8px] font-bold uppercase tracking-wider text-gray-400">Predicted Target Breach</p>
+                            <span class="material-symbols-outlined text-[13px] text-gray-400 cursor-help" title="Mean posterior probability of exceeding each pending record's own target, conditional on observed waiting. Includes already-overdue records at 100%; excludes missing targets.">help</span>
                         </div>
                         <p id="collection-summary-bayes-inflight" class="mt-1 text-sm font-bold tabular-nums">-</p>
                         <p id="collection-summary-bayes-inflight-sub" class="mt-0.5 text-[8.5px] text-gray-500 dark:text-gray-400">Awaiting office receipt</p>
@@ -137,11 +137,13 @@
                 <div id="collection-summary-bayes-smoothed-row" class="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-[8.5px] text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200/60 dark:border-gray-700/60">
                     <span class="flex items-center gap-1.5">
                         <span class="size-1.5 rounded-full bg-primary"></span>
-                        Smoothed compliance: <strong id="collection-summary-bayes-compliance" class="font-bold text-gray-700 dark:text-gray-200">-</strong>
-                        <span class="text-gray-400">(Adjusted toward full filtered compliance)</span>
+                        Expected remaining time: <strong id="collection-summary-bayes-compliance" class="font-bold text-gray-700 dark:text-gray-200">-</strong>
+                        <span class="text-gray-400">(office-pending records only)</span>
                     </span>
                     <span id="collection-summary-bayes-sample-info" class="font-medium text-gray-400">Completed sample: -</span>
                 </div>
+                <p class="mt-2 text-[9px] text-gray-500 dark:text-gray-400">Expected target breaches: <strong id="collection-summary-bayes-expected-count">N/A</strong> (model expectation, not an observed count).</p>
+                <p class="mt-2 text-[9px] text-gray-500 dark:text-gray-400">Experimental model, not historically validated. Assumes a constant delivery rate and independent records within this filtered collection. Remaining-time estimates do not vary by stage or age under this assumption.</p>
             </div>
 
             <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-800">

@@ -428,84 +428,28 @@ function openCollectionSummaryModal(detail) {
 
     renderCollectionSummaryTiming(detail);
 
-    // Bayesian Reliability & Forecast
-    const bayesAdjusted = detail.bayes_adjusted_tat;
-    const rawTat = detail.bayes_raw_tat ?? detail.avg_tat_days;
-    const shrinkageDiff = detail.bayes_shrinkage_diff;
-    const credibleMin = detail.bayes_credible_min;
-    const credibleMax = detail.bayes_credible_max;
-    const inflightRisk = detail.bayes_inflight_risk_pct == null ? null : Number(detail.bayes_inflight_risk_pct);
-    const assessedPending = Number(detail.bayes_assessed_pending_count || 0);
-    const ordersAtRisk = Number(detail.bayes_orders_at_risk || 0);
-    const pendingCount = Number(detail.bayes_pending_count || 0);
-    const completedCount = Number(detail.bayes_completed_count || 0);
-    const smoothedCompliance = detail.bayes_smoothed_compliance;
-    const confidenceLevel = detail.bayes_confidence_level || 'No completed sample';
-    const confidenceClass = detail.bayes_confidence_class || 'text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30';
-
-    const bayesConfEl = document.getElementById('collection-summary-bayes-confidence');
-    if (bayesConfEl) {
-        bayesConfEl.textContent = confidenceLevel;
-        bayesConfEl.className = `inline-flex rounded px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-wider ${confidenceClass}`;
-    }
-
-    setCollectionSummaryText(
-        'collection-summary-bayes-adjusted',
-        bayesAdjusted != null ? `${formatCollectionSummaryNumber(bayesAdjusted, 1)} days` : '-'
-    );
-    const shrinkageEl = document.getElementById('collection-summary-bayes-shrinkage-note');
-    if (shrinkageEl) {
-        if (rawTat != null && shrinkageDiff != null && Math.abs(shrinkageDiff) >= 0.1) {
-            const sign = shrinkageDiff > 0 ? '+' : '';
-            shrinkageEl.textContent = `Raw: ${formatCollectionSummaryNumber(rawTat, 1)}d (${sign}${formatCollectionSummaryNumber(shrinkageDiff, 1)}d adjustment)`;
-        } else {
-            shrinkageEl.textContent = rawTat != null ? `Aligned with raw avg (${formatCollectionSummaryNumber(rawTat, 1)}d)` : 'No valid completed receipts';
-        }
-    }
-
-    setCollectionSummaryText(
-        'collection-summary-bayes-credible',
-        credibleMin != null && credibleMax != null
-            ? `${formatCollectionSummaryNumber(credibleMin, 1)} – ${formatCollectionSummaryNumber(credibleMax, 1)} days`
-            : '-'
-    );
-    const credibleSubEl = document.getElementById('collection-summary-bayes-credible-sub');
-    if (credibleSubEl) {
-        credibleSubEl.textContent = credibleMin != null && credibleMax != null
-            ? `Approx. 90% interval for raw mean (N=${completedCount})`
-            : 'Insufficient data (30 valid records required)';
-    }
-
-    const inflightEl = document.getElementById('collection-summary-bayes-inflight');
-    if (inflightEl) {
-        if (inflightRisk == null) {
-            inflightEl.textContent = 'N/A';
-            inflightEl.className = 'mt-1 text-sm font-bold tabular-nums text-gray-500';
-        } else {
-            inflightEl.textContent = `${formatCollectionSummaryNumber(inflightRisk, 1)}%`;
-            inflightEl.className = `mt-1 text-sm font-bold tabular-nums ${
-                inflightRisk >= 70 ? 'text-red-500 dark:text-red-400' : (inflightRisk >= 35 ? 'text-amber-500 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400')
-            }`;
-        }
-    }
-    const inflightSubEl = document.getElementById('collection-summary-bayes-inflight-sub');
-    if (inflightSubEl) {
-        if (pendingCount <= 0) {
-            inflightSubEl.textContent = 'No records awaiting office receipt';
-        } else {
-            inflightSubEl.textContent = `${ordersAtRisk} of ${assessedPending} assessed office-pending overdue` +
-                (pendingCount > assessedPending ? `; ${pendingCount - assessedPending} missing/invalid targets` : '');
-        }
-    }
-
-    setCollectionSummaryText(
-        'collection-summary-bayes-compliance',
-        smoothedCompliance != null ? `${formatCollectionSummaryNumber(smoothedCompliance, 1)}%` : '-'
-    );
-    const sampleInfoEl = document.getElementById('collection-summary-bayes-sample-info');
-    if (sampleInfoEl) {
-        sampleInfoEl.textContent = `Valid completed records: ${formatCollectionSummaryNumber(completedCount)}; with targets: ${formatCollectionSummaryNumber(detail.bayes_compliance_eligible_count || 0)}`;
-    }
+    const forecast = detail.bayesian_forecast || {};
+    const available = forecast.available === true;
+    const days = value => value == null ? 'N/A' : `${formatCollectionSummaryNumber(value, 1)} days`;
+    setCollectionSummaryText('collection-summary-bayes-adjusted', available ? days(forecast.mean_days) : 'N/A');
+    setCollectionSummaryText('collection-summary-bayes-shrinkage-note',
+        available ? 'Posterior predictive mean (order to office)' : (forecast.reason || 'Model unavailable'));
+    setCollectionSummaryText('collection-summary-bayes-credible',
+        available ? `${formatCollectionSummaryNumber(forecast.predictive_low_days, 1)} - ${formatCollectionSummaryNumber(forecast.predictive_high_days, 1)} days` : 'N/A');
+    setCollectionSummaryText('collection-summary-bayes-credible-sub', '5th-95th percentiles for a new receipt, not the mean');
+    setCollectionSummaryText('collection-summary-bayes-confidence', 'Experimental - unvalidated');
+    setCollectionSummaryText('collection-summary-bayes-inflight',
+        forecast.pending_breach_pct == null ? 'N/A' : `${formatCollectionSummaryNumber(forecast.pending_breach_pct, 1)}%`);
+    setCollectionSummaryText('collection-summary-bayes-inflight-sub',
+        !forecast.pending_count ? 'No records awaiting office receipt' :
+        !available ? (forecast.reason || 'Model unavailable') :
+        `${forecast.assessed_pending_count} assessed; ${forecast.observed_overdue_count} already overdue; ${forecast.missing_target_count} missing/invalid targets`);
+    setCollectionSummaryText('collection-summary-bayes-compliance',
+        available && forecast.pending_count ? days(forecast.pending_remaining_days) : 'N/A');
+    setCollectionSummaryText('collection-summary-bayes-sample-info',
+        `${forecast.completed_count || 0} completed / ${forecast.pending_count || 0} pending records; as of ${detail.forecast_as_on || '-'}`);
+    setCollectionSummaryText('collection-summary-bayes-expected-count',
+        forecast.expected_breaches == null ? 'N/A' : formatCollectionSummaryNumber(forecast.expected_breaches, 1));
 
     collectionSummaryPreviousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
