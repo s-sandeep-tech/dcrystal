@@ -239,8 +239,13 @@ def build_delivery_display_rows(records):
         office_to_shop_pending_days = None
         office_to_shop_status = 'not_started'
         delivery_target_days = int(record.delivery_days) if record.delivery_days is not None else None
-        if record.ordered_date and record.morr_received_date:
-            tat_days = max((record.morr_received_date - record.ordered_date).days, 0)
+        as_on_date = datetime.now(ZoneInfo('Asia/Kolkata')).date()
+        valid_dates = (record.ordered_date is not None and record.morr_received_date is not None
+                       and record.ordered_date <= record.morr_received_date <= as_on_date)
+        valid_target = (delivery_target_days is not None and delivery_target_days >= 0
+                        and (record.in_transit_days or 0) >= 0)
+        if valid_dates:
+            tat_days = (record.morr_received_date - record.ordered_date).days
             tat_values.append(tat_days)
         if record.morr_received_date and record.muziris_inshop_received_date:
             office_to_shop_days = (
@@ -260,17 +265,20 @@ def build_delivery_display_rows(records):
 
         variance_days = (
             tat_days - (delivery_target_days + (record.in_transit_days or 0))
-            if tat_days is not None and delivery_target_days is not None
+            if tat_days is not None and valid_target
             else None
         )
-        if tat_days is None:
+        if (record.ordered_date is None or record.ordered_date > as_on_date
+                or (record.morr_received_date is not None and not valid_dates)):
+            status_key, status_label = 'invalid', 'Invalid Dates'
+        elif tat_days is None:
             status_key, status_label = 'pending', 'Pending'
-        elif delivery_target_days is None:
+        elif not valid_target:
             status_key, status_label = 'unconfigured', 'SLA Not Set'
         elif variance_days <= 0:
             status_key, status_label = 'on_time', 'On Time'
         elif variance_days <= 5:
-            status_key, status_label = 'at_risk', 'At Risk'
+            status_key, status_label = 'at_risk', 'Delayed'
         else:
             status_key, status_label = 'critical', 'Critical'
 
@@ -498,7 +506,9 @@ def build_collection_summary_query(args):
     office_age = func.coalesce(snapshot.morr_received_date, as_on_date) - snapshot.ordered_date
     office_pending = and_(snapshot.morr_received_date.is_(None), snapshot.ordered_date.isnot(None),
                           snapshot.ordered_date <= as_on_date)
-    valid_target = and_(snapshot.delivery_days.isnot(None), snapshot.delivery_days >= 0)
+    sla_allowance = snapshot.delivery_days + func.coalesce(snapshot.in_transit_days, 0)
+    valid_target = and_(snapshot.delivery_days.isnot(None), snapshot.delivery_days >= 0,
+                        func.coalesce(snapshot.in_transit_days, 0) >= 0)
     assessed_pending = and_(office_pending, valid_target)
     office_to_shop_days = case(
         (
@@ -513,12 +523,12 @@ def build_collection_summary_query(args):
     )
     eligible_tat = case((valid_target, tat_days), else_=None)
     sla_variance = case(
-        (valid_target, tat_days - (snapshot.delivery_days + func.coalesce(snapshot.in_transit_days, 0))),
+        (valid_target, tat_days - sla_allowance),
         else_=None,
     )
     completed_count = func.count(eligible_tat)
     compliant_count = func.sum(
-        case((and_(valid_target, tat_days <= snapshot.delivery_days), 1), else_=0)
+        case((and_(valid_target, tat_days <= sla_allowance), 1), else_=0)
     )
     pending_age = case(
         (
@@ -567,7 +577,7 @@ def build_collection_summary_query(args):
         'sla_delayed_count': func.sum(case((sla_variance > 0, 1), else_=0)),
         'compliance_pct': compliant_count * 100.0 / func.nullif(completed_count, 0),
         'delayed_count': func.sum(
-            case((and_(valid_target, tat_days > snapshot.delivery_days), 1), else_=0)
+            case((and_(valid_target, tat_days > sla_allowance), 1), else_=0)
         ),
         'awaiting_inshop_count': func.sum(
             case((snapshot.muziris_inshop_received_date.is_(None), 1), else_=0)
