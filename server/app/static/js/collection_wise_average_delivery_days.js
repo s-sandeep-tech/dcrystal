@@ -434,12 +434,13 @@ function openCollectionSummaryModal(detail) {
     const shrinkageDiff = detail.bayes_shrinkage_diff;
     const credibleMin = detail.bayes_credible_min;
     const credibleMax = detail.bayes_credible_max;
-    const inflightRisk = Number(detail.bayes_inflight_risk_pct || 0);
+    const inflightRisk = detail.bayes_inflight_risk_pct == null ? null : Number(detail.bayes_inflight_risk_pct);
+    const assessedPending = Number(detail.bayes_assessed_pending_count || 0);
     const ordersAtRisk = Number(detail.bayes_orders_at_risk || 0);
     const pendingCount = Number(detail.bayes_pending_count || 0);
     const completedCount = Number(detail.bayes_completed_count || 0);
     const smoothedCompliance = detail.bayes_smoothed_compliance;
-    const confidenceLevel = detail.bayes_confidence_level || 'Moderate Confidence';
+    const confidenceLevel = detail.bayes_confidence_level || 'No completed sample';
     const confidenceClass = detail.bayes_confidence_class || 'text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30';
 
     const bayesConfEl = document.getElementById('collection-summary-bayes-confidence');
@@ -458,7 +459,7 @@ function openCollectionSummaryModal(detail) {
             const sign = shrinkageDiff > 0 ? '+' : '';
             shrinkageEl.textContent = `Raw: ${formatCollectionSummaryNumber(rawTat, 1)}d (${sign}${formatCollectionSummaryNumber(shrinkageDiff, 1)}d adjustment)`;
         } else {
-            shrinkageEl.textContent = rawTat != null ? `Aligned with raw avg (${formatCollectionSummaryNumber(rawTat, 1)}d)` : 'Prior-guided baseline';
+            shrinkageEl.textContent = rawTat != null ? `Aligned with raw avg (${formatCollectionSummaryNumber(rawTat, 1)}d)` : 'No valid completed receipts';
         }
     }
 
@@ -470,16 +471,16 @@ function openCollectionSummaryModal(detail) {
     );
     const credibleSubEl = document.getElementById('collection-summary-bayes-credible-sub');
     if (credibleSubEl) {
-        credibleSubEl.textContent = completedCount > 0
-            ? `90% posterior window (N=${completedCount})`
-            : 'Category uncertainty window';
+        credibleSubEl.textContent = credibleMin != null && credibleMax != null
+            ? `Approx. 90% interval for raw mean (N=${completedCount})`
+            : 'Insufficient data (30 valid records required)';
     }
 
     const inflightEl = document.getElementById('collection-summary-bayes-inflight');
     if (inflightEl) {
-        if (pendingCount <= 0) {
-            inflightEl.textContent = '0% Risk';
-            inflightEl.className = 'mt-1 text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400';
+        if (inflightRisk == null) {
+            inflightEl.textContent = 'N/A';
+            inflightEl.className = 'mt-1 text-sm font-bold tabular-nums text-gray-500';
         } else {
             inflightEl.textContent = `${formatCollectionSummaryNumber(inflightRisk, 1)}%`;
             inflightEl.className = `mt-1 text-sm font-bold tabular-nums ${
@@ -490,9 +491,10 @@ function openCollectionSummaryModal(detail) {
     const inflightSubEl = document.getElementById('collection-summary-bayes-inflight-sub');
     if (inflightSubEl) {
         if (pendingCount <= 0) {
-            inflightSubEl.textContent = 'No active pending orders';
+            inflightSubEl.textContent = 'No records awaiting office receipt';
         } else {
-            inflightSubEl.textContent = `${ordersAtRisk} of ${pendingCount} pending at risk`;
+            inflightSubEl.textContent = `${ordersAtRisk} of ${assessedPending} assessed office-pending overdue` +
+                (pendingCount > assessedPending ? `; ${pendingCount - assessedPending} missing/invalid targets` : '');
         }
     }
 
@@ -502,7 +504,7 @@ function openCollectionSummaryModal(detail) {
     );
     const sampleInfoEl = document.getElementById('collection-summary-bayes-sample-info');
     if (sampleInfoEl) {
-        sampleInfoEl.textContent = `Completed sample: ${formatCollectionSummaryNumber(completedCount)} barcodes`;
+        sampleInfoEl.textContent = `Valid completed records: ${formatCollectionSummaryNumber(completedCount)}; with targets: ${formatCollectionSummaryNumber(detail.bayes_compliance_eligible_count || 0)}`;
     }
 
     collectionSummaryPreviousOverflow = document.body.style.overflow;

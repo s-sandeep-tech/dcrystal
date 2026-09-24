@@ -123,9 +123,9 @@
                                         N={{ item.completed_count }}
                                     </span>
                                     {% elif item.has_high_inflight_risk %}
-                                    <span class="inline-flex shrink-0 items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-semibold bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200/60 dark:border-red-700/40" title="High in-flight breach risk on pending pipeline. Open summary modal for details.">
+                                    <span class="inline-flex shrink-0 items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-semibold bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200/60 dark:border-red-700/40" title="At least 70% of office-pending records with valid targets are overdue. Open summary for details.">
                                         <span class="size-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                                        Risk
+                                        Overdue
                                     </span>
                                     {% endif %}
                                 </span>

@@ -463,9 +463,16 @@ def build_collection_summary_query(args):
          snapshot.muziris_inshop_received_date - snapshot.ordered_date),
         else_=None,
     )
-    tat_days = snapshot.morr_received_date - snapshot.ordered_date
+    tat_days = case(
+        (and_(snapshot.ordered_date.isnot(None), snapshot.morr_received_date.isnot(None),
+              snapshot.morr_received_date >= snapshot.ordered_date),
+         snapshot.morr_received_date - snapshot.ordered_date), else_=None,
+    )
     office_age = func.coalesce(snapshot.morr_received_date, func.current_date()) - snapshot.ordered_date
-    office_pending = and_(snapshot.morr_received_date.is_(None), snapshot.ordered_date.isnot(None))
+    office_pending = and_(snapshot.morr_received_date.is_(None), snapshot.ordered_date.isnot(None),
+                          snapshot.ordered_date <= func.current_date())
+    valid_target = and_(snapshot.delivery_days.isnot(None), snapshot.delivery_days >= 0)
+    assessed_pending = and_(office_pending, valid_target)
     office_to_shop_days = case(
         (
             and_(
@@ -477,14 +484,14 @@ def build_collection_summary_query(args):
         ),
         else_=None,
     )
-    eligible_tat = case((snapshot.delivery_days.isnot(None), tat_days), else_=None)
+    eligible_tat = case((valid_target, tat_days), else_=None)
     sla_variance = case(
-        (snapshot.delivery_days.isnot(None), tat_days - snapshot.delivery_days),
+        (valid_target, tat_days - snapshot.delivery_days),
         else_=None,
     )
     completed_count = func.count(eligible_tat)
     compliant_count = func.sum(
-        case((tat_days <= snapshot.delivery_days, 1), else_=0)
+        case((and_(valid_target, tat_days <= snapshot.delivery_days), 1), else_=0)
     )
     pending_age = case(
         (
@@ -502,6 +509,12 @@ def build_collection_summary_query(args):
         'first_ordered_date': func.min(snapshot.ordered_date),
         'last_ordered_date': func.max(snapshot.ordered_date),
         'avg_tat_days': func.avg(tat_days),
+        'valid_tat_count': func.count(tat_days),
+        'tat_sum_days': func.sum(tat_days),
+        'tat_stddev_days': func.stddev_samp(tat_days),
+        'compliance_eligible_count': completed_count,
+        'compliant_count': compliant_count,
+        'office_assessed_pending_count': func.sum(case((assessed_pending, 1), else_=0)),
         'avg_party_to_shop_days': func.avg(party_to_shop_days),
         'median_tat_days': func.percentile_cont(0.5).within_group(tat_days),
         'p90_tat_days': func.percentile_cont(0.9).within_group(tat_days),
@@ -516,11 +529,11 @@ def build_collection_summary_query(args):
         'completed_day_contribution': func.sum(case((snapshot.morr_received_date.isnot(None), office_age), else_=0)) * 1.0 / func.nullif(func.count(office_age), 0),
         'pending_day_contribution': func.sum(case((office_pending, office_age), else_=0)) * 1.0 / func.nullif(func.count(office_age), 0),
         'office_pending_count': func.sum(case((office_pending, 1), else_=0)),
-        'office_overdue_count': func.sum(case((and_(office_pending, office_age > snapshot.delivery_days), 1), else_=0)),
+        'office_overdue_count': func.sum(case((and_(assessed_pending, office_age > snapshot.delivery_days), 1), else_=0)),
         'avg_sla_variance': func.avg(sla_variance),
         'compliance_pct': compliant_count * 100.0 / func.nullif(completed_count, 0),
         'delayed_count': func.sum(
-            case((tat_days > snapshot.delivery_days, 1), else_=0)
+            case((and_(valid_target, tat_days > snapshot.delivery_days), 1), else_=0)
         ),
         'awaiting_inshop_count': func.sum(
             case((snapshot.muziris_inshop_received_date.is_(None), 1), else_=0)
@@ -544,125 +557,70 @@ def build_collection_summary_query(args):
     return query, metrics
 
 
-def compute_bayesian_delivery_metrics(row, global_mu0=14.0, global_comp0=82.0, prior_weight_m=5.0):
-    """
-    Computes Empirical Bayes shrinkage and predictive metrics for a collection summary row:
-    - Empirical Bayes shrinkage for average TAT (James-Stein / normal conjugate model)
-    - 90% Bayesian posterior credible range
-    - Beta-Binomial smoothed compliance rate
-    - In-flight survival breach risk probability
-    """
-    barcode_count = int(row.barcode_count or 0)
+def compute_bayesian_delivery_metrics(row, global_mu0=None, global_comp0=None, prior_weight_m=5.0):
+    """Descriptive estimates; legacy response keys retained for the modal."""
+    completed_count = int(row.valid_tat_count or 0)
     office_pending_count = int(row.office_pending_count or 0)
-    completed_count = max(barcode_count - office_pending_count, 0)
+    assessed_pending = int(row.office_assessed_pending_count or 0)
+    raw_tat = float(row.avg_tat_days) if completed_count and row.avg_tat_days is not None else None
+    adjusted = raw_tat
+    if raw_tat is not None and global_mu0 is not None:
+        adjusted = (completed_count * raw_tat + prior_weight_m * global_mu0) / (completed_count + prior_weight_m)
+    difference = adjusted - raw_tat if raw_tat is not None else None
 
-    # If completed_count is 0 but avg_tat_days exists, treat completed_count as at least 1
-    if completed_count == 0 and row.avg_tat_days is not None:
-        completed_count = 1
+    # Normal-approximation interval for the observed mean, not a delivery window.
+    lower = upper = None
+    if completed_count >= 30 and row.tat_stddev_days is not None and raw_tat is not None:
+        margin = 1.645 * float(row.tat_stddev_days) / (completed_count ** 0.5)
+        lower, upper = round(max(0.0, raw_tat - margin), 1), round(raw_tat + margin, 1)
 
-    raw_tat = float(row.avg_tat_days) if row.avg_tat_days is not None else None
+    eligible = int(row.compliance_eligible_count or 0)
+    compliant = int(row.compliant_count or 0)
+    smoothed = None
+    if eligible:
+        smoothed = 100.0 * compliant / eligible
+        if global_comp0 is not None:
+            smoothed = 100.0 * (compliant + 8.0 * global_comp0 / 100.0) / (eligible + 8.0)
 
-    # Empirical Bayes TAT shrinkage
-    if raw_tat is not None and completed_count > 0:
-        w = completed_count / (completed_count + prior_weight_m)
-        bayes_adjusted_tat = (w * raw_tat) + ((1.0 - w) * global_mu0)
-        shrinkage_diff = bayes_adjusted_tat - raw_tat
-    else:
-        bayes_adjusted_tat = global_mu0
-        shrinkage_diff = 0.0
-
-    # 90% Credible Range Estimation (z = 1.645)
-    p90 = float(row.p90_tat_days) if row.p90_tat_days is not None else None
-    median = float(row.median_tat_days) if row.median_tat_days is not None else None
-
-    if p90 is not None and median is not None and p90 > median:
-        s = max((p90 - median) / 1.28, 2.0)
-    elif raw_tat is not None:
-        s = max(raw_tat * 0.35, 2.5)
-    else:
-        s = 4.0
-
-    effective_n = completed_count + prior_weight_m
-    se = s / (effective_n ** 0.5)
-    margin_error = 1.645 * se
-    credible_min = max(round(bayes_adjusted_tat - margin_error, 1), 0.0)
-    credible_max = max(round(bayes_adjusted_tat + margin_error, 1), round(credible_min + 0.5, 1))
-
-    # Beta-Binomial smoothed compliance (Prior: global compliance with prior sample size 8)
-    prior_alpha = (global_comp0 / 100.0) * 8.0
-    prior_beta = 8.0 - prior_alpha
-    raw_compliance = float(row.compliance_pct) if row.compliance_pct is not None else None
-    if raw_compliance is not None and completed_count > 0:
-        k = completed_count * (raw_compliance / 100.0)
-        bayes_compliance = ((k + prior_alpha) / (completed_count + 8.0)) * 100.0
-    else:
-        bayes_compliance = global_comp0
-
-    # In-flight breach risk for active pending orders
-    office_overdue_count = int(row.office_overdue_count or 0)
-    avg_pending_age = float(row.avg_pending_age_days) if row.avg_pending_age_days is not None else None
-    delivery_target = float(row.avg_delivery_days) if row.avg_delivery_days is not None else 15.0
-
-    if office_pending_count <= 0:
-        inflight_risk_pct = 0.0
-        orders_at_risk = 0
-    else:
-        if avg_pending_age is not None:
-            if avg_pending_age >= delivery_target:
-                age_risk = 0.85
-            elif avg_pending_age >= delivery_target * 0.75:
-                age_risk = 0.55
-            elif avg_pending_age >= delivery_target * 0.5:
-                age_risk = 0.30
-            else:
-                age_risk = 0.15
-        else:
-            age_risk = 0.20
-
-        overdue_ratio = office_overdue_count / float(office_pending_count)
-        combined_risk = min(max(0.6 * overdue_ratio + 0.4 * age_risk, 0.05), 0.98)
-        inflight_risk_pct = round(combined_risk * 100.0, 1)
-        orders_at_risk = max(office_overdue_count, int(round(office_pending_count * combined_risk)))
-
-    # Confidence Classification
-    if completed_count >= 30:
-        confidence_level = 'High Confidence'
-        confidence_class = 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/40'
-    elif completed_count >= 10:
-        confidence_level = 'Moderate Confidence'
-        confidence_class = 'text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/40'
-    else:
-        confidence_level = 'Low Volume (Prior-Guided)'
-        confidence_class = 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/40'
-
-    is_low_sample = (completed_count < 5)
-    has_high_inflight_risk = (office_pending_count > 0 and inflight_risk_pct >= 70.0)
-
+    overdue = int(row.office_overdue_count or 0)
+    overdue_pct = round(100.0 * overdue / assessed_pending, 1) if assessed_pending else None
+    sample_label = 'Large sample' if completed_count >= 30 else ('Small sample' if completed_count else 'No completed sample')
     return {
-        'bayes_adjusted_tat': round(bayes_adjusted_tat, 1),
+        'bayes_adjusted_tat': round(adjusted, 1) if adjusted is not None else None,
         'bayes_raw_tat': round(raw_tat, 1) if raw_tat is not None else None,
-        'bayes_shrinkage_diff': round(shrinkage_diff, 1),
-        'bayes_credible_min': credible_min,
-        'bayes_credible_max': credible_max,
-        'bayes_smoothed_compliance': round(bayes_compliance, 1),
-        'bayes_inflight_risk_pct': inflight_risk_pct,
-        'bayes_orders_at_risk': orders_at_risk,
-        'confidence_level': confidence_level,
-        'confidence_class': confidence_class,
+        'bayes_shrinkage_diff': round(difference, 1) if difference is not None else None,
+        'bayes_credible_min': lower,
+        'bayes_credible_max': upper,
+        'bayes_smoothed_compliance': round(smoothed, 1) if smoothed is not None else None,
+        'bayes_inflight_risk_pct': overdue_pct,
+        'bayes_orders_at_risk': overdue,
+        'confidence_level': sample_label,
+        'confidence_class': 'text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200',
         'completed_count': completed_count,
         'office_pending_count': office_pending_count,
-        'is_low_sample': is_low_sample,
-        'has_high_inflight_risk': has_high_inflight_risk,
+        'assessed_pending_count': assessed_pending,
+        'compliance_eligible_count': eligible,
+        'is_low_sample': completed_count < 5,
+        'has_high_inflight_risk': overdue_pct is not None and overdue_pct >= 70.0,
     }
 
 
-def build_collection_summary_display_rows(rows):
-    # Compute global prior baselines from available result set
-    valid_tats = [float(r.avg_tat_days) for r in rows if r.avg_tat_days is not None]
-    global_mu0 = sum(valid_tats) / len(valid_tats) if valid_tats else 14.0
-    valid_comps = [float(r.compliance_pct) for r in rows if r.compliance_pct is not None]
-    global_comp0 = sum(valid_comps) / len(valid_comps) if valid_comps else 82.0
+def collection_delivery_baselines(query):
+    """Weighted baselines across all filtered groups, before sorting/pagination."""
+    groups = query.order_by(None).subquery()
+    totals = db.session.query(
+        func.sum(groups.c.tat_sum_days),
+        func.sum(groups.c.valid_tat_count),
+        func.sum(groups.c.compliant_count),
+        func.sum(groups.c.compliance_eligible_count),
+    ).one()
+    return (
+        float(totals[0]) / int(totals[1]) if totals[1] else None,
+        100.0 * int(totals[2] or 0) / int(totals[3]) if totals[3] else None,
+    )
 
+
+def build_collection_summary_display_rows(rows, global_mu0=None, global_comp0=None):
     display_rows = []
     for row in rows:
         bayes = compute_bayesian_delivery_metrics(
@@ -748,6 +706,8 @@ def build_collection_summary_display_rows(rows):
                 'bayes_confidence_class': bayes['confidence_class'],
                 'bayes_completed_count': bayes['completed_count'],
                 'bayes_pending_count': bayes['office_pending_count'],
+                'bayes_assessed_pending_count': bayes['assessed_pending_count'],
+                'bayes_compliance_eligible_count': bayes['compliance_eligible_count'],
                 'is_low_sample': bayes['is_low_sample'],
                 'has_high_inflight_risk': bayes['has_high_inflight_risk'],
             },
@@ -789,6 +749,7 @@ def get_collection_wise_average_delivery_days_partial():
         sort_order = request.args.get('sort_order', 'none').lower()
 
         query, metrics = build_collection_summary_query(request.args)
+        baseline_tat, baseline_compliance = collection_delivery_baselines(query)
 
         column_map = {
             'collection': CollectionWiseAverageDeliveryDaysSnapshot.collection,
@@ -817,7 +778,7 @@ def get_collection_wise_average_delivery_days_partial():
 
         return render_template(
             'partials/_view_collection_wise_average_delivery_days.html',
-            rows=build_collection_summary_display_rows(pagination.items),
+            rows=build_collection_summary_display_rows(pagination.items, baseline_tat, baseline_compliance),
             total_records=pagination.total,
             page=page,
             per_page=per_page,
