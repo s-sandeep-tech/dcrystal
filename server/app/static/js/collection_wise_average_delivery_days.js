@@ -30,6 +30,7 @@ let filterValues = {
     section: '',
     branch_type: '',
     order_period: '',
+    order_request_type: '',
     is_re_ordered: 'false',
     sort_by: '',
     sort_order: 'none',
@@ -904,6 +905,7 @@ async function initFilters() {
         populateSelect('filter-section', options.sections || []);
         populateSelect('filter-branch-type', options.branch_types || []);
         populateSelect('filter-order-period', options.order_periods || []);
+        populateSelect('filter-order-request-type', options.order_request_types || []);
     } catch (err) {
         console.error('Error initializing filters:', err);
     }
@@ -930,6 +932,7 @@ function collectFilterValues() {
     filterValues.section = document.getElementById('filter-section')?.value || '';
     filterValues.branch_type = document.getElementById('filter-branch-type')?.value || '';
     filterValues.order_period = document.getElementById('filter-order-period')?.value || '';
+    filterValues.order_request_type = document.getElementById('filter-order-request-type')?.value || '';
     filterValues.is_re_ordered = document.getElementById('filter-is-re-ordered')?.value || 'false';
     if (locationMultiSelect && typeof locationMultiSelect.getValues === 'function') {
         filterValues.location = locationMultiSelect.getValues().join(',');
@@ -955,6 +958,7 @@ function resetFilters() {
         section: '',
         branch_type: '',
         order_period: '',
+        order_request_type: '',
         is_re_ordered: 'false',
         sort_by: '',
         sort_order: 'none',
@@ -969,7 +973,7 @@ function resetFilters() {
         locationMultiSelect.reset();
     }
 
-    ['filter-group', 'filter-purity', 'filter-classification', 'filter-make', 'filter-master-collection', 'filter-collection', 'filter-section', 'filter-branch-type', 'filter-order-period'].forEach(id => {
+    ['filter-group', 'filter-purity', 'filter-classification', 'filter-make', 'filter-master-collection', 'filter-collection', 'filter-section', 'filter-branch-type', 'filter-order-period', 'filter-order-request-type'].forEach(id => {
         const select = document.getElementById(id);
         if (select) select.value = '';
     });

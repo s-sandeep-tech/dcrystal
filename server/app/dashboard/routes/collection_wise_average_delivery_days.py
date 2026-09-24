@@ -453,6 +453,11 @@ def build_snapshot_query(args):
     if order_periods:
         query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.order_period.in_(order_periods))
 
+    # Order Request Type filter
+    order_request_types = split_filter_values(args.get('order_request_type'))
+    if order_request_types:
+        query = query.filter(CollectionWiseAverageDeliveryDaysSnapshot.order_request_type_name.in_(order_request_types))
+
     # Re-Ordered filter (defaults to 'false' / Non Re-Ordered if not specified)
     raw_is_re_ordered = args.get('is_re_ordered')
     if raw_is_re_ordered is None:
@@ -1058,6 +1063,7 @@ def get_collection_wise_average_delivery_days_options():
         sections = get_distinct(CollectionWiseAverageDeliveryDaysSnapshot.section)
         branch_types = get_distinct(CollectionWiseAverageDeliveryDaysSnapshot.branch_type)
         order_periods = get_distinct(CollectionWiseAverageDeliveryDaysSnapshot.order_period)
+        order_request_types = get_distinct(CollectionWiseAverageDeliveryDaysSnapshot.order_request_type_name)
 
         return jsonify({
             'locations': locations,
@@ -1069,7 +1075,8 @@ def get_collection_wise_average_delivery_days_options():
             'master_collections': master_collections,
             'sections': sections,
             'branch_types': branch_types,
-            'order_periods': order_periods
+            'order_periods': order_periods,
+            'order_request_types': order_request_types
         })
     except Exception as e:
         logger.error(f"Error fetching collection_wise_average_delivery_days options: {str(e)}")
