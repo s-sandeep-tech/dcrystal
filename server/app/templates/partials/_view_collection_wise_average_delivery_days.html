@@ -158,6 +158,9 @@
                         <div class="font-medium text-gray-400">-</div>
                         <div class="text-[9px] text-gray-400">No completed receipts</div>
                         {% endif %}
+                        <div class="text-[9px] text-gray-400 tabular-nums" title="Average of Delivery Target Days + 3 + in-transit days; missing transit days count as zero.">
+                            Target {% if row.avg_party_to_shop_target_days is not none %}{{ "{:,.1f}".format(row.avg_party_to_shop_target_days|float) }}d{% else %}-{% endif %}
+                        </div>
                     </td>
                     <td class="px-3 py-2 align-middle font-bold tabular-nums whitespace-nowrap
                         {% if variance > 0 %}text-red-500 dark:text-red-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">

@@ -544,6 +544,10 @@ def build_collection_summary_query(args):
         'office_assessed_pending_count': func.sum(case((assessed_pending, 1), else_=0)),
         'office_pending_exposure_days': func.sum(case((office_pending, office_age), else_=0)),
         'avg_party_to_shop_days': func.avg(party_to_shop_days),
+        'avg_party_to_shop_target_days': func.avg(case(
+            (valid_target, snapshot.delivery_days + 3 + func.coalesce(snapshot.in_transit_days, 0)),
+            else_=None,
+        )),
         'median_tat_days': func.percentile_cont(0.5).within_group(tat_days),
         'p90_tat_days': func.percentile_cont(0.9).within_group(tat_days),
         'max_tat_days': func.max(tat_days),
