@@ -919,6 +919,10 @@ def get_collection_supplier_delivery_times():
                 func.count(distinct(snapshot.barcode_no)).label('barcode_count'),
                 func.avg(tat_days).label('actual_avg_days'),
                 func.avg(office_age).label('combined_avg_days'),
+                (func.sum(case((snapshot.morr_received_date.isnot(None), office_age), else_=0))
+                 * 1.0 / func.nullif(func.count(office_age), 0)).label('completed_day_contribution'),
+                (func.sum(case((office_pending, office_age), else_=0))
+                 * 1.0 / func.nullif(func.count(office_age), 0)).label('pending_day_contribution'),
                 func.sum(case((office_pending, 1), else_=0)).label('office_pending_count'),
                 func.sum(case((and_(office_pending, office_age > snapshot.delivery_days), 1), else_=0)).label('office_overdue_count'),
                 func.avg(tat_days - snapshot.delivery_days).label('avg_variance_days'),
@@ -973,7 +977,9 @@ def get_collection_supplier_delivery_times():
                 'supplier_name': row.supplier_name,
                 'delivery_days': target_days,
                 'barcode_count': int(row.barcode_count or 0),
-                'combined_avg_days': round(float(row.combined_avg_days), 1) if row.combined_avg_days is not None else None,
+                'combined_avg_days': float(row.combined_avg_days) if row.combined_avg_days is not None else None,
+                'completed_day_contribution': float(row.completed_day_contribution) if row.completed_day_contribution is not None else None,
+                'pending_day_contribution': float(row.pending_day_contribution) if row.pending_day_contribution is not None else None,
                 'office_pending_count': int(row.office_pending_count or 0),
                 'office_overdue_count': int(row.office_overdue_count or 0),
                 'actual_avg_days': (

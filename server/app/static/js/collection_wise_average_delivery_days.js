@@ -227,13 +227,8 @@ function renderSupplierDeliveryTimes(data) {
     }
 
     suppliers.forEach(supplier => {
-        const dayScale = Math.max(
-            Number(supplier.delivery_days) || 0,
-            Number(supplier.combined_avg_days) || 0
-        ) || 1;
-        const dayWidth = value => `${Math.min(100, Math.max(0, (Number(value) || 0) / dayScale * 100))}%`;
         const row = document.createElement('div');
-        row.className = 'grid grid-cols-[minmax(0,140px)_minmax(90px,1fr)_68px] sm:grid-cols-[minmax(0,260px)_minmax(120px,1fr)_78px] items-center gap-3';
+        row.className = 'grid grid-cols-1 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)] items-center gap-3';
 
         const identity = document.createElement('div');
         identity.className = 'min-w-0';
@@ -257,58 +252,15 @@ function renderSupplierDeliveryTimes(data) {
         performance.title = performance.textContent;
 
         const target = Number(supplier.delivery_days) || 0;
-        const average = supplier.combined_avg_days == null ? null : Number(supplier.combined_avg_days);
         const status = document.createElement('p');
         status.className = 'mt-0.5 text-[8px] text-gray-500 tabular-nums';
         status.textContent = `Target: ${formatCollectionSummaryNumber(target)} days · ${formatCollectionSummaryNumber(supplier.office_pending_count || 0)} awaiting office receipt`;
         identity.append(name, performance, status);
 
-        let color = 'bg-gray-400';
-        let statusLabel = 'No configured target';
-        if (average == null) {
-            statusLabel = 'No dated orders';
-        } else if (target > 0) {
-            if (average > target || Number(supplier.office_overdue_count) > 0) {
-                color = 'bg-red-500';
-                statusLabel = 'Past target';
-            } else if (Number(supplier.office_pending_count) > 0) {
-                color = 'bg-amber-500';
-                statusLabel = 'Pending within target';
-            } else {
-                color = 'bg-emerald-500';
-                statusLabel = 'Within target';
-            }
-        }
-
         const track = document.createElement('div');
-        track.className = 'flex flex-col gap-1 min-w-0';
-        const days = document.createElement('div');
-        days.className = 'flex flex-col gap-1 text-right text-[10px] font-bold text-gray-900 dark:text-white tabular-nums whitespace-nowrap';
-        [
-            [target, 0, 'bg-primary', 'Configured target'],
-            [average, 1, color, `Combined average: completed order-to-MORR days and pending order-to-today age; ${statusLabel}`]
-        ].forEach(([value, precision, barColor, label]) => {
-            const valueText = value == null ? '\u2014' : `${formatCollectionSummaryNumber(value, precision)} days`;
-            const lane = document.createElement('div');
-            lane.className = 'h-[18px] flex items-center';
-            lane.title = `${label}: ${valueText}`;
-            lane.setAttribute('role', 'img');
-            lane.setAttribute('aria-label', lane.title);
-            const background = document.createElement('div');
-            background.className = 'h-[7px] w-full overflow-hidden rounded bg-gray-100 dark:bg-gray-800';
-            const bar = document.createElement('div');
-            bar.className = `h-full rounded transition-[width] duration-300 ${barColor}`;
-            bar.style.width = dayWidth(value);
-            background.appendChild(bar);
-            lane.appendChild(background);
-            track.appendChild(lane);
-            const amount = document.createElement('p');
-            amount.className = 'h-[18px] flex items-center justify-end';
-            amount.textContent = valueText;
-            amount.title = lane.title;
-            days.appendChild(amount);
-        });
-        row.append(identity, track, days);
+        track.className = 'min-w-0';
+        renderCollectionSummaryTiming({ ...supplier, avg_delivery_days: target }, track, 'Target');
+        row.append(identity, track);
         list.appendChild(row);
     });
 
@@ -632,8 +584,7 @@ function renderDeliveryTimeline(stages) {
     });
 }
 
-function renderCollectionSummaryTiming(detail) {
-    const container = document.getElementById('collection-summary-timing-bars');
+function renderCollectionSummaryTiming(detail, container = document.getElementById('collection-summary-timing-bars'), targetLabel = 'Target (avg)') {
     if (!container) return;
     container.replaceChildren();
     const target = detail.avg_delivery_days;
@@ -644,7 +595,7 @@ function renderCollectionSummaryTiming(detail) {
     const labels = document.createElement('div');
     labels.className = 'flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[10px] mb-2';
     [
-        ['Target (avg)', target, 'bg-primary'],
+        [targetLabel, target, 'bg-primary'],
         ['Completed contribution', completed, 'bg-emerald-300 dark:bg-emerald-600'],
         ['Pending contribution', pending, 'bg-yellow-400'],
         ['Combined average', average, 'bg-gray-400']
