@@ -83,6 +83,25 @@ def apply_owner_visibility_filter(query):
     return query.filter(owner_filter)
 
 
+def apply_visibility_filter(query):
+    roles = {str(role).strip().upper() for role in session.get('roles', [])}
+    if roles.intersection({'ADMIN', 'MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'}):
+        return query
+    if 'BUSINESS_HEAD' in roles:
+        emp_code = str(session.get('user_id') or '').strip()
+        if not emp_code:
+            return query.filter(false())
+        return query.filter(func.trim(PendingOrderDetailsSnapshot.bh_emp_code) == emp_code)
+    if 'MANAGER_KMU' in roles:
+        return query.filter(PendingOrderDetailsSnapshot.make.in_([
+            'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA',
+            'KMU MH', 'KMU-COIN', 'KMU-TN'
+        ]))
+    if not session.get('user_id'):
+        return query.filter(false())
+    return apply_owner_visibility_filter(query)
+
+
 def build_filter_query(base_query):
     search = request.args.get('search', '').strip()
     division = request.args.get('division', '')
@@ -161,20 +180,7 @@ def build_filter_query(base_query):
     if qc_ro:
         query = query.filter(PendingOrderDetailsSnapshot.qc_ro == qc_ro)
 
-    roles = [r.upper() for r in session.get('roles', [])]
-    is_admin = 'ADMIN' in roles
-    is_manager_2 = 'MANAGER_2' in roles
-
-    if not is_admin and not is_manager_2:
-        if 'MANAGER_KMU' in roles:
-            query = query.filter(PendingOrderDetailsSnapshot.make.in_([
-                'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA',
-                'KMU MH', 'KMU-COIN', 'KMU-TN'
-            ]))
-        else:
-            query = apply_owner_visibility_filter(query)
-
-    return query
+    return apply_visibility_filter(query)
 
 
 def get_stage_aggregate_columns():
@@ -208,16 +214,7 @@ def location_make_pending_order_summary():
         per_page = request.args.get('per_page', 50, type=int)
 
         # Base query for filter options
-        opts_base = db.session.query(PendingOrderDetailsSnapshot)
-        roles = [r.upper() for r in session.get('roles', [])]
-        if 'ADMIN' not in roles and 'MANAGER_2' not in roles:
-            if 'MANAGER_KMU' in roles:
-                opts_base = opts_base.filter(PendingOrderDetailsSnapshot.make.in_([
-                    'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA',
-                    'KMU MH', 'KMU-COIN', 'KMU-TN'
-                ]))
-            else:
-                opts_base = apply_owner_visibility_filter(opts_base)
+        opts_base = apply_visibility_filter(db.session.query(PendingOrderDetailsSnapshot))
 
         def get_distinct_list(column):
             query = opts_base.with_entities(column).filter(column.isnot(None))

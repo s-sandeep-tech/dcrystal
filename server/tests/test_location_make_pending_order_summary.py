@@ -2,7 +2,7 @@ import unittest
 from flask import Flask, session
 from app.extensions import db
 from app.models.snapshots import PendingOrderDetailsSnapshot
-from app.dashboard.routes.location_make_pending_order_summary import build_filter_query
+from app.dashboard.routes.location_make_pending_order_summary import build_filter_query, apply_visibility_filter
 
 
 class LocationMakePendingOrderTypeFilterTests(unittest.TestCase):
@@ -58,3 +58,28 @@ class LocationMakePendingOrderTypeFilterTests(unittest.TestCase):
             q = build_filter_query(db.session.query(PendingOrderDetailsSnapshot))
             results = q.all()
             self.assertEqual(len(results), 3)
+
+    def test_business_head_scope_applies_to_data_and_options(self):
+        db.session.get(PendingOrderDetailsSnapshot, 1).bh_emp_code = ' 123 '
+        db.session.get(PendingOrderDetailsSnapshot, 2).bh_emp_code = '456'
+        db.session.commit()
+        with self.app.test_request_context('/'):
+            session['roles'] = ['BUSINESS_HEAD']
+            session['user_id'] = '123'
+            for scope in (build_filter_query, apply_visibility_filter):
+                rows = scope(db.session.query(PendingOrderDetailsSnapshot)).all()
+                self.assertEqual([r.id for r in rows], [1])
+
+    def test_business_head_without_identity_or_match_sees_no_data(self):
+        with self.app.test_request_context('/'):
+            session['roles'] = ['BUSINESS_HEAD']
+            for user_id in (None, 'unmapped'):
+                session['user_id'] = user_id
+                self.assertEqual(build_filter_query(PendingOrderDetailsSnapshot.query).count(), 0)
+
+    def test_privileged_roles_bypass_business_head_scope(self):
+        with self.app.test_request_context('/'):
+            session['user_id'] = '123'
+            for role in ('ADMIN', 'MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'):
+                session['roles'] = ['BUSINESS_HEAD', role]
+                self.assertEqual(build_filter_query(PendingOrderDetailsSnapshot.query).count(), 3)
