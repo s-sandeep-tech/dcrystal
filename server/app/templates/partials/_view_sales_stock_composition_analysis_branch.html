@@ -1,0 +1,26 @@
+{% for row in rows %}
+{% set child_path = parent_path + [row.label] %}
+{% set depth = child_path|length %}
+{% set indent_px = (depth - 1) * 16 + 12 %}
+<tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 child-row {% if can_expand %}cursor-pointer{% endif %} transition-colors border-b border-gray-200 dark:border-gray-700"
+    data-path='{{ child_path|tojson }}'
+    data-depth="{{ depth }}"
+    data-expanded="false"
+    {% if can_expand %}onclick="toggleHierarchyBranch(this)"{% endif %}>
+    <td class="px-3 py-1 text-left border-r border-b border-gray-200 dark:border-gray-700 h-7" style="padding-left: {{ indent_px }}px;">
+        <div class="flex items-center gap-1.5 h-full">
+            {% if can_expand %}
+            <span class="inline-flex items-center justify-center w-4 text-[10px] text-gray-500 dark:text-gray-400 font-bold toggle-arrow transition-transform duration-200 select-none">▶</span>
+            {% else %}
+            <span class="inline-flex items-center justify-center text-gray-400 w-4 text-[11px] select-none">→</span>
+            {% endif %}
+            <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-gray-700 dark:text-gray-200">{{ row.label or '(Unspecified)' }}</span>
+        </div>
+    </td>
+    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ "{:,.2f}%".format(row.sales_composition) if row.sales_composition is not none else 'N/A' }}</td>
+    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ "{:,.2f}%".format(row.stock_composition) if row.stock_composition is not none else 'N/A' }}</td>
+    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ "{:,.2f}".format(row.weight_turn) if row.weight_turn is not none else 'N/A' }}</td>
+    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ "{:,.2f}".format(row.value_turn) if row.value_turn is not none else 'N/A' }}</td>
+    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{ "{:,.2f}%".format(row.tsk_pct) if row.tsk_pct is not none else 'N/A' }}</td>
+</tr>
+{% endfor %}

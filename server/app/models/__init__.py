@@ -36,11 +36,12 @@ from .snapshots import (
     WeeklyDeliveryOrderSummarySnapshot,
     PartyMakeCapacityDetailsSnapshot
 )
-
+from .sales_stock_composition_analysis import SalesStockCompositionAnalysisSnapshot
 from .rbac import Role, Permission, Menu, RoleMenu, RolePermission, UserRole, AuditLog, UserPasswordHistory
 from .akt_report import AKTTransactionPerformance
 
 __all__ = [
+    'SalesStockCompositionAnalysisSnapshot',
     'User',
     'LoginAttemptLog',
     'ThirdPartyApiClient',

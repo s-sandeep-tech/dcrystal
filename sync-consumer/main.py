@@ -61,6 +61,7 @@ try:
         sync_location_wise_old_gold_settlement_transfer_task,
         sync_weekly_delivery_order_summary_task,
         sync_party_make_capacity_details_task,
+        sync_sales_stock_composition_analysis_task,
         emit_sync_update
     )
 
@@ -226,6 +227,8 @@ def process_sync_queue():
                         res = sync_weekly_delivery_order_summary_task()
                     elif task_type == 'party_make_capacity_details':
                         res = sync_party_make_capacity_details_task()
+                    elif task_type == 'sales_stock_composition_analysis':
+                        res = sync_sales_stock_composition_analysis_task()
                     else:
                         logger.error(f"Unknown sync task type: {task_type}")
 

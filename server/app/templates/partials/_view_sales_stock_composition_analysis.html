@@ -1,0 +1,93 @@
+<div class="h-full flex flex-col bg-white dark:bg-gray-900" id="partial-root">
+    {% if error_message %}
+    <div class="h-full flex flex-col items-center justify-center p-8 text-center">
+        <span class="material-symbols-outlined text-3xl text-red-500 mb-2">error</span>
+        <p class="text-sm font-bold text-gray-800 dark:text-white">Unable to load Sales &amp; Stock Composition Analysis</p>
+        <p class="mt-1 text-xs text-gray-500 max-w-2xl break-words">{{ error_message }}</p>
+    </div>
+    {% elif not rows %}
+    <div class="h-full flex flex-col items-center justify-center p-8 text-center">
+        <span class="material-symbols-outlined text-3xl text-gray-300 mb-2">inventory_2</span>
+        <p class="text-sm font-bold text-gray-700 dark:text-gray-200">No matching records found</p>
+        <p class="mt-1 text-xs text-gray-500">Try adjusting your filters or run data sync from Settings.</p>
+    </div>
+    {% else %}
+    <div class="flex-1 min-h-0 overflow-auto custom-scrollbar">
+        <table id="composition-analysis-table" class="w-full min-w-[900px] table-fixed border-collapse text-left">
+            <colgroup>
+                <col class="w-[35%]">
+                <col class="w-[13%]">
+                <col class="w-[13%]">
+                <col class="w-[13%]">
+                <col class="w-[13%]">
+                <col class="w-[13%]">
+            </colgroup>
+            <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <tr class="text-[9px] uppercase text-gray-500 font-bold tracking-wider">
+                    <th scope="col" class="px-3 py-1.5 border-r border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between gap-1">
+                            <span>Product Hierarchy ({{ level.replace('_', ' ').title() if level else 'Section' }} Wise)</span>
+                            <span class="material-symbols-outlined text-[15px] cursor-pointer hover:text-primary transition-colors select-none"
+                                  id="expand-collapse-all-btn"
+                                  onclick="collapseAllBranches()"
+                                  title="Collapse All">keyboard_double_arrow_up</span>
+                        </div>
+                    </th>
+                    <th scope="col" class="px-3 py-1.5 text-right border-r border-gray-200 dark:border-gray-700">Sales Composition %</th>
+                    <th scope="col" class="px-3 py-1.5 text-right border-r border-gray-200 dark:border-gray-700">Stock Composition %</th>
+                    <th scope="col" class="px-3 py-1.5 text-right border-r border-gray-200 dark:border-gray-700">Stock Turn in Weight</th>
+                    <th scope="col" class="px-3 py-1.5 text-right border-r border-gray-200 dark:border-gray-700">Stock Turn in Value</th>
+                    <th scope="col" class="px-3 py-1.5 text-right">TSK %</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-blue-200 dark:divide-blue-800/80 text-[10px]">
+                {% for row in rows %}
+                {% set current_path = [row.label] %}
+                <tr class="bg-[#e3f2fd] dark:bg-blue-900/30 font-bold hover:bg-blue-100/70 dark:hover:bg-blue-900/50 cursor-pointer parent-row transition-colors border-b border-blue-200 dark:border-blue-800"
+                    data-path='{{ current_path|tojson }}'
+                    data-depth="1"
+                    data-expanded="false"
+                    onclick="toggleHierarchyBranch(this)">
+                    <td class="px-3 py-1 text-left border-r border-b border-blue-200 dark:border-blue-800 h-7">
+                        <div class="flex items-center gap-1.5 h-full">
+                            {% if can_expand %}
+                            <span class="inline-flex items-center justify-center w-4 text-[10px] text-gray-600 dark:text-gray-300 font-bold toggle-arrow transition-transform duration-200 select-none">▶</span>
+                            {% else %}
+                            <span class="inline-flex items-center justify-center text-gray-400 w-4 text-[11px] select-none">→</span>
+                            {% endif %}
+                            <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-gray-800 dark:text-gray-100">{{ row.label or '(Unspecified)' }}</span>
+                        </div>
+                    </td>
+                    <td class="px-3 py-1 text-right font-mono border-r border-b border-blue-200 dark:border-blue-800">{{ "{:,.2f}%".format(row.sales_composition) if row.sales_composition is not none else 'N/A' }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-r border-b border-blue-200 dark:border-blue-800">{{ "{:,.2f}%".format(row.stock_composition) if row.stock_composition is not none else 'N/A' }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-r border-b border-blue-200 dark:border-blue-800">{{ "{:,.2f}".format(row.weight_turn) if row.weight_turn is not none else 'N/A' }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-r border-b border-blue-200 dark:border-blue-800">{{ "{:,.2f}".format(row.value_turn) if row.value_turn is not none else 'N/A' }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-b border-blue-200 dark:border-blue-800">{{ "{:,.2f}%".format(row.tsk_pct) if row.tsk_pct is not none else 'N/A' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if total %}
+            <tfoot class="sticky bottom-0 z-10 bg-[#d6d6d6] dark:bg-gray-700 font-bold border-t-2 border-gray-300 dark:border-gray-600 text-[10px]">
+                <tr>
+                    <td class="px-3 py-1.5 text-left border-r border-gray-300 dark:border-gray-600 h-7 uppercase tracking-wider text-gray-900 dark:text-white">
+                        <div class="flex items-center gap-1.5 h-full pl-5">
+                            <span>Grand Total</span>
+                        </div>
+                    </td>
+                    <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ "{:,.2f}%".format(total.sales_composition) if total.sales_composition is not none else 'N/A' }}</td>
+                    <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ "{:,.2f}%".format(total.stock_composition) if total.stock_composition is not none else 'N/A' }}</td>
+                    <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ "{:,.2f}".format(total.weight_turn) if total.weight_turn is not none else 'N/A' }}</td>
+                    <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ "{:,.2f}".format(total.value_turn) if total.value_turn is not none else 'N/A' }}</td>
+                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white">{{ "{:,.2f}%".format(total.tsk_pct) if total.tsk_pct is not none else 'N/A' }}</td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Hidden Metadata for Stats & Factor -->
+    <script id="partial-stats-data" type="application/json">
+        {{ (stats or {})|tojson }}
+    </script>
+</div>

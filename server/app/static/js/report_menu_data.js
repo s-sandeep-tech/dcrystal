@@ -241,6 +241,14 @@ window.REPORT_MENU_DATA = [
                 tags: ["stock", "location", "provision", "analysis"]
             },
             {
+                id: "sales-stock-composition-analysis",
+                title: "Sales & Stock Composition Analysis",
+                href: "/sales-stock-composition-analysis",
+                icon: "pie_chart",
+                description: "Hierarchical product analysis of sales and stock composition, turn rates, and TSK%.",
+                tags: ["sales", "stock", "composition", "turnover", "tsk", "analysis"]
+            },
+            {
                 id: "provision-stock-status",
                 title: "Provision Stock Status",
                 href: "/provision-stock-status",

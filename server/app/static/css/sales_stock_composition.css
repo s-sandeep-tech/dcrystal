@@ -1,0 +1,51 @@
+/* Styles for Sales & Stock Composition Analysis Report */
+
+#view-sales-stock-composition-analysis table {
+    border-collapse: collapse;
+}
+
+/* Parent hierarchy rows (Sections) */
+#view-sales-stock-composition-analysis .parent-row {
+    border-bottom: 1px solid #90caf9 !important;
+}
+
+#view-sales-stock-composition-analysis .parent-row > td {
+    border-bottom: 1px solid #90caf9 !important;
+}
+
+/* Hover state on parent row */
+#view-sales-stock-composition-analysis .parent-row:hover > td {
+    background-color: #bbdefb !important;
+}
+
+/* Child hierarchy rows */
+#view-sales-stock-composition-analysis .child-row {
+    border-bottom: 1px solid #e0e0e0 !important;
+}
+
+#view-sales-stock-composition-analysis .child-row > td {
+    border-bottom: 1px solid #e0e0e0 !important;
+}
+
+#view-sales-stock-composition-analysis .child-row:hover > td {
+    background-color: #f5f5f5 !important;
+}
+
+/* Dark mode adjustments */
+.dark #view-sales-stock-composition-analysis .parent-row,
+.dark #view-sales-stock-composition-analysis .parent-row > td {
+    border-bottom: 1px solid #1e3a8a !important;
+}
+
+.dark #view-sales-stock-composition-analysis .parent-row:hover > td {
+    background-color: #1e3a8a !important;
+}
+
+.dark #view-sales-stock-composition-analysis .child-row,
+.dark #view-sales-stock-composition-analysis .child-row > td {
+    border-bottom: 1px solid #374151 !important;
+}
+
+.dark #view-sales-stock-composition-analysis .child-row:hover > td {
+    background-color: #1f2937 !important;
+}

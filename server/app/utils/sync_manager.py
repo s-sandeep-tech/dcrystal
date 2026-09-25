@@ -71,6 +71,7 @@ ALLOWED_SYNC_TASKS = {
     'location_wise_old_gold_settlement_transfer',
     'weekly_delivery_order_summary',
     'party_make_capacity_details',
+    'sales_stock_composition_analysis',
 }
 
 
@@ -244,3 +245,7 @@ def sync_weekly_delivery_order_summary_data(user_id=None):
 
 def sync_party_make_capacity_details_data(user_id=None):
     return enqueue_sync_task('party_make_capacity_details', user_id)
+
+
+def sync_sales_stock_composition_analysis_data(user_id=None):
+    return enqueue_sync_task('sales_stock_composition_analysis', user_id)
