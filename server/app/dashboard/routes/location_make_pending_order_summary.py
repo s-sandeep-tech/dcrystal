@@ -12,6 +12,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def mask_supplier_data():
+    return 'BUSINESS_HEAD' in {str(role).strip().upper() for role in session.get('roles', [])}
+
+
 def clean_group_value(column):
     return func.coalesce(func.nullif(func.trim(column), ''), 'Unknown')
 
@@ -128,10 +132,11 @@ def build_filter_query(base_query):
     query = base_query
 
     if search:
+        supplier_search = false() if mask_supplier_data() else PendingOrderDetailsSnapshot.supplier.ilike(f"%{search}%")
         query = query.filter(
             (PendingOrderDetailsSnapshot.location.ilike(f"%{search}%")) |
             (PendingOrderDetailsSnapshot.make.ilike(f"%{search}%")) |
-            (PendingOrderDetailsSnapshot.supplier.ilike(f"%{search}%")) |
+            supplier_search |
             (PendingOrderDetailsSnapshot.classification.ilike(f"%{search}%")) |
             (PendingOrderDetailsSnapshot.collection.ilike(f"%{search}%")) |
             (PendingOrderDetailsSnapshot.order_ro.ilike(f"%{search}%"))
@@ -146,7 +151,7 @@ def build_filter_query(base_query):
         query = query.filter(PendingOrderDetailsSnapshot.group_name == group_name)
     if purity:
         query = query.filter(PendingOrderDetailsSnapshot.purity == purity)
-    if supplier:
+    if supplier and not mask_supplier_data():
         query = query.filter(PendingOrderDetailsSnapshot.supplier == supplier)
     if classification_owner:
         query = query.filter(PendingOrderDetailsSnapshot.classification_owner == classification_owner)
@@ -227,7 +232,7 @@ def location_make_pending_order_summary():
             'divisions': get_distinct_list(PendingOrderDetailsSnapshot.division),
             'groups': get_distinct_list(PendingOrderDetailsSnapshot.group_name),
             'purities': [str(x) for x in get_distinct_list(PendingOrderDetailsSnapshot.purity)],
-            'suppliers': get_distinct_list(PendingOrderDetailsSnapshot.supplier),
+            'suppliers': [] if mask_supplier_data() else get_distinct_list(PendingOrderDetailsSnapshot.supplier),
             'classifications': get_distinct_list(PendingOrderDetailsSnapshot.classification),
             'makes': get_distinct_list(PendingOrderDetailsSnapshot.make),
             'collections': get_distinct_list(PendingOrderDetailsSnapshot.collection),
@@ -247,7 +252,8 @@ def location_make_pending_order_summary():
 
         return render_template('location_make_pending_order_summary.html', unread_count=unread_count,
                                sync_time=sync_time, stats=None, rows=[], pagination=None,
-                               current_level='location', filter_options=filter_options)
+                               current_level='location', filter_options=filter_options,
+                               mask_suppliers=mask_supplier_data())
     except Exception as e:
         db.session.rollback()
         logger.exception('Error loading location-make report page')
@@ -459,7 +465,7 @@ def get_location_make_pending_order_summary_leaf_detail():
         for idx, (sup_name, items) in enumerate(grouped_records.items()):
             summary = {
                 'id': f"sup_{idx}",
-                'supplier': sup_name,
+                'supplier': 'XXX' if mask_supplier_data() else sup_name,
                 'accept_pending_pcs': sum(float(x.accept_pending_pcs or 0) for x in items),
                 'accept_pending_wt': sum(float(x.accept_pending_wt or 0) for x in items),
                 'process_pending_pcs': sum(float(x.process_pending_pcs or 0) for x in items),

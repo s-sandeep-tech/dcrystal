@@ -1,8 +1,12 @@
 import unittest
+from unittest.mock import patch
 from flask import Flask, session
 from app.extensions import db
 from app.models.snapshots import PendingOrderDetailsSnapshot
-from app.dashboard.routes.location_make_pending_order_summary import build_filter_query, apply_visibility_filter
+from app.dashboard.routes.location_make_pending_order_summary import (
+    build_filter_query, apply_visibility_filter,
+    get_location_make_pending_order_summary_leaf_detail,
+)
 
 
 class LocationMakePendingOrderTypeFilterTests(unittest.TestCase):
@@ -83,3 +87,24 @@ class LocationMakePendingOrderTypeFilterTests(unittest.TestCase):
             for role in ('ADMIN', 'MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'):
                 session['roles'] = ['BUSINESS_HEAD', role]
                 self.assertEqual(build_filter_query(PendingOrderDetailsSnapshot.query).count(), 3)
+
+    def test_modal_supplier_names_masked_for_business_head(self):
+        with self.app.test_request_context('/'):
+            session['roles'] = ['ADMIN', 'BUSINESS_HEAD']
+            with patch('app.dashboard.routes.location_make_pending_order_summary.render_template') as render:
+                get_location_make_pending_order_summary_leaf_detail.__wrapped__()
+                summaries = render.call_args.kwargs['supplier_summaries']
+                self.assertTrue(summaries)
+                self.assertTrue(all(row['supplier'] == 'XXX' for row in summaries))
+            session['roles'] = ['ADMIN']
+            with patch('app.dashboard.routes.location_make_pending_order_summary.render_template') as render:
+                get_location_make_pending_order_summary_leaf_detail.__wrapped__()
+                self.assertEqual(render.call_args.kwargs['supplier_summaries'][0]['supplier'], 'AACHAL JEWELLERS')
+
+    def test_business_head_cannot_probe_supplier_names(self):
+        with self.app.test_request_context('/?supplier=NONEXISTENT'):
+            session['roles'] = ['ADMIN', 'BUSINESS_HEAD']
+            self.assertEqual(build_filter_query(PendingOrderDetailsSnapshot.query).count(), 3)
+        with self.app.test_request_context('/?search=AACHAL'):
+            session['roles'] = ['ADMIN', 'BUSINESS_HEAD']
+            self.assertEqual(build_filter_query(PendingOrderDetailsSnapshot.query).count(), 0)
