@@ -16,7 +16,7 @@ from html import escape
 
 auth_bp = Blueprint('auth', __name__)
 
-ALLOWED_EMAIL_DOMAINS = ('kalyanjewellers.tech', 'kalyanjewellers.net')
+ALLOWED_EMAIL_DOMAINS = ('kalyanjewellers.tech', 'kalyanjewellers.net','kalyanjewellers.store')
 
 
 def encode_log_text(value):
