@@ -27,8 +27,10 @@
                 <tr class="text-[9px] uppercase text-gray-500 font-bold tracking-wider">
                     <th scope="col" class="px-3 py-1.5 border-r border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between gap-1">
-                            <span title="Order: Section &gt; Classification &gt; Make &gt; Wide Range &gt; Collection &gt; Master Collection &gt; Purity" class="cursor-help">Product Hierarchy ({{ level.replace('_', ' ').title() if level else 'Section' }} Wise)</span>
-                            <span class="material-symbols-outlined text-[15px] cursor-pointer hover:text-primary transition-colors select-none"
+                            <span class="truncate" title="Product Hierarchy (Section &gt; Classification &gt; Make &gt; Wide Range &gt; Collection &gt; Master Collection &gt; Purity)">
+                                Product Hierarchy <span class="text-[8px] font-normal normal-case text-gray-400 dark:text-gray-400 tracking-tight">(Section &gt; Classification &gt; Make &gt; Wide Range &gt; Collection &gt; Master Collection &gt; Purity)</span>
+                            </span>
+                            <span class="material-symbols-outlined text-[15px] cursor-pointer hover:text-primary transition-colors select-none shrink-0"
                                   id="expand-collapse-all-btn"
                                   onclick="collapseAllBranches()"
                                   title="Collapse All">keyboard_double_arrow_up</span>
