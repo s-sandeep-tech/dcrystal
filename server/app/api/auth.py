@@ -16,7 +16,7 @@ from html import escape
 
 auth_bp = Blueprint('auth', __name__)
 
-ALLOWED_EMAIL_DOMAINS = ('kalyanjewellers.tech', 'kalyanjewellers.net','kalyanjewellers.store')
+ALLOWED_EMAIL_DOMAINS = ('kalyanjewellers.tech', 'kalyanjewellers.net', 'kalyanjewellers.store')
 
 
 def encode_log_text(value):
@@ -28,7 +28,7 @@ def validate_company_email(email):
     normalized_email = (email or '').strip().lower()
     domains = '|'.join(re.escape(domain) for domain in ALLOWED_EMAIL_DOMAINS)
     if not re.fullmatch(r'[^@\s]+@(?:' + domains + ')', normalized_email):
-        return False, "Email must use the @kalyanjewellers.tech or @kalyanjewellers.net domain"
+        return False, "Email must use the @kalyanjewellers.tech, @kalyanjewellers.net, or @kalyanjewellers.store domain"
     return True, normalized_email
 
 def validate_password_strength(password):
