@@ -82,11 +82,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Reset all sync buttons IF NOT in Sync All mode
                     if (!window.isSyncAllActive) {
                         [
-                            syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, 
-                            syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, 
+                            syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn,
+                            syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn,
                             syncProvisionStatusBtn, syncSizeLevelNIPBarcodeBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn,
-                            syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, 
-                            syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, 
+                            syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn,
+                            syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn,
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
                             syncCollectionWiseAverageDeliveryDaysBtn, syncSalesStockCompositionAnalysisBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn,
                             syncWeeklyDeliveryOrderSummaryBtn, syncPartyMakeCapacityDetailsBtn
@@ -111,11 +111,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Reset all sync buttons
                     if (!window.isSyncAllActive) {
                         [
-                            syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn, 
-                            syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn, 
+                            syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn,
+                            syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn,
                             syncProvisionStatusBtn, syncSizeLevelNIPBarcodeBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn,
-                            syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn, 
-                            syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn, 
+                            syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn,
+                            syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn,
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
                             syncCollectionWiseAverageDeliveryDaysBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn,
                             syncWeeklyDeliveryOrderSummaryBtn, syncPartyMakeCapacityDetailsBtn
@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 modal.classList.add('opacity-100');
                 content.classList.remove('scale-95');
-                    content.classList.add('scale-100');
+                content.classList.add('scale-100');
             }, 10);
 
             const cleanup = (result) => {
@@ -415,9 +415,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             'Content-Type': 'application/json'
                         }
                     });
-                    
+
                     const data = await response.json();
-                    
+
                     if (response.ok) {
                         syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-800/30';
                         syncStatus.innerHTML = `<div class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">check_circle</span> All Sync Tasks and Cache Clear Completed</div>`;
@@ -698,7 +698,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = document.getElementById('manageUserPassword').value;
 
         if (!id && !password) return showToast('Password is required for new users', 'error');
-        if (!/^[^@\s]+@kalyanjewellers\.(tech|net)$/i.test(email)) {
+        if (!/^[^@\s]+@kalyanjewellers\.(tech|net|store)$/i.test(email)) {
             return showToast('Email must use the @kalyanjewellers.tech or @kalyanjewellers.net domain', 'error');
         }
 
@@ -755,27 +755,27 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { console.error(e); }
     }
     window.deleteUser = deleteUser;
-    
+
     async function toggleUserStatus(id, currentlyActive) {
         const user = gManagedUsers.find(u => u.id === id);
         if (!user) return;
-        
+
         const action = currentlyActive ? 'disable' : 'enable';
         const confirmed = await showConfirmModal(
             `${action.charAt(0).toUpperCase() + action.slice(1)} User`,
             `Are you sure you want to ${action} user "${user.username}"? ${currentlyActive ? 'They will no longer be able to log in to the system.' : 'They will regain access to the system.'}`
         );
-        
+
         if (!confirmed) return;
-        
+
         try {
             const res = await fetch(`/api/admin/users/${id}/toggle-status`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${window.jwtToken}` }
             });
-            
+
             const data = await res.json();
-            
+
             if (res.ok) {
                 showToast(data.msg, 'success');
                 fetchUsers(userCurrentPage);
@@ -857,10 +857,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    window.clearUserLockout = async function(id) {
+    window.clearUserLockout = async function (id) {
         const user = gManagedUsers.find(u => u.id === id);
         if (!user) return;
-        
+
         const confirmed = await showConfirmModal('Clear User Lockout', `Are you sure you want to clear the lockout for ${user.username}?`);
         if (!confirmed) return;
 
@@ -888,7 +888,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    window.openForceResetModal = function(id) {
+    window.openForceResetModal = function (id) {
         const user = gManagedUsers.find(u => u.id === id);
         if (!user) return;
 
@@ -919,7 +919,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 10);
     };
 
-    window.closeForceResetModal = function() {
+    window.closeForceResetModal = function () {
         const modal = document.getElementById('forceResetModal');
         const content = document.getElementById('forceResetModalContent');
         if (modal && content) {
@@ -933,9 +933,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const res = await fetch(`/api/admin/users/${id}/force-password-reset`, {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${window.jwtToken}` 
+                    'Authorization': `Bearer ${window.jwtToken}`
                 },
                 body: JSON.stringify({ invalidate_sessions: invalidateSessions })
             });
@@ -1020,7 +1020,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.openResetTabPasswordModal = function(id) {
+    window.openResetTabPasswordModal = function (id) {
         const user = gResetPassUsers.find(u => u.id === id);
         if (user) {
             if (!gManagedUsers.find(u => u.id === id)) gManagedUsers.push(user);
@@ -1028,7 +1028,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    window.openResetTabForceResetModal = function(id) {
+    window.openResetTabForceResetModal = function (id) {
         const user = gResetPassUsers.find(u => u.id === id);
         if (user) {
             if (!gManagedUsers.find(u => u.id === id)) gManagedUsers.push(user);
@@ -1036,7 +1036,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    window.openResetTabClearLockout = function(id) {
+    window.openResetTabClearLockout = function (id) {
         const user = gResetPassUsers.find(u => u.id === id);
         if (user) {
             if (!gManagedUsers.find(u => u.id === id)) gManagedUsers.push(user);
@@ -1510,7 +1510,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 button.addEventListener('click', () => {
                     input.value = icon;
                     preview.textContent = icon;
-                    input.dispatchEvent(new Event('change', {bubbles: true}));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
                     close();
                     trigger.focus();
                 });
@@ -1520,7 +1520,7 @@ document.addEventListener('DOMContentLoaded', () => {
             more.hidden = shown >= matches.length;
             status.textContent = catalogLoading ? 'Loading full catalog…'
                 : catalogFailed ? 'Catalog unavailable; showing common icons. Reopen to retry.'
-                : `${shown} of ${matches.length} icons shown`;
+                    : `${shown} of ${matches.length} icons shown`;
             if (!results.childElementCount) {
                 const empty = document.createElement('p');
                 empty.className = 'col-span-3 p-2 text-xs text-gray-500';
@@ -1554,7 +1554,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('click', event => { if (!host.contains(event.target)) close(); });
         host.addEventListener('focusout', event => { if (!host.contains(event.relatedTarget)) close(); });
         input.addEventListener('input', () => { preview.textContent = input.value.trim() || 'grid_view'; });
-        input.iconBrowser = {reset() { close(); preview.textContent = input.value.trim() || 'grid_view'; }};
+        input.iconBrowser = { reset() { close(); preview.textContent = input.value.trim() || 'grid_view'; } };
         input.iconBrowser.reset();
     }
 
@@ -2872,7 +2872,7 @@ document.addEventListener('DOMContentLoaded', () => {
         notifications.forEach(n => {
             const div = document.createElement('div');
             div.className = `p-4 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-all ${n.is_read ? 'opacity-80' : 'border-l-4 border-l-primary bg-primary/[0.02]'}`;
-            
+
             const typeColors = {
                 success: 'text-green-500 bg-green-50 dark:bg-green-900/20',
                 warning: 'text-amber-500 bg-amber-50 dark:bg-amber-900/20',
@@ -2880,7 +2880,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 info: 'text-blue-500 bg-blue-50 dark:bg-blue-900/20',
                 alert: 'text-purple-500 bg-purple-50 dark:bg-purple-900/20'
             };
-            
+
             const colorClass = typeColors[n.notification_type] || 'text-gray-500 bg-gray-50';
 
             div.innerHTML = `
@@ -2940,16 +2940,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let syncLogsCurrentPage = 1;
 
-    window.openSyncLogsModal = function() {
+    window.openSyncLogsModal = function () {
         if (!syncLogsModal) return;
         syncLogsModal.classList.remove('hidden');
         setTimeout(() => syncLogsModal.classList.remove('opacity-0'), 10);
-        
+
         syncLogsCurrentPage = 1;
         fetchSyncLogsData(syncLogsCurrentPage);
     }
 
-    window.fetchSyncLogsPage = function(delta) {
+    window.fetchSyncLogsPage = function (delta) {
         syncLogsCurrentPage += delta;
         fetchSyncLogsData(syncLogsCurrentPage);
     }
@@ -2959,36 +2959,36 @@ document.addEventListener('DOMContentLoaded', () => {
         syncLogsEmpty.classList.add('hidden');
         syncLogsLoading.classList.remove('hidden');
         syncLogsMetrics.textContent = 'Loading metrics...';
-        
+
         const prevBtn = document.getElementById('syncLogsPrevBtn');
         const nextBtn = document.getElementById('syncLogsNextBtn');
         const pageInfo = document.getElementById('syncLogsPageInfo');
-        
+
         if (prevBtn) prevBtn.disabled = true;
         if (nextBtn) nextBtn.disabled = true;
-        
+
         try {
             const url = `${window.SETTINGS_CONFIG.syncLogsUrl}?page=${page}&per_page=20`;
             const res = await fetch(url);
             const data = await res.json();
-            
+
             syncLogsLoading.classList.add('hidden');
-            
+
             if (data.status === 'success' && data.logs && data.logs.length > 0) {
                 let totalSeconds = 0;
-                
+
                 data.logs.forEach(log => {
                     totalSeconds += (log.duration || 0);
                     const tr = document.createElement('tr');
                     tr.className = 'hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors group';
-                    
+
                     const statusColors = {
                         'success': 'text-green-500 bg-green-50 dark:bg-green-900/20',
                         'error': 'text-red-500 bg-red-50 dark:bg-red-900/20',
                         'processing': 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
                     };
                     const colorClass = statusColors[log.status] || 'text-gray-500 bg-gray-50';
-                    
+
                     tr.innerHTML = `
                         <td class="p-3 text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest whitespace-nowrap">${(log.task_name || '').replace(/_/g, ' ')}</td>
                         <td class="p-3 text-center">
@@ -3001,9 +3001,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                     syncLogsTableBody.appendChild(tr);
                 });
-                
+
                 syncLogsMetrics.textContent = `Total tasks: ${data.total} • Combined duration (visible): ${formatDuration(totalSeconds)}`;
-                
+
                 if (pageInfo) pageInfo.textContent = `Page ${data.current_page} of ${data.pages}`;
                 if (prevBtn) prevBtn.disabled = data.current_page <= 1;
                 if (nextBtn) nextBtn.disabled = data.current_page >= data.pages;
@@ -3021,7 +3021,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    window.closeSyncLogsModal = function() {
+    window.closeSyncLogsModal = function () {
         if (!syncLogsModal) return;
         syncLogsModal.classList.add('opacity-0');
         setTimeout(() => syncLogsModal.classList.add('hidden'), 300);
@@ -3144,7 +3144,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let reportOfflineMessages = {};
     async function fetchReportStatus() {
         if (!reportStatusTbody) return;
-        
+
         reportStatusTbody.innerHTML = `
             <tr>
                 <td colspan="4" class="px-6 py-12 text-center text-gray-400">
@@ -3176,10 +3176,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderReportStatusTable() {
         if (!reportStatusTbody) return;
-        
+
         const filter = reportSearchInput ? reportSearchInput.value.toLowerCase() : '';
         reportStatusTbody.innerHTML = '';
-        
+
         const reports = Object.keys(gReportStatuses).filter(url => {
             // Simple filter logic
             const name = url.split('/').pop().replace(/-/g, ' ').replace(/_/g, ' ');
@@ -3202,9 +3202,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const isOffline = gReportStatuses[url];
             const tr = document.createElement('tr');
             tr.className = "hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-all border-b border-gray-50 dark:border-gray-800/50 group";
-            
+
             const reportName = url.split('/').pop().replace(/-/g, ' ').replace(/_/g, ' ') || 'Dashboard Home';
-            
+
             tr.innerHTML = `
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-3">
@@ -3246,7 +3246,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.toggleReportOfflineStatus = async function(url, isOffline) {
+    window.toggleReportOfflineStatus = async function (url, isOffline) {
         const confirmed = await showConfirmModal(
             `Confirm Status Change`,
             `Set "${url}" to ${isOffline ? 'OFFLINE' : 'ONLINE'}? Offline report pages show the saved message to all users, including administrators.`,
@@ -3258,7 +3258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const res = await fetch('/settings/toggle-report-offline', {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${window.jwtToken}`
                 },
@@ -3289,7 +3289,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add to tab switch listener
     const originalSwitchTab = window.switchTab;
-    window.switchTab = function(tabId) {
+    window.switchTab = function (tabId) {
         if (typeof originalSwitchTab === 'function') {
             originalSwitchTab(tabId);
         }
