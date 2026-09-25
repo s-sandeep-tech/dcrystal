@@ -3,6 +3,8 @@ import unittest
 from unittest.mock import patch
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
+from jinja2 import Environment, FileSystemLoader
 
 from flask import Flask
 from flask_jwt_extended import JWTManager, create_access_token
@@ -101,6 +103,20 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
             'master_collection',
             'purity'
         ])
+
+
+class TSKBarTests(unittest.TestCase):
+    def test_signed_zero_missing_and_overflow(self):
+        env = Environment(loader=FileSystemLoader(Path(__file__).resolve().parents[1] / 'app/templates'), autoescape=True)
+        macro = env.get_template('partials/_sales_stock_tsk_cell.html').module.tsk_cell
+        for value, width, color in [(3.1, '3.1', 'bg-emerald-400'), (-12, '12', 'bg-red-400'),
+                                     (0, '0', 'bg-emerald-400'), (150, '100', 'bg-emerald-400')]:
+            html = str(macro(value))
+            self.assertIn(f'{value:,.2f}%', html)
+            self.assertIn(f'width: {width}%;', html)
+            self.assertIn(color, html)
+        self.assertNotIn('role="img"', str(macro(None)))
+        self.assertIn('N/A', str(macro(None)))
 
 
 if __name__ == '__main__':

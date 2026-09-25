@@ -59,7 +59,7 @@
                 <p class="text-[9px] text-gray-500 font-bold uppercase">Net Sales Wt (YTD)</p>
             </div>
             <div class="flex flex-col mt-1">
-                <p id="stat-sales-weight" class="text-base font-bold text-primary">0.000</p>
+                <p id="stat-sales-weight" class="text-base font-bold text-primary">-</p>
             </div>
         </div>
         <!-- Stat 2: Provision Weight -->
@@ -69,7 +69,7 @@
                 <p class="text-[9px] text-gray-500 font-bold uppercase">Provision Wt</p>
             </div>
             <div class="flex flex-col mt-1">
-                <p id="stat-provision-weight" class="text-base font-bold text-emerald-600">0.000</p>
+                <p id="stat-provision-weight" class="text-base font-bold text-emerald-600">-</p>
             </div>
         </div>
         <!-- Stat 3: Stock Turn in Weight -->
@@ -79,7 +79,7 @@
                 <p class="text-[9px] text-gray-500 font-bold uppercase">Stock Turn (Wt)</p>
             </div>
             <div class="flex flex-col mt-1">
-                <p id="stat-turn-weight" class="text-base font-bold text-amber-600">0.00</p>
+                <p id="stat-turn-weight" class="text-base font-bold text-amber-600">-</p>
             </div>
         </div>
         <!-- Stat 4: Net Turnover -->
@@ -89,7 +89,7 @@
                 <p class="text-[9px] text-gray-500 font-bold uppercase">Net Turnover (YTD)</p>
             </div>
             <div class="flex flex-col mt-1">
-                <p id="stat-turnover" class="text-base font-bold text-purple-600">0.00</p>
+                <p id="stat-turnover" class="text-base font-bold text-purple-600">-</p>
             </div>
         </div>
         <!-- Stat 5: Overall TSK % -->
@@ -99,7 +99,7 @@
                 <p class="text-[9px] text-gray-500 font-bold uppercase">Overall TSK %</p>
             </div>
             <div class="flex flex-col mt-1">
-                <p id="stat-tsk-pct" class="text-base font-bold text-blue-600">0.00%</p>
+                <p id="stat-tsk-pct" class="text-base font-bold text-blue-600">-</p>
             </div>
         </div>
     </div>
@@ -108,13 +108,13 @@
     <div class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
             <span class="material-symbols-outlined text-[14px]">info</span>
-            <span>Hierarchical product analysis of sales and stock composition, annualized turnover, and TSK charges.</span>
+            <span>FY-to-cutoff sales with cutoff-date provision valued at purchase board rate. Turnover is annualised; complete FY history is required. Missing, non-positive or conflicting rates show N/A for value turnover.</span>
         </div>
 
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
             <span id="fy-factor-info" class="flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-primary dark:text-blue-300 rounded font-medium text-[9.5px]">
                 <span class="material-symbols-outlined text-[13px]">calculate</span>
-                <span id="fy-factor-label">{{ fy_label }} · Factor: {{ "%.2f"|format(factor) }}</span>
+                <span id="fy-factor-label">Loading sales cutoff...</span>
             </span>
             <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
             <span id="sync-time-info" class="flex items-center gap-1 font-medium uppercase tracking-wider">
@@ -139,7 +139,11 @@
         </style>
 
         <div id="view-sales-stock-composition-analysis" class="dashboard-view h-full">
-            {% include 'partials/_view_sales_stock_composition_analysis.html' %}
+            <div class="h-full flex flex-col items-center justify-center p-12 text-center text-gray-500">
+                <span class="material-symbols-outlined text-4xl text-primary animate-spin mb-3">progress_activity</span>
+                <p class="text-sm font-bold text-gray-700 dark:text-gray-200">Loading Sales &amp; Stock Composition Analysis...</p>
+                <p class="mt-1 text-xs text-gray-400">Fetching report data via AJAX...</p>
+            </div>
         </div>
     </div>
 </main>
@@ -182,5 +186,5 @@
 
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/sales_stock_composition_analysis.js') }}"></script>
+<script src="{{ url_for('static', filename='js/sales_stock_composition_analysis.js', v='20260925-ajax-stats') }}"></script>
 {% endblock %}

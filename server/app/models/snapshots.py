@@ -2924,6 +2924,8 @@ class PendingOrderDetailsSnapshot(db.Model):
     qc_ro = db.Column('qc_ro', db.Text)
     customer_order_type = db.Column('customer_order_type', db.Text)
     is_discount_party = db.Column('is_discount_party', db.Text)
+    business_head_name = db.Column('business_head_name', db.Text, nullable=True)
+    bh_emp_code = db.Column('bh_emp_code', db.String(256), nullable=True)
 
     accept_pending_pcs = db.Column('accept_pending_pcs', db.Numeric(18, 3))
     accept_pending_wt = db.Column('accept_pending_wt', db.Numeric(18, 3))

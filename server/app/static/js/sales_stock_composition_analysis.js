@@ -1,7 +1,18 @@
-document.addEventListener('DOMContentLoaded', () => {
-    initFilters();
+document.addEventListener('DOMContentLoaded', async () => {
+    resetTopStats();
+    await initFilters();
     loadReportData();
 });
+
+function resetTopStats() {
+    const ids = ['stat-sales-weight', 'stat-provision-weight', 'stat-turn-weight', 'stat-turnover', 'stat-tsk-pct'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '-';
+    });
+    const fyFactorLabel = document.getElementById('fy-factor-label');
+    if (fyFactorLabel) fyFactorLabel.textContent = 'Loading factor...';
+}
 
 let currentSearch = '';
 let currentZoom = 1.0;
@@ -153,8 +164,20 @@ async function loadReportData() {
 
     if (!container) return;
 
+    resetTopStats();
     if (tableArea) tableArea.classList.add('opacity-50', 'pointer-events-none');
     if (progressBar) progressBar.classList.remove('hidden');
+
+    // Show initial loading placeholder in container if table not rendered
+    if (!container.querySelector('table')) {
+        container.innerHTML = `
+            <div class="h-full flex flex-col items-center justify-center p-12 text-center text-gray-500">
+                <span class="material-symbols-outlined text-4xl text-primary animate-spin mb-3">progress_activity</span>
+                <p class="text-sm font-bold text-gray-700 dark:text-gray-200">Loading Sales &amp; Stock Composition Analysis...</p>
+                <p class="mt-1 text-xs text-gray-400">Fetching report data via AJAX...</p>
+            </div>
+        `;
+    }
 
     try {
         const params = buildRequestParams();
@@ -172,7 +195,10 @@ async function loadReportData() {
                 updateTopStats(stats);
             } catch (parseErr) {
                 console.warn('Could not parse partial stats metadata:', parseErr);
+                resetTopStats();
             }
+        } else {
+            resetTopStats();
         }
 
         const dateSelect = document.getElementById('filter-date');
@@ -188,6 +214,7 @@ async function loadReportData() {
     } catch (err) {
         console.error('Failed to load report data:', err);
         container.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Failed to load data: ${err.message}</div>`;
+        resetTopStats();
     } finally {
         if (tableArea) tableArea.classList.remove('opacity-50', 'pointer-events-none');
         if (progressBar) progressBar.classList.add('hidden');
@@ -202,23 +229,40 @@ function updateTopStats(stats) {
     const tskPctEl = document.getElementById('stat-tsk-pct');
     const fyFactorLabel = document.getElementById('fy-factor-label');
 
+    if (!stats || Object.keys(stats).length === 0) {
+        resetTopStats();
+        return;
+    }
+
     if (salesWeightEl) {
-        salesWeightEl.textContent = (Number(stats.sales_weight || 0)).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+        salesWeightEl.textContent = stats.sales_weight != null
+            ? (Number(stats.sales_weight)).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+            : '-';
     }
     if (provisionWeightEl) {
-        provisionWeightEl.textContent = (Number(stats.provision_weight || 0)).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+        provisionWeightEl.textContent = stats.provision_weight != null
+            ? (Number(stats.provision_weight)).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+            : '-';
     }
     if (turnWeightEl) {
-        turnWeightEl.textContent = (Number(stats.turn_weight || 0)).toFixed(2);
+        turnWeightEl.textContent = stats.turn_weight != null
+            ? Number(stats.turn_weight).toFixed(2)
+            : (stats.turn_weight === null ? 'N/A' : '-');
     }
     if (turnoverEl) {
-        turnoverEl.textContent = (Number(stats.turnover || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        turnoverEl.textContent = stats.turnover != null
+            ? (Number(stats.turnover)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : '-';
     }
     if (tskPctEl) {
-        tskPctEl.textContent = `${(Number(stats.tsk_pct || 0)).toFixed(2)}%`;
+        tskPctEl.textContent = stats.tsk_pct != null
+            ? `${(Number(stats.tsk_pct)).toFixed(2)}%`
+            : '-';
     }
     if (fyFactorLabel && stats.factor) {
-        fyFactorLabel.textContent = `${stats.fy_label || 'FY'} · Factor: ${Number(stats.factor).toFixed(2)}`;
+        fyFactorLabel.textContent = stats.cutoff_date
+            ? `${stats.fy_label} · As on ${stats.cutoff_date} · ${stats.inclusive_fy_days}/${stats.inclusive_elapsed_days} = ${Number(stats.factor).toFixed(4)}`
+            : `${stats.fy_label || 'FY'} · Factor: ${Number(stats.factor).toFixed(2)}`;
     }
 }
 

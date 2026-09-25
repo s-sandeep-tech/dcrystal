@@ -1,3 +1,4 @@
+{% from 'partials/_sales_stock_tsk_cell.html' import tsk_cell %}
 {% for row in rows %}
 {% set child_path = parent_path + [row.label] %}
 {% set depth = child_path|length %}
@@ -21,6 +22,6 @@
     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ "{:,.2f}%".format(row.stock_composition) if row.stock_composition is not none else 'N/A' }}</td>
     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ "{:,.2f}".format(row.weight_turn) if row.weight_turn is not none else 'N/A' }}</td>
     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ "{:,.2f}".format(row.value_turn) if row.value_turn is not none else 'N/A' }}</td>
-    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{ "{:,.2f}%".format(row.tsk_pct) if row.tsk_pct is not none else 'N/A' }}</td>
+    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{ tsk_cell(row.tsk_pct) }}</td>
 </tr>
 {% endfor %}

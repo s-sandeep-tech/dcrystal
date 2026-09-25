@@ -1,3 +1,4 @@
+{% from 'partials/_sales_stock_tsk_cell.html' import tsk_cell %}
 <div class="h-full flex flex-col bg-white dark:bg-gray-900" id="partial-root">
     {% if error_message %}
     <div class="h-full flex flex-col items-center justify-center p-8 text-center">
@@ -62,7 +63,7 @@
                     <td class="px-3 py-1 text-right font-mono border-r border-b border-blue-200 dark:border-blue-800">{{ "{:,.2f}%".format(row.stock_composition) if row.stock_composition is not none else 'N/A' }}</td>
                     <td class="px-3 py-1 text-right font-mono border-r border-b border-blue-200 dark:border-blue-800">{{ "{:,.2f}".format(row.weight_turn) if row.weight_turn is not none else 'N/A' }}</td>
                     <td class="px-3 py-1 text-right font-mono border-r border-b border-blue-200 dark:border-blue-800">{{ "{:,.2f}".format(row.value_turn) if row.value_turn is not none else 'N/A' }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-b border-blue-200 dark:border-blue-800">{{ "{:,.2f}%".format(row.tsk_pct) if row.tsk_pct is not none else 'N/A' }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-b border-blue-200 dark:border-blue-800">{{ tsk_cell(row.tsk_pct) }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -78,7 +79,7 @@
                     <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ "{:,.2f}%".format(total.stock_composition) if total.stock_composition is not none else 'N/A' }}</td>
                     <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ "{:,.2f}".format(total.weight_turn) if total.weight_turn is not none else 'N/A' }}</td>
                     <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ "{:,.2f}".format(total.value_turn) if total.value_turn is not none else 'N/A' }}</td>
-                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white">{{ "{:,.2f}%".format(total.tsk_pct) if total.tsk_pct is not none else 'N/A' }}</td>
+                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white">{{ tsk_cell(total.tsk_pct) }}</td>
                 </tr>
             </tfoot>
             {% endif %}

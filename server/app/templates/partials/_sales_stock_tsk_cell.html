@@ -1,0 +1,15 @@
+{% macro tsk_cell(value) %}
+<div class="flex flex-col items-end gap-1">
+    <span>{{ "{:,.2f}%".format(value) if value is not none else 'N/A' }}</span>
+    {% if value is not none %}
+    {% set magnitude = [value|abs, 100]|min %}
+    <div class="w-full max-w-[80px] overflow-hidden rounded bg-gray-200 dark:bg-gray-600"
+         style="height: 3px;" role="img"
+         aria-label="TSK {{ '{:,.2f}'.format(value) }} percent"
+         title="TSK {{ '{:,.2f}'.format(value) }}%. Bar shows magnitude on a 0–100% scale, capped at 100%.">
+        <div class="h-full rounded {% if value < 0 %}bg-red-400{% else %}bg-emerald-400{% endif %}"
+             style="width: {{ magnitude }}%;"></div>
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}

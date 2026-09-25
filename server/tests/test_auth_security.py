@@ -99,6 +99,9 @@ class AuthSecurityTestCase(unittest.TestCase):
         valid, normalized = validate_company_email(' SandeepS@KalyanJewellers.Net ')
         self.assertTrue(valid)
         self.assertEqual(normalized, 'sandeeps@kalyanjewellers.net')
+        valid, normalized = validate_company_email(' VaishaliNagar@KalyanJewellers.Store ')
+        self.assertTrue(valid)
+        self.assertEqual(normalized, 'vaishalinagar@kalyanjewellers.store')
 
         for email in (
             'sandeeps@example.com',
@@ -109,6 +112,9 @@ class AuthSecurityTestCase(unittest.TestCase):
             'sandeeps@kalyanjewellers.net.example.com',
             '@kalyanjewellers.net',
             'sandeep s@kalyanjewellers.net',
+            'sandeeps@sub.kalyanjewellers.store',
+            'sandeeps@kalyanjewellers.store.example.com',
+            '@kalyanjewellers.store',
         ):
             valid, error = validate_company_email(email)
             self.assertFalse(valid)
