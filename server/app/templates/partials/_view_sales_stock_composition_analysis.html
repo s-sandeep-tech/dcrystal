@@ -27,7 +27,7 @@
                 <tr class="text-[9px] uppercase text-gray-500 font-bold tracking-wider">
                     <th scope="col" class="px-3 py-1.5 border-r border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between gap-1">
-                            <span>Product Hierarchy ({{ level.replace('_', ' ').title() if level else 'Section' }} Wise)</span>
+                            <span title="Order: Section &gt; Classification &gt; Make &gt; Wide Range &gt; Collection &gt; Master Collection &gt; Purity" class="cursor-help">Product Hierarchy ({{ level.replace('_', ' ').title() if level else 'Section' }} Wise)</span>
                             <span class="material-symbols-outlined text-[15px] cursor-pointer hover:text-primary transition-colors select-none"
                                   id="expand-collapse-all-btn"
                                   onclick="collapseAllBranches()"
