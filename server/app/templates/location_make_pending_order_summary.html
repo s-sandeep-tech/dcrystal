@@ -217,6 +217,9 @@
             <button onclick="resetGlobalFilters()" class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
         </div>
         <div class="space-y-3">
+            <!-- Location Filter -->
+            <div id="filter-location-container"></div>
+
             <div class="space-y-1">
                 <label for="filter-business-head" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Business Head</label>
                 <select id="filter-business-head" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
@@ -226,9 +229,6 @@
                     {% endfor %}
                 </select>
             </div>
-            <!-- Location Filter -->
-            <div id="filter-location-container"></div>
-
             <!-- Division Filter -->
             <div class="space-y-1">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Division</label>
