@@ -2188,13 +2188,13 @@ SIZE_LEVEL_NIP_BARCODE_COLUMNS = (
     'purity_id', 'classification_id', 'sub_classification_id', 'make_id',
     'master_collection_id', 'collection_id', 'sub_section_id', 'section_id',
     'type_id', 'gender_id', 'wide_range_id', 'size_id', 'screw_type_id',
-    'design_id', 'last_updated_at', 'uid', 'is_nip', 'is_excess',
+    'design_id', 'last_updated_at', 'uid', 'is_nip',
     'item_definition_id', 'is_to_be_replaced', 'branch_type',
 )
 
 
 def sync_size_level_nip_barcode_task() -> Dict[str, Any]:
-    """Atomically refresh barcode-level NIP and excess data from the external view."""
+    """Atomically refresh barcode-level NIP data from the external view."""
     data_type = 'size_level_nip_barcode'
     batch_size = 50000
     max_attempts = 3
@@ -5108,4 +5108,3 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
                 except Exception:
                     logger.warning('Failed to close composition sync source connection', exc_info=True)
         time.sleep(5)
-
