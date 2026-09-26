@@ -149,6 +149,7 @@ function getFilterValues() {
         classification_owner: document.getElementById('filter-classification-owner')?.value || '',
         collection_owner: document.getElementById('filter-collection-owner')?.value || '',
         make_owner: document.getElementById('filter-make-owner')?.value || '',
+        business_head: document.getElementById('filter-business-head')?.value || '',
         search: document.getElementById('hierarchy-search')?.value || ''
     };
 }

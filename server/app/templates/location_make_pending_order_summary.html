@@ -217,6 +217,15 @@
             <button onclick="resetGlobalFilters()" class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
         </div>
         <div class="space-y-3">
+            <div class="space-y-1">
+                <label for="filter-business-head" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Business Head</label>
+                <select id="filter-business-head" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Business Heads</option>
+                    {% for bh in filter_options.business_heads %}
+                    <option value="{{ bh }}" {% if request.args.get('business_head') == bh %}selected{% endif %}>{{ bh }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <!-- Location Filter -->
             <div id="filter-location-container"></div>
 

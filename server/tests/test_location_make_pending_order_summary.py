@@ -38,6 +38,21 @@ class LocationMakePendingOrderTypeFilterTests(unittest.TestCase):
             self.assertEqual(len(results), 1)
             self.assertEqual(results[0].order_type, 'STOCK')
 
+    def test_business_head_dropdown_filter_respects_visibility(self):
+        first = db.session.get(PendingOrderDetailsSnapshot, 1)
+        first.business_head_name = 'Head A'
+        first.bh_emp_code = '123'
+        second = db.session.get(PendingOrderDetailsSnapshot, 2)
+        second.business_head_name = 'Head B'
+        second.bh_emp_code = '456'
+        db.session.commit()
+        with self.app.test_request_context('/?business_head=Head%20B'):
+            session['roles'] = ['ADMIN']
+            self.assertEqual([r.id for r in build_filter_query(PendingOrderDetailsSnapshot.query)], [2])
+            session['roles'] = ['BUSINESS_HEAD']
+            session['user_id'] = '123'
+            self.assertEqual(build_filter_query(PendingOrderDetailsSnapshot.query).count(), 0)
+
     def test_multi_select_order_type_filter(self):
         with self.app.test_request_context('/?order_type=STOCK,REPAIR'):
             session['roles'] = ['ADMIN']

@@ -107,6 +107,7 @@ def apply_visibility_filter(query):
 
 
 def build_filter_query(base_query):
+    business_head = request.args.get('business_head', '')
     search = request.args.get('search', '').strip()
     division = request.args.get('division', '')
     group_name = request.args.get('group', '')
@@ -130,6 +131,8 @@ def build_filter_query(base_query):
     location = request.args.get('location', '')
 
     query = base_query
+    if business_head:
+        query = query.filter(PendingOrderDetailsSnapshot.business_head_name == business_head)
 
     if search:
         supplier_search = false() if mask_supplier_data() else PendingOrderDetailsSnapshot.supplier.ilike(f"%{search}%")
@@ -228,6 +231,7 @@ def location_make_pending_order_summary():
             return [r[0] for r in query.distinct().order_by(column).all()]
 
         filter_options = {
+            'business_heads': get_distinct_list(PendingOrderDetailsSnapshot.business_head_name),
             'locations': get_distinct_list(PendingOrderDetailsSnapshot.location),
             'divisions': get_distinct_list(PendingOrderDetailsSnapshot.division),
             'groups': get_distinct_list(PendingOrderDetailsSnapshot.group_name),
