@@ -24,6 +24,25 @@ ROUTE_URL = '/sales-stock-composition-analysis'
 ALIAS_URL = '/sales-stock-composition'
 
 
+@dashboard_bp.route('/api/sales-stock-composition-analysis/contributors')
+@jwt_required()
+@require_report_access(ROUTE_URL)
+def sales_composition_contributors():
+    try:
+        path = json.loads(request.args.get('path', '[]'))
+        if not isinstance(path, list) or len(path) > len(HIERARCHY) or not all(isinstance(v, str) for v in path):
+            return jsonify(error='Invalid hierarchy path'), 400
+        cutoff = date.fromisoformat(request.args['date']) if request.args.get('date') else None
+        selections = {k: request.args.getlist(k) for k in FILTERS if request.args.getlist(k)}
+        return jsonify(composition_analysis_data(cutoff, selections, path, contributors=True))
+    except (ValueError, TypeError):
+        return jsonify(error='Invalid chart filters'), 400
+    except Exception:
+        db.session.rollback()
+        logger.exception('Unable to load sales contributors')
+        return jsonify(error='Unable to load sales contributors'), 500
+
+
 @dashboard_bp.route(ROUTE_URL)
 @dashboard_bp.route(ALIAS_URL)
 @require_report_access(ROUTE_URL)

@@ -1,0 +1,10 @@
+{% macro sales_cell(value, path) %}
+<span class="inline-flex items-center justify-end gap-1">
+    <span>{{ "{:,.2f}%".format(value) if value is not none else 'N/A' }}</span>
+    <button type="button" class="inline-flex items-center justify-center w-6 h-6 text-primary hover:bg-blue-100 rounded"
+        data-chart-path='{{ path|tojson }}' onclick="event.stopPropagation(); openSalesChart(this)"
+        title="View top 10 sales contributors" aria-label="View top 10 sales contributors">
+        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">pie_chart</span>
+    </button>
+</span>
+{% endmacro %}

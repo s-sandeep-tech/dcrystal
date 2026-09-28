@@ -17,6 +17,7 @@ function resetTopStats() {
 let currentSearch = '';
 let currentZoom = 1.0;
 let searchTimeout = null;
+let appliedCompositionParams = new URLSearchParams();
 
 let filterValues = {
     date: '',
@@ -91,9 +92,9 @@ function buildRequestParams() {
     const params = new URLSearchParams();
 
     if (filterValues.date) params.set('date', filterValues.date);
-    if (filterValues.location) params.set('branch_id', filterValues.location);
-    if (filterValues.section) params.set('section', filterValues.section);
-    if (filterValues.classification) params.set('classification', filterValues.classification);
+    for (const [key, control] of [['branch_id', locationMultiSelect], ['section', sectionMultiSelect], ['classification', classificationMultiSelect]]) {
+        for (const value of control?.getValues() || []) params.append(key, value);
+    }
     if (filterValues.search) params.set('search', filterValues.search);
 
     return params;
@@ -184,8 +185,10 @@ async function loadReportData() {
         const headers = await requestHeaders();
 
         const response = await fetch(`/partial/sales-stock-composition-analysis?${params.toString()}`, { headers });
+        if (!response.ok) throw new Error('Unable to load report');
         const html = await response.text();
         container.innerHTML = html;
+        appliedCompositionParams = new URLSearchParams(params);
 
         // Parse and update top stat values from metadata
         const statsScript = document.getElementById('partial-stats-data');
@@ -304,7 +307,7 @@ async function toggleHierarchyBranch(rowElem, path) {
     if (progressBar) progressBar.classList.remove('hidden');
 
     try {
-        const params = buildRequestParams();
+        const params = new URLSearchParams(appliedCompositionParams);
         params.set('path', JSON.stringify(path));
 
         const headers = await requestHeaders();
@@ -404,3 +407,79 @@ window.resetFilters = resetFilters;
 window.collapseAllBranches = collapseAllBranches;
 window.toggleHierarchyBranch = toggleHierarchyBranch;
 window.exportToExcel = exportToExcel;
+
+let salesContributorsChart = null;
+let salesChartRequest = null;
+
+async function openSalesChart(button) {
+    const dialog = document.getElementById('sales-chart-modal');
+    const status = document.getElementById('sales-chart-status');
+    const frame = document.getElementById('sales-chart-frame');
+    const list = document.getElementById('sales-chart-values');
+    const path = JSON.parse(button.dataset.chartPath || '[]');
+    salesChartRequest?.abort();
+    const controller = new AbortController();
+    salesChartRequest = controller;
+    salesContributorsChart?.destroy();
+    salesContributorsChart = null;
+    frame.hidden = true;
+    list.replaceChildren();
+    document.getElementById('sales-chart-title').textContent = `Top 10 Sales Contributors: ${path.join(' / ') || 'All Sections'}`;
+    status.textContent = 'Loading contributors...';
+    if (!dialog.open) dialog.showModal();
+    try {
+        const params = new URLSearchParams(appliedCompositionParams);
+        params.set('path', JSON.stringify(path));
+        const response = await fetch(`/api/sales-stock-composition-analysis/contributors?${params}`, {
+            headers: await requestHeaders(), signal: controller.signal
+        });
+        if (!response.ok) throw new Error('Unable to load contributors. Please try again.');
+        const data = await response.json();
+        if (controller.signal.aborted || !dialog.open) return;
+        if (!data.items.length) {
+            status.textContent = 'No positive net sales contributors for this selection.';
+            return;
+        }
+        const total = data.items.reduce((sum, item) => sum + item.weight, 0);
+        status.textContent = `${data.level.replaceAll('_', ' ')} · As on ${data.cutoff} · Share of positive net sales weight`;
+        if (data.negative_weight < 0) status.textContent += ` · Negative contributors excluded from chart: ${data.negative_weight.toFixed(3)} g`;
+        const colors = ['#3b82f6', '#16a34a', '#eab308', '#ea580c', '#8b5cf6', '#06b6d4', '#ec4899', '#64748b', '#84cc16', '#b45309', '#9ca3af'];
+        data.items.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.style.display = 'flex';
+            li.style.gap = '8px';
+            const swatch = document.createElement('span');
+            Object.assign(swatch.style, { background: colors[index], width: '10px', height: '10px', borderRadius: '50%', flexShrink: '0', marginTop: '3px' });
+            const label = document.createElement('span');
+            label.style.overflowWrap = 'anywhere';
+            label.textContent = `${item.label}: ${item.weight.toFixed(3)} g (${(item.weight / total * 100).toFixed(2)}%)`;
+            li.append(swatch, label);
+            list.append(li);
+        });
+        if (typeof Chart === 'undefined') throw new Error('Chart library unavailable. Contributor values are listed below.');
+        frame.hidden = false;
+        salesContributorsChart = new Chart(document.getElementById('sales-contributors-chart'), {
+            type: 'doughnut',
+            data: { labels: data.items.map(i => i.label), datasets: [{ data: data.items.map(i => i.weight), backgroundColor: colors, borderWidth: 2, hoverOffset: 6 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '52%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => ` ${Number(ctx.raw).toFixed(3)} g · ${(ctx.raw / total * 100).toFixed(2)}%` } }
+                }
+            }
+        });
+    } catch (error) {
+        if (error.name !== 'AbortError') status.textContent = error.message;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const dialog = document.getElementById('sales-chart-modal');
+    dialog.addEventListener('close', () => {
+        salesChartRequest?.abort();
+        salesContributorsChart?.destroy();
+        salesContributorsChart = null;
+    });
+});
+window.openSalesChart = openSalesChart;

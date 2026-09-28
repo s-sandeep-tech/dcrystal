@@ -13,7 +13,7 @@ from app.models.auth import User
 from app.models.rbac import Role, Menu, Permission, UserRole, RoleMenu, RolePermission
 from app.models import SalesStockCompositionAnalysisSnapshot as Snapshot
 from app.dashboard import dashboard_bp
-from app.services.sales_stock_composition_analysis import calculate_fy_factor, HIERARCHY, FILTERS
+from app.services.sales_stock_composition_analysis import calculate_fy_factor, HIERARCHY, FILTERS, composition_analysis_data
 
 
 class SalesStockCompositionSecurityTests(unittest.TestCase):
@@ -40,6 +40,7 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
         db.session.commit()
         self.client = self.app.test_client()
         self.paths = [
+            ('GET', '/api/sales-stock-composition-analysis/contributors'),
             ('GET', '/partial/sales-stock-composition-analysis'),
             ('GET', '/partial/sales-stock-composition-analysis/branch'),
             ('GET', '/api/sales-stock-composition-analysis/options'),
@@ -103,6 +104,25 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
             'master_collection',
             'purity'
         ])
+
+    def test_contributor_top_ten_and_signed_returns(self):
+        for i in range(12):
+            db.session.add(Snapshot(id=i + 1, date=date(2026, 9, 25), branch_id=2,
+                section='CHAIN', classification=f'C{i:02}', trans_type='INVOICE', gross_weight=i + 1))
+        db.session.add(Snapshot(id=13, date=date(2026, 9, 25), branch_id=2,
+            section='CHAIN', classification='Returns', trans_type='SR', gross_weight=-5))
+        db.session.add(Snapshot(id=14, date=date(2026, 9, 25), branch_id=3,
+            section='CHAIN', classification='Other branch', trans_type='INVOICE', gross_weight=999))
+        db.session.commit()
+        data = composition_analysis_data(None, {'branch_id': ['2']}, ['CHAIN'], contributors=True)
+        self.assertEqual(data['level'], 'classification')
+        self.assertEqual(len(data['items']), 11)
+        self.assertEqual(data['items'][0], {'label': 'C11', 'weight': 12})
+        self.assertEqual(data['items'][-1], {'label': 'Others', 'weight': 3})
+        self.assertEqual(data['negative_weight'], -5)
+        self.assertEqual(data['net_weight'], 73)
+        empty = composition_analysis_data(None, {'branch_id': ['99']}, [], contributors=True)
+        self.assertEqual(empty['items'], [])
 
 
 class TSKBarTests(unittest.TestCase):

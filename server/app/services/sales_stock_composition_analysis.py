@@ -52,7 +52,7 @@ def turn_ratio(numerator_annualised, denominator):
     return None
 
 
-def composition_analysis_data(source_date, selections, path=None):
+def composition_analysis_data(source_date, selections, path=None, contributors=False):
     if path is None:
         path = []
 
@@ -80,6 +80,28 @@ def composition_analysis_data(source_date, selections, path=None):
                     sales = sales.filter(S.branch_id.in_(branch_ids))
             else:
                 sales = sales.filter(dimension(name).in_(values))
+
+    if contributors:
+        for name, value in zip(HIERARCHY, path):
+            sales = sales.filter(dimension(name) == value)
+        level = HIERARCHY[len(path)] if len(path) < len(HIERARCHY) else 'barcode'
+        label = dimension(level)
+        weight = func.sum(func.coalesce(S.gross_weight, 0))
+        grouped = sales.with_entities(label.label('label'), weight.label('weight')).group_by(label).subquery()
+        positive_total, negative_total = db.session.query(
+            func.sum(case((grouped.c.weight > 0, grouped.c.weight), else_=0)),
+            func.sum(case((grouped.c.weight < 0, grouped.c.weight), else_=0)),
+        ).one()
+        top = db.session.query(grouped).filter(grouped.c.weight > 0).order_by(
+            grouped.c.weight.desc(), grouped.c.label
+        ).limit(10).all()
+        items = [{'label': r.label, 'weight': float(r.weight)} for r in top]
+        others = float(positive_total or 0) - sum(r['weight'] for r in items)
+        if others > 0.000001:
+            items.append({'label': 'Others', 'weight': others})
+        return {'items': items, 'level': level, 'negative_weight': float(negative_total or 0),
+                'net_weight': float(positive_total or 0) + float(negative_total or 0),
+                'cutoff': source_date.isoformat() if source_date else None}
 
     # Deduplicated stock subquery per (branch_id, item_definition_id)
     provision = func.max(func.coalesce(S.provision_weight, 0))

@@ -1,4 +1,5 @@
 {% from 'partials/_sales_stock_tsk_cell.html' import tsk_cell %}
+{% from 'partials/_sales_composition_cell.html' import sales_cell %}
 {% for row in rows %}
 {% set child_path = parent_path + [row.label] %}
 {% set depth = child_path|length %}
@@ -18,7 +19,7 @@
             <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-gray-700 dark:text-gray-200">{{ row.label or '(Unspecified)' }}</span>
         </div>
     </td>
-    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ "{:,.2f}%".format(row.sales_composition) if row.sales_composition is not none else 'N/A' }}</td>
+    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ sales_cell(row.sales_composition, child_path) }}</td>
     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ "{:,.2f}%".format(row.stock_composition) if row.stock_composition is not none else 'N/A' }}</td>
     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ "{:,.2f}".format(row.weight_turn) if row.weight_turn is not none else 'N/A' }}</td>
     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ "{:,.2f}".format(row.value_turn) if row.value_turn is not none else 'N/A' }}</td>
