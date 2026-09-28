@@ -2905,6 +2905,7 @@ class PendingOrderDetailsSnapshot(db.Model):
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     location = db.Column('location', db.Text, nullable=True)
+    branch_id = db.Column('branch_id', db.Integer, nullable=True)
     supplier = db.Column('supplier', db.Text)
     order_type = db.Column('order_type', db.Text)
     order_request_type = db.Column('order_request_type', db.Text)
