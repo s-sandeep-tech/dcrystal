@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 from flask import Flask, session
 from app.extensions import db
-from app.models.snapshots import PendingOrderDetailsSnapshot
+from app.models.snapshots import PendingOrderDetailsSnapshot, BranchAuthoritySnapshot
 from app.dashboard.routes.location_make_pending_order_summary import (
     build_filter_query, apply_visibility_filter,
     get_location_make_pending_order_summary_leaf_detail,
@@ -17,6 +17,7 @@ class LocationMakePendingOrderTypeFilterTests(unittest.TestCase):
         self.ctx = self.app.app_context()
         self.ctx.push()
         PendingOrderDetailsSnapshot.__table__.create(db.engine)
+        BranchAuthoritySnapshot.__table__.create(db.engine)
 
         db.session.add_all([
             PendingOrderDetailsSnapshot(id=1, supplier='AACHAL JEWELLERS', location='MUMBAI', make='MAKE_A', order_type='STOCK'),
@@ -37,6 +38,27 @@ class LocationMakePendingOrderTypeFilterTests(unittest.TestCase):
             results = q.all()
             self.assertEqual(len(results), 1)
             self.assertEqual(results[0].order_type, 'STOCK')
+
+    def test_showroom_manager_branch_scope_and_supplier_mask(self):
+        db.session.get(PendingOrderDetailsSnapshot, 1).branch_id = 10
+        db.session.get(PendingOrderDetailsSnapshot, 2).branch_id = 20
+        db.session.add(BranchAuthoritySnapshot(branch_id=10, emp_code=123))
+        db.session.commit()
+        with self.app.test_request_context('/'):
+            session['roles'] = ['SHOWROOM_MANAGER']
+            session['user_id'] = '123'
+            for scope in (apply_visibility_filter, build_filter_query):
+                self.assertEqual([r.id for r in scope(PendingOrderDetailsSnapshot.query)], [1])
+            with patch('app.dashboard.routes.location_make_pending_order_summary.render_template') as render:
+                get_location_make_pending_order_summary_leaf_detail.__wrapped__()
+                summaries = render.call_args.kwargs['supplier_summaries']
+                self.assertEqual(len(summaries), 1)
+                self.assertEqual(summaries[0]['supplier'], 'XXX')
+            for emp_code in (None, 'invalid', '456'):
+                session['user_id'] = emp_code
+                self.assertEqual(build_filter_query(PendingOrderDetailsSnapshot.query).count(), 0)
+            session['roles'] = ['SHOWROOM_MANAGER', 'ADMIN']
+            self.assertEqual(build_filter_query(PendingOrderDetailsSnapshot.query).count(), 3)
 
     def test_business_head_dropdown_filter_respects_visibility(self):
         first = db.session.get(PendingOrderDetailsSnapshot, 1)

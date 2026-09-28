@@ -2,6 +2,7 @@ from flask import g, render_template, request, session, jsonify
 from flask_jwt_extended import jwt_required
 from app.dashboard import dashboard_bp
 from app.models import Notification, PendingOrderDetailsSnapshot, OwnerWiseOrderSummarySnapshot
+from app.models.snapshots import BranchAuthoritySnapshot
 from app.extensions import db
 from sqlalchemy import String, false, func
 from datetime import datetime
@@ -13,7 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 def mask_supplier_data():
-    return 'BUSINESS_HEAD' in {str(role).strip().upper() for role in session.get('roles', [])}
+    roles = {str(role).strip().upper() for role in session.get('roles', [])}
+    return bool(roles.intersection({'BUSINESS_HEAD', 'SHOWROOM_MANAGER'}))
 
 
 def clean_group_value(column):
@@ -96,6 +98,15 @@ def apply_visibility_filter(query):
         if not emp_code:
             return query.filter(false())
         return query.filter(func.trim(PendingOrderDetailsSnapshot.bh_emp_code) == emp_code)
+    if 'SHOWROOM_MANAGER' in roles:
+        try:
+            emp_code = int(session.get('user_id'))
+        except (TypeError, ValueError):
+            return query.filter(false())
+        authorized_branches = db.session.query(BranchAuthoritySnapshot.branch_id).filter(
+            BranchAuthoritySnapshot.emp_code == emp_code
+        )
+        return query.filter(PendingOrderDetailsSnapshot.branch_id.in_(authorized_branches))
     if 'MANAGER_KMU' in roles:
         return query.filter(PendingOrderDetailsSnapshot.make.in_([
             'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA',
