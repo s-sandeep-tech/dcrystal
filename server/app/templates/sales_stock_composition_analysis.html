@@ -8,20 +8,22 @@
 {% endblock %}
 
 {% block content %}
-<main id="sales-stock-composition-analysis-main" class="flex-1 min-w-0 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+<main id="sales-stock-composition-analysis-main"
+    class="flex-1 min-w-0 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
     <!-- Header -->
-    <div class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex flex-wrap gap-2 items-center justify-between">
+    <div
+        class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex flex-wrap gap-2 items-center justify-between">
         <div class="flex items-center gap-4">
             <h2 class="text-sm font-bold tracking-tight text-gray-800 dark:text-white">
                 Sales &amp; Stock Composition Analysis
-                <span class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded uppercase tracking-widest text-gray-500">v1.0</span>
+                <span
+                    class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded uppercase tracking-widest text-gray-500">v1.0</span>
             </h2>
         </div>
         <div class="flex flex-wrap items-center gap-3">
             {% if 'report.export' in permissions or 'ADMIN' in permissions %}
             <!-- Export Button -->
-            <button id="btn-export-excel" onclick="exportToExcel()"
-                title="Export filtered data to Excel"
+            <button id="btn-export-excel" onclick="exportToExcel()" title="Export filtered data to Excel"
                 class="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded transition-colors shadow-sm uppercase tracking-wider">
                 <span id="export-btn-icon" class="material-symbols-outlined text-[14px]">download</span>
                 <span id="export-btn-label">Export</span>
@@ -31,27 +33,38 @@
             <!-- Filter Toggle Button -->
             <button id="composition-filter-toggle" type="button" onclick="toggleCompositionFilters()"
                 class="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-200 dark:border-gray-700 text-primary hover:bg-blue-50 dark:hover:bg-gray-800"
-                aria-controls="composition-filter-sidebar" aria-expanded="true" aria-label="Hide filters" title="Hide filters">
+                aria-controls="composition-filter-sidebar" aria-expanded="true" aria-label="Hide filters"
+                title="Hide filters">
                 <span class="material-symbols-outlined text-[18px]" aria-hidden="true">filter_alt</span>
             </button>
 
             <!-- Zoom Controls -->
             <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
-                <button onclick="adjustZoom(-0.1)" class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors" title="Zoom Out">-</button>
-                <button id="zoom-level" onclick="adjustZoom(0, true)" class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700" title="Reset Zoom">100%</button>
-                <button onclick="adjustZoom(0.1)" class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors" title="Zoom In">+</button>
+                <button onclick="adjustZoom(-0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom Out">-</button>
+                <button id="zoom-level" onclick="adjustZoom(0, true)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700"
+                    title="Reset Zoom">100%</button>
+                <button onclick="adjustZoom(0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom In">+</button>
             </div>
-            
+
             <!-- Search Box -->
-            <div class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
+            <div
+                class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
                 <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
-                <input id="report-search" class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0" placeholder="Search hierarchy..." type="text" oninput="onSearchInput(this.value)" />
+                <input id="report-search"
+                    class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0"
+                    placeholder="Search hierarchy..." type="text" oninput="onSearchInput(this.value)" />
             </div>
         </div>
     </div>
 
     <!-- Stats Grid at Top -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-2 p-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+    <div
+        class="grid grid-cols-2 md:grid-cols-5 gap-2 p-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
         <!-- Stat 1: Net Sales Weight -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <div class="flex items-center justify-center gap-1">
@@ -105,14 +118,17 @@
     </div>
 
     <!-- Info Strip -->
-    <div class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+    <div
+        class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
             <span class="material-symbols-outlined text-[14px]">info</span>
-            <span>FY-to-cutoff sales with cutoff-date provision valued at purchase board rate. Turnover is annualised; complete FY history is required. Missing, non-positive or conflicting rates show N/A for value turnover.</span>
+            <span>FY-to-cutoff sales with cutoff-date provision valued at purchase board rate. Turnover is annualised.
+                Missing, non-positive or conflicting rates show N/A for value turnover.</span>
         </div>
 
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
-            <span id="fy-factor-info" class="flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-primary dark:text-blue-300 rounded font-medium text-[9.5px]">
+            <span id="fy-factor-info"
+                class="flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-primary dark:text-blue-300 rounded font-medium text-[9.5px]">
                 <span class="material-symbols-outlined text-[13px]">calculate</span>
                 <span id="fy-factor-label">Loading sales cutoff...</span>
             </span>
@@ -132,16 +148,25 @@
         </div>
         <style>
             @keyframes progress {
-                0% { left: -33%; }
-                100% { left: 100%; }
+                0% {
+                    left: -33%;
+                }
+
+                100% {
+                    left: 100%;
+                }
             }
-            #report-progress div { position: absolute; }
+
+            #report-progress div {
+                position: absolute;
+            }
         </style>
 
         <div id="view-sales-stock-composition-analysis" class="dashboard-view h-full">
             <div class="h-full flex flex-col items-center justify-center p-12 text-center text-gray-500">
                 <span class="material-symbols-outlined text-4xl text-primary animate-spin mb-3">progress_activity</span>
-                <p class="text-sm font-bold text-gray-700 dark:text-gray-200">Loading Sales &amp; Stock Composition Analysis...</p>
+                <p class="text-sm font-bold text-gray-700 dark:text-gray-200">Loading Sales &amp; Stock Composition
+                    Analysis...</p>
                 <p class="mt-1 text-xs text-gray-400">Fetching report data via AJAX...</p>
             </div>
         </div>
@@ -150,19 +175,22 @@
 {% endblock %}
 
 {% block sidebar %}
-<aside id="composition-filter-sidebar" class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+<aside id="composition-filter-sidebar"
+    class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
     <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-xs font-bold flex items-center gap-2 text-gray-800 dark:text-white">
                 <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> FILTERS
             </h2>
-            <button onclick="resetFilters()" class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+            <button onclick="resetFilters()"
+                class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
         </div>
         <div class="space-y-4">
             <!-- Source Date -->
             <div class="space-y-1.5">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Source Date</label>
-                <select id="filter-date" name="date" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2 text-gray-700 dark:text-gray-200 font-medium"></select>
+                <select id="filter-date" name="date"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2 text-gray-700 dark:text-gray-200 font-medium"></select>
             </div>
 
             <!-- Location (Multi-select) -->
@@ -177,7 +205,8 @@
     </div>
     <!-- Fixed Footer for Apply Button -->
     <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark shrink-0">
-        <button onclick="applyFilters()" class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2 transition-all">
+        <button onclick="applyFilters()"
+            class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2 transition-all">
             <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
         </button>
     </div>
@@ -186,5 +215,6 @@
 
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/sales_stock_composition_analysis.js', v='20260925-ajax-stats') }}"></script>
+<script
+    src="{{ url_for('static', filename='js/sales_stock_composition_analysis.js', v='20260925-ajax-stats') }}"></script>
 {% endblock %}
