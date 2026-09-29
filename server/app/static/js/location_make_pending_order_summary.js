@@ -139,7 +139,6 @@ function getFilterValues() {
         collection: document.getElementById('filter-collection')?.value || '',
         order_type: orderTypeMultiSelect ? orderTypeMultiSelect.getValues().join(',') : '',
         customer_order_type: document.getElementById('filter-customer-order-type')?.value || '',
-        is_msme: document.getElementById('filter-is-msme')?.value || '',
         order_ro: document.getElementById('filter-order-ro')?.value || '',
         qc_ro: document.getElementById('filter-qc-ro')?.value || '',
         order_request_type: document.getElementById('filter-order-request-type')?.value || '',

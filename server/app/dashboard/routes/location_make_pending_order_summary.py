@@ -132,7 +132,7 @@ def build_filter_query(base_query):
     collection = request.args.get('collection', '')
     order_type = request.args.get('order_type', '')
     customer_order_type = request.args.get('customer_order_type', '')
-    is_msme = request.args.get('is_msme', '') or request.args.get('is_discount_party', '')
+    _is_msme_unused = None  # MSME filter removed
     order_ro = request.args.get('order_ro', '')
     order_request_type = request.args.get('order_request_type', '')
     provision_type = request.args.get('provision_type', '')
@@ -183,8 +183,7 @@ def build_filter_query(base_query):
         query = query.filter(PendingOrderDetailsSnapshot.order_type.in_(order_types))
     if customer_order_type:
         query = query.filter(PendingOrderDetailsSnapshot.customer_order_type == customer_order_type)
-    if is_msme:
-        query = query.filter(PendingOrderDetailsSnapshot.is_discount_party == is_msme)
+
     if order_ro:
         query = query.filter(PendingOrderDetailsSnapshot.order_ro == order_ro)
     if order_request_type:
@@ -253,7 +252,7 @@ def location_make_pending_order_summary():
             'collections': get_distinct_list(PendingOrderDetailsSnapshot.collection),
             'order_types': get_distinct_list(PendingOrderDetailsSnapshot.order_type),
             'customer_order_types': get_distinct_list(PendingOrderDetailsSnapshot.customer_order_type),
-            'is_msme_options': get_distinct_list(PendingOrderDetailsSnapshot.is_discount_party),
+
             'order_ros': get_distinct_list(PendingOrderDetailsSnapshot.order_ro),
             'qc_ros': get_distinct_list(PendingOrderDetailsSnapshot.qc_ro),
             'order_request_types': get_distinct_list(PendingOrderDetailsSnapshot.order_request_type),

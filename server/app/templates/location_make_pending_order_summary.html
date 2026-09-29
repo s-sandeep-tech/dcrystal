@@ -318,17 +318,6 @@
                 </select>
             </div>
 
-            <!-- Is MSME Party Filter -->
-            <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Is MSME Party</label>
-                <select id="filter-is-msme" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All</option>
-                    {% for idp in filter_options.is_msme_options %}
-                    <option value="{{ idp }}" {% if request.args.get('is_msme') == idp or request.args.get('is_discount_party') == idp %}selected{% endif %}>{{ idp }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
             <!-- Order RO Filter -->
             <div class="space-y-1">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order RO</label>
