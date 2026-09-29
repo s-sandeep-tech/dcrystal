@@ -45,7 +45,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function resetSyncBtn(btn) {
         btn.disabled = false;
-        btn.innerHTML = btn.dataset.originalHtml;
+        if (btn.dataset.originalHtml) btn.innerHTML = btn.dataset.originalHtml;
+    }
+
+    function updateSyncCard(data) {
+        if (!data.type) return;
+        const wrapper = document.getElementById(`sync-wrapper-${data.type}`);
+        const heading = wrapper?.querySelector('h4');
+        if (!heading) return;
+        let status = wrapper.querySelector('[data-sync-card-status]');
+        if (!status) {
+            status = document.createElement('p');
+            status.dataset.syncCardStatus = '';
+            status.setAttribute('role', 'status');
+            heading.parentElement.append(status);
+        }
+        const color = data.status === 'success' ? 'text-green-600' : data.status === 'error' ? 'text-red-600' : 'text-blue-600';
+        status.className = `text-[11px] font-medium mt-1 ${color}`;
+        status.style.overflowWrap = 'anywhere';
+        status.textContent = data.message || data.status;
+        if (data.status === 'success' || data.status === 'error') {
+            status.textContent += ` (${new Date().toLocaleTimeString()})`;
+            if (!window.isSyncAllActive) {
+                wrapper.querySelectorAll('button:disabled').forEach(resetSyncBtn);
+            }
+        }
     }
 
     // SocketIO Sync Updates
@@ -53,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.socket) {
             window.socket.on('sync_update', (data) => {
                 console.log('Sync Update Received:', data);
+                updateSyncCard(data);
                 if (!syncStatus) return;
 
                 syncStatus.classList.remove('hidden');
@@ -91,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             syncCollectionWiseAverageDeliveryDaysBtn, syncSalesStockCompositionAnalysisBtn, syncCustomerOrderAnalysisBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn,
                             syncWeeklyDeliveryOrderSummaryBtn, syncPartyMakeCapacityDetailsBtn
                         ].forEach(btn => {
-                            if (btn && btn.disabled) resetSyncBtn(btn);
+                            if (btn && btn.disabled && data.type && btn.closest(`[id="sync-wrapper-${data.type}"]`)) resetSyncBtn(btn);
                         });
                     }
 
@@ -120,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             syncCollectionWiseAverageDeliveryDaysBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn,
                             syncWeeklyDeliveryOrderSummaryBtn, syncPartyMakeCapacityDetailsBtn
                         ].forEach(btn => {
-                            if (btn && btn.disabled) resetSyncBtn(btn);
+                            if (btn && btn.disabled && data.type && btn.closest(`[id="sync-wrapper-${data.type}"]`)) resetSyncBtn(btn);
                         });
                     }
 
