@@ -379,6 +379,15 @@ def settings_sync_party_performance_matrix():
     return result, 200 if result.get('status') == 'success' else 500
 
 
+@dashboard_bp.route('/settings/sync-customer-order-analysis', methods=['POST'])
+def settings_sync_customer_order_analysis():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
+    from app.utils.sync_manager import sync_customer_order_analysis_data
+    result = sync_customer_order_analysis_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500
+
+
 @dashboard_bp.route('/settings/clear-cache', methods=['POST'])
 def clear_cache():
     if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):

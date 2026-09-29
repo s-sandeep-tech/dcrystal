@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn,
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn,
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
-                            syncCollectionWiseAverageDeliveryDaysBtn, syncSalesStockCompositionAnalysisBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn,
+                            syncCollectionWiseAverageDeliveryDaysBtn, syncSalesStockCompositionAnalysisBtn, syncCustomerOrderAnalysisBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn,
                             syncWeeklyDeliveryOrderSummaryBtn, syncPartyMakeCapacityDetailsBtn
                         ].forEach(btn => {
                             if (btn && btn.disabled) resetSyncBtn(btn);
@@ -171,6 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncOrderFulfillmentAgingMatrixBtn = document.getElementById('sync-order-fulfillment-aging-matrix-btn');
     const syncCollectionWiseAverageDeliveryDaysBtn = document.getElementById('sync-collection-wise-average-delivery-days-btn');
     const syncSalesStockCompositionAnalysisBtn = document.getElementById('sync-sales-stock-composition-analysis-btn');
+    const syncCustomerOrderAnalysisBtn = document.getElementById('sync-customer-order-analysis-btn');
     const syncPartyPerformanceMatrixBtn = document.getElementById('sync-party-performance-matrix-btn');
     const syncLocationWiseOldGoldBtn = document.getElementById('sync-location-wise-old-gold-btn');
     const syncWeeklyDeliveryOrderSummaryBtn = document.getElementById('sync-weekly-delivery-order-summary-btn');
@@ -242,6 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncOrderFulfillmentAgingMatrixBtn) syncOrderFulfillmentAgingMatrixBtn.addEventListener('click', () => triggerSync(syncOrderFulfillmentAgingMatrixBtn, window.SETTINGS_CONFIG.syncOrderFulfillmentValueAgingMatrixUrl, 'Order Fulfillment Value Aging Matrix Sync', 'order_fulfillment_aging_matrix'));
     if (syncCollectionWiseAverageDeliveryDaysBtn) syncCollectionWiseAverageDeliveryDaysBtn.addEventListener('click', () => triggerSync(syncCollectionWiseAverageDeliveryDaysBtn, window.SETTINGS_CONFIG.syncCollectionWiseAverageDeliveryDaysUrl || '/api/sync/collection-wise-average-delivery-days', 'Collection Wise Average Delivery Days Sync', 'collection_wise_average_delivery_days'));
     if (syncSalesStockCompositionAnalysisBtn) syncSalesStockCompositionAnalysisBtn.addEventListener('click', () => triggerSync(syncSalesStockCompositionAnalysisBtn, window.SETTINGS_CONFIG.syncSalesStockCompositionAnalysisUrl || '/api/sync/sales-stock-composition-analysis', 'Sales & Stock Composition Analysis Sync', 'sales_stock_composition_analysis'));
+    if (syncCustomerOrderAnalysisBtn) syncCustomerOrderAnalysisBtn.addEventListener('click', () => triggerSync(syncCustomerOrderAnalysisBtn, window.SETTINGS_CONFIG.syncCustomerOrderAnalysisUrl || '/api/sync/customer-order-analysis', 'Customer Order Pending Analysis Sync', 'customer_order_analysis'));
     if (syncPartyPerformanceMatrixBtn) syncPartyPerformanceMatrixBtn.addEventListener('click', () => triggerSync(syncPartyPerformanceMatrixBtn, window.SETTINGS_CONFIG.syncPartyPerformanceMatrixUrl, 'Party Performance Matrix Sync', 'party_performance_matrix'));
     if (syncLocationWiseOldGoldBtn) syncLocationWiseOldGoldBtn.addEventListener('click', () => triggerSync(syncLocationWiseOldGoldBtn, window.SETTINGS_CONFIG.syncLocationWiseOldGoldSettlementTransferUrl, 'Location-wise Old Gold Settlement & Transfer Sync', 'location_wise_old_gold_settlement_transfer'));
     if (syncWeeklyDeliveryOrderSummaryBtn) syncWeeklyDeliveryOrderSummaryBtn.addEventListener('click', () => triggerSync(syncWeeklyDeliveryOrderSummaryBtn, window.SETTINGS_CONFIG.syncWeeklyDeliveryOrderSummaryUrl, 'Weekly Delivery Order Summary Sync', 'weekly_delivery_order_summary'));

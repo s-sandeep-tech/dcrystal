@@ -37,10 +37,13 @@ from .snapshots import (
     PartyMakeCapacityDetailsSnapshot
 )
 from .sales_stock_composition_analysis import SalesStockCompositionAnalysisSnapshot
+from .customer_order_analysis import CustomerOrderAnalysisSnapshot, CustomerOrderAnalysis
 from .rbac import Role, Permission, Menu, RoleMenu, RolePermission, UserRole, AuditLog, UserPasswordHistory
 from .akt_report import AKTTransactionPerformance
 
 __all__ = [
+    'CustomerOrderAnalysisSnapshot',
+    'CustomerOrderAnalysis',
     'SalesStockCompositionAnalysisSnapshot',
     'User',
     'LoginAttemptLog',

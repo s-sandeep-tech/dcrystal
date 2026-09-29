@@ -1,0 +1,233 @@
+{% if not is_child %}
+<table class="enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider select-none">
+            <th class="col-expander text-center px-0 w-8"></th>
+            <th class="text-left px-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group" onclick="toggleSort('primary')" title="Click to sort by Hierarchy">
+                <div class="flex items-center justify-between gap-1">
+                    <span>
+                        {% if hierarchy_mode == 'section' %}
+                        Section / Classification
+                        {% else %}
+                        Location / Make
+                        {% endif %}
+                    </span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['primary', 'location', 'section'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['primary', 'location', 'section'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['primary', 'location', 'section'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-gray-100/30 cursor-pointer hover:bg-gray-200/50 transition-colors group" onclick="toggleSort('accept_wt')" title="Click to sort by Accept Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Accept Pending</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['accept_wt', 'accept_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['accept_wt', 'accept_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['accept_wt', 'accept_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-yellow-50/20 cursor-pointer hover:bg-yellow-100/40 transition-colors group" onclick="toggleSort('process_wt')" title="Click to sort by Process Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Process Pending</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['process_wt', 'process_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['process_wt', 'process_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['process_wt', 'process_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-blue-50/20 cursor-pointer hover:bg-blue-100/40 transition-colors group" onclick="toggleSort('barcode_wt')" title="Click to sort by Barcode Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Barcode Pending</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['barcode_wt', 'barcode_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['barcode_wt', 'barcode_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['barcode_wt', 'barcode_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-indigo-50/20 cursor-pointer hover:bg-indigo-100/40 transition-colors group" onclick="toggleSort('hallmark_wt')" title="Click to sort by Hallmark Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Hallmark Pending</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['hallmark_wt', 'hallmark_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['hallmark_wt', 'hallmark_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['hallmark_wt', 'hallmark_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-red-50/20 cursor-pointer hover:bg-red-100/40 transition-colors group" onclick="toggleSort('qc_issue_wt')" title="Click to sort by QC Issue Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>QC Issue Pending</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['qc_issue_wt', 'qc_issue_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['qc_issue_wt', 'qc_issue_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['qc_issue_wt', 'qc_issue_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-purple-50/20 cursor-pointer hover:bg-purple-100/40 transition-colors group" onclick="toggleSort('qc_complete_wt')" title="Click to sort by QC Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>QC Pending</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['qc_complete_wt', 'qc_complete_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['qc_complete_wt', 'qc_complete_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['qc_complete_wt', 'qc_complete_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-cyan-50/20 cursor-pointer hover:bg-cyan-100/40 transition-colors group" onclick="toggleSort('invoice_wt')" title="Click to sort by Invoice Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Invoice Pending</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['invoice_wt', 'invoice_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['invoice_wt', 'invoice_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['invoice_wt', 'invoice_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-amber-50/20 cursor-pointer hover:bg-amber-100/40 transition-colors group" onclick="toggleSort('receipt_wt')" title="Click to sort by Receipt Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Receipt Pending</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['receipt_wt', 'receipt_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['receipt_wt', 'receipt_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['receipt_wt', 'receipt_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-emerald-50/20 font-bold cursor-pointer hover:bg-emerald-100/40 transition-colors group" onclick="toggleSort('tot_wt')" title="Click to sort by Total Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Total Pending</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['tot_wt', 'total_weight', 'tot_pcs', 'total_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['tot_wt', 'total_weight', 'tot_pcs', 'total_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['tot_wt', 'total_weight', 'tot_pcs', 'total_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        {% endif %}
+
+        {% for r in rows %}
+        <tr class="parent-row hover:bg-blue-50/30 group animate-fade-in {{ 'cursor-pointer' if r.level in ('make', 'classification') else '' }}"
+            data-level="{{ r.level }}"
+            {% if r.level == 'make' %}
+            onclick="openLeafModal('{{ r.location|e }}', '{{ r.make|e }}', '', '')"
+            title="Click to view supplier & order level breakdown"
+            {% elif r.level == 'classification' %}
+            onclick="openLeafModal('', '', '{{ r.section|e }}', '{{ r.classification|e }}')"
+            title="Click to view supplier & order level breakdown"
+            {% endif %}>
+            <td class="text-center px-0">
+                {% if r.level in ('location', 'section') %}
+                <button
+                    onclick="toggleRow(this, '{{ r.level }}', '{{ r.primary_value|e }}')"
+                    class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none"
+                    title="Expand details">
+                    <span class="material-symbols-outlined text-[14px]">add_circle</span>
+                </button>
+                {% else %}
+                <span class="material-symbols-outlined text-[10px] text-gray-300">subdirectory_arrow_right</span>
+                {% endif %}
+            </td>
+            <td class="px-2 font-bold">
+                <div class="flex items-center gap-1"
+                    style="padding-left: {{ '0px' if r.level in ('location', 'section') else '16px' }}">
+                    <span class="material-symbols-outlined text-[12px] {{ 'text-primary' if r.level in ('location', 'section') else 'text-gray-400' }}">
+                        {% if r.level == 'location' %}pin_drop
+                        {% elif r.level == 'section' %}category
+                        {% elif r.level == 'make' %}precision_manufacturing
+                        {% else %}label{% endif %}
+                    </span>
+                    <span class="{{ 'text-gray-900 dark:text-white font-bold' if r.level in ('location', 'section') else 'text-gray-700 dark:text-gray-300 font-semibold' }}">
+                        {% if r.level in ('location', 'section') %}
+                        {{ r.primary_value }}
+                        {% elif r.level == 'make' %}
+                        {{ r.make }}
+                        <span class="material-symbols-outlined text-[13px] text-primary/70 group-hover:text-primary transition-colors ml-1 align-middle" title="View order details">open_in_new</span>
+                        {% else %}
+                        {{ r.classification }}
+                        <span class="material-symbols-outlined text-[13px] text-primary/70 group-hover:text-primary transition-colors ml-1 align-middle" title="View order details">open_in_new</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </td>
+            <!-- Accept Pending -->
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="font-bold text-gray-700">{{ "%.3f"|format(r.accept_wt) }}</span>
+                    <span class="text-[9px] text-gray-500">{{ r.accept_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Process Pending -->
+            <td class="text-right px-2 bg-yellow-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-yellow-600">{{ "%.3f"|format(r.process_wt) }}</span>
+                    <span class="text-[9px] text-yellow-600/70">{{ r.process_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Barcode Pending -->
+            <td class="text-right px-2 bg-blue-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-blue-600">{{ "%.3f"|format(r.barcode_wt) }}</span>
+                    <span class="text-[9px] text-blue-600/70">{{ r.barcode_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Hallmark Pending -->
+            <td class="text-right px-2 bg-indigo-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-indigo-600">{{ "%.3f"|format(r.hallmark_wt) }}</span>
+                    <span class="text-[9px] text-indigo-600/70">{{ r.hallmark_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- QC Issue Pending -->
+            <td class="text-right px-2 bg-red-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-red-600">{{ "%.3f"|format(r.qc_issue_wt) }}</span>
+                    <span class="text-[9px] text-red-600/70">{{ r.qc_issue_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- QC Pending -->
+            <td class="text-right px-2 bg-purple-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-purple-600">{{ "%.3f"|format(r.qc_complete_wt) }}</span>
+                    <span class="text-[9px] text-purple-600/70">{{ r.qc_complete_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Invoice Pending -->
+            <td class="text-right px-2 bg-cyan-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-cyan-600">{{ "%.3f"|format(r.invoice_wt) }}</span>
+                    <span class="text-[9px] text-cyan-600/70">{{ r.invoice_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Receipt Pending -->
+            <td class="text-right px-2 bg-amber-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-amber-600">{{ "%.3f"|format(r.receipt_wt) }}</span>
+                    <span class="text-[9px] text-amber-600/70">{{ r.receipt_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Total Pending -->
+            <td class="text-right px-2 bg-emerald-50/20 font-bold">
+                <div class="flex flex-col">
+                    <span class="font-bold text-emerald-600">{{ "%.3f"|format(r.total_weight) }}</span>
+                    <span class="text-[9px] text-emerald-600/70">{{ r.total_pcs }} Pcs</span>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+
+        {% if not is_child %}
+    </tbody>
+</table>
+{% if pagination %}
+<!-- Pagination component -->
+<div class="flex items-center justify-between p-2 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 shrink-0">
+    <div class="text-[10px] text-gray-500 font-medium">
+        Showing Page {{ pagination.page }} of {{ pagination.pages }}
+    </div>
+    <div class="flex items-center gap-1">
+        {% if pagination.has_prev %}
+        <button onclick="changePage({{ pagination.prev_num }})" class="p-1 px-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded text-[10px] font-bold text-gray-600 hover:text-primary transition-all">Prev</button>
+        {% else %}
+        <button class="p-1 px-2 border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 rounded text-[10px] font-bold text-gray-300 cursor-not-allowed" disabled>Prev</button>
+        {% endif %}
+
+        <span class="px-2 text-[10px] font-bold text-gray-500">{{ pagination.page }}</span>
+
+        {% if pagination.has_next %}
+        <button onclick="changePage({{ pagination.next_num }})" class="p-1 px-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded text-[10px] font-bold text-gray-600 hover:text-primary transition-all">Next</button>
+        {% else %}
+        <button class="p-1 px-2 border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 rounded text-[10px] font-bold text-gray-300 cursor-not-allowed" disabled>Next</button>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endif %}

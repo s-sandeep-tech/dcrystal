@@ -70,6 +70,14 @@ window.REPORT_MENU_DATA = [
                 tags: ["location", "make", "pending", "order", "summary", "stages"]
             },
             {
+                id: "customer-order-analysis",
+                title: "Customer Order Pending Analysis Report",
+                href: "/customer-order-analysis",
+                icon: "person_search",
+                description: "Comprehensive customer order pending analysis with multi-stage pending weights, hierarchical drill-down, and 28 advanced operational filters.",
+                tags: ["customer", "order", "analysis", "report", "pending", "stages", "summary"]
+            },
+            {
                 id: "party-make-capacity",
                 title: "Supplier Capacity & Backlog Analysis",
                 href: "/party-make-capacity-report",

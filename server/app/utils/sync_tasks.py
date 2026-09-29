@@ -5109,3 +5109,126 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
                 except Exception:
                     logger.warning('Failed to close composition sync source connection', exc_info=True)
         time.sleep(5)
+
+
+def sync_customer_order_analysis_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+    """
+    Syncs customer order records from ext_view.vw_customer_order into the local customer_order_analysis_snapshot table.
+    """
+    from app.models.customer_order_analysis import CustomerOrderAnalysisSnapshot
+
+    TASK_TYPE = task_type_override or 'customer_order_analysis'
+    start_p, end_p = progress_range
+
+    def emit(status, message, p):
+        scaled = int(start_p + (p / 100.0) * (end_p - start_p))
+        emit_sync_update(status, message, scaled, task_type=TASK_TYPE)
+
+    emit('processing', 'Starting Customer Order Analysis sync...', 5)
+    conn = None
+    try:
+        conn = get_external_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        emit('processing', 'Connecting to external Azure PostgreSQL database...', 15)
+
+        query = "SELECT * FROM ext_view.vw_customer_order"
+        cursor.execute("SET statement_timeout = 0")
+        started_at = time.time()
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        duration = time.time() - started_at
+
+        emit('processing', f'Fetched {len(rows):,} records in {duration:.1f}s. Updating local snapshot...', 55)
+
+        CustomerOrderAnalysisSnapshot.__table__.create(db.engine, checkfirst=True)
+        db.session.query(CustomerOrderAnalysisSnapshot).delete()
+
+        records = []
+        for row in rows:
+            records.append({
+                'request_no': str(row.get('request_no') or '').strip(),
+                'sooc': str(row.get('sooc') or '').strip(),
+                'state': row.get('state'),
+                'location': row.get('location'),
+                'request_date': row.get('request_date'),
+                'request_type': row.get('request_type'),
+                'division': row.get('division'),
+                'group_category': row.get('group_category'),
+                'group': row.get('group'),
+                'classification': row.get('classification'),
+                'sub_classification': row.get('sub_classification'),
+                'make': row.get('make'),
+                'section': row.get('section'),
+                'collection': row.get('collection'),
+                'purity': str(row.get('purity') or '') if row.get('purity') is not None else None,
+                'gender': row.get('gender'),
+                'weight': row.get('weight'),
+                'size': row.get('size'),
+                'gross_weight': row.get('gross_weight'),
+                'stone_weight': row.get('stone_weight'),
+                'other_weight': row.get('other_weight'),
+                'net_weight': row.get('net_weight'),
+                'advance_no': row.get('advance_no'),
+                'advance_date': row.get('advance_date'),
+                'party_name': row.get('party_name'),
+                'party_code': row.get('party_code'),
+                'party_type': row.get('party_type'),
+                'customer_name': row.get('customer_name'),
+                'customer_phone_number': row.get('customer_phone_number'),
+                'order_status': row.get('order_status'),
+                'expected_delivery_date': row.get('expected_delivery_date'),
+                'classification_owner': row.get('classification_owner'),
+                'make_owner': row.get('make_owner'),
+                'collection_wner': row.get('collection_wner'),
+                'shop_manger': row.get('shop_manger'),
+                'customer_order_type': row.get('customer_order_type'),
+                'branch_type': row.get('branch_type'),
+                'is_msme': row.get('is_msme'),
+                're_order': row.get('re_order'),
+                'order_ro': row.get('order_ro'),
+                'collection_owner_emp_code': row.get('collection_owner_emp_code'),
+                'make_owner_emp_code': row.get('make_owner_emp_code'),
+                'classification_owner_emp_code': row.get('classification_owner_emp_code'),
+                'business_head_name': row.get('business_head_name'),
+                'bh_emp_code': row.get('bh_emp_code'),
+                'pending_to_accepted_pcs': row.get('pending_to_accepted_pcs') or 0,
+                'pending_to_accepted_wt': row.get('pending_to_accepted_wt') or 0.0,
+                'process_pending_pcs': row.get('process_pending_pcs') or 0,
+                'process_pending_wt': row.get('process_pending_wt') or 0.0,
+                'barcode_pending_pcs': row.get('barcode_pending_pcs') or 0,
+                'barcode_pending_wt': row.get('barcode_pending_wt') or 0.0,
+                'hallmark_pending_pcs': row.get('hallmark_pending_pcs') or 0,
+                'hallmark_pending_wt': row.get('hallmark_pending_wt') or 0.0,
+                'qc_issue_pending_pcs': row.get('qc_issue_pending_pcs') or 0,
+                'qc_issue_pending_wt': row.get('qc_issue_pending_wt') or 0.0,
+                'qc_complete_pending_pcs': row.get('qc_complete_pending_pcs') or 0,
+                'qc_complete_pending_wt': row.get('qc_complete_pending_wt') or 0.0,
+                'invoice_pending_pcs': row.get('invoice_pending_pcs') or 0,
+                'invoice_pending_wt': row.get('invoice_pending_wt') or 0.0,
+                'receipt_pending_pcs': row.get('receipt_pending_pcs') or 0,
+                'receipt_pending_wt': row.get('receipt_pending_wt') or 0.0,
+                'total_pending_pcs': row.get('total_pending_pcs') or 0,
+                'total_pending_wt': row.get('total_pending_wt') or 0.0,
+                'branch_id': row.get('branch_id'),
+            })
+
+        for start in range(0, len(records), 5000):
+            db.session.bulk_insert_mappings(
+                CustomerOrderAnalysisSnapshot,
+                records[start:start + 5000]
+            )
+        db.session.commit()
+
+        emit('success', f'Sync completed! {len(records):,} records updated.', 100)
+        return {'status': 'success', 'count': len(records)}
+    except Exception as exc:
+        db.session.rollback()
+        logger.exception('Customer Order Analysis sync failed')
+        emit('error', f'Sync failed: {exc}', 0)
+        return {'status': 'error', 'message': str(exc)}
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass

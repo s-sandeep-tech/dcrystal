@@ -72,6 +72,7 @@ ALLOWED_SYNC_TASKS = {
     'weekly_delivery_order_summary',
     'party_make_capacity_details',
     'sales_stock_composition_analysis',
+    'customer_order_analysis',
 }
 
 
@@ -249,3 +250,7 @@ def sync_party_make_capacity_details_data(user_id=None):
 
 def sync_sales_stock_composition_analysis_data(user_id=None):
     return enqueue_sync_task('sales_stock_composition_analysis', user_id)
+
+
+def sync_customer_order_analysis_data(user_id=None):
+    return enqueue_sync_task('customer_order_analysis', user_id)
