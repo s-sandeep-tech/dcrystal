@@ -220,13 +220,6 @@ def build_filter_query(base_query):
     # 25. Gender
     query = apply_multi_value_filter(query, CustomerOrderAnalysis.gender, request.args.get('gender'))
 
-    # 26. MSME (is_msme: True / False / All)
-    is_msme_val = request.args.get('is_msme', '').strip().lower()
-    if is_msme_val in ('true', 'yes', '1'):
-        query = query.filter(CustomerOrderAnalysis.is_msme.is_(True))
-    elif is_msme_val in ('false', 'no', '0'):
-        query = query.filter(CustomerOrderAnalysis.is_msme.is_(False))
-
     # 27. Reorder (re_order: True / False / All)
     re_order_val = request.args.get('re_order', '').strip().lower()
     if re_order_val in ('true', 'yes', '1'):
@@ -424,7 +417,6 @@ def customer_order_analysis():
             'collection_owners': get_distinct_list(CustomerOrderAnalysis.collection_wner),
             'shop_managers': get_distinct_list(CustomerOrderAnalysis.shop_manger),
             'genders': get_distinct_list(CustomerOrderAnalysis.gender),
-            'is_msme_options': ['Yes', 'No'],
             're_order_options': ['Yes', 'No']
         }
 

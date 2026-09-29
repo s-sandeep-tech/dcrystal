@@ -275,9 +275,6 @@ function getFilterValues() {
         }
     }
 
-    const isMsme = document.getElementById('filter-is-msme')?.value;
-    if (isMsme) filters['is_msme'] = isMsme;
-
     const reOrder = document.getElementById('filter-re-order')?.value;
     if (reOrder) filters['re_order'] = reOrder;
 
@@ -529,4 +526,3 @@ function toggleCustomerOrderFilters() {
 }
 
 window.toggleCustomerOrderFilters = toggleCustomerOrderFilters;
-

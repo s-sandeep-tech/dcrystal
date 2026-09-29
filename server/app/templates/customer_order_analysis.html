@@ -416,16 +416,6 @@
                 </select>
             </div>
 
-            <!-- 26. MSME (Yes / No / All) -->
-            <div class="space-y-1">
-                <label for="filter-is-msme" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">MSME Party</label>
-                <select id="filter-is-msme" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
-                    <option value="">All</option>
-                    <option value="true" {% if request.args.get('is_msme') == 'true' %}selected{% endif %}>Yes</option>
-                    <option value="false" {% if request.args.get('is_msme') == 'false' %}selected{% endif %}>No</option>
-                </select>
-            </div>
-
             <!-- 27. Reorder (Yes / No / All) -->
             <div class="space-y-1">
                 <label for="filter-re-order" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Reorder</label>

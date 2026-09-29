@@ -238,17 +238,16 @@ class CustomerOrderAnalysisTests(unittest.TestCase):
             q = build_filter_query(CustomerOrderAnalysis.query)
             self.assertEqual(q.count(), 2)
 
-    def test_filter_by_is_msme(self):
+    def test_removed_msme_filter_is_ignored(self):
         with self.app.test_request_context('/?is_msme=true'):
             session['roles'] = ['ADMIN']
             q = build_filter_query(CustomerOrderAnalysis.query)
-            self.assertEqual(q.count(), 2)
+            self.assertEqual(q.count(), 3)
 
         with self.app.test_request_context('/?is_msme=false'):
             session['roles'] = ['ADMIN']
             q = build_filter_query(CustomerOrderAnalysis.query)
-            self.assertEqual(q.count(), 1)
-            self.assertEqual(q.first().request_no, 'REQ-002')
+            self.assertEqual(q.count(), 3)
 
     def test_filter_by_re_order(self):
         with self.app.test_request_context('/?re_order=true'):
@@ -484,4 +483,3 @@ class CustomerOrderAnalysisTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
