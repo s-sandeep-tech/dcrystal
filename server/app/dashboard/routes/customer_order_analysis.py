@@ -54,13 +54,13 @@ def get_owner_names_by_emp_code(emp_code):
     make_owner_names = []
     collection_owner_names = []
     try:
-        rows = db.session.query(CustomerOrderAnalysisSnapshot.make_owner).filter(
-            func.trim(CustomerOrderAnalysisSnapshot.make_owner_emp_code) == emp_code
+        rows = db.session.query(OwnerWiseOrderSummarySnapshot.make_owner).filter(
+            func.trim(OwnerWiseOrderSummarySnapshot.make_owner_emp_code) == emp_code
         ).distinct().all()
         make_owner_names.extend([r[0] for r in rows if r[0]])
 
-        rows2 = db.session.query(CustomerOrderAnalysisSnapshot.collection_wner).filter(
-            func.trim(CustomerOrderAnalysisSnapshot.collection_owner_emp_code) == emp_code
+        rows2 = db.session.query(OwnerWiseOrderSummarySnapshot.collection_owner).filter(
+            func.trim(OwnerWiseOrderSummarySnapshot.collection_owner_emp_code) == emp_code
         ).distinct().all()
         collection_owner_names.extend([r[0] for r in rows2 if r[0]])
     except Exception as e:
@@ -78,7 +78,7 @@ def get_owner_names_by_emp_code(emp_code):
 def apply_owner_visibility_filter(query):
     user_id = str(session.get('user_id') or '').strip()
     if not user_id:
-        return query
+        return query.filter(false())
 
     make_owner_names, collection_owner_names = get_owner_names_by_emp_code(user_id)
     conditions = []
@@ -833,7 +833,7 @@ def get_customer_order_analysis_leaf_detail():
             summary = {
                 'id': f"sup_{idx}",
                 'supplier': 'XXX' if mask_supplier_data() else sup_name,
-                'party_code': items[0].party_code if items else '',
+                'party_code': 'XXX' if mask_supplier_data() else (items[0].party_code if items else ''),
                 'party_type': items[0].party_type if items else '',
                 'accept_pending_pcs': sum(float(x.pending_to_accepted_pcs or 0) for x in items),
                 'accept_pending_wt': sum(float(x.pending_to_accepted_wt or 0) for x in items),

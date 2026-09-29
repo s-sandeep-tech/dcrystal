@@ -306,6 +306,44 @@ class CustomerOrderAnalysisTests(unittest.TestCase):
             session['roles'] = ['ADMIN']
             self.assertFalse(mask_supplier_data())
 
+    def test_privileged_role_bypasses_match_reference(self):
+        for role in ['ADMIN', 'MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR']:
+            with self.app.test_request_context('/'):
+                session['roles'] = [role, 'BUSINESS_HEAD', 'SHOWROOM_MANAGER']
+                session['user_id'] = 'unmapped'
+                self.assertEqual(apply_visibility_filter(CustomerOrderAnalysis.query).count(), 3)
+                self.assertTrue(mask_supplier_data())
+
+    def test_missing_identity_and_branch_mapping_deny_access(self):
+        for role, identity in [('BUSINESS_HEAD', None), ('SHOWROOM_MANAGER', 'invalid'),
+                               ('SHOWROOM_MANAGER', '12345'), ('READER', None)]:
+            with self.app.test_request_context('/'):
+                session['roles'] = [role]
+                session['user_id'] = identity
+                self.assertEqual(apply_visibility_filter(CustomerOrderAnalysis.query).count(), 0)
+
+    def test_owner_names_limit_data_and_options(self):
+        with self.app.test_request_context('/'):
+            session['roles'] = ['READER']
+            session['user_id'] = '123'
+            with patch('app.dashboard.routes.customer_order_analysis.get_owner_names_by_emp_code',
+                       return_value=(('OWNER_A',), ())):
+                for scope in (apply_visibility_filter, build_filter_query):
+                    rows = scope(CustomerOrderAnalysis.query).all()
+                    self.assertEqual(len(rows), 2)
+                    self.assertTrue(all(r.make_owner == 'OWNER_A' for r in rows))
+            with patch('app.dashboard.routes.customer_order_analysis.get_owner_names_by_emp_code', return_value=((), ())):
+                self.assertEqual(apply_visibility_filter(CustomerOrderAnalysis.query).count(), 0)
+
+    def test_masked_supplier_cannot_be_searched_or_filtered(self):
+        for role in ['BUSINESS_HEAD', 'SHOWROOM_MANAGER']:
+            with self.app.test_request_context('/?supplier=NONEXISTENT'):
+                session['roles'] = ['ADMIN', role]
+                self.assertEqual(build_filter_query(CustomerOrderAnalysis.query).count(), 3)
+            with self.app.test_request_context('/?search=AACHAL'):
+                session['roles'] = ['ADMIN', role]
+                self.assertEqual(build_filter_query(CustomerOrderAnalysis.query).count(), 0)
+
     def test_leaf_detail_modal_rendering(self):
         with self.app.test_request_context('/?parent_location=MUMBAI&parent_make=MAKE_A'):
             session['roles'] = ['ADMIN']
@@ -318,6 +356,23 @@ class CustomerOrderAnalysisTests(unittest.TestCase):
                 self.assertEqual(kwargs['parent_make'], 'MAKE_A')
                 self.assertEqual(len(kwargs['supplier_summaries']), 1)
                 self.assertEqual(kwargs['supplier_summaries'][0]['supplier'], 'AACHAL JEWELLERS')
+
+    def test_supplier_identity_masked_in_modal(self):
+        from pathlib import Path
+        from jinja2 import Environment, FileSystemLoader
+        env = Environment(loader=FileSystemLoader(Path(__file__).resolve().parents[1] / 'app/templates'), autoescape=True)
+        for role in ['BUSINESS_HEAD', 'SHOWROOM_MANAGER']:
+            with self.app.test_request_context('/?parent_location=MUMBAI&parent_make=MAKE_A'):
+                session['roles'] = ['ADMIN', role]
+                with patch('app.dashboard.routes.customer_order_analysis.render_template') as render:
+                    get_customer_order_analysis_leaf_detail.__wrapped__()
+                    context = render.call_args.kwargs
+                self.assertTrue(context['mask_suppliers'])
+                self.assertEqual(context['supplier_summaries'][0]['supplier'], 'XXX')
+                self.assertEqual(context['supplier_summaries'][0]['party_code'], 'XXX')
+                html = env.get_template('partials/_view_customer_order_analysis_leaf.html').render(**context)
+                self.assertIn('XXX', html)
+                self.assertNotIn('AACHAL JEWELLERS', html)
 
     def test_customer_order_analysis_data_endpoint(self):
         from app.dashboard.routes.customer_order_analysis import customer_order_analysis_data
