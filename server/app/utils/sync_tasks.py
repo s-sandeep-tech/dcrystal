@@ -5122,7 +5122,7 @@ def sync_customer_order_analysis_task(task_type_override=None, progress_range=(0
 
     def emit(status, message, p):
         scaled = int(start_p + (p / 100.0) * (end_p - start_p))
-        emit_sync_update(status, message, scaled, task_type=TASK_TYPE)
+        emit_sync_update(status, message, scaled, data_type=TASK_TYPE)
 
     emit('processing', 'Starting Customer Order Analysis sync...', 5)
     conn = None

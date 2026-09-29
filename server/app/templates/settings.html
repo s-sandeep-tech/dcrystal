@@ -47,9 +47,9 @@
                         </a>
                         {% set is_admin_or_reporter = session.get('is_admin') or 'ADMIN' in session.get('roles', []) %}
                         {% set is_password_reset = 'PASSWORD_RESET' in session.get('roles', []) %}
-                        
+
                         {% if is_admin_or_reporter or is_password_reset %}
-                        
+
                         {% if is_admin_or_reporter %}
                         <a href="#" id="nav-sessions"
                             class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
@@ -72,7 +72,7 @@
                             Audit Logs
                         </a>
                         {% endif %}
-                        
+
                         {% if is_password_reset or is_admin_or_reporter %}
                         <a href="#" id="nav-reset-password"
                             class="nav-tab flex items-center gap-3 px-4 py-2.5 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all">
@@ -190,8 +190,10 @@
                         <div
                             class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 flex items-center justify-between">
                             <div>
-                                <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Data Management</h3>
-                                <span class="text-[9px] font-black text-primary uppercase tracking-wider">All tasks scheduled daily at 7:30 AM IST</span>
+                                <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Data Management
+                                </h3>
+                                <span class="text-[9px] font-black text-primary uppercase tracking-wider">All tasks
+                                    scheduled daily at 7:30 AM IST</span>
                             </div>
                             <div class="flex items-center gap-2">
                                 <button id="sync-logs-btn" title="View Sync History"
@@ -216,9 +218,13 @@
                                                 class="material-symbols-outlined text-purple-500 text-xl">sync_alt</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Owner, Showroom, Pending Order Details &amp; Active Orders Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of Owner, Showroom, Pending Order Details &amp; Active Orders data</p>
-                                            <span class="text-[9px] font-black text-purple-600 dark:text-purple-400/90 block mt-1 uppercase tracking-wider">Scheduled: Daily at 10:30 AM &amp; 2:30 PM IST</span>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Owner,
+                                                Showroom, Pending Order Details &amp; Active Orders Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of Owner,
+                                                Showroom, Pending Order Details &amp; Active Orders data</p>
+                                            <span
+                                                class="text-[9px] font-black text-purple-600 dark:text-purple-400/90 block mt-1 uppercase tracking-wider">Scheduled:
+                                                Daily at 10:30 AM &amp; 2:30 PM IST</span>
                                         </div>
                                     </div>
                                     <button id="sync-owner-showroom-btn"
@@ -366,14 +372,19 @@
                                 <div id="sync-wrapper-provision_stock_status"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                                        <div
+                                            class="size-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
                                             <span
                                                 class="material-symbols-outlined text-emerald-500 text-xl">inventory_2</span>
                                         </div>
-                                                                        <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Provision &amp; Stock Status Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of granular provision and stock data</p>
-                                            <span class="text-[9px] font-black text-emerald-600 dark:text-emerald-400/90 block mt-1 uppercase tracking-wider">Scheduled: Daily at 11:00 AM IST</span>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Provision
+                                                &amp; Stock Status Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of granular
+                                                provision and stock data</p>
+                                            <span
+                                                class="text-[9px] font-black text-emerald-600 dark:text-emerald-400/90 block mt-1 uppercase tracking-wider">Scheduled:
+                                                Daily at 11:00 AM IST</span>
                                         </div>
                                     </div>
                                     <button id="sync-provision-status-btn"
@@ -387,12 +398,17 @@
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
                                         <div class="size-10 bg-cyan-500/10 rounded-lg flex items-center justify-center">
-                                            <span class="material-symbols-outlined text-cyan-600 text-xl">barcode_scanner</span>
+                                            <span
+                                                class="material-symbols-outlined text-cyan-600 text-xl">barcode_scanner</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Size Level NIP Barcode Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Refresh barcode-level NIP, excess, and hierarchy details</p>
-                                            <span class="text-[9px] font-black text-cyan-600 dark:text-cyan-400/90 block mt-1 uppercase tracking-wider">Scheduled: Daily at 11:30 AM IST</span>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Size Level
+                                                NIP Barcode Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Refresh barcode-level NIP,
+                                                excess, and hierarchy details</p>
+                                            <span
+                                                class="text-[9px] font-black text-cyan-600 dark:text-cyan-400/90 block mt-1 uppercase tracking-wider">Scheduled:
+                                                Daily at 11:30 AM IST</span>
                                         </div>
                                     </div>
                                     <button id="sync-size-level-nip-barcode-btn"
@@ -406,11 +422,14 @@
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
                                         <div class="size-10 bg-teal-500/10 rounded-lg flex items-center justify-center">
-                                            <span class="material-symbols-outlined text-teal-600 text-xl">local_shipping</span>
+                                            <span
+                                                class="material-symbols-outlined text-teal-600 text-xl">local_shipping</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Collection Wise Average Delivery Days Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Refresh receipt tracking and average delivery days snapshot</p>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Collection
+                                                Wise Average Delivery Days Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Refresh receipt tracking
+                                                and average delivery days snapshot</p>
                                         </div>
                                     </div>
                                     <button id="sync-collection-wise-average-delivery-days-btn"
@@ -423,12 +442,16 @@
                                 <div id="sync-wrapper-sales_stock_composition_analysis"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
-                                            <span class="material-symbols-outlined text-indigo-600 text-xl">pie_chart</span>
+                                        <div
+                                            class="size-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-indigo-600 text-xl">pie_chart</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Sales & Stock Composition Analysis Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Refresh item-wise TSK and stock composition snapshot from source view</p>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Sales &
+                                                Stock Composition Analysis Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Refresh item-wise TSK and
+                                                stock composition snapshot from source view</p>
                                         </div>
                                     </div>
                                     <button id="sync-sales-stock-composition-analysis-btn"
@@ -442,11 +465,14 @@
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
                                         <div class="size-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                                            <span class="material-symbols-outlined text-blue-600 text-xl">person_search</span>
+                                            <span
+                                                class="material-symbols-outlined text-blue-600 text-xl">person_search</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Customer Order Pending Analysis Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Refresh customer order pending stages and operational breakdown from ext_view.vw_customer_order</p>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Customer
+                                                Order Pending Analysis Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Refresh customer order
+                                                pending stages </p>
                                         </div>
                                     </div>
                                     <button id="sync-customer-order-analysis-btn"
@@ -459,13 +485,19 @@
                                 <div id="sync-wrapper-party_performance_matrix"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-violet-500/10 rounded-lg flex items-center justify-center">
-                                            <span class="material-symbols-outlined text-violet-600 text-xl">grid_view</span>
+                                        <div
+                                            class="size-10 bg-violet-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-violet-600 text-xl">grid_view</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Party Performance Matrix Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Refresh all nine party performance source snapshots</p>
-                                            <span class="text-[9px] font-black text-violet-600 dark:text-violet-400/90 block mt-1 uppercase tracking-wider">Atomic Full Refresh</span>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Party
+                                                Performance Matrix Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Refresh all nine party
+                                                performance source snapshots</p>
+                                            <span
+                                                class="text-[9px] font-black text-violet-600 dark:text-violet-400/90 block mt-1 uppercase tracking-wider">Atomic
+                                                Full Refresh</span>
                                         </div>
                                     </div>
                                     <button id="sync-party-performance-matrix-btn"
@@ -480,13 +512,16 @@
                                 <div id="sync-wrapper-hallmarking_delayed"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
+                                        <div
+                                            class="size-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
                                             <span
                                                 class="material-symbols-outlined text-indigo-500 text-xl">history_toggle_off</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Hallmarking Delayed Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Refresh snapshots for hallmarking delayed items (>2 days)</p>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Hallmarking
+                                                Delayed Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Refresh snapshots for
+                                                hallmarking delayed items (>2 days)</p>
                                         </div>
                                     </div>
                                     <button id="sync-hallmarking-delayed-btn"
@@ -499,13 +534,16 @@
                                 <div id="sync-wrapper-qc_delayed"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                                        <div
+                                            class="size-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
                                             <span
                                                 class="material-symbols-outlined text-amber-500 text-xl">fact_check</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">QC Pending Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Refresh snapshots for quality control pending items (>3 days)</p>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">QC Pending
+                                                Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Refresh snapshots for
+                                                quality control pending items (>3 days)</p>
                                         </div>
                                     </div>
                                     <button id="sync-qc-delayed-btn"
@@ -523,8 +561,10 @@
                                                 class="material-symbols-outlined text-blue-500 text-xl">assignment_late</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Barcode completed – HM issue pending</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for hallmarking issue</p>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Barcode
+                                                completed – HM issue pending</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for
+                                                hallmarking issue</p>
                                         </div>
                                     </div>
                                     <button id="sync-order-processing-pending-btn"
@@ -542,8 +582,10 @@
                                                 class="material-symbols-outlined text-cyan-500 text-xl">move_to_inbox</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">HM issue completed – Receipt pending</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs pending hallmark receipt</p>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">HM issue
+                                                completed – Receipt pending</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs pending hallmark
+                                                receipt</p>
                                         </div>
                                     </div>
                                     <button id="sync-supplier-hm-issue-btn"
@@ -561,8 +603,10 @@
                                                 class="material-symbols-outlined text-sky-500 text-xl">assignment_return</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">HM Completed Return Pending</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for HM return receipt</p>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">HM Completed
+                                                Return Pending</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for HM
+                                                return receipt</p>
                                         </div>
                                     </div>
                                     <button id="sync-hm-return-pending-btn"
@@ -575,13 +619,15 @@
                                 <div id="sync-wrapper-hm_qc_issue_pending"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
-                                            <span
-                                                class="material-symbols-outlined text-indigo-500 text-xl">rule</span>
+                                        <div
+                                            class="size-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-indigo-500 text-xl">rule</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">HM Return Received QC Pending</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for QC issue</p>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">HM Return
+                                                Received QC Pending</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for QC
+                                                issue</p>
                                         </div>
                                     </div>
                                     <button id="sync-hm-qc-issue-pending-btn"
@@ -594,13 +640,16 @@
                                 <div id="sync-wrapper-supplier_qc_issue_receipt_pending"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-violet-500/10 rounded-lg flex items-center justify-center">
+                                        <div
+                                            class="size-10 bg-violet-500/10 rounded-lg flex items-center justify-center">
                                             <span
                                                 class="material-symbols-outlined text-violet-500 text-xl">receipt_long</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">QC issue completed – KJ receipt pending</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for QC receipt</p>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">QC issue
+                                                completed – KJ receipt pending</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for QC
+                                                receipt</p>
                                         </div>
                                     </div>
                                     <button id="sync-supplier-qc-issue-receipt-btn"
@@ -613,13 +662,16 @@
                                 <div id="sync-wrapper-qc_completed_invoice_pending"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                                        <div
+                                            class="size-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
                                             <span
                                                 class="material-symbols-outlined text-purple-500 text-xl">description</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">QC Completed Invoice Pending</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for invoicing</p>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">QC Completed
+                                                Invoice Pending</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for
+                                                invoicing</p>
                                         </div>
                                     </div>
                                     <button id="sync-qc-completed-invoice-btn"
@@ -632,13 +684,16 @@
                                 <div id="sync-wrapper-invoice_completed_pending_deliver"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-fuchsia-500/10 rounded-lg flex items-center justify-center">
+                                        <div
+                                            class="size-10 bg-fuchsia-500/10 rounded-lg flex items-center justify-center">
                                             <span
                                                 class="material-symbols-outlined text-fuchsia-500 text-xl">local_shipping</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Invoice Completed Pending Delivery</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for delivery</p>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Invoice
+                                                Completed Pending Delivery</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync POs waiting for
+                                                delivery</p>
                                         </div>
                                     </div>
                                     <button id="sync-invoice-completed-deliver-btn"
@@ -651,14 +706,19 @@
                                 <div id="sync-wrapper-branch_authority"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
+                                        <div
+                                            class="size-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
                                             <span
                                                 class="material-symbols-outlined text-indigo-500 text-xl">admin_panel_settings</span>
                                         </div>
-                                                                        <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Branch Authority Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Sync branch authority mappings (Branch ID &amp; Emp Code)</p>
-                                            <span class="text-[9px] font-black text-indigo-600 dark:text-indigo-400/90 block mt-1 uppercase tracking-wider">Scheduled: Daily at 10:00 AM &amp; 4:00 PM IST</span>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Branch
+                                                Authority Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Sync branch authority
+                                                mappings (Branch ID &amp; Emp Code)</p>
+                                            <span
+                                                class="text-[9px] font-black text-indigo-600 dark:text-indigo-400/90 block mt-1 uppercase tracking-wider">Scheduled:
+                                                Daily at 10:00 AM &amp; 4:00 PM IST</span>
                                         </div>
                                     </div>
                                     <button id="sync-branch-authority-btn"
@@ -669,16 +729,21 @@
                                 </div>
 
                                 <div id="sync-wrapper-qc_delay_management"
-                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                                        <div
+                                            class="size-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
                                             <span
                                                 class="material-symbols-outlined text-emerald-500 text-xl">fact_check</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">QC Delay Summary Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Refresh summary snapshots for QC delay management report</p>
-                                            <span class="text-[9px] font-black text-emerald-600 dark:text-emerald-400/90 block mt-1 uppercase tracking-wider">Scheduled: Daily at 9:00 AM IST</span>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">QC Delay
+                                                Summary Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Refresh summary snapshots
+                                                for QC delay management report</p>
+                                            <span
+                                                class="text-[9px] font-black text-emerald-600 dark:text-emerald-400/90 block mt-1 uppercase tracking-wider">Scheduled:
+                                                Daily at 9:00 AM IST</span>
                                         </div>
                                     </div>
                                     <button id="sync-qc-delay-management-btn"
@@ -689,16 +754,21 @@
                                 </div>
 
                                 <div id="sync-wrapper-hm_delay_management"
-                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                                        <div
+                                            class="size-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
                                             <span
                                                 class="material-symbols-outlined text-emerald-500 text-xl">fact_check</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">HM Delay Management Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of summary and segment details for HM delay report</p>
-                                            <span class="text-[9px] font-black text-emerald-600 dark:text-emerald-400/90 block mt-1 uppercase tracking-wider">Scheduled: Daily at 9:05 AM IST</span>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">HM Delay
+                                                Management Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of summary and
+                                                segment details for HM delay report</p>
+                                            <span
+                                                class="text-[9px] font-black text-emerald-600 dark:text-emerald-400/90 block mt-1 uppercase tracking-wider">Scheduled:
+                                                Daily at 9:05 AM IST</span>
                                         </div>
                                     </div>
                                     <button id="sync-hm-delay-management-btn"
@@ -710,16 +780,21 @@
 
 
                                 <div id="sync-wrapper-party_delay_management"
-                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                                        <div
+                                            class="size-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
                                             <span
                                                 class="material-symbols-outlined text-emerald-500 text-xl">fact_check</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Vendor Delay Management Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of vendor delay summary and all 6 segment details</p>
-                                            <span class="text-[9px] font-black text-emerald-600 dark:text-emerald-400/90 block mt-1 uppercase tracking-wider">Scheduled: Daily at 9:10 AM IST</span>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Vendor Delay
+                                                Management Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of vendor
+                                                delay summary and all 6 segment details</p>
+                                            <span
+                                                class="text-[9px] font-black text-emerald-600 dark:text-emerald-400/90 block mt-1 uppercase tracking-wider">Scheduled:
+                                                Daily at 9:10 AM IST</span>
                                         </div>
                                     </div>
                                     <button id="sync-party-delay-management-btn"
@@ -730,16 +805,21 @@
                                 </div>
 
                                 <div id="sync-wrapper-order_fulfillment_aging_matrix"
-                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                                        <div
+                                            class="size-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
                                             <span
                                                 class="material-symbols-outlined text-purple-500 text-xl">table_chart</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Order Fulfillment Value Aging Matrix Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of order fulfillment value aging matrix data</p>
-                                            <span class="text-[9px] font-black text-purple-600 dark:text-purple-400/90 block mt-1 uppercase tracking-wider">Scheduled: Daily at 8:45 AM IST</span>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Order
+                                                Fulfillment Value Aging Matrix Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of order
+                                                fulfillment value aging matrix data</p>
+                                            <span
+                                                class="text-[9px] font-black text-purple-600 dark:text-purple-400/90 block mt-1 uppercase tracking-wider">Scheduled:
+                                                Daily at 8:45 AM IST</span>
                                         </div>
                                     </div>
                                     <button id="sync-order-fulfillment-aging-matrix-btn"
@@ -750,16 +830,21 @@
                                 </div>
 
                                 <div id="sync-wrapper-location_wise_old_gold_settlement_transfer"
-                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                                        <div
+                                            class="size-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
                                             <span
                                                 class="material-symbols-outlined text-amber-500 text-xl">monetization_on</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Location-wise Old Gold Settlement & Transfer Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of location-wise old gold settlement and transfer data from KJCH</p>
-                                            <span class="text-[9px] font-black text-amber-600 dark:text-amber-400/90 block mt-1 uppercase tracking-wider">Manual & Scheduled Sync</span>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">
+                                                Location-wise Old Gold Settlement & Transfer Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh of
+                                                location-wise old gold settlement and transfer data from KJCH</p>
+                                            <span
+                                                class="text-[9px] font-black text-amber-600 dark:text-amber-400/90 block mt-1 uppercase tracking-wider">Manual
+                                                & Scheduled Sync</span>
                                         </div>
                                     </div>
                                     <button id="sync-location-wise-old-gold-btn"
@@ -770,15 +855,20 @@
                                 </div>
 
                                 <div id="sync-wrapper-weekly_delivery_order_summary"
-                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
                                         <div class="size-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                                            <span class="material-symbols-outlined text-blue-500 text-xl">calendar_view_week</span>
+                                            <span
+                                                class="material-symbols-outlined text-blue-500 text-xl">calendar_view_week</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Weekly Delivery Order Summary Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh from ext_view.vw_weekly_delivery_order_details</p>
-                                            <span class="text-[9px] font-black text-blue-600 dark:text-blue-400/90 block mt-1 uppercase tracking-wider">Manual Sync</span>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Weekly
+                                                Delivery Order Summary Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh from
+                                                ext_view.vw_weekly_delivery_order_details</p>
+                                            <span
+                                                class="text-[9px] font-black text-blue-600 dark:text-blue-400/90 block mt-1 uppercase tracking-wider">Manual
+                                                Sync</span>
                                         </div>
                                     </div>
                                     <button id="sync-weekly-delivery-order-summary-btn"
@@ -791,13 +881,19 @@
                                 <div id="sync-wrapper-party_make_capacity_details"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
-                                            <span class="material-symbols-outlined text-purple-500 text-xl">balance</span>
+                                        <div
+                                            class="size-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-purple-500 text-xl">balance</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Supplier Capacity &amp; Backlog Analysis Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh from ext_view.vw_party_make_capacity_details</p>
-                                            <span class="text-[9px] font-black text-purple-600 dark:text-purple-400/90 block mt-1 uppercase tracking-wider">Manual Sync</span>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Supplier
+                                                Capacity &amp; Backlog Analysis Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh from
+                                                ext_view.vw_party_make_capacity_details</p>
+                                            <span
+                                                class="text-[9px] font-black text-purple-600 dark:text-purple-400/90 block mt-1 uppercase tracking-wider">Manual
+                                                Sync</span>
                                         </div>
                                     </div>
                                     <button id="sync-party-make-capacity-details-btn"
@@ -856,13 +952,16 @@
                         <div
                             class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 flex items-center justify-between">
                             <div>
-                                <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Report Maintenance Mode</h3>
-                                <p class="text-[9px] text-gray-400 mt-1 uppercase tracking-widest font-medium">Individual status control for all dashboard modules</p>
+                                <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Report
+                                    Maintenance Mode</h3>
+                                <p class="text-[9px] text-gray-400 mt-1 uppercase tracking-widest font-medium">
+                                    Individual status control for all dashboard modules</p>
                             </div>
                             <div class="flex items-center gap-3">
                                 <div class="relative">
-                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[16px]">search</span>
-                                    <input type="text" id="report-search" placeholder="Filter reports..." 
+                                    <span
+                                        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[16px]">search</span>
+                                    <input type="text" id="report-search" placeholder="Filter reports..."
                                         class="pl-9 pr-4 py-1.5 bg-gray-100 dark:bg-gray-800 border-none rounded-lg text-[11px] w-48 focus:ring-1 focus:ring-primary">
                                 </div>
                                 <button id="refresh-report-status-btn"
@@ -874,21 +973,27 @@
                         <div class="p-0">
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-[11px] border-collapse">
-                                    <thead class="text-[10px] text-gray-400 uppercase bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800">
+                                    <thead
+                                        class="text-[10px] text-gray-400 uppercase bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-800">
                                         <tr>
                                             <th class="px-6 py-4 font-black tracking-widest">Report Module</th>
                                             <th class="px-6 py-4 font-black tracking-widest">Endpoint URL</th>
-                                            <th class="px-6 py-4 font-black tracking-widest text-center w-32">Status</th>
+                                            <th class="px-6 py-4 font-black tracking-widest text-center w-32">Status
+                                            </th>
                                             <th class="px-6 py-4 font-black tracking-widest text-right w-40">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="report-status-tbody" class="divide-y divide-gray-50 dark:divide-gray-800">
+                                    <tbody id="report-status-tbody"
+                                        class="divide-y divide-gray-50 dark:divide-gray-800">
                                         <!-- Will be populated by JS -->
                                         <tr>
                                             <td colspan="4" class="px-6 py-12 text-center text-gray-400">
                                                 <div class="flex flex-col items-center gap-3">
-                                                    <span class="material-symbols-outlined text-3xl animate-spin">sync</span>
-                                                    <span class="font-bold uppercase tracking-widest text-[10px]">Loading report catalog...</span>
+                                                    <span
+                                                        class="material-symbols-outlined text-3xl animate-spin">sync</span>
+                                                    <span
+                                                        class="font-bold uppercase tracking-widest text-[10px]">Loading
+                                                        report catalog...</span>
                                                 </div>
                                             </td>
                                         </tr>
@@ -899,12 +1004,16 @@
                     </div>
 
                     <!-- Warning Alert -->
-                    <div class="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/30 rounded-xl flex gap-4">
+                    <div
+                        class="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/30 rounded-xl flex gap-4">
                         <span class="material-symbols-outlined text-amber-500 text-xl">warning</span>
                         <div class="space-y-1">
-                            <p class="text-[12px] text-amber-800 dark:text-amber-300 font-black uppercase tracking-wider">Administrator Warning</p>
+                            <p
+                                class="text-[12px] text-amber-800 dark:text-amber-300 font-black uppercase tracking-wider">
+                                Administrator Warning</p>
                             <p class="text-[11px] text-amber-700 dark:text-amber-400/80 font-medium leading-relaxed">
-                                Setting a report to <span class="font-bold">OFFLINE</span> blocks the report page for every user, including administrators.
+                                Setting a report to <span class="font-bold">OFFLINE</span> blocks the report page for
+                                every user, including administrators.
                                 The offline message appears when users open or refresh the report page.
                             </p>
                         </div>
@@ -1105,7 +1214,7 @@
                         </div>
                     </div>
                 </div> <!-- End Tab Pane Download Logs -->
-                
+
                 <!-- Tab Pane: System Audit Logs -->
                 <div id="tab-audit-logs" class="tab-pane hidden space-y-6">
                     <div
@@ -1194,7 +1303,8 @@
                 </div> <!-- End Tab Pane Manage Users -->
                 {% endif %}
 
-                {% if session.get('is_admin') or 'ADMIN' in session.get('roles', []) or 'PASSWORD_RESET' in session.get('roles', []) %}
+                {% if session.get('is_admin') or 'ADMIN' in session.get('roles', []) or 'PASSWORD_RESET' in
+                session.get('roles', []) %}
                 <!-- Tab Pane: Reset Passwords -->
                 <div id="tab-reset-password" class="tab-pane hidden space-y-6 h-full flex flex-col">
                     <div
@@ -1356,7 +1466,8 @@
             <form id="changePasswordForm" onsubmit="event.preventDefault(); window.updateUserPassword();">
                 <input type="hidden" id="changePassUserId">
                 <div class="mb-6">
-                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">New Password *</label>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">New Password
+                        *</label>
                     <input type="password" id="newPasswordInput" required minlength="4"
                         class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded focus:ring-1 focus:ring-primary text-sm"
                         placeholder="Enter new secure password">
@@ -1408,17 +1519,24 @@
         <div class="bg-white dark:bg-gray-900 rounded-xl w-full max-w-sm p-6 shadow-2xl transform scale-95 transition-transform"
             id="forceResetModalContent">
             <div class="flex flex-col items-center text-center">
-                <div class="size-12 bg-orange-50 dark:bg-orange-900/30 rounded-full flex items-center justify-center mb-4">
+                <div
+                    class="size-12 bg-orange-50 dark:bg-orange-900/30 rounded-full flex items-center justify-center mb-4">
                     <span class="material-symbols-outlined text-orange-500 text-2xl">lock_reset</span>
                 </div>
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Force Password Reset</h3>
                 <p id="forceResetModalMessage" class="text-sm text-gray-500 dark:text-gray-400 mb-4 text-left">
-                    Are you sure you want to force a password reset for this user? They will be prompted to change it on their next login.
+                    Are you sure you want to force a password reset for this user? They will be prompted to change it on
+                    their next login.
                 </p>
-                
-                <div class="w-full flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700 mb-6 group cursor-pointer" onclick="document.getElementById('invalidateSessions').click()">
-                    <input type="checkbox" id="invalidateSessions" class="size-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer" onclick="event.stopPropagation()">
-                    <label for="invalidateSessions" class="text-xs font-bold text-gray-700 dark:text-gray-300 cursor-pointer">Invalidate existing sessions</label>
+
+                <div class="w-full flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700 mb-6 group cursor-pointer"
+                    onclick="document.getElementById('invalidateSessions').click()">
+                    <input type="checkbox" id="invalidateSessions"
+                        class="size-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                        onclick="event.stopPropagation()">
+                    <label for="invalidateSessions"
+                        class="text-xs font-bold text-gray-700 dark:text-gray-300 cursor-pointer">Invalidate existing
+                        sessions</label>
                 </div>
 
                 <div class="flex gap-3 w-full">
@@ -1437,48 +1555,66 @@
     <!-- Sync Logs Modal -->
     <div id="syncLogsModal"
         class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center hidden opacity-0 transition-opacity">
-        <div class="bg-white dark:bg-gray-900 rounded-xl w-full max-w-6xl p-0 shadow-2xl transform scale-95 transition-transform flex flex-col h-[85vh]">
+        <div
+            class="bg-white dark:bg-gray-900 rounded-xl w-full max-w-6xl p-0 shadow-2xl transform scale-95 transition-transform flex flex-col h-[85vh]">
 
-            <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/30 dark:bg-gray-800/20 rounded-t-xl">
+            <div
+                class="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/30 dark:bg-gray-800/20 rounded-t-xl">
                 <div class="flex items-center gap-3">
                     <div class="size-8 bg-primary/10 rounded-lg flex items-center justify-center">
                         <span class="material-symbols-outlined text-primary text-lg">history</span>
                     </div>
-                    <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Sync History</h3>
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Sync History
+                    </h3>
                 </div>
                 <button type="button" onclick="closeSyncLogsModal()"
                     class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
-            
+
             <div class="overflow-y-auto p-0 flex-1 relative min-h-0">
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-gray-50/80 dark:bg-gray-800/80 sticky top-0 z-10 backdrop-blur-sm shadow-sm">
                         <tr>
-                            <th class="p-3 text-[10px] font-bold uppercase tracking-wider text-gray-500 border-b border-gray-100 dark:border-gray-800">Task Name</th>
-                            <th class="p-3 text-[10px] font-bold uppercase tracking-wider text-gray-500 border-b border-gray-100 dark:border-gray-800 text-center">Status</th>
-                            <th class="p-3 text-[10px] font-bold uppercase tracking-wider text-gray-500 border-b border-gray-100 dark:border-gray-800">Start Time</th>
-                            <th class="p-3 text-[10px] font-bold uppercase tracking-wider text-gray-500 border-b border-gray-100 dark:border-gray-800">End Time</th>
-                            <th class="p-3 text-[10px] font-bold uppercase tracking-wider text-gray-500 border-b border-gray-100 dark:border-gray-800 text-right">Duration</th>
-                            <th class="p-3 text-[10px] font-bold uppercase tracking-wider text-gray-500 border-b border-gray-100 dark:border-gray-800 text-right">Initiated By</th>
+                            <th
+                                class="p-3 text-[10px] font-bold uppercase tracking-wider text-gray-500 border-b border-gray-100 dark:border-gray-800">
+                                Task Name</th>
+                            <th
+                                class="p-3 text-[10px] font-bold uppercase tracking-wider text-gray-500 border-b border-gray-100 dark:border-gray-800 text-center">
+                                Status</th>
+                            <th
+                                class="p-3 text-[10px] font-bold uppercase tracking-wider text-gray-500 border-b border-gray-100 dark:border-gray-800">
+                                Start Time</th>
+                            <th
+                                class="p-3 text-[10px] font-bold uppercase tracking-wider text-gray-500 border-b border-gray-100 dark:border-gray-800">
+                                End Time</th>
+                            <th
+                                class="p-3 text-[10px] font-bold uppercase tracking-wider text-gray-500 border-b border-gray-100 dark:border-gray-800 text-right">
+                                Duration</th>
+                            <th
+                                class="p-3 text-[10px] font-bold uppercase tracking-wider text-gray-500 border-b border-gray-100 dark:border-gray-800 text-right">
+                                Initiated By</th>
                         </tr>
                     </thead>
                     <tbody id="syncLogsTableBody" class="divide-y divide-gray-100 dark:divide-gray-800">
                         <!-- Logs injected dynamically -->
                     </tbody>
                 </table>
-                <div id="syncLogsEmpty" class="hidden flex-col flex items-center justify-center py-12 text-center text-gray-500">
+                <div id="syncLogsEmpty"
+                    class="hidden flex-col flex items-center justify-center py-12 text-center text-gray-500">
                     <span class="material-symbols-outlined text-4xl mb-3 opacity-50">data_alert</span>
                     <p class="text-sm">No sync logs available.</p>
                 </div>
-                <div id="syncLogsLoading" class="flex flex-col items-center justify-center py-12 text-center text-gray-500">
+                <div id="syncLogsLoading"
+                    class="flex flex-col items-center justify-center py-12 text-center text-gray-500">
                     <span class="material-symbols-outlined text-4xl mb-3 animate-spin text-primary">sync</span>
                     <p class="text-sm">Loading logs...</p>
                 </div>
             </div>
-            
-            <div class="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 rounded-b-xl flex justify-between items-center sm:flex-row flex-col gap-3">
+
+            <div
+                class="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 rounded-b-xl flex justify-between items-center sm:flex-row flex-col gap-3">
                 <span class="text-[11px] text-gray-500 font-medium whitespace-nowrap" id="syncLogsMetrics"></span>
                 <div class="flex items-center gap-2" id="syncLogsPaginationOptions">
                     <button type="button" id="syncLogsPrevBtn" onclick="fetchSyncLogsPage(-1)" disabled
@@ -1504,47 +1640,47 @@
     <script>
         window.SETTINGS_CONFIG = {
             isSuperAdmin: {{ ('SUPER_ADMIN' in session.get('roles', [])) | tojson }},
-            syncDataUrl: "{{ url_for('dashboard.sync_data') }}",
+        syncDataUrl: "{{ url_for('dashboard.sync_data') }}",
             syncProcessDelayUrl: "{{ url_for('dashboard.sync_process_delay') }}",
-            syncOutstandingPOUrl: "{{ url_for('dashboard.sync_outstanding_po') }}",
-            syncStageDelayUrl: "{{ url_for('dashboard.sync_stage_delay') }}",
-            syncOrderDelayUrl: "{{ url_for('dashboard.sync_order_delay') }}",
-            syncPendingAcceptanceUrl: "{{ url_for('dashboard.sync_pending_acceptance') }}",
-            syncRejectedWeightUrl: "{{ url_for('dashboard.sync_rejected_weight') }}",
-            syncProvisionAllocationUrl: "{{ url_for('dashboard.settings_sync_provision_allocation') }}",
-            syncProvisionStatusUrl: "{{ url_for('dashboard.settings_sync_provision_stock_status') }}",
-            syncSizeLevelNIPBarcodeUrl: "{{ url_for('dashboard.settings_sync_size_level_nip_barcode') }}",
-            syncHallmarkingDelayedUrl: "{{ url_for('dashboard.sync_hallmarking_delayed') }}",
-            syncQCDelayedUrl: "{{ url_for('dashboard.sync_qc_delayed') }}",
-            syncOrderProcessingPendingUrl: "{{ url_for('dashboard.settings_sync_order_processing_pending') }}",
-            syncSupplierHMIssueUrl: "{{ url_for('dashboard.settings_sync_supplier_hm_issue') }}",
-            syncHMReturnPendingUrl: "{{ url_for('dashboard.settings_sync_hm_return_pending') }}",
-            syncHMQCIssuePendingUrl: "{{ url_for('dashboard.settings_sync_hm_qc_issue_pending') }}",
-            syncSupplierQCIssueReceiptUrl: "{{ url_for('dashboard.settings_sync_supplier_qc_issue_receipt') }}",
-            syncQCCompletedInvoiceUrl: "{{ url_for('dashboard.settings_sync_qc_completed_invoice') }}",
-            syncQCCompletedInvoiceRequestPendingUrl: "{{ url_for('dashboard.settings_sync_qc_completed_invoice_request_pending') }}",
-            syncInvoiceCompletedDeliverUrl: "{{ url_for('dashboard.settings_sync_invoice_completed_deliver') }}",
-            syncBranchAuthorityUrl: "{{ url_for('dashboard.settings_sync_branch_authority') }}",
-            syncQCDelayManagementUrl: "{{ url_for('dashboard.settings_sync_qc_delay_management') }}",
-            syncPartyDelayManagementUrl: "{{ url_for('dashboard.settings_sync_party_delay_management') }}",
-            syncQCReceiptCompletedPendingUrl: "{{ url_for('dashboard.settings_sync_qc_receipt_completed_pending') }}",
-            syncOwnerShowroomUrl: "{{ url_for('dashboard.sync_owner_and_showroom_wise') }}",
-            syncOrderFulfillmentValueAgingMatrixUrl: "{{ url_for('dashboard.sync_order_fulfillment_value_aging_matrix') }}",
-            syncPendingOrderDetailsUrl: "{{ url_for('dashboard.sync_pending_order_details') }}",
-            syncActiveOrderDetailsUrl: "{{ url_for('dashboard.sync_active_order_details') }}",
-            syncCollectionWiseAverageDeliveryDaysUrl: "{{ url_for('dashboard.trigger_sync_collection_wise_average_delivery_days') }}",
-            syncSalesStockCompositionAnalysisUrl: "{{ url_for('dashboard.trigger_sync_sales_stock_composition_analysis') }}",
-            syncCustomerOrderAnalysisUrl: "{{ url_for('dashboard.settings_sync_customer_order_analysis') }}",
-            syncPartyPerformanceMatrixUrl: "{{ url_for('dashboard.settings_sync_party_performance_matrix') }}",
-            syncLocationWiseOldGoldSettlementTransferUrl: "{{ url_for('dashboard.sync_location_wise_old_gold_settlement_transfer') }}",
-            syncWeeklyDeliveryOrderSummaryUrl: "{{ url_for('dashboard.settings_sync_weekly_delivery_order_summary') }}",
-            syncPartyMakeCapacityDetailsUrl: "{{ url_for('dashboard.sync_party_make_capacity_details') }}",
-            syncLogsUrl: "{{ url_for('dashboard.get_sync_logs') }}",
+                syncOutstandingPOUrl: "{{ url_for('dashboard.sync_outstanding_po') }}",
+                    syncStageDelayUrl: "{{ url_for('dashboard.sync_stage_delay') }}",
+                        syncOrderDelayUrl: "{{ url_for('dashboard.sync_order_delay') }}",
+                            syncPendingAcceptanceUrl: "{{ url_for('dashboard.sync_pending_acceptance') }}",
+                                syncRejectedWeightUrl: "{{ url_for('dashboard.sync_rejected_weight') }}",
+                                    syncProvisionAllocationUrl: "{{ url_for('dashboard.settings_sync_provision_allocation') }}",
+                                        syncProvisionStatusUrl: "{{ url_for('dashboard.settings_sync_provision_stock_status') }}",
+                                            syncSizeLevelNIPBarcodeUrl: "{{ url_for('dashboard.settings_sync_size_level_nip_barcode') }}",
+                                                syncHallmarkingDelayedUrl: "{{ url_for('dashboard.sync_hallmarking_delayed') }}",
+                                                    syncQCDelayedUrl: "{{ url_for('dashboard.sync_qc_delayed') }}",
+                                                        syncOrderProcessingPendingUrl: "{{ url_for('dashboard.settings_sync_order_processing_pending') }}",
+                                                            syncSupplierHMIssueUrl: "{{ url_for('dashboard.settings_sync_supplier_hm_issue') }}",
+                                                                syncHMReturnPendingUrl: "{{ url_for('dashboard.settings_sync_hm_return_pending') }}",
+                                                                    syncHMQCIssuePendingUrl: "{{ url_for('dashboard.settings_sync_hm_qc_issue_pending') }}",
+                                                                        syncSupplierQCIssueReceiptUrl: "{{ url_for('dashboard.settings_sync_supplier_qc_issue_receipt') }}",
+                                                                            syncQCCompletedInvoiceUrl: "{{ url_for('dashboard.settings_sync_qc_completed_invoice') }}",
+                                                                                syncQCCompletedInvoiceRequestPendingUrl: "{{ url_for('dashboard.settings_sync_qc_completed_invoice_request_pending') }}",
+                                                                                    syncInvoiceCompletedDeliverUrl: "{{ url_for('dashboard.settings_sync_invoice_completed_deliver') }}",
+                                                                                        syncBranchAuthorityUrl: "{{ url_for('dashboard.settings_sync_branch_authority') }}",
+                                                                                            syncQCDelayManagementUrl: "{{ url_for('dashboard.settings_sync_qc_delay_management') }}",
+                                                                                                syncPartyDelayManagementUrl: "{{ url_for('dashboard.settings_sync_party_delay_management') }}",
+                                                                                                    syncQCReceiptCompletedPendingUrl: "{{ url_for('dashboard.settings_sync_qc_receipt_completed_pending') }}",
+                                                                                                        syncOwnerShowroomUrl: "{{ url_for('dashboard.sync_owner_and_showroom_wise') }}",
+                                                                                                            syncOrderFulfillmentValueAgingMatrixUrl: "{{ url_for('dashboard.sync_order_fulfillment_value_aging_matrix') }}",
+                                                                                                                syncPendingOrderDetailsUrl: "{{ url_for('dashboard.sync_pending_order_details') }}",
+                                                                                                                    syncActiveOrderDetailsUrl: "{{ url_for('dashboard.sync_active_order_details') }}",
+                                                                                                                        syncCollectionWiseAverageDeliveryDaysUrl: "{{ url_for('dashboard.trigger_sync_collection_wise_average_delivery_days') }}",
+                                                                                                                            syncSalesStockCompositionAnalysisUrl: "{{ url_for('dashboard.trigger_sync_sales_stock_composition_analysis') }}",
+                                                                                                                                syncCustomerOrderAnalysisUrl: "{{ url_for('dashboard.settings_sync_customer_order_analysis') }}",
+                                                                                                                                    syncPartyPerformanceMatrixUrl: "{{ url_for('dashboard.settings_sync_party_performance_matrix') }}",
+                                                                                                                                        syncLocationWiseOldGoldSettlementTransferUrl: "{{ url_for('dashboard.sync_location_wise_old_gold_settlement_transfer') }}",
+                                                                                                                                            syncWeeklyDeliveryOrderSummaryUrl: "{{ url_for('dashboard.settings_sync_weekly_delivery_order_summary') }}",
+                                                                                                                                                syncPartyMakeCapacityDetailsUrl: "{{ url_for('dashboard.sync_party_make_capacity_details') }}",
+                                                                                                                                                    syncLogsUrl: "{{ url_for('dashboard.get_sync_logs') }}",
 
 
-            auditLogsUrl: "{{ url_for('admin_rbac.get_audit_logs') }}",
-            clearCacheUrl: "{{ url_for('dashboard.clear_cache') }}",
-            notificationsUrl: "{{ url_for('dashboard.get_settings_notifications') }}"
+                                                                                                                                                        auditLogsUrl: "{{ url_for('admin_rbac.get_audit_logs') }}",
+                                                                                                                                                            clearCacheUrl: "{{ url_for('dashboard.clear_cache') }}",
+                                                                                                                                                                notificationsUrl: "{{ url_for('dashboard.get_settings_notifications') }}"
         };
     </script>
     <script src="{{ url_for('static', filename='js/settings.js', v='20260910-offline-message') }}"></script>
