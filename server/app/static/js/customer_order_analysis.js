@@ -186,6 +186,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const el = document.getElementById('filter-expected-delivery-to');
         if (el) el.value = expTo;
     }
+    const orderAge = urlParams.get('order_age');
+    if (orderAge) {
+        const el = document.getElementById('filter-order-age');
+        if (el) el.value = orderAge;
+    }
+    const advLinked = urlParams.get('advance_linked');
+    if (advLinked) {
+        const el = document.getElementById('filter-advance-linked');
+        if (el) el.value = advLinked;
+    }
+    const delivPeriod = urlParams.get('delivery_period') || urlParams.get('expected_delivery_period');
+    if (delivPeriod) {
+        const el = document.getElementById('filter-delivery-period');
+        if (el) el.value = delivPeriod;
+    }
 
     // Mode check
     const modeParam = urlParams.get('hierarchy_mode');
@@ -277,6 +292,15 @@ function getFilterValues() {
 
     const expTo = document.getElementById('filter-expected-delivery-to')?.value;
     if (expTo) filters['expected_delivery_date_to'] = expTo;
+
+    const orderAgeVal = document.getElementById('filter-order-age')?.value;
+    if (orderAgeVal) filters['order_age'] = orderAgeVal;
+
+    const advLinkedVal = document.getElementById('filter-advance-linked')?.value;
+    if (advLinkedVal) filters['advance_linked'] = advLinkedVal;
+
+    const delivPeriodVal = document.getElementById('filter-delivery-period')?.value;
+    if (delivPeriodVal) filters['delivery_period'] = delivPeriodVal;
 
     const searchVal = document.getElementById('hierarchy-search')?.value?.trim();
     if (searchVal) filters['search'] = searchVal;

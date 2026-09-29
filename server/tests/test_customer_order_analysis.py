@@ -1,7 +1,7 @@
 import os
 import unittest
 from unittest.mock import patch
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from flask import Flask, session
 from app.extensions import db
 from app.models.customer_order_analysis import CustomerOrderAnalysisSnapshot, CustomerOrderAnalysis
@@ -87,7 +87,8 @@ class CustomerOrderAnalysisTests(unittest.TestCase):
                 receipt_pending_pcs=0,
                 receipt_pending_wt=0,
                 total_pending_pcs=1,
-                total_pending_wt=12.500
+                total_pending_wt=12.500,
+                snapshot_date=date(2026, 9, 29)
             ),
             CustomerOrderAnalysis(
                 request_no='REQ-002',
@@ -109,7 +110,7 @@ class CustomerOrderAnalysisTests(unittest.TestCase):
                 weight=25.000,
                 gross_weight=26.500,
                 net_weight=25.000,
-                advance_no='ADV-102',
+                advance_no=None,
                 party_name='SHREE JEWELS',
                 party_code='SUP-02',
                 party_type='EXPORT',
@@ -143,14 +144,15 @@ class CustomerOrderAnalysisTests(unittest.TestCase):
                 receipt_pending_pcs=0,
                 receipt_pending_wt=0,
                 total_pending_pcs=2,
-                total_pending_wt=25.000
+                total_pending_wt=25.000,
+                snapshot_date=date(2026, 9, 29)
             ),
             CustomerOrderAnalysis(
                 request_no='REQ-003',
                 sooc='SOOC-3',
                 state='TAMIL NADU',
                 location='CHENNAI',
-                request_date=date(2026, 9, 15),
+                request_date=date(2026, 9, 20),
                 expected_delivery_date=datetime(2026, 10, 5, 12, 0, 0),
                 division='GOLD',
                 group_category='ORNAMENTS',
@@ -199,7 +201,8 @@ class CustomerOrderAnalysisTests(unittest.TestCase):
                 receipt_pending_pcs=0,
                 receipt_pending_wt=0,
                 total_pending_pcs=3,
-                total_pending_wt=40.000
+                total_pending_wt=40.000,
+                snapshot_date=date(2026, 9, 29)
             )
         ])
         db.session.commit()
@@ -367,8 +370,8 @@ class CustomerOrderAnalysisTests(unittest.TestCase):
                 self.assertEqual(kwargs['sort_by'], 'accept_wt')
                 self.assertEqual(kwargs['sort_order'], 'desc')
                 rows = kwargs['rows']
-                # BANGALORE (20.0), MUMBAI (12.5), DELHI (8.0)
-                self.assertEqual([r['primary_value'] for r in rows], ['BANGALORE', 'MUMBAI', 'DELHI'])
+                # MUMBAI has 12.500 accept_wt, while CHENNAI and DELHI have 0.000
+                self.assertEqual(rows[0]['primary_value'], 'MUMBAI')
 
         with self.app.test_request_context('/api/customer-order-analysis/data?sort_by=accept_wt&sort_order=asc'):
             session['roles'] = ['ADMIN']
@@ -378,8 +381,105 @@ class CustomerOrderAnalysisTests(unittest.TestCase):
                 self.assertEqual(resp.status_code, 200)
                 kwargs = mock_render.call_args.kwargs
                 rows = kwargs['rows']
-                # DELHI (8.0), MUMBAI (12.5), BANGALORE (20.0)
-                self.assertEqual([r['primary_value'] for r in rows], ['DELHI', 'MUMBAI', 'BANGALORE'])
+                # Ascending order: MUMBAI with highest accept_wt comes last
+                self.assertEqual(rows[-1]['primary_value'], 'MUMBAI')
+
+    def test_filter_advance_linked(self):
+        from app.dashboard.routes.customer_order_analysis import customer_order_analysis_data
+        # With advance: REQ-001 (MUMBAI) and REQ-003 (CHENNAI)
+        with self.app.test_request_context('/api/customer-order-analysis/data?advance_linked=with'):
+            session['roles'] = ['ADMIN']
+            with patch('app.dashboard.routes.customer_order_analysis.render_template') as mock_render:
+                mock_render.return_value = '<table></table>'
+                resp = customer_order_analysis_data.__wrapped__()
+                self.assertEqual(resp.status_code, 200)
+                kwargs = mock_render.call_args.kwargs
+                locs = {r['primary_value'] for r in kwargs['rows']}
+                self.assertIn('MUMBAI', locs)
+                self.assertIn('CHENNAI', locs)
+                self.assertNotIn('DELHI', locs)
+
+        # Without advance: REQ-002 (DELHI)
+        with self.app.test_request_context('/api/customer-order-analysis/data?advance_linked=without'):
+            session['roles'] = ['ADMIN']
+            with patch('app.dashboard.routes.customer_order_analysis.render_template') as mock_render:
+                mock_render.return_value = '<table></table>'
+                resp = customer_order_analysis_data.__wrapped__()
+                self.assertEqual(resp.status_code, 200)
+                kwargs = mock_render.call_args.kwargs
+                locs = {r['primary_value'] for r in kwargs['rows']}
+                self.assertIn('DELHI', locs)
+                self.assertNotIn('MUMBAI', locs)
+                self.assertNotIn('CHENNAI', locs)
+
+    def test_filter_order_age(self):
+        from sqlalchemy.dialects import postgresql
+        with self.app.test_request_context('/api/customer-order-analysis/data?order_age=0-15'):
+            session['roles'] = ['ADMIN']
+            q = build_filter_query(CustomerOrderAnalysis.query)
+            sql = str(q.statement.compile(dialect=postgresql.dialect()))
+            self.assertIn('request_date', sql)
+            self.assertIn('snapshot_date', sql)
+
+        with self.app.test_request_context('/api/customer-order-analysis/data?order_age=120+'):
+            session['roles'] = ['ADMIN']
+            q = build_filter_query(CustomerOrderAnalysis.query)
+            sql = str(q.statement.compile(dialect=postgresql.dialect()))
+            self.assertIn('request_date', sql)
+            self.assertIn('snapshot_date', sql)
+
+    def test_filter_delivery_period(self):
+        from app.dashboard.routes.customer_order_analysis import customer_order_analysis_data
+        today = date.today()
+        # Set REQ-001 expected_delivery_date to today
+        r1 = CustomerOrderAnalysis.query.filter_by(request_no='REQ-001').first()
+        r1.expected_delivery_date = datetime.combine(today, datetime.min.time())
+
+        # Set REQ-002 expected_delivery_date to past (overdue)
+        r2 = CustomerOrderAnalysis.query.filter_by(request_no='REQ-002').first()
+        r2.expected_delivery_date = datetime.combine(today - timedelta(days=20), datetime.min.time())
+
+        # Set REQ-003 expected_delivery_date to next month
+        if today.month == 12:
+            nm = date(today.year + 1, 1, 15)
+        else:
+            nm = date(today.year, today.month + 1, 15)
+        r3 = CustomerOrderAnalysis.query.filter_by(request_no='REQ-003').first()
+        r3.expected_delivery_date = datetime.combine(nm, datetime.min.time())
+        db.session.commit()
+
+        # Test due today
+        with self.app.test_request_context('/api/customer-order-analysis/data?delivery_period=today'):
+            session['roles'] = ['ADMIN']
+            with patch('app.dashboard.routes.customer_order_analysis.render_template') as mock_render:
+                mock_render.return_value = '<table></table>'
+                resp = customer_order_analysis_data.__wrapped__()
+                self.assertEqual(resp.status_code, 200)
+                kwargs = mock_render.call_args.kwargs
+                locs = {r['primary_value'] for r in kwargs['rows']}
+                self.assertEqual(locs, {'MUMBAI'})
+
+        # Test overdue
+        with self.app.test_request_context('/api/customer-order-analysis/data?delivery_period=overdue'):
+            session['roles'] = ['ADMIN']
+            with patch('app.dashboard.routes.customer_order_analysis.render_template') as mock_render:
+                mock_render.return_value = '<table></table>'
+                resp = customer_order_analysis_data.__wrapped__()
+                self.assertEqual(resp.status_code, 200)
+                kwargs = mock_render.call_args.kwargs
+                locs = {r['primary_value'] for r in kwargs['rows']}
+                self.assertEqual(locs, {'DELHI'})
+
+        # Test next month
+        with self.app.test_request_context('/api/customer-order-analysis/data?delivery_period=next_month'):
+            session['roles'] = ['ADMIN']
+            with patch('app.dashboard.routes.customer_order_analysis.render_template') as mock_render:
+                mock_render.return_value = '<table></table>'
+                resp = customer_order_analysis_data.__wrapped__()
+                self.assertEqual(resp.status_code, 200)
+                kwargs = mock_render.call_args.kwargs
+                locs = {r['primary_value'] for r in kwargs['rows']}
+                self.assertEqual(locs, {'CHENNAI'})
 
 
 if __name__ == '__main__':

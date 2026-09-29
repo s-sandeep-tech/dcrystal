@@ -349,6 +349,23 @@
                 </div>
             </div>
 
+            <!-- Order Age Filter (Reporting Date - Request Date) -->
+            <div class="space-y-1">
+                <label for="filter-order-age" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center justify-between">
+                    <span>Order Age</span>
+                    <span class="text-[8px] text-gray-400 font-normal lowercase">(reporting − request)</span>
+                </label>
+                <select id="filter-order-age" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Ages</option>
+                    <option value="0-15" {% if request.args.get('order_age') == '0-15' %}selected{% endif %}>0 - 15 Days</option>
+                    <option value="16-30" {% if request.args.get('order_age') == '16-30' %}selected{% endif %}>16 - 30 Days</option>
+                    <option value="31-60" {% if request.args.get('order_age') == '31-60' %}selected{% endif %}>31 - 60 Days</option>
+                    <option value="61-90" {% if request.args.get('order_age') == '61-90' %}selected{% endif %}>61 - 90 Days</option>
+                    <option value="91-120" {% if request.args.get('order_age') == '91-120' %}selected{% endif %}>91 - 120 Days</option>
+                    <option value="120+" {% if request.args.get('order_age') == '120+' %}selected{% endif %}>120+ Days</option>
+                </select>
+            </div>
+
             <!-- 20. Expected Delivery Date Range -->
             <div class="space-y-1">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Expected Delivery Date Range</label>
@@ -356,6 +373,22 @@
                     <input type="date" id="filter-expected-delivery-from" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[11px] focus:ring-0 focus:border-primary p-1.5" placeholder="From" />
                     <input type="date" id="filter-expected-delivery-to" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[11px] focus:ring-0 focus:border-primary p-1.5" placeholder="To" />
                 </div>
+            </div>
+
+            <!-- Expected Delivery Period Filter -->
+            <div class="space-y-1">
+                <label for="filter-delivery-period" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center justify-between">
+                    <span>Delivery Period</span>
+                    <span class="text-[8px] text-gray-400 font-normal lowercase">(due period)</span>
+                </label>
+                <select id="filter-delivery-period" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Periods</option>
+                    <option value="today" {% if request.args.get('delivery_period') == 'today' %}selected{% endif %}>Due Today</option>
+                    <option value="this_week" {% if request.args.get('delivery_period') == 'this_week' %}selected{% endif %}>Due This Week</option>
+                    <option value="this_month" {% if request.args.get('delivery_period') == 'this_month' %}selected{% endif %}>Due This Month</option>
+                    <option value="next_month" {% if request.args.get('delivery_period') == 'next_month' %}selected{% endif %}>Due Next Month</option>
+                    <option value="overdue" {% if request.args.get('delivery_period') == 'overdue' %}selected{% endif %}>Overdue</option>
+                </select>
             </div>
 
             <!-- 21. Classification Owner (Multi-select) -->
@@ -372,6 +405,16 @@
 
             <!-- 25. Gender (Multi-select) -->
             <div id="filter-gender-container"></div>
+
+            <!-- Advance Linked (All / With Advance / Without Advance) -->
+            <div class="space-y-1">
+                <label for="filter-advance-linked" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Advance Linked</label>
+                <select id="filter-advance-linked" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Orders</option>
+                    <option value="with" {% if request.args.get('advance_linked') in ['with', 'yes', 'true'] %}selected{% endif %}>With Advance</option>
+                    <option value="without" {% if request.args.get('advance_linked') in ['without', 'no', 'false'] %}selected{% endif %}>Without Advance</option>
+                </select>
+            </div>
 
             <!-- 26. MSME (Yes / No / All) -->
             <div class="space-y-1">

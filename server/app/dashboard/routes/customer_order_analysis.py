@@ -10,7 +10,7 @@ from app.models import (
 from app.models.snapshots import BranchAuthoritySnapshot
 from app.extensions import db
 from sqlalchemy import String, false, func
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
 from collections import defaultdict
 import logging
@@ -25,6 +25,13 @@ def mask_supplier_data():
 
 def clean_group_value(column):
     return func.coalesce(func.nullif(func.trim(column), ''), 'Unknown')
+
+
+def get_order_age_expression():
+    return (
+        func.coalesce(CustomerOrderAnalysis.snapshot_date, func.current_date())
+        - CustomerOrderAnalysis.request_date
+    )
 
 
 def split_filter_values(value):
@@ -226,6 +233,109 @@ def build_filter_query(base_query):
         query = query.filter(CustomerOrderAnalysis.re_order.is_(True))
     elif re_order_val in ('false', 'no', '0'):
         query = query.filter(CustomerOrderAnalysis.re_order.is_(False))
+
+    # 28. Advance Linked (advance_linked: with / without / all)
+    advance_linked = request.args.get('advance_linked', '').strip().lower()
+    if advance_linked in ('with', 'yes', 'true', 'linked', 'with_advance'):
+        query = query.filter(
+            CustomerOrderAnalysis.advance_no.isnot(None),
+            func.trim(CustomerOrderAnalysis.advance_no) != ''
+        )
+    elif advance_linked in ('without', 'no', 'false', 'unlinked', 'without_advance'):
+        query = query.filter(
+            (CustomerOrderAnalysis.advance_no.is_(None)) |
+            (func.trim(CustomerOrderAnalysis.advance_no) == '')
+        )
+
+    # 29. Order Age Filter (Reporting Date - Request Date)
+    order_age = (request.args.get('order_age') or '').strip().lower()
+    order_age_min = request.args.get('order_age_min')
+    order_age_max = request.args.get('order_age_max')
+    age_min = None
+    age_max = None
+    if order_age_min and str(order_age_min).strip().isdigit():
+        age_min = int(str(order_age_min).strip())
+    if order_age_max and str(order_age_max).strip().isdigit():
+        age_max = int(str(order_age_max).strip())
+
+    if order_age:
+        if order_age == '0-15':
+            age_min, age_max = 0, 15
+        elif order_age == '16-30':
+            age_min, age_max = 16, 30
+        elif order_age == '31-60':
+            age_min, age_max = 31, 60
+        elif order_age == '61-90':
+            age_min, age_max = 61, 90
+        elif order_age == '91-120':
+            age_min, age_max = 91, 120
+        elif order_age in ('120+', '>120', '121+', '>120 days'):
+            age_min = 121
+        elif order_age.isdigit():
+            age_min = int(order_age)
+
+    if age_min is not None or age_max is not None:
+        age_expr = get_order_age_expression()
+        query = query.filter(CustomerOrderAnalysis.request_date.isnot(None))
+        if age_min is not None:
+            query = query.filter(age_expr >= age_min)
+        if age_max is not None:
+            query = query.filter(age_expr <= age_max)
+
+    # 30. Expected Delivery Period (today, this_week, this_month, next_month, overdue)
+    delivery_period = (request.args.get('delivery_period') or request.args.get('expected_delivery_period') or '').strip().lower()
+    if delivery_period and delivery_period != 'all':
+        try:
+            today = datetime.now(ZoneInfo('Asia/Kolkata')).date()
+        except Exception:
+            today = date.today()
+
+        today_start = datetime.combine(today, datetime.min.time())
+        today_end = datetime.combine(today, datetime.max.time())
+
+        query = query.filter(CustomerOrderAnalysis.expected_delivery_date.isnot(None))
+
+        if delivery_period == 'today':
+            query = query.filter(
+                CustomerOrderAnalysis.expected_delivery_date >= today_start,
+                CustomerOrderAnalysis.expected_delivery_date <= today_end
+            )
+        elif delivery_period in ('this_week', 'week'):
+            week_start = datetime.combine(today - timedelta(days=today.weekday()), datetime.min.time())
+            week_end = datetime.combine(week_start.date() + timedelta(days=6), datetime.max.time())
+            query = query.filter(
+                CustomerOrderAnalysis.expected_delivery_date >= week_start,
+                CustomerOrderAnalysis.expected_delivery_date <= week_end
+            )
+        elif delivery_period in ('this_month', 'month'):
+            month_start = datetime.combine(date(today.year, today.month, 1), datetime.min.time())
+            if today.month == 12:
+                next_month_start_date = date(today.year + 1, 1, 1)
+            else:
+                next_month_start_date = date(today.year, today.month + 1, 1)
+            month_end = datetime.combine(next_month_start_date - timedelta(days=1), datetime.max.time())
+            query = query.filter(
+                CustomerOrderAnalysis.expected_delivery_date >= month_start,
+                CustomerOrderAnalysis.expected_delivery_date <= month_end
+            )
+        elif delivery_period == 'next_month':
+            if today.month == 12:
+                next_month_start_date = date(today.year + 1, 1, 1)
+                month_after_next_date = date(today.year + 1, 2, 1)
+            else:
+                next_month_start_date = date(today.year, today.month + 1, 1)
+                if next_month_start_date.month == 12:
+                    month_after_next_date = date(next_month_start_date.year + 1, 1, 1)
+                else:
+                    month_after_next_date = date(next_month_start_date.year, next_month_start_date.month + 1, 1)
+            next_month_start = datetime.combine(next_month_start_date, datetime.min.time())
+            next_month_end = datetime.combine(month_after_next_date - timedelta(days=1), datetime.max.time())
+            query = query.filter(
+                CustomerOrderAnalysis.expected_delivery_date >= next_month_start,
+                CustomerOrderAnalysis.expected_delivery_date <= next_month_end
+            )
+        elif delivery_period == 'overdue':
+            query = query.filter(CustomerOrderAnalysis.expected_delivery_date < today_start)
 
     # Search query
     search = request.args.get('search', '').strip()

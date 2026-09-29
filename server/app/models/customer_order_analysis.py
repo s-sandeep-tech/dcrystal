@@ -11,7 +11,7 @@ class CustomerOrderAnalysisSnapshot(db.Model):
     __tablename__ = 'customer_order_analysis_snapshot'
     __table_args__ = {'extend_existing': True}
 
-    id = db.Column(db.BigInteger().with_variant(db.Integer, 'sqlite'), primary_key=True, autoincrement=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
     # Order identifiers
     request_no = db.Column('request_no', db.Text, index=True, nullable=True)
