@@ -118,6 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (typeof CustomMultiSelect !== 'undefined') {
         const configs = [
+            { id: 'filter-customer-order-status-container', key: 'customer_order_status', label: 'Customer Order Status', defaultText: 'All Customer Order Statuses', options: opts.customerOrderStatuses },
+            { id: 'filter-customer-order-receipt-status-container', key: 'customer_order_receipt_status', label: 'Customer Order Receipt Status', defaultText: 'All Receipt Statuses', options: opts.customerOrderReceiptStatuses },
             { id: 'filter-order-status-container', key: 'order_status', label: 'Order Status', defaultText: 'All Order Statuses', options: opts.orderStatuses },
             { id: 'filter-state-container', key: 'state', label: 'State', defaultText: 'All States', options: opts.states },
             { id: 'filter-location-container', key: 'location', label: 'Location', defaultText: 'All Locations', options: opts.locations },

@@ -5147,6 +5147,14 @@ def sync_customer_order_analysis_task(task_type_override=None, progress_range=(0
         for row in rows:
             records.append({
                 'request_no': str(row.get('request_no') or '').strip(),
+                'po_number': row.get('po_number'),
+                'po_date': row.get('po_date'),
+                'customer_order_receipt_status': row.get('customer_order_receipt_status'),
+                'customer_order_status': row.get('customer_order_status'),
+                'customer_order_approval_pending_pcs': row.get('customer_order_approval_pending_pcs'),
+                'customer_order_approval_pending_wt': row.get('customer_order_approval_pending_wt'),
+                'customer_delivery_pending_pcs': row.get('customer_delivery_pending_pcs'),
+                'customer_delivery_pending_wt': row.get('customer_delivery_pending_wt'),
                 'sooc': str(row.get('sooc') or '').strip(),
                 'state': row.get('state'),
                 'location': row.get('location'),

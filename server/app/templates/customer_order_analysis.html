@@ -88,7 +88,22 @@
     </div>
 
     <!-- Stats Grid (9 stage metrics) -->
-    <div id="customer-order-stats" aria-busy="true" class="grid grid-cols-9 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+    <div id="customer-order-stats" aria-busy="true" style="grid-template-columns: repeat(11, minmax(145px, 1fr)); overflow-x: auto;" class="grid gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+        <!-- Customer Approval Pending -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-gray-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">pending_actions</span>
+                <span>Approval Pend Wt</span>
+            </p>
+            <div class="flex flex-col">
+                <p id="stat-approval-wt" class="text-sm font-bold text-gray-600">{{ stats.approval_wt if stats else '-' }}</p>
+                <p id="stat-approval-pcs" class="text-[9px] text-gray-500/70 font-medium">{{ stats.approval_pcs if stats else '-' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-approval-bar" class="h-full bg-gray-500 transition-all duration-500" style="width: {{ stats.approval_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
         <!-- Accept Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
@@ -228,6 +243,21 @@
                 <div id="stat-total-bar" class="h-full bg-emerald-500" style="width: {{ 100 if stats else 0 }}%"></div>
             </div>
         </div>
+        <!-- Customer Delivery Pending -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-gray-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">pending_actions</span>
+                <span>Cust Delivery Pend Wt</span>
+            </p>
+            <div class="flex flex-col">
+                <p id="stat-delivery-wt" class="text-sm font-bold text-gray-600">{{ stats.delivery_wt if stats else '-' }}</p>
+                <p id="stat-delivery-pcs" class="text-[9px] text-gray-500/70 font-medium">{{ stats.delivery_pcs if stats else '-' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-delivery-bar" class="h-full bg-gray-500 transition-all duration-500" style="width: {{ stats.delivery_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Pagination & Hierarchy Strip -->
@@ -286,6 +316,8 @@
         <div class="space-y-3">
             <!-- 0. Order Status (Multi-select) -->
             <div id="filter-order-status-container"></div>
+            <div id="filter-customer-order-status-container"></div>
+            <div id="filter-customer-order-receipt-status-container"></div>
 
             <!-- 1. State (Multi-select) -->
             <div id="filter-state-container"></div>
@@ -441,6 +473,8 @@
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script>
     window.customerOrderFilterOptions = {
+        customerOrderStatuses: {{ filter_options.customer_order_statuses | tojson }},
+        customerOrderReceiptStatuses: {{ filter_options.customer_order_receipt_statuses | tojson }},
         orderStatuses: {{ filter_options.order_statuses | tojson | safe }},
         states: {{ filter_options.states | tojson | safe }},
         locations: {{ filter_options.locations | tojson | safe }},

@@ -43,6 +43,7 @@
                 <th class="px-2 py-2">Purity</th>
                 <th class="px-2 py-2">Net Wt</th>
                 <th class="px-2 py-2">Advance No</th>
+                <th class="px-2 py-2 text-right">Approval Pend</th>
                 <th class="px-2 py-2 text-right">Accept Pend</th>
                 <th class="px-2 py-2 text-right">Process Pend</th>
                 <th class="px-2 py-2 text-right">Barcode Pend</th>
@@ -51,12 +52,13 @@
                 <th class="px-2 py-2 text-right">QC Pend</th>
                 <th class="px-2 py-2 text-right">Invoice Pend</th>
                 <th class="px-2 py-2 text-right">Receipt Pend</th>
+                <th class="px-2 py-2 text-right">Customer Delivery Pend</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
             {% if not supplier_summaries %}
             <tr>
-                <td colspan="18" class="text-center py-8 text-gray-400 text-xs">
+                <td colspan="20" class="text-center py-8 text-gray-400 text-xs">
                     No order records found for this combination.
                 </td>
             </tr>
@@ -87,6 +89,9 @@
                 <td class="px-2 py-2 text-gray-400 font-normal">--</td>
 
                 <td class="px-2 py-2 text-right text-gray-800">
+                    {{ s.approval_pcs|int }} / {{ "%.3f"|format(s.approval_wt) }}
+                </td>
+                <td class="px-2 py-2 text-right text-gray-800">
                     {{ s.accept_pending_pcs|int }} / {{ "%.3f"|format(s.accept_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-yellow-600">
@@ -109,6 +114,9 @@
                 </td>
                 <td class="px-2 py-2 text-right text-amber-600">
                     {{ s.receipt_pending_pcs|int }} / {{ "%.3f"|format(s.receipt_pending_wt) }}
+                </td>
+                <td class="px-2 py-2 text-right text-gray-800">
+                    {{ s.delivery_pcs|int }} / {{ "%.3f"|format(s.delivery_wt) }}
                 </td>
             </tr>
 
@@ -140,6 +148,9 @@
                 <td class="px-2 py-2 font-mono text-gray-500">{{ rec.advance_no or '--' }}</td>
 
                 <td class="px-2 py-2 text-right text-gray-600">
+                    {{ (rec.customer_order_approval_pending_pcs or 0)|int }} / {{ "%.3f"|format(rec.customer_order_approval_pending_wt or 0) }}
+                </td>
+                <td class="px-2 py-2 text-right text-gray-600">
                     {{ (rec.pending_to_accepted_pcs or 0)|int }} / {{ "%.3f"|format(rec.pending_to_accepted_wt or 0) }}
                 </td>
                 <td class="px-2 py-2 text-right text-yellow-600">
@@ -162,6 +173,9 @@
                 </td>
                 <td class="px-2 py-2 text-right text-amber-600">
                     {{ (rec.receipt_pending_pcs or 0)|int }} / {{ "%.3f"|format(rec.receipt_pending_wt or 0) }}
+                </td>
+                <td class="px-2 py-2 text-right text-gray-600">
+                    {{ (rec.customer_delivery_pending_pcs or 0)|int }} / {{ "%.3f"|format(rec.customer_delivery_pending_wt or 0) }}
                 </td>
             </tr>
             {% endfor %}

@@ -139,6 +139,9 @@ def build_filter_query(base_query):
     """
     query = base_query
 
+    for name in ('customer_order_receipt_status', 'customer_order_status'):
+        query = apply_multi_value_filter(query, getattr(CustomerOrderAnalysis, name), request.args.get(name))
+
     # 0. Order Status
     query = apply_multi_value_filter(query, CustomerOrderAnalysis.order_status, request.args.get('order_status'))
     # 1. State
@@ -368,7 +371,11 @@ def get_stage_aggregate_columns():
         func.coalesce(func.sum(CustomerOrderAnalysis.receipt_pending_pcs), 0).label('receipt_pcs'),
         func.coalesce(func.sum(CustomerOrderAnalysis.receipt_pending_wt), 0).label('receipt_wt'),
         func.coalesce(func.sum(CustomerOrderAnalysis.total_pending_pcs), 0).label('tot_pcs'),
-        func.coalesce(func.sum(CustomerOrderAnalysis.total_pending_wt), 0).label('tot_wt')
+        func.coalesce(func.sum(CustomerOrderAnalysis.total_pending_wt), 0).label('tot_wt'),
+        func.coalesce(func.sum(CustomerOrderAnalysis.customer_order_approval_pending_pcs), 0).label('approval_pcs'),
+        func.coalesce(func.sum(CustomerOrderAnalysis.customer_order_approval_pending_wt), 0).label('approval_wt'),
+        func.coalesce(func.sum(CustomerOrderAnalysis.customer_delivery_pending_pcs), 0).label('delivery_pcs'),
+        func.coalesce(func.sum(CustomerOrderAnalysis.customer_delivery_pending_wt), 0).label('delivery_wt')
     ]
 
 
@@ -394,6 +401,8 @@ def customer_order_analysis():
                 return []
 
         filter_options = {
+            'customer_order_receipt_statuses': get_distinct_list(CustomerOrderAnalysis.customer_order_receipt_status),
+            'customer_order_statuses': get_distinct_list(CustomerOrderAnalysis.customer_order_status),
             'order_statuses': get_distinct_list(CustomerOrderAnalysis.order_status),
             'states': get_distinct_list(CustomerOrderAnalysis.state),
             'locations': get_distinct_list(CustomerOrderAnalysis.location),
@@ -473,7 +482,11 @@ def customer_order_analysis_data():
             func.coalesce(func.sum(CustomerOrderAnalysis.receipt_pending_pcs), 0).label('total_receipt_pcs'),
             func.coalesce(func.sum(CustomerOrderAnalysis.receipt_pending_wt), 0).label('total_receipt_wt'),
             func.coalesce(func.sum(CustomerOrderAnalysis.total_pending_pcs), 0).label('total_total_pcs'),
-            func.coalesce(func.sum(CustomerOrderAnalysis.total_pending_wt), 0).label('total_total_wt')
+            func.coalesce(func.sum(CustomerOrderAnalysis.total_pending_wt), 0).label('total_total_wt'),
+            func.coalesce(func.sum(CustomerOrderAnalysis.customer_order_approval_pending_pcs), 0).label('total_approval_pcs'),
+            func.coalesce(func.sum(CustomerOrderAnalysis.customer_order_approval_pending_wt), 0).label('total_approval_wt'),
+            func.coalesce(func.sum(CustomerOrderAnalysis.customer_delivery_pending_pcs), 0).label('total_delivery_pcs'),
+            func.coalesce(func.sum(CustomerOrderAnalysis.customer_delivery_pending_wt), 0).label('total_delivery_wt')
         ]
 
         agg_q = db.session.query(*agg_cols)
@@ -488,6 +501,12 @@ def customer_order_analysis_data():
             return min(100, round((float(val or 0) / total_wt) * 100, 1))
 
         stats = {
+            'approval_pcs': f"{int(aggs.total_approval_pcs or 0):,}" if aggs else "0",
+            'approval_wt': f"{float(aggs.total_approval_wt or 0):,.3f}" if aggs else "0.000",
+            'approval_perc': get_perc(aggs.total_approval_wt) if aggs else 0,
+            'delivery_pcs': f"{int(aggs.total_delivery_pcs or 0):,}" if aggs else "0",
+            'delivery_wt': f"{float(aggs.total_delivery_wt or 0):,.3f}" if aggs else "0.000",
+            'delivery_perc': get_perc(aggs.total_delivery_wt) if aggs else 0,
             'total_pcs': f"{int(aggs.total_total_pcs or 0):,}" if aggs else "0",
             'total_wt': f"{float(aggs.total_total_wt or 0):,.3f}" if aggs else "0.000",
             'accept_pcs': f"{int(aggs.total_accept_pcs or 0):,}" if aggs else "0",
@@ -538,6 +557,8 @@ def customer_order_analysis_data():
             'primary': primary_col,
             'location': primary_col,
             'section': primary_col,
+            'approval_pcs': row_agg_cols[18], 'approval_wt': row_agg_cols[19],
+            'delivery_pcs': row_agg_cols[20], 'delivery_wt': row_agg_cols[21],
             'accept_pcs': row_agg_cols[0],
             'accept_wt': row_agg_cols[1],
             'process_pcs': row_agg_cols[2],
@@ -576,6 +597,8 @@ def customer_order_analysis_data():
                 'section': r[0] if current_level == 'section' else '',
                 'make': '',
                 'classification': '',
+                'approval_pcs': int(r.approval_pcs or 0), 'approval_wt': float(r.approval_wt or 0),
+                'delivery_pcs': int(r.delivery_pcs or 0), 'delivery_wt': float(r.delivery_wt or 0),
                 'accept_pcs': int(r.accept_pcs or 0), 'accept_wt': float(r.accept_wt or 0),
                 'process_pcs': int(r.process_pcs or 0), 'process_wt': float(r.process_wt or 0),
                 'barcode_pcs': int(r.barcode_pcs or 0), 'barcode_wt': float(r.barcode_wt or 0),
@@ -626,6 +649,8 @@ def get_customer_order_analysis_partial():
             sort_order = 'desc'
 
         sort_col_map = {
+            'approval_pcs': row_agg_cols[18], 'approval_wt': row_agg_cols[19],
+            'delivery_pcs': row_agg_cols[20], 'delivery_wt': row_agg_cols[21],
             'accept_pcs': row_agg_cols[0],
             'accept_wt': row_agg_cols[1],
             'process_pcs': row_agg_cols[2],
@@ -671,6 +696,8 @@ def get_customer_order_analysis_partial():
                         'location': r[0],
                         'make': r[1],
                         'secondary_value': r[1],
+                        'approval_pcs': int(r.approval_pcs or 0), 'approval_wt': float(r.approval_wt or 0),
+                        'delivery_pcs': int(r.delivery_pcs or 0), 'delivery_wt': float(r.delivery_wt or 0),
                         'accept_pcs': int(r.accept_pcs or 0), 'accept_wt': float(r.accept_wt or 0),
                         'process_pcs': int(r.process_pcs or 0), 'process_wt': float(r.process_wt or 0),
                         'barcode_pcs': int(r.barcode_pcs or 0), 'barcode_wt': float(r.barcode_wt or 0),
@@ -716,6 +743,8 @@ def get_customer_order_analysis_partial():
                         'classification': r[1],
                         'secondary_value': r[1],
                         'make': '',
+                        'approval_pcs': int(r.approval_pcs or 0), 'approval_wt': float(r.approval_wt or 0),
+                        'delivery_pcs': int(r.delivery_pcs or 0), 'delivery_wt': float(r.delivery_wt or 0),
                         'accept_pcs': int(r.accept_pcs or 0), 'accept_wt': float(r.accept_wt or 0),
                         'process_pcs': int(r.process_pcs or 0), 'process_wt': float(r.process_wt or 0),
                         'barcode_pcs': int(r.barcode_pcs or 0), 'barcode_wt': float(r.barcode_wt or 0),
@@ -767,6 +796,8 @@ def get_customer_order_analysis_partial():
                 'section': r[0] if cur_level == 'section' else '',
                 'make': '',
                 'classification': '',
+                'approval_pcs': int(r.approval_pcs or 0), 'approval_wt': float(r.approval_wt or 0),
+                'delivery_pcs': int(r.delivery_pcs or 0), 'delivery_wt': float(r.delivery_wt or 0),
                 'accept_pcs': int(r.accept_pcs or 0), 'accept_wt': float(r.accept_wt or 0),
                 'process_pcs': int(r.process_pcs or 0), 'process_wt': float(r.process_wt or 0),
                 'barcode_pcs': int(r.barcode_pcs or 0), 'barcode_wt': float(r.barcode_wt or 0),
@@ -835,6 +866,10 @@ def get_customer_order_analysis_leaf_detail():
                 'supplier': 'XXX' if mask_supplier_data() else sup_name,
                 'party_code': 'XXX' if mask_supplier_data() else (items[0].party_code if items else ''),
                 'party_type': items[0].party_type if items else '',
+                'approval_pcs': sum(int(x.customer_order_approval_pending_pcs or 0) for x in items),
+                'approval_wt': sum(float(x.customer_order_approval_pending_wt or 0) for x in items),
+                'delivery_pcs': sum(int(x.customer_delivery_pending_pcs or 0) for x in items),
+                'delivery_wt': sum(float(x.customer_delivery_pending_wt or 0) for x in items),
                 'accept_pending_pcs': sum(float(x.pending_to_accepted_pcs or 0) for x in items),
                 'accept_pending_wt': sum(float(x.pending_to_accepted_wt or 0) for x in items),
                 'process_pending_pcs': sum(float(x.process_pending_pcs or 0) for x in items),

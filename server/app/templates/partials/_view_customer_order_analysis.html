@@ -17,6 +17,14 @@
                     </span>
                 </div>
             </th>
+            <th class="text-right px-2 bg-gray-100/30 cursor-pointer hover:bg-gray-200/50 transition-colors group" onclick="toggleSort('approval_wt')" title="Click to sort by Approval Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Approval Pending</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['approval_wt', 'approval_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['approval_wt', 'approval_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['approval_wt', 'approval_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
             <th class="text-right px-2 bg-gray-100/30 cursor-pointer hover:bg-gray-200/50 transition-colors group" onclick="toggleSort('accept_wt')" title="Click to sort by Accept Pending">
                 <div class="flex items-center justify-end gap-1">
                     <span>Accept Pending</span>
@@ -89,6 +97,14 @@
                     </span>
                 </div>
             </th>
+            <th class="text-right px-2 bg-gray-100/30 cursor-pointer hover:bg-gray-200/50 transition-colors group" onclick="toggleSort('delivery_wt')" title="Click to sort by Customer Delivery Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Customer Delivery Pending</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['delivery_wt', 'delivery_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['delivery_wt', 'delivery_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['delivery_wt', 'delivery_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
         </tr>
     </thead>
     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -136,6 +152,13 @@
                         <span class="material-symbols-outlined text-[13px] text-primary/70 group-hover:text-primary transition-colors ml-1 align-middle" title="View order details">open_in_new</span>
                         {% endif %}
                     </span>
+                </div>
+            </td>
+            <!-- Approval Pending -->
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="font-bold text-gray-700">{{ "%.3f"|format(r.approval_wt) }}</span>
+                    <span class="text-[9px] text-gray-500">{{ r.approval_pcs }} Pcs</span>
                 </div>
             </td>
             <!-- Accept Pending -->
@@ -199,6 +222,13 @@
                 <div class="flex flex-col">
                     <span class="font-bold text-emerald-600">{{ "%.3f"|format(r.total_weight) }}</span>
                     <span class="text-[9px] text-emerald-600/70">{{ r.total_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Customer Delivery Pending -->
+            <td class="text-right px-2">
+                <div class="flex flex-col">
+                    <span class="font-bold text-gray-700">{{ "%.3f"|format(r.delivery_wt) }}</span>
+                    <span class="text-[9px] text-gray-500">{{ r.delivery_pcs }} Pcs</span>
                 </div>
             </td>
         </tr>

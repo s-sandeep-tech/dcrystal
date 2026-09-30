@@ -14,6 +14,15 @@ class CustomerOrderAnalysisSnapshot(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
     # Order identifiers
+    po_number = db.Column(db.String(50), nullable=True)
+    po_date = db.Column(db.Date, nullable=True)
+    customer_order_receipt_status = db.Column(db.Text, nullable=True)
+    customer_order_status = db.Column(db.Text, nullable=True)
+    customer_order_approval_pending_pcs = db.Column(db.BigInteger, nullable=True)
+    customer_order_approval_pending_wt = db.Column(db.Numeric, nullable=True)
+    customer_delivery_pending_pcs = db.Column(db.BigInteger, nullable=True)
+    customer_delivery_pending_wt = db.Column(db.Numeric, nullable=True)
+
     request_no = db.Column('request_no', db.Text, index=True, nullable=True)
     sooc = db.Column('sooc', db.Text, nullable=True)
 

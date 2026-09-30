@@ -11,11 +11,31 @@ from app.dashboard.routes.customer_order_analysis import (
     build_filter_query,
     apply_visibility_filter,
     mask_supplier_data,
+    get_stage_aggregate_columns,
     get_customer_order_analysis_leaf_detail,
 )
 
 
 class CustomerOrderAnalysisTests(unittest.TestCase):
+    def test_new_status_filters_and_pending_metrics(self):
+        row = CustomerOrderAnalysis.query.filter_by(request_no='REQ-001').one()
+        row.customer_order_status = 'Awaiting approval'
+        row.customer_order_receipt_status = 'Not received'
+        row.customer_order_approval_pending_pcs = 2
+        row.customer_order_approval_pending_wt = 12.345
+        row.customer_delivery_pending_pcs = 3
+        row.customer_delivery_pending_wt = 23.456
+        db.session.commit()
+        with self.app.test_request_context('/?customer_order_status=Awaiting%20approval&customer_order_receipt_status=Not%20received'):
+            session['roles'] = ['ADMIN']
+            query = build_filter_query(CustomerOrderAnalysis.query)
+            self.assertEqual(query.count(), 1)
+            metrics = build_filter_query(db.session.query(*get_stage_aggregate_columns())).one()
+            self.assertEqual(metrics.approval_pcs, 2)
+            self.assertAlmostEqual(float(metrics.approval_wt), 12.345)
+            self.assertEqual(metrics.delivery_pcs, 3)
+            self.assertAlmostEqual(float(metrics.delivery_wt), 23.456)
+
     def setUp(self):
         os.environ['TESTING'] = 'true'
         self.app = Flask(__name__, template_folder='../app/templates')
