@@ -4,6 +4,24 @@
     {%- endif -%}
 {%- endmacro %}
 <style>
+    .customer-order-detail-grid tr > th:not(:last-child),
+    .customer-order-detail-grid tr > td:not(:last-child) {
+        border-right: 1px solid #e5e7eb;
+    }
+
+    .dark .customer-order-detail-grid tr > th:not(:last-child),
+    .dark .customer-order-detail-grid tr > td:not(:last-child) {
+        border-right-color: #374151;
+    }
+
+    .customer-order-detail-grid .modal-detail-row > td {
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .dark .customer-order-detail-grid .modal-detail-row > td {
+        border-top-color: #374151;
+    }
+
     .supplier-group-header td {
         border-top: 1.5px solid rgba(156, 163, 175, 0.4) !important;
     }
@@ -109,7 +127,7 @@
 </div>
 
 <div class="modal-body overflow-auto max-h-[75vh] p-0 scrollbar-thin hover:scrollbar-thumb-gray-300 dark:hover:scrollbar-thumb-gray-700">
-    <table class="modal-grid w-full text-left border-collapse table-auto border-spacing-0 bg-white dark:bg-gray-900 text-[10px]">
+    <table class="customer-order-detail-grid modal-grid w-full text-left border-collapse table-auto border-spacing-0 bg-white dark:bg-gray-900 text-[10px]">
         <thead class="sticky top-0 z-30">
             <tr class="bg-gray-50 dark:bg-gray-800 text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 shadow-sm">
                 <th class="px-3 py-2">Supplier / Detail</th>
