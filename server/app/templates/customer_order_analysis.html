@@ -572,35 +572,7 @@
 
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script>
-    window.customerOrderFilterOptions = {
-        customerOrderStatuses: {{ filter_options.customer_order_statuses | tojson }},
-    customerOrderReceiptStatuses: { { filter_options.customer_order_receipt_statuses | tojson } },
-    orderStatuses: { { filter_options.order_statuses | tojson | safe } },
-    states: { { filter_options.states | tojson | safe } },
-    locations: { { filter_options.locations | tojson | safe } },
-    businessHeads: { { filter_options.business_heads | tojson | safe } },
-    orderRos: { { filter_options.order_ros | tojson | safe } },
-    branchTypes: { { filter_options.branch_types | tojson | safe } },
-    divisions: { { filter_options.divisions | tojson | safe } },
-    groupCategories: { { filter_options.group_categories | tojson | safe } },
-    groups: { { filter_options.groups | tojson | safe } },
-    classifications: { { filter_options.classifications | tojson | safe } },
-    subClassifications: { { filter_options.sub_classifications | tojson | safe } },
-    makes: { { filter_options.makes | tojson | safe } },
-    sections: { { filter_options.sections | tojson | safe } },
-    collections: { { filter_options.collections | tojson | safe } },
-    purities: { { filter_options.purities | tojson | safe } },
-    suppliers: { { filter_options.suppliers | tojson | safe } },
-    partyTypes: { { filter_options.party_types | tojson | safe } },
-    customerOrderTypes: { { filter_options.customer_order_types | tojson | safe } },
-    classificationOwners: { { filter_options.classification_owners | tojson | safe } },
-    makeOwners: { { filter_options.make_owners | tojson | safe } },
-    collectionOwners: { { filter_options.collection_owners | tojson | safe } },
-    shopManagers: { { filter_options.shop_managers | tojson | safe } },
-    genders: { { filter_options.genders | tojson | safe } }
-    };
-</script>
+<div id="customer-order-filter-data" hidden data-options='{{ filter_options | tojson }}'></div>
 <script src="{{ url_for('static', filename='js/customer_order_analysis.js') }}"></script>
 
 <!-- Global Tooltip -->

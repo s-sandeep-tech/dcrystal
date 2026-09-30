@@ -113,7 +113,10 @@ async function loadCustomerOrderReport() {
 
 document.addEventListener('DOMContentLoaded', () => {
     adjustZoom(0);
-    const opts = window.customerOrderFilterOptions || {};
+    const filterData = JSON.parse(document.getElementById('customer-order-filter-data')?.dataset.options || '{}');
+    const opts = Object.fromEntries(Object.entries(filterData).map(([key, value]) => [
+        key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase()), value
+    ]));
     const urlParams = new URLSearchParams(window.location.search);
 
     if (typeof CustomMultiSelect !== 'undefined') {
