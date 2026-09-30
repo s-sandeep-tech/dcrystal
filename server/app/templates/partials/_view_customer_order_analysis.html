@@ -1,5 +1,13 @@
 {% if not is_child %}
-<table class="enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+<table class="customer-order-grid enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <colgroup>
+        <col style="width: 32px;">
+        <col style="width: 200px;">
+        <col span="6" style="width: 120px;">
+        <col span="3" style="width: 100px;">
+        <col style="width: 120px;">
+        <col style="width: 110px;">
+    </colgroup>
     <thead>
         <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider select-none">
             <th class="col-expander text-center px-0 w-8"></th>

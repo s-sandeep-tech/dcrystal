@@ -5,6 +5,18 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
 <style>
+    .customer-order-grid {
+        min-width: 1482px;
+    }
+
+    .customer-order-grid thead th {
+        white-space: normal;
+    }
+
+    .customer-order-grid thead th .material-symbols-outlined {
+        flex-shrink: 0;
+    }
+
     .modal-grid {
         table-layout: auto !important;
         width: 100% !important;
@@ -91,12 +103,12 @@
         </div>
     </div>
 
-    <!-- Stats Grid (9 stage metrics) -->
+    <!-- Stats Grid (11 metrics) -->
     <div id="customer-order-stats" aria-busy="true"
-        style="grid-template-columns: repeat(11, minmax(145px, 1fr)); overflow-x: auto;"
-        class="grid gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+        style="grid-template-columns: 120px repeat(10, minmax(120px, 1fr)); overflow-x: auto;"
+        class="grid gap-0 p-1 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
         <!-- Customer Approval Pending -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+        <div class="px-1 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-gray-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">pending_actions</span>
@@ -115,7 +127,7 @@
         </div>
 
         <!-- Accept Pending -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+        <div class="px-1 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-gray-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">pending_actions</span>
@@ -134,7 +146,7 @@
         </div>
 
         <!-- Process Pending -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+        <div class="px-1 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-yellow-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">precision_manufacturing</span>
@@ -153,7 +165,7 @@
         </div>
 
         <!-- Barcode Pending -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+        <div class="px-1 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-blue-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">barcode</span>
@@ -172,7 +184,7 @@
         </div>
 
         <!-- Hallmark Pending -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+        <div class="px-1 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-indigo-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">verified</span>
@@ -191,7 +203,7 @@
         </div>
 
         <!-- QC Issue Pending -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center relative">
+        <div class="px-1 py-2 border-r border-gray-100 dark:border-gray-800 text-center relative">
             <div class="absolute top-1 right-1">
                 <span
                     class="material-symbols-outlined text-[11px] text-gray-400 hover:text-red-500 transition-colors cursor-help"
@@ -201,7 +213,7 @@
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-red-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">report_problem</span>
-                <span>QC Issue Pend Wt</span>
+                <span>QC Iss. Pend Wt</span>
             </p>
             <div class="flex flex-col">
                 <p id="stat-qc-issue-wt" class="text-sm font-bold text-red-600">{{ stats.qc_issue_wt if stats else '-'
@@ -216,7 +228,7 @@
         </div>
 
         <!-- QC Pending -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+        <div class="px-1 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-purple-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">fact_check</span>
@@ -235,7 +247,7 @@
         </div>
 
         <!-- Invoice Pending -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+        <div class="px-1 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-cyan-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">receipt_long</span>
@@ -254,7 +266,7 @@
         </div>
 
         <!-- Receipt Pending -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+        <div class="px-1 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-amber-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">move_to_inbox</span>
@@ -273,7 +285,7 @@
         </div>
 
         <!-- Total Pending -->
-        <div class="p-2 text-center bg-emerald-50/10 dark:bg-emerald-950/10">
+        <div class="px-1 py-2 text-center bg-emerald-50/10 dark:bg-emerald-950/10">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-emerald-600 shrink-0"
                     style="font-size: 13px; line-height: 1" aria-hidden="true">inventory_2</span>
@@ -290,11 +302,11 @@
             </div>
         </div>
         <!-- Customer Delivery Pending -->
-        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+        <div class="px-1 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-gray-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">pending_actions</span>
-                <span>Cust Delvry Pend Wt</span>
+                <span>Cust Del. Pend Wt</span>
             </p>
             <div class="flex flex-col">
                 <p id="stat-delivery-wt" class="text-sm font-bold text-gray-600">{{ stats.delivery_wt if stats else '-'
