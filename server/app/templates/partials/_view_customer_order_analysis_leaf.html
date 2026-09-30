@@ -5,6 +5,80 @@
     .dark .supplier-group-header td {
         border-top: 1.5px solid rgba(75, 85, 99, 0.5) !important;
     }
+
+    /* Stylish Party Type Badges */
+    .party-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 3.5px;
+        padding: 1.5px 7px;
+        border-radius: 9999px;
+        font-size: 8.5px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        line-height: 1.25;
+        flex-shrink: 0;
+        user-select: none;
+        vertical-align: middle;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        transition: all 0.15s ease-in-out;
+    }
+    .party-type-badge:hover {
+        transform: translateY(-0.5px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    }
+    .party-type-badge .material-symbols-outlined {
+        font-size: 11px;
+        line-height: 1;
+    }
+
+    /* Smith Badge - Refined Artisan Gold / Amber */
+    .badge-smith {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        color: #92400e;
+        border: 1px solid rgba(217, 119, 6, 0.35);
+    }
+    .badge-smith .material-symbols-outlined {
+        color: #b45309;
+    }
+    .dark .badge-smith {
+        background: linear-gradient(135deg, rgba(120, 53, 15, 0.45) 0%, rgba(180, 83, 9, 0.25) 100%);
+        color: #fde68a;
+        border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+    .dark .badge-smith .material-symbols-outlined {
+        color: #fbbf24;
+    }
+
+    /* Supplier Badge - Crisp Supply / Vendor Blue */
+    .badge-supplier {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        color: #1e40af;
+        border: 1px solid rgba(59, 130, 246, 0.35);
+    }
+    .badge-supplier .material-symbols-outlined {
+        color: #2563eb;
+    }
+    .dark .badge-supplier {
+        background: linear-gradient(135deg, rgba(30, 58, 138, 0.45) 0%, rgba(30, 64, 175, 0.25) 100%);
+        color: #bfdbfe;
+        border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+    .dark .badge-supplier .material-symbols-outlined {
+        color: #60a5fa;
+    }
+
+    /* Neutral Fallback Badge */
+    .badge-default {
+        background: #f3f4f6;
+        color: #4b5563;
+        border: 1px solid #e5e7eb;
+    }
+    .dark .badge-default {
+        background: rgba(31, 41, 55, 0.6);
+        color: #9ca3af;
+        border: 1px solid rgba(75, 85, 99, 0.6);
+    }
 </style>
 
 <div class="modal-header flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-40">
@@ -73,7 +147,24 @@
                     </button>
                     <span>{{ s.supplier }}</span>
                     {% if s.party_type %}
-                    <span class="text-[8px] font-normal px-1 py-0.2 bg-gray-100 dark:bg-gray-800 rounded text-gray-500">{{ s.party_type }}</span>
+                        {% set ptype = (s.party_type or '')|trim %}
+                        {% set ptype_lower = ptype|lower %}
+                        {% if 'smith' in ptype_lower %}
+                        <span class="party-type-badge badge-smith" title="Party Type: Smith">
+                            <span class="material-symbols-outlined">diamond</span>
+                            <span>Smith</span>
+                        </span>
+                        {% elif 'suppl' in ptype_lower %}
+                        <span class="party-type-badge badge-supplier" title="Party Type: Supplier">
+                            <span class="material-symbols-outlined">storefront</span>
+                            <span>Supplier</span>
+                        </span>
+                        {% else %}
+                        <span class="party-type-badge badge-default" title="Party Type: {{ ptype }}">
+                            <span class="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500"></span>
+                            <span>{{ ptype }}</span>
+                        </span>
+                        {% endif %}
                     {% endif %}
                 </td>
                 <td class="px-2 py-2 text-right font-bold text-emerald-600 bg-emerald-50/10">
