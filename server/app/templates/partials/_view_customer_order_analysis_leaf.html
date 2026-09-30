@@ -1,3 +1,8 @@
+{% macro pending_pair(pcs, wt) -%}
+    {%- if pcs or wt -%}
+        {{ (pcs or 0)|int }} / {{ "%.3f"|format(wt or 0) }}
+    {%- endif -%}
+{%- endmacro %}
 <style>
     .supplier-group-header td {
         border-top: 1.5px solid rgba(156, 163, 175, 0.4) !important;
@@ -168,7 +173,7 @@
                     {% endif %}
                 </td>
                 <td class="px-2 py-2 text-right font-bold text-emerald-600 bg-emerald-50/10">
-                    {{ s.total_pcs|int }} / {{ "%.3f"|format(s.total_weight) }}
+                    {{ pending_pair(s.total_pcs, s.total_weight) }}
                 </td>
                 <td class="px-2 py-2 text-gray-400 font-normal">--</td>
                 <td class="px-2 py-2 text-gray-400 font-normal">--</td>
@@ -180,34 +185,34 @@
                 <td class="px-2 py-2 text-gray-400 font-normal">--</td>
 
                 <td class="px-2 py-2 text-right text-gray-800">
-                    {{ s.approval_pcs|int }} / {{ "%.3f"|format(s.approval_wt) }}
+                    {{ pending_pair(s.approval_pcs, s.approval_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-gray-800">
-                    {{ s.accept_pending_pcs|int }} / {{ "%.3f"|format(s.accept_pending_wt) }}
+                    {{ pending_pair(s.accept_pending_pcs, s.accept_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-yellow-600">
-                    {{ s.process_pending_pcs|int }} / {{ "%.3f"|format(s.process_pending_wt) }}
+                    {{ pending_pair(s.process_pending_pcs, s.process_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-blue-600">
-                    {{ s.barcode_pending_pcs|int }} / {{ "%.3f"|format(s.barcode_pending_wt) }}
+                    {{ pending_pair(s.barcode_pending_pcs, s.barcode_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-indigo-600">
-                    {{ s.hallmark_pending_pcs|int }} / {{ "%.3f"|format(s.hallmark_pending_wt) }}
+                    {{ pending_pair(s.hallmark_pending_pcs, s.hallmark_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-red-600">
-                    {{ s.qc_issue_pending_pcs|int }} / {{ "%.3f"|format(s.qc_issue_pending_wt) }}
+                    {{ pending_pair(s.qc_issue_pending_pcs, s.qc_issue_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-purple-600">
-                    {{ s.qc_complete_pending_pcs|int }} / {{ "%.3f"|format(s.qc_complete_pending_wt) }}
+                    {{ pending_pair(s.qc_complete_pending_pcs, s.qc_complete_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-cyan-600">
-                    {{ s.invoice_pending_pcs|int }} / {{ "%.3f"|format(s.invoice_pending_wt) }}
+                    {{ pending_pair(s.invoice_pending_pcs, s.invoice_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-amber-600">
-                    {{ s.receipt_pending_pcs|int }} / {{ "%.3f"|format(s.receipt_pending_wt) }}
+                    {{ pending_pair(s.receipt_pending_pcs, s.receipt_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-gray-800">
-                    {{ s.delivery_pcs|int }} / {{ "%.3f"|format(s.delivery_wt) }}
+                    {{ pending_pair(s.delivery_pcs, s.delivery_wt) }}
                 </td>
             </tr>
 
@@ -221,7 +226,7 @@
                     </span>
                 </td>
                 <td class="px-2 py-2 text-right font-bold text-emerald-600 bg-emerald-50/5">
-                    {{ (rec.total_pending_pcs or 0)|int }} / {{ "%.3f"|format(rec.total_pending_wt or 0) }}
+                    {{ pending_pair(rec.total_pending_pcs, rec.total_pending_wt) }}
                 </td>
                 <td class="px-2 py-2">
                     <span class="px-1.5 py-0.5 rounded text-[8px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
@@ -239,34 +244,34 @@
                 <td class="px-2 py-2 font-mono text-gray-500">{{ rec.advance_no or '--' }}</td>
 
                 <td class="px-2 py-2 text-right text-gray-600">
-                    {{ (rec.customer_order_approval_pending_pcs or 0)|int }} / {{ "%.3f"|format(rec.customer_order_approval_pending_wt or 0) }}
+                    {{ pending_pair(rec.customer_order_approval_pending_pcs, rec.customer_order_approval_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-gray-600">
-                    {{ (rec.pending_to_accepted_pcs or 0)|int }} / {{ "%.3f"|format(rec.pending_to_accepted_wt or 0) }}
+                    {{ pending_pair(rec.pending_to_accepted_pcs, rec.pending_to_accepted_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-yellow-600">
-                    {{ (rec.process_pending_pcs or 0)|int }} / {{ "%.3f"|format(rec.process_pending_wt or 0) }}
+                    {{ pending_pair(rec.process_pending_pcs, rec.process_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-blue-600">
-                    {{ (rec.barcode_pending_pcs or 0)|int }} / {{ "%.3f"|format(rec.barcode_pending_wt or 0) }}
+                    {{ pending_pair(rec.barcode_pending_pcs, rec.barcode_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-indigo-600">
-                    {{ (rec.hallmark_pending_pcs or 0)|int }} / {{ "%.3f"|format(rec.hallmark_pending_wt or 0) }}
+                    {{ pending_pair(rec.hallmark_pending_pcs, rec.hallmark_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-red-600">
-                    {{ (rec.qc_issue_pending_pcs or 0)|int }} / {{ "%.3f"|format(rec.qc_issue_pending_wt or 0) }}
+                    {{ pending_pair(rec.qc_issue_pending_pcs, rec.qc_issue_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-purple-600">
-                    {{ (rec.qc_complete_pending_pcs or 0)|int }} / {{ "%.3f"|format(rec.qc_complete_pending_wt or 0) }}
+                    {{ pending_pair(rec.qc_complete_pending_pcs, rec.qc_complete_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-cyan-600">
-                    {{ (rec.invoice_pending_pcs or 0)|int }} / {{ "%.3f"|format(rec.invoice_pending_wt or 0) }}
+                    {{ pending_pair(rec.invoice_pending_pcs, rec.invoice_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-amber-600">
-                    {{ (rec.receipt_pending_pcs or 0)|int }} / {{ "%.3f"|format(rec.receipt_pending_wt or 0) }}
+                    {{ pending_pair(rec.receipt_pending_pcs, rec.receipt_pending_wt) }}
                 </td>
                 <td class="px-2 py-2 text-right text-gray-600">
-                    {{ (rec.customer_delivery_pending_pcs or 0)|int }} / {{ "%.3f"|format(rec.customer_delivery_pending_wt or 0) }}
+                    {{ pending_pair(rec.customer_delivery_pending_pcs, rec.customer_delivery_pending_wt) }}
                 </td>
             </tr>
             {% endfor %}
