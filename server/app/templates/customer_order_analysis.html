@@ -32,7 +32,8 @@
 {% block content %}
 <main id="customer-order-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
     <!-- Header -->
-    <div class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between gap-4">
+    <div
+        class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between gap-4">
         <!-- Left: Title -->
         <div class="flex items-center gap-4 shrink-0">
             <h2 class="text-sm font-bold tracking-tight">Customer Order Pending Analysis Report <span
@@ -42,10 +43,12 @@
 
         <!-- Center: Hierarchy Mode Switcher with Icons -->
         <div class="flex items-center justify-center">
-            <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 shadow-inner">
+            <div
+                class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 shadow-inner">
                 <button id="mode-location" onclick="switchHierarchyMode('location')"
                     class="px-2.5 py-1 rounded-md font-bold transition-all bg-white dark:bg-gray-700 shadow-xs text-primary flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-[15px] leading-none" aria-hidden="true">location_on</span>
+                    <span class="material-symbols-outlined text-[15px] leading-none"
+                        aria-hidden="true">location_on</span>
                     <span>Location</span>
                 </button>
                 <button id="mode-section" onclick="switchHierarchyMode('section')"
@@ -78,7 +81,8 @@
                     title="Zoom In">+</button>
             </div>
             <!-- Search -->
-            <div class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
+            <div
+                class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
                 <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
                 <input id="hierarchy-search"
                     class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0"
@@ -88,156 +92,198 @@
     </div>
 
     <!-- Stats Grid (9 stage metrics) -->
-    <div id="customer-order-stats" aria-busy="true" style="grid-template-columns: repeat(11, minmax(145px, 1fr)); overflow-x: auto;" class="grid gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+    <div id="customer-order-stats" aria-busy="true"
+        style="grid-template-columns: repeat(11, minmax(145px, 1fr)); overflow-x: auto;"
+        class="grid gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
         <!-- Customer Approval Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-gray-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">pending_actions</span>
+                <span class="material-symbols-outlined text-gray-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">pending_actions</span>
                 <span>Approval Pend Wt</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-approval-wt" class="text-sm font-bold text-gray-600">{{ stats.approval_wt if stats else '-' }}</p>
-                <p id="stat-approval-pcs" class="text-[9px] text-gray-500/70 font-medium">{{ stats.approval_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-approval-wt" class="text-sm font-bold text-gray-600">{{ stats.approval_wt if stats else '-'
+                    }}</p>
+                <p id="stat-approval-pcs" class="text-[9px] text-gray-500/70 font-medium">{{ stats.approval_pcs if stats
+                    else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-approval-bar" class="h-full bg-gray-500 transition-all duration-500" style="width: {{ stats.approval_perc if stats else 0 }}%"></div>
+                <div id="stat-approval-bar" class="h-full bg-gray-500 transition-all duration-500"
+                    style="width: {{ stats.approval_perc if stats else 0 }}%"></div>
             </div>
         </div>
 
         <!-- Accept Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-gray-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">pending_actions</span>
+                <span class="material-symbols-outlined text-gray-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">pending_actions</span>
                 <span>Accept Pend Wt</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-accept-wt" class="text-sm font-bold text-gray-600">{{ stats.accept_wt if stats else '-' }}</p>
-                <p id="stat-accept-pcs" class="text-[9px] text-gray-500/70 font-medium">{{ stats.accept_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-accept-wt" class="text-sm font-bold text-gray-600">{{ stats.accept_wt if stats else '-' }}
+                </p>
+                <p id="stat-accept-pcs" class="text-[9px] text-gray-500/70 font-medium">{{ stats.accept_pcs if stats
+                    else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-accept-bar" class="h-full bg-gray-500 transition-all duration-500" style="width: {{ stats.accept_perc if stats else 0 }}%"></div>
+                <div id="stat-accept-bar" class="h-full bg-gray-500 transition-all duration-500"
+                    style="width: {{ stats.accept_perc if stats else 0 }}%"></div>
             </div>
         </div>
 
         <!-- Process Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-yellow-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">precision_manufacturing</span>
+                <span class="material-symbols-outlined text-yellow-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">precision_manufacturing</span>
                 <span>Process Pend Wt</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-process-wt" class="text-sm font-bold text-yellow-600">{{ stats.process_wt if stats else '-' }}</p>
-                <p id="stat-process-pcs" class="text-[9px] text-yellow-600/70 font-medium">{{ stats.process_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-process-wt" class="text-sm font-bold text-yellow-600">{{ stats.process_wt if stats else '-'
+                    }}</p>
+                <p id="stat-process-pcs" class="text-[9px] text-yellow-600/70 font-medium">{{ stats.process_pcs if stats
+                    else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-process-bar" class="h-full bg-yellow-500 transition-all duration-500" style="width: {{ stats.process_perc if stats else 0 }}%"></div>
+                <div id="stat-process-bar" class="h-full bg-yellow-500 transition-all duration-500"
+                    style="width: {{ stats.process_perc if stats else 0 }}%"></div>
             </div>
         </div>
 
         <!-- Barcode Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-blue-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">barcode</span>
+                <span class="material-symbols-outlined text-blue-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">barcode</span>
                 <span>Barcode Pend Wt</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-barcode-wt" class="text-sm font-bold text-blue-600">{{ stats.barcode_wt if stats else '-' }}</p>
-                <p id="stat-barcode-pcs" class="text-[9px] text-blue-600/70 font-medium">{{ stats.barcode_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-barcode-wt" class="text-sm font-bold text-blue-600">{{ stats.barcode_wt if stats else '-' }}
+                </p>
+                <p id="stat-barcode-pcs" class="text-[9px] text-blue-600/70 font-medium">{{ stats.barcode_pcs if stats
+                    else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-barcode-bar" class="h-full bg-blue-500 transition-all duration-500" style="width: {{ stats.barcode_perc if stats else 0 }}%"></div>
+                <div id="stat-barcode-bar" class="h-full bg-blue-500 transition-all duration-500"
+                    style="width: {{ stats.barcode_perc if stats else 0 }}%"></div>
             </div>
         </div>
 
         <!-- Hallmark Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-indigo-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">verified</span>
+                <span class="material-symbols-outlined text-indigo-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">verified</span>
                 <span>Hallmark Pend Wt</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-hallmark-wt" class="text-sm font-bold text-indigo-600">{{ stats.hallmark_wt if stats else '-' }}</p>
-                <p id="stat-hallmark-pcs" class="text-[9px] text-indigo-600/70 font-medium">{{ stats.hallmark_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-hallmark-wt" class="text-sm font-bold text-indigo-600">{{ stats.hallmark_wt if stats else
+                    '-' }}</p>
+                <p id="stat-hallmark-pcs" class="text-[9px] text-indigo-600/70 font-medium">{{ stats.hallmark_pcs if
+                    stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-hallmark-bar" class="h-full bg-indigo-500 transition-all duration-500" style="width: {{ stats.hallmark_perc if stats else 0 }}%"></div>
+                <div id="stat-hallmark-bar" class="h-full bg-indigo-500 transition-all duration-500"
+                    style="width: {{ stats.hallmark_perc if stats else 0 }}%"></div>
             </div>
         </div>
 
         <!-- QC Issue Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center relative">
             <div class="absolute top-1 right-1">
-                <span class="material-symbols-outlined text-[11px] text-gray-400 hover:text-red-500 transition-colors cursor-help"
+                <span
+                    class="material-symbols-outlined text-[11px] text-gray-400 hover:text-red-500 transition-colors cursor-help"
                     onmouseenter="showInfoTooltip(event, 'Items flagged with quality issues pending rework or repair are counted in this stage.')"
                     onmouseleave="hideInfoTooltip()">info</span>
             </div>
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-red-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">report_problem</span>
+                <span class="material-symbols-outlined text-red-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">report_problem</span>
                 <span>QC Issue Pend Wt</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-qc-issue-wt" class="text-sm font-bold text-red-600">{{ stats.qc_issue_wt if stats else '-' }}</p>
-                <p id="stat-qc-issue-pcs" class="text-[9px] text-red-600/70 font-medium">{{ stats.qc_issue_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-qc-issue-wt" class="text-sm font-bold text-red-600">{{ stats.qc_issue_wt if stats else '-'
+                    }}</p>
+                <p id="stat-qc-issue-pcs" class="text-[9px] text-red-600/70 font-medium">{{ stats.qc_issue_pcs if stats
+                    else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-qc-issue-bar" class="h-full bg-red-500 transition-all duration-500" style="width: {{ stats.qc_issue_perc if stats else 0 }}%"></div>
+                <div id="stat-qc-issue-bar" class="h-full bg-red-500 transition-all duration-500"
+                    style="width: {{ stats.qc_issue_perc if stats else 0 }}%"></div>
             </div>
         </div>
 
         <!-- QC Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-purple-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">fact_check</span>
+                <span class="material-symbols-outlined text-purple-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">fact_check</span>
                 <span>QC Pend Wt</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-qc-complete-wt" class="text-sm font-bold text-purple-600">{{ stats.qc_complete_wt if stats else '-' }}</p>
-                <p id="stat-qc-complete-pcs" class="text-[9px] text-purple-600/70 font-medium">{{ stats.qc_complete_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-qc-complete-wt" class="text-sm font-bold text-purple-600">{{ stats.qc_complete_wt if stats
+                    else '-' }}</p>
+                <p id="stat-qc-complete-pcs" class="text-[9px] text-purple-600/70 font-medium">{{ stats.qc_complete_pcs
+                    if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-qc-complete-bar" class="h-full bg-purple-500 transition-all duration-500" style="width: {{ stats.qc_complete_perc if stats else 0 }}%"></div>
+                <div id="stat-qc-complete-bar" class="h-full bg-purple-500 transition-all duration-500"
+                    style="width: {{ stats.qc_complete_perc if stats else 0 }}%"></div>
             </div>
         </div>
 
         <!-- Invoice Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-cyan-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">receipt_long</span>
+                <span class="material-symbols-outlined text-cyan-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">receipt_long</span>
                 <span>Invoice Pend Wt</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-invoice-wt" class="text-sm font-bold text-cyan-600">{{ stats.invoice_wt if stats else '-' }}</p>
-                <p id="stat-invoice-pcs" class="text-[9px] text-cyan-600/70 font-medium">{{ stats.invoice_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-invoice-wt" class="text-sm font-bold text-cyan-600">{{ stats.invoice_wt if stats else '-' }}
+                </p>
+                <p id="stat-invoice-pcs" class="text-[9px] text-cyan-600/70 font-medium">{{ stats.invoice_pcs if stats
+                    else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-invoice-bar" class="h-full bg-cyan-500 transition-all duration-500" style="width: {{ stats.invoice_perc if stats else 0 }}%"></div>
+                <div id="stat-invoice-bar" class="h-full bg-cyan-500 transition-all duration-500"
+                    style="width: {{ stats.invoice_perc if stats else 0 }}%"></div>
             </div>
         </div>
 
         <!-- Receipt Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-amber-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">move_to_inbox</span>
+                <span class="material-symbols-outlined text-amber-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">move_to_inbox</span>
                 <span>Receipt Pend Wt</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-receipt-wt" class="text-sm font-bold text-amber-600">{{ stats.receipt_wt if stats else '-' }}</p>
-                <p id="stat-receipt-pcs" class="text-[9px] text-amber-600/70 font-medium">{{ stats.receipt_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-receipt-wt" class="text-sm font-bold text-amber-600">{{ stats.receipt_wt if stats else '-'
+                    }}</p>
+                <p id="stat-receipt-pcs" class="text-[9px] text-amber-600/70 font-medium">{{ stats.receipt_pcs if stats
+                    else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-receipt-bar" class="h-full bg-amber-500 transition-all duration-500" style="width: {{ stats.receipt_perc if stats else 0 }}%"></div>
+                <div id="stat-receipt-bar" class="h-full bg-amber-500 transition-all duration-500"
+                    style="width: {{ stats.receipt_perc if stats else 0 }}%"></div>
             </div>
         </div>
 
         <!-- Total Pending -->
         <div class="p-2 text-center bg-emerald-50/10 dark:bg-emerald-950/10">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-emerald-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">inventory_2</span>
+                <span class="material-symbols-outlined text-emerald-600 shrink-0"
+                    style="font-size: 13px; line-height: 1" aria-hidden="true">inventory_2</span>
                 <span>Total Pend Wt</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-total-wt" class="text-sm font-bold text-emerald-600">{{ stats.total_wt if stats else '-' }}</p>
-                <p id="stat-total-pcs" class="text-[9px] text-emerald-600/70 font-medium">{{ stats.total_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-total-wt" class="text-sm font-bold text-emerald-600">{{ stats.total_wt if stats else '-' }}
+                </p>
+                <p id="stat-total-pcs" class="text-[9px] text-emerald-600/70 font-medium">{{ stats.total_pcs if stats
+                    else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-total-bar" class="h-full bg-emerald-500" style="width: {{ 100 if stats else 0 }}%"></div>
@@ -246,22 +292,27 @@
         <!-- Customer Delivery Pending -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-gray-600 shrink-0" style="font-size: 13px; line-height: 1" aria-hidden="true">pending_actions</span>
-                <span>Cust Delivery Pend Wt</span>
+                <span class="material-symbols-outlined text-gray-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">pending_actions</span>
+                <span>Cust Delvry Pend Wt</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-delivery-wt" class="text-sm font-bold text-gray-600">{{ stats.delivery_wt if stats else '-' }}</p>
-                <p id="stat-delivery-pcs" class="text-[9px] text-gray-500/70 font-medium">{{ stats.delivery_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-delivery-wt" class="text-sm font-bold text-gray-600">{{ stats.delivery_wt if stats else '-'
+                    }}</p>
+                <p id="stat-delivery-pcs" class="text-[9px] text-gray-500/70 font-medium">{{ stats.delivery_pcs if stats
+                    else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-delivery-bar" class="h-full bg-gray-500 transition-all duration-500" style="width: {{ stats.delivery_perc if stats else 0 }}%"></div>
+                <div id="stat-delivery-bar" class="h-full bg-gray-500 transition-all duration-500"
+                    style="width: {{ stats.delivery_perc if stats else 0 }}%"></div>
             </div>
         </div>
 
     </div>
 
     <!-- Pagination & Hierarchy Strip -->
-    <div class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+    <div
+        class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
             <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Hierarchy:</span>
             <span id="current-level-badge"
@@ -275,8 +326,8 @@
                 <span class="text-gray-400">Rows:</span>
                 <select id="per-page-select" onchange="changePerPage(this.value)"
                     class="bg-transparent border-none text-[10px] font-bold focus:ring-0 p-0 cursor-pointer">
-                    <option value="50" {% if request.args.get('per_page') == '50' %}selected{% endif %}>50</option>
-                    <option value="100" {% if request.args.get('per_page') == '100' %}selected{% endif %}>100</option>
+                    <option value="50" {% if request.args.get('per_page')=='50' %}selected{% endif %}>50</option>
+                    <option value="100" {% if request.args.get('per_page')=='100' %}selected{% endif %}>100</option>
                 </select>
             </div>
             <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
@@ -289,13 +340,18 @@
     <!-- Table Container -->
     <div id="table-area" class="flex-1 overflow-auto relative">
         <div id="view-customer-order-analysis" class="dashboard-view">
-            <div class="p-6 flex items-center justify-center gap-2 text-xs text-gray-500" role="status"><span class="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>Loading report...</div>
+            <div class="p-6 flex items-center justify-center gap-2 text-xs text-gray-500" role="status"><span
+                    class="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>Loading
+                report...</div>
         </div>
     </div>
 
     <!-- Leaf Detail Modal -->
-    <div id="modal-overlay" class="hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] transition-all duration-300" onclick="closeLeafModal()"></div>
-    <div id="leaf-detail-modal" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[98vw] max-w-[98vw] h-[92vh] bg-white dark:bg-gray-900 shadow-2xl rounded-xl z-[101] overflow-hidden animate-zoom-in border border-gray-100 dark:border-gray-800">
+    <div id="modal-overlay"
+        class="hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] transition-all duration-300"
+        onclick="closeLeafModal()"></div>
+    <div id="leaf-detail-modal"
+        class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[98vw] max-w-[98vw] h-[92vh] bg-white dark:bg-gray-900 shadow-2xl rounded-xl z-[101] overflow-hidden animate-zoom-in border border-gray-100 dark:border-gray-800">
         <div id="leaf-detail-content" class="h-full">
             <!-- Content loaded via AJAX -->
         </div>
@@ -304,13 +360,15 @@
 {% endblock %}
 
 {% block sidebar %}
-<aside id="customer-order-filter-sidebar" class="w-72 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden transition-all duration-300">
+<aside id="customer-order-filter-sidebar"
+    class="w-72 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden transition-all duration-300">
     <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-xs font-bold flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> FILTERS
             </h2>
-            <button onclick="resetGlobalFilters()" class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+            <button onclick="resetGlobalFilters()"
+                class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
         </div>
 
         <div class="space-y-3">
@@ -376,50 +434,74 @@
             <div class="space-y-1">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Request Date Range</label>
                 <div class="grid grid-cols-2 gap-1.5">
-                    <input type="date" id="filter-request-date-from" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[11px] focus:ring-0 focus:border-primary p-1.5" placeholder="From" />
-                    <input type="date" id="filter-request-date-to" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[11px] focus:ring-0 focus:border-primary p-1.5" placeholder="To" />
+                    <input type="date" id="filter-request-date-from"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[11px] focus:ring-0 focus:border-primary p-1.5"
+                        placeholder="From" />
+                    <input type="date" id="filter-request-date-to"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[11px] focus:ring-0 focus:border-primary p-1.5"
+                        placeholder="To" />
                 </div>
             </div>
 
             <!-- Order Age Filter (Reporting Date - Request Date) -->
             <div class="space-y-1">
-                <label for="filter-order-age" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center justify-between">
+                <label for="filter-order-age"
+                    class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center justify-between">
                     <span>Order Age</span>
                     <span class="text-[8px] text-gray-400 font-normal lowercase">(reporting − request)</span>
                 </label>
-                <select id="filter-order-age" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                <select id="filter-order-age"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Ages</option>
-                    <option value="0-15" {% if request.args.get('order_age') == '0-15' %}selected{% endif %}>0 - 15 Days</option>
-                    <option value="16-30" {% if request.args.get('order_age') == '16-30' %}selected{% endif %}>16 - 30 Days</option>
-                    <option value="31-60" {% if request.args.get('order_age') == '31-60' %}selected{% endif %}>31 - 60 Days</option>
-                    <option value="61-90" {% if request.args.get('order_age') == '61-90' %}selected{% endif %}>61 - 90 Days</option>
-                    <option value="91-120" {% if request.args.get('order_age') == '91-120' %}selected{% endif %}>91 - 120 Days</option>
-                    <option value="120+" {% if request.args.get('order_age') == '120+' %}selected{% endif %}>120+ Days</option>
+                    <option value="0-15" {% if request.args.get('order_age')=='0-15' %}selected{% endif %}>0 - 15 Days
+                    </option>
+                    <option value="16-30" {% if request.args.get('order_age')=='16-30' %}selected{% endif %}>16 - 30
+                        Days</option>
+                    <option value="31-60" {% if request.args.get('order_age')=='31-60' %}selected{% endif %}>31 - 60
+                        Days</option>
+                    <option value="61-90" {% if request.args.get('order_age')=='61-90' %}selected{% endif %}>61 - 90
+                        Days</option>
+                    <option value="91-120" {% if request.args.get('order_age')=='91-120' %}selected{% endif %}>91 - 120
+                        Days</option>
+                    <option value="120+" {% if request.args.get('order_age')=='120+' %}selected{% endif %}>120+ Days
+                    </option>
                 </select>
             </div>
 
             <!-- 20. Expected Delivery Date Range -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Expected Delivery Date Range</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Expected Delivery Date
+                    Range</label>
                 <div class="grid grid-cols-2 gap-1.5">
-                    <input type="date" id="filter-expected-delivery-from" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[11px] focus:ring-0 focus:border-primary p-1.5" placeholder="From" />
-                    <input type="date" id="filter-expected-delivery-to" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[11px] focus:ring-0 focus:border-primary p-1.5" placeholder="To" />
+                    <input type="date" id="filter-expected-delivery-from"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[11px] focus:ring-0 focus:border-primary p-1.5"
+                        placeholder="From" />
+                    <input type="date" id="filter-expected-delivery-to"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[11px] focus:ring-0 focus:border-primary p-1.5"
+                        placeholder="To" />
                 </div>
             </div>
 
             <!-- Expected Delivery Period Filter -->
             <div class="space-y-1">
-                <label for="filter-delivery-period" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center justify-between">
+                <label for="filter-delivery-period"
+                    class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center justify-between">
                     <span>Delivery Period</span>
                     <span class="text-[8px] text-gray-400 font-normal lowercase">(due period)</span>
                 </label>
-                <select id="filter-delivery-period" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                <select id="filter-delivery-period"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Periods</option>
-                    <option value="today" {% if request.args.get('delivery_period') == 'today' %}selected{% endif %}>Due Today</option>
-                    <option value="this_week" {% if request.args.get('delivery_period') == 'this_week' %}selected{% endif %}>Due This Week</option>
-                    <option value="this_month" {% if request.args.get('delivery_period') == 'this_month' %}selected{% endif %}>Due This Month</option>
-                    <option value="next_month" {% if request.args.get('delivery_period') == 'next_month' %}selected{% endif %}>Due Next Month</option>
-                    <option value="overdue" {% if request.args.get('delivery_period') == 'overdue' %}selected{% endif %}>Overdue</option>
+                    <option value="today" {% if request.args.get('delivery_period')=='today' %}selected{% endif %}>Due
+                        Today</option>
+                    <option value="this_week" {% if request.args.get('delivery_period')=='this_week' %}selected{% endif
+                        %}>Due This Week</option>
+                    <option value="this_month" {% if request.args.get('delivery_period')=='this_month' %}selected{%
+                        endif %}>Due This Month</option>
+                    <option value="next_month" {% if request.args.get('delivery_period')=='next_month' %}selected{%
+                        endif %}>Due Next Month</option>
+                    <option value="overdue" {% if request.args.get('delivery_period')=='overdue' %}selected{% endif %}>
+                        Overdue</option>
                 </select>
             </div>
 
@@ -440,21 +522,27 @@
 
             <!-- Advance Linked (All / With Advance / Without Advance) -->
             <div class="space-y-1">
-                <label for="filter-advance-linked" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Advance Linked</label>
-                <select id="filter-advance-linked" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                <label for="filter-advance-linked"
+                    class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Advance Linked</label>
+                <select id="filter-advance-linked"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Orders</option>
-                    <option value="with" {% if request.args.get('advance_linked') in ['with', 'yes', 'true'] %}selected{% endif %}>With Advance</option>
-                    <option value="without" {% if request.args.get('advance_linked') in ['without', 'no', 'false'] %}selected{% endif %}>Without Advance</option>
+                    <option value="with" {% if request.args.get('advance_linked') in ['with', 'yes' , 'true' ]
+                        %}selected{% endif %}>With Advance</option>
+                    <option value="without" {% if request.args.get('advance_linked') in ['without', 'no' , 'false' ]
+                        %}selected{% endif %}>Without Advance</option>
                 </select>
             </div>
 
             <!-- 27. Reorder (Yes / No / All) -->
             <div class="space-y-1">
-                <label for="filter-re-order" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Reorder</label>
-                <select id="filter-re-order" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                <label for="filter-re-order"
+                    class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Reorder</label>
+                <select id="filter-re-order"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All</option>
-                    <option value="true" {% if request.args.get('re_order') == 'true' %}selected{% endif %}>Yes</option>
-                    <option value="false" {% if request.args.get('re_order') == 'false' %}selected{% endif %}>No</option>
+                    <option value="true" {% if request.args.get('re_order')=='true' %}selected{% endif %}>Yes</option>
+                    <option value="false" {% if request.args.get('re_order')=='false' %}selected{% endif %}>No</option>
                 </select>
             </div>
         </div>
@@ -462,7 +550,8 @@
 
     <!-- Apply Filters Button -->
     <div class="p-4 bg-white dark:bg-background-dark border-t border-gray-200 dark:border-gray-800 shrink-0">
-        <button onclick="applyFilters()" class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2">
+        <button onclick="applyFilters()"
+            class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2">
             <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
         </button>
     </div>
@@ -474,30 +563,30 @@
 <script>
     window.customerOrderFilterOptions = {
         customerOrderStatuses: {{ filter_options.customer_order_statuses | tojson }},
-        customerOrderReceiptStatuses: {{ filter_options.customer_order_receipt_statuses | tojson }},
-        orderStatuses: {{ filter_options.order_statuses | tojson | safe }},
-        states: {{ filter_options.states | tojson | safe }},
-        locations: {{ filter_options.locations | tojson | safe }},
-        businessHeads: {{ filter_options.business_heads | tojson | safe }},
-        orderRos: {{ filter_options.order_ros | tojson | safe }},
-        branchTypes: {{ filter_options.branch_types | tojson | safe }},
-        divisions: {{ filter_options.divisions | tojson | safe }},
-        groupCategories: {{ filter_options.group_categories | tojson | safe }},
-        groups: {{ filter_options.groups | tojson | safe }},
-        classifications: {{ filter_options.classifications | tojson | safe }},
-        subClassifications: {{ filter_options.sub_classifications | tojson | safe }},
-        makes: {{ filter_options.makes | tojson | safe }},
-        sections: {{ filter_options.sections | tojson | safe }},
-        collections: {{ filter_options.collections | tojson | safe }},
-        purities: {{ filter_options.purities | tojson | safe }},
-        suppliers: {{ filter_options.suppliers | tojson | safe }},
-        partyTypes: {{ filter_options.party_types | tojson | safe }},
-        customerOrderTypes: {{ filter_options.customer_order_types | tojson | safe }},
-        classificationOwners: {{ filter_options.classification_owners | tojson | safe }},
-        makeOwners: {{ filter_options.make_owners | tojson | safe }},
-        collectionOwners: {{ filter_options.collection_owners | tojson | safe }},
-        shopManagers: {{ filter_options.shop_managers | tojson | safe }},
-        genders: {{ filter_options.genders | tojson | safe }}
+    customerOrderReceiptStatuses: { { filter_options.customer_order_receipt_statuses | tojson } },
+    orderStatuses: { { filter_options.order_statuses | tojson | safe } },
+    states: { { filter_options.states | tojson | safe } },
+    locations: { { filter_options.locations | tojson | safe } },
+    businessHeads: { { filter_options.business_heads | tojson | safe } },
+    orderRos: { { filter_options.order_ros | tojson | safe } },
+    branchTypes: { { filter_options.branch_types | tojson | safe } },
+    divisions: { { filter_options.divisions | tojson | safe } },
+    groupCategories: { { filter_options.group_categories | tojson | safe } },
+    groups: { { filter_options.groups | tojson | safe } },
+    classifications: { { filter_options.classifications | tojson | safe } },
+    subClassifications: { { filter_options.sub_classifications | tojson | safe } },
+    makes: { { filter_options.makes | tojson | safe } },
+    sections: { { filter_options.sections | tojson | safe } },
+    collections: { { filter_options.collections | tojson | safe } },
+    purities: { { filter_options.purities | tojson | safe } },
+    suppliers: { { filter_options.suppliers | tojson | safe } },
+    partyTypes: { { filter_options.party_types | tojson | safe } },
+    customerOrderTypes: { { filter_options.customer_order_types | tojson | safe } },
+    classificationOwners: { { filter_options.classification_owners | tojson | safe } },
+    makeOwners: { { filter_options.make_owners | tojson | safe } },
+    collectionOwners: { { filter_options.collection_owners | tojson | safe } },
+    shopManagers: { { filter_options.shop_managers | tojson | safe } },
+    genders: { { filter_options.genders | tojson | safe } }
     };
 </script>
 <script src="{{ url_for('static', filename='js/customer_order_analysis.js') }}"></script>
