@@ -78,18 +78,22 @@
         {% for month in months %}
         {% set value = row.months[month][metric_key] %}
         <td class="text-right px-2 py-1 {{ 'bg-gray-50/60 dark:bg-gray-800/20' if loop.index is odd else '' }}">
+            {% if value.wt or value.pcs %}
             <div class="flex flex-col leading-tight">
                 <span class="font-bold {{ metric_color }}">{{ "{:,.3f}".format(value.wt) }}</span>
                 <span class="text-[8px] text-gray-400">{{ "{:,}".format(value.pcs) }} Pcs</span>
             </div>
+            {% endif %}
         </td>
         {% endfor %}
         {% set total = row.total[metric_key] %}
         <td class="text-right px-2 py-1 bg-blue-50/20 dark:bg-blue-900/10">
+            {% if total.wt or total.pcs %}
             <div class="flex flex-col leading-tight">
                 <span class="font-bold {{ metric_color }}">{{ "{:,.3f}".format(total.wt) }}</span>
                 <span class="text-[8px] text-gray-400">{{ "{:,}".format(total.pcs) }} Pcs</span>
             </div>
+            {% endif %}
         </td>
     </tr>
     {% endfor %}
@@ -113,14 +117,18 @@
             {% for month in months %}
             {% set value = month_totals[month][metric_key] %}
             <td class="text-right px-2 py-1">
+                {% if value.wt or value.pcs %}
                 <span class="block {{ metric_color }}">{{ "{:,.3f}".format(value.wt) }}</span>
                 <span class="block text-[8px] text-gray-400">{{ "{:,}".format(value.pcs) }} Pcs</span>
+                {% endif %}
             </td>
             {% endfor %}
             {% set total = grand_total[metric_key] %}
             <td class="text-right px-2 py-1 bg-blue-50/30">
+                {% if total.wt or total.pcs %}
                 <span class="block {{ metric_color }}">{{ "{:,.3f}".format(total.wt) }}</span>
                 <span class="block text-[8px] text-gray-400">{{ "{:,}".format(total.pcs) }} Pcs</span>
+                {% endif %}
             </td>
         </tr>
         {% endfor %}
