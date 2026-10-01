@@ -13,10 +13,14 @@ from app.models import Notification, PartyOrderAcceptCancelDeliverySnapshot
 
 logger = logging.getLogger(__name__)
 
-REPORT_MONTHS = [
-    'January 2026', 'February 2026', 'March 2026', 'April 2026',
-    'May 2026', 'June 2026', 'July 2026', 'August 2026',
-]
+def month_sort_key(value):
+    for pattern in ('%B %Y', '%b %Y', '%Y-%m', '%m/%Y'):
+        try:
+            parsed = datetime.strptime(value.strip(), pattern)
+            return (0, parsed.year, parsed.month, value)
+        except ValueError:
+            continue
+    return (1, 0, 0, value)
 
 METRICS = {
     'ordered': ('order_wt', 'order_pcs'),
@@ -49,11 +53,11 @@ def report_filters():
     }
 
 
-def report_sort():
+def report_sort(months):
     sort_by = request.args.get('sort_by', 'party').strip().lower()
     sort_dir = request.args.get('sort_dir', 'asc').strip().lower()
     allowed_sort_columns = {'party', 'grand_total'} | {
-        f"month_{month.lower()}" for month in REPORT_MONTHS
+        f"month_{month.lower()}" for month in months
     }
     return (
         sort_by if sort_by in allowed_sort_columns else 'party',
@@ -88,7 +92,7 @@ def get_options(column, calendar_order=False):
         if row[0]
     ]
     if calendar_order:
-        return [month for month in REPORT_MONTHS if month in values]
+        return sorted(values, key=month_sort_key)
     return sorted(values)
 
 
@@ -141,8 +145,11 @@ def build_matrix(
     paginate=True,
     sort_by='party',
     sort_dir='asc',
+    months=None,
 ):
     model = PartyOrderAcceptCancelDeliverySnapshot
+    if months is None:
+        months = get_options(model.month, calendar_order=True)
     group_columns = [model.supplier] if level == 'party' else [model.supplier, model.make]
 
     group_query = apply_filters(db.session.query(*group_columns), filters)
@@ -153,7 +160,7 @@ def build_matrix(
     if sort_by == 'grand_total':
         sort_target = func.sum(model.order_wt)
     elif sort_by.startswith('month_'):
-        month_name = sort_by.removeprefix('month_').title()
+        month_name = next((month for month in months if f'month_{month.lower()}' == sort_by), '')
         sort_target = func.sum(case(
             (model.month == month_name, model.order_wt),
             else_=0,
@@ -185,7 +192,7 @@ def build_matrix(
             'level': level,
             'party': party,
             'make': make,
-            'months': {month: empty_metric_values() for month in REPORT_MONTHS},
+            'months': {month: empty_metric_values() for month in months},
             'total': empty_metric_values(),
         }
 
@@ -214,7 +221,7 @@ def build_matrix(
             make = result[1] if level == 'make' else ''
             month = result[2] if level == 'make' else result[1]
             key = (party, make)
-            if key not in rows_by_key or month not in REPORT_MONTHS:
+            if key not in rows_by_key or month not in months:
                 continue
 
             for metric in METRICS:
@@ -231,8 +238,10 @@ def build_matrix(
     return ordered_rows, pagination
 
 
-def build_month_totals(filters):
+def build_month_totals(filters, months=None):
     model = PartyOrderAcceptCancelDeliverySnapshot
+    if months is None:
+        months = get_options(model.month, calendar_order=True)
     aggregate_columns = []
     for metric, (weight_field, pieces_field) in METRICS.items():
         aggregate_columns.extend([
@@ -241,11 +250,11 @@ def build_month_totals(filters):
         ])
 
     query = apply_filters(db.session.query(model.month, *aggregate_columns), filters)
-    totals = {month: empty_metric_values() for month in REPORT_MONTHS}
+    totals = {month: empty_metric_values() for month in months}
     grand_total = empty_metric_values()
 
     for result in query.group_by(model.month).all():
-        if result.month not in REPORT_MONTHS:
+        if result.month not in months:
             continue
         for metric in METRICS:
             weight = float(getattr(result, f'{metric}_wt') or 0)
@@ -259,7 +268,8 @@ def build_month_totals(filters):
 def report_context(is_partial=False):
     model = PartyOrderAcceptCancelDeliverySnapshot
     filters = report_filters()
-    sort_by, sort_dir = report_sort()
+    months = get_options(model.month, calendar_order=True)
+    sort_by, sort_dir = report_sort(months)
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
     parent_party = request.args.get('parent_party', '')
@@ -275,13 +285,14 @@ def report_context(is_partial=False):
         paginate=not is_child_rows,
         sort_by=sort_by,
         sort_dir=sort_dir,
+        months=months,
     )
-    month_totals, grand_total = build_month_totals(filters)
+    month_totals, grand_total = build_month_totals(filters, months)
 
     context = {
         'stats': aggregate_stats(filters),
         'rows': rows,
-        'months': REPORT_MONTHS,
+        'months': months,
         'month_totals': month_totals,
         'grand_total': grand_total,
         'pagination': pagination,
@@ -298,7 +309,7 @@ def report_context(is_partial=False):
                 'parties': get_options(model.supplier),
                 'party_types': get_options(model.party_type),
                 'makes': get_options(model.make),
-                'months': get_options(model.month, calendar_order=True),
+                'months': months,
                 'order_types': get_options(model.order_type),
                 'provision_types': get_options(model.provision_type),
             },
