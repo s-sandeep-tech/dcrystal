@@ -111,3 +111,34 @@
         </form>
     </div>
 </div>
+
+<!-- Send Activation Link Confirmation Modal -->
+<div id="sendActivationModal"
+    class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden opacity-0 transition-opacity"
+    onclick="if(event.target===this) closeSendActivationModal()">
+    <div id="sendActivationModalContent"
+        class="bg-white dark:bg-gray-900 rounded-xl w-full max-w-sm p-6 shadow-2xl transform scale-95 transition-transform border border-gray-100 dark:border-gray-800">
+        <!-- Icon -->
+        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-teal-50 dark:bg-teal-900/30 mx-auto mb-4">
+            <span class="material-symbols-outlined text-teal-500 text-2xl">mark_email_unread</span>
+        </div>
+        <!-- Title -->
+        <h3 class="text-center text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Send Activation Link</h3>
+        <!-- Sub-text -->
+        <p id="sendActivationModalBody" class="text-center text-sm text-gray-500 dark:text-gray-400 mb-6">
+            A fresh verification email will be dispatched to their registered address.
+        </p>
+        <!-- Buttons -->
+        <div class="flex gap-3">
+            <button type="button" id="sendActivationCancelBtn" onclick="closeSendActivationModal()"
+                class="flex-1 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                Cancel
+            </button>
+            <button type="button" id="sendActivationConfirmBtn"
+                class="flex-1 px-4 py-2 text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 rounded-lg shadow-sm shadow-teal-500/20 transition-colors flex items-center justify-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px]">send</span>
+                Send Link
+            </button>
+        </div>
+    </div>
+</div>

@@ -833,8 +833,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     window.resendUserVerification = resendUserVerification;
 
-    async function sendActivationLink(id) {
-        if (!confirm('Send a new activation link to this user? A fresh verification email will be dispatched to their registered address.')) return;
+    // ── Send Activation Link Modal ──────────────────────────────────────────
+    let _activationTargetId = null;
+
+    function openSendActivationModal(id) {
+        const user = gManagedUsers.find(u => u.id === id);
+        _activationTargetId = id;
+        const modal = document.getElementById('sendActivationModal');
+        const content = document.getElementById('sendActivationModalContent');
+        const body = document.getElementById('sendActivationModalBody');
+        if (body && user) {
+            body.textContent = `A fresh verification email will be dispatched to ${user.email}.`;
+        }
+        // Bind the confirm button
+        const confirmBtn = document.getElementById('sendActivationConfirmBtn');
+        if (confirmBtn) {
+            confirmBtn.onclick = () => _doSendActivationLink(_activationTargetId);
+        }
+        if (modal) {
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                if (content) content.classList.remove('scale-95');
+            });
+        }
+    }
+    window.openSendActivationModal = openSendActivationModal;
+
+    window.closeSendActivationModal = function () {
+        const modal = document.getElementById('sendActivationModal');
+        const content = document.getElementById('sendActivationModalContent');
+        if (modal) {
+            modal.classList.add('opacity-0');
+            if (content) content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 200);
+        }
+        _activationTargetId = null;
+    };
+
+    async function _doSendActivationLink(id) {
+        window.closeSendActivationModal();
+        const confirmBtn = document.getElementById('sendActivationConfirmBtn');
+        if (confirmBtn) { confirmBtn.disabled = true; }
         try {
             const res = await fetch(`/api/admin/users/${id}/resend-activation`, {
                 method: 'POST',
@@ -846,7 +886,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.error(e);
             showToast('Network error', 'error');
+        } finally {
+            if (confirmBtn) { confirmBtn.disabled = false; }
         }
+    }
+
+    function sendActivationLink(id) {
+        openSendActivationModal(id);
     }
     window.sendActivationLink = sendActivationLink;
 
