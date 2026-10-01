@@ -58,6 +58,7 @@ try:
         sync_collection_wise_average_delivery_days_task,
         sync_party_design_average_delivery_days_task,
         sync_party_performance_matrix_task,
+        sync_party_order_accept_cancel_delivery_task,
         sync_location_wise_old_gold_settlement_transfer_task,
         sync_weekly_delivery_order_summary_task,
         sync_party_make_capacity_details_task,
@@ -222,6 +223,8 @@ def process_sync_queue():
                         res = sync_party_design_average_delivery_days_task()
                     elif task_type == 'party_performance_matrix':
                         res = sync_party_performance_matrix_task()
+                    elif task_type == 'party_order_accept_cancel_delivery':
+                        res = sync_party_order_accept_cancel_delivery_task()
                     elif task_type == 'location_wise_old_gold_settlement_transfer':
                         res = sync_location_wise_old_gold_settlement_transfer_task()
                     elif task_type == 'weekly_delivery_order_summary':

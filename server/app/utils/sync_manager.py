@@ -67,6 +67,7 @@ ALLOWED_SYNC_TASKS = {
     'size_level_nip_barcode',
     'collection_wise_average_delivery_days',
     'party_design_average_delivery_days',
+    'party_order_accept_cancel_delivery',
     'party_performance_matrix',
     'location_wise_old_gold_settlement_transfer',
     'weekly_delivery_order_summary',
@@ -234,6 +235,10 @@ def sync_party_design_average_delivery_days_data(user_id=None):
 
 def sync_party_performance_matrix_data(user_id=None):
     return enqueue_sync_task('party_performance_matrix', user_id)
+
+
+def sync_party_order_accept_cancel_delivery_data(user_id=None):
+    return enqueue_sync_task('party_order_accept_cancel_delivery', user_id)
 
 
 def sync_location_wise_old_gold_settlement_transfer_data(user_id=None):

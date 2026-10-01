@@ -482,6 +482,22 @@
                                     </button>
                                 </div>
 
+                                <div id="sync-wrapper-party_order_accept_cancel_delivery"
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
+                                    <div class="flex items-center gap-4">
+                                        <span class="material-symbols-outlined text-blue-600 text-xl">local_shipping</span>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Party Order Acceptance, Cancellation &amp; Delivery Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Refresh only the acceptance, cancellation and delivery snapshot</p>
+                                        </div>
+                                    </div>
+                                    <button id="sync-party-order-accept-cancel-delivery-btn"
+                                        data-sync-url="{{ url_for('dashboard.settings_sync_party_order_accept_cancel_delivery') }}"
+                                        class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-blue-700 transition-all">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>Sync Now
+                                    </button>
+                                </div>
+
                                 <div id="sync-wrapper-party_performance_matrix"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">

@@ -4571,6 +4571,15 @@ def sync_party_design_average_delivery_days_task(task_type_override=None, progre
     )
 
 
+def sync_party_order_accept_cancel_delivery_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+    specs = tuple(spec for spec in PARTY_PERFORMANCE_SYNC_SPECS
+                  if spec['model'] is PartyOrderAcceptCancelDeliverySnapshot)
+    return _sync_party_performance_specs(
+        specs, task_type_override or 'party_order_accept_cancel_delivery',
+        progress_range, is_subtask,
+    )
+
+
 def sync_party_performance_matrix_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
     return _sync_party_performance_specs(
         PARTY_PERFORMANCE_SYNC_SPECS,

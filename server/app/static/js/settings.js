@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn,
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn,
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
-                            syncCollectionWiseAverageDeliveryDaysBtn, syncSalesStockCompositionAnalysisBtn, syncCustomerOrderAnalysisBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn,
+                            syncCollectionWiseAverageDeliveryDaysBtn, syncSalesStockCompositionAnalysisBtn, syncCustomerOrderAnalysisBtn, syncPartyPerformanceMatrixBtn, syncPartyOrderAcceptCancelDeliveryBtn, syncLocationWiseOldGoldBtn,
                             syncWeeklyDeliveryOrderSummaryBtn, syncPartyMakeCapacityDetailsBtn
                         ].forEach(btn => {
                             if (btn && btn.disabled && data.type && btn.closest(`[id="sync-wrapper-${data.type}"]`)) resetSyncBtn(btn);
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn,
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn,
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
-                            syncCollectionWiseAverageDeliveryDaysBtn, syncPartyPerformanceMatrixBtn, syncLocationWiseOldGoldBtn,
+                            syncCollectionWiseAverageDeliveryDaysBtn, syncPartyPerformanceMatrixBtn, syncPartyOrderAcceptCancelDeliveryBtn, syncLocationWiseOldGoldBtn,
                             syncWeeklyDeliveryOrderSummaryBtn, syncPartyMakeCapacityDetailsBtn
                         ].forEach(btn => {
                             if (btn && btn.disabled && data.type && btn.closest(`[id="sync-wrapper-${data.type}"]`)) resetSyncBtn(btn);
@@ -198,6 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncSalesStockCompositionAnalysisBtn = document.getElementById('sync-sales-stock-composition-analysis-btn');
     const syncCustomerOrderAnalysisBtn = document.getElementById('sync-customer-order-analysis-btn');
     const syncPartyPerformanceMatrixBtn = document.getElementById('sync-party-performance-matrix-btn');
+    const syncPartyOrderAcceptCancelDeliveryBtn = document.getElementById('sync-party-order-accept-cancel-delivery-btn');
     const syncLocationWiseOldGoldBtn = document.getElementById('sync-location-wise-old-gold-btn');
     const syncWeeklyDeliveryOrderSummaryBtn = document.getElementById('sync-weekly-delivery-order-summary-btn');
     const syncPartyMakeCapacityDetailsBtn = document.getElementById('sync-party-make-capacity-details-btn');
@@ -270,6 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncSalesStockCompositionAnalysisBtn) syncSalesStockCompositionAnalysisBtn.addEventListener('click', () => triggerSync(syncSalesStockCompositionAnalysisBtn, window.SETTINGS_CONFIG.syncSalesStockCompositionAnalysisUrl || '/api/sync/sales-stock-composition-analysis', 'Sales & Stock Composition Analysis Sync', 'sales_stock_composition_analysis'));
     if (syncCustomerOrderAnalysisBtn) syncCustomerOrderAnalysisBtn.addEventListener('click', () => triggerSync(syncCustomerOrderAnalysisBtn, window.SETTINGS_CONFIG.syncCustomerOrderAnalysisUrl || '/api/sync/customer-order-analysis', 'Customer Order Pending Analysis Sync', 'customer_order_analysis'));
     if (syncPartyPerformanceMatrixBtn) syncPartyPerformanceMatrixBtn.addEventListener('click', () => triggerSync(syncPartyPerformanceMatrixBtn, window.SETTINGS_CONFIG.syncPartyPerformanceMatrixUrl, 'Party Performance Matrix Sync', 'party_performance_matrix'));
+    if (syncPartyOrderAcceptCancelDeliveryBtn) syncPartyOrderAcceptCancelDeliveryBtn.addEventListener('click', () => triggerSync(syncPartyOrderAcceptCancelDeliveryBtn, syncPartyOrderAcceptCancelDeliveryBtn.dataset.syncUrl, 'Party Order Acceptance, Cancellation & Delivery Sync', 'party_order_accept_cancel_delivery'));
     if (syncLocationWiseOldGoldBtn) syncLocationWiseOldGoldBtn.addEventListener('click', () => triggerSync(syncLocationWiseOldGoldBtn, window.SETTINGS_CONFIG.syncLocationWiseOldGoldSettlementTransferUrl, 'Location-wise Old Gold Settlement & Transfer Sync', 'location_wise_old_gold_settlement_transfer'));
     if (syncWeeklyDeliveryOrderSummaryBtn) syncWeeklyDeliveryOrderSummaryBtn.addEventListener('click', () => triggerSync(syncWeeklyDeliveryOrderSummaryBtn, window.SETTINGS_CONFIG.syncWeeklyDeliveryOrderSummaryUrl, 'Weekly Delivery Order Summary Sync', 'weekly_delivery_order_summary'));
     if (syncPartyMakeCapacityDetailsBtn) syncPartyMakeCapacityDetailsBtn.addEventListener('click', () => triggerSync(syncPartyMakeCapacityDetailsBtn, window.SETTINGS_CONFIG.syncPartyMakeCapacityDetailsUrl, 'Supplier Capacity & Backlog Analysis Sync', 'party_make_capacity_details'));
