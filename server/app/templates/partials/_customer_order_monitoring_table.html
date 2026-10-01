@@ -1,0 +1,46 @@
+{% set owners = [('Business Head','business_head_name'),('Shop Manager','shop_manger'),('Make Owner','make_owner'),('Collection Owner','collection_wner'),('Classification Owner','classification_owner')] %}
+<table class="party-matrix-table monitor-table">
+    <thead><tr class="party-matrix-group-head">
+        <th colspan="3">Delivery Urgency</th><th colspan="3">Order Information</th><th colspan="2">Location &amp; Product</th><th colspan="3">Outstanding Position</th><th colspan="2">Responsibility</th><th>Order Status</th>
+    </tr><tr>
+        {% for key,label in [('priority','Priority'),('expected_delivery_date','Expected Delivery'),('','Days Remaining'),('request_no','Request Number'),('sooc','SOOC'),('request_date','Request Date'),('location','RO / Location'),('','Division / Collection'),('','Pending Stages'),('total_pending_pcs','Production Pending Pcs'),('total_pending_wt','Production Pending Wt (g)'),('','Responsible Person'),('party_name','Party / Supplier'),('customer_order_status','Customer Order Status')] %}
+        <th>{% if key %}<button data-sort="{{ key }}" title="Sort by {{ label }}">{{ label }} <span aria-hidden="true">&#8597;</span></button>{% else %}{{ label }}{% endif %}</th>
+        {% endfor %}
+    </tr></thead>
+    <tbody>
+    {% for r in rows %}
+    <tr>
+        <td><button class="monitor-expand" data-detail="monitor-detail-{{ r.id }}" aria-expanded="false" aria-controls="monitor-detail-{{ r.id }}" title="Expand order details"><span class="material-symbols-outlined">add_circle</span><span class="monitor-priority {{ r._risk }}">{{ r._risk if r._risk != 'inactive' else r._classification }}</span></button></td>
+        <td>{{ r._due or 'N/A' }}</td><td>{{ r._days if r._days is not none else 'N/A' }}</td>
+        <td>{{ r.request_no or 'N/A' }}</td><td>{{ r.sooc or 'N/A' }}</td><td>{{ r.request_date or 'N/A' }}</td>
+        <td>{{ r.order_ro or '-' }}<br>{{ r.location or '-' }}</td><td>{{ r.division or '-' }}<br>{{ r.collection or '-' }}</td>
+        <td>{% for key,label,prefix in stages if key in r._stages %}<div>{{ label }}</div>{% else %}{{ r._classification }}{% endfor %}</td>
+        <td>{{ '{:,.0f}'.format(r.total_pending_pcs or 0) }}</td><td>{{ '{:,.3f}'.format(r.total_pending_wt or 0) }}</td>
+        <td>
+            <button type="button" class="monitor-owner-button" data-owners="monitor-owners-{{ r.id }}" aria-haspopup="dialog" title="View responsible persons"><span class="material-symbols-outlined" aria-hidden="true">groups</span>View Details</button>
+            <template id="monitor-owners-{{ r.id }}">
+                <p class="monitor-owner-reference">Request: {{ r.request_no or 'N/A' }} / SOOC: {{ r.sooc or 'N/A' }}</p>
+                <dl>{% for label,field in owners %}<dt>{{ label }}</dt><dd>{{ r[field] or 'Not assigned' }}</dd>{% endfor %}</dl>
+            </template>
+        </td>
+        <td>{{ r.party_name or 'N/A' }}</td><td>{{ r.customer_order_status or r._classification }}</td>
+    </tr>
+    <tr id="monitor-detail-{{ r.id }}" hidden class="monitor-detail"><td colspan="14">
+        <div class="monitor-detail-grid">
+        {% for title,fields in [
+            ('Order Details',[('Request Number','request_no'),('Request Date','request_date'),('Request Type','request_type'),('SOOC','sooc'),('Customer Order Type','customer_order_type')]),
+            ('Location',[('State','state'),('Regional Office','order_ro'),('Location','location'),('Branch Type','branch_type')]),
+            ('Product',[('Division','division'),('Group','group'),('Section','section'),('Classification','classification'),('Make','make'),('Collection','collection'),('Purity','purity')]),
+            ('Weight (g)',[('Gross','gross_weight'),('Stone','stone_weight'),('Other','other_weight'),('Net','net_weight')]),
+            ('Party',[('Party Name','party_name'),('Party Code','party_code'),('Party Type','party_type'),('PO Number','po_number'),('PO Date','po_date')]),
+            ('Responsibility',owners)
+        ] %}
+        <section><h3>{{ title }}</h3><dl>{% for label,field in fields %}<dt>{{ label }}</dt><dd>{{ r[field] if r[field] is not none else '-' }}</dd>{% endfor %}</dl></section>
+        {% endfor %}
+        <section><h3>Outstanding</h3><dl>{% for key,label,prefix in stages if key in r._stages %}<dt>{{ label }}</dt><dd>{{ r[prefix ~ '_pcs'] or 0 }} pcs / {{ '%.3f'|format(r[prefix ~ '_wt'] or 0) }} g</dd>{% endfor %}</dl></section>
+        <section><h3>Delivery</h3><dl><dt>Expected Delivery</dt><dd>{{ r._due or 'N/A' }}</dd><dt>Days Remaining</dt><dd>{{ r._days if r._days is not none else 'N/A' }}</dd><dt>Overdue Days</dt><dd>{{ [0, -(r._days or 0)]|max if r._due else 'N/A' }}</dd><dt>Request Risk Date</dt><dd>{{ r._request_due or 'N/A' }}</dd><dt>Order Status</dt><dd>{{ r.order_status or 'Unclassified' }}</dd><dt>Customer Order Status</dt><dd>{{ r.customer_order_status or '-' }}</dd><dt>Receipt Status</dt><dd>{{ r.customer_order_receipt_status or '-' }}</dd></dl></section>
+        </div>
+    </td></tr>
+    {% else %}<tr><td colspan="14" class="monitor-empty">No customer orders match these filters.</td></tr>{% endfor %}
+    </tbody>
+</table>

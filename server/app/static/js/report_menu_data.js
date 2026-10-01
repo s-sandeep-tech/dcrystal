@@ -70,6 +70,14 @@ window.REPORT_MENU_DATA = [
                 tags: ["location", "make", "pending", "order", "summary", "stages"]
             },
             {
+                id: "customer-order-performance-monitoring",
+                title: "Customer Order Performance & Delivery Monitoring",
+                href: "/customer-order-performance-monitoring",
+                icon: "assignment",
+                description: "Customer order stages, branch outstanding and delivery urgency.",
+                tags: ["customer", "delivery", "performance", "monitoring", "orders"]
+            },
+            {
                 id: "customer-order-analysis",
                 title: "Customer Order Pending Analysis Report",
                 href: "/customer-order-analysis",
