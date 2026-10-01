@@ -505,6 +505,36 @@ def resend_user_verification(user_id):
     db.session.commit()
     return jsonify({"msg": f"Verification email sent to {user.email}."}), 200
 
+
+@admin_rbac_bp.route('/users/<int:user_id>/resend-activation', methods=['POST'])
+@jwt_required()
+def resend_activation_link(user_id):
+    """Send (or re-send) an activation link to any user. Restricted to SUPER_ADMIN."""
+    actor = db.session.get(User, int(get_jwt_identity()))
+    if not is_super_admin(actor):
+        return jsonify({"msg": "Only SUPER_ADMIN can send activation links."}), 403
+
+    user = User.query.get_or_404(user_id)
+    verification_token = issue_verification_token(user)
+    db.session.commit()
+
+    try:
+        send_verification_email(user, verification_token)
+    except Exception as exc:
+        current_app.logger.error("Failed to send activation email for user %s: %s", user.id, exc)
+        return jsonify({"msg": "Activation email could not be sent. Check SMTP configuration."}), 502
+
+    log_audit(
+        get_jwt_identity(),
+        "RESEND_ACTIVATION_LINK",
+        "USER",
+        user.id,
+        {"username": user.username, "email": user.email},
+    )
+    db.session.commit()
+    return jsonify({"msg": f"Activation link sent to {user.email}."}), 200
+
+
 @admin_rbac_bp.route('/users/<int:user_id>/force-password-reset', methods=['POST'])
 @jwt_required()
 @require_role(['ADMIN', 'PASSWORD_RESET'])

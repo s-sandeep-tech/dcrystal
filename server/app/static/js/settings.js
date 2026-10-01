@@ -649,8 +649,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
                 <td class="px-4 py-3 text-gray-400 whitespace-nowrap">${new Date(u.created_at).toLocaleDateString()}</td>
                 <td class="px-4 py-3 text-right whitespace-nowrap">
-                    ${u.is_admin ? '<span class="text-gray-300 p-1 opacity-20" title="Admin password cannot be reset through user management"><span class="material-symbols-outlined text-[16px]">lock</span></span>' : `
-                        <button onclick="openChangePasswordModal(${u.id})" class="text-gray-400 hover:text-amber-500 transition-colors p-1" title="Change Password"><span class="material-symbols-outlined text-[16px]">key</span></button>
+                    ${window.SETTINGS_CONFIG.isSuperAdmin ? `<button onclick="sendActivationLink(${u.id})" class="text-gray-400 hover:text-teal-500 transition-colors p-1" title="Send Activation Link"><span class="material-symbols-outlined text-[16px]">mark_email_unread</span></button>` : ''}
+                    ${u.is_admin ? '<span class="text-gray-300 p-1 opacity-20 ml-1" title="Admin password cannot be reset through user management"><span class="material-symbols-outlined text-[16px]">lock</span></span>' : `
+                        <button onclick="openChangePasswordModal(${u.id})" class="text-gray-400 hover:text-amber-500 transition-colors p-1 ml-1" title="Change Password"><span class="material-symbols-outlined text-[16px]">key</span></button>
                         <button onclick="openForceResetModal(${u.id})" class="text-gray-400 hover:text-orange-500 transition-colors p-1 ml-1" title="Force Password Reset"><span class="material-symbols-outlined text-[16px]">lock_reset</span></button>
                     `}
                     ${(u.failed_attempt_count > 0 || u.lockout_until) ? `<button onclick="clearUserLockout(${u.id})" class="text-gray-400 hover:text-green-500 transition-colors p-1 ml-1" title="Clear Lockout"><span class="material-symbols-outlined text-[16px]">restart_alt</span></button>` : ''}
@@ -831,6 +832,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     window.resendUserVerification = resendUserVerification;
+
+    async function sendActivationLink(id) {
+        if (!confirm('Send a new activation link to this user? A fresh verification email will be dispatched to their registered address.')) return;
+        try {
+            const res = await fetch(`/api/admin/users/${id}/resend-activation`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+            });
+            const data = await res.json();
+            showToast(data.msg || 'Unable to send activation link', res.ok ? 'success' : 'error');
+            if (res.ok) fetchUsers(userCurrentPage);
+        } catch (e) {
+            console.error(e);
+            showToast('Network error', 'error');
+        }
+    }
+    window.sendActivationLink = sendActivationLink;
 
     window.openChangePasswordModal = function (id) {
         const user = gManagedUsers.find(u => u.id === id);

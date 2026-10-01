@@ -125,6 +125,17 @@ class SuperAdminTests(unittest.TestCase):
         db.session.commit()
         self.assertEqual(self.call('SUPER_ADMIN', 'POST', '/api/admin/roles', {'name': 'OTHER'}).status_code, 403)
 
+    def test_resend_activation_super_admin_only(self):
+        target = self.users['READER'].id
+        # Non-SUPER_ADMIN (even ADMIN) gets 403
+        self.assertEqual(self.call('ADMIN', 'POST', f'/api/admin/users/{target}/resend-activation').status_code, 403)
+        self.assertEqual(self.call('READER', 'POST', f'/api/admin/users/{target}/resend-activation').status_code, 403)
+        # SUPER_ADMIN succeeds (email send mocked)
+        with patch('app.api.admin_rbac.send_verification_email'):
+            resp = self.call('SUPER_ADMIN', 'POST', f'/api/admin/users/{target}/resend-activation')
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn('Activation link sent', resp.get_json()['msg'])
+
 
 if __name__ == '__main__':
     unittest.main()
