@@ -13,6 +13,14 @@ const reportFilters = {
     provision_type: 'filter-provision-type'
 };
 
+function partyOrderRequestOptions() {
+    const token = localStorage.getItem('access_token');
+    return {
+        credentials: 'same-origin',
+        headers: token && token !== 'null' && token !== 'undefined' ? { Authorization: `Bearer ${token}` } : {}
+    };
+}
+
 function adjustZoom(delta, reset = false) {
     const tableArea = document.getElementById('table-area');
     if (!tableArea) return;
@@ -37,9 +45,7 @@ async function loadViewData() {
     params.set('page', currentPage.toString());
 
     try {
-        const response = await fetch(`/partial/party-order-accept-cancel-delivery-performance?${params.toString()}`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-        });
+        const response = await fetch(`/partial/party-order-accept-cancel-delivery-performance?${params.toString()}`, partyOrderRequestOptions());
         if (!response.ok) throw new Error(await response.text());
         container.innerHTML = await response.text();
         hydrateReportMetadata(container);
@@ -187,9 +193,7 @@ async function togglePartyOrderRow(button, party) {
     params.set('parent_party', party || '');
 
     try {
-        const response = await fetch(`/partial/party-order-accept-cancel-delivery-performance?${params.toString()}`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-        });
+        const response = await fetch(`/partial/party-order-accept-cancel-delivery-performance?${params.toString()}`, partyOrderRequestOptions());
         if (!response.ok) throw new Error('Failed to load make rows');
 
         const template = document.createElement('template');
