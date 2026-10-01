@@ -23,16 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const values = (params.get(key) || '').split(',');
             if (!selects[key]) {
                 selects[key] = new CustomMultiSelect({containerId: container.id, label: container.dataset.label,
-                    defaultText: `All ${container.dataset.label}`, options: data[key] || [],
-                    onChange: () => {
-                        if (key === 'state' || key === 'order_ro') {
-                            collect();
-                            params.delete('location');
-                            if (key === 'state') params.delete('order_ro');
-                            params.set('page', '1');
-                            load();
-                        }
-                    }});
+                    defaultText: `All ${container.dataset.label}`, options: data[key] || []});
             } else selects[key].populateOptions(data[key] || []);
             container.querySelectorAll('input[type=checkbox]').forEach(cb => { cb.checked = values.includes(cb.value); });
             selects[key].updateTriggerText();
@@ -109,7 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function load() {
         controller?.abort();
         controller = new AbortController();
-        el('loading').hidden = false;
+        el('loading-overlay').hidden = false;
+        el('error').textContent = '';
         const spinner = document.createElement('span');
         spinner.className = 'monitor-spinner';
         spinner.setAttribute('aria-hidden', 'true');
@@ -138,11 +130,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }).join(' | ');
             el('clear').hidden = !['stage', 'branch', 'risk'].some(k => params.has(k));
             buildCharts(); heatmap();
-            el('loading').hidden = true;
+            el('loading-overlay').hidden = true;
             el('table').setAttribute('aria-busy', 'false');
         } catch (error) {
             if (error.name === 'AbortError') return;
-            el('loading').textContent = error.message;
+            el('loading-overlay').hidden = true;
+            el('error').textContent = error.message;
             el('retry').hidden = false;
             el('table').setAttribute('aria-busy', 'false');
         }

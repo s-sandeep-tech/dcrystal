@@ -6,8 +6,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
 {% block content %}
-<main id="customer-monitor" class="party-matrix-page flex-1 overflow-y-auto bg-[#f5f7fa] dark:bg-background-dark">
-    <header class="party-matrix-header">
+<main id="customer-monitor" class="party-matrix-page flex-1 flex flex-col min-h-0 overflow-hidden bg-[#f5f7fa] dark:bg-background-dark">
+    <header class="party-matrix-header shrink-0">
         <div class="party-matrix-title-row"><span class="material-symbols-outlined">assignment</span>
             <h1>Customer Order Performance &amp; Delivery Monitoring</h1></div>
         <div class="party-matrix-header-actions">
@@ -18,47 +18,54 @@
             {% endif %}
         </div>
     </header>
-    <section class="party-matrix-kpis" aria-label="Order summary">
-        {% for key, label, icon, color in [
-            ('orders','Total Customer Orders','receipt_long','blue'),
-            ('items','Total Order Items','inventory_2','indigo'),
-            ('pieces','Production Pending Pieces','pending_actions','cyan'),
-            ('weight','Production Pending Weight (g)','scale','green'),
-            ('overdue','Overdue Orders','event_busy','amber'),
-            ('approval','Approval Pending Pieces','approval','violet')
-        ] %}
-        <div class="party-matrix-kpi"><span class="material-symbols-outlined kpi-{{ color }}">{{ icon }}</span><div><small>{{ label }}</small><strong id="monitor-stat-{{ key }}">&mdash;</strong></div></div>
-        {% endfor %}
-    </section>
-    <div class="monitor-status"><span id="monitor-loading" role="status"><span class="monitor-spinner"></span>Loading customer orders...</span><button id="monitor-retry" hidden>Retry</button></div>
-    <div id="monitor-warnings" role="status"></div>
-    <section class="party-matrix-charts">
-        <article class="party-matrix-chart-panel party-matrix-chart-wide">
-            <div class="party-matrix-panel-heading"><h2>Stage-wise Outstanding</h2><select id="monitor-stage-measure" aria-label="Stage chart measure"><option value="pcs">Pieces</option><option value="wt">Weight (g)</option></select></div>
-            <div class="party-matrix-chart"><canvas id="monitor-stages" aria-label="Stage-wise outstanding"></canvas></div>
-        </article>
-        <article class="party-matrix-chart-panel">
-            <div class="party-matrix-panel-heading monitor-heat-heading">
-                <h2 title="Branch / Production Stage">Branch / Production Stage</h2>
-                <div class="monitor-heat-controls">
-                <select id="monitor-heat-measure" aria-label="Heatmap measure"><option value="pcs">Pieces</option><option value="wt">Weight (g)</option></select>
-                <select id="monitor-heat-sort" aria-label="Heatmap sort"><option value="pending">Highest Pending</option><option value="branch">Branch A-Z</option></select>
-                </div>
-            </div>
-            <div id="monitor-heatmap" class="monitor-heatmap" tabindex="0" aria-label="Branch pending heatmap"></div>
-        </article>
-        <article class="party-matrix-chart-panel">
-            <div class="party-matrix-panel-heading"><h2>Delivery Risk Analysis</h2><span class="material-symbols-outlined">schedule</span></div>
-            <div class="party-matrix-chart"><canvas id="monitor-risk" aria-label="Outstanding requests by delivery risk"></canvas></div>
-        </article>
-    </section>
-    <section class="party-matrix-table-panel" aria-label="Urgent Customer Order Matrix">
-        <div class="party-matrix-table-toolbar"><div><h2>Urgent Customer Order Matrix</h2><span id="monitor-count"></span></div>
-            <label>Rows <select id="monitor-size"><option>25</option><option>50</option><option>100</option></select></label></div>
-        <div class="monitor-selections"><span id="monitor-selections"></span><button id="monitor-clear" hidden>Clear Chart Selections</button></div>
-        <div id="monitor-table" class="party-matrix-table-scroll" aria-busy="true"></div>
-        <footer class="party-matrix-pagination"><span id="monitor-page"></span><div><button id="monitor-prev" title="Previous page" aria-label="Previous page"><span class="material-symbols-outlined">chevron_left</span></button><button id="monitor-next" title="Next page" aria-label="Next page"><span class="material-symbols-outlined">chevron_right</span></button></div></footer>
-    </section>
+    <div class="monitor-content-area flex-1 min-h-0 relative flex flex-col">
+        <div id="monitor-loading-overlay" aria-live="polite">
+            <div id="monitor-loading" role="status"><span class="monitor-spinner" aria-hidden="true"></span>Loading customer orders...</div>
+        </div>
+        <div class="monitor-content-scroll flex-1 min-h-0 overflow-y-auto">
+            <section class="party-matrix-kpis" aria-label="Order summary">
+                {% for key, label, icon, color in [
+                    ('orders','Total Customer Orders','receipt_long','blue'),
+                    ('items','Total Order Items','inventory_2','indigo'),
+                    ('pieces','Production Pending Pieces','pending_actions','cyan'),
+                    ('weight','Production Pending Weight (g)','scale','green'),
+                    ('overdue','Overdue Orders','event_busy','amber'),
+                    ('approval','Approval Pending Pieces','approval','violet')
+                ] %}
+                <div class="party-matrix-kpi"><span class="material-symbols-outlined kpi-{{ color }}">{{ icon }}</span><div><small>{{ label }}</small><strong id="monitor-stat-{{ key }}">&mdash;</strong></div></div>
+                {% endfor %}
+            </section>
+            <div class="monitor-status"><span id="monitor-error" role="alert"></span><button id="monitor-retry" hidden>Retry</button></div>
+            <div id="monitor-warnings" role="status"></div>
+            <section class="party-matrix-charts">
+                <article class="party-matrix-chart-panel party-matrix-chart-wide">
+                    <div class="party-matrix-panel-heading"><h2>Stage-wise Outstanding</h2><select id="monitor-stage-measure" aria-label="Stage chart measure"><option value="pcs">Pieces</option><option value="wt">Weight (g)</option></select></div>
+                    <div class="party-matrix-chart"><canvas id="monitor-stages" aria-label="Stage-wise outstanding"></canvas></div>
+                </article>
+                <article class="party-matrix-chart-panel">
+                    <div class="party-matrix-panel-heading monitor-heat-heading">
+                        <h2 title="Branch / Production Stage">Branch / Production Stage</h2>
+                        <div class="monitor-heat-controls">
+                        <select id="monitor-heat-measure" aria-label="Heatmap measure"><option value="pcs">Pieces</option><option value="wt">Weight (g)</option></select>
+                        <select id="monitor-heat-sort" aria-label="Heatmap sort"><option value="pending">Highest Pending</option><option value="branch">Branch A-Z</option></select>
+                        </div>
+                    </div>
+                    <div id="monitor-heatmap" class="monitor-heatmap" tabindex="0" aria-label="Branch pending heatmap"></div>
+                </article>
+                <article class="party-matrix-chart-panel">
+                    <div class="party-matrix-panel-heading"><h2>Delivery Risk Analysis</h2><span class="material-symbols-outlined">schedule</span></div>
+                    <div class="party-matrix-chart"><canvas id="monitor-risk" aria-label="Outstanding requests by delivery risk"></canvas></div>
+                </article>
+            </section>
+            <section class="party-matrix-table-panel" aria-label="Urgent Customer Order Matrix">
+                <div class="party-matrix-table-toolbar"><div><h2>Urgent Customer Order Matrix</h2><span id="monitor-count"></span></div>
+                    <label>Rows <select id="monitor-size"><option>25</option><option>50</option><option>100</option></select></label></div>
+                <div class="monitor-selections"><span id="monitor-selections"></span><button id="monitor-clear" hidden>Clear Chart Selections</button></div>
+                <div id="monitor-table" class="party-matrix-table-scroll" aria-busy="true"></div>
+                <footer class="party-matrix-pagination"><span id="monitor-page"></span><div><button id="monitor-prev" title="Previous page" aria-label="Previous page"><span class="material-symbols-outlined">chevron_left</span></button><button id="monitor-next" title="Next page" aria-label="Next page"><span class="material-symbols-outlined">chevron_right</span></button></div></footer>
+            </section>
+        </div>
+    </div>
     <dialog id="monitor-owners-dialog" aria-labelledby="monitor-owners-title">
         <header><h2 id="monitor-owners-title">Responsible Persons</h2><button type="button" id="monitor-owners-close" aria-label="Close responsible persons" title="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></header>
         <div id="monitor-owners-content"></div>
