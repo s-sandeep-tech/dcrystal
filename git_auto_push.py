@@ -2,30 +2,30 @@
 """
 git_auto_push.py
 ================
-Detects local git changes and unpushed commits, uses a local on-device LLM
-(via LiteRTAgent & Gemma 4 on Apple Silicon) to generate concise, contextual
-Conventional Commit messages, and pushes changes to the remote repository.
+Detects local git changes and unpushed commits, uses a lightweight local on-device
+Gemma model via LiteRT-LM (e.g. gemma-4b / gemma2-9b on Apple Silicon) to generate
+concise, contextual Conventional Commit messages, and pushes changes to the remote repository.
 
 Usage:
     python3 git_auto_push.py [OPTIONS]
 
 Options:
-    --all, -a            Stage changes, generate commit via LiteRTAgent, and push
+    --all, -a            Stage changes, generate commit via local Gemma, and push
     --detect, -d         Only detect and display status & unpushed commits
     --commit, -c         Stage and commit changes
     --push, -p           Push unpushed commits to remote
     --message, -m MSG    Custom commit message (overrides local LLM)
-    --no-llm             Use fast rule-based commit generator instead of local LiteRT LLM
-    --model-path PATH    Path to local .litertlm model file
+    --model MODEL        Name of LiteRT model to use (default: auto-detected, e.g. gemma-4b or gemma2-9b)
+    --no-llm             Skip local LLM and use fast rule-based message generator
     --remote REMOTE      Remote name (default: origin)
     --dry-run            Simulate operations without modifying git or pushing
     --yes, -y            Skip confirmation prompts
 """
 
 import argparse
-import asyncio
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -40,12 +40,12 @@ BOLD = "\033[1m"
 DIM = "\033[2m"
 RESET = "\033[0m"
 
-DEFAULT_MODEL_PATH = os.path.expanduser("~/.litert-lm/models/gemma4-26b/model.litertlm")
 WORKSPACE_DIR = os.path.dirname(os.path.abspath(__file__))
+LITERT_MODELS_DIR = os.path.expanduser("~/.litert-lm/models")
 
 
 def run_git(args: List[str], cwd: Optional[str] = None, check: bool = True) -> Tuple[int, str, str]:
-    """Execute a git command and return (exit_code, stdout, stderr) preserving line-leading spaces."""
+    """Execute a git command and return (exit_code, stdout, stderr) preserving output formatting."""
     try:
         res = subprocess.run(
             ["git"] + args,
@@ -55,7 +55,6 @@ def run_git(args: List[str], cwd: Optional[str] = None, check: bool = True) -> T
             text=True,
             check=check,
         )
-        # Note: rstrip only trailing whitespace to preserve porcelain indentation
         stdout = res.stdout.rstrip("\r\n") if res.stdout else ""
         stderr = res.stderr.rstrip("\r\n") if res.stderr else ""
         return res.returncode, stdout, stderr
@@ -117,14 +116,12 @@ def get_git_status() -> Dict[str, List[str]]:
     return changes
 
 
-def get_diff_summary(max_diff_lines: int = 150) -> str:
+def get_diff_summary(max_diff_lines: int = 80) -> str:
     """Fetch git diff summary and capped diff text for LLM context."""
-    # Staged or unstaged diff stat
     _, stat_out, _ = run_git(["diff", "HEAD", "--stat"], check=False)
     if not stat_out:
         _, stat_out, _ = run_git(["diff", "--stat"], check=False)
 
-    # Detailed patch, capped to avoid context overflow
     _, diff_out, _ = run_git(["diff", "HEAD"], check=False)
     if not diff_out:
         _, diff_out, _ = run_git(["diff"], check=False)
@@ -172,89 +169,53 @@ def get_unpushed_commits(remote: str, branch: str) -> List[Dict[str, str]]:
     return commits
 
 
-def fallback_rule_based_commit_message(changes: Dict[str, List[str]]) -> str:
-    """Fast rule-based commit message generator when LLM is skipped."""
-    all_files = set()
-    for file_list in changes.values():
-        all_files.update(file_list)
+def resolve_local_model(requested_model: Optional[str] = None) -> Optional[str]:
+    """Find the best matching local LiteRT-LM model."""
+    if requested_model:
+        # Check direct model directory or file
+        if os.path.exists(os.path.join(LITERT_MODELS_DIR, requested_model)) or os.path.exists(requested_model):
+            return requested_model
 
-    if not all_files:
-        return "chore: update local files"
+    # Check preferred lightweight models
+    candidates = ["gemma2-9b", "gemma-4b", "gemma-12b", "gemma-e4b"]
+    for c in candidates:
+        if os.path.exists(os.path.join(LITERT_MODELS_DIR, c)):
+            return c
 
-    scopes = set()
-    is_doc = True
-    is_fix = False
-    is_test = False
+    # Fallback to any directory in models dir that is not the heavy 26b
+    if os.path.exists(LITERT_MODELS_DIR):
+        for entry in os.listdir(LITERT_MODELS_DIR):
+            if "26b" not in entry.lower() and os.path.isdir(os.path.join(LITERT_MODELS_DIR, entry)):
+                return entry
 
-    for f in all_files:
-        parts = Path(f).parts
-        if len(parts) > 1:
-            scopes.add(parts[0])
-        else:
-            scopes.add(parts[0].split(".")[0])
-
-        lower = f.lower()
-        if not (lower.endswith(".md") or "doc" in lower):
-            is_doc = False
-        if "test" in lower:
-            is_test = True
-        if any(keyword in lower for keyword in ["fix", "bug", "patch"]):
-            is_fix = True
-
-    if is_doc:
-        commit_type = "docs"
-    elif is_test and len(all_files) <= 2:
-        commit_type = "test"
-    elif is_fix:
-        commit_type = "fix"
-    else:
-        if changes["untracked"] and not changes["modified"] and not changes["staged"]:
-            commit_type = "feat"
-        else:
-            commit_type = "feat" if any("routes" in f or "api" in f or "app" in f for f in all_files) else "chore"
-
-    scope_str = ""
-    if len(scopes) == 1:
-        scope_str = f"({list(scopes)[0]})"
-    elif 1 < len(scopes) <= 2:
-        scope_str = f"({','.join(sorted(scopes))})"
-
-    file_count = len(all_files)
-    sample_files = [Path(f).name for f in list(all_files)[:3]]
-    sample_desc = ", ".join(sample_files)
-    if file_count > 3:
-        sample_desc += f" and {file_count - 3} other(s)"
-
-    action = "update"
-    if changes["untracked"] and not changes["modified"]:
-        action = "add"
-    elif changes["deleted"] and not changes["modified"] and not changes["untracked"]:
-        action = "remove"
-
-    return f"{commit_type}{scope_str}: {action} {sample_desc}"
+    return requested_model
 
 
-async def generate_commit_with_local_llm(
+def generate_commit_with_local_llm(
     changes: Dict[str, List[str]],
     diff_context: str,
-    model_path: str,
+    model_name: str,
 ) -> Optional[str]:
     """
-    Invokes the local LiteRTAgent (on-device Gemma 4 26B) to inspect changes
-    and generate a high quality Conventional Commit message.
+    Invokes the local LiteRT-LM CLI (e.g. gemma-4b / gemma2-9b)
+    to generate a concise Conventional Commit message.
     """
-    if not os.path.exists(model_path):
-        print(f"{YELLOW}Warning: Local model not found at {model_path}. Using rule-based fallback.{RESET}")
-        return None
+    litert_bin = shutil.which("litert-lm")
+    if not litert_bin:
+        # Check standard user paths
+        candidate_paths = [
+            os.path.expanduser("~/.pyenv/shims/litert-lm"),
+            os.path.expanduser("~/.local/bin/litert-lm"),
+            "/usr/local/bin/litert-lm",
+        ]
+        for p in candidate_paths:
+            if os.path.exists(p):
+                litert_bin = p
+                break
 
-    try:
-        from google.antigravity import Agent, LiteRTAgentConfig
-        from google.antigravity.hooks import policy
-    except ImportError as e:
-        print(f"{YELLOW}Warning: google.antigravity package not installed ({e}). Using rule-based fallback.{RESET}")
+    if not litert_bin:
+        print(f"{YELLOW}Warning: 'litert-lm' CLI not found. Falling back to rule-based generator.{RESET}")
         return None
-
-    print(f"{CYAN}Generating commit message with local LLM (LiteRTAgent on Apple Silicon)...{RESET}")
 
     files_list = []
     for category, filepaths in changes.items():
@@ -264,47 +225,100 @@ async def generate_commit_with_local_llm(
 
     prompt = (
         "You are an expert Git commit message generator.\n"
-        "Analyze the following changed files and diff from the repository.\n"
-        "Write a concise, standard Conventional Commit message in imperative mood.\n"
-        "Format: <type>(<optional-scope>): <summary subject line under 72 chars>\n"
-        "Examples:\n"
-        "- feat(auth): add token refresh endpoint\n"
-        "- fix(routes): resolve stock calculation discrepancy\n"
-        "- chore: update deployment configuration\n\n"
+        "Analyze the following changed files and diff.\n"
+        "Write a single concise Conventional Commit message in imperative mood (under 72 chars).\n"
+        "Format: <type>(<scope>): <summary>\n"
+        "Types: feat, fix, refactor, style, docs, chore, test.\n"
         f"Changed files:\n{changed_files_str}\n\n"
         f"{diff_context}\n\n"
-        "CRITICAL INSTRUCTION: Output ONLY the commit message itself on a single line. "
-        "Do NOT include explanations, markdown code blocks, quotes, or preamble."
+        "CRITICAL: Output ONLY the commit message itself on one line. No markdown, no quotes, no explanation."
     )
 
+    print(f"{CYAN}Generating commit message with local Gemma ({model_name})...{RESET}")
     try:
-        config = LiteRTAgentConfig(
-            model_path=model_path,
-            workspaces=[WORKSPACE_DIR],
-            policies=[policy.allow_all()],
-        ).lightweight()
+        res = subprocess.run(
+            [litert_bin, "run", model_name, "--prompt", prompt],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=30,
+        )
+        if res.returncode != 0:
+            print(f"{YELLOW}Local model inference returned non-zero code: {res.stderr.strip()}{RESET}")
+            return None
 
-        async with Agent(config) as agent:
-            response = await agent.chat(prompt)
-            full_response = ""
-            async for token in response:
-                full_response += token
+        output = res.stdout.strip()
+        lines = [line.strip() for line in output.splitlines() if line.strip()]
 
-            raw = full_response.strip()
-            # Clean up potential markdown formatting or quotes
-            clean_msg = re.sub(r"^```[a-zA-Z]*\n?", "", raw)
-            clean_msg = re.sub(r"\n?```$", "", clean_msg).strip()
-            clean_msg = clean_msg.strip('"\'`')
+        # Filter out informational engine lines (e.g. "Using model's default backend: gpu")
+        filtered_lines = [
+            l for l in lines
+            if not l.lower().startswith("using model")
+            and not l.lower().startswith("[enter]")
+            and not l.startswith(">")
+        ]
 
-            # Extract the first non-empty line as commit subject
-            lines = [l.strip() for l in clean_msg.splitlines() if l.strip()]
-            if lines:
-                return lines[0]
-            return clean_msg if clean_msg else None
+        if not filtered_lines:
+            return None
 
-    except Exception as ex:
-        print(f"{YELLOW}Local LiteRTAgent error: {ex}. Falling back to rule-based generator.{RESET}")
+        raw = filtered_lines[0]
+        # Clean up markdown quotes or code fences
+        clean = re.sub(r"^```[a-zA-Z]*\n?", "", raw)
+        clean = re.sub(r"\n?```$", "", clean).strip()
+        clean = clean.strip('"\'`')
+
+        return clean if clean else None
+
+    except subprocess.TimeoutExpired:
+        print(f"{YELLOW}Local model inference timed out. Using fallback generator.{RESET}")
         return None
+    except Exception as ex:
+        print(f"{YELLOW}Local LLM error: {ex}. Using fallback generator.{RESET}")
+        return None
+
+
+def generate_fallback_commit_message(changes: Dict[str, List[str]]) -> str:
+    """Fast rule-based commit message generator when LLM is unavailable."""
+    all_files = []
+    for file_list in changes.values():
+        all_files.extend(file_list)
+
+    if not all_files:
+        return "chore: update project files"
+
+    scopes = set()
+    for fp in all_files:
+        p = Path(fp)
+        name = p.stem.lower()
+        if "party_order" in name or "party_order" in fp:
+            scopes.add("party-order")
+        elif "settings" in name:
+            scopes.add("settings")
+        elif "user" in name or "rbac" in fp:
+            scopes.add("users")
+        elif len(p.parts) > 1:
+            scopes.add(p.parts[0].lower().replace("_", "-"))
+        else:
+            scopes.add(name.replace("_", "-"))
+
+    scope_str = f"({list(scopes)[0]})" if scopes else ""
+
+    if all(f.endswith(".md") for f in all_files):
+        commit_type = "docs"
+        desc = "update documentation"
+    elif all("test" in f.lower() for f in all_files):
+        commit_type = "test"
+        desc = "update tests"
+    elif changes["untracked"] and not changes["modified"]:
+        commit_type = "feat"
+        desc = f"add {Path(all_files[0]).name}"
+    else:
+        commit_type = "feat" if any("template" in f or "api" in f for f in all_files) else "refactor"
+        desc = f"update {Path(all_files[0]).name}"
+        if len(all_files) > 1:
+            desc += f" and {len(all_files) - 1} other file(s)"
+
+    return f"{commit_type}{scope_str}: {desc}"
 
 
 def print_detection_report(
@@ -313,7 +327,7 @@ def print_detection_report(
     unpushed_commits: List[Dict[str, str]],
     remote: str,
 ):
-    print(f"\n{BOLD}{CYAN}=== Git Local Status & Commit Detector ==={RESET}")
+    print(f"\n{BOLD}{CYAN}=== Git Status & Local LLM Commit Helper ==={RESET}")
     print(f"Current Branch: {BOLD}{GREEN}{branch}{RESET}")
     print(f"Remote:         {CYAN}{remote}{RESET}\n")
 
@@ -351,15 +365,15 @@ def ask_confirmation(prompt: str) -> bool:
         return False
 
 
-async def main():
+def main():
     parser = argparse.ArgumentParser(
-        description="Detect local git changes, generate commits via local LiteRTAgent, and push to remote.",
+        description="Local git helper: detect changes, auto-generate commit messages via local Gemma, and push.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "--all", "-a",
         action="store_true",
-        help="Full workflow: auto-stage, commit with LiteRTAgent generated message, and push",
+        help="Full workflow: auto-stage, commit with local Gemma generated message, and push",
     )
     parser.add_argument(
         "--detect", "-d",
@@ -380,18 +394,18 @@ async def main():
         "--message", "-m",
         type=str,
         default=None,
-        help="Custom commit message (overrides local LLM generation)",
+        help="Custom commit message (overrides local LLM)",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="LiteRT-LM model identifier (e.g. gemma2-9b, gemma-4b)",
     )
     parser.add_argument(
         "--no-llm",
         action="store_true",
-        help="Skip local LiteRTAgent LLM and use fast rule-based message generation",
-    )
-    parser.add_argument(
-        "--model-path",
-        type=str,
-        default=DEFAULT_MODEL_PATH,
-        help=f"Path to LiteRT model (default: {DEFAULT_MODEL_PATH})",
+        help="Skip local Gemma model and use fast rule-based message generator",
     )
     parser.add_argument(
         "--remote",
@@ -402,7 +416,7 @@ async def main():
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Simulate the operations without executing commit or push",
+        help="Simulate operations without executing commit or push",
     )
     parser.add_argument(
         "--yes", "-y",
@@ -464,17 +478,20 @@ async def main():
             commit_msg = args.message
             if not commit_msg:
                 if not args.no_llm:
-                    diff_ctx = get_diff_summary()
-                    commit_msg = await generate_commit_with_local_llm(changes, diff_ctx, args.model_path)
+                    model_to_use = resolve_local_model(args.model)
+                    if model_to_use:
+                        diff_ctx = get_diff_summary()
+                        commit_msg = generate_commit_with_local_llm(changes, diff_ctx, model_to_use)
+
                 if not commit_msg:
-                    commit_msg = fallback_rule_based_commit_message(changes)
+                    commit_msg = generate_fallback_commit_message(changes)
 
             print(f"\n{BOLD}Commit Message:{RESET} {GREEN}'{commit_msg}'{RESET}")
 
             if args.dry_run:
                 print(f"{YELLOW}[Dry-Run] Would run: git add -A && git commit -m \"{commit_msg}\"{RESET}")
             else:
-                if not args.yes and not args.all:
+                if not args.yes and not args.all and not args.message:
                     if not ask_confirmation("Proceed with this commit message?"):
                         custom = input("Enter custom commit message (leave blank to abort): ").strip()
                         if not custom:
@@ -483,8 +500,8 @@ async def main():
                         commit_msg = custom
 
                 # Stage all changes
-                print(f"Staging changes: {CYAN}git add -A{RESET}")
-                code, _, err = run_git(["add", "-A"], check=False)
+                print("Staging all changes...")
+                code, out, err = run_git(["add", "-A"], check=False)
                 if code != 0:
                     print(f"{RED}Failed to stage changes: {err}{RESET}")
                     sys.exit(1)
@@ -501,11 +518,14 @@ async def main():
 
     # 3. Push to Remote
     if do_push:
-        if not unpushed_commits:
+        simulated_commit_pending = args.dry_run and do_commit and (total_uncommitted > 0)
+
+        if not unpushed_commits and not simulated_commit_pending:
             print(f"{CYAN}No unpushed commits detected. Nothing to push.{RESET}")
             return
 
-        print(f"\n{BOLD}Ready to push {len(unpushed_commits)} commit(s) to '{args.remote}/{branch}'.{RESET}")
+        commit_count = len(unpushed_commits) + (1 if simulated_commit_pending else 0)
+        print(f"\n{BOLD}Ready to push {commit_count} commit(s) to '{args.remote}/{branch}'.{RESET}")
 
         if args.dry_run:
             print(f"{YELLOW}[Dry-Run] Would run: git push -u {args.remote} {branch}{RESET}")
@@ -532,6 +552,6 @@ async def main():
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        main()
     except KeyboardInterrupt:
         print("\nProcess interrupted by user.")
