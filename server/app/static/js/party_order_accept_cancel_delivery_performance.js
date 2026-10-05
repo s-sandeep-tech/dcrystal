@@ -212,8 +212,42 @@ async function togglePartyOrderRow(button, party) {
     }
 }
 
+function togglePartyOrderFilters() {
+    const sidebar = document.getElementById('party-order-sidebar');
+    const button = document.getElementById('party-order-filter-toggle');
+    if (!sidebar) return;
+    const isHidden = sidebar.classList.contains('hidden') || sidebar.style.display === 'none';
+    if (isHidden) {
+        sidebar.classList.remove('hidden');
+        sidebar.style.display = '';
+        if (button) {
+            button.setAttribute('aria-expanded', 'true');
+            button.setAttribute('aria-label', 'Hide filters');
+            button.title = 'Hide filters';
+            button.classList.add('text-primary');
+            button.classList.remove('text-gray-400');
+        }
+        localStorage.setItem('party-order-filter-hidden', 'false');
+    } else {
+        sidebar.classList.add('hidden');
+        sidebar.style.display = 'none';
+        if (button) {
+            button.setAttribute('aria-expanded', 'false');
+            button.setAttribute('aria-label', 'Show filters');
+            button.title = 'Show filters';
+            button.classList.remove('text-primary');
+            button.classList.add('text-gray-400');
+        }
+        localStorage.setItem('party-order-filter-hidden', 'true');
+    }
+}
+window.togglePartyOrderFilters = togglePartyOrderFilters;
+
 document.addEventListener('DOMContentLoaded', () => {
     adjustZoom(0);
+    if (localStorage.getItem('party-order-filter-hidden') === 'true') {
+        togglePartyOrderFilters();
+    }
     const container = document.getElementById('view-party-order');
     if (container) hydrateReportMetadata(container);
 });
