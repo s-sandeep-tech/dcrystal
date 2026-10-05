@@ -107,6 +107,8 @@
 
 {% if not is_child_rows %}
     </tbody>
+    {% set total_report_rows = pagination.total if pagination else rows|length %}
+    {% if total_report_rows > 1 %}
     <tfoot class="bg-gray-50 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700 font-bold sticky bottom-0 z-10">
         {% for metric_key, metric_label, metric_color in metric_rows %}
         <tr>
@@ -133,6 +135,7 @@
         </tr>
         {% endfor %}
     </tfoot>
+    {% endif %}
 </table>
 
 <script id="stats-metadata" type="application/json">{{ stats|tojson }}</script>

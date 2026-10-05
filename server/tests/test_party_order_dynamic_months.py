@@ -65,3 +65,35 @@ class DynamicMonthsTests(unittest.TestCase):
                 self.assertEqual(build_month_totals(filters)[1]['ordered']['wt'], 99)
                 child_rows, _ = build_matrix(filters, 'make', 1, 50, parent_party='Supplier B', paginate=False)
                 self.assertEqual(child_rows[0]['make'], 'Make B')
+
+    def test_grand_total_hidden_when_one_row(self):
+        import os
+        from flask import render_template
+        self.app.template_folder = os.path.abspath('server/app/templates')
+
+        # 1 row in report: Grand Total footer must be hidden
+        html_one_row = render_template(
+            'partials/_view_party_order_accept_cancel_delivery_performance.html',
+            is_child_rows=False,
+            rows=[{'level': 'party', 'party': 'P1', 'months': {}, 'total': {'ordered': {'wt': 10, 'pcs': 1}, 'accepted': {'wt': 0, 'pcs': 0}, 'cancelled': {'wt': 0, 'pcs': 0}, 'delivered': {'wt': 0, 'pcs': 0}}}],
+            months=[], month_totals={},
+            grand_total={'ordered': {'wt': 10, 'pcs': 1}, 'accepted': {'wt': 0, 'pcs': 0}, 'cancelled': {'wt': 0, 'pcs': 0}, 'delivered': {'wt': 0, 'pcs': 0}},
+            pagination=type('P', (), {'total': 1, 'page': 1, 'pages': 1, 'per_page': 50})(),
+            current_level='party', sort_by='party', sort_dir='asc', stats={},
+        )
+        self.assertNotIn('Grand Total</td>', html_one_row)
+
+        # 2 rows in report: Grand Total footer must be displayed
+        html_two_rows = render_template(
+            'partials/_view_party_order_accept_cancel_delivery_performance.html',
+            is_child_rows=False,
+            rows=[
+                {'level': 'party', 'party': 'P1', 'months': {}, 'total': {'ordered': {'wt': 10, 'pcs': 1}, 'accepted': {'wt': 0, 'pcs': 0}, 'cancelled': {'wt': 0, 'pcs': 0}, 'delivered': {'wt': 0, 'pcs': 0}}},
+                {'level': 'party', 'party': 'P2', 'months': {}, 'total': {'ordered': {'wt': 20, 'pcs': 2}, 'accepted': {'wt': 0, 'pcs': 0}, 'cancelled': {'wt': 0, 'pcs': 0}, 'delivered': {'wt': 0, 'pcs': 0}}},
+            ],
+            months=[], month_totals={},
+            grand_total={'ordered': {'wt': 30, 'pcs': 3}, 'accepted': {'wt': 0, 'pcs': 0}, 'cancelled': {'wt': 0, 'pcs': 0}, 'delivered': {'wt': 0, 'pcs': 0}},
+            pagination=type('P', (), {'total': 2, 'page': 1, 'pages': 1, 'per_page': 50})(),
+            current_level='party', sort_by='party', sort_dir='asc', stats={},
+        )
+        self.assertIn('Grand Total</td>', html_two_rows)
