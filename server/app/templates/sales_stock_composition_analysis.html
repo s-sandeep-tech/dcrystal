@@ -122,8 +122,8 @@
         class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
             <span class="material-symbols-outlined text-[14px]">info</span>
-            <span>FY-to-cutoff sales with cutoff-date provision valued at purchase board rate. Turnover is annualised.
-                Missing, non-positive or conflicting rates show N/A for value turnover.</span>
+            <span>FY-to-latest-sales-date sales with provision summed across all dates at purchase board rate.
+                Missing or non-positive rates show N/A for value turnover.</span>
         </div>
 
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
@@ -186,13 +186,6 @@
                 class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
         </div>
         <div class="space-y-4">
-            <!-- Source Date -->
-            <div class="space-y-1.5">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Source Date</label>
-                <select id="filter-date" name="date"
-                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2 text-gray-700 dark:text-gray-200 font-medium"></select>
-            </div>
-
             <!-- Location (Multi-select) -->
             <div id="filter-location-container"></div>
 

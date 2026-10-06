@@ -20,7 +20,6 @@ let searchTimeout = null;
 let appliedCompositionParams = new URLSearchParams();
 
 let filterValues = {
-    date: '',
     location: '',
     section: '',
     classification: '',
@@ -78,9 +77,6 @@ function onSearchInput(val) {
 }
 
 function collectFilterValues() {
-    const dateSelect = document.getElementById('filter-date');
-    filterValues.date = dateSelect ? dateSelect.value : '';
-
     filterValues.location = locationMultiSelect ? locationMultiSelect.getValues().join(',') : '';
     filterValues.section = sectionMultiSelect ? sectionMultiSelect.getValues().join(',') : '';
     filterValues.classification = classificationMultiSelect ? classificationMultiSelect.getValues().join(',') : '';
@@ -91,7 +87,6 @@ function buildRequestParams() {
     collectFilterValues();
     const params = new URLSearchParams();
 
-    if (filterValues.date) params.set('date', filterValues.date);
     for (const [key, control] of [['branch_id', locationMultiSelect], ['section', sectionMultiSelect], ['classification', classificationMultiSelect]]) {
         for (const value of control?.getValues() || []) params.append(key, value);
     }
@@ -115,17 +110,6 @@ async function initFilters() {
         if (!response.ok) return;
 
         const data = await response.json();
-
-        // 1. Source Date
-        const dateSelect = document.getElementById('filter-date');
-        if (dateSelect && Array.isArray(data.dates)) {
-            dateSelect.innerHTML = '';
-            data.dates.forEach(d => dateSelect.add(new Option(d, d)));
-            if (dateSelect.options.length > 0) {
-                dateSelect.options[0].defaultSelected = true;
-                filterValues.date = dateSelect.options[0].value;
-            }
-        }
 
         // 2. Location MultiSelect
         locationMultiSelect = new CustomMultiSelect({
@@ -160,7 +144,6 @@ async function loadReportData() {
     const container = document.getElementById('view-sales-stock-composition-analysis');
     const tableArea = document.getElementById('table-area');
     const progressBar = document.getElementById('report-progress');
-    const dateDisplay = document.getElementById('selected-source-date-display');
     const fyFactorLabel = document.getElementById('fy-factor-label');
 
     if (!container) return;
@@ -204,10 +187,6 @@ async function loadReportData() {
             resetTopStats();
         }
 
-        const dateSelect = document.getElementById('filter-date');
-        if (dateDisplay && dateSelect) {
-            dateDisplay.textContent = dateSelect.value || 'SNAPSHOT';
-        }
 
         // Re-apply search filter if user already typed
         const searchInput = document.getElementById('report-search');
@@ -342,11 +321,6 @@ function resetFilters() {
     if (locationMultiSelect) locationMultiSelect.reset();
     if (sectionMultiSelect) sectionMultiSelect.reset();
     if (classificationMultiSelect) classificationMultiSelect.reset();
-
-    const dateSelect = document.getElementById('filter-date');
-    if (dateSelect && dateSelect.options.length > 0) {
-        dateSelect.selectedIndex = 0;
-    }
 
     const searchInput = document.getElementById('report-search');
     if (searchInput) searchInput.value = '';

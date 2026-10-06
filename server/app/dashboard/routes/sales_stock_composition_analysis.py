@@ -32,9 +32,8 @@ def sales_composition_contributors():
         path = json.loads(request.args.get('path', '[]'))
         if not isinstance(path, list) or len(path) > len(HIERARCHY) or not all(isinstance(v, str) for v in path):
             return jsonify(error='Invalid hierarchy path'), 400
-        cutoff = date.fromisoformat(request.args['date']) if request.args.get('date') else None
         selections = {k: request.args.getlist(k) for k in FILTERS if request.args.getlist(k)}
-        return jsonify(composition_analysis_data(cutoff, selections, path, contributors=True))
+        return jsonify(composition_analysis_data(None, selections, path, contributors=True))
     except (ValueError, TypeError):
         return jsonify(error='Invalid chart filters'), 400
     except Exception:
@@ -88,12 +87,6 @@ def sales_stock_composition_analysis_page():
 @require_report_access(ROUTE_URL)
 def get_sales_stock_composition_analysis_partial():
     try:
-        date_str = request.args.get('date', '').strip()
-        if date_str:
-            cutoff = date.fromisoformat(date_str)
-        else:
-            cutoff = db.session.query(func.max(S.date)).scalar()
-
         selections = {}
         for k in FILTERS:
             vals = request.args.getlist(k)
@@ -105,7 +98,7 @@ def get_sales_stock_composition_analysis_partial():
         path_str = request.args.get('path', '[]')
         path = json.loads(path_str) if path_str else []
 
-        data = composition_analysis_data(cutoff, selections, path=path)
+        data = composition_analysis_data(None, selections, path=path)
 
         return render_template(
             'partials/_view_sales_stock_composition_analysis.html',
@@ -117,7 +110,6 @@ def get_sales_stock_composition_analysis_partial():
             factor=data.get('factor', 1.0),
             fy_label=data.get('fy_label', 'FY'),
             path=path,
-            cutoff=cutoff,
             search=request.args.get('search', '')
         )
     except Exception as e:
@@ -138,12 +130,6 @@ def get_sales_stock_composition_analysis_partial():
 @require_report_access(ROUTE_URL)
 def get_sales_stock_composition_analysis_branch():
     try:
-        date_str = request.args.get('date', '').strip()
-        if date_str:
-            cutoff = date.fromisoformat(date_str)
-        else:
-            cutoff = db.session.query(func.max(S.date)).scalar()
-
         path_str = request.args.get('path', '[]')
         path = json.loads(path_str) if path_str else []
 
@@ -155,7 +141,7 @@ def get_sales_stock_composition_analysis_branch():
             if vals:
                 selections[k] = vals
 
-        data = composition_analysis_data(cutoff, selections, path=path)
+        data = composition_analysis_data(None, selections, path=path)
 
         return render_template(
             'partials/_view_sales_stock_composition_analysis_branch.html',
@@ -176,8 +162,6 @@ def get_sales_stock_composition_analysis_branch():
 @require_report_access(ROUTE_URL)
 def sales_stock_composition_analysis_options():
     try:
-        dates = [r[0].isoformat() for r in db.session.query(S.date).filter(S.date.isnot(None)).distinct().order_by(S.date.desc())]
-        
         locations = [
             {'value': str(r[0]), 'label': r[1] or str(r[0])}
             for r in db.session.query(S.branch_id, func.max(S.location_name))
@@ -190,7 +174,6 @@ def sales_stock_composition_analysis_options():
         classifications = [r[0] for r in db.session.query(dimension('classification')).distinct().order_by(dimension('classification')) if r[0]]
         
         return jsonify({
-            'dates': dates,
             'locations': locations,
             'sections': sections,
             'classifications': classifications
@@ -198,7 +181,7 @@ def sales_stock_composition_analysis_options():
     except Exception as e:
         logger.exception("Error fetching sales_stock_composition_analysis options: %s", str(e))
         db.session.rollback()
-        return jsonify({'dates': [], 'locations': [], 'sections': [], 'classifications': []})
+        return jsonify({'locations': [], 'sections': [], 'classifications': []})
 
 
 @dashboard_bp.route('/api/sync/sales-stock-composition-analysis', methods=['POST'])
@@ -220,6 +203,7 @@ def export_sales_stock_composition_analysis():
         from app.utils.export_service import create_export_job
         data = request.get_json() or {}
         filters = data.get('filters', {})
+        filters.pop('date', None)
         socket_id = data.get('socket_id')
         user_id = get_jwt_identity()
 

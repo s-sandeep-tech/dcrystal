@@ -76,6 +76,29 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
         self.assertEqual(self.client.post('/api/sync/sales-stock-composition-analysis',
                                           headers=self.headers()).status_code, 403)
 
+    def test_date_filter_is_removed_from_options_and_report_requests(self):
+        self.role.menus.append(Menu(title='Sales & Stock Composition', url='/sales-stock-composition-analysis'))
+        db.session.commit()
+        options = self.client.get('/api/sales-stock-composition-analysis/options',
+                                  headers=self.headers()).get_json()
+        self.assertNotIn('dates', options)
+        result = {'rows': [], 'stats': {}, 'total': None, 'items': []}
+        for endpoint in [
+            '/partial/sales-stock-composition-analysis',
+            '/partial/sales-stock-composition-analysis/branch',
+            '/api/sales-stock-composition-analysis/contributors',
+        ]:
+            with self.subTest(endpoint=endpoint), patch(
+                'app.dashboard.routes.sales_stock_composition_analysis.render_template',
+                return_value='report',
+            ), patch(
+                'app.dashboard.routes.sales_stock_composition_analysis.composition_analysis_data',
+                return_value=result,
+            ) as calculate:
+                response = self.client.get(endpoint + '?date=2026-01-01', headers=self.headers())
+                self.assertEqual(response.status_code, 200)
+                self.assertIsNone(calculate.call_args.args[0])
+
     def test_admin_and_sync_role(self):
         for role in ['ADMIN', 'DATA_SYNC_USER']:
             self.role.name = role
