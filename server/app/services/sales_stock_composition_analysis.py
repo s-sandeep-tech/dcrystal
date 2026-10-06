@@ -63,9 +63,6 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
     factor, inclusive_fy_days, inclusive_elapsed_days, fy_label = calculate_fy_factor(source_date)
     fy_start = date(source_date.year if source_date.month >= 4 else source_date.year - 1, 4, 1) if source_date else None
 
-    base = db.session.query(S)
-    base = base.filter(S.date == source_date) if source_date else base.filter(False)
-
     dims = [dimension(k).label(k) for k in HIERARCHY]
 
     # Filter base query by selections
@@ -103,26 +100,20 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
                 'net_weight': float(positive_total or 0) + float(negative_total or 0),
                 'cutoff': source_date.isoformat() if source_date else None}
 
-    # Deduplicated stock subquery per (branch_id, item_definition_id)
-    provision = func.max(func.coalesce(S.provision_weight, 0))
-    # Repeated transaction rows must agree on a positive cutoff-date rate.
-    valid_rate = (
-        (func.count(S.purchase_board_rate) == func.count())
-        & (func.min(S.purchase_board_rate) > 0)
-        & (func.min(S.purchase_board_rate) == func.max(S.purchase_board_rate))
-    )
+    # Provision includes every matching row across all dates, including repeats.
+    provision = func.coalesce(S.provision_weight, 0)
     provision_value = case(
         (provision == 0, 0),
-        (valid_rate, provision * func.max(S.purchase_board_rate)),
+        (S.purchase_board_rate > 0, provision * S.purchase_board_rate),
         else_=None,
     )
-    stocks_q = base.with_entities(
+    stocks_q = db.session.query(
         S.branch_id.label('branch_id'),
         S.item_definition_id.label('item_definition_id'),
-        *[func.max(d).label(k) for k, d in zip(HIERARCHY, dims)],
+        *dims,
         provision.label('provision'),
         provision_value.label('provision_value'),
-    ).group_by(S.branch_id, S.item_definition_id).subquery()
+    ).subquery()
 
     stock_filtered = db.session.query(stocks_q)
     for name in FILTERS:

@@ -124,6 +124,51 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
         empty = composition_analysis_data(None, {'branch_id': ['99']}, [], contributors=True)
         self.assertEqual(empty['items'], [])
 
+    def test_provision_sums_repeated_rows_across_all_dates(self):
+        for row_id, row_date, section, provision, rate, branch in [
+            (1, date(2026, 3, 31), 'CHAIN', 10, 2, 2),
+            (2, date(2026, 9, 25), 'CHAIN', 10, 3, 2),
+            (3, date(2026, 9, 25), 'CHAIN', 10, 3, 2),
+            (4, date(2026, 10, 1), 'BANGLE', 20, 4, 2),
+            (5, date(2026, 9, 25), 'CHAIN', 999, 2, 3),
+        ]:
+            db.session.add(Snapshot(
+                id=row_id, date=row_date, branch_id=branch, item_definition_id=1,
+                section=section, trans_type='INVOICE', gross_weight=1,
+                turn_over=10, provision_weight=provision, purchase_board_rate=rate,
+            ))
+        db.session.commit()
+
+        data = composition_analysis_data(date(2026, 9, 25), {'branch_id': ['2']})
+        self.assertEqual(data['stats']['provision_weight'], 50)
+        self.assertEqual(data['stats']['sales_weight'], 2)
+        self.assertEqual(data['total']['provision_value'], 160)
+        self.assertEqual(sum(row['stock_weight'] for row in data['rows']), 50)
+        chain = next(row for row in data['rows'] if row['label'] == 'CHAIN')
+        self.assertEqual(chain['stock_weight'], 30)
+        self.assertEqual(chain['stock_composition'], 60)
+        self.assertAlmostEqual(chain['weight_turn'], 2 * data['factor'] / 30)
+        self.assertAlmostEqual(chain['value_turn'], 20 * data['factor'] / 80)
+
+        filtered = composition_analysis_data(date(2026, 9, 25),
+            {'branch_id': ['2'], 'section': ['BANGLE']})
+        self.assertEqual(filtered['stats']['provision_weight'], 20)
+        self.assertEqual(filtered['rows'][0]['stock_composition'], 100)
+
+    def test_missing_rate_does_not_hide_provision_weight(self):
+        db.session.add_all([
+            Snapshot(id=1, date=date(2026, 9, 25), branch_id=2,
+                section='CHAIN', trans_type='INVOICE', provision_weight=10,
+                purchase_board_rate=2),
+            Snapshot(id=2, date=date(2026, 10, 1), branch_id=2,
+                section='CHAIN', provision_weight=5, purchase_board_rate=None),
+        ])
+        db.session.commit()
+        data = composition_analysis_data(date(2026, 9, 25), {'branch_id': ['2']})
+        self.assertEqual(data['stats']['provision_weight'], 15)
+        self.assertIsNone(data['total']['provision_value'])
+        self.assertIsNone(data['total']['value_turn'])
+
 
 class TSKBarTests(unittest.TestCase):
     def test_signed_zero_missing_and_overflow(self):
