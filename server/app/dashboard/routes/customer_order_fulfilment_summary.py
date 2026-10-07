@@ -112,7 +112,7 @@ def format_display_label(field_name, val):
     if val is None:
         return 'Unknown'
     val_str = str(val).strip()
-    if field_name == 'report_month':
+    if field_name == 'report_month' or (len(val_str) == 7 and val_str[:4].isdigit() and val_str[4] == '-' and val_str[5:7].isdigit()):
         try:
             parts = val_str.split('-')
             if len(parts) == 2 and len(parts[0]) == 4 and len(parts[1]) in (1, 2):
@@ -624,13 +624,14 @@ def customer_order_fulfilment_summary_partial():
         processed_rows = []
         for r in pagination.items:
             val = r[0]
-            label = str(val) if val is not None else 'Unknown'
+            raw_val = str(val) if val is not None else 'Unknown'
+            display_label = format_display_label(levels[0]['field'], val)
             processed_rows.append({
-                'label': label,
+                'label': display_label,
                 'level_idx': 0,
                 'level_name': levels[0]['label'],
                 'level_icon': levels[0]['icon'],
-                'path': [label],
+                'path': [raw_val],
                 'is_leaf': is_leaf,
                 'ord_wt': float(r.ord_wt or 0), 'ord_pcs': int(r.ord_pcs or 0),
                 'rej_wt': float(r.rej_wt or 0), 'rej_pcs': int(r.rej_pcs or 0),
