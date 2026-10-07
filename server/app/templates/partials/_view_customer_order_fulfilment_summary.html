@@ -21,13 +21,13 @@
         {% endif %}
 
         {% for r in rows %}
-        <tr class="parent-row hover:bg-blue-50/30 group animate-fade-in"
+        <tr class="{% if is_child_rows %}child-row {% endif %}parent-row hover:bg-blue-50/30 group animate-fade-in"
             data-level="{{ r.level_idx }}"
-            data-path="{{ r.path|tojson }}">
+            data-path="{{ r.path|tojson|forceescape }}">
             <td class="text-center px-0">
                 {% if not r.is_leaf %}
                 <button
-                    onclick="toggleFulfilmentRow(this, {{ r.level_idx }}, {{ r.path|tojson }})"
+                    onclick="toggleFulfilmentRow(this)"
                     class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none"
                     title="Expand {{ r.label }}">
                     <span class="material-symbols-outlined text-[14px]">add_circle</span>
@@ -122,6 +122,13 @@
         {% if not rows and not is_child_rows %}
         <tr>
             <td colspan="13" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
+        </tr>
+        {% elif not rows and is_child_rows %}
+        <tr class="child-row italic text-gray-400 bg-gray-50/50" data-level="{{ current_level_idx|default(1) }}">
+            <td class="text-center px-0"><span class="material-symbols-outlined text-[8px] text-gray-300">remove</span></td>
+            <td colspan="12" class="px-3 py-2 text-[9px] text-gray-400" style="padding-left: {{ ((current_level_idx|default(1)) * 16) }}px">
+                No sub-items found
+            </td>
         </tr>
         {% endif %}
 

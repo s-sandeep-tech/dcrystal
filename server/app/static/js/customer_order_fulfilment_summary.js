@@ -137,17 +137,20 @@ function updateHeaderStats(stats) {
 }
 
 // Tree-Grid Toggle Action for dynamic hierarchies
-async function toggleFulfilmentRow(btn, levelIdx, path) {
+async function toggleFulfilmentRow(btn) {
     const tr = btn.closest('tr');
     if (!tr) return;
 
+    const levelIdx = parseInt(tr.dataset.level, 10);
     const icon = btn.querySelector('.material-symbols-outlined');
-    const isExpanded = icon.textContent === 'remove_circle';
+    if (!icon) return;
+
+    const isExpanded = icon.textContent.trim() === 'remove_circle';
 
     if (isExpanded) {
         let nextTr = tr.nextElementSibling;
-        while (nextTr) {
-            const nextLevel = parseInt(nextTr.dataset.level);
+        while (nextTr && nextTr.dataset.level !== undefined) {
+            const nextLevel = parseInt(nextTr.dataset.level, 10);
             if (isNaN(nextLevel) || nextLevel <= levelIdx) break;
 
             const toRemove = nextTr;
@@ -159,41 +162,44 @@ async function toggleFulfilmentRow(btn, levelIdx, path) {
     } else {
         icon.textContent = 'hourglass_empty';
 
+        let path = [];
+        try {
+            path = JSON.parse(tr.dataset.path || tr.getAttribute('data-path') || '[]');
+        } catch (e) {
+            console.error('Error parsing row path:', e, tr.dataset.path);
+        }
+
         try {
             const urlParams = new URLSearchParams(window.location.search);
             const params = new URLSearchParams(urlParams);
             params.set('parent_level', levelIdx);
             params.set('parent_path', JSON.stringify(path));
 
+            const headers = {};
+            const token = localStorage.getItem('access_token');
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             const response = await fetch(`/partial/customerorderfulfilmentsummary?${params.toString()}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-                }
+                headers: headers
             });
 
             if (!response.ok) throw new Error("Failed to load children");
             const html = await response.text();
 
-            const template = document.createElement('template');
-            template.innerHTML = html.trim();
-            const newRows = template.content.querySelectorAll('tr');
-
-            let referenceNode = tr;
-            newRows.forEach(newRow => {
-                newRow.classList.add('child-row', 'animate-fade-in');
-                referenceNode.parentNode.insertBefore(newRow, referenceNode.nextSibling);
-                referenceNode = newRow;
-            });
+            if (html && html.trim()) {
+                tr.insertAdjacentHTML('afterend', html);
+            }
 
             icon.textContent = 'remove_circle';
             tr.classList.add('bg-blue-50/50');
 
         } catch (e) {
             console.error('Failed to toggle row:', e);
-            icon.textContent = 'error';
+            icon.textContent = 'add_circle';
         }
     }
 }
+window.toggleFulfilmentRow = toggleFulfilmentRow;
 
 function changeHierarchy(hierarchyId) {
     const urlParams = new URLSearchParams(window.location.search);

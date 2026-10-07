@@ -266,9 +266,9 @@
         </div>
 
         <div class="space-y-3">
-            <!-- 1. Month -->
+            <!-- Month -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">1. Month</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Month</label>
                 <select id="filter-report-month" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Months</option>
                     {% for m in filter_options.report_months %}
@@ -277,16 +277,16 @@
                 </select>
             </div>
 
-            <!-- 2. Date -->
+            <!-- Date -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">2. Date</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Date</label>
                 <input type="date" id="filter-report-date" value="{{ request.args.get('report_date', '') }}"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
             </div>
 
-            <!-- 3. Current Stage -->
+            <!-- Current Stage -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">3. Current Stage</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Current Stage</label>
                 <select id="filter-current-stage" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Stages</option>
                     {% for stg in filter_options.current_stages %}
@@ -295,9 +295,9 @@
                 </select>
             </div>
 
-            <!-- 4. Order Ageing Days -->
+            <!-- Order Ageing Days -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">4. Order Ageing Days</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Order Ageing Days</label>
                 <select id="filter-order-ageing-days" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Ageing</option>
                     <option value="0-7" {% if request.args.get('order_ageing_days') == '0-7' %}selected{% endif %}>0 - 7 Days</option>
@@ -308,9 +308,9 @@
                 </select>
             </div>
 
-            <!-- 5. Delivery Delay Days -->
+            <!-- Delivery Delay Days -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">5. Delivery Delay Days</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Delivery Delay Days</label>
                 <select id="filter-delivery-delay-days" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Delays</option>
                     <option value="0" {% if request.args.get('delivery_delay_days') == '0' %}selected{% endif %}>No Delay (On Time)</option>
@@ -321,9 +321,9 @@
                 </select>
             </div>
 
-            <!-- 6. Delay Status -->
+            <!-- Delay Status -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">6. Delay Status</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Delay Status</label>
                 <select id="filter-delay-status" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Statuses</option>
                     {% for ds in filter_options.delay_statuses %}
@@ -332,9 +332,9 @@
                 </select>
             </div>
 
-            <!-- 7. Delay Bucket -->
+            <!-- Delay Bucket -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">7. Delay Bucket</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Delay Bucket</label>
                 <select id="filter-delay-bucket" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Buckets</option>
                     {% for db_val in filter_options.delay_buckets %}
@@ -343,9 +343,9 @@
                 </select>
             </div>
 
-            <!-- 8. Manager Approval TAT -->
+            <!-- Manager Approval TAT -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">8. Manager Approval TAT</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Manager Approval TAT</label>
                 <select id="filter-manager-approval-tat" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All</option>
                     <option value="0" {% if request.args.get('manager_approval_tat') == '0' %}selected{% endif %}>Same Day (0 Days)</option>
@@ -356,9 +356,9 @@
                 </select>
             </div>
 
-            <!-- 9. Collection Owner Approval TAT -->
+            <!-- Collection Owner Approval TAT -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">9. Collection Owner Approval TAT</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Collection Owner Approval TAT</label>
                 <select id="filter-collection-owner-approval-tat" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All</option>
                     <option value="0" {% if request.args.get('collection_owner_approval_tat') == '0' %}selected{% endif %}>Same Day (0 Days)</option>
@@ -368,9 +368,9 @@
                 </select>
             </div>
 
-            <!-- 10. Customer Approval TAT -->
+            <!-- Customer Approval TAT -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">10. Customer Approval TAT</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Customer Approval TAT</label>
                 <select id="filter-customer-approval-tat" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All</option>
                     <option value="0" {% if request.args.get('customer_approval_tat') == '0' %}selected{% endif %}>Same Day (0 Days)</option>
@@ -380,9 +380,9 @@
                 </select>
             </div>
 
-            <!-- 11. Party Acceptance TAT -->
+            <!-- Party Acceptance TAT -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">11. Party Acceptance TAT</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Party Acceptance TAT</label>
                 <select id="filter-party-acceptance-tat" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All</option>
                     <option value="0" {% if request.args.get('party_acceptance_tat') == '0' %}selected{% endif %}>Same Day (0 Days)</option>
@@ -393,9 +393,9 @@
                 </select>
             </div>
 
-            <!-- 12. Office Delivery TAT -->
+            <!-- Office Delivery TAT -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">12. Office Delivery TAT</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Office Delivery TAT</label>
                 <select id="filter-office-delivery-tat" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All</option>
                     <option value="5" {% if request.args.get('office_delivery_tat') == '5' %}selected{% endif %}>&ge; 5 Days</option>
@@ -405,9 +405,9 @@
                 </select>
             </div>
 
-            <!-- 13. Shop Delivery TAT -->
+            <!-- Shop Delivery TAT -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">13. Shop Delivery TAT</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Shop Delivery TAT</label>
                 <select id="filter-shop-delivery-tat" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All</option>
                     <option value="0" {% if request.args.get('shop_delivery_tat') == '0' %}selected{% endif %}>Same Day (0 Days)</option>
@@ -417,9 +417,9 @@
                 </select>
             </div>
 
-            <!-- 14. Overall Order TAT -->
+            <!-- Overall Order TAT -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">14. Overall Order TAT</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Overall Order TAT</label>
                 <select id="filter-overall-order-tat" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All</option>
                     <option value="7" {% if request.args.get('overall_order_tat') == '7' %}selected{% endif %}>&ge; 7 Days</option>
@@ -429,9 +429,9 @@
                 </select>
             </div>
 
-            <!-- 15. Expected vs Actual Delivery Days -->
+            <!-- Expected vs Actual Delivery Days -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">15. Expected vs Actual Delivery</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Expected vs Actual Delivery</label>
                 <select id="filter-expected-vs-actual-delivery-days" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All</option>
                     <option value="ahead" {% if request.args.get('expected_vs_actual_delivery_days') == 'ahead' %}selected{% endif %}>Ahead of Schedule (&lt; 0)</option>
@@ -440,9 +440,9 @@
                 </select>
             </div>
 
-            <!-- 16. Days to Expected Delivery -->
+            <!-- Days to Expected Delivery -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">16. Days to Expected Delivery</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Days to Expected Delivery</label>
                 <select id="filter-days-to-expected-delivery" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All</option>
                     <option value="overdue" {% if request.args.get('days_to_expected_delivery') == 'overdue' %}selected{% endif %}>Overdue (&lt; 0 Days)</option>
@@ -453,9 +453,9 @@
                 </select>
             </div>
 
-            <!-- 17. Delivery Status -->
+            <!-- Delivery Status -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">17. Delivery Status</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Delivery Status</label>
                 <select id="filter-delivery-status" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Statuses</option>
                     {% for delv in filter_options.delivery_statuses %}
@@ -464,9 +464,9 @@
                 </select>
             </div>
 
-            <!-- 18. Reference Type -->
+            <!-- Reference Type -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">18. Reference Type</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Reference Type</label>
                 <select id="filter-with-reference-status" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Types</option>
                     {% for ref in filter_options.with_reference_statuses %}
@@ -486,5 +486,5 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/customer_order_fulfilment_summary.js', v='20261007-1') }}"></script>
+<script src="{{ url_for('static', filename='js/customer_order_fulfilment_summary.js', v='20261007-2') }}"></script>
 {% endblock %}

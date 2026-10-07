@@ -516,7 +516,9 @@ def customer_order_fulfilment_summary_partial():
             for i, val in enumerate(ancestor_values[:target_level_idx]):
                 f_name = levels[i]['field']
                 col = getattr(M, f_name)
-                if f_name == 'report_date':
+                if val == 'Unknown' or val is None:
+                    child_query = child_query.filter((col == None) | (col == '') | (col == 'Unknown'))
+                elif f_name == 'report_date':
                     try:
                         d_val = datetime.strptime(str(val), '%Y-%m-%d').date()
                         child_query = child_query.filter(col == d_val)
@@ -563,6 +565,7 @@ def customer_order_fulfilment_summary_partial():
                                  rows=processed_rows,
                                  is_child_rows=True,
                                  current_hierarchy=current_hierarchy,
+                                 current_level_idx=target_level_idx,
                                  stats=None,
                                  pagination=None)
 
