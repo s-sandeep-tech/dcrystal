@@ -98,7 +98,7 @@ def apply_order_status_filter(query, status_filter):
         return query.filter(func.coalesce(M.pending_to_be_delivered_pcs, M.pending_to_delivered_pcs, 0) > 0)
     if status_filter == 'delivery_in_progress':
         return query.filter(
-            func.coalesce(M.delivered_pcs, M.delivered_to_customer_pcs, 0) > 0,
+            func.coalesce(M.delivered_to_customer_pcs, M.delivered_pcs, 0) > 0,
             func.coalesce(M.pending_to_be_delivered_pcs, M.pending_to_delivered_pcs, 0) > 0
         )
     if status_filter == 'received_orders':
@@ -109,7 +109,7 @@ def apply_order_status_filter(query, status_filter):
         )
         return query.filter(
             M.total_order > 0,
-            func.coalesce(M.delivered_pcs, M.delivered_to_customer_pcs, 0) >= effective_ordered_pcs
+            func.coalesce(M.delivered_to_customer_pcs, M.delivered_pcs, 0) >= effective_ordered_pcs
         )
     return query
 
@@ -373,8 +373,8 @@ def get_metric_aggregates():
         func.sum(func.coalesce(M.qc_passed_pcs, 0)).label('qc_pcs'),
         func.sum(func.coalesce(M.invoiced_wt, 0)).label('inv_wt'),
         func.sum(func.coalesce(M.invoiced_pcs, 0)).label('inv_pcs'),
-        func.sum(func.coalesce(M.delivered_wt, M.delivered_to_customer_wt, 0)).label('del_wt'),
-        func.sum(func.coalesce(M.delivered_pcs, M.delivered_to_customer_pcs, 0)).label('del_pcs'),
+        func.sum(func.coalesce(M.delivered_to_customer_wt, M.delivered_wt, 0)).label('del_wt'),
+        func.sum(func.coalesce(M.delivered_to_customer_pcs, M.delivered_pcs, 0)).label('del_pcs'),
         func.sum(func.coalesce(M.pending_to_be_delivered_wt, M.pending_to_delivered_wt, 0)).label('pend_del_wt'),
         func.sum(func.coalesce(M.pending_to_be_delivered_pcs, M.pending_to_delivered_pcs, 0)).label('pend_del_pcs')
     ]

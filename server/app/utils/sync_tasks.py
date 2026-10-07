@@ -5375,8 +5375,8 @@ def sync_customer_order_fulfilment_summary_task(task_type_override=None, progres
             rec_off_pcs = int_val(r.get('received_in_office_pcs'))
             rec_off_wt = decimal_val(r.get('received_in_office_wt'))
 
-            delivered_pcs = delv_cust_pcs if delv_cust_pcs > 0 else (delv_shop_pcs if delv_shop_pcs > 0 else rec_off_pcs)
-            delivered_wt = delv_cust_wt if delv_cust_wt > 0 else (delv_shop_wt if delv_shop_wt > 0 else rec_off_wt)
+            delivered_pcs = delv_cust_pcs
+            delivered_wt = delv_cust_wt
 
             pend_delv_pcs = int_val(r.get('pending_to_delivered_pcs'))
             pend_delv_wt = decimal_val(r.get('pending_to_delivered_wt'))
