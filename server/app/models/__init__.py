@@ -38,6 +38,7 @@ from .snapshots import (
 )
 from .sales_stock_composition_analysis import SalesStockCompositionAnalysisSnapshot
 from .customer_order_analysis import CustomerOrderAnalysisSnapshot, CustomerOrderAnalysis
+from .customer_order_fulfilment_summary import CustomerOrderFulfilmentSummarySnapshot
 from .rbac import Role, Permission, Menu, RoleMenu, RolePermission, UserRole, AuditLog, UserPasswordHistory
 from .akt_report import AKTTransactionPerformance
 
@@ -96,6 +97,7 @@ __all__ = [
     'LocationWiseOldGoldSettlementTransferSnapshot',
     'WeeklyDeliveryOrderSummarySnapshot',
     'PartyMakeCapacityDetailsSnapshot',
+    'CustomerOrderFulfilmentSummarySnapshot',
     'AKTTransactionPerformance'
 ]
 

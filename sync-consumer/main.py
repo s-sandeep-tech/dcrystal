@@ -64,6 +64,7 @@ try:
         sync_party_make_capacity_details_task,
         sync_sales_stock_composition_analysis_task,
         sync_customer_order_analysis_task,
+        sync_customer_order_fulfilment_summary_task,
         emit_sync_update
     )
 
@@ -235,6 +236,8 @@ def process_sync_queue():
                         res = sync_sales_stock_composition_analysis_task()
                     elif task_type == 'customer_order_analysis':
                         res = sync_customer_order_analysis_task()
+                    elif task_type == 'customer_order_fulfilment_summary':
+                        res = sync_customer_order_fulfilment_summary_task()
                     else:
                         logger.error(f"Unknown sync task type: {task_type}")
 

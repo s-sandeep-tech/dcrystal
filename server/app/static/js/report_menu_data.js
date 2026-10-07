@@ -102,6 +102,14 @@ window.REPORT_MENU_DATA = [
                 tags: ["owner", "summary", "orders"]
             },
             {
+                id: "customer-order-fulfilment-summary",
+                title: "Customer Order Fulfilment Summary",
+                href: "/customerorderfulfilmentsummary",
+                icon: "fact_check",
+                description: "Customer order fulfillment tracking and summary across dynamic hierarchies with lifecycle TAT metrics.",
+                tags: ["customer", "order", "fulfilment", "fulfillment", "summary", "tracking", "tat", "lifecycle"]
+            },
+            {
                 id: "weekly-delivery-order-summary",
                 title: "Weekly Delivery Order Summary",
                 href: "/weekly-delivery-order-summary",

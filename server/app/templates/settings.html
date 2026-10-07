@@ -919,6 +919,31 @@
                                     </button>
                                 </div>
 
+                                <div id="sync-wrapper-customer_order_fulfilment_summary"
+                                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all">
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="size-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-indigo-500 text-xl">fact_check</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Customer
+                                                Order Fulfilment Summary Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Full refresh from
+                                                ext_view.vw_customer_order_tracking</p>
+                                            <span
+                                                class="text-[9px] font-black text-indigo-600 dark:text-indigo-400/90 block mt-1 uppercase tracking-wider">Manual
+                                                Sync</span>
+                                        </div>
+                                    </div>
+                                    <button id="sync-customer-order-fulfilment-summary-btn"
+                                        class="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-indigo-600 transition-all shadow-md shadow-indigo-500/20">
+                                        <span class="material-symbols-outlined text-[14px]">sync</span>
+                                        Sync Now
+                                    </button>
+                                </div>
+
                             </div>
 
                             <div
@@ -1691,6 +1716,7 @@
                                                                                                                                         syncLocationWiseOldGoldSettlementTransferUrl: "{{ url_for('dashboard.sync_location_wise_old_gold_settlement_transfer') }}",
                                                                                                                                             syncWeeklyDeliveryOrderSummaryUrl: "{{ url_for('dashboard.settings_sync_weekly_delivery_order_summary') }}",
                                                                                                                                                 syncPartyMakeCapacityDetailsUrl: "{{ url_for('dashboard.sync_party_make_capacity_details') }}",
+                    syncCustomerOrderFulfilmentSummaryUrl: "{{ url_for('dashboard.sync_customer_order_fulfilment_summary_endpoint') }}",
                                                                                                                                                     syncLogsUrl: "{{ url_for('dashboard.get_sync_logs') }}",
 
 

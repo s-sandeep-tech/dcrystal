@@ -33,6 +33,7 @@ SCHEDULED_ALL_SYNC_TASKS = (
     'location_wise_old_gold_settlement_transfer',
     'weekly_delivery_order_summary',
     'party_make_capacity_details',
+    'customer_order_fulfilment_summary',
 )
 
 ALLOWED_SYNC_TASKS = {
@@ -74,6 +75,7 @@ ALLOWED_SYNC_TASKS = {
     'party_make_capacity_details',
     'sales_stock_composition_analysis',
     'customer_order_analysis',
+    'customer_order_fulfilment_summary',
 }
 
 
@@ -259,3 +261,8 @@ def sync_sales_stock_composition_analysis_data(user_id=None):
 
 def sync_customer_order_analysis_data(user_id=None):
     return enqueue_sync_task('customer_order_analysis', user_id)
+
+
+def sync_customer_order_fulfilment_summary_data(user_id=None):
+    return enqueue_sync_task('customer_order_fulfilment_summary', user_id)
+

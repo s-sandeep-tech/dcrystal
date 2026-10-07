@@ -62,6 +62,7 @@ from ..models.snapshots import (
     PartyMakeCapacityDetailsSnapshot
 )
 from ..models.sales_stock_composition_analysis import SalesStockCompositionAnalysisSnapshot
+from ..models.customer_order_fulfilment_summary import CustomerOrderFulfilmentSummarySnapshot
 
 from flask import current_app
 import os
@@ -5249,3 +5250,349 @@ def sync_customer_order_analysis_task(task_type_override=None, progress_range=(0
                 conn.close()
             except Exception:
                 pass
+
+
+def sync_customer_order_fulfilment_summary_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+    conn = None
+    task_type = task_type_override or 'customer_order_fulfilment_summary'
+
+    def emit(status, message, progress):
+        emit_combined_sync_update(
+            status,
+            message,
+            progress,
+            task_type,
+            progress_range,
+            is_subtask,
+        )
+
+    def normalize_key(key):
+        return str(key).strip().lower().replace(' ', '_')
+
+    def normalized_row(row):
+        return {normalize_key(k): v for k, v in row.items()}
+
+    def parse_date(value):
+        if not value:
+            return None
+        if isinstance(value, datetime):
+            return value.date()
+        if isinstance(value, date):
+            return value
+        raw = str(value).strip()
+        candidates = [raw, raw[:10]]
+        for candidate in candidates:
+            for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%Y/%m/%d'):
+                try:
+                    return datetime.strptime(candidate, fmt).date()
+                except ValueError:
+                    continue
+        return None
+
+    def parse_datetime(value):
+        if not value:
+            return None
+        if isinstance(value, datetime):
+            return value
+        if isinstance(value, date):
+            return datetime.combine(value, datetime.min.time())
+        try:
+            return datetime.fromisoformat(str(value).strip())
+        except Exception:
+            return None
+
+    def decimal_val(value):
+        try:
+            return Decimal(str(value or 0))
+        except (InvalidOperation, TypeError, ValueError):
+            return Decimal('0')
+
+    def int_val(value):
+        try:
+            return int(float(str(value or 0)))
+        except (TypeError, ValueError):
+            return 0
+
+    def bool_val(value):
+        if value is True or value is False:
+            return value
+        val_str = str(value or '').strip().lower()
+        return val_str in ('true', 't', '1', 'yes', 'y')
+
+    try:
+        emit('processing', 'Starting Customer Order Fulfilment Summary Sync...', 5)
+        conn = get_external_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute('SET statement_timeout = 0')
+
+        emit('processing', 'Fetching ext_view.vw_customer_order_tracking...', 20)
+        started_at = time.time()
+        cursor.execute('SELECT * FROM ext_view.vw_customer_order_tracking')
+        source_rows = cursor.fetchall()
+        duration = time.time() - started_at
+
+        emit(
+            'processing',
+            f'Fetched {len(source_rows):,} records in {duration:.1f}s. Processing snapshot...',
+            50,
+        )
+
+        CustomerOrderFulfilmentSummarySnapshot.__table__.create(db.engine, checkfirst=True)
+        db.session.query(CustomerOrderFulfilmentSummarySnapshot).delete()
+
+        today = date.today()
+        records = []
+        for r_raw in source_rows:
+            r = normalized_row(r_raw)
+
+            req_dt = parse_datetime(r.get('request_date'))
+            req_date_val = req_dt.date() if req_dt else None
+            ord_date_val = parse_date(r.get('order_creation_date'))
+            mgr_appr_date = parse_date(r.get('manager_approve_date'))
+            coll_appr_date = parse_date(r.get('collection_owner_approve_date'))
+            cust_appr_date = parse_date(r.get('customer_approve_date'))
+            party_acc_date = parse_date(r.get('party_accepted_date'))
+            off_delv_dt = parse_datetime(r.get('office_delivery_date'))
+            off_delv_date = off_delv_dt.date() if off_delv_dt else None
+            shop_delv_date = parse_date(r.get('shop_delivery_date'))
+            cust_delv_date = parse_date(r.get('customer_delivery_date'))
+            exp_delv_dt = parse_datetime(r.get('expected_delivery_date'))
+            exp_delv_date = exp_delv_dt.date() if exp_delv_dt else None
+            adv_dt = parse_datetime(r.get('advance_date'))
+
+            ref_date = ord_date_val or req_date_val or cust_delv_date or today
+            report_month = ref_date.strftime('%Y-%m')
+            report_date = ref_date
+
+            delv_cust = bool_val(r.get('delivered_to_customer'))
+            delv_shop = bool_val(r.get('delivered_to_shop'))
+            rec_off = bool_val(r.get('received_in_office'))
+
+            delv_cust_pcs = int_val(r.get('delivered_to_customer_pcs'))
+            delv_cust_wt = decimal_val(r.get('delivered_to_customer_wt'))
+            delv_shop_pcs = int_val(r.get('delivered_to_shop_pcs'))
+            delv_shop_wt = decimal_val(r.get('delivered_to_shop_wt'))
+            rec_off_pcs = int_val(r.get('received_in_office_pcs'))
+            rec_off_wt = decimal_val(r.get('received_in_office_wt'))
+
+            delivered_pcs = delv_cust_pcs if delv_cust_pcs > 0 else (delv_shop_pcs if delv_shop_pcs > 0 else rec_off_pcs)
+            delivered_wt = delv_cust_wt if delv_cust_wt > 0 else (delv_shop_wt if delv_shop_wt > 0 else rec_off_wt)
+
+            pend_delv_pcs = int_val(r.get('pending_to_delivered_pcs'))
+            pend_delv_wt = decimal_val(r.get('pending_to_delivered_wt'))
+
+            creation_ref = ord_date_val or req_date_val
+            order_ageing_days = (today - creation_ref).days if creation_ref else None
+
+            delivery_delay_days = 0
+            if exp_delv_date:
+                effective_finish = cust_delv_date or today
+                diff = (effective_finish - exp_delv_date).days
+                delivery_delay_days = diff if diff > 0 else 0
+
+            if delivery_delay_days <= 0:
+                delay_status = 'On Time'
+            elif delivery_delay_days <= 7:
+                delay_status = 'Delayed'
+            else:
+                delay_status = 'Critical Delay'
+
+            if delivery_delay_days <= 0:
+                delay_bucket = '0 Days (On Time)'
+            elif delivery_delay_days <= 3:
+                delay_bucket = '1-3 Days'
+            elif delivery_delay_days <= 7:
+                delay_bucket = '4-7 Days'
+            elif delivery_delay_days <= 14:
+                delay_bucket = '8-14 Days'
+            elif delivery_delay_days <= 30:
+                delay_bucket = '15-30 Days'
+            else:
+                delay_bucket = '> 30 Days'
+
+            def tat_days(d1, d2):
+                if d1 and d2:
+                    return max(0, (d1 - d2).days)
+                return None
+
+            mgr_tat = tat_days(mgr_appr_date, req_date_val)
+            coll_tat = tat_days(coll_appr_date, mgr_appr_date or req_date_val)
+            cust_tat = tat_days(cust_appr_date, coll_appr_date or mgr_appr_date)
+            party_tat = tat_days(party_acc_date, cust_appr_date or ord_date_val)
+            off_tat = tat_days(off_delv_date, party_acc_date)
+            shop_tat = tat_days(shop_delv_date, off_delv_date)
+            overall_tat = tat_days(cust_delv_date or today, ord_date_val or req_date_val)
+
+            exp_vs_act = (cust_delv_date - exp_delv_date).days if (cust_delv_date and exp_delv_date) else None
+            days_to_exp = (exp_delv_date - today).days if exp_delv_date else None
+
+            order_stat = str(r.get('order_status') or '').strip()
+            if delv_cust or delv_cust_pcs > 0 or cust_delv_date:
+                curr_stage = 'Delivered to Customer'
+            elif delv_shop or delv_shop_pcs > 0 or shop_delv_date:
+                curr_stage = 'Delivered to Shop'
+            elif rec_off or rec_off_pcs > 0 or off_delv_date:
+                curr_stage = 'Received in Office'
+            elif int_val(r.get('invoiced_pcs')) > 0:
+                curr_stage = 'Invoiced'
+            elif int_val(r.get('qc_passed_pcs')) > 0:
+                curr_stage = 'QC Passed'
+            elif int_val(r.get('hallmarked_pcs')) > 0:
+                curr_stage = 'Hallmarked'
+            elif int_val(r.get('barcoded_pcs')) > 0:
+                curr_stage = 'Barcoded'
+            elif party_acc_date or int_val(r.get('accepted_pcs')) > 0:
+                curr_stage = 'Party Accepted'
+            elif cust_appr_date or coll_appr_date or mgr_appr_date or int_val(r.get('approved_pcs')) > 0:
+                curr_stage = 'Approved'
+            elif int_val(r.get('rejected_pcs')) > 0:
+                curr_stage = 'Rejected'
+            elif int_val(r.get('cancelled_pcs')) > 0:
+                curr_stage = 'Cancelled'
+            elif order_stat:
+                curr_stage = order_stat.title()
+            else:
+                curr_stage = 'Order Generated'
+
+            if delv_cust or delv_cust_pcs > 0:
+                delv_stat = 'Delivered to Customer'
+            elif delv_shop or delv_shop_pcs > 0:
+                delv_stat = 'Delivered to Shop'
+            elif rec_off or rec_off_pcs > 0:
+                delv_stat = 'Received in Office'
+            else:
+                delv_stat = 'Pending Delivery'
+
+            w_ref = bool_val(r.get('with_reference'))
+            w_ref_stat = 'With Reference' if w_ref else 'Without Reference'
+
+            records.append({
+                'location': str(r.get('location') or '').strip(),
+                'total_order': int_val(r.get('total_order')),
+                'order_generated_wt': decimal_val(r.get('order_generated_wt')),
+                'approved_pcs': int_val(r.get('approved_pcs')),
+                'approved_wt': decimal_val(r.get('approved_wt')),
+                'accepted_pcs': int_val(r.get('accepted_pcs')),
+                'accepted_wt': decimal_val(r.get('accepted_wt')),
+                'cancelled_pcs': int_val(r.get('cancelled_pcs')),
+                'cancelled_wt': decimal_val(r.get('cancelled_wt')),
+                'rejected_pcs': int_val(r.get('rejected_pcs')),
+                'rejected_wt': decimal_val(r.get('rejected_wt')),
+                'barcoded_pcs': int_val(r.get('barcoded_pcs')),
+                'barcoded_wt': decimal_val(r.get('barcoded_wt')),
+                'hallmarked_pcs': int_val(r.get('hallmarked_pcs')),
+                'hallmarked_wt': decimal_val(r.get('hallmarked_wt')),
+                'qc_passed_pcs': int_val(r.get('qc_passed_pcs')),
+                'qc_passed_wt': decimal_val(r.get('qc_passed_wt')),
+                'invoiced_pcs': int_val(r.get('invoiced_pcs')),
+                'invoiced_wt': decimal_val(r.get('invoiced_wt')),
+                'received_in_office': rec_off,
+                'received_in_office_pcs': rec_off_pcs,
+                'received_in_office_wt': rec_off_wt,
+                'delivered_to_shop': delv_shop,
+                'delivered_to_shop_pcs': delv_shop_pcs,
+                'delivered_to_shop_wt': delv_shop_wt,
+                'delivered_to_customer': delv_cust,
+                'delivered_to_customer_pcs': delv_cust_pcs,
+                'delivered_to_customer_wt': delv_cust_wt,
+                'delivered_pcs': delivered_pcs,
+                'delivered_wt': delivered_wt,
+                'pending_to_delivered_pcs': pend_delv_pcs,
+                'pending_to_delivered_wt': pend_delv_wt,
+                'pending_to_be_delivered_pcs': pend_delv_pcs,
+                'pending_to_be_delivered_wt': pend_delv_wt,
+
+                'manager_approve_date': mgr_appr_date,
+                'collection_owner_approve_date': coll_appr_date,
+                'customer_approve_date': cust_appr_date,
+                'request_date': req_dt,
+                'order_creation_date': ord_date_val,
+                'party_accepted_date': party_acc_date,
+                'office_delivery_date': off_delv_dt,
+                'shop_delivery_date': shop_delv_date,
+                'customer_delivery_date': cust_delv_date,
+                'expected_delivery_date': exp_delv_dt,
+                'advance_date': adv_dt,
+
+                'order_request_type': str(r.get('order_request_type') or '').strip(),
+                'order_item_type': str(r.get('order_item_type') or '').strip(),
+                'order_status': order_stat,
+                'state': str(r.get('state') or '').strip(),
+                'business_head_name': str(r.get('business_head_name') or '').strip(),
+                'order_ro': str(r.get('order_ro') or '').strip(),
+                'branch_type': str(r.get('branch_type') or '').strip(),
+                'classification_owner': str(r.get('classification_owner') or '').strip(),
+                'make_owner': str(r.get('make_owner') or '').strip(),
+                'collection_owner': str(r.get('collection_owner') or '').strip(),
+                'shop_manger': str(r.get('shop_manger') or '').strip(),
+                'request_no': str(r.get('request_no') or '').strip(),
+                'sooc_no': str(r.get('sooc_no') or '').strip(),
+                'division': str(r.get('division') or '').strip(),
+                'group_category': str(r.get('group_category') or '').strip(),
+                'group_name': str(r.get('group') or '').strip(),
+                'section': str(r.get('section') or '').strip(),
+                'purity': str(r.get('purity') or '').strip(),
+                'gender': str(r.get('gender') or '').strip(),
+                'classification': str(r.get('classification') or '').strip(),
+                'collection': str(r.get('collection') or '').strip(),
+                'weight': decimal_val(r.get('weight')),
+                'size': str(r.get('size') or '').strip(),
+                'gross_weight': decimal_val(r.get('gross_weight')),
+                'stone_weight': decimal_val(r.get('stone_weight')),
+                'other_weight': decimal_val(r.get('other_weight')),
+                'net_weight': decimal_val(r.get('net_weight')),
+                'advance_no': str(r.get('advance_no') or '').strip(),
+                'party_name': str(r.get('party_name') or '').strip(),
+                'party_code': str(r.get('party_code') or '').strip(),
+                'party_type': str(r.get('party_type') or '').strip(),
+                'customer_name': str(r.get('customer_name') or '').strip(),
+                'customer_contact_number': str(r.get('customer_contact_number') or '').strip(),
+                'customer_order_request_type': str(r.get('customer_order_request_type') or '').strip(),
+                'with_reference': w_ref,
+                'make': str(r.get('make') or '').strip(),
+                'refrerence_make': str(r.get('refrerence_make') or '').strip(),
+                'wide_range': str(r.get('wide_range') or '').strip(),
+
+                'report_month': report_month,
+                'report_date': report_date,
+                'current_stage': curr_stage,
+                'order_ageing_days': order_ageing_days,
+                'delivery_delay_days': delivery_delay_days,
+                'delay_status': delay_status,
+                'delay_bucket': delay_bucket,
+                'manager_approval_tat': mgr_tat,
+                'collection_owner_approval_tat': coll_tat,
+                'customer_approval_tat': cust_tat,
+                'party_acceptance_tat': party_tat,
+                'office_delivery_tat': off_tat,
+                'shop_delivery_tat': shop_tat,
+                'overall_order_tat': overall_tat,
+                'expected_vs_actual_delivery_days': exp_vs_act,
+                'days_to_expected_delivery': days_to_exp,
+                'delivery_status': delv_stat,
+                'with_reference_status': w_ref_stat,
+            })
+
+        emit('processing', f'Writing {len(records):,} records to database...', 80)
+        chunk_size = 5000
+        for start in range(0, len(records), chunk_size):
+            db.session.bulk_insert_mappings(
+                CustomerOrderFulfilmentSummarySnapshot,
+                records[start:start + chunk_size]
+            )
+        db.session.commit()
+
+        emit('success', f'Sync completed! {len(records):,} records updated.', 100)
+        return {'status': 'success', 'count': len(records)}
+    except Exception as exc:
+        db.session.rollback()
+        logger.exception('Customer Order Fulfilment Summary sync failed')
+        emit('error', f'Sync failed: {exc}', 0)
+        return {'status': 'error', 'message': str(exc)}
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+

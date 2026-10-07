@@ -1,0 +1,505 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Order Fulfilment Summary{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
+<style>
+    .enterprise-grid th, .enterprise-grid td {
+        white-space: nowrap;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main id="fulfilment-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    <!-- Header -->
+    <div class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <h2 class="text-sm font-bold tracking-tight">Customer Order Fulfilment Summary <span
+                    class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded uppercase tracking-widest text-gray-500">v1.0</span>
+            </h2>
+            <div class="ml-12 flex items-center gap-1.5">
+                <button id="btn-all-rejected" onclick="toggleOrderStatusFilter('all_rejected')"
+                    class="owner-status-filter-btn px-2 py-1 text-[10px] font-bold rounded uppercase transition-all duration-200 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 hover:border-red-500 hover:text-red-500 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px]">cancel</span>
+                    All Rejected
+                </button>
+                <button id="btn-active-orders" onclick="toggleOrderStatusFilter('active_orders')"
+                    class="owner-status-filter-btn px-2 py-1 text-[10px] font-bold rounded uppercase transition-all duration-200 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 hover:border-orange-500 hover:text-orange-500 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px]">pending_actions</span>
+                    Active Orders
+                </button>
+                <button id="btn-delivery-in-progress" onclick="toggleOrderStatusFilter('delivery_in_progress')"
+                    class="owner-status-filter-btn px-2 py-1 text-[10px] font-bold rounded uppercase transition-all duration-200 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 hover:border-blue-500 hover:text-blue-500 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px]">local_shipping</span>
+                    Delivery In Progress
+                </button>
+                <button id="btn-received-orders" onclick="toggleOrderStatusFilter('received_orders')"
+                    class="owner-status-filter-btn px-2 py-1 text-[10px] font-bold rounded uppercase transition-all duration-200 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 hover:border-emerald-500 hover:text-emerald-500 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px]">inventory_2</span>
+                    Recieved Orders
+                </button>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
+                <button onclick="adjustZoom(-0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom Out">-</button>
+                <button id="zoom-level" onclick="adjustZoom(0, true)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700"
+                    title="Reset Zoom">100%</button>
+                <button onclick="adjustZoom(0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom In">+</button>
+            </div>
+            <div class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
+                <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
+                <input id="hierarchy-search"
+                    class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0"
+                    placeholder="Search hierarchy..." type="text" oninput="onSearchInput(this.value)"
+                    value="{{ request.args.get('search', '') }}" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Grid (11 Stat Cards matching ownerwiseordersummary layout) -->
+    <div class="grid grid-cols-11 gap-1 p-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10 overflow-x-auto">
+        <!-- Ordered Wt -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Ordered Wt</p>
+            <div class="flex flex-col">
+                <p id="stat-ordered-wt" class="text-sm font-bold text-primary">{{ stats.ordered_wt if stats else '0.000' }}</p>
+                <p id="stat-ordered-pcs" class="text-[9px] text-gray-500 font-medium">{{ stats.ordered_pcs if stats else '0' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div class="h-full bg-primary" style="width: 100%"></div>
+            </div>
+        </div>
+
+        <!-- Rejected Wt -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Rejected Wt</p>
+            <div class="flex flex-col">
+                <p id="stat-rejected-wt" class="text-sm font-bold text-red-600">{{ stats.rejected_wt if stats else '0.000' }}</p>
+                <p id="stat-rejected-pcs" class="text-[9px] text-red-600/70 font-medium">{{ stats.rejected_pcs if stats else '0' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-rejected-bar" class="h-full bg-red-500 transition-all duration-500"
+                    style="width: {{ stats.rejected_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Cancelled Wt -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Cancelled Wt</p>
+            <div class="flex flex-col">
+                <p id="stat-cancelled-wt" class="text-sm font-bold text-red-600">{{ stats.cancelled_wt if stats else '0.000' }}</p>
+                <p id="stat-cancelled-pcs" class="text-[9px] text-red-600/70 font-medium">{{ stats.cancelled_pcs if stats else '0' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-cancelled-bar" class="h-full bg-red-500 transition-all duration-500"
+                    style="width: {{ stats.cancelled_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Approved Wt -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Approved Wt</p>
+            <div class="flex flex-col">
+                <p id="stat-approved-wt" class="text-sm font-bold text-purple-600">{{ stats.approved_wt if stats else '0.000' }}</p>
+                <p id="stat-approved-pcs" class="text-[9px] text-purple-600/70 font-medium">{{ stats.approved_pcs if stats else '0' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-approved-bar" class="h-full bg-purple-500 transition-all duration-500"
+                    style="width: {{ stats.approved_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Accepted Wt -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Accepted Wt</p>
+            <div class="flex flex-col">
+                <p id="stat-accepted-wt" class="text-sm font-bold text-emerald-600">{{ stats.accepted_wt if stats else '0.000' }}</p>
+                <p id="stat-accepted-pcs" class="text-[9px] text-emerald-600/70 font-medium">{{ stats.accepted_pcs if stats else '0' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-accepted-bar" class="h-full bg-emerald-500 transition-all duration-500"
+                    style="width: {{ stats.accepted_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Barcoded Wt -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Barcoded Wt</p>
+            <div class="flex flex-col">
+                <p id="stat-barcoded-wt" class="text-sm font-bold text-indigo-600">{{ stats.barcoded_wt if stats else '0.000' }}</p>
+                <p id="stat-barcoded-pcs" class="text-[9px] text-indigo-600/70 font-medium">{{ stats.barcoded_pcs if stats else '0' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-barcoded-bar" class="h-full bg-indigo-500 transition-all duration-500"
+                    style="width: {{ stats.barcoded_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Hallmarked Wt -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Hallmarked Wt</p>
+            <div class="flex flex-col">
+                <p id="stat-hallmarked-wt" class="text-sm font-bold text-cyan-600">{{ stats.hallmarked_wt if stats else '0.000' }}</p>
+                <p id="stat-hallmarked-pcs" class="text-[9px] text-cyan-600/70 font-medium">{{ stats.hallmarked_pcs if stats else '0' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-hallmarked-bar" class="h-full bg-cyan-500 transition-all duration-500"
+                    style="width: {{ stats.hallmarked_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- QC Passed Wt -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">QC Passed Wt</p>
+            <div class="flex flex-col">
+                <p id="stat-qc-passed-wt" class="text-sm font-bold text-amber-600">{{ stats.qc_passed_wt if stats else '0.000' }}</p>
+                <p id="stat-qc-passed-pcs" class="text-[9px] text-amber-600/70 font-medium">{{ stats.qc_passed_pcs if stats else '0' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-qc-passed-bar" class="h-full bg-amber-500 transition-all duration-500"
+                    style="width: {{ stats.qc_passed_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Invoiced Wt -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Invoiced Wt</p>
+            <div class="flex flex-col">
+                <p id="stat-invoiced-wt" class="text-sm font-bold text-blue-600">{{ stats.invoiced_wt if stats else '0.000' }}</p>
+                <p id="stat-invoiced-pcs" class="text-[9px] text-blue-600/70 font-medium">{{ stats.invoiced_pcs if stats else '0' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-invoiced-bar" class="h-full bg-blue-500 transition-all duration-500"
+                    style="width: {{ stats.invoiced_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Delivered Wt -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Delivered Wt</p>
+            <div class="flex flex-col">
+                <p id="stat-delivered-wt" class="text-sm font-bold text-emerald-600">{{ stats.delivered_wt if stats else '0.000' }}</p>
+                <p id="stat-delivered-pcs" class="text-[9px] text-emerald-600/70 font-medium">{{ stats.delivered_pcs if stats else '0' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-delivered-bar" class="h-full bg-emerald-600 transition-all duration-500"
+                    style="width: {{ stats.delivered_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Pending To Be Del.d Wt -->
+        <div class="p-2 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase">Pending To Be Del.d Wt</p>
+            <div class="flex flex-col">
+                <p id="stat-pending-to-be-delv-wt" class="text-sm font-bold text-orange-600">{{ stats.pending_to_be_delv_wt if stats else '0.000' }}</p>
+                <p id="stat-pending-to-be-delv-pcs" class="text-[9px] text-orange-600/70 font-medium">{{ stats.pending_to_be_delv_pcs if stats else '0' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-pending-to-be-delv-bar" class="h-full bg-orange-600 transition-all duration-500"
+                    style="width: {{ stats.pending_to_be_delv_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hierarchy & Pagination Strip -->
+    <div class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3 text-[10px] text-gray-500">
+            <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                <span class="material-symbols-outlined text-[13px] text-primary">account_tree</span>
+                Drill-Down Hierarchy:
+            </span>
+            <select id="hierarchy-select" onchange="changeHierarchy(this.value)"
+                class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs font-bold text-primary rounded px-2 py-1 cursor-pointer focus:ring-0 focus:border-primary">
+                {% for hid, hobj in hierarchies.items() %}
+                <option value="{{ hid }}" {% if current_hierarchy.id == hid %}selected{% endif %}>
+                    {{ hid }}. {{ hobj.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <span id="current-level-badge" class="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-bold rounded uppercase">
+                {{ current_hierarchy.name }}
+            </span>
+        </div>
+
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <div class="flex items-center gap-2">
+                <span class="text-gray-400">Rows:</span>
+                <select id="per-page-select" onchange="changePerPage(this.value)"
+                    class="bg-transparent border-none text-[10px] font-bold focus:ring-0 p-0 cursor-pointer">
+                    <option value="50" {% if request.args.get('per_page', '50') == '50' %}selected{% endif %}>50</option>
+                    <option value="100" {% if request.args.get('per_page') == '100' %}selected{% endif %}>100</option>
+                </select>
+            </div>
+            <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
+            <span id="pagination-info" class="font-medium">
+                {% if pagination and pagination.total > 0 %}
+                {{ ((pagination.page - 1) * pagination.per_page) + 1 }}-{{ [pagination.page * pagination.per_page, pagination.total]|min }} of {{ "{:,}".format(pagination.total) }}
+                {% else %}
+                0-0 of 0
+                {% endif %}
+            </span>
+            <div class="flex items-center gap-1">
+                <button id="btn-prev" class="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded disabled:opacity-50"
+                    {% if not pagination or not pagination.has_prev %}disabled{% endif %}
+                    onclick="{% if pagination and pagination.has_prev %}changePage({{ pagination.prev_num }}){% endif %}">
+                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                </button>
+                <button id="btn-next" class="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded disabled:opacity-50"
+                    {% if not pagination or not pagination.has_next %}disabled{% endif %}
+                    onclick="{% if pagination and pagination.has_next %}changePage({{ pagination.next_num }}){% endif %}">
+                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Container -->
+    <div id="table-area" class="flex-1 overflow-auto relative">
+        <div id="view-customer-order-fulfilment" class="dashboard-view">
+            {% include 'partials/_view_customer_order_fulfilment_summary.html' %}
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block sidebar %}
+<aside class="w-64 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xs font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> FILTERS
+            </h2>
+            <button onclick="resetFulfilmentFilters()" class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+        </div>
+
+        <div class="space-y-3">
+            <!-- 1. Month -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">1. Month</label>
+                <select id="filter-report-month" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Months</option>
+                    {% for m in filter_options.report_months %}
+                    <option value="{{ m }}" {% if request.args.get('report_month') == m %}selected{% endif %}>{{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 2. Date -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">2. Date</label>
+                <input type="date" id="filter-report-date" value="{{ request.args.get('report_date', '') }}"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+            </div>
+
+            <!-- 3. Current Stage -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">3. Current Stage</label>
+                <select id="filter-current-stage" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Stages</option>
+                    {% for stg in filter_options.current_stages %}
+                    <option value="{{ stg }}" {% if request.args.get('current_stage') == stg %}selected{% endif %}>{{ stg }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 4. Order Ageing Days -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">4. Order Ageing Days</label>
+                <select id="filter-order-ageing-days" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Ageing</option>
+                    <option value="0-7" {% if request.args.get('order_ageing_days') == '0-7' %}selected{% endif %}>0 - 7 Days</option>
+                    <option value="8-15" {% if request.args.get('order_ageing_days') == '8-15' %}selected{% endif %}>8 - 15 Days</option>
+                    <option value="16-30" {% if request.args.get('order_ageing_days') == '16-30' %}selected{% endif %}>16 - 30 Days</option>
+                    <option value="31-60" {% if request.args.get('order_ageing_days') == '31-60' %}selected{% endif %}>31 - 60 Days</option>
+                    <option value="60+" {% if request.args.get('order_ageing_days') == '60+' %}selected{% endif %}>&gt; 60 Days</option>
+                </select>
+            </div>
+
+            <!-- 5. Delivery Delay Days -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">5. Delivery Delay Days</label>
+                <select id="filter-delivery-delay-days" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Delays</option>
+                    <option value="0" {% if request.args.get('delivery_delay_days') == '0' %}selected{% endif %}>No Delay (On Time)</option>
+                    <option value="1-5" {% if request.args.get('delivery_delay_days') == '1-5' %}selected{% endif %}>1 - 5 Days</option>
+                    <option value="6-10" {% if request.args.get('delivery_delay_days') == '6-10' %}selected{% endif %}>6 - 10 Days</option>
+                    <option value="11-15" {% if request.args.get('delivery_delay_days') == '11-15' %}selected{% endif %}>11 - 15 Days</option>
+                    <option value="15+" {% if request.args.get('delivery_delay_days') == '15+' %}selected{% endif %}>&gt; 15 Days</option>
+                </select>
+            </div>
+
+            <!-- 6. Delay Status -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">6. Delay Status</label>
+                <select id="filter-delay-status" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Statuses</option>
+                    {% for ds in filter_options.delay_statuses %}
+                    <option value="{{ ds }}" {% if request.args.get('delay_status') == ds %}selected{% endif %}>{{ ds }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 7. Delay Bucket -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">7. Delay Bucket</label>
+                <select id="filter-delay-bucket" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Buckets</option>
+                    {% for db_val in filter_options.delay_buckets %}
+                    <option value="{{ db_val }}" {% if request.args.get('delay_bucket') == db_val %}selected{% endif %}>{{ db_val }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 8. Manager Approval TAT -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">8. Manager Approval TAT</label>
+                <select id="filter-manager-approval-tat" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All</option>
+                    <option value="0" {% if request.args.get('manager_approval_tat') == '0' %}selected{% endif %}>Same Day (0 Days)</option>
+                    <option value="1" {% if request.args.get('manager_approval_tat') == '1' %}selected{% endif %}>&ge; 1 Day</option>
+                    <option value="2" {% if request.args.get('manager_approval_tat') == '2' %}selected{% endif %}>&ge; 2 Days</option>
+                    <option value="3" {% if request.args.get('manager_approval_tat') == '3' %}selected{% endif %}>&ge; 3 Days</option>
+                    <option value="5" {% if request.args.get('manager_approval_tat') == '5' %}selected{% endif %}>&ge; 5 Days</option>
+                </select>
+            </div>
+
+            <!-- 9. Collection Owner Approval TAT -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">9. Collection Owner Approval TAT</label>
+                <select id="filter-collection-owner-approval-tat" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All</option>
+                    <option value="0" {% if request.args.get('collection_owner_approval_tat') == '0' %}selected{% endif %}>Same Day (0 Days)</option>
+                    <option value="1" {% if request.args.get('collection_owner_approval_tat') == '1' %}selected{% endif %}>&ge; 1 Day</option>
+                    <option value="2" {% if request.args.get('collection_owner_approval_tat') == '2' %}selected{% endif %}>&ge; 2 Days</option>
+                    <option value="3" {% if request.args.get('collection_owner_approval_tat') == '3' %}selected{% endif %}>&ge; 3 Days</option>
+                </select>
+            </div>
+
+            <!-- 10. Customer Approval TAT -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">10. Customer Approval TAT</label>
+                <select id="filter-customer-approval-tat" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All</option>
+                    <option value="0" {% if request.args.get('customer_approval_tat') == '0' %}selected{% endif %}>Same Day (0 Days)</option>
+                    <option value="1" {% if request.args.get('customer_approval_tat') == '1' %}selected{% endif %}>&ge; 1 Day</option>
+                    <option value="2" {% if request.args.get('customer_approval_tat') == '2' %}selected{% endif %}>&ge; 2 Days</option>
+                    <option value="3" {% if request.args.get('customer_approval_tat') == '3' %}selected{% endif %}>&ge; 3 Days</option>
+                </select>
+            </div>
+
+            <!-- 11. Party Acceptance TAT -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">11. Party Acceptance TAT</label>
+                <select id="filter-party-acceptance-tat" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All</option>
+                    <option value="0" {% if request.args.get('party_acceptance_tat') == '0' %}selected{% endif %}>Same Day (0 Days)</option>
+                    <option value="1" {% if request.args.get('party_acceptance_tat') == '1' %}selected{% endif %}>&ge; 1 Day</option>
+                    <option value="2" {% if request.args.get('party_acceptance_tat') == '2' %}selected{% endif %}>&ge; 2 Days</option>
+                    <option value="3" {% if request.args.get('party_acceptance_tat') == '3' %}selected{% endif %}>&ge; 3 Days</option>
+                    <option value="5" {% if request.args.get('party_acceptance_tat') == '5' %}selected{% endif %}>&ge; 5 Days</option>
+                </select>
+            </div>
+
+            <!-- 12. Office Delivery TAT -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">12. Office Delivery TAT</label>
+                <select id="filter-office-delivery-tat" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All</option>
+                    <option value="5" {% if request.args.get('office_delivery_tat') == '5' %}selected{% endif %}>&ge; 5 Days</option>
+                    <option value="10" {% if request.args.get('office_delivery_tat') == '10' %}selected{% endif %}>&ge; 10 Days</option>
+                    <option value="15" {% if request.args.get('office_delivery_tat') == '15' %}selected{% endif %}>&ge; 15 Days</option>
+                    <option value="20" {% if request.args.get('office_delivery_tat') == '20' %}selected{% endif %}>&ge; 20 Days</option>
+                </select>
+            </div>
+
+            <!-- 13. Shop Delivery TAT -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">13. Shop Delivery TAT</label>
+                <select id="filter-shop-delivery-tat" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All</option>
+                    <option value="0" {% if request.args.get('shop_delivery_tat') == '0' %}selected{% endif %}>Same Day (0 Days)</option>
+                    <option value="1" {% if request.args.get('shop_delivery_tat') == '1' %}selected{% endif %}>&ge; 1 Day</option>
+                    <option value="2" {% if request.args.get('shop_delivery_tat') == '2' %}selected{% endif %}>&ge; 2 Days</option>
+                    <option value="3" {% if request.args.get('shop_delivery_tat') == '3' %}selected{% endif %}>&ge; 3 Days</option>
+                </select>
+            </div>
+
+            <!-- 14. Overall Order TAT -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">14. Overall Order TAT</label>
+                <select id="filter-overall-order-tat" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All</option>
+                    <option value="7" {% if request.args.get('overall_order_tat') == '7' %}selected{% endif %}>&ge; 7 Days</option>
+                    <option value="14" {% if request.args.get('overall_order_tat') == '14' %}selected{% endif %}>&ge; 14 Days</option>
+                    <option value="21" {% if request.args.get('overall_order_tat') == '21' %}selected{% endif %}>&ge; 21 Days</option>
+                    <option value="30" {% if request.args.get('overall_order_tat') == '30' %}selected{% endif %}>&ge; 30 Days</option>
+                </select>
+            </div>
+
+            <!-- 15. Expected vs Actual Delivery Days -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">15. Expected vs Actual Delivery</label>
+                <select id="filter-expected-vs-actual-delivery-days" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All</option>
+                    <option value="ahead" {% if request.args.get('expected_vs_actual_delivery_days') == 'ahead' %}selected{% endif %}>Ahead of Schedule (&lt; 0)</option>
+                    <option value="on_time" {% if request.args.get('expected_vs_actual_delivery_days') == 'on_time' %}selected{% endif %}>On Time (0 Days)</option>
+                    <option value="delayed" {% if request.args.get('expected_vs_actual_delivery_days') == 'delayed' %}selected{% endif %}>Delayed (&gt; 0 Days)</option>
+                </select>
+            </div>
+
+            <!-- 16. Days to Expected Delivery -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">16. Days to Expected Delivery</label>
+                <select id="filter-days-to-expected-delivery" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All</option>
+                    <option value="overdue" {% if request.args.get('days_to_expected_delivery') == 'overdue' %}selected{% endif %}>Overdue (&lt; 0 Days)</option>
+                    <option value="today" {% if request.args.get('days_to_expected_delivery') == 'today' %}selected{% endif %}>Due Today (0 Days)</option>
+                    <option value="1_3" {% if request.args.get('days_to_expected_delivery') == '1_3' %}selected{% endif %}>1 - 3 Days Left</option>
+                    <option value="4_7" {% if request.args.get('days_to_expected_delivery') == '4_7' %}selected{% endif %}>4 - 7 Days Left</option>
+                    <option value="7_plus" {% if request.args.get('days_to_expected_delivery') == '7_plus' %}selected{% endif %}>&gt; 7 Days Left</option>
+                </select>
+            </div>
+
+            <!-- 17. Delivery Status -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">17. Delivery Status</label>
+                <select id="filter-delivery-status" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Statuses</option>
+                    {% for delv in filter_options.delivery_statuses %}
+                    <option value="{{ delv }}" {% if request.args.get('delivery_status') == delv %}selected{% endif %}>{{ delv }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 18. Reference Type -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">18. Reference Type</label>
+                <select id="filter-with-reference-status" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Types</option>
+                    {% for ref in filter_options.with_reference_statuses %}
+                    <option value="{{ ref }}" {% if request.args.get('with_reference_status') == ref %}selected{% endif %}>{{ ref }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="p-4 border-t border-gray-200 dark:border-gray-800 shrink-0">
+        <button onclick="applyFulfilmentFilters()"
+            class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
+        </button>
+    </div>
+</aside>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/customer_order_fulfilment_summary.js', v='20261007-1') }}"></script>
+{% endblock %}
