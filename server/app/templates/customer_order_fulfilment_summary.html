@@ -272,7 +272,7 @@
                 <select id="filter-report-month" class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Months</option>
                     {% for m in filter_options.report_months %}
-                    <option value="{{ m }}" {% if request.args.get('report_month') == m %}selected{% endif %}>{{ m }}</option>
+                    <option value="{{ m.value if m is mapping else m }}" {% if request.args.get('report_month') == (m.value if m is mapping else m) %}selected{% endif %}>{{ m.label if m is mapping else m }}</option>
                     {% endfor %}
                 </select>
             </div>

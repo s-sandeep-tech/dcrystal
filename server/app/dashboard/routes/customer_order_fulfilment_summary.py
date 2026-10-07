@@ -108,6 +108,36 @@ def split_filter_values(value):
     return [v.strip() for v in (value or '').split(',') if v.strip()]
 
 
+def format_display_label(field_name, val):
+    if val is None:
+        return 'Unknown'
+    val_str = str(val).strip()
+    if field_name == 'report_month':
+        try:
+            parts = val_str.split('-')
+            if len(parts) == 2 and len(parts[0]) == 4 and len(parts[1]) in (1, 2):
+                dt = datetime.strptime(f"{parts[0]}-{int(parts[1]):02d}-01", "%Y-%m-%d")
+                return f"{dt.strftime('%b')} -{dt.strftime('%y')}"
+        except Exception:
+            pass
+    return val_str
+
+
+def parse_month_value(val_str):
+    if not val_str:
+        return val_str
+    val_str = str(val_str).strip()
+    if len(val_str) == 7 and val_str[:4].isdigit() and val_str[4] == '-' and val_str[5:7].isdigit():
+        return val_str
+    try:
+        cleaned = val_str.replace(' ', '').replace('-', '')
+        dt = datetime.strptime(cleaned, '%b%y')
+        return dt.strftime('%Y-%m')
+    except Exception:
+        pass
+    return val_str
+
+
 def build_filter_query(query, search_fields=None):
     M = CustomerOrderFulfilmentSummarySnapshot
 
@@ -141,7 +171,8 @@ def build_filter_query(query, search_fields=None):
     # Filter 1: report_month
     report_month = request.args.get('report_month', '').strip()
     if report_month:
-        query = query.filter(M.report_month == report_month)
+        parsed_month = parse_month_value(report_month)
+        query = query.filter((M.report_month == report_month) | (M.report_month == parsed_month))
 
     # Filter 2: report_date
     report_date = request.args.get('report_date', '').strip()
@@ -372,7 +403,11 @@ def compute_global_stats(filtered_query):
 def get_filter_options():
     M = CustomerOrderFulfilmentSummarySnapshot
     try:
-        months = [r[0] for r in db.session.query(M.report_month).filter(M.report_month.isnot(None)).distinct().order_by(M.report_month.desc()).all() if r[0]]
+        months = [
+            {'value': r[0], 'label': format_display_label('report_month', r[0])}
+            for r in db.session.query(M.report_month).filter(M.report_month.isnot(None)).distinct().order_by(M.report_month.desc()).all()
+            if r[0]
+        ]
         dates = [str(r[0]) for r in db.session.query(M.report_date).filter(M.report_date.isnot(None)).distinct().order_by(M.report_date.desc()).all() if r[0]]
         stages = [r[0] for r in db.session.query(M.current_stage).filter(M.current_stage.isnot(None)).distinct().order_by(M.current_stage).all() if r[0]]
         delay_stats = [r[0] for r in db.session.query(M.delay_status).filter(M.delay_status.isnot(None)).distinct().order_by(M.delay_status).all() if r[0]]
@@ -440,13 +475,14 @@ def customer_order_fulfilment_summary():
         is_leaf = len(levels) == 1
         for r in pagination.items:
             val = r[0]
-            label = str(val) if val is not None else 'Unknown'
+            raw_val = str(val) if val is not None else 'Unknown'
+            display_label = format_display_label(levels[0]['field'], val)
             processed_rows.append({
-                'label': label,
+                'label': display_label,
                 'level_idx': 0,
                 'level_name': levels[0]['label'],
                 'level_icon': levels[0]['icon'],
-                'path': [label],
+                'path': [raw_val],
                 'is_leaf': is_leaf,
                 'ord_wt': float(r.ord_wt or 0), 'ord_pcs': int(r.ord_pcs or 0),
                 'rej_wt': float(r.rej_wt or 0), 'rej_pcs': int(r.rej_pcs or 0),
@@ -539,10 +575,11 @@ def customer_order_fulfilment_summary_partial():
             processed_rows = []
             for r in results:
                 val = r[0]
-                label = str(val) if val is not None else 'Unknown'
-                row_path = ancestor_values[:target_level_idx] + [label]
+                raw_val = str(val) if val is not None else 'Unknown'
+                display_label = format_display_label(levels[target_level_idx]['field'], val)
+                row_path = ancestor_values[:target_level_idx] + [raw_val]
                 processed_rows.append({
-                    'label': label,
+                    'label': display_label,
                     'level_idx': target_level_idx,
                     'level_name': levels[target_level_idx]['label'],
                     'level_icon': levels[target_level_idx]['icon'],
