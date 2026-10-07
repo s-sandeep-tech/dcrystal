@@ -42,12 +42,13 @@
                     <div class="party-matrix-panel-heading"><h2>Stage-wise Outstanding</h2><select id="monitor-stage-measure" aria-label="Stage chart measure"><option value="pcs">Pieces</option><option value="wt">Weight (g)</option></select></div>
                     <div class="party-matrix-chart"><canvas id="monitor-stages" aria-label="Stage-wise outstanding"></canvas></div>
                 </article>
-                <article class="party-matrix-chart-panel">
+                <article id="monitor-heat-panel" class="party-matrix-chart-panel">
                     <div class="party-matrix-panel-heading monitor-heat-heading">
                         <h2 title="Branch / Production Stage">Branch / Production Stage</h2>
                         <div class="monitor-heat-controls">
                         <select id="monitor-heat-measure" aria-label="Heatmap measure"><option value="pcs">Pieces</option><option value="wt">Weight (g)</option></select>
                         <select id="monitor-heat-sort" aria-label="Heatmap sort"><option value="pending">Highest Pending</option><option value="branch">Branch A-Z</option></select>
+                        <button type="button" id="monitor-heat-expand" aria-label="Expand Branch / Production Stage" title="Expand Branch / Production Stage" aria-haspopup="dialog" aria-expanded="false" aria-controls="monitor-heat-dialog"><span class="material-symbols-outlined" aria-hidden="true">fullscreen</span></button>
                         </div>
                     </div>
                     <div id="monitor-heatmap" class="monitor-heatmap" tabindex="0" aria-label="Branch pending heatmap"></div>
@@ -66,6 +67,7 @@
             </section>
         </div>
     </div>
+    <dialog id="monitor-heat-dialog" aria-label="Branch / Production Stage expanded view"></dialog>
     <dialog id="monitor-owners-dialog" aria-labelledby="monitor-owners-title">
         <header><h2 id="monitor-owners-title">Responsible Persons</h2><button type="button" id="monitor-owners-close" aria-label="Close responsible persons" title="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></header>
         <div id="monitor-owners-content"></div>

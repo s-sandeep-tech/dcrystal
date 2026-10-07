@@ -155,6 +155,32 @@ document.addEventListener('DOMContentLoaded', () => {
     el('search').onkeydown = event => { if (event.key === 'Enter') el('apply').click(); };
     el('stage-measure').onchange = () => { if (payload) buildCharts(); };
     ['heat-measure', 'heat-sort'].forEach(id => { el(id).onchange = () => { if (payload) heatmap(); }; });
+    const heatDialog = el('heat-dialog');
+    const heatPanel = el('heat-panel');
+    const heatExpand = el('heat-expand');
+    const heatPosition = document.createComment('Branch heatmap position');
+    heatPanel.before(heatPosition);
+    heatExpand.onclick = () => {
+        if (heatDialog.open) {
+            heatDialog.close();
+            return;
+        }
+        heatDialog.append(heatPanel);
+        heatExpand.setAttribute('aria-expanded', 'true');
+        heatExpand.setAttribute('aria-label', 'Collapse Branch / Production Stage');
+        heatExpand.title = 'Collapse Branch / Production Stage';
+        heatExpand.querySelector('span').textContent = 'fullscreen_exit';
+        heatDialog.showModal();
+        heatExpand.focus();
+    };
+    heatDialog.addEventListener('close', () => {
+        heatPosition.after(heatPanel);
+        heatExpand.setAttribute('aria-expanded', 'false');
+        heatExpand.setAttribute('aria-label', 'Expand Branch / Production Stage');
+        heatExpand.title = 'Expand Branch / Production Stage';
+        heatExpand.querySelector('span').textContent = 'fullscreen';
+        heatExpand.focus();
+    });
     if (el('export')) el('export').onclick = () => { location.href = `/api/customer-order-performance-monitoring/export?${params}`; };
     const ownersDialog = el('owners-dialog');
     el('owners-close').onclick = () => ownersDialog.close();
