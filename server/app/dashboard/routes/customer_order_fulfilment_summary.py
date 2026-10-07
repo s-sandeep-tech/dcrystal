@@ -187,14 +187,32 @@ def build_filter_query(query, search_fields=None):
         parsed_month = parse_month_value(report_month)
         query = query.filter((M.report_month == report_month) | (M.report_month == parsed_month))
 
-    # Filter 2: report_date
+    # Filter 2: Order Creation Date Range (from_date, to_date) & report_date
+    from_date = request.args.get('from_date', '').strip()
+    to_date = request.args.get('to_date', '').strip()
+    date_col = func.coalesce(M.order_creation_date, M.report_date)
+
+    if from_date:
+        try:
+            d_from = datetime.strptime(from_date, '%Y-%m-%d').date()
+            query = query.filter(date_col >= d_from)
+        except ValueError:
+            pass
+
+    if to_date:
+        try:
+            d_to = datetime.strptime(to_date, '%Y-%m-%d').date()
+            query = query.filter(date_col <= d_to)
+        except ValueError:
+            pass
+
     report_date = request.args.get('report_date', '').strip()
-    if report_date:
+    if report_date and not from_date and not to_date:
         try:
             d_val = datetime.strptime(report_date, '%Y-%m-%d').date()
-            query = query.filter(M.report_date == d_val)
+            query = query.filter(date_col == d_val)
         except ValueError:
-            query = query.filter(func.cast(M.report_date, db.String).ilike(f"%{report_date}%"))
+            query = query.filter(func.cast(date_col, db.String).ilike(f"%{report_date}%"))
 
     # Filter 3: current_stage (Multi-select)
     current_stages = split_filter_values(request.args.get('current_stage', ''))

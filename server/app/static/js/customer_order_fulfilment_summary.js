@@ -214,6 +214,8 @@ function applyFulfilmentFilters() {
     const configs = {
         'report_month': 'filter-report-month',
         'report_date': 'filter-report-date',
+        'from_date': 'filter-from-date',
+        'to_date': 'filter-to-date',
         'current_stage': 'filter-current-stage',
         'party': 'filter-party',
         'make': 'filter-make',
@@ -265,6 +267,8 @@ function resetFulfilmentFilters() {
     const configs = {
         'report_month': 'filter-report-month',
         'report_date': 'filter-report-date',
+        'from_date': 'filter-from-date',
+        'to_date': 'filter-to-date',
         'current_stage': 'filter-current-stage',
         'party': 'filter-party',
         'make': 'filter-make',
