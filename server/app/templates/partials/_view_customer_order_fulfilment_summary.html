@@ -1,9 +1,9 @@
 {% if not is_child_rows %}
-<table class="enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+<table class="enterprise-grid w-full min-w-[1500px] text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
     <thead>
         <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider">
             <th class="col-expander text-center px-0 w-8"></th>
-            <th class="text-left px-2">Hierarchy Detail</th>
+            <th class="text-left px-3 min-w-[340px] md:min-w-[420px] w-[420px]">Hierarchy Detail</th>
             <th class="text-right px-2 bg-gray-100/30">Ordered</th>
             <th class="text-right px-2 bg-red-50/20">Rejected</th>
             <th class="text-right px-2 bg-red-50/20">Cancelled</th>
@@ -36,7 +36,7 @@
                 <span class="material-symbols-outlined text-[8px] text-gray-300">fiber_manual_record</span>
                 {% endif %}
             </td>
-            <td class="px-2 font-bold">
+            <td class="px-3 font-bold min-w-[340px] md:min-w-[420px]">
                 <div class="flex items-center gap-1.5"
                     style="padding-left: {{ (r.level_idx * 16) }}px">
                     <span class="material-symbols-outlined text-[13px] text-gray-400">
@@ -45,7 +45,7 @@
                     <span class="text-[8px] font-semibold uppercase px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500">
                         {{ r.level_name }}
                     </span>
-                    <span class="text-gray-800 dark:text-gray-100 font-bold truncate max-w-[280px]" title="{{ r.label }}">
+                    <span class="text-gray-800 dark:text-gray-100 font-bold truncate max-w-[280px] md:max-w-[360px]" title="{{ r.label }}">
                         {{ r.label }}
                     </span>
                 </div>
@@ -136,7 +136,7 @@
     </tbody>
     <tfoot class="bg-gray-50 dark:bg-gray-800 border-t-2 border-gray-200 dark:border-gray-700 font-bold sticky bottom-0 z-10">
         <tr>
-            <td colspan="2" class="px-2 py-3 text-left uppercase tracking-wider text-gray-500 text-[10px]">
+            <td colspan="2" class="px-3 py-3 text-left uppercase tracking-wider text-gray-500 text-[10px] min-w-[370px]">
                 Grand Total
             </td>
             <td class="text-right px-2">
