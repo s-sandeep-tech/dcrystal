@@ -281,6 +281,38 @@
             {% include 'partials/_view_customer_order_fulfilment_summary.html' %}
         </div>
     </div>
+
+    <!-- Leaf Details Modal Popup -->
+    <div id="fulfilmentLeafModal" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeFulfilmentLeafModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[96vw] max-w-7xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col h-[90vh] overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-5 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0 bg-white dark:bg-gray-900">
+                <div class="flex items-center gap-3">
+                    <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-lg">info</span>
+                    </div>
+                    <div>
+                        <h2 class="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                            Order Fulfilment Details
+                            <span id="fulfilmentLeafModalCountBadge" class="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full"></span>
+                        </h2>
+                        <div id="fulfilmentLeafModalSubtitle" class="text-[11px] text-gray-500 flex items-center gap-1.5 flex-wrap mt-0.5"></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="closeFulfilmentLeafModal()"
+                        class="size-8 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                        <span class="material-symbols-outlined text-xl">close</span>
+                    </button>
+                </div>
+            </div>
+            <!-- Modal Content Area (Partial View is injected here) -->
+            <div id="fulfilmentLeafModalContent" class="flex-1 flex flex-col overflow-hidden min-h-[400px]">
+                <!-- Loaded via partial -->
+            </div>
+        </div>
+    </div>
 </main>
 {% endblock %}
 
@@ -668,5 +700,5 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/customer_order_fulfilment_summary.js', v='20261007-2') }}"></script>
+<script src="{{ url_for('static', filename='js/customer_order_fulfilment_summary.js', v='20261007-3') }}"></script>
 {% endblock %}

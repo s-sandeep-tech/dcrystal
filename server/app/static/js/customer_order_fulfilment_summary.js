@@ -416,3 +416,154 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+// Leaf Modal Functions
+async function openFulfilmentLeafModal(targetEl) {
+    const tr = targetEl.closest('tr');
+    if (!tr) return;
+
+    const modal = document.getElementById('fulfilmentLeafModal');
+    const content = document.getElementById('fulfilmentLeafModalContent');
+    const subtitle = document.getElementById('fulfilmentLeafModalSubtitle');
+    const badge = document.getElementById('fulfilmentLeafModalCountBadge');
+
+    if (!modal || !content) return;
+
+    let path = [];
+    try {
+        path = JSON.parse(tr.dataset.path || tr.getAttribute('data-path') || '[]');
+    } catch (e) {
+        console.error('Error parsing row path:', e, tr.dataset.path);
+    }
+
+    const hierarchySelect = document.getElementById('hierarchy-select');
+    const hierarchyId = hierarchySelect ? hierarchySelect.value : '1';
+
+    if (subtitle) {
+        subtitle.innerHTML = path.map(p => `<span class="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded font-medium text-gray-700 dark:text-gray-300">${p}</span>`).join('<span class="text-gray-400">›</span>');
+    }
+    if (badge) {
+        badge.textContent = 'Loading...';
+    }
+
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    content.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-full py-28 text-gray-400">
+            <div class="size-10 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p class="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Loading Order Details...</p>
+            <p class="text-[11px] text-gray-400 mt-1">Applying parent hierarchy & active sidebar filters</p>
+        </div>
+    `;
+
+    // Inherit all current URL filters
+    const params = new URLSearchParams(window.location.search);
+    params.set('hierarchy', hierarchyId);
+    params.set('path', JSON.stringify(path));
+
+    try {
+        const headers = {};
+        const token = localStorage.getItem('access_token');
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const response = await fetch(`/partial/customerorderfulfilmentsummary/leaf_details?${params.toString()}`, {
+            headers: headers
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to load details: HTTP ${response.status}`);
+        }
+
+        const html = await response.text();
+        content.innerHTML = html;
+
+        const countMeta = content.querySelector('#leaf-record-count');
+        if (countMeta && badge) {
+            badge.textContent = `${countMeta.value} records`;
+        } else if (badge) {
+            badge.textContent = '';
+        }
+    } catch (err) {
+        console.error('Failed to load leaf modal details:', err);
+        content.innerHTML = `
+            <div class="p-12 text-center text-red-500 flex flex-col items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-3xl">error</span>
+                <p class="font-bold text-sm">Failed to load order details</p>
+                <p class="text-xs text-gray-500">${err.message}</p>
+            </div>
+        `;
+    }
+}
+window.openFulfilmentLeafModal = openFulfilmentLeafModal;
+
+function closeFulfilmentLeafModal() {
+    const modal = document.getElementById('fulfilmentLeafModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+}
+window.closeFulfilmentLeafModal = closeFulfilmentLeafModal;
+
+function switchLeafView(viewMode) {
+    const cardsContainer = document.getElementById('leaf-view-cards');
+    const tableContainer = document.getElementById('leaf-view-table');
+    const btnCards = document.getElementById('btn-view-cards');
+    const btnTable = document.getElementById('btn-view-table');
+
+    if (!cardsContainer || !tableContainer) return;
+
+    if (viewMode === 'cards') {
+        cardsContainer.classList.remove('hidden');
+        tableContainer.classList.add('hidden');
+        if (btnCards) {
+            btnCards.className = 'px-2.5 py-1 rounded-md text-primary bg-white dark:bg-gray-900 shadow-xs flex items-center gap-1 transition-all';
+        }
+        if (btnTable) {
+            btnTable.className = 'px-2.5 py-1 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-all';
+        }
+    } else {
+        cardsContainer.classList.add('hidden');
+        tableContainer.classList.remove('hidden');
+        if (btnCards) {
+            btnCards.className = 'px-2.5 py-1 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-all';
+        }
+        if (btnTable) {
+            btnTable.className = 'px-2.5 py-1 rounded-md text-primary bg-white dark:bg-gray-900 shadow-xs flex items-center gap-1 transition-all';
+        }
+    }
+}
+window.switchLeafView = switchLeafView;
+
+function filterLeafModalRows(query) {
+    const q = (query || '').toLowerCase().trim();
+    const cards = document.querySelectorAll('.leaf-record-card');
+    const rows = document.querySelectorAll('.leaf-record-tr');
+
+    cards.forEach(card => {
+        const text = (card.dataset.searchText || '').toLowerCase();
+        if (!q || text.includes(q)) {
+            card.classList.remove('hidden');
+        } else {
+            card.classList.add('hidden');
+        }
+    });
+
+    rows.forEach(row => {
+        const text = (row.dataset.searchText || '').toLowerCase();
+        if (!q || text.includes(q)) {
+            row.classList.remove('hidden');
+        } else {
+            row.classList.add('hidden');
+        }
+    });
+}
+window.filterLeafModalRows = filterLeafModalRows;
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeFulfilmentLeafModal();
+    }
+});
+

@@ -733,6 +733,100 @@ def customer_order_fulfilment_summary_partial():
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
 
 
+@dashboard_bp.route('/partial/customerorderfulfilmentsummary/leaf_details')
+@dashboard_bp.route('/partial/customer-order-fulfilment-summary/leaf-details')
+def customer_order_fulfilment_summary_leaf_details():
+    try:
+        hierarchy_id = request.args.get('hierarchy', 1, type=int)
+        if hierarchy_id not in HIERARCHIES:
+            hierarchy_id = 1
+        current_hierarchy = HIERARCHIES[hierarchy_id]
+        levels = current_hierarchy['levels']
+
+        path_json = request.args.get('path') or request.args.get('parent_path') or '[]'
+        try:
+            path_values = json.loads(path_json)
+        except Exception:
+            path_values = [v.strip() for v in path_json.split('|') if v.strip()]
+
+        search_field_names = [lvl['field'] for lvl in levels]
+        base_query = db.session.query(CustomerOrderFulfilmentSummarySnapshot)
+        filtered_query = build_filter_query(base_query, search_fields=search_field_names)
+
+        M = CustomerOrderFulfilmentSummarySnapshot
+        for i, val in enumerate(path_values[:len(levels)]):
+            f_name = levels[i]['field']
+            col = getattr(M, f_name)
+            if val == 'Unknown' or val is None:
+                filtered_query = filtered_query.filter((col == None) | (col == '') | (col == 'Unknown'))
+            elif f_name == 'report_date':
+                try:
+                    d_val = datetime.strptime(str(val), '%Y-%m-%d').date()
+                    filtered_query = filtered_query.filter(col == d_val)
+                except ValueError:
+                    filtered_query = filtered_query.filter(func.cast(col, db.String) == str(val))
+            else:
+                filtered_query = filtered_query.filter(col == val)
+
+        # Aggregated summary for this leaf selection
+        leaf_summary = filtered_query.with_entities(
+            func.count(M.id).label('record_count'),
+            func.coalesce(func.sum(M.total_order), 0).label('total_order'),
+            func.coalesce(func.sum(M.order_generated_wt), 0).label('order_generated_wt'),
+            func.coalesce(func.sum(M.approved_pcs), 0).label('approved_pcs'),
+            func.coalesce(func.sum(M.approved_wt), 0).label('approved_wt'),
+            func.coalesce(func.sum(M.accepted_pcs), 0).label('accepted_pcs'),
+            func.coalesce(func.sum(M.accepted_wt), 0).label('accepted_wt'),
+            func.coalesce(func.sum(M.cancelled_pcs), 0).label('cancelled_pcs'),
+            func.coalesce(func.sum(M.cancelled_wt), 0).label('cancelled_wt'),
+            func.coalesce(func.sum(M.rejected_pcs), 0).label('rejected_pcs'),
+            func.coalesce(func.sum(M.rejected_wt), 0).label('rejected_wt'),
+            func.coalesce(func.sum(M.barcoded_pcs), 0).label('barcoded_pcs'),
+            func.coalesce(func.sum(M.barcoded_wt), 0).label('barcoded_wt'),
+            func.coalesce(func.sum(M.hallmarked_pcs), 0).label('hallmarked_pcs'),
+            func.coalesce(func.sum(M.hallmarked_wt), 0).label('hallmarked_wt'),
+            func.coalesce(func.sum(M.qc_passed_pcs), 0).label('qc_passed_pcs'),
+            func.coalesce(func.sum(M.qc_passed_wt), 0).label('qc_passed_wt'),
+            func.coalesce(func.sum(M.invoiced_pcs), 0).label('invoiced_pcs'),
+            func.coalesce(func.sum(M.invoiced_wt), 0).label('invoiced_wt'),
+            func.coalesce(func.sum(M.received_in_office_pcs), 0).label('received_in_office_pcs'),
+            func.coalesce(func.sum(M.received_in_office_wt), 0).label('received_in_office_wt'),
+            func.coalesce(func.sum(M.delivered_to_shop_pcs), 0).label('delivered_to_shop_pcs'),
+            func.coalesce(func.sum(M.delivered_to_shop_wt), 0).label('delivered_to_shop_wt'),
+            func.coalesce(func.sum(func.coalesce(M.delivered_to_customer_pcs, M.delivered_pcs, 0)), 0).label('delivered_to_customer_pcs'),
+            func.coalesce(func.sum(func.coalesce(M.delivered_to_customer_wt, M.delivered_wt, 0)), 0).label('delivered_to_customer_wt'),
+            func.coalesce(func.sum(func.coalesce(M.pending_to_be_delivered_pcs, M.pending_to_delivered_pcs, 0)), 0).label('pending_to_delivered_pcs'),
+            func.coalesce(func.sum(func.coalesce(M.pending_to_be_delivered_wt, M.pending_to_delivered_wt, 0)), 0).label('pending_to_delivered_wt'),
+        ).first()
+
+        records = filtered_query.order_by(
+            M.order_creation_date.desc().nullslast(),
+            M.id.desc()
+        ).limit(500).all()
+
+        breadcrumbs = []
+        for i, val in enumerate(path_values[:len(levels)]):
+            lvl = levels[i]
+            breadcrumbs.append({
+                'label': lvl['label'],
+                'icon': lvl['icon'],
+                'value': format_display_label(lvl['field'], val)
+            })
+
+        return render_template(
+            'partials/_view_customer_order_fulfilment_leaf_details.html',
+            records=records,
+            leaf_summary=leaf_summary,
+            breadcrumbs=breadcrumbs,
+            current_hierarchy=current_hierarchy,
+            total_records=len(records)
+        )
+    except Exception as e:
+        logger.exception(f"Error in customer_order_fulfilment_summary_leaf_details: {e}")
+        return f'<div class="p-8 text-center text-red-500 font-bold">Error loading details: {str(e)}</div>', 200
+
+
+
 @dashboard_bp.route('/settings/sync-customer-order-fulfilment-summary', methods=['POST'])
 def sync_customer_order_fulfilment_summary_endpoint():
     roles = {str(role).upper() for role in session.get('roles', [])}

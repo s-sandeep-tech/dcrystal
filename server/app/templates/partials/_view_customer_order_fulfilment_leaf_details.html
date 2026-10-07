@@ -1,0 +1,596 @@
+<input type="hidden" id="leaf-record-count" value="{{ total_records }}">
+
+<div class="flex flex-col h-full overflow-hidden">
+    <!-- Top Filter Bar & View Toggle -->
+    <div class="px-5 py-2.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <!-- Hierarchy Path Breadcrumbs -->
+        <div class="flex items-center gap-1.5 text-xs flex-wrap">
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1">Hierarchy:</span>
+            {% for b in breadcrumbs %}
+            <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-[11px] font-medium">
+                <span class="material-symbols-outlined text-[13px] text-primary">{{ b.icon }}</span>
+                <span class="text-gray-400 text-[9px] uppercase font-bold">{{ b.label }}:</span>
+                <span class="font-bold">{{ b.value }}</span>
+            </div>
+            {% if not loop.last %}
+            <span class="text-gray-400 text-xs">›</span>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Controls: Search & View Switcher -->
+        <div class="flex items-center gap-3">
+            <div class="relative">
+                <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
+                <input type="text"
+                    id="leaf-search-input"
+                    oninput="filterLeafModalRows(this.value)"
+                    placeholder="Search in these records..."
+                    class="pl-8 pr-3 py-1 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary w-52 md:w-64 transition-all">
+            </div>
+
+            <!-- View Toggle -->
+            <div class="inline-flex p-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-semibold">
+                <button type="button"
+                    id="btn-view-cards"
+                    onclick="switchLeafView('cards')"
+                    class="px-2.5 py-1 rounded-md text-primary bg-white dark:bg-gray-900 shadow-xs flex items-center gap-1 transition-all">
+                    <span class="material-symbols-outlined text-sm">dashboard</span>
+                    <span>Cards</span>
+                </button>
+                <button type="button"
+                    id="btn-view-table"
+                    onclick="switchLeafView('table')"
+                    class="px-2.5 py-1 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-all">
+                    <span class="material-symbols-outlined text-sm">table_chart</span>
+                    <span>Grid</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {% if leaf_summary and total_records > 0 %}
+    <!-- Aggregated Leaf Pipeline Summary Bar -->
+    <div class="px-5 py-2.5 bg-gray-50/80 dark:bg-gray-800/40 border-b border-gray-200 dark:border-gray-800 shrink-0 overflow-x-auto no-scrollbar">
+        <div class="flex items-center gap-3 min-w-max text-[11px]">
+            <!-- Ordered -->
+            <div class="px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xs">
+                <p class="text-[9px] uppercase font-bold text-gray-400">Total Ordered</p>
+                <p class="font-bold text-gray-800 dark:text-gray-100">{{ "%.3f"|format(leaf_summary.order_generated_wt) }} <span class="text-[10px] text-gray-500 font-normal">({{ "{:,}".format(leaf_summary.total_order) }} Pcs)</span></p>
+            </div>
+            <!-- Approved -->
+            <div class="px-3 py-1.5 rounded-lg bg-purple-50/60 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/50 shadow-2xs">
+                <p class="text-[9px] uppercase font-bold text-purple-600 dark:text-purple-400">Approved</p>
+                <p class="font-bold text-purple-700 dark:text-purple-300">{{ "%.3f"|format(leaf_summary.approved_wt) }} <span class="text-[10px] text-purple-500 font-normal">({{ "{:,}".format(leaf_summary.approved_pcs) }} Pcs)</span></p>
+            </div>
+            <!-- Accepted -->
+            <div class="px-3 py-1.5 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 shadow-2xs">
+                <p class="text-[9px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Accepted</p>
+                <p class="font-bold text-emerald-700 dark:text-emerald-300">{{ "%.3f"|format(leaf_summary.accepted_wt) }} <span class="text-[10px] text-emerald-500 font-normal">({{ "{:,}".format(leaf_summary.accepted_pcs) }} Pcs)</span></p>
+            </div>
+            <!-- Barcoded -->
+            <div class="px-3 py-1.5 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 shadow-2xs">
+                <p class="text-[9px] uppercase font-bold text-indigo-600 dark:text-indigo-400">Barcoded</p>
+                <p class="font-bold text-indigo-700 dark:text-indigo-300">{{ "%.3f"|format(leaf_summary.barcoded_wt) }} <span class="text-[10px] text-indigo-500 font-normal">({{ "{:,}".format(leaf_summary.barcoded_pcs) }} Pcs)</span></p>
+            </div>
+            <!-- Hallmarked -->
+            <div class="px-3 py-1.5 rounded-lg bg-cyan-50/60 dark:bg-cyan-950/20 border border-cyan-100 dark:border-cyan-900/50 shadow-2xs">
+                <p class="text-[9px] uppercase font-bold text-cyan-600 dark:text-cyan-400">Hallmarked</p>
+                <p class="font-bold text-cyan-700 dark:text-cyan-300">{{ "%.3f"|format(leaf_summary.hallmarked_wt) }} <span class="text-[10px] text-cyan-500 font-normal">({{ "{:,}".format(leaf_summary.hallmarked_pcs) }} Pcs)</span></p>
+            </div>
+            <!-- QC Passed -->
+            <div class="px-3 py-1.5 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 shadow-2xs">
+                <p class="text-[9px] uppercase font-bold text-amber-600 dark:text-amber-400">QC Passed</p>
+                <p class="font-bold text-amber-700 dark:text-amber-300">{{ "%.3f"|format(leaf_summary.qc_passed_wt) }} <span class="text-[10px] text-amber-500 font-normal">({{ "{:,}".format(leaf_summary.qc_passed_pcs) }} Pcs)</span></p>
+            </div>
+            <!-- Invoiced -->
+            <div class="px-3 py-1.5 rounded-lg bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 shadow-2xs">
+                <p class="text-[9px] uppercase font-bold text-blue-600 dark:text-blue-400">Invoiced</p>
+                <p class="font-bold text-blue-700 dark:text-blue-300">{{ "%.3f"|format(leaf_summary.invoiced_wt) }} <span class="text-[10px] text-blue-500 font-normal">({{ "{:,}".format(leaf_summary.invoiced_pcs) }} Pcs)</span></p>
+            </div>
+            <!-- Delivered Cust -->
+            <div class="px-3 py-1.5 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 shadow-2xs">
+                <p class="text-[9px] uppercase font-bold text-emerald-700 dark:text-emerald-400">Delivered Cust</p>
+                <p class="font-bold text-emerald-700 dark:text-emerald-300">{{ "%.3f"|format(leaf_summary.delivered_to_customer_wt) }} <span class="text-[10px] text-emerald-600 font-normal">({{ "{:,}".format(leaf_summary.delivered_to_customer_pcs) }} Pcs)</span></p>
+            </div>
+            <!-- Pending To Delv -->
+            <div class="px-3 py-1.5 rounded-lg bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 shadow-2xs">
+                <p class="text-[9px] uppercase font-bold text-orange-700 dark:text-orange-400">Pending To Deliver</p>
+                <p class="font-bold text-orange-700 dark:text-orange-300">{{ "%.3f"|format(leaf_summary.pending_to_delivered_wt) }} <span class="text-[10px] text-orange-600 font-normal">({{ "{:,}".format(leaf_summary.pending_to_delivered_pcs) }} Pcs)</span></p>
+            </div>
+            <!-- Cancelled & Rejected -->
+            <div class="px-3 py-1.5 rounded-lg bg-red-50/60 dark:bg-red-950/20 border border-red-100 dark:border-red-900/50 shadow-2xs">
+                <p class="text-[9px] uppercase font-bold text-red-600 dark:text-red-400">Can / Rej</p>
+                <p class="font-bold text-red-700 dark:text-red-300">{{ "%.3f"|format(leaf_summary.cancelled_wt + leaf_summary.rejected_wt) }} <span class="text-[10px] text-red-500 font-normal">({{ "{:,}".format(leaf_summary.cancelled_pcs + leaf_summary.rejected_pcs) }} Pcs)</span></p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Scrollable Body Content -->
+    <div class="flex-1 overflow-y-auto p-5 space-y-4">
+        {% if not records or records|length == 0 %}
+        <div class="flex flex-col items-center justify-center py-20 text-gray-400">
+            <span class="material-symbols-outlined text-4xl mb-2">content_paste_off</span>
+            <p class="text-sm font-semibold">No order records found matching this leaf node and active filters</p>
+        </div>
+        {% else %}
+
+        <!-- VIEW 1: GROUPED CARDS VIEW -->
+        <div id="leaf-view-cards" class="space-y-4">
+            {% for rec in records %}
+            <div class="leaf-record-card bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-xs hover:border-primary/40 transition-all overflow-hidden"
+                data-search-text="{{ rec.request_no or '' }} {{ rec.sooc_no or '' }} {{ rec.advance_no or '' }} {{ rec.customer_name or '' }} {{ rec.customer_contact_number or '' }} {{ rec.party_name or '' }} {{ rec.party_code or '' }} {{ rec.order_item_type or '' }} {{ rec.make or '' }} {{ rec.collection or '' }} {{ rec.order_status or '' }} {{ rec.division or '' }} {{ rec.section or '' }}">
+                
+                <!-- Card Header -->
+                <div class="px-4 py-3 bg-gray-50/60 dark:bg-gray-800/40 border-b border-gray-100 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-3">
+                        <span class="size-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+                            {{ loop.index }}
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-extrabold text-gray-900 dark:text-white">Request # {{ rec.request_no or 'N/A' }}</span>
+                                {% if rec.sooc_no %}
+                                <span class="text-[10px] font-bold text-gray-500 bg-gray-200/70 dark:bg-gray-700 px-1.5 py-0.5 rounded">SOOC: {{ rec.sooc_no }}</span>
+                                {% endif %}
+                                {% if rec.advance_no %}
+                                <span class="text-[10px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/50">Adv # {{ rec.advance_no }}</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-[11px] text-gray-500 mt-0.5">
+                                <span class="font-semibold text-gray-700 dark:text-gray-300">{{ rec.customer_name or 'Unknown Customer' }}</span>
+                                {% if rec.customer_contact_number %} • {{ rec.customer_contact_number }}{% endif %}
+                                {% if rec.party_name %} • <span class="text-primary font-medium">{{ rec.party_name }}</span>{% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Status Badges -->
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
+                            {% if rec.order_status and 'DELIVER' in rec.order_status|upper %}
+                                bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300
+                            {% elif rec.order_status and 'REJECT' in rec.order_status|upper %}
+                                bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300
+                            {% elif rec.order_status and 'APPROV' in rec.order_status|upper %}
+                                bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300
+                            {% elif rec.order_status and 'ACCEPT' in rec.order_status|upper %}
+                                bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300
+                            {% else %}
+                                bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300
+                            {% endif %}">
+                            {{ rec.order_status or 'Active' }}
+                        </span>
+                        {% if rec.with_reference %}
+                        <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                            With Ref
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Card Body: 5 Information Groups -->
+                <div class="p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 text-xs">
+                    
+                    <!-- GROUP 1: Order & Party Details (Col 1-4) -->
+                    <div class="lg:col-span-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg p-3 border border-gray-100 dark:border-gray-800/80 space-y-2">
+                        <div class="flex items-center gap-1.5 pb-1 border-b border-gray-200/60 dark:border-gray-700/60">
+                            <span class="material-symbols-outlined text-sm text-blue-600">badge</span>
+                            <h4 class="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 dark:text-blue-400">Order & Party Information</h4>
+                        </div>
+                        <div class="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[11px]">
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Request No</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-100">{{ rec.request_no or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">SOOC No</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-100">{{ rec.sooc_no or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Advance No</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.advance_no or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Order Status</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.order_status or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Order Req Type</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.order_request_type or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Cust Req Type</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.customer_order_request_type or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Order Item Type</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.order_item_type or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">With Reference</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ 'Yes' if rec.with_reference else 'No' }}</span>
+                            </div>
+                            <div class="col-span-2 pt-1 border-t border-gray-100 dark:border-gray-800">
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Customer Name & Contact</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-100">{{ rec.customer_name or '-' }}</span>
+                                {% if rec.customer_contact_number %}
+                                <span class="text-[10px] text-gray-500 block">{{ rec.customer_contact_number }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-span-2 pt-1 border-t border-gray-100 dark:border-gray-800">
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Party Details</span>
+                                <span class="font-bold text-primary">{{ rec.party_name or '-' }}</span>
+                                <span class="text-[10px] text-gray-500 block">Code: {{ rec.party_code or '-' }} | Type: {{ rec.party_type or '-' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GROUP 2: Product Taxonomy & Specs (Col 5-8) -->
+                    <div class="lg:col-span-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg p-3 border border-gray-100 dark:border-gray-800/80 space-y-2">
+                        <div class="flex items-center gap-1.5 pb-1 border-b border-gray-200/60 dark:border-gray-700/60">
+                            <span class="material-symbols-outlined text-sm text-purple-600">category</span>
+                            <h4 class="text-[10px] font-extrabold uppercase tracking-wider text-purple-700 dark:text-purple-400">Product Taxonomy & Specs</h4>
+                        </div>
+                        <div class="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[11px]">
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Division</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.division or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Group Category</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.group_category or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Group</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.group_name or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Section</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.section or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Purity</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.purity or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Gender</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.gender or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Classification</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.classification or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Collection</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.collection or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Make</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.make or '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Ref Make</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.refrerence_make or '-' }}</span>
+                            </div>
+                            <div class="col-span-2">
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Wide Range Make</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.wide_range or '-' }}</span>
+                            </div>
+                            <div class="col-span-2 pt-1 border-t border-gray-100 dark:border-gray-800 grid grid-cols-3 gap-2">
+                                <div>
+                                    <span class="text-[9px] text-gray-400 uppercase font-semibold block">Weight</span>
+                                    <span class="font-bold text-gray-800 dark:text-gray-100">{{ "%.3f"|format(rec.weight or 0) }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-[9px] text-gray-400 uppercase font-semibold block">Gross Weight</span>
+                                    <span class="font-bold text-gray-800 dark:text-gray-100">{{ "%.3f"|format(rec.gross_weight or 0) }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-[9px] text-gray-400 uppercase font-semibold block">Size</span>
+                                    <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.size or '-' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GROUP 3: Lifecycle Milestone Dates (Col 9-12) -->
+                    <div class="lg:col-span-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg p-3 border border-gray-100 dark:border-gray-800/80 space-y-2">
+                        <div class="flex items-center gap-1.5 pb-1 border-b border-gray-200/60 dark:border-gray-700/60">
+                            <span class="material-symbols-outlined text-sm text-amber-600">calendar_month</span>
+                            <h4 class="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-400">Milestone Lifecycle Dates</h4>
+                        </div>
+                        <div class="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[11px]">
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Request Date</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.request_date.strftime('%d-%b-%Y') if rec.request_date else '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Creation Date</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-100">{{ rec.order_creation_date.strftime('%d-%b-%Y') if rec.order_creation_date else '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Advance Date</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.advance_date.strftime('%d-%b-%Y') if rec.advance_date else '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Party Accepted</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.party_accepted_date.strftime('%d-%b-%Y') if rec.party_accepted_date else '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Expected Delivery</span>
+                                <span class="font-bold text-primary">{{ rec.expected_delivery_date.strftime('%d-%b-%Y') if rec.expected_delivery_date else '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Office Delivery</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.office_delivery_date.strftime('%d-%b-%Y') if rec.office_delivery_date else '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Shop Delivery</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.shop_delivery_date.strftime('%d-%b-%Y') if rec.shop_delivery_date else '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-gray-400 uppercase font-semibold block">Customer Delivery</span>
+                                <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.customer_delivery_date.strftime('%d-%b-%Y') if rec.customer_delivery_date else '-' }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Organization & Location (Group 5 inside here for compact symmetry) -->
+                        <div class="mt-3 pt-2 border-t border-gray-200/60 dark:border-gray-700/60">
+                            <div class="flex items-center gap-1.5 pb-1">
+                                <span class="material-symbols-outlined text-sm text-slate-500">domain</span>
+                                <h4 class="text-[10px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400">Organization & Location</h4>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 text-[11px] mt-1">
+                                <div>
+                                    <span class="text-[9px] text-gray-400 uppercase font-semibold block">State</span>
+                                    <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.state or '-' }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-[9px] text-gray-400 uppercase font-semibold block">Order RO</span>
+                                    <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.order_ro or '-' }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-[9px] text-gray-400 uppercase font-semibold block">Branch Type</span>
+                                    <span class="font-semibold text-gray-800 dark:text-gray-100">{{ rec.branch_type or '-' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GROUP 4: Stage-wise Quantities & Weights (Full Width Col 1-12) -->
+                    <div class="lg:col-span-12 bg-white dark:bg-gray-800/50 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-700">
+                            <div class="flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-sm text-emerald-600">analytics</span>
+                                <h4 class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Stage-wise Quantities & Weights Breakdown</h4>
+                            </div>
+                            <div class="flex items-center gap-4 text-[10px] text-gray-500">
+                                <span><strong class="text-gray-700 dark:text-gray-200">Recv in Office:</strong> {{ 'Yes' if rec.received_in_office else 'No' }}</span>
+                                <span><strong class="text-gray-700 dark:text-gray-200">Delv to Shop:</strong> {{ 'Yes' if rec.delivered_to_shop else 'No' }}</span>
+                                <span><strong class="text-gray-700 dark:text-gray-200">Delv to Customer:</strong> {{ 'Yes' if rec.delivered_to_customer else 'No' }}</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-11 gap-2 pt-2 text-center text-[10px]">
+                            <!-- Total Ordered -->
+                            <div class="p-1.5 rounded bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+                                <span class="text-[9px] uppercase font-bold text-gray-400 block">Ordered</span>
+                                <span class="font-extrabold text-gray-800 dark:text-gray-100 block">{{ "%.3f"|format(rec.order_generated_wt or 0) }}</span>
+                                <span class="text-[9px] text-gray-500 block">{{ "{:,}".format(rec.total_order or 0) }} Pcs</span>
+                            </div>
+                            <!-- Approved -->
+                            <div class="p-1.5 rounded bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40">
+                                <span class="text-[9px] uppercase font-bold text-purple-600 dark:text-purple-400 block">Approved</span>
+                                <span class="font-extrabold text-purple-700 dark:text-purple-300 block">{{ "%.3f"|format(rec.approved_wt or 0) }}</span>
+                                <span class="text-[9px] text-purple-500 block">{{ "{:,}".format(rec.approved_pcs or 0) }} Pcs</span>
+                            </div>
+                            <!-- Accepted -->
+                            <div class="p-1.5 rounded bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
+                                <span class="text-[9px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">Accepted</span>
+                                <span class="font-extrabold text-emerald-700 dark:text-emerald-300 block">{{ "%.3f"|format(rec.accepted_wt or 0) }}</span>
+                                <span class="text-[9px] text-emerald-500 block">{{ "{:,}".format(rec.accepted_pcs or 0) }} Pcs</span>
+                            </div>
+                            <!-- Barcoded -->
+                            <div class="p-1.5 rounded bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40">
+                                <span class="text-[9px] uppercase font-bold text-indigo-600 dark:text-indigo-400 block">Barcoded</span>
+                                <span class="font-extrabold text-indigo-700 dark:text-indigo-300 block">{{ "%.3f"|format(rec.barcoded_wt or 0) }}</span>
+                                <span class="text-[9px] text-indigo-500 block">{{ "{:,}".format(rec.barcoded_pcs or 0) }} Pcs</span>
+                            </div>
+                            <!-- Hallmarked -->
+                            <div class="p-1.5 rounded bg-cyan-50/50 dark:bg-cyan-950/20 border border-cyan-100 dark:border-cyan-900/40">
+                                <span class="text-[9px] uppercase font-bold text-cyan-600 dark:text-cyan-400 block">Hallmarked</span>
+                                <span class="font-extrabold text-cyan-700 dark:text-cyan-300 block">{{ "%.3f"|format(rec.hallmarked_wt or 0) }}</span>
+                                <span class="text-[9px] text-cyan-500 block">{{ "{:,}".format(rec.hallmarked_pcs or 0) }} Pcs</span>
+                            </div>
+                            <!-- QC Passed -->
+                            <div class="p-1.5 rounded bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40">
+                                <span class="text-[9px] uppercase font-bold text-amber-600 dark:text-amber-400 block">QC Passed</span>
+                                <span class="font-extrabold text-amber-700 dark:text-amber-300 block">{{ "%.3f"|format(rec.qc_passed_wt or 0) }}</span>
+                                <span class="text-[9px] text-amber-500 block">{{ "{:,}".format(rec.qc_passed_pcs or 0) }} Pcs</span>
+                            </div>
+                            <!-- Invoiced -->
+                            <div class="p-1.5 rounded bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40">
+                                <span class="text-[9px] uppercase font-bold text-blue-600 dark:text-blue-400 block">Invoiced</span>
+                                <span class="font-extrabold text-blue-700 dark:text-blue-300 block">{{ "%.3f"|format(rec.invoiced_wt or 0) }}</span>
+                                <span class="text-[9px] text-blue-500 block">{{ "{:,}".format(rec.invoiced_pcs or 0) }} Pcs</span>
+                            </div>
+                            <!-- Recv in Office -->
+                            <div class="p-1.5 rounded bg-teal-50/50 dark:bg-teal-950/20 border border-teal-100 dark:border-teal-900/40">
+                                <span class="text-[9px] uppercase font-bold text-teal-600 dark:text-teal-400 block">Office Recv</span>
+                                <span class="font-extrabold text-teal-700 dark:text-teal-300 block">{{ "%.3f"|format(rec.received_in_office_wt or 0) }}</span>
+                                <span class="text-[9px] text-teal-500 block">{{ "{:,}".format(rec.received_in_office_pcs or 0) }} Pcs</span>
+                            </div>
+                            <!-- Delivered Shop -->
+                            <div class="p-1.5 rounded bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
+                                <span class="text-[9px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">Delv Shop</span>
+                                <span class="font-extrabold text-emerald-700 dark:text-emerald-300 block">{{ "%.3f"|format(rec.delivered_to_shop_wt or 0) }}</span>
+                                <span class="text-[9px] text-emerald-500 block">{{ "{:,}".format(rec.delivered_to_shop_pcs or 0) }} Pcs</span>
+                            </div>
+                            <!-- Delivered Cust -->
+                            <div class="p-1.5 rounded bg-emerald-100/60 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
+                                <span class="text-[9px] uppercase font-bold text-emerald-700 dark:text-emerald-400 block">Delv Cust</span>
+                                <span class="font-extrabold text-emerald-800 dark:text-emerald-200 block">{{ "%.3f"|format(rec.delivered_to_customer_wt or rec.delivered_wt or 0) }}</span>
+                                <span class="text-[9px] text-emerald-600 block">{{ "{:,}".format(rec.delivered_to_customer_pcs or rec.delivered_pcs or 0) }} Pcs</span>
+                            </div>
+                            <!-- Pending Delivered -->
+                            <div class="p-1.5 rounded bg-orange-100/60 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800">
+                                <span class="text-[9px] uppercase font-bold text-orange-700 dark:text-orange-400 block">Pending Delv</span>
+                                <span class="font-extrabold text-orange-800 dark:text-orange-200 block">{{ "%.3f"|format(rec.pending_to_be_delivered_wt or rec.pending_to_delivered_wt or 0) }}</span>
+                                <span class="text-[9px] text-orange-600 block">{{ "{:,}".format(rec.pending_to_be_delivered_pcs or rec.pending_to_delivered_pcs or 0) }} Pcs</span>
+                            </div>
+                        </div>
+
+                        <!-- Cancelled & Rejected sub-row -->
+                        <div class="flex items-center justify-end gap-6 pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/60 text-[10px]">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-gray-400 uppercase font-bold">Cancelled:</span>
+                                <span class="font-bold text-red-600">{{ "%.3f"|format(rec.cancelled_wt or 0) }} Wt</span>
+                                <span class="text-gray-500">({{ "{:,}".format(rec.cancelled_pcs or 0) }} Pcs)</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-gray-400 uppercase font-bold">Rejected:</span>
+                                <span class="font-bold text-red-600">{{ "%.3f"|format(rec.rejected_wt or 0) }} Wt</span>
+                                <span class="text-gray-500">({{ "{:,}".format(rec.rejected_pcs or 0) }} Pcs)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- VIEW 2: DETAILED DATA GRID -->
+        <div id="leaf-view-table" class="hidden overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900 shadow-xs">
+            <table class="w-full text-[10px] text-left border-collapse whitespace-nowrap">
+                <thead>
+                    <!-- Level 1 Super Headers -->
+                    <tr class="bg-gray-100/80 dark:bg-gray-800 text-gray-500 uppercase font-bold text-[8px] tracking-wider border-b border-gray-200 dark:border-gray-700">
+                        <th class="px-2 py-1.5 text-center bg-gray-200/50 dark:bg-gray-800/80" colspan="8">Order & Party Identification</th>
+                        <th class="px-2 py-1.5 text-center bg-purple-50/70 dark:bg-purple-950/30" colspan="14">Product Taxonomy & Specifications</th>
+                        <th class="px-2 py-1.5 text-center bg-amber-50/70 dark:bg-amber-950/30" colspan="8">Lifecycle Milestone Dates</th>
+                        <th class="px-2 py-1.5 text-center bg-emerald-50/70 dark:bg-emerald-950/30" colspan="14">Stage-wise Quantities & Weights</th>
+                        <th class="px-2 py-1.5 text-center bg-slate-100/70 dark:bg-slate-800/50" colspan="3">Organization</th>
+                    </tr>
+                    <!-- Level 2 Column Headers -->
+                    <tr class="bg-gray-50 dark:bg-gray-800/60 text-gray-600 dark:text-gray-300 font-bold border-b border-gray-200 dark:border-gray-700">
+                        <!-- Group 1 -->
+                        <th class="px-2 py-1.5">Req #</th>
+                        <th class="px-2 py-1.5">SOOC #</th>
+                        <th class="px-2 py-1.5">Adv #</th>
+                        <th class="px-2 py-1.5">Status</th>
+                        <th class="px-2 py-1.5">Req Type</th>
+                        <th class="px-2 py-1.5">Item Type</th>
+                        <th class="px-2 py-1.5">Customer</th>
+                        <th class="px-2 py-1.5">Party</th>
+                        <!-- Group 2 -->
+                        <th class="px-2 py-1.5">Division</th>
+                        <th class="px-2 py-1.5">Category</th>
+                        <th class="px-2 py-1.5">Group</th>
+                        <th class="px-2 py-1.5">Section</th>
+                        <th class="px-2 py-1.5">Purity</th>
+                        <th class="px-2 py-1.5">Gender</th>
+                        <th class="px-2 py-1.5">Classification</th>
+                        <th class="px-2 py-1.5">Collection</th>
+                        <th class="px-2 py-1.5">Make</th>
+                        <th class="px-2 py-1.5">Ref Make</th>
+                        <th class="px-2 py-1.5">Wide Range</th>
+                        <th class="px-2 py-1.5 text-right">Weight</th>
+                        <th class="px-2 py-1.5 text-right">Gross Wt</th>
+                        <th class="px-2 py-1.5">Size</th>
+                        <!-- Group 3 -->
+                        <th class="px-2 py-1.5">Req Date</th>
+                        <th class="px-2 py-1.5">Order Date</th>
+                        <th class="px-2 py-1.5">Adv Date</th>
+                        <th class="px-2 py-1.5">Party Acc Date</th>
+                        <th class="px-2 py-1.5">Exp Delv Date</th>
+                        <th class="px-2 py-1.5">Office Delv</th>
+                        <th class="px-2 py-1.5">Shop Delv</th>
+                        <th class="px-2 py-1.5">Cust Delv</th>
+                        <!-- Group 4 -->
+                        <th class="px-2 py-1.5 text-right">Ord Wt</th>
+                        <th class="px-2 py-1.5 text-right">Ord Pcs</th>
+                        <th class="px-2 py-1.5 text-right">Appr Wt</th>
+                        <th class="px-2 py-1.5 text-right">Acc Wt</th>
+                        <th class="px-2 py-1.5 text-right">Bar Wt</th>
+                        <th class="px-2 py-1.5 text-right">HM Wt</th>
+                        <th class="px-2 py-1.5 text-right">QC Wt</th>
+                        <th class="px-2 py-1.5 text-right">Inv Wt</th>
+                        <th class="px-2 py-1.5 text-right">Off Recv Wt</th>
+                        <th class="px-2 py-1.5 text-right">Delv Shop Wt</th>
+                        <th class="px-2 py-1.5 text-right">Delv Cust Wt</th>
+                        <th class="px-2 py-1.5 text-right">Pend Delv Wt</th>
+                        <th class="px-2 py-1.5 text-right">Can Wt</th>
+                        <th class="px-2 py-1.5 text-right">Rej Wt</th>
+                        <!-- Group 5 -->
+                        <th class="px-2 py-1.5">State</th>
+                        <th class="px-2 py-1.5">Order RO</th>
+                        <th class="px-2 py-1.5">Branch</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                    {% for rec in records %}
+                    <tr class="leaf-record-tr hover:bg-blue-50/40 dark:hover:bg-blue-900/10 transition-colors"
+                        data-search-text="{{ rec.request_no or '' }} {{ rec.sooc_no or '' }} {{ rec.advance_no or '' }} {{ rec.customer_name or '' }} {{ rec.party_name or '' }} {{ rec.order_item_type or '' }} {{ rec.make or '' }} {{ rec.collection or '' }} {{ rec.order_status or '' }}">
+                        <td class="px-2 py-1.5 font-bold">{{ rec.request_no or '-' }}</td>
+                        <td class="px-2 py-1.5 font-medium text-gray-500">{{ rec.sooc_no or '-' }}</td>
+                        <td class="px-2 py-1.5 font-medium text-gray-500">{{ rec.advance_no or '-' }}</td>
+                        <td class="px-2 py-1.5 font-bold">{{ rec.order_status or '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.order_request_type or '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.order_item_type or '-' }}</td>
+                        <td class="px-2 py-1.5 font-medium">{{ rec.customer_name or '-' }}</td>
+                        <td class="px-2 py-1.5 font-medium text-primary">{{ rec.party_name or '-' }}</td>
+
+                        <td class="px-2 py-1.5">{{ rec.division or '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.group_category or '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.group_name or '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.section or '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.purity or '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.gender or '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.classification or '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.collection or '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.make or '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.refrerence_make or '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.wide_range or '-' }}</td>
+                        <td class="px-2 py-1.5 text-right font-medium">{{ "%.3f"|format(rec.weight or 0) }}</td>
+                        <td class="px-2 py-1.5 text-right font-medium">{{ "%.3f"|format(rec.gross_weight or 0) }}</td>
+                        <td class="px-2 py-1.5">{{ rec.size or '-' }}</td>
+
+                        <td class="px-2 py-1.5">{{ rec.request_date.strftime('%d-%b-%Y') if rec.request_date else '-' }}</td>
+                        <td class="px-2 py-1.5 font-medium">{{ rec.order_creation_date.strftime('%d-%b-%Y') if rec.order_creation_date else '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.advance_date.strftime('%d-%b-%Y') if rec.advance_date else '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.party_accepted_date.strftime('%d-%b-%Y') if rec.party_accepted_date else '-' }}</td>
+                        <td class="px-2 py-1.5 font-bold text-primary">{{ rec.expected_delivery_date.strftime('%d-%b-%Y') if rec.expected_delivery_date else '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.office_delivery_date.strftime('%d-%b-%Y') if rec.office_delivery_date else '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.shop_delivery_date.strftime('%d-%b-%Y') if rec.shop_delivery_date else '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.customer_delivery_date.strftime('%d-%b-%Y') if rec.customer_delivery_date else '-' }}</td>
+
+                        <td class="px-2 py-1.5 text-right font-bold">{{ "%.3f"|format(rec.order_generated_wt or 0) }}</td>
+                        <td class="px-2 py-1.5 text-right">{{ rec.total_order or 0 }}</td>
+                        <td class="px-2 py-1.5 text-right text-purple-600 font-medium">{{ "%.3f"|format(rec.approved_wt or 0) }}</td>
+                        <td class="px-2 py-1.5 text-right text-emerald-600 font-medium">{{ "%.3f"|format(rec.accepted_wt or 0) }}</td>
+                        <td class="px-2 py-1.5 text-right text-indigo-600 font-medium">{{ "%.3f"|format(rec.barcoded_wt or 0) }}</td>
+                        <td class="px-2 py-1.5 text-right text-cyan-600 font-medium">{{ "%.3f"|format(rec.hallmarked_wt or 0) }}</td>
+                        <td class="px-2 py-1.5 text-right text-amber-600 font-medium">{{ "%.3f"|format(rec.qc_passed_wt or 0) }}</td>
+                        <td class="px-2 py-1.5 text-right text-blue-600 font-medium">{{ "%.3f"|format(rec.invoiced_wt or 0) }}</td>
+                        <td class="px-2 py-1.5 text-right font-medium">{{ "%.3f"|format(rec.received_in_office_wt or 0) }}</td>
+                        <td class="px-2 py-1.5 text-right text-emerald-600 font-medium">{{ "%.3f"|format(rec.delivered_to_shop_wt or 0) }}</td>
+                        <td class="px-2 py-1.5 text-right text-emerald-700 font-bold">{{ "%.3f"|format(rec.delivered_to_customer_wt or rec.delivered_wt or 0) }}</td>
+                        <td class="px-2 py-1.5 text-right text-orange-600 font-bold">{{ "%.3f"|format(rec.pending_to_be_delivered_wt or rec.pending_to_delivered_wt or 0) }}</td>
+                        <td class="px-2 py-1.5 text-right text-red-600 font-medium">{{ "%.3f"|format(rec.cancelled_wt or 0) }}</td>
+                        <td class="px-2 py-1.5 text-right text-red-600 font-medium">{{ "%.3f"|format(rec.rejected_wt or 0) }}</td>
+
+                        <td class="px-2 py-1.5">{{ rec.state or '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.order_ro or '-' }}</td>
+                        <td class="px-2 py-1.5">{{ rec.branch_type or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% endif %}
+    </div>
+</div>

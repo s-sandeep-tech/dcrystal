@@ -33,7 +33,12 @@
                     <span class="material-symbols-outlined text-[14px]">add_circle</span>
                 </button>
                 {% else %}
-                <span class="material-symbols-outlined text-[8px] text-gray-300">fiber_manual_record</span>
+                <button
+                    onclick="openFulfilmentLeafModal(this)"
+                    class="flex items-center justify-center w-full h-full text-primary hover:text-primary-dark transition-transform hover:scale-110 focus:outline-none"
+                    title="View details for {{ r.label }}">
+                    <span class="material-symbols-outlined text-[13px]">info</span>
+                </button>
                 {% endif %}
             </td>
             <td class="px-2 font-bold min-w-[240px] md:min-w-[290px] w-[290px]">
@@ -45,9 +50,18 @@
                     <span class="text-[8px] font-semibold uppercase px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500">
                         {{ r.level_name }}
                     </span>
+                    {% if r.is_leaf %}
+                    <span class="text-primary hover:underline cursor-pointer font-bold truncate max-w-[220px] md:max-w-[260px] inline-flex items-center gap-1"
+                          title="Click to view details for {{ r.label }}"
+                          onclick="openFulfilmentLeafModal(this)">
+                        {{ r.label }}
+                        <span class="material-symbols-outlined text-[11px] opacity-70">open_in_new</span>
+                    </span>
+                    {% else %}
                     <span class="text-gray-800 dark:text-gray-100 font-bold truncate max-w-[220px] md:max-w-[260px]" title="{{ r.label }}">
                         {{ r.label }}
                     </span>
+                    {% endif %}
                 </div>
             </td>
             <td class="text-right px-2">
