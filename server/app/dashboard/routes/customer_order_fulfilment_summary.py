@@ -188,6 +188,34 @@ def build_filter_query(query, search_fields=None):
     if current_stages:
         query = query.filter(M.current_stage.in_(current_stages))
 
+    # Filter: party (Multi/single select)
+    parties = split_filter_values(request.args.get('party', '') or request.args.get('party_name', ''))
+    if parties:
+        query = query.filter(M.party_name.in_(parties))
+
+    # Filter: make (Multi/single select)
+    makes = split_filter_values(request.args.get('make', ''))
+    if makes:
+        query = query.filter(M.make.in_(makes))
+
+    # Filter: collection (Multi/single select)
+    collections = split_filter_values(request.args.get('collection', ''))
+    if collections:
+        query = query.filter(M.collection.in_(collections))
+
+    # Filter: ornament_type (Multi/single select)
+    ornament_types = split_filter_values(request.args.get('ornament_type', '') or request.args.get('order_item_type', ''))
+    if ornament_types:
+        query = query.filter(M.order_item_type.in_(ornament_types))
+
+    # Filter: customer_order_type (Multi/single select)
+    cot_values = split_filter_values(request.args.get('customer_order_type', '') or request.args.get('customer_order_request_type', ''))
+    if cot_values:
+        query = query.filter(
+            (M.customer_order_request_type.in_(cot_values)) |
+            (M.order_request_type.in_(cot_values))
+        )
+
     # Filter 4: order_ageing_days (Select)
     ageing = request.args.get('order_ageing_days', '').strip()
     if ageing:
@@ -415,13 +443,19 @@ def get_filter_options():
         delv_stats = [r[0] for r in db.session.query(M.delivery_status).filter(M.delivery_status.isnot(None)).distinct().order_by(M.delivery_status).all() if r[0]]
         locations = [r[0] for r in db.session.query(M.location).filter(M.location.isnot(None)).distinct().order_by(M.location).all() if r[0]]
         business_heads = [r[0] for r in db.session.query(M.business_head_name).filter(M.business_head_name.isnot(None)).distinct().order_by(M.business_head_name).all() if r[0]]
-        makes = [r[0] for r in db.session.query(M.make).filter(M.make.isnot(None)).distinct().order_by(M.make).all() if r[0]]
-        parties = [r[0] for r in db.session.query(M.party_name).filter(M.party_name.isnot(None)).distinct().order_by(M.party_name).all() if r[0]]
+        makes = [r[0] for r in db.session.query(M.make).filter(M.make.isnot(None), M.make != '').distinct().order_by(M.make).all() if r[0]]
+        parties = [r[0] for r in db.session.query(M.party_name).filter(M.party_name.isnot(None), M.party_name != '').distinct().order_by(M.party_name).all() if r[0]]
+        collections = [r[0] for r in db.session.query(M.collection).filter(M.collection.isnot(None), M.collection != '').distinct().order_by(M.collection).all() if r[0]]
+        ornament_types = [r[0] for r in db.session.query(M.order_item_type).filter(M.order_item_type.isnot(None), M.order_item_type != '').distinct().order_by(M.order_item_type).all() if r[0]]
+        cot_rows = [r[0] for r in db.session.query(M.customer_order_request_type).filter(M.customer_order_request_type.isnot(None), M.customer_order_request_type != '').distinct().order_by(M.customer_order_request_type).all() if r[0]]
+        if not cot_rows:
+            cot_rows = [r[0] for r in db.session.query(M.order_request_type).filter(M.order_request_type.isnot(None), M.order_request_type != '').distinct().order_by(M.order_request_type).all() if r[0]]
+        customer_order_types = cot_rows
         ros = [r[0] for r in db.session.query(M.order_ro).filter(M.order_ro.isnot(None)).distinct().order_by(M.order_ro).all() if r[0]]
     except Exception as e:
         logger.warning(f"Unable to fetch filter options from snapshot table: {e}")
         months, dates, stages, delay_stats, delay_bcks, delv_stats, locations = [], [], [], [], [], [], []
-        business_heads, makes, parties, ros = [], [], [], []
+        business_heads, makes, parties, collections, ornament_types, customer_order_types, ros = [], [], [], [], [], [], []
 
     return {
         'report_months': months,
@@ -435,6 +469,9 @@ def get_filter_options():
         'business_heads': business_heads,
         'makes': makes,
         'parties': parties,
+        'collections': collections,
+        'ornament_types': ornament_types or ['Ornament', 'Article'],
+        'customer_order_types': customer_order_types,
         'ros': ros
     }
 
@@ -443,6 +480,10 @@ def get_filter_options():
 @dashboard_bp.route('/customer-order-fulfilment-summary')
 def customer_order_fulfilment_summary():
     try:
+        try:
+            CustomerOrderFulfilmentSummarySnapshot.__table__.create(db.engine, checkfirst=True)
+        except Exception:
+            pass
         unread_count = Notification.query.filter_by(is_read=False).count()
         sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
 
@@ -518,6 +559,10 @@ def customer_order_fulfilment_summary():
 @dashboard_bp.route('/partial/customer-order-fulfilment-summary')
 def customer_order_fulfilment_summary_partial():
     try:
+        try:
+            CustomerOrderFulfilmentSummarySnapshot.__table__.create(db.engine, checkfirst=True)
+        except Exception:
+            pass
         hierarchy_id = request.args.get('hierarchy', 1, type=int)
         if hierarchy_id not in HIERARCHIES:
             hierarchy_id = 1
