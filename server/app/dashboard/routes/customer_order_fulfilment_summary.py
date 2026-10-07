@@ -69,6 +69,16 @@ HIERARCHIES = {
             {'field': 'party_name', 'label': 'Party', 'icon': 'factory'},
             {'field': 'location', 'label': 'Location', 'icon': 'location_on'}
         ]
+    },
+    7: {
+        'id': 7,
+        'name': 'Shop Manager → Collection Owner → Customer → Party',
+        'levels': [
+            {'field': 'shop_manger', 'label': 'Shop Manager', 'icon': 'storefront'},
+            {'field': 'collection_owner', 'label': 'Collection Owner', 'icon': 'person_outline'},
+            {'field': 'customer_name', 'label': 'Customer', 'icon': 'account_circle'},
+            {'field': 'party_name', 'label': 'Party', 'icon': 'factory'}
+        ]
     }
 }
 
@@ -165,7 +175,10 @@ def build_filter_query(query, search_fields=None):
                 (M.section.ilike(search_terms)) |
                 (M.wide_range.ilike(search_terms)) |
                 (M.order_ro.ilike(search_terms)) |
-                (M.party_name.ilike(search_terms))
+                (M.party_name.ilike(search_terms)) |
+                (M.shop_manger.ilike(search_terms)) |
+                (M.collection_owner.ilike(search_terms)) |
+                (M.customer_name.ilike(search_terms))
             )
 
     # Filter 1: report_month
