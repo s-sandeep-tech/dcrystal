@@ -341,6 +341,34 @@ function changePerPage(perPage) {
     updateUrlAndLoad(urlParams);
 }
 
+function toggleFulfilmentFilters() {
+    const sidebar = document.getElementById('fulfilment-filter-sidebar');
+    const button = document.getElementById('fulfilment-filter-toggle');
+    if (!sidebar || !button) return;
+
+    const isHidden = sidebar.classList.contains('hidden') || sidebar.style.display === 'none';
+    if (isHidden) {
+        sidebar.classList.remove('hidden');
+        sidebar.style.display = '';
+        button.setAttribute('aria-expanded', 'true');
+        button.setAttribute('aria-label', 'Hide filters');
+        button.title = 'Hide filters';
+        button.classList.add('text-primary');
+        button.classList.remove('text-gray-400');
+        localStorage.setItem('fulfilment_filter_visible', 'true');
+    } else {
+        sidebar.classList.add('hidden');
+        sidebar.style.display = 'none';
+        button.setAttribute('aria-expanded', 'false');
+        button.setAttribute('aria-label', 'Show filters');
+        button.title = 'Show filters';
+        button.classList.remove('text-primary');
+        button.classList.add('text-gray-400');
+        localStorage.setItem('fulfilment_filter_visible', 'false');
+    }
+}
+window.toggleFulfilmentFilters = toggleFulfilmentFilters;
+
 document.addEventListener('DOMContentLoaded', () => {
     const tableArea = document.getElementById('table-area');
     if (tableArea) tableArea.style.zoom = currentZoom;
@@ -352,5 +380,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (urlParams.get('search')) {
         const searchInput = document.getElementById('hierarchy-search');
         if (searchInput) searchInput.value = urlParams.get('search');
+    }
+
+    if (localStorage.getItem('fulfilment_filter_visible') === 'false') {
+        const sidebar = document.getElementById('fulfilment-filter-sidebar');
+        const button = document.getElementById('fulfilment-filter-toggle');
+        if (sidebar && button) {
+            sidebar.classList.add('hidden');
+            sidebar.style.display = 'none';
+            button.setAttribute('aria-expanded', 'false');
+            button.setAttribute('aria-label', 'Show filters');
+            button.title = 'Show filters';
+            button.classList.remove('text-primary');
+            button.classList.add('text-gray-400');
+        }
     }
 });

@@ -32,6 +32,13 @@
                     class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
                     title="Zoom In">+</button>
             </div>
+            <!-- Filter Section Visibility Toggle Button -->
+            <button id="fulfilment-filter-toggle" type="button" onclick="toggleFulfilmentFilters()"
+                class="inline-flex items-center justify-center w-7 h-7 rounded border border-gray-200 dark:border-gray-700 text-primary hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors"
+                aria-controls="fulfilment-filter-sidebar" aria-expanded="true" aria-label="Hide filters"
+                title="Hide filters">
+                <span class="material-symbols-outlined text-[16px]" aria-hidden="true">filter_alt</span>
+            </button>
             <div class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
                 <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
                 <input id="hierarchy-search"
@@ -249,7 +256,7 @@
 {% endblock %}
 
 {% block sidebar %}
-<aside class="w-64 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+<aside id="fulfilment-filter-sidebar" class="w-64 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
     <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-xs font-bold flex items-center gap-2">
