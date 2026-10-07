@@ -6,70 +6,118 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
 {% block content %}
-<main id="customer-monitor" class="party-matrix-page flex-1 flex flex-col min-h-0 overflow-hidden bg-[#f5f7fa] dark:bg-background-dark">
+<main id="customer-monitor"
+    class="party-matrix-page flex-1 flex flex-col min-h-0 overflow-hidden bg-[#f5f7fa] dark:bg-background-dark">
     <header class="party-matrix-header shrink-0">
         <div class="party-matrix-title-row"><span class="material-symbols-outlined">assignment</span>
-            <h1>Customer Order Performance &amp; Delivery Monitoring</h1></div>
+            <h1>Customer Order Performance &amp; Delivery Monitoring</h1>
+        </div>
         <div class="party-matrix-header-actions">
-            <button id="monitor-toggle" class="party-matrix-filter-open" title="Toggle filters" aria-label="Toggle filters" aria-expanded="true" aria-controls="monitor-sidebar"><span class="material-symbols-outlined">filter_alt</span></button>
-            <label class="party-matrix-search"><span class="material-symbols-outlined">search</span><input id="monitor-search" placeholder="Search orders..." aria-label="Search orders"></label>
+            <button id="monitor-toggle" class="party-matrix-filter-open" title="Toggle filters"
+                aria-label="Toggle filters" aria-expanded="true" aria-controls="monitor-sidebar"><span
+                    class="material-symbols-outlined">filter_alt</span></button>
+            <label class="party-matrix-search"><span class="material-symbols-outlined">search</span><input
+                    id="monitor-search" placeholder="Search orders..." aria-label="Search orders"></label>
             {% if 'report.export' in permissions or 'ADMIN' in permissions %}
-            <button id="monitor-export" class="party-matrix-filter-open" title="Export CSV" aria-label="Export CSV"><span class="material-symbols-outlined">download</span></button>
+            <button id="monitor-export" class="party-matrix-filter-open" title="Export CSV"
+                aria-label="Export CSV"><span class="material-symbols-outlined">download</span></button>
             {% endif %}
         </div>
     </header>
     <div class="monitor-content-area flex-1 min-h-0 relative flex flex-col">
         <div id="monitor-loading-overlay" aria-live="polite">
-            <div id="monitor-loading" role="status"><span class="monitor-spinner" aria-hidden="true"></span>Loading customer orders...</div>
+            <div id="monitor-loading" role="status"><span class="monitor-spinner" aria-hidden="true"></span>Loading
+                customer orders...</div>
         </div>
         <div class="monitor-content-scroll flex-1 min-h-0 overflow-y-auto">
             <section class="party-matrix-kpis" aria-label="Order summary">
                 {% for key, label, icon, color in [
-                    ('orders','Total Customer Orders','receipt_long','blue'),
-                    ('items','Total Order Items','inventory_2','indigo'),
-                    ('pieces','Production Pending Pieces','pending_actions','cyan'),
-                    ('weight','Production Pending Weight (g)','scale','green'),
-                    ('overdue','Overdue Orders','event_busy','amber'),
-                    ('approval','Approval Pending Pieces','approval','violet')
+                ('orders','Total Pending Customer Orders','receipt_long','blue'),
+                ('items','Total Order Items','inventory_2','indigo'),
+                ('pieces','Production Pending Pieces','pending_actions','cyan'),
+                ('weight','Production Pending Weight (g)','scale','green'),
+                ('overdue','Overdue Orders','event_busy','amber'),
+                ('approval','Approval Pending Pieces','approval','violet')
                 ] %}
-                <div class="party-matrix-kpi"><span class="material-symbols-outlined kpi-{{ color }}">{{ icon }}</span><div><small>{{ label }}</small><strong id="monitor-stat-{{ key }}">&mdash;</strong></div></div>
+                <div class="party-matrix-kpi"><span class="material-symbols-outlined kpi-{{ color }}">{{ icon }}</span>
+                    <div><small>{{ label }}</small><strong id="monitor-stat-{{ key }}">&mdash;</strong></div>
+                </div>
                 {% endfor %}
             </section>
-            <div class="monitor-status"><span id="monitor-error" role="alert"></span><button id="monitor-retry" hidden>Retry</button></div>
+            <div class="monitor-status"><span id="monitor-error" role="alert"></span><button id="monitor-retry"
+                    hidden>Retry</button></div>
             <div id="monitor-warnings" role="status"></div>
             <section class="party-matrix-charts">
                 <article class="party-matrix-chart-panel party-matrix-chart-wide">
-                    <div class="party-matrix-panel-heading"><h2>Stage-wise Outstanding</h2><select id="monitor-stage-measure" aria-label="Stage chart measure"><option value="pcs">Pieces</option><option value="wt">Weight (g)</option></select></div>
-                    <div class="party-matrix-chart"><canvas id="monitor-stages" aria-label="Stage-wise outstanding"></canvas></div>
+                    <div class="party-matrix-panel-heading">
+                        <h2>Stage-wise Outstanding</h2><select id="monitor-stage-measure"
+                            aria-label="Stage chart measure">
+                            <option value="pcs">Pieces</option>
+                            <option value="wt">Weight (g)</option>
+                        </select>
+                    </div>
+                    <div class="party-matrix-chart"><canvas id="monitor-stages"
+                            aria-label="Stage-wise outstanding"></canvas></div>
                 </article>
                 <article id="monitor-heat-panel" class="party-matrix-chart-panel">
                     <div class="party-matrix-panel-heading monitor-heat-heading">
                         <h2 title="Branch / Production Stage">Branch / Production Stage</h2>
                         <div class="monitor-heat-controls">
-                        <select id="monitor-heat-measure" aria-label="Heatmap measure"><option value="pcs">Pieces</option><option value="wt">Weight (g)</option></select>
-                        <select id="monitor-heat-sort" aria-label="Heatmap sort"><option value="pending">Highest Pending</option><option value="branch">Branch A-Z</option></select>
-                        <button type="button" id="monitor-heat-expand" aria-label="Expand Branch / Production Stage" title="Expand Branch / Production Stage" aria-haspopup="dialog" aria-expanded="false" aria-controls="monitor-heat-dialog"><span class="material-symbols-outlined" aria-hidden="true">fullscreen</span></button>
+                            <select id="monitor-heat-measure" aria-label="Heatmap measure">
+                                <option value="pcs">Pieces</option>
+                                <option value="wt">Weight (g)</option>
+                            </select>
+                            <select id="monitor-heat-sort" aria-label="Heatmap sort">
+                                <option value="pending">Highest Pending</option>
+                                <option value="branch">Branch A-Z</option>
+                            </select>
+                            <button type="button" id="monitor-heat-expand" aria-label="Expand Branch / Production Stage"
+                                title="Expand Branch / Production Stage" aria-haspopup="dialog" aria-expanded="false"
+                                aria-controls="monitor-heat-dialog"><span class="material-symbols-outlined"
+                                    aria-hidden="true">fullscreen</span></button>
                         </div>
                     </div>
-                    <div id="monitor-heatmap" class="monitor-heatmap" tabindex="0" aria-label="Branch pending heatmap"></div>
+                    <div id="monitor-heatmap" class="monitor-heatmap" tabindex="0" aria-label="Branch pending heatmap">
+                    </div>
                 </article>
                 <article class="party-matrix-chart-panel">
-                    <div class="party-matrix-panel-heading"><h2>Delivery Risk Analysis</h2><span class="material-symbols-outlined">schedule</span></div>
-                    <div class="party-matrix-chart"><canvas id="monitor-risk" aria-label="Outstanding requests by delivery risk"></canvas></div>
+                    <div class="party-matrix-panel-heading">
+                        <h2>Delivery Risk Analysis</h2><span class="material-symbols-outlined">schedule</span>
+                    </div>
+                    <div class="party-matrix-chart"><canvas id="monitor-risk"
+                            aria-label="Outstanding requests by delivery risk"></canvas></div>
                 </article>
             </section>
             <section class="party-matrix-table-panel" aria-label="Urgent Customer Order Matrix">
-                <div class="party-matrix-table-toolbar"><div><h2>Urgent Customer Order Matrix</h2><span id="monitor-count"></span></div>
-                    <label>Rows <select id="monitor-size"><option>25</option><option>50</option><option>100</option></select></label></div>
-                <div class="monitor-selections"><span id="monitor-selections"></span><button id="monitor-clear" hidden>Clear Chart Selections</button></div>
+                <div class="party-matrix-table-toolbar">
+                    <div>
+                        <h2>Urgent Customer Order Matrix</h2><span id="monitor-count"></span>
+                    </div>
+                    <label>Rows <select id="monitor-size">
+                            <option>25</option>
+                            <option>50</option>
+                            <option>100</option>
+                        </select></label>
+                </div>
+                <div class="monitor-selections"><span id="monitor-selections"></span><button id="monitor-clear"
+                        hidden>Clear Chart Selections</button></div>
                 <div id="monitor-table" class="party-matrix-table-scroll" aria-busy="true"></div>
-                <footer class="party-matrix-pagination"><span id="monitor-page"></span><div><button id="monitor-prev" title="Previous page" aria-label="Previous page"><span class="material-symbols-outlined">chevron_left</span></button><button id="monitor-next" title="Next page" aria-label="Next page"><span class="material-symbols-outlined">chevron_right</span></button></div></footer>
+                <footer class="party-matrix-pagination"><span id="monitor-page"></span>
+                    <div><button id="monitor-prev" title="Previous page" aria-label="Previous page"><span
+                                class="material-symbols-outlined">chevron_left</span></button><button id="monitor-next"
+                            title="Next page" aria-label="Next page"><span
+                                class="material-symbols-outlined">chevron_right</span></button></div>
+                </footer>
             </section>
         </div>
     </div>
     <dialog id="monitor-heat-dialog" aria-label="Branch / Production Stage expanded view"></dialog>
     <dialog id="monitor-owners-dialog" aria-labelledby="monitor-owners-title">
-        <header><h2 id="monitor-owners-title">Responsible Persons</h2><button type="button" id="monitor-owners-close" aria-label="Close responsible persons" title="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></header>
+        <header>
+            <h2 id="monitor-owners-title">Responsible Persons</h2><button type="button" id="monitor-owners-close"
+                aria-label="Close responsible persons" title="Close"><span class="material-symbols-outlined"
+                    aria-hidden="true">close</span></button>
+        </header>
         <div id="monitor-owners-content"></div>
     </dialog>
 </main>
@@ -77,24 +125,46 @@
 {% block sidebar %}
 <aside id="monitor-sidebar" class="party-matrix-sidebar">
     <div class="party-matrix-sidebar-body">
-        <div class="party-matrix-filter-title"><h2><span class="material-symbols-outlined">filter_alt</span>Filters</h2><button id="monitor-reset" class="party-matrix-filter-reset">Reset</button></div>
-        {% for key,label in [('state','State'),('order_ro','Regional Office'),('location','Location'),('customer_order_type','Customer Order Type')] %}
-        <div class="monitor-filter" data-filter="{{ key }}" data-label="{{ label }}" id="monitor-filter-{{ key }}"></div>
+        <div class="party-matrix-filter-title">
+            <h2><span class="material-symbols-outlined">filter_alt</span>Filters</h2><button id="monitor-reset"
+                class="party-matrix-filter-reset">Reset</button>
+        </div>
+        {% for key,label in [('state','State'),('order_ro','Regional
+        Office'),('location','Location'),('customer_order_type','Customer Order Type')] %}
+        <div class="monitor-filter" data-filter="{{ key }}" data-label="{{ label }}" id="monitor-filter-{{ key }}">
+        </div>
         {% endfor %}
-        <label>Sort By<select id="monitor-sort"><option value="priority">Delivery Urgency</option><option value="expected_delivery_date">Expected Delivery Date</option><option value="request_no">Request Number</option><option value="total_pending_wt">Production Pending Weight</option></select></label>
-        <label>Direction<select id="monitor-direction"><option value="asc">Highest Priority First / A-Z</option><option value="desc">Reverse Order / Z-A</option></select></label>
-        <details open class="monitor-advanced"><summary>Advanced Filters</summary>
-            {% for key,label in [('division','Division'),('collection','Collection'),('business_head_name','Business Head'),('order_status','Order Status')] %}
-            <div class="monitor-filter" data-filter="{{ key }}" data-label="{{ label }}" id="monitor-filter-{{ key }}"></div>
+        <label>Sort By<select id="monitor-sort">
+                <option value="priority">Delivery Urgency</option>
+                <option value="expected_delivery_date">Expected Delivery Date</option>
+                <option value="request_no">Request Number</option>
+                <option value="total_pending_wt">Production Pending Weight</option>
+            </select></label>
+        <label>Direction<select id="monitor-direction">
+                <option value="asc">Highest Priority First / A-Z</option>
+                <option value="desc">Reverse Order / Z-A</option>
+            </select></label>
+        <details open class="monitor-advanced">
+            <summary>Advanced Filters</summary>
+            {% for key,label in [('division','Division'),('collection','Collection'),('business_head_name','Business
+            Head'),('order_status','Order Status')] %}
+            <div class="monitor-filter" data-filter="{{ key }}" data-label="{{ label }}" id="monitor-filter-{{ key }}">
+            </div>
             {% endfor %}
-            <label>Pending Stage<select id="monitor-stage"><option value="">All Stages</option>{% for key,label,prefix in stages %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label>
-            {% for key,label in [('request_from','Request From'),('request_to','Request To'),('delivery_from','Delivery From'),('delivery_to','Delivery To')] %}
+            <label>Pending Stage<select id="monitor-stage">
+                    <option value="">All Stages</option>{% for key,label,prefix in stages %}<option value="{{ key }}">{{
+                        label }}</option>{% endfor %}
+                </select></label>
+            {% for key,label in [('request_from','Request From'),('request_to','Request To'),('delivery_from','Delivery
+            From'),('delivery_to','Delivery To')] %}
             <label>{{ label }}<input type="date" data-date="{{ key }}" id="monitor-{{ key }}"></label>
             {% endfor %}
-            <label class="monitor-checkbox"><input type="checkbox" id="monitor-outstanding" checked> Outstanding Orders Only</label>
+            <label class="monitor-checkbox"><input type="checkbox" id="monitor-outstanding" checked> Outstanding Orders
+                Only</label>
         </details>
     </div>
-    <div class="party-matrix-sidebar-footer"><button id="monitor-apply"><span class="material-symbols-outlined">search_check</span>Apply Filters</button></div>
+    <div class="party-matrix-sidebar-footer"><button id="monitor-apply"><span
+                class="material-symbols-outlined">search_check</span>Apply Filters</button></div>
 </aside>
 {% endblock %}
 {% block extra_scripts %}
