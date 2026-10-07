@@ -58,9 +58,6 @@ async function loadFulfilmentViewData() {
                 console.error("Error parsing stats metadata:", e);
             }
         }
-
-        updateOrderStatusFilterBtnState();
-
     } catch (error) {
         console.error('Error loading view:', error);
         activeView.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Error loading report data: ${error.message}</div>`;
@@ -196,60 +193,6 @@ async function toggleFulfilmentRow(btn, levelIdx, path) {
             icon.textContent = 'error';
         }
     }
-}
-
-const fulfilmentStatusButtons = {
-    all_rejected: {
-        id: 'btn-all-rejected',
-        activeClasses: ['bg-red-50', 'dark:bg-red-900/20', 'text-red-600', 'border-red-200', 'dark:border-red-800']
-    },
-    active_orders: {
-        id: 'btn-active-orders',
-        activeClasses: ['bg-orange-50', 'dark:bg-orange-900/20', 'text-orange-600', 'border-orange-200', 'dark:border-orange-800']
-    },
-    delivery_in_progress: {
-        id: 'btn-delivery-in-progress',
-        activeClasses: ['bg-blue-50', 'dark:bg-blue-900/20', 'text-blue-600', 'border-blue-200', 'dark:border-blue-800']
-    },
-    received_orders: {
-        id: 'btn-received-orders',
-        activeClasses: ['bg-emerald-50', 'dark:bg-emerald-900/20', 'text-emerald-600', 'border-emerald-200', 'dark:border-emerald-800']
-    }
-};
-
-const fulfilmentStatusInactiveClasses = ['bg-white', 'dark:bg-gray-800', 'text-gray-500', 'border-gray-200', 'dark:border-gray-700'];
-
-function getCurrentOrderStatusFilter(urlParams) {
-    if (urlParams.get('all_rejected') === 'true') return 'all_rejected';
-    return urlParams.get('order_status_filter') || '';
-}
-
-function toggleOrderStatusFilter(filterName) {
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentFilter = getCurrentOrderStatusFilter(urlParams);
-
-    urlParams.delete('all_rejected');
-    if (currentFilter === filterName) {
-        urlParams.delete('order_status_filter');
-    } else {
-        urlParams.set('order_status_filter', filterName);
-    }
-
-    urlParams.set('page', 1);
-    updateUrlAndLoad(urlParams);
-}
-
-function updateOrderStatusFilterBtnState() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const activeFilter = getCurrentOrderStatusFilter(urlParams);
-
-    Object.entries(fulfilmentStatusButtons).forEach(([filterName, config]) => {
-        const btn = document.getElementById(config.id);
-        if (!btn) return;
-        const activeClasses = config.activeClasses;
-        btn.classList.remove(...fulfilmentStatusInactiveClasses, ...activeClasses);
-        btn.classList.add(...(activeFilter === filterName ? activeClasses : fulfilmentStatusInactiveClasses));
-    });
 }
 
 function changeHierarchy(hierarchyId) {
@@ -410,6 +353,4 @@ document.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('hierarchy-search');
         if (searchInput) searchInput.value = urlParams.get('search');
     }
-
-    updateOrderStatusFilterBtnState();
 });
