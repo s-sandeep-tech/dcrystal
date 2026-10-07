@@ -428,6 +428,8 @@ async function openFulfilmentLeafModal(targetEl) {
     const badge = document.getElementById('fulfilmentLeafModalCountBadge');
 
     if (!modal || !content) return;
+    const searchInput = document.getElementById('leaf-search-input');
+    if (searchInput) searchInput.value = '';
 
     let path = [];
     try {
@@ -477,6 +479,8 @@ async function openFulfilmentLeafModal(targetEl) {
 
         const html = await response.text();
         content.innerHTML = html;
+        switchLeafView('cards');
+        filterLeafModalRows(searchInput ? searchInput.value : '');
 
         const countMeta = content.querySelector('#leaf-record-count');
         if (countMeta && badge) {
@@ -566,4 +570,3 @@ document.addEventListener('keydown', (e) => {
         closeFulfilmentLeafModal();
     }
 });
-

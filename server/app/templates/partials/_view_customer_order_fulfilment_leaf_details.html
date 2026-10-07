@@ -18,35 +18,6 @@
             {% endfor %}
         </div>
 
-        <!-- Controls: Search & View Switcher -->
-        <div class="flex items-center gap-3">
-            <div class="relative">
-                <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
-                <input type="text"
-                    id="leaf-search-input"
-                    oninput="filterLeafModalRows(this.value)"
-                    placeholder="Search in these records..."
-                    class="pl-8 pr-3 py-1 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary w-52 md:w-64 transition-all">
-            </div>
-
-            <!-- View Toggle -->
-            <div class="inline-flex p-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-semibold">
-                <button type="button"
-                    id="btn-view-cards"
-                    onclick="switchLeafView('cards')"
-                    class="px-2.5 py-1 rounded-md text-primary bg-white dark:bg-gray-900 shadow-xs flex items-center gap-1 transition-all">
-                    <span class="material-symbols-outlined text-sm">dashboard</span>
-                    <span>Cards</span>
-                </button>
-                <button type="button"
-                    id="btn-view-table"
-                    onclick="switchLeafView('table')"
-                    class="px-2.5 py-1 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-all">
-                    <span class="material-symbols-outlined text-sm">table_chart</span>
-                    <span>Grid</span>
-                </button>
-            </div>
-        </div>
     </div>
 
     {% if leaf_summary and total_records > 0 %}

@@ -288,19 +288,32 @@
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[96vw] max-w-7xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col h-[90vh] overflow-hidden">
             <!-- Modal Header -->
             <div class="px-5 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0 bg-white dark:bg-gray-900">
-                <div class="flex items-center gap-3">
-                    <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                <div class="flex items-center gap-3 flex-1 min-w-0">
+                    <div class="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                         <span class="material-symbols-outlined text-lg">info</span>
                     </div>
-                    <div>
+                    <div class="flex-1 min-w-0">
                         <h2 class="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
                             Order Fulfilment Details
                             <span id="fulfilmentLeafModalCountBadge" class="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full"></span>
                         </h2>
-                        <div id="fulfilmentLeafModalSubtitle" class="text-[11px] text-gray-500 flex items-center gap-1.5 flex-wrap mt-0.5"></div>
+                        <div class="flex items-center justify-between gap-3 flex-wrap mt-1">
+                            <div id="fulfilmentLeafModalSubtitle" class="text-[11px] text-gray-500 flex items-center gap-1.5 flex-wrap min-w-0 flex-1"></div>
+                            <div class="flex items-center gap-2 flex-wrap shrink-0 max-w-full">
+                                <div class="relative min-w-0">
+                                    <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
+                                    <input type="text" id="leaf-search-input" oninput="filterLeafModalRows(this.value)" placeholder="Search in these records..." aria-label="Search order fulfilment records"
+                                        class="pl-8 pr-3 py-1 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary w-48 max-w-full transition-all">
+                                </div>
+                                <div class="inline-flex p-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-semibold shrink-0">
+                                    <button type="button" id="btn-view-cards" onclick="switchLeafView('cards')" class="px-2.5 py-1 rounded-md text-primary bg-white dark:bg-gray-900 shadow-xs flex items-center gap-1 transition-all"><span class="material-symbols-outlined text-sm">dashboard</span><span>Cards</span></button>
+                                    <button type="button" id="btn-view-table" onclick="switchLeafView('table')" class="px-2.5 py-1 rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 transition-all"><span class="material-symbols-outlined text-sm">table_chart</span><span>Grid</span></button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 shrink-0 ml-2">
                     <button onclick="closeFulfilmentLeafModal()"
                         class="size-8 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
                         <span class="material-symbols-outlined text-xl">close</span>
