@@ -143,7 +143,7 @@ def build_filter_query(base_query):
         query = apply_multi_value_filter(query, getattr(CustomerOrderAnalysis, name), request.args.get(name))
 
     # 0. Order Status
-    query = apply_multi_value_filter(query, CustomerOrderAnalysis.order_status, request.args.get('order_status'))
+    query = apply_multi_value_filter(query, CustomerOrderAnalysis.combine_order_status, request.args.get('order_status'))
     # 1. State
     query = apply_multi_value_filter(query, CustomerOrderAnalysis.state, request.args.get('state'))
     # 2. Location
@@ -403,7 +403,7 @@ def customer_order_analysis():
         filter_options = {
             'customer_order_receipt_statuses': get_distinct_list(CustomerOrderAnalysis.customer_order_receipt_status),
             'customer_order_statuses': get_distinct_list(CustomerOrderAnalysis.customer_order_status),
-            'order_statuses': get_distinct_list(CustomerOrderAnalysis.order_status),
+            'order_statuses': get_distinct_list(CustomerOrderAnalysis.combine_order_status),
             'states': get_distinct_list(CustomerOrderAnalysis.state),
             'locations': get_distinct_list(CustomerOrderAnalysis.location),
             'business_heads': get_distinct_list(CustomerOrderAnalysis.business_head_name),

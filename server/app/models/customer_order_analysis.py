@@ -59,6 +59,7 @@ class CustomerOrderAnalysisSnapshot(db.Model):
     customer_name = db.Column('customer_name', db.Text, nullable=True)
     customer_phone_number = db.Column('customer_phone_number', db.Text, nullable=True)
     order_status = db.Column('order_status', db.Text, nullable=True)
+    combine_order_status = db.Column('combine_order_status', db.Text, nullable=True)
     expected_delivery_date = db.Column('expected_delivery_date', db.DateTime, nullable=True)
 
     # Ownership & Management

@@ -17,6 +17,18 @@ from app.dashboard.routes.customer_order_analysis import (
 
 
 class CustomerOrderAnalysisTests(unittest.TestCase):
+    def test_status_filter_uses_combined_status(self):
+        row = CustomerOrderAnalysis.query.filter_by(request_no='REQ-001').one()
+        row.combine_order_status = 'Customer delivery pending'
+        row.order_status = 'Delivered to office'
+        db.session.commit()
+        with self.app.test_request_context('/?order_status=Customer%20delivery%20pending'):
+            session['roles'] = ['ADMIN']
+            self.assertEqual(build_filter_query(CustomerOrderAnalysis.query).count(), 1)
+        with self.app.test_request_context('/?order_status=Delivered%20to%20office'):
+            session['roles'] = ['ADMIN']
+            self.assertEqual(build_filter_query(CustomerOrderAnalysis.query).count(), 0)
+
     def test_new_status_filters_and_pending_metrics(self):
         row = CustomerOrderAnalysis.query.filter_by(request_no='REQ-001').one()
         row.customer_order_status = 'Awaiting approval'
@@ -410,6 +422,8 @@ class CustomerOrderAnalysisTests(unittest.TestCase):
         row.customer_order_approval_pending_pcs = 2
         row.customer_order_approval_pending_wt = 12.345
         row.customer_name = '<script>bad()</script>'
+        row.combine_order_status = 'Combined status example'
+        row.order_status = 'Old status should not appear'
         html = env.get_template('partials/_view_customer_order_analysis_leaf_cards.html').render(
             records=[row], breadcrumbs=[], mask_suppliers=False)
         self.assertIn('12.345', html)
@@ -417,6 +431,8 @@ class CustomerOrderAnalysisTests(unittest.TestCase):
         self.assertNotIn('<script>bad()</script>', html)
         self.assertIn('&lt;script&gt;', html)
         self.assertNotIn('QC Passed', html)
+        self.assertIn('Combined status example', html)
+        self.assertNotIn('Old status should not appear', html)
 
     def test_customer_order_analysis_data_endpoint(self):
         from app.dashboard.routes.customer_order_analysis import customer_order_analysis_data

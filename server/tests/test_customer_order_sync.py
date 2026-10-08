@@ -1,10 +1,27 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from app.utils import sync_tasks
 
 
 class CustomerOrderSyncTests(unittest.TestCase):
+    def test_combined_status_is_copied_from_source(self):
+        from app.models.customer_order_analysis import CustomerOrderAnalysisSnapshot
+        connection = Mock()
+        connection.cursor.return_value.fetchall.return_value = [{
+            'request_no': 'REQ-1', 'order_status': 'Delivered to office',
+            'combine_order_status': 'Customer delivery pending',
+        }]
+        with patch.object(sync_tasks, 'emit_sync_update'), \
+                patch.object(sync_tasks, 'get_external_db_connection', return_value=connection), \
+                patch.object(sync_tasks, 'db') as database, \
+                patch.object(CustomerOrderAnalysisSnapshot.__table__, 'create'):
+            result = sync_tasks.sync_customer_order_analysis_task()
+        self.assertEqual(result['status'], 'success')
+        records = database.session.bulk_insert_mappings.call_args.args[1]
+        self.assertEqual(records[0]['combine_order_status'], 'Customer delivery pending')
+        self.assertEqual(records[0]['order_status'], 'Delivered to office')
+
     def test_progress_uses_supported_keyword_and_handles_source_failure(self):
         with patch.object(sync_tasks, 'emit_sync_update', autospec=True) as emit, \
                 patch.object(sync_tasks, 'get_external_db_connection', side_effect=RuntimeError('Source unavailable')), \

@@ -5161,6 +5161,7 @@ def sync_customer_order_analysis_task(task_type_override=None, progress_range=(0
                 'po_date': row.get('po_date'),
                 'customer_order_receipt_status': row.get('customer_order_receipt_status'),
                 'customer_order_status': row.get('customer_order_status'),
+                'combine_order_status': row.get('combine_order_status'),
                 'customer_order_approval_pending_pcs': row.get('customer_order_approval_pending_pcs'),
                 'customer_order_approval_pending_wt': row.get('customer_order_approval_pending_wt'),
                 'customer_delivery_pending_pcs': row.get('customer_delivery_pending_pcs'),
@@ -5595,4 +5596,3 @@ def sync_customer_order_fulfilment_summary_task(task_type_override=None, progres
                 conn.close()
             except Exception:
                 pass
-
