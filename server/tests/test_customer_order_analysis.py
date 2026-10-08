@@ -371,6 +371,7 @@ class CustomerOrderAnalysisTests(unittest.TestCase):
                 mock_render.return_value = 'RENDERED_OK'
                 resp = get_customer_order_analysis_leaf_detail.__wrapped__()
                 self.assertEqual(resp, 'RENDERED_OK')
+                self.assertEqual(mock_render.call_args.args[0], 'partials/_view_customer_order_analysis_leaf_cards.html')
                 kwargs = mock_render.call_args.kwargs
                 self.assertEqual(kwargs['parent_location'], 'MUMBAI')
                 self.assertEqual(kwargs['parent_make'], 'MAKE_A')
@@ -390,9 +391,32 @@ class CustomerOrderAnalysisTests(unittest.TestCase):
                 self.assertTrue(context['mask_suppliers'])
                 self.assertEqual(context['supplier_summaries'][0]['supplier'], 'XXX')
                 self.assertEqual(context['supplier_summaries'][0]['party_code'], 'XXX')
-                html = env.get_template('partials/_view_customer_order_analysis_leaf.html').render(**context)
+                html = env.get_template('partials/_view_customer_order_analysis_leaf_cards.html').render(**context)
                 self.assertIn('XXX', html)
                 self.assertNotIn('AACHAL JEWELLERS', html)
+                for record in context['records']:
+                    if record.party_code:
+                        self.assertNotIn(record.party_code, html)
+                self.assertIn('data-co-panel="cards"', html)
+                self.assertIn('data-co-panel="grid"', html)
+                self.assertIn('Stage-wise Pending Quantities', html)
+                self.assertIn('Grand Total', html)
+
+    def test_leaf_cards_keep_pending_metrics_and_escape_values(self):
+        from pathlib import Path
+        from jinja2 import Environment, FileSystemLoader
+        env = Environment(loader=FileSystemLoader(Path(__file__).resolve().parents[1] / 'app/templates'), autoescape=True)
+        row = CustomerOrderAnalysis.query.filter_by(request_no='REQ-001').one()
+        row.customer_order_approval_pending_pcs = 2
+        row.customer_order_approval_pending_wt = 12.345
+        row.customer_name = '<script>bad()</script>'
+        html = env.get_template('partials/_view_customer_order_analysis_leaf_cards.html').render(
+            records=[row], breadcrumbs=[], mask_suppliers=False)
+        self.assertIn('12.345', html)
+        self.assertIn('Approval Pending', html)
+        self.assertNotIn('<script>bad()</script>', html)
+        self.assertIn('&lt;script&gt;', html)
+        self.assertNotIn('QC Passed', html)
 
     def test_customer_order_analysis_data_endpoint(self):
         from app.dashboard.routes.customer_order_analysis import customer_order_analysis_data

@@ -1,0 +1,74 @@
+{% set stages = [
+    ('Total Pending', 'total_pending', 'green'),
+    ('Approval Pending', 'customer_order_approval_pending', 'purple'),
+    ('Accept Pending', 'pending_to_accepted', 'gray'),
+    ('Process Pending', 'process_pending', 'amber'),
+    ('Barcode Pending', 'barcode_pending', 'blue'),
+    ('Hallmark Pending', 'hallmark_pending', 'indigo'),
+    ('QC Issue Pending', 'qc_issue_pending', 'red'),
+    ('QC Pending', 'qc_complete_pending', 'purple'),
+    ('Invoice Pending', 'invoice_pending', 'cyan'),
+    ('Receipt Pending', 'receipt_pending', 'orange'),
+    ('Customer Delivery Pending', 'customer_delivery_pending', 'green')
+] %}
+{% macro value(v) %}{{ v if v is not none and v != '' else '-' }}{% endmacro %}
+{% macro date_value(v) %}{{ v.strftime('%d-%b-%Y') if v else '-' }}{% endmacro %}
+{% macro metric(label, pcs, wt, color) %}
+<div class="co-leaf-metric co-leaf-{{ color }}"><span>{{ label }}</span><strong>{{ '%.3f'|format(wt or 0) }}</strong><small>{{ (pcs or 0)|int }} Pcs</small></div>
+{% endmacro %}
+<div class="co-leaf-layout">
+    <header class="co-leaf-header">
+        <span class="co-leaf-info material-symbols-outlined" aria-hidden="true">info</span>
+        <div class="co-leaf-heading">
+            <h2>Customer Order Details <span>{{ records|length }} Records</span></h2>
+            <div class="co-leaf-heading-row">
+                <div class="co-leaf-breadcrumb">{% for b in breadcrumbs %}<span>{{ b.value }}</span>{% if not loop.last %}<i aria-hidden="true">›</i>{% endif %}{% endfor %}</div>
+                <div class="co-leaf-controls">
+                    <label class="co-leaf-search"><span class="material-symbols-outlined" aria-hidden="true">search</span><input type="search" placeholder="Search in these records..." aria-label="Search customer order records" oninput="filterCustomerOrderLeaf(this.value)"></label>
+                    <div class="co-leaf-toggle" role="group" aria-label="Record view">
+                        <button type="button" data-co-view="cards" aria-pressed="true" onclick="switchCustomerOrderLeafView('cards')"><span class="material-symbols-outlined" aria-hidden="true">dashboard</span>Cards</button>
+                        <button type="button" data-co-view="grid" aria-pressed="false" onclick="switchCustomerOrderLeafView('grid')"><span class="material-symbols-outlined" aria-hidden="true">table_chart</span>Grid</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button type="button" class="co-leaf-close" onclick="closeLeafModal()" aria-label="Close order details" title="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
+    </header>
+    <div class="co-leaf-hierarchy"><strong>Hierarchy:</strong>{% for b in breadcrumbs %}<span><i class="material-symbols-outlined" aria-hidden="true">{{ b.icon }}</i><small>{{ b.label }}:</small> {{ b.value }}</span>{% if not loop.last %}<i aria-hidden="true">›</i>{% endif %}{% endfor %}</div>
+    <div class="co-leaf-summary">{% for label, prefix, color in stages %}{% set sums = namespace(pcs=0, wt=0) %}{% for rec in records %}{% set sums.pcs = sums.pcs + (rec|attr(prefix ~ '_pcs') or 0) %}{% set sums.wt = sums.wt + (rec|attr(prefix ~ '_wt') or 0) %}{% endfor %}{{ metric(label, sums.pcs, sums.wt, color) }}{% endfor %}</div>
+    <div class="co-leaf-body">
+        <div data-co-panel="cards" class="co-leaf-cards">
+        {% for rec in records %}
+            {% set party = 'XXX' if mask_suppliers else (rec.party_name or 'Unknown Supplier') %}
+            {% set code = 'XXX' if mask_suppliers else (rec.party_code or '-') %}
+            {% set fields = [
+                ('Request No', rec.request_no), ('SOOC No', rec.sooc), ('PO Number', rec.po_number), ('Advance No', rec.advance_no),
+                ('Order Status', rec.order_status), ('Customer Order Status', rec.customer_order_status),
+                ('Receipt Status', rec.customer_order_receipt_status), ('Request Type', rec.request_type), ('Customer Order Type', rec.customer_order_type),
+                ('Customer Name', rec.customer_name), ('Customer Phone', rec.customer_phone_number), ('Party', party), ('Party Code', code), ('Party Type', rec.party_type)
+            ] %}
+            {% set product = [('Division', rec.division), ('Group Category', rec.group_category), ('Group', rec.group), ('Section', rec.section),
+                ('Purity', rec.purity), ('Gender', rec.gender), ('Classification', rec.classification), ('Sub-classification', rec.sub_classification),
+                ('Collection', rec.collection), ('Make', rec.make), ('Weight', rec.weight), ('Gross Weight', rec.gross_weight), ('Net Weight', rec.net_weight),
+                ('Stone Weight', rec.stone_weight), ('Other Weight', rec.other_weight), ('Size', rec.size)] %}
+            <article class="co-leaf-record" data-co-search="{{ [rec.request_no or '', rec.sooc or '', rec.po_number or '', rec.advance_no or '', rec.customer_name or '', rec.customer_phone_number or '', party, code, rec.order_status or '', rec.make or '', rec.collection or '', rec.section or '']|join(' ')|lower }}">
+                <div class="co-leaf-record-heading"><span class="co-leaf-number">{{ loop.index }}</span><div><strong>Request # {{ rec.request_no or '-' }}</strong> <span class="co-leaf-tag">SOOC: {{ rec.sooc or '-' }}</span> <span class="co-leaf-advance">Adv # {{ rec.advance_no or '-' }}</span><p>{{ rec.customer_name or 'Unknown Customer' }} · {{ rec.customer_phone_number or '-' }} · <b>{{ party }}</b></p></div><span class="co-leaf-status">{{ rec.order_status or '-' }}</span></div>
+                <div class="co-leaf-record-body">
+                    <section class="co-leaf-section"><h3 class="co-leaf-blue"><span class="material-symbols-outlined">badge</span>Order &amp; Party Information</h3><dl>{% for label, v in fields %}<div><dt>{{ label }}</dt><dd>{{ value(v) }}</dd></div>{% endfor %}</dl></section>
+                    <section class="co-leaf-section"><h3 class="co-leaf-purple"><span class="material-symbols-outlined">category</span>Product Taxonomy &amp; Specs</h3><dl>{% for label, v in product %}<div><dt>{{ label }}</dt><dd>{{ value(v) }}</dd></div>{% endfor %}</dl></section>
+                    <section class="co-leaf-section"><h3 class="co-leaf-orange"><span class="material-symbols-outlined">calendar_month</span>Milestone Lifecycle Dates</h3><dl>{% for label, v in [('Request Date', rec.request_date), ('PO Date', rec.po_date), ('Advance Date', rec.advance_date), ('Expected Delivery', rec.expected_delivery_date)] %}<div><dt>{{ label }}</dt><dd>{{ date_value(v) }}</dd></div>{% endfor %}</dl><h3 class="co-leaf-organization"><span class="material-symbols-outlined">domain</span>Organization &amp; Location</h3><dl>{% for label, v in [('Location', rec.location), ('State', rec.state), ('Order RO', rec.order_ro), ('Branch Type', rec.branch_type), ('Business Head', rec.business_head_name), ('Shop Manager', rec.shop_manger), ('Classification Owner', rec.classification_owner), ('Make Owner', rec.make_owner), ('Collection Owner', rec.collection_wner)] %}<div><dt>{{ label }}</dt><dd>{{ value(v) }}</dd></div>{% endfor %}</dl></section>
+                    <section class="co-leaf-breakdown"><h3 class="co-leaf-green"><span class="material-symbols-outlined">analytics</span>Stage-wise Pending Quantities &amp; Weights Breakdown</h3><div class="co-leaf-stage-grid">{% for label, prefix, color in stages %}{{ metric(label, rec|attr(prefix ~ '_pcs'), rec|attr(prefix ~ '_wt'), color) }}{% endfor %}</div></section>
+                </div>
+            </article>
+        {% else %}<p class="co-leaf-empty">No records found.</p>{% endfor %}
+        </div>
+        <div data-co-panel="grid" class="co-leaf-grid" hidden>
+            <table><thead><tr><th colspan="9">Order &amp; Party Identification</th><th colspan="6">Product Taxonomy &amp; Specs</th><th colspan="4">Lifecycle Dates</th><th colspan="11">Stage-wise Pending Pcs / Wt</th></tr><tr>{% for label in ['Request #', 'SOOC #', 'PO #', 'Advance #', 'Status', 'Customer', 'Phone', 'Party', 'Party Code', 'Division', 'Section', 'Classification', 'Make', 'Collection', 'Purity', 'Request Date', 'PO Date', 'Advance Date', 'Expected Delivery'] %}<th>{{ label }}</th>{% endfor %}{% for label, prefix, color in stages %}<th>{{ label }}</th>{% endfor %}</tr></thead><tbody>
+            {% for rec in records %}{% set party = 'XXX' if mask_suppliers else (rec.party_name or '-') %}{% set code = 'XXX' if mask_suppliers else (rec.party_code or '-') %}
+                <tr data-co-search="{{ [rec.request_no or '', rec.sooc or '', rec.po_number or '', rec.advance_no or '', rec.customer_name or '', rec.customer_phone_number or '', party, code, rec.order_status or '', rec.make or '', rec.collection or '', rec.section or '']|join(' ')|lower }}">{% for v in [rec.request_no, rec.sooc, rec.po_number, rec.advance_no, rec.order_status, rec.customer_name, rec.customer_phone_number, party, code, rec.division, rec.section, rec.classification, rec.make, rec.collection, rec.purity] %}<td>{{ value(v) }}</td>{% endfor %}{% for v in [rec.request_date, rec.po_date, rec.advance_date, rec.expected_delivery_date] %}<td>{{ date_value(v) }}</td>{% endfor %}{% for label, prefix, color in stages %}{% set pcs = rec|attr(prefix ~ '_pcs') or 0 %}{% set wt = rec|attr(prefix ~ '_wt') or 0 %}<td class="co-leaf-{{ color }}">{% if pcs or wt %}{{ pcs|int }} / {{ '%.3f'|format(wt) }}{% endif %}</td>{% endfor %}</tr>
+            {% endfor %}
+            </tbody><tfoot><tr><th colspan="19">Grand Total</th>{% for label, prefix, color in stages %}{% set sums = namespace(pcs=0, wt=0) %}{% for rec in records %}{% set sums.pcs = sums.pcs + (rec|attr(prefix ~ '_pcs') or 0) %}{% set sums.wt = sums.wt + (rec|attr(prefix ~ '_wt') or 0) %}{% endfor %}<th>{% if sums.pcs or sums.wt %}{{ sums.pcs|int }} / {{ '%.3f'|format(sums.wt) }}{% endif %}</th>{% endfor %}</tr></tfoot></table>
+        </div>
+        <p id="co-leaf-no-matches" class="co-leaf-empty" hidden>No matching records.</p>
+    </div>
+</div>

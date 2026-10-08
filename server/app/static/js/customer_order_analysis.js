@@ -421,6 +421,7 @@ async function openLeafModal(location, make, section, classification) {
 
     modal.classList.remove('hidden');
     overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
     content.innerHTML = `<div class="p-8 text-center text-gray-500 flex flex-col items-center justify-center h-full">
         <span class="animate-spin material-symbols-outlined text-4xl text-primary mb-2">sync</span>
         Loading order details...
@@ -455,7 +456,33 @@ function closeLeafModal() {
     const overlay = document.getElementById('modal-overlay');
     if (modal) modal.classList.add('hidden');
     if (overlay) overlay.classList.add('hidden');
+    document.body.style.overflow = '';
 }
+
+function switchCustomerOrderLeafView(view) {
+    document.querySelectorAll('#leaf-detail-content [data-co-panel]').forEach(panel => {
+        panel.hidden = panel.dataset.coPanel !== view;
+    });
+    document.querySelectorAll('#leaf-detail-content [data-co-view]').forEach(button => {
+        button.setAttribute('aria-pressed', String(button.dataset.coView === view));
+    });
+}
+
+function filterCustomerOrderLeaf(query) {
+    const search = (query || '').trim().toLowerCase();
+    const records = document.querySelectorAll('#leaf-detail-content [data-co-search]');
+    let matches = 0;
+    records.forEach(record => {
+        record.hidden = !record.dataset.coSearch.includes(search);
+        if (!record.hidden) matches++;
+    });
+    const empty = document.getElementById('co-leaf-no-matches');
+    if (empty) empty.hidden = matches > 0 || !search;
+}
+
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !document.getElementById('leaf-detail-modal')?.classList.contains('hidden')) closeLeafModal();
+});
 
 function toggleModalSupplier(btn, supplierId) {
     const icon = btn.querySelector('.material-symbols-outlined');

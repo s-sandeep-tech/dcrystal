@@ -893,12 +893,17 @@ def get_customer_order_analysis_leaf_detail():
             supplier_summaries.append(summary)
 
         return render_template(
-            'partials/_view_customer_order_analysis_leaf.html',
+            'partials/_view_customer_order_analysis_leaf_cards.html',
             parent_location=parent_location,
             parent_make=parent_make,
             parent_section=parent_section,
             parent_classification=parent_classification,
             supplier_summaries=supplier_summaries,
+            records=records,
+            breadcrumbs=[{'label': label, 'value': value, 'icon': icon} for label, value, icon in [
+                ('Location', parent_location, 'location_on'), ('Make', parent_make, 'precision_manufacturing'),
+                ('Section', parent_section, 'view_quilt'), ('Classification', parent_classification, 'category')
+            ] if value],
             mask_suppliers=mask_supplier_data()
         )
     except Exception as e:

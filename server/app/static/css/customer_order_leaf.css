@@ -1,0 +1,77 @@
+.co-leaf-layout { height: 100%; display: flex; flex-direction: column; min-height: 0; color: #1f2937; font-size: 12px; letter-spacing: 0; }
+.co-leaf-layout [hidden] { display: none !important; }
+.co-leaf-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+.co-leaf-info { padding: 8px; background: #eff6ff; color: #137fec; border-radius: 8px; }
+.co-leaf-heading { flex: 1; min-width: 0; }
+.co-leaf-heading h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-weight: 700; font-size: 12px; text-transform: uppercase; margin: 0 0 8px; }
+.co-leaf-heading h2 span { font-size: 10px; color: #137fec; background: #eff6ff; padding: 4px 8px; border-radius: 16px; }
+.co-leaf-heading-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.co-leaf-breadcrumb, .co-leaf-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.co-leaf-breadcrumb { min-width: 0; }
+.co-leaf-breadcrumb span, .co-leaf-hierarchy > span { padding: 3px 6px; background: #f3f4f6; border-radius: 4px; font-weight: 600; overflow-wrap: anywhere; }
+.co-leaf-breadcrumb i, .co-leaf-hierarchy > i { font-style: normal; color: #9ca3af; }
+.co-leaf-search { display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; }
+.co-leaf-search .material-symbols-outlined { color: #9ca3af; font-size: 16px; }
+.co-leaf-search input { width: 170px; padding: 0; border: 0; background: transparent; font-size: 11px; }
+.co-leaf-toggle { display: flex; padding: 3px; background: #f3f4f6; border-radius: 8px; }
+.co-leaf-toggle button { display: flex; align-items: center; gap: 4px; padding: 5px 8px; border-radius: 6px; color: #6b7280; font-weight: 600; }
+.co-leaf-toggle .material-symbols-outlined { font-size: 16px; }
+.co-leaf-toggle button[aria-pressed=true] { color: #137fec; background: #fff; box-shadow: 0 1px 2px #0001; }
+.co-leaf-close { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; color: #9ca3af; flex-shrink: 0; }
+.co-leaf-layout button:focus-visible, .co-leaf-search:focus-within { outline: 2px solid #137fec; outline-offset: 2px; }
+.co-leaf-hierarchy { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 10px 20px; border-bottom: 1px solid #e5e7eb; font-size: 10px; flex-shrink: 0; }
+.co-leaf-hierarchy strong, .co-leaf-hierarchy small { color: #9ca3af; text-transform: uppercase; }
+.co-leaf-hierarchy > span { display: inline-flex; align-items: center; gap: 4px; }
+.co-leaf-hierarchy .material-symbols-outlined { color: #137fec; font-size: 14px; }
+.co-leaf-summary { display: flex; gap: 10px; padding: 12px 20px; background: #f9fafb; overflow-x: auto; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+.co-leaf-metric { border: 1px solid currentColor; border-radius: 6px; padding: 8px 10px; min-width: 106px; flex-shrink: 0; background: #fff; }
+.co-leaf-metric > span { display: block; font-size: 9px; text-transform: uppercase; font-weight: 700; }
+.co-leaf-metric strong { font-size: 12px; }
+.co-leaf-metric small { margin-left: 4px; font-size: 10px; }
+.co-leaf-blue { color: #2563eb; } .co-leaf-green { color: #059669; } .co-leaf-purple { color: #9333ea; } .co-leaf-gray { color: #64748b; }
+.co-leaf-indigo { color: #4f46e5; } .co-leaf-red { color: #dc2626; } .co-leaf-cyan { color: #0891b2; } .co-leaf-orange { color: #ea580c; } .co-leaf-amber { color: #d97706; }
+.co-leaf-metric.co-leaf-blue { background: #f5f8ff; border-color: #dbeafe; }
+.co-leaf-metric.co-leaf-green { background: #f0fdf8; border-color: #a7f3d0; }
+.co-leaf-metric.co-leaf-purple { background: #faf5ff; border-color: #e9d5ff; }
+.co-leaf-metric.co-leaf-indigo { background: #f5f5ff; border-color: #e0e7ff; }
+.co-leaf-metric.co-leaf-red { background: #fff5f5; border-color: #fecaca; }
+.co-leaf-metric.co-leaf-cyan { background: #f0fcff; border-color: #a5f3fc; }
+.co-leaf-metric.co-leaf-orange, .co-leaf-metric.co-leaf-amber { background: #fffaf0; border-color: #fed7aa; }
+.co-leaf-metric.co-leaf-gray { background: #f9fafb; border-color: #e5e7eb; }
+.co-leaf-body { flex: 1; min-height: 0; overflow: auto; padding: 20px; }
+.co-leaf-cards { display: flex; flex-direction: column; gap: 16px; }
+.co-leaf-record { border: 1px solid #a9caff; border-radius: 8px; overflow: hidden; }
+.co-leaf-record-heading { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #f9fbff; border-bottom: 1px solid #f3f4f6; flex-wrap: wrap; }
+.co-leaf-record-heading > div { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.co-leaf-record-heading strong { font-size: 12px; }
+.co-leaf-record-heading p { margin: 4px 0 0; color: #6b7280; font-size: 11px; }
+.co-leaf-record-heading b { color: #137fec; }
+.co-leaf-number { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: #eff6ff; border-radius: 50%; color: #137fec; font-weight: 700; flex-shrink: 0; }
+.co-leaf-tag, .co-leaf-advance { display: inline-block; padding: 3px 6px; border-radius: 4px; background: #f3f4f6; color: #6b7280; margin: 2px; font-size: 10px; font-weight: 600; }
+.co-leaf-advance { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+.co-leaf-status { background: #dbeafe; color: #1d4ed8; text-transform: uppercase; border-radius: 16px; padding: 5px 8px; font-size: 10px; font-weight: 700; }
+.co-leaf-record-body { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 16px; }
+.co-leaf-section { min-width: 0; background: #fafbfc; padding: 12px; border: 1px solid #f0f1f3; border-radius: 8px; }
+.co-leaf-layout h3 { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 10px; }
+.co-leaf-layout h3 .material-symbols-outlined { font-size: 15px; }
+.co-leaf-section dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+.co-leaf-section dt { font-size: 9px; color: #9ca3af; text-transform: uppercase; font-weight: 600; }
+.co-leaf-section dd { font-size: 11px; font-weight: 600; margin: 2px 0 0; overflow-wrap: anywhere; }
+.co-leaf-organization { margin-top: 16px; padding-top: 12px; border-top: 1px solid #e5e7eb; color: #64748b; }
+.co-leaf-breakdown { grid-column: 1 / -1; min-width: 0; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; }
+.co-leaf-stage-grid { display: grid; grid-template-columns: repeat(11, minmax(96px, 1fr)); gap: 8px; overflow-x: auto; }
+.co-leaf-stage-grid .co-leaf-metric { min-width: 0; text-align: center; padding: 8px 4px; }
+.co-leaf-stage-grid strong, .co-leaf-stage-grid small { display: block; margin: 4px 0 0; }
+.co-leaf-grid { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px; }
+.co-leaf-grid table { width: 100%; border-collapse: collapse; white-space: nowrap; font-size: 10px; }
+.co-leaf-grid th, .co-leaf-grid td { padding: 8px; border: 1px solid #e5e7eb; }
+.co-leaf-grid thead, .co-leaf-grid tfoot { background: #f3f4f6; }
+.co-leaf-grid thead tr:first-child { text-transform: uppercase; text-align: center; color: #64748b; }
+.co-leaf-empty { text-align: center; padding: 24px; color: #6b7280; }
+.dark .co-leaf-layout { color: #e5e7eb; }
+.dark .co-leaf-summary, .dark .co-leaf-record-heading, .dark .co-leaf-section, .dark .co-leaf-search, .dark .co-leaf-grid thead, .dark .co-leaf-grid tfoot { background: #111827; }
+.dark .co-leaf-layout .co-leaf-metric, .dark .co-leaf-toggle button[aria-pressed=true] { background: #1f2937; }
+.dark .co-leaf-breadcrumb span, .dark .co-leaf-hierarchy > span, .dark .co-leaf-toggle { background: #1f2937; }
+.dark .co-leaf-header, .dark .co-leaf-hierarchy, .dark .co-leaf-summary, .dark .co-leaf-section, .dark .co-leaf-breakdown, .dark .co-leaf-grid th, .dark .co-leaf-grid td { border-color: #374151; }
+@media (max-width: 900px) { .co-leaf-record-body { grid-template-columns: 1fr; } .co-leaf-heading-row { align-items: flex-start; } }
+@media (max-width: 600px) { .co-leaf-header { padding: 12px; gap: 8px; align-items: flex-start; } .co-leaf-info { display: none; } .co-leaf-body { padding: 12px; } .co-leaf-controls { width: 100%; } .co-leaf-search { flex: 1; min-width: 100px; } .co-leaf-search input { width: 100%; min-width: 0; } .co-leaf-hierarchy { padding: 8px 12px; } }
