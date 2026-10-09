@@ -3,7 +3,7 @@
     <thead><tr class="party-matrix-group-head">
         <th colspan="3">Delivery Urgency</th><th colspan="3">Order Information</th><th colspan="2">Location &amp; Product</th><th colspan="3">Outstanding Position</th><th colspan="2">Responsibility</th><th>Order Status</th>
     </tr><tr>
-        {% for key,label in [('priority','Priority'),('expected_delivery_date','Expected Delivery'),('','Days Remaining'),('request_no','Request Number'),('sooc','SOOC'),('request_date','Request Date'),('location','RO / Location'),('','Division / Collection'),('','Pending Stages'),('total_pending_pcs','Production Pending Pcs'),('total_pending_wt','Production Pending Wt (g)'),('','Responsible Person'),('party_name','Party / Supplier'),('customer_order_status','Customer Order Status')] %}
+        {% for key,label in [('priority','Priority'),('expected_delivery_date','Expected Delivery'),('','Days Remaining'),('request_no','Request Number'),('sooc','SOOC'),('request_date','Request Date'),('location','RO / Location'),('','Division / Make'),('','Pending Stages'),('total_pending_pcs','Production Pending Pcs'),('total_pending_wt','Production Pending Wt (g)'),('','Responsible Person'),('party_name','Party / Supplier'),('customer_order_status','Customer Order Status')] %}
         <th>{% if key %}<button data-sort="{{ key }}" title="Sort by {{ label }}">{{ label }} <span aria-hidden="true">&#8597;</span></button>{% else %}{{ label }}{% endif %}</th>
         {% endfor %}
     </tr></thead>
@@ -13,7 +13,7 @@
         <td><button class="monitor-expand" data-detail="monitor-detail-{{ r.id }}" aria-expanded="false" aria-controls="monitor-detail-{{ r.id }}" title="Expand order details"><span class="material-symbols-outlined">add_circle</span><span class="monitor-priority {{ r._risk }}">{{ r._risk if r._risk != 'inactive' else r._classification }}</span></button></td>
         <td>{{ r._due or 'N/A' }}</td><td>{{ r._days if r._days is not none else 'N/A' }}</td>
         <td>{{ r.request_no or 'N/A' }}</td><td>{{ r.sooc or 'N/A' }}</td><td>{{ r.request_date or 'N/A' }}</td>
-        <td>{{ r.order_ro or '-' }}<br>{{ r.location or '-' }}</td><td>{{ r.division or '-' }}<br>{{ r.collection or '-' }}</td>
+        <td>{{ r.order_ro or '-' }}<br>{{ r.location or '-' }}</td><td>{{ r.division or '-' }}<br>{{ r.make or '-' }}</td>
         <td>{% for key,label,prefix in stages if key in r._stages %}<div>{{ label }}</div>{% else %}{{ r._classification }}{% endfor %}</td>
         <td>{{ '{:,.0f}'.format(r.total_pending_pcs or 0) }}</td><td>{{ '{:,.3f}'.format(r.total_pending_wt or 0) }}</td>
         <td>

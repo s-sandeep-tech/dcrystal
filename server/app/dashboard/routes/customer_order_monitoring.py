@@ -108,7 +108,7 @@ def customer_order_monitoring_export():
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow(['Priority', 'Expected Delivery Date', 'Days Remaining', 'Request Number', 'SOOC',
-                     'Request Date', 'RO / Location', 'Division / Collection', 'Pending Stages',
+                     'Request Date', 'RO / Location', 'Division / Make', 'Pending Stages',
                      'Production Pending Pieces', 'Production Pending Weight (g)', 'Responsibility',
                      'Customer Order Status', 'Party / Supplier'])
     labels = dict((k, label) for k, label, _ in STAGES)
@@ -118,7 +118,7 @@ def customer_order_monitoring_export():
     for r in data['rows']:
         values = [r['_risk'], r['_due'], r['_days'], r.get('request_no'), r.get('sooc'), r.get('request_date'),
                   f"{r.get('order_ro') or ''} / {r.get('location') or ''}",
-                  f"{r.get('division') or ''} / {r.get('collection') or ''}",
+                  f"{r.get('division') or ''} / {r.get('make') or ''}",
                   ', '.join(labels[k] for k in r['_stages']), r.get('total_pending_pcs'), r.get('total_pending_wt'),
                   '; '.join(f'{label}: {r.get(field)}' for label, field in owners if r.get(field)),
                   r.get('customer_order_status'), r.get('party_name')]
