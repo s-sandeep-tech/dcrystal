@@ -730,8 +730,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = document.getElementById('manageUserPassword').value;
 
         if (!id && !password) return showToast('Password is required for new users', 'error');
-        if (!/^[^@\s]+@kalyanjewellers\.(tech|net|store)$/i.test(email)) {
-            return showToast('Email must use the @kalyanjewellers.tech, @kalyanjewellers.net, or @kalyanjewellers.store domain', 'error');
+        if (!/^[^@\s]+@kalyanjewellers\.(tech|net\.in|net|store)$/i.test(email)) {
+            return showToast('Email must use the @kalyanjewellers.tech, @kalyanjewellers.net, @kalyanjewellers.net.in, or @kalyanjewellers.store domain', 'error');
         }
 
         const payload = { user_id: bizId, username, email };
