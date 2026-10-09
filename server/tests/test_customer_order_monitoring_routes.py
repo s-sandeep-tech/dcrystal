@@ -48,6 +48,14 @@ class MonitoringRouteTests(unittest.TestCase):
         self.assertEqual(self.client.get('/api/monitor').status_code, 401)
         self.assertEqual(self.client.get('/api/monitor', headers=self.headers).status_code, 401)
 
+    def test_checker_all_rows_without_supplier_masking(self):
+        self.login(['CUSTOMER OREDR CHECKER', 'SHOWROOM_MANAGER'], 'unmapped')
+        data = self.client.get('/api/monitor', headers=self.headers).get_json()
+        self.assertEqual(data['stats']['pieces'], 6)
+        self.assertIn('Supplier 1', data['html'])
+        self.assertIn('Supplier 3', data['html'])
+        self.assertNotIn('XXX', data['html'])
+
     def test_admin_all_rows_and_filters(self):
         self.login(['ADMIN'])
         data = self.client.get('/api/monitor', headers=self.headers).get_json()

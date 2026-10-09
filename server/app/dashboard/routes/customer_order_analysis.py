@@ -16,10 +16,13 @@ from collections import defaultdict
 import logging
 
 logger = logging.getLogger(__name__)
+CUSTOMER_ORDER_CHECKER_ROLE = 'CUSTOMER OREDR CHECKER'
 
 
 def mask_supplier_data():
     roles = {str(role).strip().upper() for role in session.get('roles', [])}
+    if CUSTOMER_ORDER_CHECKER_ROLE in roles:
+        return False
     return bool(roles.intersection({'BUSINESS_HEAD', 'SHOWROOM_MANAGER'}))
 
 
@@ -98,7 +101,7 @@ def apply_owner_visibility_filter(query):
 
 def apply_visibility_filter(query):
     roles = {str(role).strip().upper() for role in session.get('roles', [])}
-    if roles.intersection({'ADMIN', 'MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'}):
+    if roles.intersection({'ADMIN', 'MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR', CUSTOMER_ORDER_CHECKER_ROLE}):
         return query
     if 'BUSINESS_HEAD' in roles:
         emp_code = str(session.get('user_id') or '').strip()

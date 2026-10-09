@@ -338,6 +338,13 @@ class CustomerOrderAnalysisTests(unittest.TestCase):
             session['roles'] = ['ADMIN']
             self.assertFalse(mask_supplier_data())
 
+    def test_customer_order_checker_sees_all_rows_and_suppliers(self):
+        with self.app.test_request_context('/'):
+            session['roles'] = ['CUSTOMER OREDR CHECKER', 'BUSINESS_HEAD', 'SHOWROOM_MANAGER']
+            session['user_id'] = 'unmapped'
+            self.assertEqual(build_filter_query(CustomerOrderAnalysis.query).count(), 3)
+            self.assertFalse(mask_supplier_data())
+
     def test_privileged_role_bypasses_match_reference(self):
         for role in ['ADMIN', 'MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR']:
             with self.app.test_request_context('/'):
