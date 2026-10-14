@@ -27,6 +27,8 @@ let purityHeaderFilter;
 let collectionMultiSelect;
 let collectionHeaderFilter;
 let reportRequestId = 0;
+let appliedStockFilters = { ...filterValues };
+let activeDrilldownFilters = { ...filterValues };
 
 function setupStockRefreshPrompt() {
     const dialog = document.getElementById('stock-refresh-dialog');
@@ -339,6 +341,7 @@ async function loadReport(throwOnError = false) {
         const html = await response.text();
         if (requestId !== reportRequestId) return false;
         tableArea.innerHTML = html;
+        appliedStockFilters = Object.fromEntries(params);
 
         // Re-execute scripts in the partial
         const scripts = tableArea.getElementsByTagName('script');
@@ -545,6 +548,7 @@ function toggleHeaderFilter(event, id) {
  */
 
 async function openDrillDownModal(sectionName) {
+    const drilldownFilters = { ...appliedStockFilters };
     const modal = document.getElementById('drillDownModal');
     const container = document.getElementById('drillDownContainer');
     const title = document.getElementById('drillDownTitle');
@@ -572,7 +576,7 @@ async function openDrillDownModal(sectionName) {
     try {
         // Collect all current report filters
         const params = new URLSearchParams({
-            ...filterValues,
+            ...drilldownFilters,
             drill_section: sectionName // Explicitly filter by the clicked section
         });
 
@@ -584,6 +588,7 @@ async function openDrillDownModal(sectionName) {
 
         const html = await response.text();
         contentArea.innerHTML = html;
+        activeDrilldownFilters = { ...drilldownFilters, drill_section: sectionName };
 
     } catch (err) {
         console.error('Drill-down error:', err);
@@ -674,7 +679,7 @@ function closeDrillDownModal() {
 
 function buildHierarchyDetailParams(link) {
     return new URLSearchParams({
-        ...filterValues,
+        ...activeDrilldownFilters,
         drill_level: link.dataset.level,
         drill_section: link.dataset.section,
         drill_purity: link.dataset.purity,

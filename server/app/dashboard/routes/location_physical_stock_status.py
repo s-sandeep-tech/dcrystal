@@ -1047,6 +1047,10 @@ def get_location_physical_stock_in_shop_details():
             f'AND p.{column} = b.{column}'
             for column in ('branch_id', *hierarchy_id_columns)
         )
+        barcode_filters = '\n'.join(
+            f"AND (:{name} IS NULL OR b.{name} = ANY(string_to_array(CAST(:{name} AS text), ',')))"
+            for name in ('location', 'classification', 'make', 'collection', 'section', 'prov_type', 'branch_type')
+        )
 
         query = text(f'''
 WITH matching_stock AS MATERIALIZED (
@@ -1080,6 +1084,8 @@ matched_barcodes AS (
       ON TRUE
       {identity_join}
     WHERE (:drill_level < 5 OR b.weight = CAST(:drill_range_weight AS numeric))
+      AND (:purity IS NULL OR b.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
+      {barcode_filters}
 )
 SELECT
     b.*,
