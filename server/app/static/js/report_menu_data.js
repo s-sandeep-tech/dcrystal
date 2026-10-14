@@ -46,14 +46,6 @@ window.REPORT_MENU_DATA = [
         accent: "emerald",
         reports: [
             {
-                id: "party-report-menu",
-                title: "Party Report Center",
-                href: "/party-report-menu",
-                icon: "hub",
-                description: "Open the complete collection of party design, order, quality, allocation, and delivery reports.",
-                tags: ["party", "reports", "center"]
-            },
-            {
                 id: "pending-order-details",
                 title: "Pending Order Details Report",
                 href: "/pendingorderdetails",
@@ -68,14 +60,6 @@ window.REPORT_MENU_DATA = [
                 icon: "pin_drop",
                 description: "Hierarchical pending order summary grouped by Location and Make across all production stages.",
                 tags: ["location", "make", "pending", "order", "summary", "stages"]
-            },
-            {
-                id: "party-make-capacity",
-                title: "Supplier Capacity & Backlog Analysis",
-                href: "/party-make-capacity-report",
-                icon: "balance",
-                description: "Analyze supplier monthly production capacity vs WIP stage backlog with hierarchical drill-down and bottleneck detection.",
-                tags: ["supplier", "party", "capacity", "make", "wip", "backlog", "pending", "diff"]
             },
             {
                 id: "owner-wise-order",
@@ -117,6 +101,46 @@ window.REPORT_MENU_DATA = [
                 icon: "local_shipping",
                 description: "Track receipt performance and average delivery days across collections.",
                 tags: ["collection", "delivery", "days", "average", "receipt"]
+            }
+        ]
+    },
+    {
+        id: "party-reports",
+        title: "PARTY REPORTS",
+        description: "Party and supplier performance, capacity, quality, allocation, and delivery reports.",
+        accent: "emerald",
+        reports: [
+            {
+                id: "party-report-menu",
+                title: "Party Report Center",
+                href: "/party-report-menu",
+                icon: "hub",
+                description: "Open the complete collection of party design, order, quality, allocation, and delivery reports.",
+                tags: ["party", "reports", "center"]
+            },
+            {
+                id: "party-performance-matrix",
+                title: "Party Performance Matrix",
+                href: "/party-performance-matrix",
+                icon: "analytics",
+                description: "Review party performance across order, delivery, and quality measures.",
+                tags: ["party", "performance", "matrix"]
+            },
+            {
+                id: "party-make-capacity",
+                title: "Supplier Capacity & Backlog Analysis",
+                href: "/party-make-capacity-report",
+                icon: "balance",
+                description: "Analyze supplier monthly production capacity vs WIP stage backlog with hierarchical drill-down and bottleneck detection.",
+                tags: ["supplier", "party", "capacity", "make", "wip", "backlog", "pending", "diff"]
+            },
+            {
+                id: "party-delay",
+                title: "Party Delay Management",
+                href: "/party-delay-management",
+                icon: "groups",
+                description: "Party-level aging, feedback, and delay details.",
+                tags: ["party", "delay", "feedback"]
             },
             {
                 id: "party-design-delivery-performance",
@@ -343,14 +367,6 @@ window.REPORT_MENU_DATA = [
                 icon: "route",
                 description: "Stage-wise delay tracking and exception review.",
                 tags: ["stage", "delay", "operations"]
-            },
-            {
-                id: "party-delay",
-                title: "Party Delay Management",
-                href: "/party-delay-management",
-                icon: "groups",
-                description: "Party-level aging, feedback, and delay details.",
-                tags: ["party", "delay", "feedback"]
             },
             {
                 id: "qc-delay",
