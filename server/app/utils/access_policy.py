@@ -1,4 +1,14 @@
 """Effective roles keep legacy ADMIN report checks compatible with SUPER_ADMIN."""
+from urllib.parse import urlsplit
+
+
+def report_menu_path(url):
+    """Menu query strings and fragments do not change report page identity."""
+    value = str(url or '').strip()
+    parsed = urlsplit(value)
+    if parsed.scheme or parsed.netloc or not parsed.path.startswith('/'):
+        return None
+    return parsed.path.rstrip('/') or '/'
 
 def effective_roles(user):
     roles = {role.name for role in user.roles}
@@ -23,8 +33,8 @@ def report_menu_access(user):
         if permission.name not in {'ADMIN', 'SUPER_ADMIN'}
     }
     urls = {
-        menu.url for role in user.roles for menu in role.menus
-        if menu.url and menu.url != '#'
+        report_menu_path(menu.url) for role in user.roles for menu in role.menus
+        if report_menu_path(menu.url)
         and (not menu.permission_required or menu.permission_required in permissions)
     }
     return {'all_reports': False, 'urls': sorted(urls)}
