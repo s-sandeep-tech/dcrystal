@@ -1,5 +1,17 @@
 (function () {
-    const menuData = Array.isArray(window.REPORT_MENU_DATA) ? window.REPORT_MENU_DATA : [];
+    let access = { all_reports: false, urls: [] };
+    try {
+        access = JSON.parse(document.getElementById('report-menu-access')?.textContent || '{}');
+    } catch (error) {
+        console.error('Unable to read report access grants', error);
+    }
+    const allowedUrls = new Set(Array.isArray(access.urls) ? access.urls : []);
+    const menuData = (Array.isArray(window.REPORT_MENU_DATA) ? window.REPORT_MENU_DATA : [])
+        .map(category => ({
+            ...category,
+            reports: (category.reports || []).filter(report => access.all_reports === true || allowedUrls.has(report.href))
+        }))
+        .filter(category => category.reports.length > 0);
     const contentEl = document.getElementById("reportMenuContent");
     const searchEl = document.getElementById("reportSearch");
     const countEl = document.getElementById("reportCount");

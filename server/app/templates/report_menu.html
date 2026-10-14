@@ -48,6 +48,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script type="application/json" id="report-menu-access">{{ report_menu_access|tojson }}</script>
 <script src="{{ url_for('static', filename='js/report_menu_data.js') }}"></script>
 <script src="{{ url_for('static', filename='js/report_menu.js') }}"></script>
 {% endblock %}

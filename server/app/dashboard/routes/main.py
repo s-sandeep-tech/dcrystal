@@ -72,9 +72,24 @@ def settings():
 @dashboard_bp.route('/report-menu')
 @dashboard_bp.route('/report_menu')
 def report_menu():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('dashboard.login'))
+    user = User.query.filter_by(user_id=str(user_id)).first()
+    if not user or not user.is_active:
+        return redirect(url_for('dashboard.login'))
+    from app.utils.access_policy import report_menu_access
+    access = report_menu_access(user)
+    # A grant for a route alias also enables its canonical report-menu link.
+    allowed_urls = set(access['urls'])
+    endpoints = {rule.endpoint for rule in current_app.url_map.iter_rules()
+                 if rule.rule in allowed_urls and 'GET' in rule.methods}
+    access['urls'] = sorted(allowed_urls | {rule.rule for rule in current_app.url_map.iter_rules()
+                                           if rule.endpoint in endpoints and 'GET' in rule.methods})
     sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
     unread_count = Notification.query.filter_by(is_read=False).count()
-    return render_template('report_menu.html', sync_time=sync_time, unread_count=unread_count)
+    return render_template('report_menu.html', sync_time=sync_time, unread_count=unread_count,
+                           report_menu_access=access)
 
 
 @dashboard_bp.route('/party-report-menu')
