@@ -9,6 +9,8 @@ FILTERS = ['branch_id', 'section', 'classification', 'make', 'wide_range', 'coll
 
 
 def dimension(name):
+    if name == 'design_no':
+        name = 'barcode'  # Summary sync stores design_no in the existing contributor column.
     return func.coalesce(func.nullif(func.trim(cast(getattr(S, name), String)), ''), '(Unspecified)')
 
 
@@ -56,9 +58,8 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
     if path is None:
         path = []
 
-    cutoff_query = db.session.query(func.max(S.date)).filter(S.trans_type.in_(['INVOICE', 'SR']))
-    if source_date:
-        cutoff_query = cutoff_query.filter(S.date <= source_date)
+    # Snapshot date is max_trans_date; summary totals cannot be date-sliced.
+    cutoff_query = db.session.query(func.max(S.date))
     source_date = cutoff_query.scalar()
     factor, inclusive_fy_days, inclusive_elapsed_days, fy_label = calculate_fy_factor(source_date)
     fy_start = date(source_date.year if source_date.month >= 4 else source_date.year - 1, 4, 1) if source_date else None
@@ -66,8 +67,8 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
     dims = [dimension(k).label(k) for k in HIERARCHY]
 
     # Filter base query by selections
-    sales = db.session.query(S).filter(S.trans_type.in_(['INVOICE', 'SR']))
-    sales = sales.filter(S.date.between(fy_start, source_date)) if source_date else sales.filter(False)
+    # Source supplies net FY sales, including returns, already aggregated.
+    sales = db.session.query(S)
     for name in FILTERS:
         values = selections.get(name)
         if values:
@@ -81,7 +82,7 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
     if contributors:
         for name, value in zip(HIERARCHY, path):
             sales = sales.filter(dimension(name) == value)
-        level = HIERARCHY[len(path)] if len(path) < len(HIERARCHY) else 'barcode'
+        level = HIERARCHY[len(path)] if len(path) < len(HIERARCHY) else 'design_no'
         label = dimension(level)
         weight = func.sum(func.coalesce(S.gross_weight, 0))
         grouped = sales.with_entities(label.label('label'), weight.label('weight')).group_by(label).subquery()

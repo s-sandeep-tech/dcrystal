@@ -4996,21 +4996,16 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
             conn = get_external_db_connection()
             cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-            emit('processing', 'Fetching data from vw_item_wise_tsk_details_data...', 20)
+            emit('processing', 'Fetching data from item_wise_tsk_summary_view...', 20)
             started_at = time.time()
             cursor.execute("SET statement_timeout = 0")
             
-            try:
-                query = "SELECT * FROM ext_view.vw_item_wise_tsk_details_data"
-                cursor.execute(query)
-            except Exception:
-                query = "SELECT * FROM vw_item_wise_tsk_details_data"
-                cursor.execute(query)
+            cursor.execute("SELECT * FROM ext_view.item_wise_tsk_summary_view")
 
             source_rows = cursor.fetchall()
             duration = time.time() - started_at
 
-            logger.info(f"vw_item_wise_tsk_details_data query took {duration:.2f} seconds.")
+            logger.info(f"item_wise_tsk_summary_view query took {duration:.2f} seconds.")
             emit('processing', f'Fetched {len(source_rows):,} records in {duration:.1f}s. Updating local snapshot...', 50)
 
             SalesStockCompositionAnalysisSnapshot.__table__.create(db.engine, checkfirst=True)
@@ -5019,11 +5014,14 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
             now = datetime.utcnow()
             records = []
             for row in source_rows:
+                report_date = row.get('max_trans_date')
+                if isinstance(report_date, datetime):
+                    report_date = report_date.date()
                 records.append({
                     'source_id': to_int(row.get('id')),
-                    'date': row.get('date'),
+                    'date': report_date,
                     'branch_id': to_int(row.get('branch_id')),
-                    'location_name': to_str(row.get('location_name')),
+                    'location_name': to_str(row.get('location')),
                     'state_name': to_str(row.get('state_name')),
                     'item_definition_id': to_int(row.get('item_definition_id')),
                     'make': to_str(row.get('make')),
@@ -5056,10 +5054,11 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
                     'screw_type_id': to_int(row.get('screw_type_id')),
                     'wide_range': to_str(row.get('wide_range')),
                     'wide_range_id': to_int(row.get('wide_range_id')),
-                    'size_label': to_str(row.get('size_label')),
+                    'size_label': to_str(row.get('size')),
                     'size_unit': to_str(row.get('size_unit')),
                     'size_id': to_int(row.get('size_id')),
-                    'barcode': to_str(row.get('barcode')),
+                    # Retain the snapshot column for the design-level contributor key.
+                    'barcode': to_str(row.get('design_no')),
                     'gross_weight': to_decimal(row.get('gross_weight')),
                     'net_weight': to_decimal(row.get('net_weight')),
                     'barcode_total_cost': to_decimal(row.get('barcode_total_cost')),

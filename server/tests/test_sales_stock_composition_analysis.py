@@ -1,7 +1,7 @@
 """Unit tests for Sales & Stock Composition Analysis."""
 import unittest
-from unittest.mock import patch
-from datetime import date
+from unittest.mock import patch, MagicMock
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
@@ -164,14 +164,14 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
 
         data = composition_analysis_data(date(2026, 9, 25), {'branch_id': ['2']})
         self.assertEqual(data['stats']['provision_weight'], 50)
-        self.assertEqual(data['stats']['sales_weight'], 2)
+        self.assertEqual(data['stats']['sales_weight'], 4)
         self.assertEqual(data['total']['provision_value'], 160)
         self.assertEqual(sum(row['stock_weight'] for row in data['rows']), 50)
         chain = next(row for row in data['rows'] if row['label'] == 'CHAIN')
         self.assertEqual(chain['stock_weight'], 30)
         self.assertEqual(chain['stock_composition'], 60)
-        self.assertAlmostEqual(chain['weight_turn'], 2 * data['factor'] / 30)
-        self.assertAlmostEqual(chain['value_turn'], 20 * data['factor'] / 80)
+        self.assertAlmostEqual(chain['weight_turn'], 3 * data['factor'] / 30)
+        self.assertAlmostEqual(chain['value_turn'], 30 * data['factor'] / 80)
 
         filtered = composition_analysis_data(date(2026, 9, 25),
             {'branch_id': ['2'], 'section': ['BANGLE']})
@@ -191,6 +191,59 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
         self.assertEqual(data['stats']['provision_weight'], 15)
         self.assertIsNone(data['total']['provision_value'])
         self.assertIsNone(data['total']['value_turn'])
+
+    def test_summary_without_transaction_type_uses_global_date_and_design(self):
+        dimensions = dict(zip(HIERARCHY, ['CHAIN', 'BRAND', 'CUSTOM', 'LIGHT', 'C1', 'M1', 920]))
+        db.session.add_all([
+            Snapshot(id=1, branch_id=2, date=date(2026, 8, 1), barcode='DESIGN-1',
+                     gross_weight=100, turn_over=1000, provision_weight=20,
+                     purchase_board_rate=10, total_tsk_plusit_charge=50, **dimensions),
+            Snapshot(id=2, branch_id=2, date=None, barcode='DESIGN-2',
+                     gross_weight=-10, turn_over=-100, **dimensions),
+            Snapshot(id=3, branch_id=3, date=date(2026, 9, 30), gross_weight=999),
+        ])
+        db.session.commit()
+        data = composition_analysis_data(None, {'branch_id': ['2']})
+        self.assertEqual(data['stats']['sales_weight'], 90)
+        self.assertEqual(data['stats']['cutoff_date'], '2026-09-30')
+        self.assertAlmostEqual(data['factor'], 365 / 183)
+        self.assertAlmostEqual(data['total']['weight_turn'], 90 * 365 / 183 / 20)
+        self.assertAlmostEqual(data['total']['value_turn'], 900 * 365 / 183 / 200)
+        contributors = composition_analysis_data(None, {'branch_id': ['2']},
+            ['CHAIN', 'BRAND', 'CUSTOM', 'LIGHT', 'C1', 'M1', '920'], contributors=True)
+        self.assertEqual(contributors['level'], 'design_no')
+        self.assertEqual(contributors['items'], [{'label': 'DESIGN-1', 'weight': 100}])
+        self.assertEqual(contributors['net_weight'], 90)
+
+
+class SummarySyncTests(unittest.TestCase):
+    def test_new_source_maps_date_location_and_design(self):
+        from app.utils import sync_tasks
+        connection = MagicMock()
+        connection.cursor.return_value.fetchall.return_value = [{
+            'max_trans_date': datetime(2026, 9, 30, 16, 30),
+            'location': ' THRISSUR ROUND ', 'branch_id': 12,
+            'design_no': 'D-001', 'size': Decimal('22'),
+            'gross_weight': Decimal('-2.5'), 'turn_over': Decimal('-100'),
+            'provision_weight': Decimal('10'), 'purchase_board_rate': 5000,
+        }]
+        with patch.object(sync_tasks, 'get_external_db_connection', return_value=connection), \
+                patch.object(sync_tasks, 'emit_combined_sync_update'), \
+                patch.object(sync_tasks, 'db') as database, \
+                patch.object(Snapshot.__table__, 'create'):
+            result = sync_tasks.sync_sales_stock_composition_analysis_task()
+        self.assertEqual(result['status'], 'success')
+        connection.cursor.return_value.execute.assert_any_call(
+            'SELECT * FROM ext_view.item_wise_tsk_summary_view')
+        record = database.session.bulk_insert_mappings.call_args.args[1][0]
+        self.assertEqual(record['date'], date(2026, 9, 30))
+        self.assertEqual(record['location_name'], 'THRISSUR ROUND')
+        self.assertEqual(record['barcode'], 'D-001')
+        self.assertEqual(record['size_label'], '22')
+        self.assertEqual(record['gross_weight'], Decimal('-2.5'))
+        self.assertEqual(record['purchase_board_rate'], Decimal('5000'))
+        self.assertIsNone(record['trans_type'])
+        database.session.commit.assert_called_once()
 
 
 class TSKBarTests(unittest.TestCase):
