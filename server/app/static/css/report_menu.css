@@ -170,6 +170,12 @@
 
 .report-directory .report-category-header {
     padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #dfe5ec;
+}
+
+.dark .report-directory .report-category-header {
+    border-bottom-color: #374151;
 }
 
 .report-directory .report-category-header h2 {
