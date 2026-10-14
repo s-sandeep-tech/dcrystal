@@ -178,6 +178,15 @@
     border-bottom-color: #374151;
 }
 
+.report-directory .report-category:not(:first-child) .report-category-header {
+    border-top: 1px solid #dfe5ec;
+    padding-top: 16px;
+}
+
+.dark .report-directory .report-category:not(:first-child) .report-category-header {
+    border-top-color: #374151;
+}
+
 .report-directory .report-category-header h2 {
     font-size: 16px;
     line-height: 1.4;
