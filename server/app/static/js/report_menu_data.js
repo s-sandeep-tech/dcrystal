@@ -70,22 +70,6 @@ window.REPORT_MENU_DATA = [
                 tags: ["location", "make", "pending", "order", "summary", "stages"]
             },
             {
-                id: "customer-order-performance-monitoring",
-                title: "Customer Order Performance & Delivery Monitoring",
-                href: "/customer-order-performance-monitoring",
-                icon: "assignment",
-                description: "Customer order stages, branch outstanding and delivery urgency.",
-                tags: ["customer", "delivery", "performance", "monitoring", "orders"]
-            },
-            {
-                id: "customer-order-analysis",
-                title: "Customer Order Pending Analysis Report",
-                href: "/customer-order-analysis",
-                icon: "person_search",
-                description: "Comprehensive customer order pending analysis with multi-stage pending weights, hierarchical drill-down, and 28 advanced operational filters.",
-                tags: ["customer", "order", "analysis", "report", "pending", "stages", "summary"]
-            },
-            {
                 id: "party-make-capacity",
                 title: "Supplier Capacity & Backlog Analysis",
                 href: "/party-make-capacity-report",
@@ -102,28 +86,12 @@ window.REPORT_MENU_DATA = [
                 tags: ["owner", "summary", "orders"]
             },
             {
-                id: "customer-order-fulfilment-summary",
-                title: "Customer Order Fulfilment Summary",
-                href: "/customerorderfulfilmentsummary",
-                icon: "fact_check",
-                description: "Customer order fulfillment tracking and summary across dynamic hierarchies with lifecycle TAT metrics.",
-                tags: ["customer", "order", "fulfilment", "fulfillment", "summary", "tracking", "tat", "lifecycle"]
-            },
-            {
                 id: "weekly-delivery-order-summary",
                 title: "Weekly Delivery Order Summary",
                 href: "/weekly-delivery-order-summary",
                 icon: "calendar_view_week",
                 description: "Five-week delivery plan with hallmark, QC, and balance weights by product hierarchy.",
                 tags: ["weekly", "delivery", "orders", "hallmark", "qc"]
-            },
-            {
-                id: "location-wise-old-gold-settlement-transfer-summary",
-                title: "Location-wise Old Gold Pending & Transfer Summary",
-                href: "/location-wise-old-gold-settlement-transfer-summary",
-                icon: "monetization_on",
-                description: "Aging matrix and pending summary for old gold across offices, locations, divisions, and groups.",
-                tags: ["old gold", "settlement", "transfer", "location", "aging", "summary"]
             },
 
             {
@@ -243,6 +211,70 @@ window.REPORT_MENU_DATA = [
 
 
     {
+        id: "old-gold",
+        title: "OLD GOLD",
+        description: "Old gold pending and transfer reports.",
+        accent: "amber",
+        reports: [
+            {
+                id: "location-wise-old-gold-settlement-transfer-summary",
+                title: "Location-wise Old Gold Pending & Transfer Summary",
+                href: "/location-wise-old-gold-settlement-transfer-summary",
+                icon: "monetization_on",
+                description: "Aging matrix and pending summary for old gold across offices, locations, divisions, and groups.",
+                tags: ["old gold", "settlement", "transfer", "location", "aging", "summary"]
+            }
+        ]
+    },
+    {
+        id: "customer-orders",
+        title: "CUSTOMER ORDERS",
+        description: "Customer order monitoring, pending analysis, and fulfilment reports.",
+        accent: "blue",
+        reports: [
+            {
+                id: "customer-order-performance-monitoring",
+                title: "Customer Order Performance & Delivery Monitoring",
+                href: "/customer-order-performance-monitoring",
+                icon: "assignment",
+                description: "Customer order stages, branch outstanding and delivery urgency.",
+                tags: ["customer", "delivery", "performance", "monitoring", "orders"]
+            },
+            {
+                id: "customer-order-analysis",
+                title: "Customer Order Pending Analysis Report",
+                href: "/customer-order-analysis",
+                icon: "person_search",
+                description: "Comprehensive customer order pending analysis with multi-stage pending weights, hierarchical drill-down, and 28 advanced operational filters.",
+                tags: ["customer", "order", "analysis", "report", "pending", "stages", "summary"]
+            },
+            {
+                id: "customer-order-fulfilment-summary",
+                title: "Customer Order Fulfilment Summary",
+                href: "/customerorderfulfilmentsummary",
+                icon: "fact_check",
+                description: "Customer order fulfillment tracking and summary across dynamic hierarchies with lifecycle TAT metrics.",
+                tags: ["customer", "order", "fulfilment", "fulfillment", "summary", "tracking", "tat", "lifecycle"]
+            }
+        ]
+    },
+    {
+        id: "sales-stock",
+        title: "SALES & STOCK",
+        description: "Sales and stock composition reports.",
+        accent: "emerald",
+        reports: [
+            {
+                id: "sales-stock-composition-analysis",
+                title: "Sales & Stock Composition Analysis",
+                href: "/sales-stock-composition-analysis",
+                icon: "pie_chart",
+                description: "Hierarchical product analysis of sales and stock composition, turn rates, and TSK%.",
+                tags: ["sales", "stock", "composition", "turnover", "tsk", "analysis"]
+            }
+        ]
+    },
+    {
         id: "inventory-stock",
         title: "Inventory & Stock",
         description: "Stock position, provision, location, and allocation reports.",
@@ -263,14 +295,6 @@ window.REPORT_MENU_DATA = [
                 icon: "analytics",
                 description: "Analyze location provision, physical stock, and variance details.",
                 tags: ["stock", "location", "provision", "analysis"]
-            },
-            {
-                id: "sales-stock-composition-analysis",
-                title: "Sales & Stock Composition Analysis",
-                href: "/sales-stock-composition-analysis",
-                icon: "pie_chart",
-                description: "Hierarchical product analysis of sales and stock composition, turn rates, and TSK%.",
-                tags: ["sales", "stock", "composition", "turnover", "tsk", "analysis"]
             },
             {
                 id: "provision-stock-status",
