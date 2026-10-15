@@ -220,13 +220,13 @@ class SummarySyncTests(unittest.TestCase):
     def test_new_source_maps_date_location_and_design(self):
         from app.utils import sync_tasks
         connection = MagicMock()
-        connection.cursor.return_value.fetchall.return_value = [{
+        connection.cursor.return_value.fetchmany.side_effect = [[{
             'max_trans_date': datetime(2026, 9, 30, 16, 30),
             'location': ' THRISSUR ROUND ', 'branch_id': 12,
             'design_no': 'D-001', 'size': Decimal('22'),
             'gross_weight': Decimal('-2.5'), 'turn_over': Decimal('-100'),
             'provision_weight': Decimal('10'), 'purchase_board_rate': 5000,
-        }]
+        }], []]
         with patch.object(sync_tasks, 'get_external_db_connection', return_value=connection), \
                 patch.object(sync_tasks, 'emit_combined_sync_update'), \
                 patch.object(sync_tasks, 'db') as database, \
@@ -244,6 +244,44 @@ class SummarySyncTests(unittest.TestCase):
         self.assertEqual(record['purchase_board_rate'], Decimal('5000'))
         self.assertIsNone(record['trans_type'])
         database.session.commit.assert_called_once()
+
+    def test_streams_multiple_batches_and_final_partial_batch(self):
+        from app.utils import sync_tasks
+        connection = MagicMock()
+        cursor = connection.cursor.return_value
+        cursor.fetchmany.side_effect = [[{'gross_weight': 1}] * 5000,
+                                       [{'gross_weight': -1}] * 5000,
+                                       [{'gross_weight': 2}], []]
+        with patch.object(sync_tasks, 'get_external_db_connection', return_value=connection), \
+                patch.object(sync_tasks, 'emit_combined_sync_update'), \
+                patch.object(sync_tasks, 'db') as database, \
+                patch.object(Snapshot.__table__, 'create'):
+            result = sync_tasks.sync_sales_stock_composition_analysis_task()
+        self.assertEqual(result, {'status': 'success', 'count': 10001})
+        self.assertEqual([len(call.args[1]) for call in
+                          database.session.bulk_insert_mappings.call_args_list], [5000, 5000, 1])
+        cursor.fetchall.assert_not_called()
+        self.assertTrue(all(call.args == (5000,) for call in cursor.fetchmany.call_args_list))
+        self.assertEqual(connection.cursor.call_args.kwargs['name'], 'sales_stock_composition_stream')
+        database.session.commit.assert_called_once()
+        cursor.close.assert_called_once()
+        connection.close.assert_called_once()
+
+    def test_failed_stream_rolls_back_and_retries_without_partial_commit(self):
+        from app.utils import sync_tasks
+        connection = MagicMock()
+        connection.cursor.return_value.fetchmany.side_effect = sum(
+            ([[{}] * 5000, RuntimeError('stream interrupted')] for _ in range(5)), [])
+        with patch.object(sync_tasks, 'get_external_db_connection', return_value=connection), \
+                patch.object(sync_tasks, 'emit_combined_sync_update'), \
+                patch.object(sync_tasks, 'db') as database, \
+                patch.object(Snapshot.__table__, 'create'), \
+                patch.object(sync_tasks.time, 'sleep'), patch.object(sync_tasks.logger, 'exception'):
+            result = sync_tasks.sync_sales_stock_composition_analysis_task()
+        self.assertEqual(result['status'], 'error')
+        self.assertEqual(database.session.rollback.call_count, 5)
+        self.assertEqual(connection.close.call_count, 5)
+        database.session.commit.assert_not_called()
 
 
 class TSKBarTests(unittest.TestCase):

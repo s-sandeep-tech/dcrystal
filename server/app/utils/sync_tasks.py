@@ -4964,6 +4964,7 @@ def sync_party_make_capacity_details_task(task_type_override=None, progress_rang
 
 def sync_sales_stock_composition_analysis_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
     TASK_TYPE = task_type_override or 'sales_stock_composition_analysis'
+    batch_size = 5000
 
     def emit(status, message, progress):
         emit_combined_sync_update(status, message, progress, TASK_TYPE, progress_range, is_subtask)
@@ -4994,25 +4995,29 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
             emit('processing', f'Starting Sales & Stock Composition Analysis Sync (Attempt {attempt}/{max_attempts})...', 5)
 
             conn = get_external_db_connection()
-            cursor = conn.cursor(cursor_factory=RealDictCursor)
-
-            emit('processing', 'Fetching data from item_wise_tsk_summary_view...', 20)
+            emit('processing', 'Streaming item_wise_tsk_summary_view in 5,000-row batches...', 20)
             started_at = time.time()
-            cursor.execute("SET statement_timeout = 0")
+            # Named cursors keep the full result on the source server, not in worker memory.
+            conn.autocommit = False
+            with conn.cursor() as settings_cursor:
+                settings_cursor.execute("SET statement_timeout = 0")
+            cursor = conn.cursor(name='sales_stock_composition_stream', cursor_factory=RealDictCursor)
+            cursor.itersize = batch_size
             
             cursor.execute("SELECT * FROM ext_view.item_wise_tsk_summary_view")
 
-            source_rows = cursor.fetchall()
-            duration = time.time() - started_at
-
-            logger.info(f"item_wise_tsk_summary_view query took {duration:.2f} seconds.")
-            emit('processing', f'Fetched {len(source_rows):,} records in {duration:.1f}s. Updating local snapshot...', 50)
+            source_rows = (
+                row
+                for batch in iter(lambda: cursor.fetchmany(batch_size), [])
+                for row in batch
+            )
 
             SalesStockCompositionAnalysisSnapshot.__table__.create(db.engine, checkfirst=True)
             db.session.query(SalesStockCompositionAnalysisSnapshot).delete()
 
             now = datetime.utcnow()
             records = []
+            synced_count = 0
             for row in source_rows:
                 report_date = row.get('max_trans_date')
                 if isinstance(report_date, datetime):
@@ -5093,16 +5098,23 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
                     'uid': to_str(row.get('uid')),
                     'synced_at': now
                 })
+                if len(records) == batch_size:
+                    db.session.bulk_insert_mappings(SalesStockCompositionAnalysisSnapshot, records)
+                    synced_count += len(records)
+                    records = []
+                    message = f'Transferred {synced_count:,} records in {time.time() - started_at:.1f}s; awaiting full sync commit.'
+                    logger.info(message)
+                    emit('processing', message, 50)
 
-            for start in range(0, len(records), 5000):
-                db.session.bulk_insert_mappings(
-                    SalesStockCompositionAnalysisSnapshot,
-                    records[start:start + 5000]
-                )
+            if records:
+                db.session.bulk_insert_mappings(SalesStockCompositionAnalysisSnapshot, records)
+                synced_count += len(records)
+            cursor.close()
+            emit('processing', f'Committing {synced_count:,} transferred records...', 95)
             db.session.commit()
 
-            emit('success', f'Sync completed! {len(records):,} records updated.', 100)
-            return {'status': 'success', 'count': len(records)}
+            emit('success', f'Sync completed! {synced_count:,} records updated.', 100)
+            return {'status': 'success', 'count': synced_count}
         except Exception as exc:
             db.session.rollback()
             logger.exception('Sales Stock Composition Analysis sync failed (attempt %s/%s)', attempt, max_attempts)
