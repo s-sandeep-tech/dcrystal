@@ -70,7 +70,7 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
     # Source supplies net FY sales, including returns, already aggregated.
     sales = db.session.query(S)
     if selected_date:
-        sales = sales.filter(S.date == selected_date)
+        sales = sales.filter(S.date <= selected_date)
     for name in FILTERS:
         values = selections.get(name)
         if values:
@@ -121,7 +121,7 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
 
     stock_filtered = db.session.query(stocks_q)
     if selected_date:
-        stock_filtered = stock_filtered.filter(stocks_q.c.date == selected_date)
+        stock_filtered = stock_filtered.filter(stocks_q.c.date <= selected_date)
     for name in FILTERS:
         values = selections.get(name)
         if values:

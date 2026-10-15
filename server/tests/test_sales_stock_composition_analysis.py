@@ -222,20 +222,26 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
             Snapshot(id=2, date=date(2026, 10, 15), branch_id=2, section='CHAIN',
                      gross_weight=900, turn_over=9000, provision_weight=180, purchase_board_rate=10),
             Snapshot(id=3, date=None, branch_id=2, section='CHAIN', gross_weight=50),
+            Snapshot(id=4, date=date(2026, 9, 1), branch_id=2, section='CHAIN',
+                     gross_weight=25, turn_over=250, provision_weight=5, purchase_board_rate=10),
         ])
         db.session.commit()
         data = composition_analysis_data(date(2026, 9, 30), {'branch_id': ['2']})
-        self.assertEqual(data['stats']['sales_weight'], 100)
-        self.assertEqual(data['stats']['provision_weight'], 20)
-        self.assertEqual(data['total']['provision_value'], 200)
+        self.assertEqual(data['stats']['sales_weight'], 125)
+        self.assertEqual(data['stats']['turnover'], 1250)
+        self.assertEqual(data['stats']['provision_weight'], 25)
+        self.assertEqual(data['total']['provision_value'], 250)
         self.assertAlmostEqual(data['factor'], 365 / 183)
-        self.assertAlmostEqual(data['total']['value_turn'], 1000 * 365 / 183 / 200)
+        self.assertAlmostEqual(data['total']['value_turn'], 1250 * 365 / 183 / 250)
         chart = composition_analysis_data(date(2026, 9, 30), {'branch_id': ['2']}, contributors=True)
-        self.assertEqual(chart['net_weight'], 100)
+        self.assertEqual(chart['net_weight'], 125)
+        between = composition_analysis_data(date(2026, 10, 1), {'branch_id': ['2']})
+        self.assertEqual(between['stats']['sales_weight'], 125)
+        self.assertAlmostEqual(between['factor'], 365 / 184)
         self.role.menus.append(Menu(title='Composition', url='/sales-stock-composition-analysis'))
         db.session.commit()
         options = self.client.get('/api/sales-stock-composition-analysis/options', headers=self.headers()).get_json()
-        self.assertEqual(options['dates'], ['2026-10-15', '2026-09-30'])
+        self.assertEqual(options['dates'], ['2026-10-15', '2026-09-30', '2026-09-01'])
 
 
 class SummarySyncTests(unittest.TestCase):

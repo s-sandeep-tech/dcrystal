@@ -112,11 +112,6 @@ async function initFilters() {
         if (!response.ok) return;
 
         const data = await response.json();
-        const dateSelect = document.getElementById('filter-max-date');
-        if (dateSelect) {
-            dateSelect.replaceChildren(new Option('All Dates', ''));
-            for (const value of data.dates || []) dateSelect.add(new Option(value, value));
-        }
 
         // 2. Location MultiSelect
         locationMultiSelect = new CustomMultiSelect({
