@@ -24,6 +24,11 @@ ROUTE_URL = '/sales-stock-composition-analysis'
 ALIAS_URL = '/sales-stock-composition'
 
 
+def selected_report_date():
+    value = request.args.get('date', '').strip()
+    return date.fromisoformat(value) if value else None
+
+
 @dashboard_bp.route('/api/sales-stock-composition-analysis/contributors')
 @jwt_required()
 @require_report_access(ROUTE_URL)
@@ -33,7 +38,7 @@ def sales_composition_contributors():
         if not isinstance(path, list) or len(path) > len(HIERARCHY) or not all(isinstance(v, str) for v in path):
             return jsonify(error='Invalid hierarchy path'), 400
         selections = {k: request.args.getlist(k) for k in FILTERS if request.args.getlist(k)}
-        return jsonify(composition_analysis_data(None, selections, path, contributors=True))
+        return jsonify(composition_analysis_data(selected_report_date(), selections, path, contributors=True))
     except (ValueError, TypeError):
         return jsonify(error='Invalid chart filters'), 400
     except Exception:
@@ -98,7 +103,7 @@ def get_sales_stock_composition_analysis_partial():
         path_str = request.args.get('path', '[]')
         path = json.loads(path_str) if path_str else []
 
-        data = composition_analysis_data(None, selections, path=path)
+        data = composition_analysis_data(selected_report_date(), selections, path=path)
 
         return render_template(
             'partials/_view_sales_stock_composition_analysis.html',
@@ -141,7 +146,7 @@ def get_sales_stock_composition_analysis_branch():
             if vals:
                 selections[k] = vals
 
-        data = composition_analysis_data(None, selections, path=path)
+        data = composition_analysis_data(selected_report_date(), selections, path=path)
 
         return render_template(
             'partials/_view_sales_stock_composition_analysis_branch.html',
@@ -174,6 +179,8 @@ def sales_stock_composition_analysis_options():
         classifications = [r[0] for r in db.session.query(dimension('classification')).distinct().order_by(dimension('classification')) if r[0]]
         
         return jsonify({
+            'dates': [r[0].isoformat() for r in db.session.query(S.date)
+                      .filter(S.date.isnot(None)).distinct().order_by(S.date.desc())],
             'locations': locations,
             'sections': sections,
             'classifications': classifications
@@ -181,7 +188,7 @@ def sales_stock_composition_analysis_options():
     except Exception as e:
         logger.exception("Error fetching sales_stock_composition_analysis options: %s", str(e))
         db.session.rollback()
-        return jsonify({'locations': [], 'sections': [], 'classifications': []})
+        return jsonify({'dates': [], 'locations': [], 'sections': [], 'classifications': []})
 
 
 @dashboard_bp.route('/api/sync/sales-stock-composition-analysis', methods=['POST'])
@@ -203,7 +210,8 @@ def export_sales_stock_composition_analysis():
         from app.utils.export_service import create_export_job
         data = request.get_json() or {}
         filters = data.get('filters', {})
-        filters.pop('date', None)
+        if filters.get('date'):
+            date.fromisoformat(filters['date'])
         socket_id = data.get('socket_id')
         user_id = get_jwt_identity()
 

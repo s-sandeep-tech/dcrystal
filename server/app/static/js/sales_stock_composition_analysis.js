@@ -77,6 +77,7 @@ function onSearchInput(val) {
 }
 
 function collectFilterValues() {
+    filterValues.date = document.getElementById('filter-max-date')?.value || '';
     filterValues.location = locationMultiSelect ? locationMultiSelect.getValues().join(',') : '';
     filterValues.section = sectionMultiSelect ? sectionMultiSelect.getValues().join(',') : '';
     filterValues.classification = classificationMultiSelect ? classificationMultiSelect.getValues().join(',') : '';
@@ -91,6 +92,7 @@ function buildRequestParams() {
         for (const value of control?.getValues() || []) params.append(key, value);
     }
     if (filterValues.search) params.set('search', filterValues.search);
+    if (filterValues.date) params.set('date', filterValues.date);
 
     return params;
 }
@@ -110,6 +112,11 @@ async function initFilters() {
         if (!response.ok) return;
 
         const data = await response.json();
+        const dateSelect = document.getElementById('filter-max-date');
+        if (dateSelect) {
+            dateSelect.replaceChildren(new Option('All Dates', ''));
+            for (const value of data.dates || []) dateSelect.add(new Option(value, value));
+        }
 
         // 2. Location MultiSelect
         locationMultiSelect = new CustomMultiSelect({
@@ -318,6 +325,8 @@ function applyFilters() {
 }
 
 function resetFilters() {
+    const dateSelect = document.getElementById('filter-max-date');
+    if (dateSelect) dateSelect.value = '';
     if (locationMultiSelect) locationMultiSelect.reset();
     if (sectionMultiSelect) sectionMultiSelect.reset();
     if (classificationMultiSelect) classificationMultiSelect.reset();

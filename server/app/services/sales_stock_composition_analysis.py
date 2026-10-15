@@ -58,9 +58,9 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
     if path is None:
         path = []
 
-    # Snapshot date is max_trans_date; summary totals cannot be date-sliced.
-    cutoff_query = db.session.query(func.max(S.date))
-    source_date = cutoff_query.scalar()
+    # Snapshot date is the source max_trans_date, truncated to a calendar date.
+    selected_date = source_date
+    source_date = selected_date or db.session.query(func.max(S.date)).scalar()
     factor, inclusive_fy_days, inclusive_elapsed_days, fy_label = calculate_fy_factor(source_date)
     fy_start = date(source_date.year if source_date.month >= 4 else source_date.year - 1, 4, 1) if source_date else None
 
@@ -69,6 +69,8 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
     # Filter base query by selections
     # Source supplies net FY sales, including returns, already aggregated.
     sales = db.session.query(S)
+    if selected_date:
+        sales = sales.filter(S.date == selected_date)
     for name in FILTERS:
         values = selections.get(name)
         if values:
@@ -111,12 +113,15 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
     stocks_q = db.session.query(
         S.branch_id.label('branch_id'),
         S.item_definition_id.label('item_definition_id'),
+        S.date.label('date'),
         *dims,
         provision.label('provision'),
         provision_value.label('provision_value'),
     ).subquery()
 
     stock_filtered = db.session.query(stocks_q)
+    if selected_date:
+        stock_filtered = stock_filtered.filter(stocks_q.c.date == selected_date)
     for name in FILTERS:
         values = selections.get(name)
         if values:

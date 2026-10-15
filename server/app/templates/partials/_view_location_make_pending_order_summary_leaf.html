@@ -30,6 +30,7 @@
             <tr class="bg-gray-50 dark:bg-gray-800 text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 shadow-sm">
                 <th class="px-3 py-2">Supplier / Detail</th>
                 <th class="px-2 py-2 text-right font-bold text-emerald-600">Total Pend Pcs/Wt</th>
+                <th class="px-2 py-2 whitespace-nowrap">Order Date</th>
                 <th class="px-2 py-2">Order Type</th>
                 <th class="px-2 py-2">Cust Order Type</th>
                 <th class="px-2 py-2">MSME Party</th>
@@ -51,7 +52,7 @@
         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
             {% if not supplier_summaries %}
             <tr>
-                <td colspan="18" class="text-center py-8 text-gray-400 text-xs">
+                <td colspan="19" class="text-center py-8 text-gray-400 text-xs">
                     No order records found for this location and make combination.
                 </td>
             </tr>
@@ -69,6 +70,7 @@
                 <td class="px-2 py-2 text-right font-bold text-emerald-600 bg-emerald-50/10">
                     {{ s.total_pcs|int }} / {{ "%.3f"|format(s.total_weight) }}
                 </td>
+                <td class="px-2 py-2 text-gray-400 font-normal">--</td>
                 <td class="px-2 py-2 text-gray-400 font-normal">--</td>
                 <td class="px-2 py-2 text-gray-400 font-normal">--</td>
                 <td class="px-2 py-2 text-gray-400 font-normal">--</td>
@@ -112,6 +114,7 @@
                 <td class="px-2 py-2 text-right font-bold text-emerald-600 bg-emerald-50/5">
                     {{ (rec.total_pcs or 0)|int }} / {{ "%.3f"|format(rec.total_weight or 0) }}
                 </td>
+                <td class="px-2 py-2 whitespace-nowrap text-gray-600 dark:text-gray-400">{{ rec.order_date.strftime('%d-%b-%Y') if rec.order_date else '--' }}</td>
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.order_type or '--' }}</td>
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.customer_order_type or '--' }}</td>
                 <td class="px-2 py-2 text-gray-600 dark:text-gray-400">{{ rec.is_discount_party or '--' }}</td>
