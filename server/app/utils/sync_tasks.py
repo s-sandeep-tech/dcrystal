@@ -4964,7 +4964,7 @@ def sync_party_make_capacity_details_task(task_type_override=None, progress_rang
 
 def sync_sales_stock_composition_analysis_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
     TASK_TYPE = task_type_override or 'sales_stock_composition_analysis'
-    batch_size = 5000
+    batch_size = 20000
 
     def emit(status, message, progress):
         emit_combined_sync_update(status, message, progress, TASK_TYPE, progress_range, is_subtask)
@@ -4995,7 +4995,7 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
             emit('processing', f'Starting Sales & Stock Composition Analysis Sync (Attempt {attempt}/{max_attempts})...', 5)
 
             conn = get_external_db_connection()
-            emit('processing', 'Streaming item_wise_tsk_summary_view in 5,000-row batches...', 20)
+            emit('processing', f'Streaming item_wise_tsk_summary_view in {batch_size:,}-row batches...', 20)
             started_at = time.time()
             # Named cursors keep the full result on the source server, not in worker memory.
             conn.autocommit = False

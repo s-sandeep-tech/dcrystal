@@ -249,19 +249,19 @@ class SummarySyncTests(unittest.TestCase):
         from app.utils import sync_tasks
         connection = MagicMock()
         cursor = connection.cursor.return_value
-        cursor.fetchmany.side_effect = [[{'gross_weight': 1}] * 5000,
-                                       [{'gross_weight': -1}] * 5000,
+        cursor.fetchmany.side_effect = [[{'gross_weight': 1}] * 20000,
+                                       [{'gross_weight': -1}] * 20000,
                                        [{'gross_weight': 2}], []]
         with patch.object(sync_tasks, 'get_external_db_connection', return_value=connection), \
                 patch.object(sync_tasks, 'emit_combined_sync_update'), \
                 patch.object(sync_tasks, 'db') as database, \
                 patch.object(Snapshot.__table__, 'create'):
             result = sync_tasks.sync_sales_stock_composition_analysis_task()
-        self.assertEqual(result, {'status': 'success', 'count': 10001})
+        self.assertEqual(result, {'status': 'success', 'count': 40001})
         self.assertEqual([len(call.args[1]) for call in
-                          database.session.bulk_insert_mappings.call_args_list], [5000, 5000, 1])
+                          database.session.bulk_insert_mappings.call_args_list], [20000, 20000, 1])
         cursor.fetchall.assert_not_called()
-        self.assertTrue(all(call.args == (5000,) for call in cursor.fetchmany.call_args_list))
+        self.assertTrue(all(call.args == (20000,) for call in cursor.fetchmany.call_args_list))
         self.assertEqual(connection.cursor.call_args.kwargs['name'], 'sales_stock_composition_stream')
         database.session.commit.assert_called_once()
         cursor.close.assert_called_once()
@@ -271,7 +271,7 @@ class SummarySyncTests(unittest.TestCase):
         from app.utils import sync_tasks
         connection = MagicMock()
         connection.cursor.return_value.fetchmany.side_effect = sum(
-            ([[{}] * 5000, RuntimeError('stream interrupted')] for _ in range(5)), [])
+            ([[{}] * 20000, RuntimeError('stream interrupted')] for _ in range(5)), [])
         with patch.object(sync_tasks, 'get_external_db_connection', return_value=connection), \
                 patch.object(sync_tasks, 'emit_combined_sync_update'), \
                 patch.object(sync_tasks, 'db') as database, \
