@@ -115,19 +115,38 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
     if branch_ids:
         dates_query = dates_query.filter(S.branch_id.in_(branch_ids))
     location_factors = []
-    factor_cases = []
+    factors_by_location = {}
     for key, effective_date in dates_query.all():
         if effective_date is None:
             continue
         local_factor, days, elapsed, label = calculate_fy_factor(effective_date)
-        factor_cases.append((location_key == key, local_factor))
+        factors_by_location[key] = local_factor
         location_factors.append({'location_key': key, 'date': effective_date.isoformat(),
                                  'factor': local_factor, 'fy_label': label,
                                  'inclusive_fy_days': days, 'inclusive_elapsed_days': elapsed})
-    annual_factor = case(*factor_cases, else_=None) if factor_cases else cast(None, db.Float)
-    annual_weight = func.coalesce(S.gross_weight, 0) * annual_factor
-    annual_value = func.coalesce(S.turn_over, 0) * annual_factor
-    missing_factor = func.sum(case((annual_factor.is_(None), 1), else_=0))
+    def aggregate_sales(query, group_dimension=None):
+        # Apply factors to location aggregates, not a large CASE on every source row.
+        keys = [location_key] if group_dimension is None else [group_dimension, location_key]
+        results = query.with_entities(
+            *keys, func.sum(func.coalesce(S.gross_weight, 0)),
+            func.sum(func.coalesce(S.turn_over, 0)),
+            func.sum(func.coalesce(S.total_tsk_plusit_charge, 0)),
+        ).group_by(*keys).all()
+        groups = {}
+        for result in results:
+            label = None if group_dimension is None else result[0]
+            key, weight, turnover, tsk = result[-4:]
+            totals = groups.setdefault(label, [0.0] * 6)
+            local_factor = factors_by_location.get(key)
+            totals[0] += float(weight or 0)
+            totals[1] += float(turnover or 0)
+            totals[2] += float(tsk or 0)
+            if local_factor is None:
+                totals[5] += 1
+            else:
+                totals[3] += float(weight or 0) * local_factor
+                totals[4] += float(turnover or 0) * local_factor
+        return groups
     effective_dates = {item['date'] for item in location_factors}
     factor = location_factors[0]['factor'] if len(effective_dates) == 1 else None
     if factor is not None:
@@ -165,12 +184,7 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
                 stock_filtered = stock_filtered.filter(cast(getattr(stocks_q.c, name), String).in_(values))
 
     # Overall report totals (denominators)
-    sales_totals = sales.with_entities(
-        func.sum(func.coalesce(S.gross_weight, 0)),
-        func.sum(func.coalesce(S.turn_over, 0)),
-        func.sum(func.coalesce(S.total_tsk_plusit_charge, 0)),
-        func.sum(annual_weight), func.sum(annual_value), missing_factor,
-    ).one()
+    sales_totals = aggregate_sales(sales).get(None, [0.0] * 6)
 
     total_sales_weight = float(sales_totals[0] or 0)
     total_turnover = float(sales_totals[1] or 0)
@@ -195,13 +209,8 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
     depth = len(path)
     current_level = HIERARCHY[depth] if depth < len(HIERARCHY) else HIERARCHY[-1]
 
-    sales_group_rows = sales.with_entities(
-        dimension(current_level),
-        func.sum(func.coalesce(S.gross_weight, 0)),
-        func.sum(func.coalesce(S.turn_over, 0)),
-        func.sum(func.coalesce(S.total_tsk_plusit_charge, 0)),
-        func.sum(annual_weight), func.sum(annual_value), missing_factor,
-    ).group_by(dimension(current_level)).all()
+    sales_group_rows = [(label, *totals) for label, totals in
+                        aggregate_sales(sales, dimension(current_level)).items()]
 
     stock_group_rows = stock_filtered.with_entities(
         getattr(stocks_q.c, current_level),

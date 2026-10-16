@@ -4,6 +4,9 @@ from app.extensions import db
 
 class SalesStockCompositionAnalysisSnapshot(db.Model):
     __tablename__ = 'sales_stock_composition_analysis_snapshots'
+    __table_args__ = (
+        db.Index('ix_sales_stock_branch_date', 'branch_id', 'date'),
+    )
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     source_id = db.Column(db.Integer, index=True)
