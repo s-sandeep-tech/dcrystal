@@ -4966,7 +4966,7 @@ def sync_party_make_capacity_details_task(task_type_override=None, progress_rang
 
 def sync_sales_stock_composition_analysis_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
     TASK_TYPE = task_type_override or 'sales_stock_composition_analysis'
-    batch_size = 10000
+    batch_size = 30000
 
     def emit(status, message, progress):
         emit_combined_sync_update(status, message, progress, TASK_TYPE, progress_range, is_subtask)

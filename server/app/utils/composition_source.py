@@ -14,7 +14,7 @@ class CompositionSourceError(RuntimeError):
     pass
 
 
-def composition_source_rows(connect, batch_size=10000, progress=None, max_attempts=5):
+def composition_source_rows(connect, batch_size=30000, progress=None, max_attempts=5):
     conn = None
     last_key = None
     transferred = 0

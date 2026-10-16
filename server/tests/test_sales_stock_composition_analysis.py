@@ -291,16 +291,16 @@ class SummarySyncTests(unittest.TestCase):
                  'max_trans_date': datetime(2026, 9, 30, 16, 30),
                  'location': ' THRISSUR ROUND ', 'design_no': 'D-001',
                  'size': Decimal('22'), 'gross_weight': Decimal('-2.5'),
-                 'purchase_board_rate': 5000} for i in range(10001)]
+                 'purchase_board_rate': 5000} for i in range(30001)]
         with patch.object(sync_tasks, 'composition_source_rows', return_value=iter_rows(rows)) as source, \
                 patch.object(sync_tasks, 'emit_combined_sync_update'), \
                 patch.object(sync_tasks, 'db') as database, \
                 patch.object(Snapshot.__table__, 'create'):
             result = sync_tasks.sync_sales_stock_composition_analysis_task()
-        self.assertEqual(result, {'status': 'success', 'count': 10001})
-        self.assertEqual(source.call_args.kwargs['batch_size'], 10000)
+        self.assertEqual(result, {'status': 'success', 'count': 30001})
+        self.assertEqual(source.call_args.kwargs['batch_size'], 30000)
         batches = database.session.bulk_insert_mappings.call_args_list
-        self.assertEqual([len(c.args[1]) for c in batches], [10000, 1])
+        self.assertEqual([len(c.args[1]) for c in batches], [30000, 1])
         record = batches[0].args[1][0]
         self.assertEqual(record['date'], date(2026, 9, 30))
         self.assertEqual(record['location_name'], 'THRISSUR ROUND')
@@ -312,7 +312,7 @@ class SummarySyncTests(unittest.TestCase):
     def test_exhausted_source_does_not_restart_from_beginning(self):
         from app.utils import sync_tasks
         def failed():
-            yield from ({'branch_id': 1, 'item_definition_id': i} for i in range(10000))
+            yield from ({'branch_id': 1, 'item_definition_id': i} for i in range(30000))
             raise sync_tasks.CompositionSourceError('connection retries exhausted')
         with patch.object(sync_tasks, 'composition_source_rows', return_value=failed()) as source, \
                 patch.object(sync_tasks, 'emit_combined_sync_update'), \
