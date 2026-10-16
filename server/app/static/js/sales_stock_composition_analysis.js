@@ -18,6 +18,7 @@ let currentSearch = '';
 let currentZoom = 1.0;
 let searchTimeout = null;
 let appliedCompositionParams = new URLSearchParams();
+let latestSalesDate = '';
 
 let filterValues = {
     location: '',
@@ -112,6 +113,9 @@ async function initFilters() {
         if (!response.ok) return;
 
         const data = await response.json();
+        latestSalesDate = data.dates?.[0] || '';
+        const dateInput = document.getElementById('filter-max-date');
+        if (dateInput && !dateInput.value) dateInput.value = latestSalesDate;
 
         // 2. Location MultiSelect
         locationMultiSelect = new CustomMultiSelect({
@@ -334,7 +338,7 @@ function applyFilters() {
 
 function resetFilters() {
     const dateSelect = document.getElementById('filter-max-date');
-    if (dateSelect) dateSelect.value = '';
+    if (dateSelect) dateSelect.value = latestSalesDate;
     if (locationMultiSelect) locationMultiSelect.reset();
     if (sectionMultiSelect) sectionMultiSelect.reset();
     if (classificationMultiSelect) classificationMultiSelect.reset();
