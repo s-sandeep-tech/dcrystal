@@ -192,7 +192,7 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
         self.assertIsNone(data['total']['provision_value'])
         self.assertIsNone(data['total']['value_turn'])
 
-    def test_summary_without_transaction_type_uses_global_date_and_design(self):
+    def test_summary_without_transaction_type_uses_location_date_and_design(self):
         dimensions = dict(zip(HIERARCHY, ['CHAIN', 'BRAND', 'CUSTOM', 'LIGHT', 'C1', 'M1', 920]))
         db.session.add_all([
             Snapshot(id=1, branch_id=2, date=date(2026, 8, 1), barcode='DESIGN-1',
@@ -206,9 +206,9 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
         data = composition_analysis_data(None, {'branch_id': ['2']})
         self.assertEqual(data['stats']['sales_weight'], 90)
         self.assertEqual(data['stats']['cutoff_date'], '2026-09-30')
-        self.assertAlmostEqual(data['factor'], 365 / 183)
-        self.assertAlmostEqual(data['total']['weight_turn'], 90 * 365 / 183 / 20)
-        self.assertAlmostEqual(data['total']['value_turn'], 900 * 365 / 183 / 200)
+        self.assertAlmostEqual(data['factor'], 365 / 123)
+        self.assertAlmostEqual(data['total']['weight_turn'], 90 * 365 / 123 / 20)
+        self.assertAlmostEqual(data['total']['value_turn'], 900 * 365 / 123 / 200)
         contributors = composition_analysis_data(None, {'branch_id': ['2']},
             ['CHAIN', 'BRAND', 'CUSTOM', 'LIGHT', 'C1', 'M1', '920'], contributors=True)
         self.assertEqual(contributors['level'], 'design_no')
@@ -237,11 +237,51 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
         self.assertEqual(chart['net_weight'], 125)
         between = composition_analysis_data(date(2026, 10, 1), {'branch_id': ['2']})
         self.assertEqual(between['stats']['sales_weight'], 125)
-        self.assertAlmostEqual(between['factor'], 365 / 184)
+        self.assertAlmostEqual(between['factor'], 365 / 183)
         self.role.menus.append(Menu(title='Composition', url='/sales-stock-composition-analysis'))
         db.session.commit()
         options = self.client.get('/api/sales-stock-composition-analysis/options', headers=self.headers()).get_json()
         self.assertEqual(options['dates'], ['2026-10-15', '2026-09-30', '2026-09-01'])
+
+    def test_location_factors_are_applied_before_aggregation_and_product_filters(self):
+        db.session.add_all([
+            Snapshot(id=1, branch_id=1, date=date(2026, 8, 1), section='CHAIN',
+                     classification='C1', gross_weight=100, turn_over=1000,
+                     provision_weight=20, purchase_board_rate=10),
+            Snapshot(id=2, branch_id=1, date=date(2026, 9, 30), section='RING'),
+            Snapshot(id=3, branch_id=2, date=date(2026, 8, 31), section='CHAIN',
+                     classification='C1', gross_weight=200, turn_over=2000,
+                     provision_weight=40, purchase_board_rate=10),
+            Snapshot(id=4, branch_id=2, date=date(2026, 10, 15), section='CHAIN',
+                     gross_weight=999, turn_over=9999),
+        ])
+        db.session.commit()
+        expected_weight = (100 * 365 / 183 + 200 * 365 / 153) / 60
+        expected_value = (1000 * 365 / 183 + 2000 * 365 / 153) / 600
+        for path in ([], ['CHAIN']):
+            data = composition_analysis_data(date(2026, 10, 1), {'section': ['CHAIN']}, path)
+            self.assertIsNone(data['factor'])
+            self.assertEqual(len(data['stats']['location_factors']), 2)
+            self.assertEqual(data['stats']['turnover'], 3000)
+            self.assertEqual(data['stats']['sales_weight'], 300)
+            self.assertAlmostEqual(data['total']['weight_turn'], expected_weight)
+            self.assertAlmostEqual(data['total']['value_turn'], expected_value)
+            self.assertAlmostEqual(data['rows'][0]['value_turn'], expected_value)
+            self.assertEqual(data['rows'][0]['sales_composition'], 100)
+
+    def test_undated_location_does_not_silently_drop_annualised_sales(self):
+        db.session.add_all([
+            Snapshot(id=1, branch_id=1, date=None, gross_weight=10, turn_over=100,
+                     provision_weight=10, purchase_board_rate=10),
+            Snapshot(id=2, branch_id=2, date=date(2026, 9, 30), gross_weight=20,
+                     turn_over=200, provision_weight=20, purchase_board_rate=10),
+        ])
+        db.session.commit()
+        data = composition_analysis_data(None, {})
+        self.assertEqual(data['stats']['turnover'], 300)
+        self.assertTrue(data['stats']['missing_factor'])
+        self.assertIsNone(data['total']['weight_turn'])
+        self.assertIsNone(data['total']['value_turn'])
 
 
 class SummarySyncTests(unittest.TestCase):

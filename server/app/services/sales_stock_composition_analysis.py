@@ -103,6 +103,38 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
                 'net_weight': float(positive_total or 0) + float(negative_total or 0),
                 'cutoff': source_date.isoformat() if source_date else None}
 
+    # Resolve location dates before product filters or drill-down paths.
+    location_key = case(
+        (S.branch_id.isnot(None), 'branch:' + cast(S.branch_id, String)),
+        else_='location:' + dimension('location_name'),
+    )
+    dates_query = db.session.query(location_key, func.max(S.date)).group_by(location_key)
+    if selected_date:
+        dates_query = dates_query.filter(S.date <= selected_date)
+    branch_ids = [int(v) for v in selections.get('branch_id', []) if str(v).isdigit()]
+    if branch_ids:
+        dates_query = dates_query.filter(S.branch_id.in_(branch_ids))
+    location_factors = []
+    factor_cases = []
+    for key, effective_date in dates_query.all():
+        if effective_date is None:
+            continue
+        local_factor, days, elapsed, label = calculate_fy_factor(effective_date)
+        factor_cases.append((location_key == key, local_factor))
+        location_factors.append({'location_key': key, 'date': effective_date.isoformat(),
+                                 'factor': local_factor, 'fy_label': label,
+                                 'inclusive_fy_days': days, 'inclusive_elapsed_days': elapsed})
+    annual_factor = case(*factor_cases, else_=None) if factor_cases else cast(None, db.Float)
+    annual_weight = func.coalesce(S.gross_weight, 0) * annual_factor
+    annual_value = func.coalesce(S.turn_over, 0) * annual_factor
+    missing_factor = func.sum(case((annual_factor.is_(None), 1), else_=0))
+    effective_dates = {item['date'] for item in location_factors}
+    factor = location_factors[0]['factor'] if len(effective_dates) == 1 else None
+    if factor is not None:
+        inclusive_fy_days = location_factors[0]['inclusive_fy_days']
+        inclusive_elapsed_days = location_factors[0]['inclusive_elapsed_days']
+        fy_label = location_factors[0]['fy_label']
+
     # Provision includes every matching row across all dates, including repeats.
     provision = func.coalesce(S.provision_weight, 0)
     provision_value = case(
@@ -136,12 +168,15 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
     sales_totals = sales.with_entities(
         func.sum(func.coalesce(S.gross_weight, 0)),
         func.sum(func.coalesce(S.turn_over, 0)),
-        func.sum(func.coalesce(S.total_tsk_plusit_charge, 0))
+        func.sum(func.coalesce(S.total_tsk_plusit_charge, 0)),
+        func.sum(annual_weight), func.sum(annual_value), missing_factor,
     ).one()
 
     total_sales_weight = float(sales_totals[0] or 0)
     total_turnover = float(sales_totals[1] or 0)
     total_tsk = float(sales_totals[2] or 0)
+    total_annual_weight = None if sales_totals[5] else float(sales_totals[3] or 0)
+    total_annual_value = None if sales_totals[5] else float(sales_totals[4] or 0)
 
     stock_totals = stock_filtered.with_entities(
         func.sum(stocks_q.c.provision),
@@ -164,7 +199,8 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
         dimension(current_level),
         func.sum(func.coalesce(S.gross_weight, 0)),
         func.sum(func.coalesce(S.turn_over, 0)),
-        func.sum(func.coalesce(S.total_tsk_plusit_charge, 0))
+        func.sum(func.coalesce(S.total_tsk_plusit_charge, 0)),
+        func.sum(annual_weight), func.sum(annual_value), missing_factor,
     ).group_by(dimension(current_level)).all()
 
     stock_group_rows = stock_filtered.with_entities(
@@ -181,6 +217,8 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
             'sales_weight': float(r[1] or 0),
             'turnover': float(r[2] or 0),
             'tsk': float(r[3] or 0),
+            'annual_weight': None if r[6] else float(r[4] or 0),
+            'annual_value': None if r[6] else float(r[5] or 0),
             'stock_weight': 0.0,
             'stock_value': 0.0
         }
@@ -192,6 +230,8 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
                 'sales_weight': 0.0,
                 'turnover': 0.0,
                 'tsk': 0.0,
+                'annual_weight': 0.0,
+                'annual_value': 0.0,
                 'stock_weight': 0.0,
                 'stock_value': 0.0
             }
@@ -203,11 +243,9 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
         sales_comp = ratio(g['sales_weight'], total_sales_weight)
         stock_comp = ratio(g['stock_weight'], total_stock_weight)
         
-        # Annualise FY-to-cutoff signed sales, not only the cutoff day's transactions.
-        turn_weight = turn_ratio(g['sales_weight'] * factor, g['stock_weight']) if source_date else None
+        turn_weight = turn_ratio(g['annual_weight'], g['stock_weight'])
         
-        # Stock Turn in Value = Section net YTD turnover × Factor ÷ Section provision value
-        turn_value = turn_ratio(g['turnover'] * factor, g['stock_value']) if source_date else None
+        turn_value = turn_ratio(g['annual_value'], g['stock_value'])
         
         # TSK % = Section net TSK-plus-IT charges ÷ Section net turnover × 100
         tsk_pct = ratio(g['tsk'], g['turnover'])
@@ -226,8 +264,8 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
         })
 
     # Overall Grand Total
-    gt_turn_weight = turn_ratio(total_sales_weight * factor, total_stock_weight) if source_date else None
-    gt_turn_value = turn_ratio(total_turnover * factor, total_stock_value) if source_date else None
+    gt_turn_weight = turn_ratio(total_annual_weight, total_stock_weight)
+    gt_turn_value = turn_ratio(total_annual_value, total_stock_value)
     gt_tsk_pct = ratio(total_tsk, total_turnover)
 
     total_row = {
@@ -250,6 +288,8 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
         'turnover': total_turnover,
         'tsk_pct': gt_tsk_pct or 0.0,
         'factor': factor,
+        'location_factors': location_factors,
+        'missing_factor': bool(sales_totals[5]),
         'fy_label': fy_label,
         'inclusive_fy_days': inclusive_fy_days,
         'inclusive_elapsed_days': inclusive_elapsed_days,

@@ -243,7 +243,20 @@ function updateTopStats(stats) {
             ? `${(Number(stats.tsk_pct)).toFixed(2)}%`
             : '-';
     }
-    if (fyFactorLabel && stats.factor) {
+    if (fyFactorLabel && stats.location_factors) {
+        const factors = stats.location_factors;
+        if (stats.missing_factor) {
+            fyFactorLabel.textContent = 'Annualisation unavailable for locations with no transaction date';
+        } else if (factors.length === 0) {
+            fyFactorLabel.textContent = 'No dated locations';
+        } else if (stats.factor != null) {
+            const item = factors[0];
+            fyFactorLabel.textContent = `${item.fy_label} · As on ${item.date} · ${item.inclusive_fy_days}/${item.inclusive_elapsed_days} = ${Number(item.factor).toFixed(4)}`;
+        } else {
+            const dates = factors.map(item => item.date).sort();
+            fyFactorLabel.textContent = `Location-wise factors · ${factors.length} locations · ${dates[0]} to ${dates[dates.length - 1]}`;
+        }
+    } else if (fyFactorLabel && stats.factor) {
         fyFactorLabel.textContent = stats.cutoff_date
             ? `${stats.fy_label} · As on ${stats.cutoff_date} · ${stats.inclusive_fy_days}/${stats.inclusive_elapsed_days} = ${Number(stats.factor).toFixed(4)}`
             : `${stats.fy_label || 'FY'} · Factor: ${Number(stats.factor).toFixed(2)}`;
