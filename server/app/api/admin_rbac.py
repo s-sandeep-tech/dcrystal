@@ -1,4 +1,5 @@
 from flask import Blueprint, current_app, request, jsonify
+from sqlalchemy import func
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.extensions import db
 from app.models.auth import User
@@ -96,8 +97,11 @@ def log_audit(user_id, action, t_type, t_id, details):
 @require_role('ADMIN')
 def manage_roles():
     if request.method == 'GET':
-        roles = Role.query.all()
-        return jsonify([{"id": r.id, "name": r.name, "description": r.description} for r in roles])
+        roles = Role.query.order_by(Role.name, Role.id).all()
+        counts = dict(db.session.query(UserRole.role_id, func.count(UserRole.user_id))
+                      .join(User, User.id == UserRole.user_id).group_by(UserRole.role_id).all())
+        return jsonify([{"id": r.id, "name": r.name, "description": r.description,
+                         "user_count": counts.get(r.id, 0)} for r in roles])
     
     if request.method == 'POST':
         data = request.json
@@ -112,6 +116,23 @@ def manage_roles():
         log_audit(get_jwt_identity(), "CREATE", "ROLE", role.id, {"name": role.name})
         db.session.commit()
         return jsonify({"msg": "Role created", "id": role.id}), 201
+
+@admin_rbac_bp.route('/roles/<int:role_id>/users', methods=['GET'])
+@jwt_required()
+@require_role('ADMIN')
+def get_role_users(role_id):
+    role = db.get_or_404(Role, role_id)
+    page = max(1, request.args.get('page', 1, type=int))
+    users = (User.query.join(UserRole, UserRole.user_id == User.id)
+             .filter(UserRole.role_id == role_id).order_by(User.username, User.id)
+             .paginate(page=page, per_page=50, error_out=False))
+    return jsonify(role={"id": role.id, "name": role.name}, total=users.total,
+                   page=users.page, pages=users.pages, users=[{
+                       "user_id": u.user_id, "username": u.username, "email": u.email,
+                       "is_active": u.is_active,
+                       "last_login_at": u.last_login_at.isoformat() + 'Z' if u.last_login_at else None,
+                   } for u in users.items])
+
 
 @admin_rbac_bp.route('/roles/<int:role_id>', methods=['PUT', 'DELETE'])
 @jwt_required()

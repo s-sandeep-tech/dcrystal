@@ -128,3 +128,33 @@
         </div>
     </div>
 </div>
+<!-- Read-only role membership; native dialog provides focus trapping and Escape. -->
+<dialog id="roleUsersModal" aria-labelledby="roleUsersTitle"
+    class="rounded-xl p-0 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 shadow-2xl"
+    style="width:min(960px,calc(100vw - 2rem));max-height:85vh;">
+    <div class="p-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between gap-4">
+        <div>
+            <h3 id="roleUsersTitle" class="text-lg font-bold">Assigned users</h3>
+            <p id="roleUsersSummary" class="text-xs text-gray-500 mt-1" aria-live="polite"></p>
+        </div>
+        <button type="button" id="closeRoleUsers" autofocus aria-label="Close assigned users"
+            class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+    </div>
+    <div class="overflow-auto p-5" style="max-height:60vh">
+        <p id="roleUsersMessage" role="status" class="text-sm text-gray-500 py-4">Loading users…</p>
+        <table id="roleUsersTable" class="hidden w-full text-left text-xs">
+            <thead class="text-gray-500 border-b border-gray-200 dark:border-gray-700">
+                <tr><th class="p-2">User ID</th><th class="p-2">Username</th><th class="p-2">Email</th>
+                    <th class="p-2">Status</th><th class="p-2">Last login</th></tr>
+            </thead>
+            <tbody id="roleUsersBody" class="divide-y divide-gray-100 dark:divide-gray-800"></tbody>
+        </table>
+    </div>
+    <div class="px-5 pb-5 flex items-center justify-between text-xs">
+        <button type="button" id="roleUsersPrev" class="px-3 py-2 rounded border disabled:opacity-40">Previous</button>
+        <span id="roleUsersPage" aria-live="polite"></span>
+        <button type="button" id="roleUsersNext" class="px-3 py-2 rounded border disabled:opacity-40">Next</button>
+    </div>
+</dialog>

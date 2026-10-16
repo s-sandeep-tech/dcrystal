@@ -1218,6 +1218,92 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     window.fetchRoles = fetchRoles;
 
+    function roleText(value) {
+        const span = document.createElement('span');
+        span.textContent = value;
+        return span.innerHTML;
+    }
+
+    const roleUsersModal = document.getElementById('roleUsersModal');
+    let roleUsersRequest = null;
+    let roleUsersId = null;
+    let roleUsersPage = 1;
+    let roleUsersTrigger = null;
+    async function loadRoleUsers(page) {
+        if (roleUsersRequest) roleUsersRequest.abort();
+        const controller = new AbortController();
+        roleUsersRequest = controller;
+        const message = document.getElementById('roleUsersMessage');
+        const table = document.getElementById('roleUsersTable');
+        const prev = document.getElementById('roleUsersPrev');
+        const next = document.getElementById('roleUsersNext');
+        message.textContent = 'Loading users…';
+        message.classList.remove('hidden');
+        table.classList.add('hidden');
+        prev.disabled = next.disabled = true;
+        document.getElementById('roleUsersPage').textContent = '';
+        try {
+            const response = await fetch(`/api/admin/roles/${roleUsersId}/users?page=${page}`, {
+                headers: { Authorization: `Bearer ${window.jwtToken}` }, signal: controller.signal
+            });
+            if (!response.ok) throw new Error(response.status === 403 ? 'You do not have access to view these users.' : 'Unable to load users. Close and reopen to retry.');
+            const data = await response.json();
+            if (controller.signal.aborted || roleUsersRequest !== controller) return;
+            roleUsersPage = data.page;
+            document.getElementById('roleUsersSummary').textContent = `${data.total} assigned user${data.total === 1 ? '' : 's'} · Includes active and inactive accounts`;
+            const role = gRoles.find(r => r.id === roleUsersId);
+            if (role) { role.user_count = data.total; renderRoles(); }
+            const body = document.getElementById('roleUsersBody');
+            body.replaceChildren();
+            for (const user of data.users) {
+                const row = document.createElement('tr');
+                const values = [user.user_id, user.username, user.email,
+                    user.is_active ? 'Active' : 'Inactive',
+                    user.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'Never'];
+                values.forEach((value, index) => {
+                    const cell = document.createElement('td');
+                    cell.className = 'p-2';
+                    cell.style.overflowWrap = 'anywhere';
+                    cell.textContent = value || '—';
+                    if (index === 3) cell.classList.add(user.is_active ? 'text-green-600' : 'text-gray-500');
+                    row.appendChild(cell);
+                });
+                body.appendChild(row);
+            }
+            message.textContent = data.total ? 'No users on this page.' : 'No users are assigned to this role yet.';
+            message.classList.toggle('hidden', data.users.length > 0);
+            table.classList.toggle('hidden', data.users.length === 0);
+            document.getElementById('roleUsersPage').textContent = data.pages ? `Page ${data.page} of ${data.pages}` : '';
+            prev.disabled = data.page <= 1;
+            next.disabled = data.page >= data.pages;
+        } catch (error) {
+            if (controller.signal.aborted || roleUsersRequest !== controller) return;
+            message.textContent = error.message;
+            document.getElementById('roleUsersSummary').textContent = 'Users could not be loaded';
+        }
+    }
+    window.openRoleUsersModal = function (id) {
+        roleUsersId = id;
+        roleUsersPage = 1;
+        roleUsersTrigger = document.activeElement;
+        const role = gRoles.find(r => r.id === id);
+        document.getElementById('roleUsersTitle').textContent = `${role ? role.name : 'Role'} — Assigned users`;
+        document.getElementById('roleUsersSummary').textContent = '';
+        if (!roleUsersModal.open) roleUsersModal.showModal();
+        loadRoleUsers(1);
+    };
+    if (roleUsersModal) {
+        document.getElementById('closeRoleUsers').addEventListener('click', () => roleUsersModal.close());
+        roleUsersModal.addEventListener('click', event => { if (event.target === roleUsersModal) roleUsersModal.close(); });
+        roleUsersModal.addEventListener('close', () => {
+            if (roleUsersRequest) roleUsersRequest.abort();
+            const trigger = document.querySelector(`[data-role-users="${roleUsersId}"]`) || roleUsersTrigger;
+            if (trigger) trigger.focus();
+        });
+        document.getElementById('roleUsersPrev').addEventListener('click', () => loadRoleUsers(roleUsersPage - 1));
+        document.getElementById('roleUsersNext').addEventListener('click', () => loadRoleUsers(roleUsersPage + 1));
+    }
+
     function renderRoles() {
         const tbody = document.getElementById('rolesTableBody');
         if (!tbody) return;
@@ -1232,9 +1318,15 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors";
             tr.innerHTML = `
                 <td class="p-3 text-[11px] text-gray-500 font-mono">#${r.id}</td>
-                <td class="p-3 text-[11px] font-bold"><span class="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-800 uppercase tracking-widest">${r.name}</span></td>
-                <td class="p-3 text-[11px] text-gray-600 dark:text-gray-400">${r.description || '-'}</td>
+                <td class="p-3 text-[11px] font-bold"><span class="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-800 uppercase tracking-widest">${roleText(r.name)}</span></td>
+                <td class="p-3 text-[11px] text-gray-600 dark:text-gray-400">${roleText(r.description || '-')}</td>
                 <td class="p-3 text-right">
+                    <button type="button" data-role-users="${r.id}" onclick="openRoleUsersModal(${r.id})"
+                        class="inline-flex items-center gap-1 text-primary bg-blue-50 dark:bg-blue-900/30 rounded px-2 py-1 mr-2"
+                        title="View assigned users" aria-label="View ${Number(r.user_count || 0)} assigned users">
+                        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">group</span>
+                        <span>${Number(r.user_count || 0)}</span>
+                    </button>
                     <button onclick="openRolePermissionModal(${r.id})" class="text-gray-400 hover:text-primary transition-colors p-1" title="Manage Permissions"><span class="material-symbols-outlined text-[16px]">security</span></button>
                     <button onclick="openRoleMenuModal(${r.id})" class="text-gray-400 hover:text-primary transition-colors p-1 ml-1" title="Assign Menus"><span class="material-symbols-outlined text-[16px]">account_tree</span></button>
                     <button onclick="editRole(${r.id})" class="text-gray-400 hover:text-primary transition-colors p-1 ml-1" title="Edit Role"><span class="material-symbols-outlined text-[16px]">edit</span></button>
@@ -1242,7 +1334,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
             `;
             if (r.name === 'SUPER_ADMIN' && !window.SETTINGS_CONFIG.isSuperAdmin) {
-                tr.querySelectorAll('button').forEach(button => {
+                tr.querySelectorAll('button:not([data-role-users])').forEach(button => {
                     button.disabled = true;
                     button.title = 'Protected SUPER_ADMIN role';
                     button.classList.add('opacity-30', 'cursor-not-allowed');
