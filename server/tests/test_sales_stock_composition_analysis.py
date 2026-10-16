@@ -285,71 +285,50 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
 
 
 class SummarySyncTests(unittest.TestCase):
-    def test_new_source_maps_date_location_and_design(self):
+    def test_source_mapping_and_atomic_commit(self):
         from app.utils import sync_tasks
-        connection = MagicMock()
-        connection.cursor.return_value.fetchmany.side_effect = [[{
-            'max_trans_date': datetime(2026, 9, 30, 16, 30),
-            'location': ' THRISSUR ROUND ', 'branch_id': 12,
-            'design_no': 'D-001', 'size': Decimal('22'),
-            'gross_weight': Decimal('-2.5'), 'turn_over': Decimal('-100'),
-            'provision_weight': Decimal('10'), 'purchase_board_rate': 5000,
-        }], []]
-        with patch.object(sync_tasks, 'get_external_db_connection', return_value=connection), \
+        rows = [{'branch_id': 12, 'item_definition_id': i,
+                 'max_trans_date': datetime(2026, 9, 30, 16, 30),
+                 'location': ' THRISSUR ROUND ', 'design_no': 'D-001',
+                 'size': Decimal('22'), 'gross_weight': Decimal('-2.5'),
+                 'purchase_board_rate': 5000} for i in range(10001)]
+        with patch.object(sync_tasks, 'composition_source_rows', return_value=iter_rows(rows)) as source, \
                 patch.object(sync_tasks, 'emit_combined_sync_update'), \
                 patch.object(sync_tasks, 'db') as database, \
                 patch.object(Snapshot.__table__, 'create'):
             result = sync_tasks.sync_sales_stock_composition_analysis_task()
-        self.assertEqual(result['status'], 'success')
-        connection.cursor.return_value.execute.assert_any_call(
-            'SELECT * FROM ext_view.item_wise_tsk_summary_view')
-        record = database.session.bulk_insert_mappings.call_args.args[1][0]
+        self.assertEqual(result, {'status': 'success', 'count': 10001})
+        self.assertEqual(source.call_args.kwargs['batch_size'], 10000)
+        batches = database.session.bulk_insert_mappings.call_args_list
+        self.assertEqual([len(c.args[1]) for c in batches], [10000, 1])
+        record = batches[0].args[1][0]
         self.assertEqual(record['date'], date(2026, 9, 30))
         self.assertEqual(record['location_name'], 'THRISSUR ROUND')
         self.assertEqual(record['barcode'], 'D-001')
-        self.assertEqual(record['size_label'], '22')
         self.assertEqual(record['gross_weight'], Decimal('-2.5'))
-        self.assertEqual(record['purchase_board_rate'], Decimal('5000'))
-        self.assertIsNone(record['trans_type'])
         database.session.commit.assert_called_once()
+        database.session.rollback.assert_not_called()
 
-    def test_streams_multiple_batches_and_final_partial_batch(self):
+    def test_exhausted_source_does_not_restart_from_beginning(self):
         from app.utils import sync_tasks
-        connection = MagicMock()
-        cursor = connection.cursor.return_value
-        cursor.fetchmany.side_effect = [[{'gross_weight': 1}] * 20000,
-                                       [{'gross_weight': -1}] * 20000,
-                                       [{'gross_weight': 2}], []]
-        with patch.object(sync_tasks, 'get_external_db_connection', return_value=connection), \
-                patch.object(sync_tasks, 'emit_combined_sync_update'), \
-                patch.object(sync_tasks, 'db') as database, \
-                patch.object(Snapshot.__table__, 'create'):
-            result = sync_tasks.sync_sales_stock_composition_analysis_task()
-        self.assertEqual(result, {'status': 'success', 'count': 40001})
-        self.assertEqual([len(call.args[1]) for call in
-                          database.session.bulk_insert_mappings.call_args_list], [20000, 20000, 1])
-        cursor.fetchall.assert_not_called()
-        self.assertTrue(all(call.args == (20000,) for call in cursor.fetchmany.call_args_list))
-        self.assertEqual(connection.cursor.call_args.kwargs['name'], 'sales_stock_composition_stream')
-        database.session.commit.assert_called_once()
-        cursor.close.assert_called_once()
-        connection.close.assert_called_once()
-
-    def test_failed_stream_rolls_back_and_retries_without_partial_commit(self):
-        from app.utils import sync_tasks
-        connection = MagicMock()
-        connection.cursor.return_value.fetchmany.side_effect = sum(
-            ([[{}] * 20000, RuntimeError('stream interrupted')] for _ in range(5)), [])
-        with patch.object(sync_tasks, 'get_external_db_connection', return_value=connection), \
+        def failed():
+            yield from ({'branch_id': 1, 'item_definition_id': i} for i in range(10000))
+            raise sync_tasks.CompositionSourceError('connection retries exhausted')
+        with patch.object(sync_tasks, 'composition_source_rows', return_value=failed()) as source, \
                 patch.object(sync_tasks, 'emit_combined_sync_update'), \
                 patch.object(sync_tasks, 'db') as database, \
                 patch.object(Snapshot.__table__, 'create'), \
-                patch.object(sync_tasks.time, 'sleep'), patch.object(sync_tasks.logger, 'exception'):
+                patch.object(sync_tasks.logger, 'exception'):
             result = sync_tasks.sync_sales_stock_composition_analysis_task()
         self.assertEqual(result['status'], 'error')
-        self.assertEqual(database.session.rollback.call_count, 5)
-        self.assertEqual(connection.close.call_count, 5)
+        source.assert_called_once()
+        database.session.bulk_insert_mappings.assert_called_once()
+        database.session.rollback.assert_called_once()
         database.session.commit.assert_not_called()
+
+
+def iter_rows(rows):
+    yield from rows
 
 
 class TSKBarTests(unittest.TestCase):

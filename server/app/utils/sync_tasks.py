@@ -1,4 +1,5 @@
 import psycopg2
+from .composition_source import composition_source_rows, CompositionSourceError
 from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
@@ -4991,27 +4992,17 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
 
     max_attempts = 5
     for attempt in range(1, max_attempts + 1):
-        conn = None
+        source_rows = None
         try:
             emit('processing', f'Starting Sales & Stock Composition Analysis Sync (Attempt {attempt}/{max_attempts})...', 5)
 
-            conn = get_external_db_connection()
-            emit('processing', f'Streaming item_wise_tsk_summary_view in {batch_size:,}-row batches...', 20)
             started_at = time.time()
-            # Named cursors keep the full result on the source server, not in worker memory.
-            conn.autocommit = False
-            with conn.cursor() as settings_cursor:
-                settings_cursor.execute("SET statement_timeout = 0")
-            cursor = conn.cursor(name='sales_stock_composition_stream', cursor_factory=RealDictCursor)
-            cursor.itersize = batch_size
-            
-            cursor.execute("SELECT * FROM ext_view.item_wise_tsk_summary_view")
-
-            source_rows = (
-                row
-                for batch in iter(lambda: cursor.fetchmany(batch_size), [])
-                for row in batch
-            )
+            def source_progress(message):
+                logger.warning(message)
+                emit('processing', message, 50)
+            emit('processing', f'Reading summary in resumable {batch_size:,}-row pages...', 20)
+            source_rows = composition_source_rows(
+                get_external_db_connection, batch_size=batch_size, progress=source_progress)
 
             SalesStockCompositionAnalysisSnapshot.__table__.create(db.engine, checkfirst=True)
             db.session.query(SalesStockCompositionAnalysisSnapshot).delete()
@@ -5110,7 +5101,6 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
             if records:
                 db.session.bulk_insert_mappings(SalesStockCompositionAnalysisSnapshot, records)
                 synced_count += len(records)
-            cursor.close()
             emit('processing', f'Committing {synced_count:,} transferred records...', 95)
             db.session.commit()
 
@@ -5119,17 +5109,14 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
         except Exception as exc:
             db.session.rollback()
             logger.exception('Sales Stock Composition Analysis sync failed (attempt %s/%s)', attempt, max_attempts)
-            if attempt == max_attempts:
-                message = f'Sync failed after {max_attempts} attempts: {exc}'
+            if isinstance(exc, CompositionSourceError) or attempt == max_attempts:
+                message = f'Sync failed: {exc}'
                 emit('error', message, 0)
                 return {'status': 'error', 'message': message}
             emit('processing', f'Attempt {attempt}/{max_attempts} failed. Retrying in 5s...', 0)
         finally:
-            if conn:
-                try:
-                    conn.close()
-                except Exception:
-                    logger.warning('Failed to close composition sync source connection', exc_info=True)
+            if source_rows is not None:
+                source_rows.close()
         time.sleep(5)
 
 
