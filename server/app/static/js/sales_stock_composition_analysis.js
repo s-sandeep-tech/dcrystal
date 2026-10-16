@@ -220,12 +220,12 @@ function updateTopStats(stats) {
 
     if (salesWeightEl) {
         salesWeightEl.textContent = stats.sales_weight != null
-            ? (Number(stats.sales_weight)).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+            ? (Number(stats.sales_weight) / 1000).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })
             : '-';
     }
     if (provisionWeightEl) {
         provisionWeightEl.textContent = stats.provision_weight != null
-            ? (Number(stats.provision_weight)).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+            ? (Number(stats.provision_weight) / 1000).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })
             : '-';
     }
     if (turnWeightEl) {
@@ -235,7 +235,7 @@ function updateTopStats(stats) {
     }
     if (turnoverEl) {
         turnoverEl.textContent = stats.turnover != null
-            ? (Number(stats.turnover)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            ? (Number(stats.turnover) / 100000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
             : '-';
     }
     if (tskPctEl) {
