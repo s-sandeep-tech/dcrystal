@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 OLD_GOLD_REPORT_CACHE_PREFIX = 'location_wise_old_gold_report'
 OLD_GOLD_REPORT_CACHE_TTL = 21600
-OLD_GOLD_REPORT_BUCKET_VERSION = 'intransit-widths-v5'
+OLD_GOLD_REPORT_BUCKET_VERSION = 'highest-contribution-v6'
 
 
 def get_snapshot_cache_token():
@@ -497,6 +497,15 @@ def get_location_wise_old_gold_partial():
 
         pagination = main_q.paginate(page=page, per_page=per_page, error_out=False)
 
+        highlight_fields = [name for bucket in ['today', '2_5', '6_10', '11_15', 'gt_15']
+                            for name in ['grwt_' + bucket, 'transfer_grwt_' + bucket, 'intransit_' + bucket]]
+        highlight_fields += ['tot_grwt', 'tot_transfer_grwt', 'intransit_total']
+        # Compare every filtered group at this level, including groups on other pages/parents.
+        comparison = build_filters(db.session.query(LocationWiseOldGoldSettlementTransferSnapshot))
+        grouped = comparison.with_entities(*(group_cols + row_agg_cols)).group_by(*group_cols).subquery()
+        highest = db.session.query(*[func.max(grouped.c[name]) for name in highlight_fields]).one()
+        column_maxima = {name: float(value or 0) for name, value in zip(highlight_fields, highest)}
+
         processed_rows = []
         for r in pagination.items:
             label = ''
@@ -585,7 +594,8 @@ def get_location_wise_old_gold_partial():
             parent_value=parent_value,
             sort_by=sort_by,
             sort_order=sort_order,
-            stats=stats
+            stats=stats,
+            column_maxima=column_maxima
         )
         set_cached_value(cache_key, rendered_html)
         return rendered_html
