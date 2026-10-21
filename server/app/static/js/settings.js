@@ -85,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.status === 'processing') {
                     syncStatus.className = 'mt-4 p-3 rounded-lg text-[11px] font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/30';
                     const prefix = window.isSyncAllActive ? `<span class="font-bold uppercase text-[9px] mb-1 block">Batch Sync Progress</span>` : '';
+                    const progressVal = Math.min(100, Math.max(0, parseInt(data.progress, 10) || 0));
                     syncStatus.innerHTML = `
                         <div class="flex flex-col gap-2">
                             ${prefix}
@@ -93,10 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <span class="material-symbols-outlined text-sm animate-spin mt-0.5">sync</span> 
                                     <span class="flex-1">${data.message}</span>
                                 </span>
-                                <span class="shrink-0 ml-4">${data.progress}%</span>
+                                <span class="shrink-0 ml-4">${progressVal}%</span>
                             </div>
                             <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
-                                <div class="bg-primary h-full transition-all duration-500" style="width: ${data.progress}%"></div>
+                                <div class="bg-primary h-full transition-all duration-500" style="width: ${progressVal}%"></div>
                             </div>
                         </div>
                     `;
@@ -142,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn,
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn,
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
-                            syncCollectionWiseAverageDeliveryDaysBtn, syncPartyPerformanceMatrixBtn, syncPartyOrderAcceptCancelDeliveryBtn, syncLocationWiseOldGoldBtn,
+                            syncCollectionWiseAverageDeliveryDaysBtn, syncSalesStockCompositionAnalysisBtn, syncCustomerOrderAnalysisBtn, syncPartyPerformanceMatrixBtn, syncPartyOrderAcceptCancelDeliveryBtn, syncLocationWiseOldGoldBtn,
                             syncWeeklyDeliveryOrderSummaryBtn, syncPartyMakeCapacityDetailsBtn, syncCustomerOrderFulfilmentSummaryBtn
                         ].forEach(btn => {
                             if (btn && btn.disabled && data.type && btn.closest(`[id="sync-wrapper-${data.type}"]`)) resetSyncBtn(btn);

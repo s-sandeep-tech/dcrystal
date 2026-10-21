@@ -4996,10 +4996,33 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
         try:
             emit('processing', f'Starting Sales & Stock Composition Analysis Sync (Attempt {attempt}/{max_attempts})...', 5)
 
+            # Determine expected total from existing snapshot before delete
+            total_expected = 0
+            try:
+                SalesStockCompositionAnalysisSnapshot.__table__.create(db.engine, checkfirst=True)
+                existing_count = db.session.query(SalesStockCompositionAnalysisSnapshot).count()
+                if isinstance(existing_count, (int, float)) and existing_count > 0:
+                    total_expected = int(existing_count)
+            except Exception:
+                total_expected = 0
+
+            def calc_progress(count):
+                if total_expected and total_expected > 0:
+                    ratio = min(1.0, count / float(total_expected))
+                    p = 20 + int(ratio * 72)
+                    return min(max(p, 20), 92)
+                else:
+                    batches = count / float(batch_size) if batch_size else 0
+                    p = 20 + int(72 * (1.0 - (0.5 ** batches)))
+                    return min(max(p, 20), 92)
+
             started_at = time.time()
+            synced_count = 0
+
             def source_progress(message):
                 logger.warning(message)
-                emit('processing', message, 50)
+                emit('processing', message, calc_progress(synced_count))
+
             emit('processing', f'Reading summary in resumable {batch_size:,}-row pages...', 20)
             source_rows = composition_source_rows(
                 get_external_db_connection, batch_size=batch_size, progress=source_progress)
@@ -5009,7 +5032,6 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
 
             now = datetime.utcnow()
             records = []
-            synced_count = 0
             for row in source_rows:
                 report_date = row.get('max_trans_date')
                 if isinstance(report_date, datetime):
@@ -5094,13 +5116,28 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
                     db.session.bulk_insert_mappings(SalesStockCompositionAnalysisSnapshot, records)
                     synced_count += len(records)
                     records = []
-                    message = f'Transferred {synced_count:,} records in {time.time() - started_at:.1f}s; awaiting full sync commit.'
+                    current_p = calc_progress(synced_count)
+                    if total_expected and total_expected > 0:
+                        pct = min(100, int((synced_count / float(total_expected)) * 100))
+                        message = f'Transferred {synced_count:,} / {total_expected:,} records ({pct}%) in {time.time() - started_at:.1f}s; awaiting full sync commit.'
+                    else:
+                        message = f'Transferred {synced_count:,} records in {time.time() - started_at:.1f}s; awaiting full sync commit.'
                     logger.info(message)
-                    emit('processing', message, 50)
+                    emit('processing', message, current_p)
 
             if records:
                 db.session.bulk_insert_mappings(SalesStockCompositionAnalysisSnapshot, records)
                 synced_count += len(records)
+                records = []
+                current_p = calc_progress(synced_count)
+                if total_expected and total_expected > 0:
+                    pct = min(100, int((synced_count / float(total_expected)) * 100))
+                    message = f'Transferred {synced_count:,} / {total_expected:,} records ({pct}%) in {time.time() - started_at:.1f}s; preparing commit...'
+                else:
+                    message = f'Transferred {synced_count:,} records in {time.time() - started_at:.1f}s; preparing commit...'
+                logger.info(message)
+                emit('processing', message, current_p)
+
             emit('processing', f'Committing {synced_count:,} transferred records...', 95)
             db.session.commit()
 

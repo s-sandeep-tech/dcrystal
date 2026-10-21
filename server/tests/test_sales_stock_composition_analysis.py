@@ -325,7 +325,30 @@ class SummarySyncTests(unittest.TestCase):
         database.session.bulk_insert_mappings.assert_called_once()
         database.session.rollback.assert_called_once()
         database.session.commit.assert_not_called()
+    def test_progress_updates_monotonically_and_reflects_records(self):
+        from app.utils import sync_tasks
+        rows = [{'branch_id': 1, 'item_definition_id': i} for i in range(65000)]
+        emitted_progress = []
 
+        def capture_emit(status, message, progress, task_type, progress_range=(0, 100), is_subtask=False):
+            emitted_progress.append((status, progress, message))
+
+        with patch.object(sync_tasks, 'composition_source_rows', return_value=iter_rows(rows)), \
+                patch.object(sync_tasks, 'emit_combined_sync_update', side_effect=capture_emit), \
+                patch.object(sync_tasks, 'db') as database, \
+                patch.object(Snapshot.__table__, 'create'):
+            result = sync_tasks.sync_sales_stock_composition_analysis_task()
+
+        self.assertEqual(result, {'status': 'success', 'count': 65000})
+        percentages = [p[1] for p in emitted_progress]
+        # Progress values should start at 5 and reach 100
+        self.assertEqual(percentages[0], 5)
+        self.assertEqual(percentages[-1], 100)
+        # Verify that progress increases across batches without being frozen at 50%
+        batch_progresses = [p[1] for p in emitted_progress if 'Transferred' in p[2]]
+        self.assertTrue(len(batch_progresses) >= 2)
+        self.assertTrue(all(batch_progresses[i] < batch_progresses[i + 1] for i in range(len(batch_progresses) - 1)))
+        self.assertTrue(all(p != 50 or batch_progresses.count(50) <= 1 for p in batch_progresses))
 
 def iter_rows(rows):
     yield from rows
