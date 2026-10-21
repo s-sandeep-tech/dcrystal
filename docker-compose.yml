@@ -90,6 +90,26 @@ services:
       - ./socket-server:/app
       - /app/node_modules
 
+  intelligence-engine:
+    build: ./intelligence-engine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://meetaccess:meetpass@db:5432/dcrystaldb
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - INTELLIGENCE_GEMINI_API_KEY=${INTELLIGENCE_GEMINI_API_KEY:-}
+      - GEMINI_API_KEY=${INTELLIGENCE_GEMINI_API_KEY:-${GEMINI_API_KEY:-}}
+      - LOG_LEVEL=INFO
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./intelligence-engine:/app
+
   nginx:
     image: nginx:alpine
     volumes:
@@ -101,3 +121,4 @@ services:
         condition: service_healthy
       socket-server:
         condition: service_started
+

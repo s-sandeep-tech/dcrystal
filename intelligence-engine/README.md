@@ -99,6 +99,7 @@ python test_client.py --action hybrid --horizon 14 --region "Mumbai, Maharashtra
 ## 📡 Redis API Contract
 
 ### Inbound Queue: `intelligence_queue` (List)
+
 Tasks are pushed via `RPUSH` / `LPUSH`:
 
 ```json
@@ -119,6 +120,7 @@ Tasks are pushed via `RPUSH` / `LPUSH`:
 ```
 
 ### Result Storage: `intelligence:task:{task_id}` (Hash)
+
 - `status`: `pending` | `processing` | `completed` | `failed`
 - `execution_time_sec`: float
 - `result_json`: JSON result containing forecast / prediction payload
