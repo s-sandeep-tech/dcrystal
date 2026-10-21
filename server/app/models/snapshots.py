@@ -3508,6 +3508,7 @@ class LocationWiseOldGoldSettlementTransferSnapshot(db.Model):
     stwt = db.Column(db.Numeric(18, 4), default=0.0)
     netwt = db.Column(db.Numeric(18, 4), default=0.0)
     settlementmode = db.Column(db.String(100))
+    intransit_grwt = db.Column(db.Numeric(18, 4), default=0.0)
     transfer_grwt = db.Column(db.Numeric(18, 4), default=0.0)
     transfer_stwt = db.Column(db.Numeric(18, 4), default=0.0)
     transfer_netwt = db.Column(db.Numeric(18, 4), default=0.0)

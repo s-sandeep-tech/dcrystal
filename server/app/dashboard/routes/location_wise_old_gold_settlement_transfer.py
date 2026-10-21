@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 OLD_GOLD_REPORT_CACHE_PREFIX = 'location_wise_old_gold_report'
 OLD_GOLD_REPORT_CACHE_TTL = 21600
-OLD_GOLD_REPORT_BUCKET_VERSION = 'previous-day-v1'
+OLD_GOLD_REPORT_BUCKET_VERSION = 'intransit-v2'
 
 
 def get_snapshot_cache_token():
@@ -123,6 +123,9 @@ def get_aggregation_columns():
 
     return [
         # Overall Totals
+        func.coalesce(func.sum(LocationWiseOldGoldSettlementTransferSnapshot.intransit_grwt), 0).label('intransit_total'),
+        *[func.coalesce(func.sum(case((condition, LocationWiseOldGoldSettlementTransferSnapshot.intransit_grwt), else_=0)), 0).label('intransit_' + bucket)
+          for bucket, condition in [('today', cond_today), ('2_5', cond_2_5), ('6_10', cond_6_10), ('11_15', cond_11_15), ('gt_15', cond_gt_15)]],
         func.coalesce(func.sum(LocationWiseOldGoldSettlementTransferSnapshot.grwt), 0).label('tot_grwt'),
         func.coalesce(func.sum(LocationWiseOldGoldSettlementTransferSnapshot.netwt), 0).label('tot_netwt'),
         func.coalesce(func.sum(LocationWiseOldGoldSettlementTransferSnapshot.stwt), 0).label('tot_stwt'),
@@ -292,6 +295,8 @@ def compute_global_stats(base_query):
         'transfer_netwt': f"{tot_trans_netwt:,.3f}",
         'transfer_stwt': f"{tot_trans_stwt:,.3f}",
         'transfer_perc': calc_perc(tot_trans_grwt),
+        **{'intransit_' + bucket: f"{float(getattr(stat_row, 'intransit_' + bucket, 0) or 0):,.3f}"
+           for bucket in ['today', '2_5', '6_10', '11_15', 'gt_15', 'total']},
     }
 
 
@@ -561,6 +566,8 @@ def get_location_wise_old_gold_partial():
                 'tot_transfer_grwt': float(r.tot_transfer_grwt or 0.0),
                 'tot_transfer_netwt': float(r.tot_transfer_netwt or 0.0),
                 'tot_transfer_stwt': float(r.tot_transfer_stwt or 0.0),
+                **{'intransit_' + bucket: float(getattr(r, 'intransit_' + bucket) or 0)
+                   for bucket in ['today', '2_5', '6_10', '11_15', 'gt_15', 'total']},
             })
 
         # Calculate overall stats for updated headers
