@@ -8,7 +8,7 @@ Autonomous, decoupled AI/ML microservice for **Time-Series Forecasting** (Prophe
 
 1. **Zero External Project Dependencies**:
    - Runs in its own container/virtualenv.
-   - Communicates strictly via **Redis queue** (`intelligence_queue`) using JSON payloads.
+   - Communicates via **Redis Streams** (`intelligence_queue:stream`) using JSON payloads.
 2. **Exclusive PostgreSQL Database Layer**:
    - Zero coupling to `server/app/models/`.
    - Manages its own dedicated SQLAlchemy 2.0 ORM tables:
@@ -98,9 +98,10 @@ python test_client.py --action hybrid --horizon 14 --region "Mumbai, Maharashtra
 
 ## 📡 Redis API Contract
 
-### Inbound Queue: `intelligence_queue` (List)
+### Inbound Stream: `intelligence_queue:stream`
 
-Tasks are pushed via `RPUSH` / `LPUSH`:
+Requires Redis 6.2 or newer. Producers use `RedisManager.push_task()` or
+`XADD intelligence_queue:stream * task '<JSON payload>'`:
 
 ```json
 {
@@ -121,10 +122,73 @@ Tasks are pushed via `RPUSH` / `LPUSH`:
 
 ### Result Storage: `intelligence:task:{task_id}` (Hash)
 
-- `status`: `pending` | `processing` | `completed` | `failed`
+- `status`: `pending` | `processing` | `retrying` | `completed` | `failed`
 - `execution_time_sec`: float
 - `result_json`: JSON result containing forecast / prediction payload
 - `error`: Error message if failed
+
+### Delivery, Retries and Recovery
+
+- Consumer group: `intelligence-workers`, with a unique consumer per worker process.
+- Default lease/retry delay: 120 seconds (`REDIS_TASK_LEASE_SECONDS`, minimum 30).
+  A background heartbeat renews the lease every third of that interval.
+- Default execution limit: 3 deliveries (`REDIS_TASK_MAX_ATTEMPTS`). Abandoned
+  deliveries count toward the limit. Recovery uses `XAUTOCLAIM`; after failure,
+  tasks remain pending until the lease expires, then retry automatically.
+- Exhausted or malformed tasks go to `intelligence_queue:dead`. Dead-letter insertion
+  and acknowledgement are atomic. Inspect with `XRANGE intelligence_queue:dead - +`.
+- Task output, task-run completion and `intelligence_task_results` are committed in
+  one PostgreSQL transaction. `task_id` is the idempotency key: do not reuse it for
+  different requests. Terminal retries replay the stored result instead of rewriting
+  outputs. PostgreSQL advisory locks prevent concurrent execution of the same task.
+- Redis result/status errors propagate. If Redis fails after a database commit,
+  recovery republishes the durable result before acknowledging. If the database
+  is unavailable, messages remain pending even past the attempt limit until a
+  terminal status can be persisted. Do not delete result receipts while duplicates
+  or pending deliveries may still exist.
+- Delivery is at-least-once, not exactly-once execution. External API calls and model
+  file activation cannot join the PostgreSQL transaction; a crash before database
+  commit may repeat those operations. Database output rows do not duplicate.
+
+### Deployment
+
+Stop the old intelligence workers before starting the new version; do not run
+legacy `BLPOP` consumers alongside Streams workers. The new worker atomically
+migrates up to 100 old `intelligence_queue` list entries per poll. The test client
+and shared producer now write directly to the stream. Update external producers
+to `XADD` as above; legacy list submissions remain compatible during migration.
+
+```sh
+docker compose stop intelligence-engine
+docker compose up -d --no-deps --build intelligence-engine
+```
+
+Startup creates the new `intelligence_task_results` table (existing tables need
+no destructive migration). Inspect pending work using:
+
+```sh
+docker compose exec redis redis-cli XPENDING intelligence_queue:stream intelligence-workers
+docker compose exec redis redis-cli XLEN intelligence_queue:dead
+```
+
+To retry a dead-letter task after fixing its cause, resubmit its original payload
+with a **new task_id**; otherwise the durable failed receipt is replayed.
+
+Worker-crash recovery assumes Redis retains its data. The existing shared Redis
+Compose service has no persistent volume/AOF configuration. Production must use
+durable Redis storage and backups; plan a data-preserving migration before
+recreating that service. This change does not restart or replace shared Redis.
+
+### Recovery Integration Tests
+
+Use dedicated disposable PostgreSQL and Redis instances, never production:
+
+```sh
+INTELLIGENCE_INTEGRATION_TESTS=1 REDIS_HOST=127.0.0.1 REDIS_PORT=16379 \
+SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://postgres:test@127.0.0.1:15432/postgres \
+python -m unittest discover -s tests -v
+```
+
 # Persistent Tabular Models
 
 Successful `TRAIN_PREDICTOR` tasks save the fitted model, category encoder,

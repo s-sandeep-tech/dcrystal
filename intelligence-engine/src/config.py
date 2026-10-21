@@ -15,6 +15,8 @@ try:
         REDIS_RESULT_PREFIX: str = "intelligence:task:"
         REDIS_EVENT_CHANNEL: str = "intelligence:events"
         REDIS_TASK_TTL_SECONDS: int = 86400  # 24 hours retention
+        REDIS_TASK_LEASE_SECONDS: int = 120
+        REDIS_TASK_MAX_ATTEMPTS: int = 3
 
         # Database configuration (PostgreSQL)
         SQLALCHEMY_DATABASE_URI: str = "postgresql+psycopg2://meetaccess:meetpass@db:5432/dcrystaldb"
@@ -56,6 +58,8 @@ except ImportError:
         REDIS_RESULT_PREFIX: str = os.getenv("REDIS_RESULT_PREFIX", "intelligence:task:")
         REDIS_EVENT_CHANNEL: str = os.getenv("REDIS_EVENT_CHANNEL", "intelligence:events")
         REDIS_TASK_TTL_SECONDS: int = int(os.getenv("REDIS_TASK_TTL_SECONDS", "86400"))
+        REDIS_TASK_LEASE_SECONDS: int = int(os.getenv("REDIS_TASK_LEASE_SECONDS", "120"))
+        REDIS_TASK_MAX_ATTEMPTS: int = int(os.getenv("REDIS_TASK_MAX_ATTEMPTS", "3"))
 
         SQLALCHEMY_DATABASE_URI: str = os.getenv(
             "SQLALCHEMY_DATABASE_URI",

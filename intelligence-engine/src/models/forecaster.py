@@ -26,12 +26,14 @@ class TimeSeriesForecaster:
         """
         Executes time-series forecast on the provided series data (list of {'ds': 'YYYY-MM-DD', 'y': float}).
         """
+        if horizon_days < 1:
+            raise ValueError("Forecast horizon must be positive")
         if not series_data:
-            return {"forecast": [], "metrics": {"error": "Empty series data provided"}}
+            raise ValueError("Empty series data provided")
 
         df = pd.DataFrame(series_data)
         if "ds" not in df.columns or "y" not in df.columns:
-            return {"forecast": [], "metrics": {"error": "Input data must contain 'ds' and 'y' keys"}}
+            raise ValueError("Input data must contain 'ds' and 'y' keys")
 
         # Format datetimes and sort
         df["ds"] = pd.to_datetime(df["ds"])

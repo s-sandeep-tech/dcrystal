@@ -130,14 +130,14 @@ def main():
             }
         )
 
-    print(f"\n[1] Enqueuing task '{task.task_type.value}' (ID: {task_id}) to Redis queue '{redis_mgr.queue_name}'...")
+    print(f"\n[1] Enqueuing task '{task.task_type.value}' (ID: {task_id}) to Redis stream '{redis_mgr.stream}'...")
     success = redis_mgr.push_task(task)
     if not success:
         print("[ERROR] Failed to push task to Redis.")
         sys.exit(1)
 
     print(f"[2] Waiting for IntelligenceEngine worker to process...")
-    max_wait = 30
+    max_wait = redis_mgr.max_attempts * (redis_mgr.lease_ms / 1000 + 60)
     start = time.time()
     result = None
 
@@ -147,7 +147,7 @@ def main():
             break
         time.sleep(0.5)
 
-    if not result:
+    if not result or result.get("status") not in [TaskStatus.COMPLETED.value, TaskStatus.FAILED.value]:
         print(f"[TIMEOUT] No result returned within {max_wait} seconds.")
         print(f"Make sure intelligence-engine worker is running (`python src/worker.py` or docker container).")
         sys.exit(1)
@@ -155,7 +155,11 @@ def main():
     print(f"\n[3] Result Received in {result.get('execution_time_sec')}s! Status: {result.get('status')}")
     print("=" * 60)
     print(json.dumps(result.get("result", {}), indent=2))
+    if result.get("error"):
+        print(f"Error: {result['error']}")
     print("=" * 60)
+    if result.get("status") == TaskStatus.FAILED.value:
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

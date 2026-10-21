@@ -12,6 +12,7 @@ class TaskType(str, Enum):
     HEALTH = "health"
 
 class TaskStatus(str, Enum):
+    RETRYING = "retrying"
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"

@@ -54,7 +54,7 @@ class DatabaseReader:
                 return rows
         except Exception as e:
             logger.warning(f"Error querying orders timeseries (table might be empty or unavailable): {e}")
-            return []
+            raise
 
     @staticmethod
     def get_tabular_orders_for_prediction(
@@ -97,4 +97,4 @@ class DatabaseReader:
                 return rows
         except Exception as e:
             logger.warning(f"Error querying tabular orders (table might be empty or schema differing): {e}")
-            return []
+            raise

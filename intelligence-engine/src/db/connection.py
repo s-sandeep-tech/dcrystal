@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from contextvars import ContextVar
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from ..config import settings
@@ -16,6 +17,18 @@ engine = create_engine(
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+_task_session = ContextVar("intelligence_task_session", default=None)
+
+
+@contextmanager
+def task_transaction():
+    """Share one transaction across nested output writers and the task receipt."""
+    with get_db_session() as session:
+        token = _task_session.set(session)
+        try:
+            yield session
+        finally:
+            _task_session.reset(token)
 
 def init_db():
     """Initializes exclusive IntelligenceEngine tables in the database."""
@@ -31,6 +44,10 @@ def init_db():
 @contextmanager
 def get_db_session():
     """Context manager for safe SQLAlchemy database session lifecycle."""
+    active = _task_session.get()
+    if active is not None:
+        yield active
+        return
     session: Session = SessionLocal()
     try:
         yield session

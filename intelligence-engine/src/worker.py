@@ -18,6 +18,7 @@ try:
     from src.db.writer import DatabaseWriter
     from src.task_queue.protocol import TaskRequest, TaskResult, TaskType, TaskStatus
     from src.task_queue.redis_manager import RedisManager
+    from src.task_queue.runner import TaskRunner
     from src.models.forecaster import TimeSeriesForecaster
     from src.models.predictor import TabularPredictor
     from src.external.gemini_enricher import GeminiExternalEnricher
@@ -30,6 +31,7 @@ except ImportError:
     from .db.writer import DatabaseWriter
     from .task_queue.protocol import TaskRequest, TaskResult, TaskType, TaskStatus
     from .task_queue.redis_manager import RedisManager
+    from .task_queue.runner import TaskRunner
     from .models.forecaster import TimeSeriesForecaster
     from .models.predictor import TabularPredictor
     from .external.gemini_enricher import GeminiExternalEnricher
@@ -47,6 +49,7 @@ class IntelligenceWorker:
         self.predictor = TabularPredictor()
         self.enricher = GeminiExternalEnricher()
         self.hybrid_orchestrator = HybridIntelligenceOrchestrator()
+        self.task_runner = TaskRunner(self.redis_manager, self.execute_task)
 
         self._register_signals()
 
@@ -67,11 +70,14 @@ class IntelligenceWorker:
         logger.info(f"  Gemini Model: {settings.GEMINI_MODEL}")
         logger.info("=" * 60)
 
-        # Initialize exclusive DB tables
-        try:
-            init_db()
-        except Exception as e:
-            logger.warning(f"Database initialization warning (will retry on task processing): {e}")
+        # Do not claim work until the durable result table is available.
+        while self.running:
+            try:
+                init_db()
+                break
+            except Exception as e:
+                logger.warning(f"Waiting for database initialization: {e}")
+                time.sleep(3)
 
         # Check initial Redis connectivity
         while self.running and not self.redis_manager.ping():
@@ -86,14 +92,14 @@ class IntelligenceWorker:
                 if not task:
                     continue
 
-                self.process_task(task)
+                self.task_runner.process(task)
             except Exception as e:
                 logger.error(f"Unexpected error in consumer loop: {e}", exc_info=True)
                 time.sleep(1)
 
         logger.info("Intelligence Worker terminated cleanly.")
 
-    def process_task(self, task: TaskRequest):
+    def execute_task(self, task: TaskRequest):
         """Dispatches and processes a single task request."""
         task_id = task.task_id
         task_type = task.task_type
@@ -101,10 +107,6 @@ class IntelligenceWorker:
 
         logger.info(f"[{task_id}] Received task '{task_type.value}'")
         start_time = time.time()
-
-        # Update Redis & DB status
-        self.redis_manager.update_task_status(task_id, TaskStatus.PROCESSING)
-        DatabaseWriter.log_task_start(task_id, task_type.value, parameters=payload)
 
         result_data: Dict[str, Any] = {}
         error_msg = None
@@ -164,6 +166,8 @@ class IntelligenceWorker:
                         limit=int(payload.get("limit", 200))
                     )
 
+                if not records:
+                    raise ValueError("No records available for prediction")
                 predictions = self.predictor.predict(records, prediction_type=prediction_type)
 
                 # Persist to exclusive predictions table
@@ -247,10 +251,6 @@ class IntelligenceWorker:
 
         exec_time = round(time.time() - start_time, 3)
 
-        # Log finish to DB
-        DatabaseWriter.log_task_finish(task_id, status=status.value, error_message=error_msg)
-
-        # Save result to Redis
         task_result = TaskResult(
             task_id=task_id,
             task_type=task_type,
@@ -259,9 +259,7 @@ class IntelligenceWorker:
             result=result_data,
             error=error_msg
         )
-        self.redis_manager.save_task_result(task_result)
-
-        logger.info(f"[{task_id}] Task finished with status '{status.value}' in {exec_time}s")
+        return task_result
 
 if __name__ == "__main__":
     worker = IntelligenceWorker()

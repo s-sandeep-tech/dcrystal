@@ -6,6 +6,14 @@ from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
+
+class IntelligenceTaskResult(Base):
+    """Durable terminal result, committed with task output rows."""
+    __tablename__ = "intelligence_task_results"
+    task_id = Column(String(100), primary_key=True)
+    result_json = Column(JSON, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
 class IntelligenceForecast(Base):
     """Stores quantitative and hybrid time-series projections."""
     __tablename__ = 'intelligence_forecasts'

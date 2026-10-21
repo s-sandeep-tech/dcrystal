@@ -17,16 +17,19 @@ class DatabaseWriter:
         """Records task entry in intelligence_task_runs with 'processing' status."""
         try:
             with get_db_session() as session:
-                task_run = IntelligenceTaskRun(
-                    task_id=task_id,
-                    task_type=task_type,
-                    status="processing",
-                    start_time=datetime.utcnow(),
-                    parameters_json=parameters
-                )
-                session.merge(task_run)
+                task_run = session.query(IntelligenceTaskRun).filter_by(task_id=task_id).first()
+                if task_run is None:
+                    task_run = IntelligenceTaskRun(task_id=task_id, task_type=task_type)
+                    session.add(task_run)
+                task_run.status = "processing"
+                task_run.start_time = datetime.utcnow()
+                task_run.end_time = None
+                task_run.error_message = None
+                task_run.parameters_json = parameters
+                session.flush()
         except Exception as e:
             logger.error(f"Failed to log task start for {task_id}: {e}")
+            raise
 
     @staticmethod
     def log_task_finish(task_id: str, status: str = "completed", error_message: Optional[str] = None) -> None:
@@ -34,6 +37,8 @@ class DatabaseWriter:
         try:
             with get_db_session() as session:
                 task_run = session.query(IntelligenceTaskRun).filter_by(task_id=task_id).first()
+                if task_run is None:
+                    raise RuntimeError(f"Missing task run {task_id}")
                 if task_run:
                     now = datetime.utcnow()
                     task_run.status = status
@@ -43,6 +48,7 @@ class DatabaseWriter:
                     task_run.error_message = error_message
         except Exception as e:
             logger.error(f"Failed to log task finish for {task_id}: {e}")
+            raise
 
     @staticmethod
     def save_forecasts(
@@ -67,7 +73,7 @@ class DatabaseWriter:
                     elif isinstance(ds_val, (datetime, date)):
                         ds_date = ds_val if isinstance(ds_val, date) else ds_val.date()
                     else:
-                        continue
+                        raise ValueError("Forecast row is missing a valid date")
 
                     record = IntelligenceForecast(
                         task_id=task_id,
@@ -86,7 +92,7 @@ class DatabaseWriter:
             return inserted_count
         except Exception as e:
             logger.error(f"Failed to save forecasts for task {task_id}: {e}", exc_info=True)
-            return 0
+            raise
 
     @staticmethod
     def save_predictions(
@@ -119,7 +125,7 @@ class DatabaseWriter:
             return inserted_count
         except Exception as e:
             logger.error(f"Failed to save predictions for task {task_id}: {e}", exc_info=True)
-            return 0
+            raise
 
     @staticmethod
     def save_external_signal(
@@ -153,4 +159,4 @@ class DatabaseWriter:
                 return signal.id
         except Exception as e:
             logger.error(f"Failed to save external signal: {e}", exc_info=True)
-            return None
+            raise
