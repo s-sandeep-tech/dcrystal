@@ -4617,7 +4617,7 @@ def sync_location_wise_old_gold_settlement_transfer_task(task_type_override=None
                 stwt,
                 netwt,
                 settlementmode,
-                "InTransit_GrWt" AS intransit_grwt,
+                "intransit_grwt" AS intransit_grwt,
                 transfer_grwt,
                 transfer_stwt,
                 transfer_netwt,
