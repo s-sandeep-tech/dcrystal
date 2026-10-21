@@ -1,14 +1,21 @@
 from typing import List, Dict, Any, Optional, Tuple
 import pandas as pd
 import numpy as np
+from importlib.metadata import version
+from sklearn.feature_extraction import DictVectorizer
+from .model_store import ModelStore
+from ..config import settings
 from ..utils.logger import logger
 
 class TabularPredictor:
     """XGBoost-based tabular prediction engine for delay risk, lead times, and multi-feature modeling."""
 
-    def __init__(self):
+    def __init__(self, model_store_dir=None):
         self.model = None
         self.feature_names: List[str] = []
+        self.encoder = None
+        self.input_columns = []
+        self.store = ModelStore(model_store_dir or settings.MODEL_STORE_DIR)
         self._has_xgboost = False
 
         try:
@@ -18,6 +25,26 @@ class TabularPredictor:
         except Exception as e:
             logger.warning(f"XGBoost unavailable ({e}). Using sklearn/heuristic fallback.")
             self.xgb = None
+
+        bundle = self.store.load()
+        if bundle:
+            self.model = bundle["model"]
+            self.encoder = bundle["encoder"]
+            self.feature_names = bundle["feature_names"]
+            self.input_columns = bundle["input_columns"]
+            logger.info("Loaded persisted tabular predictor")
+        else:
+            logger.warning("No saved predictor; predictions use the heuristic until training succeeds")
+
+    @staticmethod
+    def _features(frame, columns):
+        missing = set(columns) - set(frame.columns)
+        if missing:
+            raise ValueError(f"Missing model features: {sorted(missing)}")
+        return [{key: (0.0 if pd.isna(value) else
+                      float(value) if isinstance(value, (int, float, np.number)) else str(value))
+                 for key, value in row.items()}
+                for row in frame[columns].to_dict("records")]
 
     def train_or_fit(
         self,
@@ -42,37 +69,50 @@ class TabularPredictor:
         if feature_columns:
             X_df = X_df[[c for c in feature_columns if c in X_df.columns]]
 
-        # Encode categorical columns
-        X_encoded = pd.get_dummies(X_df, drop_first=True)
-        self.feature_names = list(X_encoded.columns)
-
         try:
+            if feature_columns and set(feature_columns) - set(X_df.columns):
+                raise ValueError("Requested training features are missing")
+            input_columns = list(X_df.columns)
+            encoder = DictVectorizer(sparse=False)
+            X_encoded = encoder.fit_transform(self._features(X_df, input_columns))
+            feature_names = list(encoder.get_feature_names_out())
             if self._has_xgboost:
                 if is_classification:
-                    self.model = self.xgb.XGBClassifier(
+                    model = self.xgb.XGBClassifier(
                         n_estimators=100, max_depth=5, learning_rate=0.08, random_state=42
                     )
                 else:
-                    self.model = self.xgb.XGBRegressor(
+                    model = self.xgb.XGBRegressor(
                         n_estimators=100, max_depth=5, learning_rate=0.08, random_state=42
                     )
             else:
                 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
                 if is_classification:
-                    self.model = RandomForestClassifier(n_estimators=100, random_state=42)
+                    model = RandomForestClassifier(n_estimators=100, random_state=42)
                 else:
-                    self.model = RandomForestRegressor(n_estimators=100, random_state=42)
+                    model = RandomForestRegressor(n_estimators=100, random_state=42)
 
-            self.model.fit(X_encoded, y)
+            model.fit(X_encoded, y)
 
             # Feature importances
             importances = {}
-            if hasattr(self.model, "feature_importances_"):
-                for name, imp in zip(self.feature_names, self.model.feature_importances_):
+            if hasattr(model, "feature_importances_"):
+                for name, imp in zip(feature_names, model.feature_importances_):
                     importances[name] = round(float(imp), 4)
+
+            engine = "xgboost" if self._has_xgboost else "scikit-learn"
+            model_id = self.store.save({
+                "schema_version": 1, "model": model, "encoder": encoder,
+                "feature_names": feature_names, "input_columns": input_columns,
+                "target_column": target_column, "is_classification": is_classification,
+                "engine_version": [engine, version(engine)]
+            })
+            self.model, self.encoder = model, encoder
+            self.feature_names, self.input_columns = feature_names, input_columns
 
             return {
                 "status": "success",
+                "model_id": model_id,
                 "sample_count": len(df),
                 "feature_count": len(self.feature_names),
                 "feature_importances": dict(sorted(importances.items(), key=lambda x: x[1], reverse=True)[:10]),
@@ -97,12 +137,7 @@ class TabularPredictor:
         predictions = []
 
         if self.model and self.feature_names:
-            # Model exists; align dummy columns
-            X_encoded = pd.get_dummies(df, drop_first=True)
-            for f in self.feature_names:
-                if f not in X_encoded.columns:
-                    X_encoded[f] = 0
-            X_aligned = X_encoded[self.feature_names]
+            X_aligned = self.encoder.transform(self._features(df, self.input_columns))
 
             raw_preds = self.model.predict(X_aligned)
             for i, row in df.iterrows():

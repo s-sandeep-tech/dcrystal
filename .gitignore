@@ -30,6 +30,7 @@ Thumbs.db
 
 # App Data
 uploads/
+intelligence-engine/model_store/
 
 # Credentials & Keys
 *service_account*.json

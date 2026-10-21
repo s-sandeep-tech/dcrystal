@@ -227,7 +227,13 @@ class IntelligenceWorker:
                 if not records:
                     records = DatabaseReader.get_tabular_orders_for_prediction(limit=1000)
                 target_col = payload.get("target_column", "risk_level")
-                fit_res = self.predictor.train_or_fit(records, target_column=target_col)
+                fit_res = self.predictor.train_or_fit(
+                    records, target_column=target_col,
+                    feature_columns=payload.get("feature_columns"),
+                    is_classification=payload.get("is_classification", False)
+                )
+                if fit_res.get("status") != "success":
+                    raise RuntimeError(fit_res.get("message", "Predictor training failed"))
                 result_data = fit_res
 
             else:

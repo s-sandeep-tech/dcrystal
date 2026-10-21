@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Optional
 
 try:
@@ -34,6 +35,7 @@ try:
         # Application settings
         LOG_LEVEL: str = "INFO"
         APP_ENV: str = "production"
+        MODEL_STORE_DIR: str = str(Path(__file__).resolve().parents[1] / "model_store")
 
         model_config = SettingsConfigDict(
             env_file=(".env", "../.env"),
@@ -75,6 +77,7 @@ except ImportError:
 
         LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
         APP_ENV: str = os.getenv("APP_ENV", "production")
+        MODEL_STORE_DIR: str = os.getenv("MODEL_STORE_DIR", str(Path(__file__).resolve().parents[1] / "model_store"))
 
     settings = LightweightSettings()
 

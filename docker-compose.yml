@@ -108,6 +108,7 @@ services:
       - REDIS_PORT=6379
       - INTELLIGENCE_GEMINI_API_KEY=${INTELLIGENCE_GEMINI_API_KEY:-}
       - GEMINI_API_KEY=${INTELLIGENCE_GEMINI_API_KEY:-${GEMINI_API_KEY:-}}
+      - MODEL_STORE_DIR=/app/model_store
       - LOG_LEVEL=INFO
       - HTTP_PROXY=http://10.150.32.8:3128
       - HTTPS_PROXY=http://10.150.32.8:3128
@@ -124,6 +125,7 @@ services:
         condition: service_healthy
     volumes:
       - ./intelligence-engine:/app
+      - intelligence_models:/app/model_store
 
   nginx:
     image: nginx:alpine
@@ -136,3 +138,6 @@ services:
         condition: service_healthy
       socket-server:
         condition: service_started
+
+volumes:
+  intelligence_models:
