@@ -1,3 +1,6 @@
+{# Set show_transfer to true to restore Transfer columns and their layout. #}
+{% set show_transfer = false %}
+{% set bucket_columns = 3 if show_transfer else 2 %}
 {% if not is_child_rows %}
 <style>
     .old-gold-bucket-grid td.highest-contribution {
@@ -8,28 +11,28 @@
     }
     .old-gold-bucket-grid { --bucket-divider: #b8c2cf; }
     .dark .old-gold-bucket-grid { --bucket-divider: #64748b; }
-    .old-gold-bucket-grid tbody td:nth-child(3n + 5) {
+    .old-gold-bucket-grid tbody td:nth-child({{ bucket_columns }}n + {{ bucket_columns + 2 }}) {
         font-size: 10px;
         font-weight: 700;
     }
-    .old-gold-bucket-grid tfoot td:nth-child(3n + 4) {
+    .old-gold-bucket-grid tfoot td:nth-child({{ bucket_columns }}n + {{ bucket_columns + 1 }}) {
         font-size: 12px;
         font-weight: 700;
     }
-    .old-gold-bucket-grid thead tr:first-child th[colspan="3"]:not(:last-child),
-    .old-gold-bucket-grid thead tr:nth-child(2) th:nth-child(3n):not(:last-child),
-    .old-gold-bucket-grid tbody tr td:nth-child(3n + 5):not(:last-child),
-    .old-gold-bucket-grid tfoot tr td:nth-child(3n + 4):not(:last-child) {
+    .old-gold-bucket-grid thead tr:first-child th[colspan="{{ bucket_columns }}"]:not(:last-child),
+    .old-gold-bucket-grid thead tr:nth-child(2) th:nth-child({{ bucket_columns }}n):not(:last-child),
+    .old-gold-bucket-grid tbody tr td:nth-child({{ bucket_columns }}n + {{ bucket_columns + 2 }}):not(:last-child),
+    .old-gold-bucket-grid tfoot tr td:nth-child({{ bucket_columns }}n + {{ bucket_columns + 1 }}):not(:last-child) {
         border-right: 1px solid var(--bucket-divider) !important;
     }
 </style>
-<table class="enterprise-grid old-gold-bucket-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header table-fixed" style="min-width: 2322px">
+<table class="enterprise-grid old-gold-bucket-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header table-fixed" style="min-width: {{ 252 + 6 * bucket_columns * 115 }}px">
     <colgroup>
         <col style="width: 32px">
         <col style="width: 220px">
         {% for bucket in range(6) %}
         <col style="width: 115px">
-        <col style="width: 115px">
+        {% if show_transfer %}<col style="width: 115px">{% endif %}
         <col style="width: 115px">
         {% endfor %}
     </colgroup>
@@ -44,12 +47,12 @@
                     </span>
                 </div>
             </th>
-            <th colspan="3" class="text-center px-1 py-1 bg-emerald-50/60 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300 border-r border-gray-200 dark:border-gray-700 font-bold">1 Day</th>
-            <th colspan="3" class="text-center px-1 py-1 bg-slate-100/70 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 border-r border-gray-200 dark:border-gray-700 font-bold">2 - 5 Days</th>
-            <th colspan="3" class="text-center px-1 py-1 bg-slate-100/70 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 border-r border-gray-200 dark:border-gray-700 font-bold">6 - 10 Days</th>
-            <th colspan="3" class="text-center px-1 py-1 bg-amber-50/50 text-amber-900/90 dark:bg-amber-950/20 dark:text-amber-300 border-r border-gray-200 dark:border-gray-700 font-bold">11 - 15 Days</th>
-            <th colspan="3" class="text-center px-1 py-1 bg-rose-50/50 text-rose-900/90 dark:bg-rose-950/20 dark:text-rose-300 border-r border-gray-200 dark:border-gray-700 font-bold">&gt; 15 Days</th>
-            <th colspan="3" class="text-center px-1 py-1 bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 font-bold">Total</th>
+            <th colspan="{{ bucket_columns }}" class="text-center px-1 py-1 bg-emerald-50/60 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300 border-r border-gray-200 dark:border-gray-700 font-bold">1 Day</th>
+            <th colspan="{{ bucket_columns }}" class="text-center px-1 py-1 bg-slate-100/70 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 border-r border-gray-200 dark:border-gray-700 font-bold">2 - 5 Days</th>
+            <th colspan="{{ bucket_columns }}" class="text-center px-1 py-1 bg-slate-100/70 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300 border-r border-gray-200 dark:border-gray-700 font-bold">6 - 10 Days</th>
+            <th colspan="{{ bucket_columns }}" class="text-center px-1 py-1 bg-amber-50/50 text-amber-900/90 dark:bg-amber-950/20 dark:text-amber-300 border-r border-gray-200 dark:border-gray-700 font-bold">11 - 15 Days</th>
+            <th colspan="{{ bucket_columns }}" class="text-center px-1 py-1 bg-rose-50/50 text-rose-900/90 dark:bg-rose-950/20 dark:text-rose-300 border-r border-gray-200 dark:border-gray-700 font-bold">&gt; 15 Days</th>
+            <th colspan="{{ bucket_columns }}" class="text-center px-1 py-1 bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 font-bold">Total</th>
         </tr>
         <tr class="bg-gray-50/80 dark:bg-gray-800/80 text-gray-500 uppercase font-semibold text-[8px] tracking-wider select-none">
             <!-- Previous-day subheaders -->
@@ -61,6 +64,7 @@
                     </span>
                 </div>
             </th>
+            {% if show_transfer %}
             <th class="text-right px-1 py-1 bg-emerald-50/30 text-blue-700 dark:text-blue-400 border-r border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-emerald-100/50 group" onclick="handleSort('today_trans')">
                 <div class="flex items-center justify-end gap-0.5">
                     <span>Transfer</span>
@@ -69,6 +73,7 @@
                     </span>
                 </div>
             </th>
+            {% endif %}
             <th class="text-right px-1 py-1 text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">InTransit</th>
 
             <!-- 2-5 Days Subheaders -->
@@ -80,6 +85,7 @@
                     </span>
                 </div>
             </th>
+            {% if show_transfer %}
             <th class="text-right px-1 py-1 bg-blue-50/30 text-blue-700 dark:text-blue-400 border-r border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-blue-100/40 group" onclick="handleSort('days_2_5_trans')">
                 <div class="flex items-center justify-end gap-0.5">
                     <span>Transfer</span>
@@ -88,6 +94,7 @@
                     </span>
                 </div>
             </th>
+            {% endif %}
             <th class="text-right px-1 py-1 text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">InTransit</th>
 
             <!-- 6-10 Days Subheaders -->
@@ -99,6 +106,7 @@
                     </span>
                 </div>
             </th>
+            {% if show_transfer %}
             <th class="text-right px-1 py-1 bg-blue-50/30 text-blue-700 dark:text-blue-400 border-r border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-blue-100/40 group" onclick="handleSort('days_6_10_trans')">
                 <div class="flex items-center justify-end gap-0.5">
                     <span>Transfer</span>
@@ -107,6 +115,7 @@
                     </span>
                 </div>
             </th>
+            {% endif %}
             <th class="text-right px-1 py-1 text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">InTransit</th>
 
             <!-- 11-15 Days Subheaders -->
@@ -118,6 +127,7 @@
                     </span>
                 </div>
             </th>
+            {% if show_transfer %}
             <th class="text-right px-1 py-1 bg-blue-50/30 text-blue-700 dark:text-blue-400 border-r border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-blue-100/40 group" onclick="handleSort('days_11_15_trans')">
                 <div class="flex items-center justify-end gap-0.5">
                     <span>Transfer</span>
@@ -126,6 +136,7 @@
                     </span>
                 </div>
             </th>
+            {% endif %}
             <th class="text-right px-1 py-1 text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">InTransit</th>
 
             <!-- >15 Days Subheaders -->
@@ -137,6 +148,7 @@
                     </span>
                 </div>
             </th>
+            {% if show_transfer %}
             <th class="text-right px-1 py-1 bg-blue-50/30 text-blue-700 dark:text-blue-400 border-r border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-blue-100/40 group" onclick="handleSort('days_gt_15_trans')">
                 <div class="flex items-center justify-end gap-0.5">
                     <span>Transfer</span>
@@ -145,6 +157,7 @@
                     </span>
                 </div>
             </th>
+            {% endif %}
             <th class="text-right px-1 py-1 text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">InTransit</th>
 
             <!-- Total Subheaders -->
@@ -156,6 +169,7 @@
                     </span>
                 </div>
             </th>
+            {% if show_transfer %}
             <th class="text-right px-1 py-1 bg-blue-50/40 text-blue-800 dark:text-blue-300 cursor-pointer hover:bg-blue-100/50 group" onclick="handleSort('total_trans')">
                 <div class="flex items-center justify-end gap-0.5">
                     <span>Transfer</span>
@@ -164,6 +178,7 @@
                     </span>
                 </div>
             </th>
+            {% endif %}
             <th class="text-right px-1 py-1 text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">InTransit</th>
         </tr>
     </thead>
@@ -212,6 +227,7 @@
                 {% endif %}
             </td>
             <!-- Previous-day transfer -->
+            {% if show_transfer %}
             <td class="{% if r.transfer_grwt_today > 0 and column_maxima is defined and r.transfer_grwt_today == column_maxima.get('transfer_grwt_today') %}highest-contribution {% endif %}text-right px-1.5 py-1.5 tabular-nums overflow-hidden bg-emerald-50/20 border-r border-gray-100 dark:border-gray-800" {% if r.transfer_grwt_today and r.transfer_grwt_today > 0 %}title="Transfer Gross: {{ "%.3f"|format(r.transfer_grwt_today) }}&#10;Transfer Net: {{ "%.3f"|format(r.transfer_netwt_today) }}{% if r.transfer_stwt_today and r.transfer_stwt_today > 0 %}&#10;Transfer Stone: {{ "%.3f"|format(r.transfer_stwt_today) }}{% endif %}"{% endif %}>
                 {% if r.transfer_grwt_today and r.transfer_grwt_today > 0 %}
                 <span class="font-bold text-blue-700 dark:text-blue-400 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.transfer_grwt_today) }}</span>
@@ -219,6 +235,7 @@
                 <span class="text-gray-300 dark:text-gray-600">-</span>
                 {% endif %}
             </td>
+            {% endif %}
             <td class="{% if r.intransit_today > 0 and column_maxima is defined and r.intransit_today == column_maxima.get('intransit_today') %}highest-contribution {% endif %}text-right px-1.5 py-1.5 tabular-nums text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">{{ "%.3f"|format(r.intransit_today or 0) }}</td>
 
             <!-- 2-5 Days Settlement -->
@@ -230,6 +247,7 @@
                 {% endif %}
             </td>
             <!-- 2-5 Days Transfer -->
+            {% if show_transfer %}
             <td class="{% if r.transfer_grwt_2_5 > 0 and column_maxima is defined and r.transfer_grwt_2_5 == column_maxima.get('transfer_grwt_2_5') %}highest-contribution {% endif %}text-right px-1.5 py-1.5 tabular-nums overflow-hidden border-r border-gray-100 dark:border-gray-800" {% if r.transfer_grwt_2_5 and r.transfer_grwt_2_5 > 0 %}title="Transfer Gross: {{ "%.3f"|format(r.transfer_grwt_2_5) }}&#10;Transfer Net: {{ "%.3f"|format(r.transfer_netwt_2_5) }}{% if r.transfer_stwt_2_5 and r.transfer_stwt_2_5 > 0 %}&#10;Transfer Stone: {{ "%.3f"|format(r.transfer_stwt_2_5) }}{% endif %}"{% endif %}>
                 {% if r.transfer_grwt_2_5 and r.transfer_grwt_2_5 > 0 %}
                 <span class="font-bold text-blue-700 dark:text-blue-400 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.transfer_grwt_2_5) }}</span>
@@ -237,6 +255,7 @@
                 <span class="text-gray-300 dark:text-gray-600">-</span>
                 {% endif %}
             </td>
+            {% endif %}
             <td class="{% if r.intransit_2_5 > 0 and column_maxima is defined and r.intransit_2_5 == column_maxima.get('intransit_2_5') %}highest-contribution {% endif %}text-right px-1.5 py-1.5 tabular-nums text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">{{ "%.3f"|format(r.intransit_2_5 or 0) }}</td>
 
             <!-- 6-10 Days Settlement -->
@@ -248,6 +267,7 @@
                 {% endif %}
             </td>
             <!-- 6-10 Days Transfer -->
+            {% if show_transfer %}
             <td class="{% if r.transfer_grwt_6_10 > 0 and column_maxima is defined and r.transfer_grwt_6_10 == column_maxima.get('transfer_grwt_6_10') %}highest-contribution {% endif %}text-right px-1.5 py-1.5 tabular-nums overflow-hidden border-r border-gray-100 dark:border-gray-800" {% if r.transfer_grwt_6_10 and r.transfer_grwt_6_10 > 0 %}title="Transfer Gross: {{ "%.3f"|format(r.transfer_grwt_6_10) }}&#10;Transfer Net: {{ "%.3f"|format(r.transfer_netwt_6_10) }}{% if r.transfer_stwt_6_10 and r.transfer_stwt_6_10 > 0 %}&#10;Transfer Stone: {{ "%.3f"|format(r.transfer_stwt_6_10) }}{% endif %}"{% endif %}>
                 {% if r.transfer_grwt_6_10 and r.transfer_grwt_6_10 > 0 %}
                 <span class="font-bold text-blue-700 dark:text-blue-400 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.transfer_grwt_6_10) }}</span>
@@ -255,6 +275,7 @@
                 <span class="text-gray-300 dark:text-gray-600">-</span>
                 {% endif %}
             </td>
+            {% endif %}
             <td class="{% if r.intransit_6_10 > 0 and column_maxima is defined and r.intransit_6_10 == column_maxima.get('intransit_6_10') %}highest-contribution {% endif %}text-right px-1.5 py-1.5 tabular-nums text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">{{ "%.3f"|format(r.intransit_6_10 or 0) }}</td>
 
             <!-- 11-15 Days Settlement -->
@@ -266,6 +287,7 @@
                 {% endif %}
             </td>
             <!-- 11-15 Days Transfer -->
+            {% if show_transfer %}
             <td class="{% if r.transfer_grwt_11_15 > 0 and column_maxima is defined and r.transfer_grwt_11_15 == column_maxima.get('transfer_grwt_11_15') %}highest-contribution {% endif %}text-right px-1.5 py-1.5 tabular-nums overflow-hidden border-r border-gray-100 dark:border-gray-800" {% if r.transfer_grwt_11_15 and r.transfer_grwt_11_15 > 0 %}title="Transfer Gross: {{ "%.3f"|format(r.transfer_grwt_11_15) }}&#10;Transfer Net: {{ "%.3f"|format(r.transfer_netwt_11_15) }}{% if r.transfer_stwt_11_15 and r.transfer_stwt_11_15 > 0 %}&#10;Transfer Stone: {{ "%.3f"|format(r.transfer_stwt_11_15) }}{% endif %}"{% endif %}>
                 {% if r.transfer_grwt_11_15 and r.transfer_grwt_11_15 > 0 %}
                 <span class="font-bold text-blue-700 dark:text-blue-400 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.transfer_grwt_11_15) }}</span>
@@ -273,6 +295,7 @@
                 <span class="text-gray-300 dark:text-gray-600">-</span>
                 {% endif %}
             </td>
+            {% endif %}
             <td class="{% if r.intransit_11_15 > 0 and column_maxima is defined and r.intransit_11_15 == column_maxima.get('intransit_11_15') %}highest-contribution {% endif %}text-right px-1.5 py-1.5 tabular-nums text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">{{ "%.3f"|format(r.intransit_11_15 or 0) }}</td>
 
             <!-- >15 Days Settlement -->
@@ -284,6 +307,7 @@
                 {% endif %}
             </td>
             <!-- >15 Days Transfer -->
+            {% if show_transfer %}
             <td class="{% if r.transfer_grwt_gt_15 > 0 and column_maxima is defined and r.transfer_grwt_gt_15 == column_maxima.get('transfer_grwt_gt_15') %}highest-contribution {% endif %}text-right px-1.5 py-1.5 tabular-nums overflow-hidden border-r border-gray-100 dark:border-gray-800" {% if r.transfer_grwt_gt_15 and r.transfer_grwt_gt_15 > 0 %}title="Transfer Gross: {{ "%.3f"|format(r.transfer_grwt_gt_15) }}&#10;Transfer Net: {{ "%.3f"|format(r.transfer_netwt_gt_15) }}{% if r.transfer_stwt_gt_15 and r.transfer_stwt_gt_15 > 0 %}&#10;Transfer Stone: {{ "%.3f"|format(r.transfer_stwt_gt_15) }}{% endif %}"{% endif %}>
                 {% if r.transfer_grwt_gt_15 and r.transfer_grwt_gt_15 > 0 %}
                 <span class="font-bold text-blue-700 dark:text-blue-400 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.transfer_grwt_gt_15) }}</span>
@@ -291,6 +315,7 @@
                 <span class="text-gray-300 dark:text-gray-600">-</span>
                 {% endif %}
             </td>
+            {% endif %}
             <td class="{% if r.intransit_gt_15 > 0 and column_maxima is defined and r.intransit_gt_15 == column_maxima.get('intransit_gt_15') %}highest-contribution {% endif %}text-right px-1.5 py-1.5 tabular-nums text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">{{ "%.3f"|format(r.intransit_gt_15 or 0) }}</td>
 
             <!-- Total Settlement -->
@@ -302,6 +327,7 @@
                 {% endif %}
             </td>
             <!-- Total Transfer -->
+            {% if show_transfer %}
             <td class="{% if r.tot_transfer_grwt > 0 and column_maxima is defined and r.tot_transfer_grwt == column_maxima.get('tot_transfer_grwt') %}highest-contribution {% endif %}text-right px-1.5 py-1.5 tabular-nums overflow-hidden" {% if r.tot_transfer_grwt and r.tot_transfer_grwt > 0 %}title="Total Transfer Gross: {{ "%.3f"|format(r.tot_transfer_grwt) }}&#10;Total Transfer Net: {{ "%.3f"|format(r.tot_transfer_netwt) }}{% if r.tot_transfer_stwt and r.tot_transfer_stwt > 0 %}&#10;Total Transfer Stone: {{ "%.3f"|format(r.tot_transfer_stwt) }}{% endif %}"{% endif %}>
                 {% if r.tot_transfer_grwt and r.tot_transfer_grwt > 0 %}
                 <span class="font-bold text-blue-800 dark:text-blue-300 cursor-help hover:underline decoration-dotted underline-offset-2">{{ "%.3f"|format(r.tot_transfer_grwt) }}</span>
@@ -309,13 +335,14 @@
                 <span class="text-gray-300 dark:text-gray-600">-</span>
                 {% endif %}
             </td>
+            {% endif %}
             <td class="{% if r.intransit_total > 0 and column_maxima is defined and r.intransit_total == column_maxima.get('intransit_total') %}highest-contribution {% endif %}text-right px-1.5 py-1.5 tabular-nums text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">{{ "%.3f"|format(r.intransit_total or 0) }}</td>
         </tr>
         {% endfor %}
 
         {% if not rows and not is_child_rows %}
         <tr>
-            <td colspan="20" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
+            <td colspan="{{ 2 + 6 * bucket_columns }}" class="p-8 text-center text-gray-400 italic">No data found for the selected filters.</td>
         </tr>
         {% endif %}
 
@@ -333,6 +360,7 @@
                 {% endif %}
             </td>
             <!-- Previous-day transfer -->
+            {% if show_transfer %}
             <td class="text-right px-1.5 py-2 tabular-nums overflow-hidden bg-emerald-50/20 border-r border-gray-200 dark:border-gray-700" {% if stats and stats.transfer_grwt_today and stats.transfer_grwt_today != '0.000' and stats.transfer_grwt_today != '0' %}title="Transfer Gross: {{ stats.transfer_grwt_today }}&#10;Transfer Net: {{ stats.transfer_netwt_today }}{% if stats.transfer_stwt_today and stats.transfer_stwt_today != '0.000' and stats.transfer_stwt_today != '0' %}&#10;Transfer Stone: {{ stats.transfer_stwt_today }}{% endif %}"{% endif %}>
                 {% if stats and stats.transfer_grwt_today and stats.transfer_grwt_today != '0.000' and stats.transfer_grwt_today != '0' %}
                 <span class="text-blue-700 dark:text-blue-400 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.transfer_grwt_today }}</span>
@@ -340,6 +368,7 @@
                 <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
                 {% endif %}
             </td>
+            {% endif %}
             <td class="text-right px-1.5 py-1.5 tabular-nums text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">{{ stats.intransit_today if stats else '-' }}</td>
 
             <!-- 2-5 Days Settlement -->
@@ -351,6 +380,7 @@
                 {% endif %}
             </td>
             <!-- 2-5 Days Transfer -->
+            {% if show_transfer %}
             <td class="text-right px-1.5 py-2 tabular-nums overflow-hidden border-r border-gray-200 dark:border-gray-700" {% if stats and stats.transfer_grwt_2_5 and stats.transfer_grwt_2_5 != '0.000' and stats.transfer_grwt_2_5 != '0' %}title="Transfer Gross: {{ stats.transfer_grwt_2_5 }}&#10;Transfer Net: {{ stats.transfer_netwt_2_5 }}{% if stats.transfer_stwt_2_5 and stats.transfer_stwt_2_5 != '0.000' and stats.transfer_stwt_2_5 != '0' %}&#10;Transfer Stone: {{ stats.transfer_stwt_2_5 }}{% endif %}"{% endif %}>
                 {% if stats and stats.transfer_grwt_2_5 and stats.transfer_grwt_2_5 != '0.000' and stats.transfer_grwt_2_5 != '0' %}
                 <span class="text-blue-700 dark:text-blue-400 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.transfer_grwt_2_5 }}</span>
@@ -358,6 +388,7 @@
                 <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
                 {% endif %}
             </td>
+            {% endif %}
             <td class="text-right px-1.5 py-1.5 tabular-nums text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">{{ stats.intransit_2_5 if stats else '-' }}</td>
 
             <!-- 6-10 Days Settlement -->
@@ -369,6 +400,7 @@
                 {% endif %}
             </td>
             <!-- 6-10 Days Transfer -->
+            {% if show_transfer %}
             <td class="text-right px-1.5 py-2 tabular-nums overflow-hidden border-r border-gray-200 dark:border-gray-700" {% if stats and stats.transfer_grwt_6_10 and stats.transfer_grwt_6_10 != '0.000' and stats.transfer_grwt_6_10 != '0' %}title="Transfer Gross: {{ stats.transfer_grwt_6_10 }}&#10;Transfer Net: {{ stats.transfer_netwt_6_10 }}{% if stats.transfer_stwt_6_10 and stats.transfer_stwt_6_10 != '0.000' and stats.transfer_stwt_6_10 != '0' %}&#10;Transfer Stone: {{ stats.transfer_stwt_6_10 }}{% endif %}"{% endif %}>
                 {% if stats and stats.transfer_grwt_6_10 and stats.transfer_grwt_6_10 != '0.000' and stats.transfer_grwt_6_10 != '0' %}
                 <span class="text-blue-700 dark:text-blue-400 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.transfer_grwt_6_10 }}</span>
@@ -376,6 +408,7 @@
                 <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
                 {% endif %}
             </td>
+            {% endif %}
             <td class="text-right px-1.5 py-1.5 tabular-nums text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">{{ stats.intransit_6_10 if stats else '-' }}</td>
 
             <!-- 11-15 Days Settlement -->
@@ -387,6 +420,7 @@
                 {% endif %}
             </td>
             <!-- 11-15 Days Transfer -->
+            {% if show_transfer %}
             <td class="text-right px-1.5 py-2 tabular-nums overflow-hidden border-r border-gray-200 dark:border-gray-700" {% if stats and stats.transfer_grwt_11_15 and stats.transfer_grwt_11_15 != '0.000' and stats.transfer_grwt_11_15 != '0' %}title="Transfer Gross: {{ stats.transfer_grwt_11_15 }}&#10;Transfer Net: {{ stats.transfer_netwt_11_15 }}{% if stats.transfer_stwt_11_15 and stats.transfer_stwt_11_15 != '0.000' and stats.transfer_stwt_11_15 != '0' %}&#10;Transfer Stone: {{ stats.transfer_stwt_11_15 }}{% endif %}"{% endif %}>
                 {% if stats and stats.transfer_grwt_11_15 and stats.transfer_grwt_11_15 != '0.000' and stats.transfer_grwt_11_15 != '0' %}
                 <span class="text-blue-700 dark:text-blue-400 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.transfer_grwt_11_15 }}</span>
@@ -394,6 +428,7 @@
                 <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
                 {% endif %}
             </td>
+            {% endif %}
             <td class="text-right px-1.5 py-1.5 tabular-nums text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">{{ stats.intransit_11_15 if stats else '-' }}</td>
 
             <!-- >15 Days Settlement -->
@@ -405,6 +440,7 @@
                 {% endif %}
             </td>
             <!-- >15 Days Transfer -->
+            {% if show_transfer %}
             <td class="text-right px-1.5 py-2 tabular-nums overflow-hidden border-r border-gray-200 dark:border-gray-700" {% if stats and stats.transfer_grwt_gt_15 and stats.transfer_grwt_gt_15 != '0.000' and stats.transfer_grwt_gt_15 != '0' %}title="Transfer Gross: {{ stats.transfer_grwt_gt_15 }}&#10;Transfer Net: {{ stats.transfer_netwt_gt_15 }}{% if stats.transfer_stwt_gt_15 and stats.transfer_stwt_gt_15 != '0.000' and stats.transfer_stwt_gt_15 != '0' %}&#10;Transfer Stone: {{ stats.transfer_stwt_gt_15 }}{% endif %}"{% endif %}>
                 {% if stats and stats.transfer_grwt_gt_15 and stats.transfer_grwt_gt_15 != '0.000' and stats.transfer_grwt_gt_15 != '0' %}
                 <span class="text-blue-700 dark:text-blue-400 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.transfer_grwt_gt_15 }}</span>
@@ -412,6 +448,7 @@
                 <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
                 {% endif %}
             </td>
+            {% endif %}
             <td class="text-right px-1.5 py-1.5 tabular-nums text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">{{ stats.intransit_gt_15 if stats else '-' }}</td>
 
             <!-- Total Settlement -->
@@ -423,6 +460,7 @@
                 {% endif %}
             </td>
             <!-- Total Transfer -->
+            {% if show_transfer %}
             <td class="text-right px-1.5 py-2 tabular-nums overflow-hidden" {% if stats and stats.transfer_grwt and stats.transfer_grwt != '0.000' and stats.transfer_grwt != '0' %}title="Total Transfer Gross: {{ stats.transfer_grwt }}&#10;Total Transfer Net: {{ stats.transfer_netwt }}{% if stats.transfer_stwt and stats.transfer_stwt != '0.000' and stats.transfer_stwt != '0' %}&#10;Transfer Stone: {{ stats.transfer_stwt }}{% endif %}"{% endif %}>
                 {% if stats and stats.transfer_grwt and stats.transfer_grwt != '0.000' and stats.transfer_grwt != '0' %}
                 <span class="text-blue-800 dark:text-blue-300 text-xs font-bold cursor-help hover:underline decoration-dotted underline-offset-2">{{ stats.transfer_grwt }}</span>
@@ -430,6 +468,7 @@
                 <span class="text-gray-300 dark:text-gray-600 font-normal">-</span>
                 {% endif %}
             </td>
+            {% endif %}
             <td class="text-right px-1.5 py-1.5 tabular-nums text-teal-700 dark:text-teal-300 border-r border-gray-200 dark:border-gray-700">{{ stats.intransit_total if stats else '-' }}</td>
         </tr>
     </tfoot>
