@@ -91,16 +91,17 @@ services:
       - /app/node_modules
 
   intelligence-engine:
-    build: ./intelligence-engine
+    build:
+      context: ./intelligence-engine
+      args:
+        HTTP_PROXY: "http://10.150.32.8:3128"
+        HTTPS_PROXY: "http://10.150.32.8:3128"
+        NO_PROXY: "localhost,127.0.0.1,db,redis"
+        http_proxy: "http://10.150.32.8:3128"
+        https_proxy: "http://10.150.32.8:3128"
+        no_proxy: "localhost,127.0.0.1,db,redis"
     restart: unless-stopped
     env_file: .env
-    args:
-      HTTP_PROXY: "http://10.150.32.8:3128"
-      HTTPS_PROXY: "http://10.150.32.8:3128"
-      NO_PROXY: "localhost,127.0.0.1,db,redis"
-      http_proxy: "http://10.150.32.8:3128"
-      https_proxy: "http://10.150.32.8:3128"
-      no_proxy: "localhost,127.0.0.1,db,redis"
     environment:
       - SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://meetaccess:meetpass@db:5432/dcrystaldb
       - REDIS_HOST=redis
@@ -108,6 +109,13 @@ services:
       - INTELLIGENCE_GEMINI_API_KEY=${INTELLIGENCE_GEMINI_API_KEY:-}
       - GEMINI_API_KEY=${INTELLIGENCE_GEMINI_API_KEY:-${GEMINI_API_KEY:-}}
       - LOG_LEVEL=INFO
+      - HTTP_PROXY=http://10.150.32.8:3128
+      - HTTPS_PROXY=http://10.150.32.8:3128
+      - NO_PROXY=localhost,127.0.0.1,db,redis
+      - http_proxy=http://10.150.32.8:3128
+      - https_proxy=http://10.150.32.8:3128
+      - no_proxy=localhost,127.0.0.1,db,redis
+
 
     depends_on:
       db:
