@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 OLD_GOLD_REPORT_CACHE_PREFIX = 'location_wise_old_gold_report'
 OLD_GOLD_REPORT_CACHE_TTL = 21600
-OLD_GOLD_REPORT_BUCKET_VERSION = 'highest-contribution-v6'
+OLD_GOLD_REPORT_BUCKET_VERSION = 'highest-contribution-underline-v7'
 
 
 def get_snapshot_cache_token():
