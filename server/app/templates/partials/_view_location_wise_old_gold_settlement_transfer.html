@@ -2,6 +2,14 @@
 <style>
     .old-gold-bucket-grid { --bucket-divider: #b8c2cf; }
     .dark .old-gold-bucket-grid { --bucket-divider: #64748b; }
+    .old-gold-bucket-grid tbody td:nth-child(3n + 5) {
+        font-size: 10px;
+        font-weight: 700;
+    }
+    .old-gold-bucket-grid tfoot td:nth-child(3n + 4) {
+        font-size: 12px;
+        font-weight: 700;
+    }
     .old-gold-bucket-grid thead tr:first-child th[colspan="3"]:not(:last-child),
     .old-gold-bucket-grid thead tr:nth-child(2) th:nth-child(3n):not(:last-child),
     .old-gold-bucket-grid tbody tr td:nth-child(3n + 5):not(:last-child),
@@ -9,11 +17,15 @@
         border-right: 1px solid var(--bucket-divider) !important;
     }
 </style>
-<table class="enterprise-grid old-gold-bucket-grid w-full min-w-[1800px] text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header table-fixed">
+<table class="enterprise-grid old-gold-bucket-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header table-fixed" style="min-width: 1962px">
     <colgroup>
         <col style="width: 32px">
         <col style="width: 220px">
-        {% for column in range(18) %}<col style="width: 85px">{% endfor %}
+        {% for bucket in range(6) %}
+        <col style="width: 85px">
+        <col style="width: 115px">
+        <col style="width: 85px">
+        {% endfor %}
     </colgroup>
     <thead>
         <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider select-none border-b border-gray-200 dark:border-gray-700">
