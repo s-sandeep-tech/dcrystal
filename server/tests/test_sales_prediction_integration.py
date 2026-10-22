@@ -25,11 +25,11 @@ class SalesSyncIntegrationTests(unittest.TestCase):
         with db.engine.begin() as conn:
             conn.execute(text('CREATE SCHEMA IF NOT EXISTS ext_view'))
             conn.execute(text('''CREATE TABLE ext_view.vw_item_wise_tsk_details_data (
-                id integer, trans_date timestamp, date date, branch_id integer, location_name text,
+                id integer, trans_date timestamp, date date, branch_id integer, location_name text, state_name text,
                 trans_type text, turn_over numeric, last_updated_at timestamp)'''))
             conn.execute(text('''INSERT INTO ext_view.vw_item_wise_tsk_details_data
                 SELECT n, DATE '2026-04-01' + (n-1)/2, DATE '2026-04-01' + (n-1)/2,
-                    2, 'THRISSUR ROUND', CASE WHEN n % 2 = 1 THEN 'INVOICE' ELSE 'SR' END,
+                    2, 'THRISSUR ROUND', 'Kerala', CASE WHEN n % 2 = 1 THEN 'INVOICE' ELSE 'SR' END,
                     CASE WHEN n % 2 = 1 THEN 100000 ELSE -10000 END, CURRENT_TIMESTAMP
                 FROM generate_series(1,200) n'''))
 
@@ -50,6 +50,7 @@ class SalesSyncIntegrationTests(unittest.TestCase):
         self.assertEqual(run.row_count, 100)
         self.assertEqual(float(run.net_turnover), 9000000)
         self.assertEqual(SalesTurnoverDailySnapshot.query.filter_by(run_id=run.id).count(), 100)
+        self.assertEqual(SalesTurnoverDailySnapshot.query.filter_by(run_id=run.id).first().state_name, 'Kerala')
 
     def test_duplicate_source_failure_retains_published_run(self):
         before = SalesPredictionSyncRun.query.count()

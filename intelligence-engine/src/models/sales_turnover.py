@@ -129,13 +129,23 @@ def run_sales_turnover_forecast(task_id, payload):
             GROUP BY sales_date ORDER BY sales_date'''), {'run': snapshot, 'branch': branch_id}).mappings().all()
         location = session.execute(text('''SELECT MAX(location_name) FROM sales_turnover_daily_snapshots
             WHERE run_id = :run AND branch_id = :branch'''), {'run': snapshot, 'branch': branch_id}).scalar() if branch_id else 'All locations'
+        branch_details = None
+        if branch_id is not None:
+            metadata = session.execute(text('''SELECT MAX(state_name) AS state_name,
+                COUNT(DISTINCT NULLIF(UPPER(TRIM(state_name)), '')) AS states
+                FROM sales_turnover_daily_snapshots WHERE run_id = :run AND branch_id = :branch'''),
+                {'run': snapshot, 'branch': branch_id}).mappings().one()
+            branch_details = {'branch_id': branch_id, 'location_name': location,
+                              'state_name': metadata['state_name'] if metadata['states'] == 1 else None,
+                              'country': 'India'}
         context = {'status': 'disabled'}
         feature_rows = None
         if request['include_external']:
             last_date = max(r['ds'] for r in rows)
             context = sales_context(location, (last_date + timedelta(days=1)).isoformat(),
                 (last_date + timedelta(days=3)).isoformat(),
-                allow_gemini_fallback=bool(request.get('allow_gemini_fallback', False)), task_id=task_id)
+                allow_gemini_fallback=bool(request.get('allow_gemini_fallback', False)), task_id=task_id,
+                branch_details=branch_details)
             store_context(session, context, branch_id)
             feature_rows = load_features(session, branch_id, min(r['ds'] for r in rows), last_date + timedelta(days=3))
         now = datetime.now(ZoneInfo('Asia/Kolkata'))

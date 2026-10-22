@@ -4,7 +4,8 @@ import json
 import math
 import os
 import unicodedata
-from .sales_audit import audit
+import re
+from .sales_audit import audit, fetch_scope
 
 STATES = {
     'IN-AP': ('Andhra Pradesh',), 'IN-AR': ('Arunachal Pradesh',), 'IN-AS': ('Assam',),
@@ -35,6 +36,21 @@ def point_valid(value):
         return False
 
 
+def branch_region(location):
+    details = fetch_scope.get().get('branch_details')
+    if details is None:
+        return json.loads(os.getenv('SALES_REGION_LOCATIONS_JSON', '{}')).get(location, {})
+    state = normalized(details.get('state_name', ''))
+    code = next((code for code, names in STATES.items() if state in {normalized(code), *(normalized(n) for n in names)}), None)
+    # Strip only known branch suffix tokens, retaining the original name for audit.
+    city = str(details.get('location_name') or location).strip()
+    city = re.sub(r'(?:[\s_/-]+(?:FRCHS?|ROUND|SHOP|BRANCH|FRANCHISE|RO|HO|VL|\d+))+$', '', city, flags=re.I).strip()
+    if not code or not city:
+        audit('skipped', provider='branch_metadata', reason='missing_conflicting_or_unknown_state', branch_id=details.get('branch_id'))
+        return {}
+    return {'city': city, 'state_code': code, 'country': 'India'}
+
+
 def resolve_coordinates(location, key):
     from .sales_context import get_json, get_redis
     def unavailable(reason):
@@ -49,10 +65,10 @@ def resolve_coordinates(location, key):
         audit('coordinates_configured', provider='weatherapi_geocoding')
         return {'status': 'available', 'lat': float(points[location]['lat']),
                 'lon': float(points[location]['lon']), 'method': 'configured'}
-    mapping = json.loads(os.getenv('SALES_REGION_LOCATIONS_JSON', '{}')).get(location, {})
+    mapping = branch_region(location)
     city, state = mapping.get('city'), mapping.get('state_code')
     if not isinstance(city, str) or not city.strip() or state not in STATES:
-        return unavailable('configure city and state_code in SALES_REGION_LOCATIONS_JSON')
+        return unavailable('branch city/state unavailable; run Sales Prediction Data Sync to load state_name')
     aliases = mapping.get('city_aliases', [])
     if not isinstance(aliases, list) or not all(isinstance(a, str) for a in aliases):
         return unavailable('invalid city_aliases configuration')

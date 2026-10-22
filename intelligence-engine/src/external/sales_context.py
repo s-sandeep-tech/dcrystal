@@ -144,9 +144,9 @@ def festivals(start, end):
         'source': {'title': 'Calendarific', 'url': 'https://calendarific.com/'}}
 
 
-def sales_context(location, start_date, end_date, allow_gemini_fallback=False, task_id=None):
+def sales_context(location, start_date, end_date, allow_gemini_fallback=False, task_id=None, branch_details=None):
     token = fetch_scope.set({'task_id': task_id, 'location': location,
-                            'start_date': str(start_date), 'end_date': str(end_date)})
+                            'start_date': str(start_date), 'end_date': str(end_date), 'branch_details': branch_details})
     try:
         result = _sales_context(location, start_date, end_date, allow_gemini_fallback)
         for provider, data in result.get('parameters', {}).items():
@@ -165,6 +165,7 @@ def _sales_context(location, start_date, end_date, allow_gemini_fallback=False):
     retrieved = datetime.now(TZ).isoformat()
     # Isolate both location and forecast period, and never reuse old Gemini entries.
     identity = [location, start.isoformat(), end.isoformat(), retrieved[:10],
+                fetch_scope.get().get('branch_details'),
                 os.getenv('SALES_WEATHER_LOCATIONS_JSON', '{}'),
                 os.getenv('SALES_REGION_LOCATIONS_JSON', '{}'),
                 bool(os.getenv('SALES_WEATHER_API_KEY')), bool(os.getenv('SALES_CALENDARIFIC_API_KEY')),

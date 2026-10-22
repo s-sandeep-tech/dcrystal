@@ -2,6 +2,7 @@ import json
 import unittest
 from unittest.mock import patch
 from src.external.weather_coordinates import resolve_coordinates
+from src.external.sales_audit import fetch_scope
 
 
 class Cache:
@@ -18,6 +19,28 @@ class Cache:
 
 
 class CoordinateTests(unittest.TestCase):
+    def test_database_metadata_resolves_branch_without_env_mapping(self):
+        token = fetch_scope.set({'branch_details': {'branch_id': 2,
+            'location_name': 'THRISSUR ROUND', 'state_name': 'KERALA'}})
+        try:
+            with patch.dict('os.environ', {}, clear=True), \
+                 patch('src.external.sales_context.get_json', return_value=[
+                    {'name': 'Thrissur', 'region': 'Kerala', 'country': 'India', 'lat': 10.5, 'lon': 76.2}]) as request:
+                result = resolve_coordinates('THRISSUR ROUND', 'key')
+            self.assertEqual(result['status'], 'available')
+            self.assertEqual(request.call_args.args[1]['q'], 'THRISSUR, India')
+        finally:
+            fetch_scope.reset(token)
+
+    def test_database_state_wins_over_environment_mapping(self):
+        token = fetch_scope.set({'branch_details': {'branch_id': 140,
+            'location_name': 'GUWAHATI', 'state_name': 'Kerala'}})
+        try:
+            with patch('src.external.sales_context.get_json', return_value=[self.match]):
+                self.assertEqual(resolve_coordinates('GUWAHATI', 'key')['status'], 'unavailable')
+        finally:
+            fetch_scope.reset(token)
+
     def setUp(self):
         self.env = patch.dict('os.environ', {'SALES_REGION_LOCATIONS_JSON':
             '{"GUWAHATI":{"city":"Guwahati","state_code":"IN-AS"}}'}, clear=True)

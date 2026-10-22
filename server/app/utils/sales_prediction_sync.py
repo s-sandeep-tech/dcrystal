@@ -80,6 +80,8 @@ def sync_sales_prediction_data_task():
             cur.itersize = 20000
             cur.execute(f"""SELECT COALESCE(trans_date::date, date) AS sales_date, branch_id,
                 COALESCE(MAX(NULLIF(TRIM(location_name), '')), branch_id::text) AS location_name,
+                CASE WHEN COUNT(DISTINCT NULLIF(UPPER(TRIM(state_name)), '')) = 1
+                    THEN MAX(NULLIF(TRIM(state_name), '')) ELSE NULL END AS state_name,
                 SUM(CASE WHEN trans_type = 'INVOICE' THEN turn_over ELSE 0 END) AS invoice_turnover,
                 SUM(CASE WHEN trans_type = 'SR' THEN turn_over ELSE 0 END) * %s AS return_turnover,
                 COUNT(*) AS source_count, MAX(last_updated_at) AS source_updated_at

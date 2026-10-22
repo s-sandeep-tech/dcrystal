@@ -4,6 +4,7 @@ import os
 from datetime import date
 from urllib.parse import urlsplit
 from .sales_audit import audit
+from .weather_coordinates import branch_region
 
 CATALOG = {
     'IN-KL': {'Onam': ('onam', 'thiruvonam'), 'Vishu': ('vishu',)},
@@ -20,7 +21,7 @@ CATALOG = {
 
 
 def region_for(location):
-    region = json.loads(os.getenv('SALES_REGION_LOCATIONS_JSON', '{}')).get(location)
+    region = branch_region(location)
     if not isinstance(region, dict) or region.get('state_code') not in CATALOG:
         return None
     return {'state_code': region['state_code'], 'city': region.get('city', location),

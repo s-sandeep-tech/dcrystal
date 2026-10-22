@@ -120,6 +120,21 @@ https://calendarific.com/pricing
 
 ### Automatic Weather Coordinates
 
+Branch metadata now comes from the sales snapshot for every branch:
+`location_name` is the lookup label, `state_name` validates the state, and country
+is India. No per-location environment mapping is required. Known trailing branch
+suffixes (ROUND, FRCH/FRCHS, SHOP, BRANCH, RO/HO, VL, numeric suffixes) are removed
+for city search. Returned city/state/country must still match; ambiguous or
+unresolved labels remain unavailable. The same synced state feeds regional festivals
+and wedding calendars where a state catalog is supported.
+
+Before deploying, run `intelligence-engine/sql/sales_branch_state.sql`, restart the
+server/sync-consumer/intelligence-engine, run Sales Prediction Data Sync, then run
+a new forecast. Existing snapshots have no state until resynced. Predictions remain
+retained. Missing or conflicting state data is logged and cannot validate a lookup.
+The configuration below remains an optional legacy fallback for calls without
+database branch metadata; it is no longer necessary for synced branches.
+
 Weather uses explicit `SALES_WEATHER_LOCATIONS_JSON` coordinates first. When absent,
 it calls WeatherAPI.com's free-tier `/v1/search.json` endpoint with the existing
 `SALES_WEATHER_API_KEY`. The expected city and state come from
