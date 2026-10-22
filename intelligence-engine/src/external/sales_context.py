@@ -14,6 +14,7 @@ from ..utils.logger import logger
 from .sales_gemini_fallback import gemini_fallback, calendar_fallback
 from .regional_calendar import calendars
 from .sales_audit import audit, fetch_scope
+from .weather_coordinates import resolve_coordinates
 
 _redis_client = None
 TZ = ZoneInfo('Asia/Kolkata')
@@ -72,17 +73,13 @@ def weather(location, start, end):
     key = os.getenv('SALES_WEATHER_API_KEY')
     if not key:
         return unavailable('Weather: configure SALES_WEATHER_API_KEY (WeatherAPI.com).')
-    # Branch labels are not reliable city names; require verified coordinates.
-    points = json.loads(os.getenv('SALES_WEATHER_LOCATIONS_JSON', '{}'))
-    point = points.get(location)
-    if not point:
-        return unavailable('Weather: no coordinates configured for this location; all-location weather is not aggregated.')
-    lat, lon = float(point['lat']), float(point['lon'])
-    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
-        raise ValueError('Invalid coordinates')
     today = datetime.now(TZ).date()
     if start < today or start > today + timedelta(days=2):
         return unavailable('Weather: requested dates are outside the free three-day forecast window.')
+    point = resolve_coordinates(location, key)
+    if point['status'] != 'available':
+        return point
+    lat, lon = point['lat'], point['lon']
     raw = cached(f'intelligence:weather:v1:{lat}:{lon}:{today}', 1800,
         lambda: get_json('https://api.weatherapi.com/v1/forecast.json',
                          {'key': key, 'q': f'{lat},{lon}', 'days': 3, 'aqi': 'no', 'alerts': 'no'}))
@@ -97,7 +94,7 @@ def weather(location, start, end):
         return unavailable('Weather: provider returned no dates in the requested window.')
     complete = len({r['date'] for r in rows}) == (end - start).days + 1
     return {'status': 'available' if complete else 'partial', 'provider': 'WeatherAPI.com',
-        'latitude': lat, 'longitude': lon, 'days': rows,
+        'latitude': lat, 'longitude': lon, 'coordinate_resolution': point, 'days': rows,
         'message': 'Weather: ' + '; '.join(f"{r['date']}: {r['min_temp_c']}-{r['max_temp_c']} C, {r['rain_mm']} mm rain" for r in rows)
             + ('' if complete else '. Some requested dates are unavailable on the free plan.'),
         'source': {'title': 'WeatherAPI.com', 'url': 'https://www.weatherapi.com/'}}
@@ -216,4 +213,4 @@ def _sales_context(location, start_date, end_date, allow_gemini_fallback=False):
             else:
                 result['summary'] += '\n\n' + fallback['message']
         return result
-    return cached(f'intelligence:sales_context:api-v3:{digest}', 300, fetch)
+    return cached(f'intelligence:sales_context:api-v4:{digest}', 300, fetch)

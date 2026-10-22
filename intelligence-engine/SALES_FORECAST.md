@@ -71,10 +71,11 @@ uses free APIs first. It returns structured `parameters.weather`,
 `parameters.gold` and `parameters.festivals` with provider attribution.
 
 - WeatherAPI.com: free plan, API key required, three-day weather window including
-  today. Configure `SALES_WEATHER_API_KEY` and `SALES_WEATHER_LOCATIONS_JSON` in
-  `.env`. The latter maps exact branch location labels to verified coordinates:
+  today. Configure `SALES_WEATHER_API_KEY` and city/state mappings in
+  `SALES_REGION_LOCATIONS_JSON` for automatic coordinate lookup. Optional explicit
+  `SALES_WEATHER_LOCATIONS_JSON` overrides map exact branch labels to coordinates:
   `{"YOUR LOCATION":{"lat":10.0,"lon":76.0}}` (illustrative, replace coordinates).
-  Missing coordinates, historical dates and uncovered forecast days are explicitly
+  Unresolved locations, historical dates and uncovered forecast days are explicitly
   unavailable. All-location weather is not approximated using one city.
 - Gold API: no key required for `/price/XAU`. Returns current USD/troy-ounce spot
   observations with provider timestamps, NOT an Indian retail rate or gold-price
@@ -116,6 +117,31 @@ https://calendarific.com/pricing
 ## External Feature Models
 
 ### Regional Festivals and Weddings
+
+### Automatic Weather Coordinates
+
+Weather uses explicit `SALES_WEATHER_LOCATIONS_JSON` coordinates first. When absent,
+it calls WeatherAPI.com's free-tier `/v1/search.json` endpoint with the existing
+`SALES_WEATHER_API_KEY`. The expected city and state come from
+`SALES_REGION_LOCATIONS_JSON`; no latitude/longitude entry is required:
+
+```dotenv
+SALES_REGION_LOCATIONS_JSON={"GUWAHATI":{"city":"Guwahati","state_code":"IN-AS"},"THRISSUR ROUND":{"city":"Thrissur","state_code":"IN-KL"}}
+```
+
+Returned city names must match the configured city (case/spacing insensitive), the
+state must match its configured Indian state code, and country must be India.
+Multiple distinct matching coordinates are rejected. To support a verified alternate
+city spelling, add `city_aliases`, e.g. `["Trichur"]`, to that branch configuration.
+Successful coordinates are cached in Redis for 30 days; no-match/ambiguous results
+for five minutes. Changing city/state/aliases changes the cache identity. Redis
+failure still permits direct lookup. Requests, HTTP timing, cache events, rejected
+matches and resolution decisions appear in existing `external_fetch` logs without
+API keys. No search is made for All locations or out-of-window historical weather.
+Recreate the engine container after environment changes and run a new forecast.
+There is no new SQL migration. Documentation: https://www.weatherapi.com/docs/search-api/
+
+### Regional Calendar Configuration
 
 Configure exact branch labels in `.env`, then recreate the engine container:
 
