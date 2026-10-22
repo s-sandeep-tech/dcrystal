@@ -20,8 +20,8 @@ def validate_diagnostics(d, return_sign):
         raise ValueError('No completed-day sales history found in source')
     if d['invalid_rows']:
         raise ValueError('Source contains missing dates, branch IDs or turnover; fix before syncing')
-    if d['date_mismatches']:
-        raise ValueError('Source date and trans_date disagree; confirm the business sales date')
+    if d.get('date_mismatches'):
+        logger.info(f"Source has {d['date_mismatches']} records where date and trans_date differ; COALESCE(trans_date::date, date) used as sales date.")
     if d['duplicate_ids']:
         raise ValueError('Duplicate source IDs found; validate the source view grain')
     if return_sign not in ('signed', 'positive'):

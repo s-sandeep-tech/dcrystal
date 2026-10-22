@@ -67,7 +67,9 @@ class SalesPredictionTests(unittest.TestCase):
     def test_source_validation_rejects_duplicates_and_wrong_sign(self):
         valid = dict(source_count=2, invalid_rows=0, date_mismatches=0, duplicate_ids=0, positive_returns=0, negative_returns=1)
         validate_diagnostics(valid, 'signed')
-        for column in ['invalid_rows', 'date_mismatches', 'duplicate_ids', 'positive_returns']:
+        # date_mismatches should be tolerated using COALESCE(trans_date::date, date)
+        validate_diagnostics({**valid, 'date_mismatches': 5}, 'signed')
+        for column in ['invalid_rows', 'duplicate_ids', 'positive_returns']:
             with self.assertRaises(ValueError):
                 validate_diagnostics({**valid, column: 1}, 'signed')
         with self.assertRaises(ValueError):
