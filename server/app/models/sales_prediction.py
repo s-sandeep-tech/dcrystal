@@ -31,7 +31,7 @@ class SalesTurnoverDailySnapshot(db.Model):
 class SalesTurnoverForecastRun(db.Model):
     __tablename__ = 'sales_turnover_forecast_runs'
     task_id = db.Column(db.String(100), primary_key=True)
-    snapshot_run_id = db.Column(db.String(36), db.ForeignKey('sales_prediction_sync_runs.id'), nullable=False)
+    snapshot_run_id = db.Column(db.String(36), nullable=True)
     branch_id = db.Column(db.Integer)
     requested_by = db.Column(db.Integer, nullable=False)
     include_external = db.Column(db.Boolean, nullable=False, default=False)
@@ -40,10 +40,26 @@ class SalesTurnoverForecastRun(db.Model):
     queued_at = db.Column(db.DateTime)
 
 
+class SalesPrediction(db.Model):
+    __tablename__ = 'sales_predictions'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    branch_id = db.Column(db.Integer, index=True, nullable=True)
+    sales_date = db.Column(db.Date, index=True, nullable=False)
+    predicted_turnover = db.Column(db.Numeric(24, 4), nullable=False)
+    yhat_lower = db.Column(db.Numeric(24, 4))
+    yhat_upper = db.Column(db.Numeric(24, 4))
+    task_id = db.Column(db.String(100), index=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+
+
 def create_sales_prediction_tables():
-    for model in (SalesPredictionSyncRun, SalesTurnoverDailySnapshot, SalesTurnoverForecastRun):
+    for model in (SalesPredictionSyncRun, SalesTurnoverDailySnapshot, SalesTurnoverForecastRun, SalesPrediction):
         model.__table__.create(db.engine, checkfirst=True)
     if db.engine.dialect.name == 'postgresql':
         from sqlalchemy import text
         with db.engine.begin() as conn:
             conn.execute(text('ALTER TABLE sales_turnover_forecast_runs ADD COLUMN IF NOT EXISTS queued_at timestamp'))
+            conn.execute(text('ALTER TABLE sales_turnover_forecast_runs DROP CONSTRAINT IF EXISTS sales_turnover_forecast_runs_snapshot_run_id_fkey'))
+            conn.execute(text('ALTER TABLE sales_turnover_forecast_runs ALTER COLUMN snapshot_run_id DROP NOT NULL'))
+            conn.execute(text('CREATE UNIQUE INDEX IF NOT EXISTS uq_sales_predictions_branch ON sales_predictions (branch_id, sales_date) WHERE branch_id IS NOT NULL'))
+            conn.execute(text('CREATE UNIQUE INDEX IF NOT EXISTS uq_sales_predictions_all ON sales_predictions (sales_date) WHERE branch_id IS NULL'))

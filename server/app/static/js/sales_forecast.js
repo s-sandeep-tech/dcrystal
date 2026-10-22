@@ -39,9 +39,26 @@
         const result = state?.forecast_run?.result;
         const history = result?.history || state?.history || [];
         const period = Number(el('sf-period').value);
-        const visible = period ? history.slice(-period) : history;
+        const visibleHistory = period ? history.slice(-period) : history;
         const forecast = result?.forecast || [];
         const latest = history.at(-1);
+
+        // Build predictions map from unversioned predictions and active forecast
+        const predMap = new Map();
+        for (const p of (state?.predictions || [])) {
+            predMap.set(p.ds, { yhat: p.yhat, yhat_lower: p.yhat_lower, yhat_upper: p.yhat_upper });
+        }
+        for (const f of forecast) {
+            predMap.set(f.ds, { yhat: f.baseline_yhat, yhat_lower: f.yhat_lower, yhat_upper: f.yhat_upper });
+        }
+
+        // Build actual sales map
+        const actualMap = new Map();
+        for (const h of history) {
+            actualMap.set(h.ds, h.y);
+        }
+
+        // Stats summary cards
         el('sf-actual').textContent = money(latest?.y);
         el('sf-actual-date').textContent = latest ? `${day(latest.ds)} · INR lakhs` : 'No sales history';
         el('sf-total').textContent = money(result?.three_day_total);
@@ -50,6 +67,8 @@
         el('sf-model').textContent = result ? `${result.metrics.engine.replaceAll('_', ' ')} · 9 validation days` : 'No model run';
         el('sf-cutoff').textContent = result?.cutoff_date || latest?.ds || '—';
         el('sf-sync').textContent = state?.snapshot ? `Synced ${new Date(state.snapshot.synced_at).toLocaleString('en-IN')}` : 'Sync required';
+
+        // 1. Populate Outlook Table (Upcoming 3 Days)
         el('sf-rows').replaceChildren();
         for (const row of forecast) {
             const tr = document.createElement('tr');
@@ -60,26 +79,101 @@
         }
         if (!forecast.length) {
             const tr = document.createElement('tr'), td = document.createElement('td');
-            td.colSpan = 4; td.textContent = 'No forecast available'; tr.append(td); el('sf-rows').append(tr);
+            td.colSpan = 4; td.textContent = 'No upcoming forecast available'; tr.append(td); el('sf-rows').append(tr);
         }
+
+        // 2. Populate Predicted vs Actual Historical Comparison Table
+        const compareRows = [];
+        for (const [ds, pred] of predMap.entries()) {
+            if (actualMap.has(ds)) {
+                const act = actualMap.get(ds);
+                const variance = act - pred.yhat;
+                const pct = act ? ((variance / act) * 100) : 0;
+                const acc = Math.max(0, 100 - Math.abs(act ? ((pred.yhat - act) / act) * 100 : 0)).toFixed(1);
+                compareRows.push({ ds, actual: act, predicted: pred.yhat, variance, pct, acc });
+            }
+        }
+        compareRows.sort((a, b) => b.ds.localeCompare(a.ds));
+        const compTbody = el('sf-compare-rows');
+        if (compTbody) {
+            compTbody.replaceChildren();
+            for (const r of compareRows) {
+                const tr = document.createElement('tr');
+                const sign = r.variance >= 0 ? '+' : '';
+                const diffCls = r.variance >= 0 ? 'sf-pos' : 'sf-neg';
+                const varText = `${sign}${money(r.variance)} (${sign}${r.pct.toFixed(1)}%)`;
+                for (const [idx, val] of [r.ds, money(r.actual), money(r.predicted), varText, `${r.acc}%`].entries()) {
+                    const td = document.createElement('td');
+                    td.textContent = val;
+                    if (idx === 3) td.className = diffCls;
+                    tr.append(td);
+                }
+                compTbody.append(tr);
+            }
+            if (!compareRows.length) {
+                const tr = document.createElement('tr'), td = document.createElement('td');
+                td.colSpan = 5;
+                td.textContent = 'Predictions for upcoming dates will appear here once new daily sales data is synced.';
+                tr.append(td);
+                compTbody.append(tr);
+            }
+        }
+
         el('sf-quality').textContent = result ? `${result.metrics.interval_method}. ${result.metrics.zero_filled_days} missing dates filled with zero within the observed history. ${result.stale_days ? `History is ${result.stale_days} day(s) behind yesterday.` : ''}` : '';
         context(result);
-        el('sf-empty').hidden = Boolean(visible.length);
+        el('sf-empty').hidden = Boolean(visibleHistory.length || forecast.length);
         if (chart) chart.destroy();
         if (typeof Chart === 'undefined') { status('Chart library could not load. Forecast values remain available in the table.', true); return; }
-        const blanks = Array(visible.length).fill(null);
-        const predicted = [...blanks, ...forecast.map(r => r.baseline_yhat / 100000)];
-        if (forecast.length && latest && visible.length) predicted[visible.length - 1] = latest.y / 100000;
+
+        // Construct aligned timeline of all dates for chart
+        const dateSet = new Set(visibleHistory.map(r => r.ds));
+        for (const ds of predMap.keys()) {
+            if (!actualMap.has(ds) || dateSet.has(ds)) dateSet.add(ds);
+        }
+        const allDates = Array.from(dateSet).sort();
+
+        const actualSeries = allDates.map(d => actualMap.has(d) ? (actualMap.get(d) / 100000) : null);
+        const predSeries = allDates.map(d => predMap.has(d) ? (predMap.get(d).yhat / 100000) : null);
+        const lowerSeries = allDates.map(d => predMap.has(d) && predMap.get(d).yhat_lower != null ? (predMap.get(d).yhat_lower / 100000) : null);
+        const upperSeries = allDates.map(d => predMap.has(d) && predMap.get(d).yhat_upper != null ? (predMap.get(d).yhat_upper / 100000) : null);
+
         chart = new Chart(el('sf-chart'), {
-            type: 'line', data: {labels: [...visible.map(r => r.ds), ...forecast.map(r => r.ds)], datasets: [
-                {label: 'Lower', data: [...blanks, ...forecast.map(r => r.yhat_lower / 100000)], borderWidth: 0, pointRadius: 0},
-                {label: 'Indicative range', data: [...blanks, ...forecast.map(r => r.yhat_upper / 100000)], borderWidth: 0, pointRadius: 0, fill: '-1', backgroundColor: 'rgba(228, 167, 53, .16)'},
-                {label: 'Actual', data: [...visible.map(r => r.y / 100000), ...forecast.map(() => null)], borderColor: '#137fec', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: .15},
-                {label: 'Forecast', data: predicted, borderColor: '#bd7500', borderDash: [2, 5], borderWidth: 3, pointRadius: 4, pointBackgroundColor: '#fff', tension: 0}
+            type: 'line', data: {labels: allDates, datasets: [
+                {label: 'Lower', data: lowerSeries, borderWidth: 0, pointRadius: 0},
+                {label: 'Indicative range', data: upperSeries, borderWidth: 0, pointRadius: 0, fill: '-1', backgroundColor: 'rgba(228, 167, 53, .16)'},
+                {label: 'Actual', data: actualSeries, borderColor: '#137fec', borderWidth: 2, pointRadius: 1, pointHoverRadius: 4, tension: .15},
+                {label: 'Predicted', data: predSeries, borderColor: '#bd7500', borderDash: [4, 4], borderWidth: 2.5, pointRadius: 2, pointHoverRadius: 5, pointBackgroundColor: '#fff', spanGaps: true, tension: .1}
             ]}, options: {responsive: true, maintainAspectRatio: false, animation: false,
-                interaction: {mode: 'index', intersect: false}, plugins: {legend: {display: false}, tooltip: {callbacks: {label: ctx => `${ctx.dataset.label}: ${Number(ctx.raw).toLocaleString('en-IN', {maximumFractionDigits: 2})} lakhs`}}},
-                scales: {x: {grid: {display: false}, ticks: {maxTicksLimit: 10, maxRotation: 0, callback: function(value) { return day(this.getLabelForValue(value)); }}},
-                         y: {title: {display: true, text: 'INR lakhs'}, grid: {color: 'rgba(120,135,150,.13)'}}}
+                interaction: {mode: 'index', intersect: false},
+                plugins: {
+                    legend: {display: false},
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                if (ctx.raw == null) return null;
+                                return `${ctx.dataset.label}: ${Number(ctx.raw).toLocaleString('en-IN', {maximumFractionDigits: 2})} lakhs`;
+                            },
+                            afterBody: items => {
+                                const idx = items[0]?.dataIndex;
+                                if (idx == null) return [];
+                                const d = allDates[idx];
+                                const act = actualMap.get(d);
+                                const pr = predMap.get(d)?.yhat;
+                                if (act != null && pr != null) {
+                                    const diff = (act - pr) / 100000;
+                                    const sign = diff >= 0 ? '+' : '';
+                                    const pct = act ? ((act - pr) / act * 100).toFixed(1) : 0;
+                                    return [`Diff: ${sign}${diff.toLocaleString('en-IN', {maximumFractionDigits: 2})} lakhs (${sign}${pct}%)`];
+                                }
+                                return [];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {grid: {display: false}, ticks: {maxTicksLimit: 12, maxRotation: 0, callback: function(value) { return day(this.getLabelForValue(value)); }}},
+                    y: {title: {display: true, text: 'INR lakhs'}, grid: {color: 'rgba(120,135,150,.13)'}}
+                }
             }
         });
     }
@@ -116,7 +210,18 @@
     el('sf-location').addEventListener('change', load);
     el('sf-refresh').addEventListener('click', load);
     el('sf-period').addEventListener('change', draw);
-    el('sf-run')?.addEventListener('click', async () => {
+    el('sf-tab-outlook')?.addEventListener('click', () => {
+        el('sf-tab-outlook').classList.add('active');
+        el('sf-tab-compare')?.classList.remove('active');
+        if (el('sf-table-outlook')) el('sf-table-outlook').style.display = '';
+        if (el('sf-table-compare')) el('sf-table-compare').style.display = 'none';
+    });
+    el('sf-tab-compare')?.addEventListener('click', () => {
+        el('sf-tab-compare').classList.add('active');
+        el('sf-tab-outlook')?.classList.remove('active');
+        if (el('sf-table-outlook')) el('sf-table-outlook').style.display = 'none';
+        if (el('sf-table-compare')) el('sf-table-compare').style.display = '';
+    });    el('sf-run')?.addEventListener('click', async () => {
         const token = ++sequence; clearTimeout(pollTimer); busy(true); status('Queueing forecast...');
         try {
             const data = await api('/api/sales-turnover-forecast/run', {method: 'POST', headers: {'Content-Type': 'application/json'},

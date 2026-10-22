@@ -106,14 +106,13 @@ def sync_sales_prediction_data_task():
         run.row_count = rows_count
         db.session.commit()
 
-        # Do not keep version history: remove older sync runs, snapshots, and forecasts
+        # Keep prediction history intact across syncs; purge older daily snapshots to prevent duplicates
         try:
             db.session.query(SalesTurnoverDailySnapshot).filter(SalesTurnoverDailySnapshot.run_id != run_id).delete()
-            db.session.query(SalesTurnoverForecastRun).filter(SalesTurnoverForecastRun.snapshot_run_id != run_id).delete()
             db.session.query(SalesPredictionSyncRun).filter(SalesPredictionSyncRun.id != run_id).delete()
             db.session.commit()
         except Exception as purge_err:
-            logger.warning(f"Could not purge previous prediction versions: {purge_err}")
+            logger.warning(f"Could not purge older daily snapshot versions: {purge_err}")
             db.session.rollback()
 
         emit('success', f'Sales prediction history synced: {rows_count:,} daily totals through {run.cutoff_date}', 100)

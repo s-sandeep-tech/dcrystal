@@ -25,8 +25,24 @@
         <div class="sf-chart"><canvas id="sf-chart" role="img" aria-label="Actual and predicted daily net turnover"></canvas><div id="sf-empty" hidden>No sales data synced yet.</div></div>
     </section>
     <section class="sf-bottom">
-        <div class="sf-results"><h2>Three-Day Outlook <small>INR lakhs</small></h2>
-            <div class="sf-table-wrap"><table><thead><tr><th>Date</th><th>Forecast</th><th>Lower</th><th>Upper</th></tr></thead><tbody id="sf-rows"><tr><td colspan="4">No forecast available</td></tr></tbody></table></div>
+        <div class="sf-results">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                <h2 id="sf-table-title">Predictions &amp; Outlook <small>INR lakhs</small></h2>
+                <div style="display:flex;gap:6px">
+                    <button id="sf-tab-outlook" class="sf-tab active" type="button" style="padding:4px 10px;font-size:11px;border-radius:4px;cursor:pointer">Next 3 Days</button>
+                    <button id="sf-tab-compare" class="sf-tab" type="button" style="padding:4px 10px;font-size:11px;border-radius:4px;cursor:pointer">Predicted vs Actual</button>
+                </div>
+            </div>
+            <div class="sf-table-wrap">
+                <table id="sf-table-outlook">
+                    <thead><tr><th>Date</th><th>Forecast</th><th>Lower</th><th>Upper</th></tr></thead>
+                    <tbody id="sf-rows"><tr><td colspan="4">No forecast available</td></tr></tbody>
+                </table>
+                <table id="sf-table-compare" style="display:none">
+                    <thead><tr><th>Date</th><th>Actual</th><th>Predicted</th><th>Variance</th><th>Accuracy</th></tr></thead>
+                    <tbody id="sf-compare-rows"><tr><td colspan="5">No historical predictions to compare yet</td></tr></tbody>
+                </table>
+            </div>
             <p id="sf-quality" class="sf-note"></p>
         </div>
         <aside class="sf-context"><h2><span class="material-symbols-outlined">travel_explore</span>Weather, Gold &amp; Festivals</h2>

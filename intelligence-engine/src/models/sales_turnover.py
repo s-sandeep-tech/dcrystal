@@ -107,6 +107,36 @@ def run_sales_turnover_forecast(task_id, payload):
             result['external_context'] = sales_context(location, result['forecast'][0]['ds'], result['forecast'][-1]['ds'])
         DatabaseWriter.save_forecasts(task_id, 'sales_net_turnover', result['forecast'],
                                       dimension=f'branch:{branch_id}' if branch_id else 'all_locations')
+        for row in result['forecast']:
+            ds_val = row['ds']
+            ds_date = datetime.strptime(ds_val[:10], '%Y-%m-%d').date() if isinstance(ds_val, str) else ds_val
+            val = float(row.get('baseline_yhat', row.get('yhat', 0.0)))
+            lower = float(row['yhat_lower']) if row.get('yhat_lower') is not None else None
+            upper = float(row['yhat_upper']) if row.get('yhat_upper') is not None else None
+            if branch_id is not None:
+                session.execute(text('''
+                    INSERT INTO sales_predictions (branch_id, sales_date, predicted_turnover, yhat_lower, yhat_upper, task_id, created_at)
+                    VALUES (:branch, :ds, :pred, :lower, :upper, :task, NOW() AT TIME ZONE 'utc')
+                    ON CONFLICT (branch_id, sales_date) WHERE branch_id IS NOT NULL
+                    DO UPDATE SET
+                        predicted_turnover = EXCLUDED.predicted_turnover,
+                        yhat_lower = EXCLUDED.yhat_lower,
+                        yhat_upper = EXCLUDED.yhat_upper,
+                        task_id = EXCLUDED.task_id,
+                        created_at = EXCLUDED.created_at
+                '''), {'branch': branch_id, 'ds': ds_date, 'pred': val, 'lower': lower, 'upper': upper, 'task': task_id})
+            else:
+                session.execute(text('''
+                    INSERT INTO sales_predictions (branch_id, sales_date, predicted_turnover, yhat_lower, yhat_upper, task_id, created_at)
+                    VALUES (NULL, :ds, :pred, :lower, :upper, :task, NOW() AT TIME ZONE 'utc')
+                    ON CONFLICT (sales_date) WHERE branch_id IS NULL
+                    DO UPDATE SET
+                        predicted_turnover = EXCLUDED.predicted_turnover,
+                        yhat_lower = EXCLUDED.yhat_lower,
+                        yhat_upper = EXCLUDED.yhat_upper,
+                        task_id = EXCLUDED.task_id,
+                        created_at = EXCLUDED.created_at
+                '''), {'ds': ds_date, 'pred': val, 'lower': lower, 'upper': upper, 'task': task_id})
         import json
         session.execute(text('UPDATE sales_turnover_forecast_runs SET result_json = CAST(:result AS json) WHERE task_id = :id'),
                         {'id': task_id, 'result': json.dumps(result)})
