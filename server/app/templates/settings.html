@@ -439,6 +439,18 @@
                                     </button>
                                 </div>
 
+                                <div id="sync-wrapper-sales_prediction_data" class="flex flex-wrap items-center justify-between gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-lg">
+                                    <div class="flex items-center gap-3"><span class="material-symbols-outlined text-primary">monitoring</span><h4 class="text-[13px] font-bold">Sales Prediction Data Sync</h4></div>
+                                    <div class="flex flex-wrap items-center gap-3 text-xs">
+                                        <label><input id="sales-auto-forecast" type="checkbox"> Forecast after sync</label>
+                                        <label><input id="sales-settings-external" type="checkbox"> Gemini external context</label>
+                                        <button id="sync-sales-prediction-btn" class="flex items-center gap-1 px-3 py-2 bg-primary text-white rounded"><span class="material-symbols-outlined text-sm">sync</span>Sync Now</button>
+                                        <button id="run-sales-forecast-settings" class="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded"><span class="material-symbols-outlined text-sm">query_stats</span>Run 3-Day Forecast</button>
+                                        <a href="/sales-turnover-forecast" class="text-primary underline">View Report</a>
+                                    </div>
+                                    <p id="sales-settings-status" class="w-full text-xs" role="status"></p>
+                                </div>
+
                                 <div id="sync-wrapper-sales_stock_composition_analysis"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">

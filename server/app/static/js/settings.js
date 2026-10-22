@@ -206,6 +206,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncPartyMakeCapacityDetailsBtn = document.getElementById('sync-party-make-capacity-details-btn');
     const syncCustomerOrderFulfilmentSummaryBtn = document.getElementById('sync-customer-order-fulfilment-summary-btn');
     const syncAllBtn = document.getElementById('sync-all-btn');
+    const salesSync = document.getElementById('sync-sales-prediction-btn');
+    const salesForecast = document.getElementById('run-sales-forecast-settings');
+    async function salesAction(button, url, payload) {
+        const status = document.getElementById('sales-settings-status');
+        button.disabled = true;
+        status.textContent = 'Queueing...';
+        try {
+            const response = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Unable to queue task');
+            status.textContent = data.message;
+        } catch (error) { status.textContent = error.message; }
+        finally { button.disabled = false; }
+    }
+    if (salesSync) salesSync.addEventListener('click', () => salesAction(salesSync, '/api/sync/sales-prediction-data', {
+        forecast_after_sync: document.getElementById('sales-auto-forecast').checked,
+        include_external: document.getElementById('sales-settings-external').checked
+    }));
+    if (salesForecast) salesForecast.addEventListener('click', () => salesAction(salesForecast, '/api/sales-turnover-forecast/run', {
+        include_external: document.getElementById('sales-settings-external').checked
+    }));
 
 
     async function triggerSync(btn, url, label, type) {

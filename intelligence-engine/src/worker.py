@@ -88,6 +88,8 @@ class IntelligenceWorker:
 
         while self.running:
             try:
+                from src.task_queue.sales_outbox import publish_sales_outbox
+                publish_sales_outbox(self.redis_manager)
                 task = self.redis_manager.pop_task(timeout=5)
                 if not task:
                     continue
@@ -113,7 +115,10 @@ class IntelligenceWorker:
         status = TaskStatus.COMPLETED
 
         try:
-            if task_type == TaskType.HEALTH:
+            if task_type == TaskType.SALES_TURNOVER_FORECAST:
+                from src.models.sales_turnover import run_sales_turnover_forecast
+                result_data = run_sales_turnover_forecast(task_id, payload)
+            elif task_type == TaskType.HEALTH:
                 db_healthy = check_db_health()
                 redis_healthy = self.redis_manager.ping()
                 result_data = {

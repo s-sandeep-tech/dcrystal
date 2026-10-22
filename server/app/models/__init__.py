@@ -37,6 +37,7 @@ from .snapshots import (
     PartyMakeCapacityDetailsSnapshot
 )
 from .sales_stock_composition_analysis import SalesStockCompositionAnalysisSnapshot
+from .sales_prediction import SalesPredictionSyncRun, SalesTurnoverDailySnapshot, SalesTurnoverForecastRun
 from .customer_order_analysis import CustomerOrderAnalysisSnapshot, CustomerOrderAnalysis
 from .customer_order_approval_pending import CustomerOrderApprovalPendingSnapshot, CustomerOrderApprovalPending
 from .customer_order_fulfilment_summary import CustomerOrderFulfilmentSummarySnapshot

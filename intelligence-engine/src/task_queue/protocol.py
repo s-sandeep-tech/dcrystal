@@ -4,6 +4,7 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 
 class TaskType(str, Enum):
+    SALES_TURNOVER_FORECAST = "sales_turnover_forecast"
     FORECAST = "forecast"
     PREDICT = "predict"
     HYBRID_FORECAST = "hybrid_forecast"

@@ -297,6 +297,14 @@ window.REPORT_MENU_DATA = [
         accent: "emerald",
         reports: [
             {
+                id: "sales-turnover-forecast",
+                title: "Sales Turnover Forecast",
+                href: "/sales-turnover-forecast",
+                icon: "monitoring",
+                description: "Daily turnover history and three-day forecasts by location.",
+                tags: ["sales", "forecast", "prediction", "turnover"]
+            },
+            {
                 id: "sales-stock-composition-analysis",
                 title: "Sales & Stock Composition Analysis",
                 href: "/sales-stock-composition-analysis",

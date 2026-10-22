@@ -24,6 +24,7 @@ if 'app' in sys.modules:
 
 try:
     from app import create_app
+    from app.utils.sales_prediction_sync import sync_sales_prediction_data_task
     from app.extensions import redis_client
     from app.utils.sync_tasks import (
         sync_owner_wise_data_task,
@@ -235,6 +236,18 @@ def process_sync_queue():
                         res = sync_party_make_capacity_details_task()
                     elif task_type == 'sales_stock_composition_analysis':
                         res = sync_sales_stock_composition_analysis_task()
+                    elif task_type == 'sales_prediction_data':
+                        res = sync_sales_prediction_data_task()
+                        if res.get('status') == 'success' and task_data.get('forecast_after_sync'):
+                            from app.services.sales_prediction import enqueue_sales_forecast
+                            try:
+                                forecast = enqueue_sales_forecast(user_id, include_external=bool(task_data.get('include_external')),
+                                                                  run_id=res['run_id'])
+                                res['forecast_task_id'] = forecast['task_id']
+                            except Exception:
+                                logger.exception('Sales sync succeeded, but forecast queueing failed')
+                                emit_sync_update('error', 'Sales sync succeeded; forecast queueing failed. Use Run Forecast.',
+                                                 100, 'sales_prediction_data')
                     elif task_type == 'customer_order_analysis':
                         res = sync_customer_order_analysis_task()
                     elif task_type == 'customer_order_fulfilment_summary':

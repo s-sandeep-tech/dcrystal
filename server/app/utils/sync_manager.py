@@ -37,6 +37,7 @@ SCHEDULED_ALL_SYNC_TASKS = (
 )
 
 ALLOWED_SYNC_TASKS = {
+    'sales_prediction_data',
     'owner_wise',
     'process_delay',
     'outstanding_po',

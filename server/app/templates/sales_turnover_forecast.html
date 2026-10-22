@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Sales Turnover Forecast{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_forecast.css') }}">{% endblock %}
+{% block content %}
+<main class="sf-page" id="sales-forecast">
+    <header class="sf-toolbar">
+        <h1><span class="material-symbols-outlined">monitoring</span>Sales Turnover Forecast</h1>
+        <div class="sf-controls">
+            <label>Location<select id="sf-location"><option value="">All locations</option></select></label>
+            <label>History<select id="sf-period"><option value="30">30 days</option><option value="90">90 days</option><option value="0">All history</option></select></label>
+            {% if can_forecast %}<label class="sf-check"><input id="sf-external" type="checkbox">Gemini context</label>
+            <button id="sf-run" class="sf-primary"><span class="material-symbols-outlined">query_stats</span>Run Forecast</button>{% endif %}
+            <button id="sf-refresh" class="sf-icon" title="Refresh report" aria-label="Refresh report"><span class="material-symbols-outlined">refresh</span></button>
+        </div>
+    </header>
+    <p id="sf-status" class="sf-status" role="status" aria-live="polite">Loading sales history...</p>
+    <section class="sf-stats" aria-label="Turnover summary">
+        <div><span><i class="material-symbols-outlined">payments</i>Last Sales Day</span><strong id="sf-actual">—</strong><small id="sf-actual-date">—</small></div>
+        <div><span><i class="material-symbols-outlined">trending_up</i>Next 3 Days</span><strong id="sf-total">—</strong><small id="sf-dates">Forecast pending</small></div>
+        <div><span><i class="material-symbols-outlined">fact_check</i>Backtest MAE</span><strong id="sf-mae">—</strong><small id="sf-model">—</small></div>
+        <div><span><i class="material-symbols-outlined">update</i>History Through</span><strong id="sf-cutoff">—</strong><small id="sf-sync">—</small></div>
+    </section>
+    <section class="sf-chart-section">
+        <div class="sf-section-title"><h2>Daily Net Turnover <small>INR lakhs</small></h2><div class="sf-legend"><span class="sf-actual-key">Actual</span><span class="sf-forecast-key">Forecast</span><span class="sf-range-key">Indicative range</span></div></div>
+        <div class="sf-chart"><canvas id="sf-chart" role="img" aria-label="Actual and predicted daily net turnover"></canvas><div id="sf-empty" hidden>No sales data synced yet.</div></div>
+    </section>
+    <section class="sf-bottom">
+        <div class="sf-results"><h2>Three-Day Outlook <small>INR lakhs</small></h2>
+            <div class="sf-table-wrap"><table><thead><tr><th>Date</th><th>Forecast</th><th>Lower</th><th>Upper</th></tr></thead><tbody id="sf-rows"><tr><td colspan="4">No forecast available</td></tr></tbody></table></div>
+            <p id="sf-quality" class="sf-note"></p>
+        </div>
+        <aside class="sf-context"><h2><span class="material-symbols-outlined">travel_explore</span>Weather, Gold &amp; Festivals</h2>
+            <p id="sf-context-state" class="sf-note">External context has not been requested.</p>
+            <div id="sf-context-text"></div><ul id="sf-context-sources"></ul><div id="sf-search-suggestions"></div>
+        </aside>
+    </section>
+</main>
+{% endblock %}
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/sales_forecast.js') }}"></script>
+{% endblock %}
