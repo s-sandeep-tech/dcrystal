@@ -3,10 +3,8 @@ let reportController;
 let currentSortBy = 'primary';
 let currentSortOrder = 'asc';
 
-// MultiSelect Instances
+// MultiSelect Instances dictionary
 const multiSelects = {};
-
-window.addEventListener('load', () => loadApprovalsReport(), { once: true });
 
 function toggleSort(column) {
     if (currentSortBy === column) {
@@ -19,7 +17,7 @@ function toggleSort(column) {
     urlParams.set('sort_by', currentSortBy);
     urlParams.set('sort_order', currentSortOrder);
     urlParams.set('page', 1);
-    history.replaceState(null, '', `${window.location.pathname}?${urlParams}`);
+    history.replaceState(null, '', `${window.location.pathname}?${urlParams.toString()}`);
     loadApprovalsReport();
 }
 window.toggleSort = toggleSort;
@@ -89,8 +87,10 @@ async function loadApprovalsReport() {
 
         updateBadgeText();
         adjustZoom(0);
+        updateActiveFilterChips();
     } catch (error) {
         if (error.name === 'AbortError' || controller !== reportController) return;
+        console.error('Error loading approvals report:', error);
         if (info) info.textContent = 'Report unavailable';
         if (body) {
             body.innerHTML = '<div class="p-6 text-center text-xs text-red-500" role="alert">Unable to load report data. <button class="text-primary underline ml-1" onclick="loadApprovalsReport()">Retry</button></div>';
@@ -103,12 +103,27 @@ async function loadApprovalsReport() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+let isInitialized = false;
+
+function initializeApprovalsPage() {
+    if (isInitialized) return;
+    isInitialized = true;
+
     adjustZoom(0);
-    const filterData = JSON.parse(document.getElementById('approvals-filter-data')?.dataset.options || '{}');
-    const opts = Object.fromEntries(Object.entries(filterData).map(([key, value]) => [
-        key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase()), value
-    ]));
+
+    const filterDataEl = document.getElementById('approvals-filter-data');
+    let opts = {};
+    if (filterDataEl && filterDataEl.dataset.options) {
+        try {
+            const raw = JSON.parse(filterDataEl.dataset.options);
+            opts = Object.fromEntries(Object.entries(raw).map(([key, value]) => [
+                key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase()), value
+            ]));
+        } catch (e) {
+            console.error('Error parsing filter options:', e);
+        }
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
 
     if (typeof CustomMultiSelect !== 'undefined') {
@@ -134,37 +149,132 @@ document.addEventListener('DOMContentLoaded', () => {
             { id: 'filter-combine-order-status-container', key: 'combine_order_status', label: 'Combine Order Status', defaultText: 'All Order Statuses', options: opts.combineOrderStatuses },
         ];
 
-        configs.forEach(({ id, key, label, defaultText, options }) => {
-            const container = document.getElementById(id);
+        configs.forEach(cfg => {
+            const container = document.getElementById(cfg.id);
             if (!container) return;
-            const values = urlParams.get(key) ? urlParams.get(key).split(',') : [];
-            multiSelects[key] = new CustomMultiSelect({
-                container,
-                options: options || [],
-                selectedValues: values,
-                placeholder: defaultText,
-                label,
-                onChange: (selected) => {
-                    updateUrlParams(key, selected.join(','));
-                    loadApprovalsReport();
-                }
+
+            multiSelects[cfg.key] = new CustomMultiSelect({
+                containerId: cfg.id,
+                label: cfg.label,
+                defaultText: cfg.defaultText,
+                options: cfg.options || []
             });
+
+            const paramVal = urlParams.get(cfg.key);
+            if (paramVal) {
+                const selected = paramVal.split(',').map(v => v.trim()).filter(Boolean);
+                document.querySelectorAll(`.${cfg.id}-checkbox`).forEach(cb => {
+                    cb.checked = selected.includes(cb.value);
+                });
+                multiSelects[cfg.key].updateTriggerText();
+            }
         });
     }
 
+    // Set initial date range values
+    const reqFrom = urlParams.get('request_date_from');
+    if (reqFrom) {
+        const el = document.getElementById('filter-request-date-from');
+        if (el) el.value = reqFrom;
+    }
+    const reqTo = urlParams.get('request_date_to');
+    if (reqTo) {
+        const el = document.getElementById('filter-request-date-to');
+        if (el) el.value = reqTo;
+    }
+
+    // Restore filter sidebar visibility if previously toggled
+    if (localStorage.getItem('pending_approvals_filter_visible') === 'false') {
+        const sidebar = document.getElementById('approvals-filter-sidebar');
+        const button = document.getElementById('approvals-filter-toggle');
+        if (sidebar && button) {
+            sidebar.classList.add('hidden');
+            sidebar.style.display = 'none';
+            button.setAttribute('aria-expanded', 'false');
+            button.setAttribute('aria-label', 'Show filters');
+            button.title = 'Show filters';
+            button.classList.remove('text-primary');
+            button.classList.add('text-gray-400');
+        }
+    }
+
     updateActiveFilterChips();
+    loadApprovalsReport();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApprovalsPage);
+} else {
+    initializeApprovalsPage();
+}
+
+window.addEventListener('popstate', () => {
+    loadApprovalsReport();
 });
 
-function updateUrlParams(key, value) {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (value && value.trim()) {
-        urlParams.set(key, value.trim());
-    } else {
-        urlParams.delete(key);
+function getFilterValues() {
+    const filters = {};
+    for (const [key, selectInstance] of Object.entries(multiSelects)) {
+        if (selectInstance && typeof selectInstance.getValues === 'function') {
+            const vals = selectInstance.getValues();
+            if (vals.length > 0) {
+                filters[key] = vals.join(',');
+            }
+        }
     }
-    urlParams.set('page', 1);
+
+    const reqFrom = document.getElementById('filter-request-date-from')?.value;
+    if (reqFrom) filters['request_date_from'] = reqFrom;
+
+    const reqTo = document.getElementById('filter-request-date-to')?.value;
+    if (reqTo) filters['request_date_to'] = reqTo;
+
+    const searchVal = document.getElementById('hierarchy-search')?.value?.trim();
+    if (searchVal) filters['search'] = searchVal;
+
+    return filters;
+}
+
+function applyFilters() {
+    const params = new URLSearchParams();
+    const filters = getFilterValues();
+    for (const [k, v] of Object.entries(filters)) {
+        if (v) params.set(k, v);
+    }
+    const perPage = document.getElementById('per-page-select')?.value;
+    if (perPage) params.set('per_page', perPage);
+
+    params.set('sort_by', currentSortBy);
+    params.set('sort_order', currentSortOrder);
+    params.set('page', 1);
+
+    history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+    updateActiveFilterChips();
+    loadApprovalsReport();
+}
+
+function resetGlobalFilters() {
+    for (const selectInstance of Object.values(multiSelects)) {
+        if (selectInstance && typeof selectInstance.reset === 'function') {
+            selectInstance.reset();
+        }
+    }
+    const reqFrom = document.getElementById('filter-request-date-from');
+    if (reqFrom) reqFrom.value = '';
+    const reqTo = document.getElementById('filter-request-date-to');
+    if (reqTo) reqTo.value = '';
+    const searchVal = document.getElementById('hierarchy-search');
+    if (searchVal) searchVal.value = '';
+
+    const urlParams = new URLSearchParams();
+    urlParams.set('sort_by', currentSortBy);
+    urlParams.set('sort_order', currentSortOrder);
+    const perPage = document.getElementById('per-page-select')?.value;
+    if (perPage) urlParams.set('per_page', perPage);
+
     history.replaceState(null, '', `${window.location.pathname}?${urlParams.toString()}`);
     updateActiveFilterChips();
+    loadApprovalsReport();
 }
 
 function updateActiveFilterChips() {
@@ -207,22 +317,25 @@ function updateActiveFilterChips() {
 }
 
 function removeFilterChip(key) {
-    if (multiSelects[key]) {
-        multiSelects[key].clear();
-    } else {
-        updateUrlParams(key, '');
-        loadApprovalsReport();
+    if (multiSelects[key] && typeof multiSelects[key].reset === 'function') {
+        multiSelects[key].reset();
     }
-}
+    if (key === 'request_date_from') {
+        const el = document.getElementById('filter-request-date-from');
+        if (el) el.value = '';
+    }
+    if (key === 'request_date_to') {
+        const el = document.getElementById('filter-request-date-to');
+        if (el) el.value = '';
+    }
+    if (key === 'search') {
+        const el = document.getElementById('hierarchy-search');
+        if (el) el.value = '';
+    }
 
-function resetGlobalFilters() {
-    Object.values(multiSelects).forEach(ms => ms.clear());
-    const searchInput = document.getElementById('hierarchy-search');
-    if (searchInput) searchInput.value = '';
-
-    const urlParams = new URLSearchParams();
-    urlParams.set('sort_by', currentSortBy);
-    urlParams.set('sort_order', currentSortOrder);
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.delete(key);
+    urlParams.set('page', 1);
     history.replaceState(null, '', `${window.location.pathname}?${urlParams.toString()}`);
     updateActiveFilterChips();
     loadApprovalsReport();
@@ -336,7 +449,6 @@ async function toggleRow(btn, level, value) {
             newRows.forEach(newRow => {
                 newRow.classList.add('child-row');
                 newRow.classList.add('animate-fade-in');
-                // Ensure context dataset is populated
                 if (level === 'bh') {
                     newRow.dataset.bh = value;
                 } else if (level === 'classification_owner') {
@@ -433,41 +545,6 @@ document.addEventListener('keydown', event => {
     }
 });
 
-async function triggerApprovalSync() {
-    const btn = document.getElementById('btn-sync-report');
-    if (!btn) return;
-    const originalHtml = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="material-symbols-outlined text-[14px] animate-spin">sync</span><span>Syncing...</span>';
-    try {
-        const headers = { 'Content-Type': 'application/json' };
-        const token = localStorage.getItem('access_token');
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        const response = await fetch('/api/sync/pending-customer-order-approvals', {
-            method: 'POST',
-            headers
-        });
-        const data = await response.json();
-        if (data.status === 'success') {
-            btn.innerHTML = '<span class="material-symbols-outlined text-[14px] text-green-500">check_circle</span><span>Queued</span>';
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.innerHTML = originalHtml;
-                loadApprovalsReport();
-            }, 3000);
-        } else {
-            alert(data.message || 'Sync failed to queue');
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
-        }
-    } catch (e) {
-        console.error('Error triggering sync:', e);
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
-    }
-}
-
 function toggleApprovalsFilters() {
     const sidebar = document.getElementById('approvals-filter-sidebar');
     const button = document.getElementById('approvals-filter-toggle');
@@ -481,6 +558,7 @@ function toggleApprovalsFilters() {
         button.title = 'Hide filters';
         button.classList.add('text-primary');
         button.classList.remove('text-gray-400');
+        localStorage.setItem('pending_approvals_filter_visible', 'true');
     } else {
         sidebar.classList.add('hidden');
         sidebar.style.display = 'none';
@@ -489,10 +567,15 @@ function toggleApprovalsFilters() {
         button.title = 'Show filters';
         button.classList.remove('text-primary');
         button.classList.add('text-gray-400');
+        localStorage.setItem('pending_approvals_filter_visible', 'false');
     }
 }
 
+// Global window assignments for inline event handlers
 window.toggleApprovalsFilters = toggleApprovalsFilters;
+window.applyFilters = applyFilters;
+window.resetGlobalFilters = resetGlobalFilters;
+window.removeFilterChip = removeFilterChip;
 window.toggleRow = toggleRow;
 window.openLeafModal = openLeafModal;
 window.closeLeafModal = closeLeafModal;
@@ -502,7 +585,4 @@ window.changePage = changePage;
 window.changePerPage = changePerPage;
 window.adjustZoom = adjustZoom;
 window.onSearchInput = onSearchInput;
-window.resetGlobalFilters = resetGlobalFilters;
-window.removeFilterChip = removeFilterChip;
-window.triggerApprovalSync = triggerApprovalSync;
 window.loadApprovalsReport = loadApprovalsReport;
