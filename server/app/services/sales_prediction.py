@@ -48,7 +48,7 @@ def report_data(branch_id=None):
     if not run:
         return {'snapshot': None, 'locations': [], 'history': [], 'predictions': [], 'forecast_run': None}
     locations = [{'id': r[0], 'name': r[1]} for r in db.session.query(Daily.branch_id, func.max(Daily.location_name))
-                 .filter(Daily.run_id == run.id).group_by(Daily.branch_id).order_by(func.max(Daily.location_name))]
+                 .group_by(Daily.branch_id).order_by(func.max(Daily.location_name))]
     query = db.session.query(Daily.sales_date, func.sum(Daily.net_turnover)).filter(Daily.run_id == run.id)
     if branch_id is not None:
         query = query.filter(Daily.branch_id == branch_id)
@@ -96,7 +96,9 @@ def report_data(branch_id=None):
         pass
 
     # Forecast run is queried by branch, not tied strictly to the current snapshot_run_id
-    forecast = Forecast.query.filter_by(branch_id=branch_id).order_by(Forecast.created_at.desc()).first()
+    latest = Forecast.query.filter_by(branch_id=branch_id).order_by(Forecast.created_at.desc()).first()
+    forecast = Forecast.query.filter_by(branch_id=branch_id).filter(Forecast.result_json.isnot(None),
+        db.cast(Forecast.result_json, db.Text) != 'null').order_by(Forecast.created_at.desc()).first()
     return {
         'snapshot': {'id': run.id, 'cutoff_date': run.cutoff_date.isoformat(),
                      'synced_at': run.created_at.isoformat() + 'Z', 'source_count': run.source_count,
@@ -104,5 +106,6 @@ def report_data(branch_id=None):
         'locations': locations,
         'history': history,
         'predictions': predictions,
-        'forecast_run': {'task_id': forecast.task_id, 'result': forecast.result_json} if forecast else None
+        'forecast_run': {'task_id': forecast.task_id, 'result': forecast.result_json} if forecast else None,
+        'pending_task_id': latest.task_id if latest and not latest.result_json else None
     }

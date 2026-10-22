@@ -3,14 +3,16 @@ import hashlib
 import json
 import math
 import os
+import time
 from datetime import date, datetime, timedelta
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 import redis
 from ..config import settings
 from ..utils.logger import logger
 from .sales_gemini_fallback import gemini_fallback
+from .sales_audit import audit, fetch_scope
 
 _redis_client = None
 TZ = ZoneInfo('Asia/Kolkata')
@@ -29,9 +31,11 @@ def cached(key, ttl, fetch):
     try:
         value = get_redis().get(key)
         if value:
+            audit('cache_hit', cache_key=key)
             return json.loads(value)
     except Exception:
         pass
+    audit('cache_miss', cache_key=key)
     value = fetch()
     try:
         get_redis().setex(key, ttl, json.dumps(value))
@@ -41,10 +45,22 @@ def cached(key, ttl, fetch):
 
 
 def get_json(url, params=None):
+    endpoint = urlsplit(url)
+    details = {'provider': endpoint.hostname, 'path': endpoint.path}
+    audit('request', **details)
+    started = time.monotonic()
     request = Request(url + ('?' + urlencode(params) if params else ''),
                       headers={'User-Agent': 'DCrystal-SalesContext/1.0'})
-    with urlopen(request, timeout=10) as response:
-        return json.load(response)
+    try:
+        with urlopen(request, timeout=10) as response:
+            result = json.load(response)
+            audit('response', **details, http_status=response.status,
+                  duration_ms=round((time.monotonic() - started) * 1000))
+            return result
+    except Exception as error:
+        audit('failure', **details, error_type=type(error).__name__,
+              http_status=getattr(error, 'code', None), duration_ms=round((time.monotonic() - started) * 1000))
+        raise
 
 
 def unavailable(message):
@@ -130,7 +146,20 @@ def festivals(start, end):
         'source': {'title': 'Calendarific', 'url': 'https://calendarific.com/'}}
 
 
-def sales_context(location, start_date, end_date, allow_gemini_fallback=False):
+def sales_context(location, start_date, end_date, allow_gemini_fallback=False, task_id=None):
+    token = fetch_scope.set({'task_id': task_id, 'location': location,
+                            'start_date': str(start_date), 'end_date': str(end_date)})
+    try:
+        result = _sales_context(location, start_date, end_date, allow_gemini_fallback)
+        for provider, data in result.get('parameters', {}).items():
+            audit('coverage', provider=provider, status=data['status'],
+                  returned_days=len(data.get('days', [])), missing_events=data.get('missing_events', []))
+        return result
+    finally:
+        fetch_scope.reset(token)
+
+
+def _sales_context(location, start_date, end_date, allow_gemini_fallback=False):
     start, end = date.fromisoformat(str(start_date)), date.fromisoformat(str(end_date))
     if end < start or (end - start).days > 7:
         return {**unavailable('Invalid external-context date range.'), 'affects_forecast': False}

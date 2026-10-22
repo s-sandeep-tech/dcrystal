@@ -1,5 +1,5 @@
 """Three-day net turnover forecasts selected by rolling historical validation."""
-from datetime import datetime
+from datetime import datetime, timedelta, time
 from zoneinfo import ZoneInfo
 import numpy as np
 import pandas as pd
@@ -7,6 +7,8 @@ from sqlalchemy import text
 from ..db.connection import get_db_session
 from ..db.writer import DatabaseWriter
 from ..external.sales_context import sales_context
+from ..external.sales_features import store_context, load_features, save_inputs
+from .sales_regressors import FeatureIndex, external_forecast
 
 
 def weekday_forecast(series, horizon=3):
@@ -23,7 +25,8 @@ def prophet_forecast(series, horizon=3):
     return model.predict(future)['yhat'].to_numpy()
 
 
-def forecast_daily(rows, use_prophet=True):
+def forecast_daily(rows, use_prophet=True, feature_rows=None, forecast_origin=None):
+    forecast_origin = forecast_origin or datetime.now(ZoneInfo('Asia/Kolkata'))
     if not rows:
         raise ValueError('No daily turnover history is available for this scope')
     dates = pd.to_datetime([r['ds'] for r in rows])
@@ -39,11 +42,20 @@ def forecast_daily(rows, use_prophet=True):
     candidates = {'weekday_average': weekday_forecast}
     if use_prophet:
         candidates['prophet'] = prophet_forecast
+    index = FeatureIndex(feature_rows or [])
+    groups = {'external_weather': ['weather'], 'external_gold': ['gold'],
+              'external_festivals': ['festivals'], 'external_combined': ['weather', 'gold', 'festivals']}
+    if feature_rows is not None:
+        for name, fields in groups.items():
+            candidates[name] = lambda train, horizon, fields=fields: external_forecast(train, index, fields,
+                datetime.combine((train.index[-1] + timedelta(days=1)).date(), time.min,
+                                 tzinfo=ZoneInfo('Asia/Kolkata')), horizon)
+    offsets = (18, 15, 12, 9, 6, 3) if len(series) >= 90 else (9, 6, 3)
     scores, residuals, failures = {}, {}, {}
     for name, predict in candidates.items():
         errors = []
         try:
-            for offset in (9, 6, 3):
+            for offset in offsets:
                 train = series.iloc[:-offset]
                 actual = series.iloc[-offset:][:3].values
                 estimate = predict(train, 3)
@@ -53,15 +65,31 @@ def forecast_daily(rows, use_prophet=True):
             scores[name] = float(np.mean(np.abs(errors)))
             residuals[name] = errors
         except Exception as error:
-            failures[name] = type(error).__name__
+            failures[name] = str(error) if name.startswith('external_') else type(error).__name__
     if not scores:
         raise ValueError('No forecast method passed validation')
-    method = min(scores, key=scores.get)
+    baseline = min((name for name in scores if not name.startswith('external_')), key=scores.get)
+    eligible = [name for name in scores if name.startswith('external_') and scores[name] < scores[baseline] * .95]
+    method = min(eligible, key=scores.get) if eligible else baseline
+    fallback_reason = None if eligible else ('No external model improved baseline MAE by at least 5%' if feature_rows is not None else 'External features disabled')
+    if feature_rows is not None and not any(name.startswith('external_') for name in scores):
+        fallback_reason = 'Insufficient point-in-time external history or forecast coverage; baseline retained'
     try:
-        values = candidates[method](series, 3)
+        if method in groups:
+            values = external_forecast(series, index, groups[method],
+                forecast_origin or datetime.now(ZoneInfo('Asia/Kolkata')), 3)
+        else:
+            values = candidates[method](series, 3)
+        if not np.isfinite(values).all():
+            raise ValueError('Non-finite forecast')
     except Exception:
-        method = 'weekday_average'
-        values = weekday_forecast(series, 3)
+        fallback_reason = 'Selected model could not produce complete future inputs or predictions'
+        method = baseline
+        try:
+            values = candidates[method](series, 3)
+        except Exception:
+            method = 'weekday_average'
+            values = weekday_forecast(series, 3)
     if not np.isfinite(values).all():
         raise ValueError('Model returned non-finite predictions')
     radius = float(np.quantile(np.abs(residuals[method]), 0.90))
@@ -71,9 +99,12 @@ def forecast_daily(rows, use_prophet=True):
     return {
         'forecast': forecast, 'history': [{'ds': d.date().isoformat(), 'y': float(v)} for d, v in series.items()],
         'metrics': {'engine': method, 'backtest_mae': scores[method], 'candidate_mae': scores,
-                    'unavailable_methods': failures, 'backtest_days': 9, 'historical_days': len(series),
+                    'unavailable_methods': failures, 'backtest_days': len(offsets) * 3, 'historical_days': len(series),
+                    'external_features_used': groups.get(method, []), 'fallback_reason': fallback_reason,
+                    'baseline_engine': baseline, 'baseline_mae': scores[baseline],
+                    'feature_forecast_origin': forecast_origin.isoformat(),
                     'zero_filled_days': len(series) - observed_days,
-                    'interval_method': '90th percentile absolute backtest error; indicative, 9 observations'},
+                    'interval_method': f'90th percentile absolute backtest error; indicative, {len(offsets) * 3} observations'},
         'cutoff_date': series.index[-1].date().isoformat(),
         'three_day_total': round(float(sum(values)), 2)
     }
@@ -95,17 +126,29 @@ def run_sales_turnover_forecast(task_id, payload):
             GROUP BY sales_date ORDER BY sales_date'''), {'run': snapshot, 'branch': branch_id}).mappings().all()
         location = session.execute(text('''SELECT MAX(location_name) FROM sales_turnover_daily_snapshots
             WHERE run_id = :run AND branch_id = :branch'''), {'run': snapshot, 'branch': branch_id}).scalar() if branch_id else 'All locations'
-        result = forecast_daily(rows)
+        context = {'status': 'disabled'}
+        feature_rows = None
+        if request['include_external']:
+            last_date = max(r['ds'] for r in rows)
+            context = sales_context(location, (last_date + timedelta(days=1)).isoformat(),
+                (last_date + timedelta(days=3)).isoformat(),
+                allow_gemini_fallback=bool(request.get('allow_gemini_fallback', False)), task_id=task_id)
+            store_context(session, context, branch_id)
+            feature_rows = load_features(session, branch_id, min(r['ds'] for r in rows), last_date + timedelta(days=3))
+        now = datetime.now(ZoneInfo('Asia/Kolkata'))
+        last_sales_date = max(r['ds'] for r in rows)
+        origin = now if last_sales_date >= now.date() - timedelta(days=1) else datetime.combine(
+            last_sales_date + timedelta(days=1), time.min, tzinfo=ZoneInfo('Asia/Kolkata'))
+        result = forecast_daily(rows, feature_rows=feature_rows, forecast_origin=origin)
+        save_inputs(session, task_id, feature_rows or [], result['metrics'])
         cutoff = datetime.fromisoformat(result['cutoff_date']).date()
         today = datetime.now(ZoneInfo('Asia/Kolkata')).date()
         result.update(snapshot_run_id=snapshot, branch_id=branch_id, location=location,
                       generated_at=datetime.now(ZoneInfo('Asia/Kolkata')).isoformat(),
                       stale_days=max(0, (today - cutoff).days - 1), currency='INR',
                       missing_days_policy=run['diagnostics'].get('missing_days_policy'),
-                      external_context={'status': 'disabled'})
-        if request['include_external']:
-            result['external_context'] = sales_context(location, result['forecast'][0]['ds'], result['forecast'][-1]['ds'],
-                allow_gemini_fallback=bool(request.get('allow_gemini_fallback', False)))
+                      external_context=context)
+        result['external_context']['affects_forecast'] = bool(result['metrics']['external_features_used'])
         DatabaseWriter.save_forecasts(task_id, 'sales_net_turnover', result['forecast'],
                                       dimension=f'branch:{branch_id}' if branch_id else 'all_locations')
         for row in result['forecast']:
@@ -117,7 +160,7 @@ def run_sales_turnover_forecast(task_id, payload):
             if branch_id is not None:
                 session.execute(text('''
                     INSERT INTO sales_predictions (branch_id, sales_date, predicted_turnover, yhat_lower, yhat_upper, task_id, created_at)
-                    VALUES (:branch, :ds, :pred, :lower, :upper, :task, NOW() AT TIME ZONE 'utc')
+                    VALUES (:branch, :ds, :pred, :lower, :upper, :task, :created)
                     ON CONFLICT (branch_id, sales_date) WHERE branch_id IS NOT NULL
                     DO UPDATE SET
                         predicted_turnover = EXCLUDED.predicted_turnover,
@@ -125,11 +168,13 @@ def run_sales_turnover_forecast(task_id, payload):
                         yhat_upper = EXCLUDED.yhat_upper,
                         task_id = EXCLUDED.task_id,
                         created_at = EXCLUDED.created_at
-                '''), {'branch': branch_id, 'ds': ds_date, 'pred': val, 'lower': lower, 'upper': upper, 'task': task_id})
+                    WHERE sales_predictions.created_at <= EXCLUDED.created_at
+                '''), {'branch': branch_id, 'ds': ds_date, 'pred': val, 'lower': lower, 'upper': upper, 'task': task_id,
+                       'created': request['created_at']})
             else:
                 session.execute(text('''
                     INSERT INTO sales_predictions (branch_id, sales_date, predicted_turnover, yhat_lower, yhat_upper, task_id, created_at)
-                    VALUES (NULL, :ds, :pred, :lower, :upper, :task, NOW() AT TIME ZONE 'utc')
+                    VALUES (NULL, :ds, :pred, :lower, :upper, :task, :created)
                     ON CONFLICT (sales_date) WHERE branch_id IS NULL
                     DO UPDATE SET
                         predicted_turnover = EXCLUDED.predicted_turnover,
@@ -137,7 +182,9 @@ def run_sales_turnover_forecast(task_id, payload):
                         yhat_upper = EXCLUDED.yhat_upper,
                         task_id = EXCLUDED.task_id,
                         created_at = EXCLUDED.created_at
-                '''), {'ds': ds_date, 'pred': val, 'lower': lower, 'upper': upper, 'task': task_id})
+                    WHERE sales_predictions.created_at <= EXCLUDED.created_at
+                '''), {'ds': ds_date, 'pred': val, 'lower': lower, 'upper': upper, 'task': task_id,
+                       'created': request['created_at']})
         import json
         session.execute(text('UPDATE sales_turnover_forecast_runs SET result_json = CAST(:result AS json) WHERE task_id = :id'),
                         {'id': task_id, 'result': json.dumps(result)})

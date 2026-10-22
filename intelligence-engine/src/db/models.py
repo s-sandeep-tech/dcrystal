@@ -7,6 +7,35 @@ from sqlalchemy.orm import declarative_base
 Base = declarative_base()
 
 
+class SalesExternalFeature(Base):
+    __tablename__ = 'sales_external_features'
+    id = Column(String(64), primary_key=True)
+    scope = Column(String(100), nullable=False)
+    feature_date = Column(Date, nullable=False)
+    feature_group = Column(String(30), nullable=False)
+    available_at = Column(DateTime(timezone=True), nullable=False)
+    retrieved_at = Column(DateTime(timezone=True), nullable=False)
+    provider = Column(String(100), nullable=False)
+    values_json = Column(JSON, nullable=False)
+    source = Column(Text, nullable=False)
+    __table_args__ = (Index('ix_sales_features_lookup', 'scope', 'feature_group', 'feature_date', 'available_at'),)
+
+
+class SalesExternalFetchLog(Base):
+    __tablename__ = 'sales_external_fetch_logs'
+    id = Column(Integer, primary_key=True)
+    task_id = Column(String(100), index=True)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    event_json = Column(JSON, nullable=False)
+
+
+class SalesForecastFeatureInput(Base):
+    __tablename__ = 'sales_forecast_feature_inputs'
+    task_id = Column(String(100), primary_key=True)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    inputs_json = Column(JSON, nullable=False)
+
+
 class IntelligenceTaskResult(Base):
     """Durable terminal result, committed with task output rows."""
     __tablename__ = "intelligence_task_results"

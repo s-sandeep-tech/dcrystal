@@ -18,7 +18,7 @@
         const c = result?.external_context;
         el('sf-context-text').textContent = c?.summary || '';
         el('sf-context-state').textContent = c?.status === 'available'
-            ? `Sourced ${new Date(c.retrieved_at).toLocaleString('en-IN')}. Context is advisory; it does not adjust the numerical forecast.`
+            ? `Sourced ${new Date(c.retrieved_at).toLocaleString('en-IN')}. ${c.affects_forecast ? 'Validated external features used in prediction.' : 'Baseline retained: external features did not pass validation or coverage requirements.'}`
             : c?.message || 'External context has not been requested.';
         el('sf-context-sources').replaceChildren();
         for (const source of c?.sources || []) {
@@ -37,7 +37,7 @@
     }
     function draw() {
         const result = state?.forecast_run?.result;
-        const history = result?.history || state?.history || [];
+        const history = state?.history || result?.history || [];
         const period = Number(el('sf-period').value);
         const visibleHistory = period ? history.slice(-period) : history;
         const forecast = result?.forecast || [];
@@ -64,7 +64,7 @@
         el('sf-total').textContent = money(result?.three_day_total);
         el('sf-dates').textContent = forecast.length ? `${day(forecast[0].ds)} – ${day(forecast.at(-1).ds)}` : 'Forecast pending';
         el('sf-mae').textContent = money(result?.metrics?.backtest_mae);
-        el('sf-model').textContent = result ? `${result.metrics.engine.replaceAll('_', ' ')} · 9 validation days` : 'No model run';
+        el('sf-model').textContent = result ? `${result.metrics.engine.replaceAll('_', ' ')} · ${result.metrics.backtest_days || 9} validation days` : 'No model run';
         el('sf-cutoff').textContent = result?.cutoff_date || latest?.ds || '—';
         el('sf-sync').textContent = state?.snapshot ? `Synced ${new Date(state.snapshot.synced_at).toLocaleString('en-IN')}` : 'Sync required';
 
@@ -119,9 +119,9 @@
             }
         }
 
-        el('sf-quality').textContent = result ? `${result.metrics.interval_method}. ${result.metrics.zero_filled_days} missing dates filled with zero within the observed history. ${result.stale_days ? `History is ${result.stale_days} day(s) behind yesterday.` : ''}` : '';
+        el('sf-quality').textContent = result ? `${result.metrics.interval_method}. ${result.metrics.fallback_reason || ''} ${result.snapshot_run_id !== state?.snapshot?.id ? 'Saved forecast retained from an earlier sales snapshot.' : ''}` : '';
         context(result);
-        el('sf-empty').hidden = Boolean(visibleHistory.length || forecast.length);
+        el('sf-empty').hidden = Boolean(visibleHistory.length || predMap.size);
         if (chart) chart.destroy();
         if (typeof Chart === 'undefined') { status('Chart library could not load. Forecast values remain available in the table.', true); return; }
 
@@ -220,7 +220,7 @@
             el('sf-location').value = branch;
             draw(); busy(false);
             status(!data.snapshot ? 'Run Sales Prediction Data Sync from Settings to load history.' : 'Sales history loaded.');
-            if (data.forecast_run && !data.forecast_run.result) { busy(true); poll(data.forecast_run.task_id, token); }
+            if (data.pending_task_id) { busy(true); poll(data.pending_task_id, token); }
             if (data.forecast_run?.result?.stale_days) status('Forecast uses older sales history. Check the forecast dates.');
         } catch (error) { if (token === sequence) { busy(false); status(error.message, true); } }
     }

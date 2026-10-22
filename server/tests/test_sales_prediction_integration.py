@@ -77,7 +77,8 @@ class SalesSyncIntegrationTests(unittest.TestCase):
 
     def test_z_publish_forecast(self):
         from app.services.sales_prediction import enqueue_sales_forecast
-        result = enqueue_sales_forecast(1, branch_id=2)
+        with patch('app.services.sales_prediction.redis_client'):
+            result = enqueue_sales_forecast(1, branch_id=2)
         self.assertEqual(result['status'], 'pending')
 
 

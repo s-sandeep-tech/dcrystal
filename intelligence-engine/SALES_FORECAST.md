@@ -48,12 +48,12 @@ band is an indicative error range. Display amounts are INR lakhs; storage is INR
 
 At least 65 calendar days and 28 observed sales dates are required. A recent
 same-weekday average and Prophet weekly-seasonality model are compared using
-three rolling three-day holdouts. The lowest MAE method is selected. If Prophet
+three rolling three-day holdouts (six with at least 90 days). The lowest MAE baseline is selected. If Prophet
 is unavailable, the validated weekday baseline is used. Negative net turnover is
 retained. Forecast dates are the three days immediately after the scope's latest
 sales date, which can differ by location.
 
-The range is prediction plus/minus the 90th percentile absolute error from nine
+The range is prediction plus/minus the 90th percentile absolute error from nine or eighteen
 backtest observations. It is indicative, not a calibrated 90% confidence interval.
 Each task fits its input history; this feature does not depend on an in-memory
 model surviving a restart. Results are persisted in `sales_turnover_forecast_runs`
@@ -113,10 +113,80 @@ https://www.weatherapi.com/pricing
 https://gold-api.com/docs
 https://calendarific.com/pricing
 
-This information is advisory and does **not** multiply or modify predictions.
-Using weather, gold prices or festivals as model inputs requires aligned historical
-features and out-of-sample validation first. These integrations use free endpoints
-or free-tier keys; no subscriptions are created automatically.
+## External Feature Models
+
+Structured API features can now affect predictions. Gemini narrative remains
+commentary and is never parsed into numerical model inputs. A baseline is retained
+until historical coverage and backtests justify an external model.
+
+- Weather: rainfall and maximum temperature for a specific branch.
+- Gold: last known USD/troy-ounce quote, carried at most seven days. No future
+  gold price is invented. Forecasts use the price actually available at their origin.
+- Festivals: separate Dhanteras and Akshaya Tritiya proximity values within seven
+  days before/after each verified event. Missing calendars are not zero-filled.
+- Candidate models: standardized ridge regression with weekday/trend controls and
+  weather, gold, festival, or combined features. At least 42 complete training days
+  and 80% point-in-time coverage are required. Constant external data is rejected.
+- Each candidate uses the same rolling three-day holdouts as the baseline: six
+  windows with >=90 history days, otherwise three. Selection requires at least 5%
+  lower MAE than the best baseline. Missing final-horizon inputs fall back to baseline.
+  These small holdouts are model-selection diagnostics, not a guarantee of accuracy.
+- All-location runs can use global gold/festival features; branch weather is never
+  applied to national turnover. Weather-enhanced models require a selected branch.
+
+### Storage and Logs
+
+Run `intelligence-engine/sql/sales_external_features.sql` manually before rollout
+(the engine's existing startup table creation also includes these tables).
+`sales_external_features` stores immutable provider vintages, including availability
+and retrieval timestamps. `sales_forecast_feature_inputs` records each forecast's
+input pool and model-selection metrics. `sales_external_fetch_logs` records requests,
+HTTP outcomes/timing, cache hits/misses, provider coverage and Gemini fallback events.
+Logs commit independently so failed forecast transactions do not erase fetch audits.
+Console records start with `external_fetch`. Credentials and query strings are omitted.
+
+```sql
+SELECT created_at, task_id, event_json
+FROM sales_external_fetch_logs ORDER BY id DESC LIMIT 50;
+SELECT scope, feature_group, COUNT(*), MIN(feature_date), MAX(feature_date)
+FROM sales_external_features GROUP BY scope, feature_group;
+```
+
+### Historical Feature Backfill
+
+Free current APIs cannot recreate historical forecast vintages. Features accumulate
+when external-enabled forecasts run; there is no automatic daily collection schedule.
+To activate enhanced models sooner, import a JSON array of verified historical
+features using `python scripts/import_sales_features.py /path/features.json` inside
+the engine container. Each row follows this shape:
+
+```json
+{
+  "scope": "branch:2",
+  "feature_group": "weather",
+  "feature_date": "2026-10-23",
+  "available_at": "2026-10-22T06:00:00+00:00",
+  "retrieved_at": "2026-10-22T08:00:00+00:00",
+  "provider": "verified-weather-provider",
+  "source": "https://provider.example/archive",
+  "values_json": {"rain_mm": 3.2, "max_temp_c": 30}
+}
+```
+
+Use `global` scope for `gold` (`price_usd_oz`) and `festivals`
+(`dhanteras_proximity`, `akshaya_proximity`, both 0..1). Do not assign historical
+availability timestamps unless the source proves that date. A calendar retrieved
+today is not automatically treated as available during past backtests. Weather
+actuals observed after a sales date are not substitutes for forecasts issued before
+that date. Imports are validated and idempotent; no date is inferred.
+
+### Prediction Retention
+
+Sales syncs do not delete predictions. The report uses newly synced actual sales
+alongside saved predictions. The latest completed forecast remains displayed while
+a newer task is pending or failed, even if it refers to an older snapshot. The
+report labels older-snapshot forecasts; historical predictions remain in the
+comparison table and the chart's selected history window.
 
 ## Verification
 

@@ -40,6 +40,24 @@ class SalesPredictionTests(unittest.TestCase):
         self.assertEqual(report_data(2)['history'][0]['y'], 90)
         self.assertEqual(report_data(3)['history'], [])
 
+    def test_new_snapshot_and_pending_task_keep_last_completed_forecast(self):
+        saved = {'forecast': [{'ds': '2026-10-21', 'baseline_yhat': 123}], 'snapshot_run_id': 'run-one'}
+        db.session.add(SalesTurnoverForecastRun(task_id='completed', snapshot_run_id='run-one',
+            branch_id=2, requested_by=self.user.id, result_json=saved, created_at=datetime(2026, 10, 20)))
+        db.session.add(SalesPredictionSyncRun(id='run-two', cutoff_date=date(2026, 10, 21),
+            first_date=date(2026, 4, 1), row_count=1, source_count=1, net_turnover=150,
+            diagnostics={}, created_at=datetime(2030, 1, 1)))
+        db.session.add(SalesTurnoverDailySnapshot(run_id='run-two', sales_date=date(2026, 10, 21),
+            branch_id=2, location_name='THRISSUR ROUND', invoice_turnover=150, return_turnover=0,
+            net_turnover=150, source_count=1))
+        db.session.add(SalesTurnoverForecastRun(task_id='pending', snapshot_run_id='run-two',
+            branch_id=2, requested_by=self.user.id, created_at=datetime(2026, 10, 22)))
+        db.session.commit()
+        result = report_data(2)
+        self.assertEqual(result['history'], [{'ds': '2026-10-21', 'y': 150}])
+        self.assertEqual(result['forecast_run']['result'], saved)
+        self.assertEqual(result['pending_task_id'], 'pending')
+
     def test_producer_uses_stream_and_pins_snapshot(self):
         with patch('app.services.sales_prediction.redis_client') as redis:
             result = enqueue_sales_forecast(self.user.id, 2, True)
