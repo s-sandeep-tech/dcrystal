@@ -603,58 +603,84 @@ def get_pending_customer_order_approvals_leaf_detail():
         parent_make_owner = request.args.get('parent_make_owner', '').strip()
         parent_collection_owner = request.args.get('parent_collection_owner', '').strip()
 
-        query = CustomerOrderApprovalPending.query
-        bh_col = clean_group_value(CustomerOrderApprovalPending.business_head_name)
-        co_col = clean_group_value(CustomerOrderApprovalPending.classification_owner)
-        mo_col = clean_group_value(CustomerOrderApprovalPending.make_owner)
-        coll_col = clean_group_value(CustomerOrderApprovalPending.collection_owner)
+        M = CustomerOrderApprovalPending
+        query = M.query
 
         if parent_bh:
-            query = query.filter(bh_col == parent_bh)
+            if parent_bh == 'Unknown':
+                query = query.filter((M.business_head_name == None) | (func.trim(M.business_head_name) == '') | (M.business_head_name == 'Unknown'))
+            else:
+                query = query.filter(M.business_head_name == parent_bh)
+
         if parent_classification_owner:
-            query = query.filter(co_col == parent_classification_owner)
+            if parent_classification_owner == 'Unknown':
+                query = query.filter((M.classification_owner == None) | (func.trim(M.classification_owner) == '') | (M.classification_owner == 'Unknown'))
+            else:
+                query = query.filter(M.classification_owner == parent_classification_owner)
+
         if parent_make_owner:
-            query = query.filter(mo_col == parent_make_owner)
+            if parent_make_owner == 'Unknown':
+                query = query.filter((M.make_owner == None) | (func.trim(M.make_owner) == '') | (M.make_owner == 'Unknown'))
+            else:
+                query = query.filter(M.make_owner == parent_make_owner)
+
         if parent_collection_owner:
-            query = query.filter(coll_col == parent_collection_owner)
+            if parent_collection_owner == 'Unknown':
+                query = query.filter((M.collection_owner == None) | (func.trim(M.collection_owner) == '') | (M.collection_owner == 'Unknown'))
+            else:
+                query = query.filter(M.collection_owner == parent_collection_owner)
 
         query = build_filter_query(query)
-        records = query.all()
 
-        # Group by supplier / party
+        # Single fast SQL aggregation for stage sums across all matching records
+        leaf_summary = query.with_entities(
+            func.count(M.id).label('record_count'),
+            func.coalesce(func.sum(M.manager_approval_pending_pcs), 0).label('mgr_pcs'),
+            func.coalesce(func.sum(M.manager_approval_pending_wt), 0).label('mgr_wt'),
+            func.coalesce(func.sum(M.estimation_and_advance_pending_pcs), 0).label('est_pcs'),
+            func.coalesce(func.sum(M.estimation_and_advance_pending_wt), 0).label('est_wt'),
+            func.coalesce(func.sum(M.collection_owner_approval_pending_pcs), 0).label('coll_pcs'),
+            func.coalesce(func.sum(M.collection_owner_approval_pending_wt), 0).label('coll_wt'),
+            func.coalesce(func.sum(M.customer_approval_pending_pcs), 0).label('cust_pcs'),
+            func.coalesce(func.sum(M.customer_approval_pending_wt), 0).label('cust_wt'),
+            func.coalesce(func.sum(M.verifying_team_approval_pending_pcs), 0).label('vt_pcs'),
+            func.coalesce(func.sum(M.verifying_team_approval_pending_wt), 0).label('vt_wt'),
+            func.coalesce(func.sum(M.advance_verification_pending_pcs), 0).label('adv_v_pcs'),
+            func.coalesce(func.sum(M.advance_verification_pending_wt), 0).label('adv_v_wt'),
+            func.coalesce(func.sum(M.party_order_creation_pending_pcs), 0).label('pty_pcs'),
+            func.coalesce(func.sum(M.party_order_creation_pending_wt), 0).label('pty_wt'),
+            func.coalesce(func.sum(M.composition_pending_pcs), 0).label('comp_pcs'),
+            func.coalesce(func.sum(M.composition_pending_wt), 0).label('comp_wt'),
+            func.coalesce(func.sum(M.total_pending_pcs), 0).label('tot_pcs'),
+            func.coalesce(func.sum(M.total_pending_wt), 0).label('tot_wt'),
+        ).first()
+
+        total_records = leaf_summary.record_count if leaf_summary else 0
+
+        stage_totals = [
+            {'label': 'Total Pending', 'pcs': int(leaf_summary.tot_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.tot_wt or 0) if leaf_summary else 0.0, 'color': 'green', 'prefix': 'total_pending'},
+            {'label': 'Manager Approval', 'pcs': int(leaf_summary.mgr_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.mgr_wt or 0) if leaf_summary else 0.0, 'color': 'purple', 'prefix': 'manager_approval_pending'},
+            {'label': 'Order Confirmation', 'pcs': int(leaf_summary.est_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.est_wt or 0) if leaf_summary else 0.0, 'color': 'amber', 'prefix': 'estimation_and_advance_pending'},
+            {'label': 'Collection Owner', 'pcs': int(leaf_summary.coll_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.coll_wt or 0) if leaf_summary else 0.0, 'color': 'blue', 'prefix': 'collection_owner_approval_pending'},
+            {'label': 'Customer Approval', 'pcs': int(leaf_summary.cust_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.cust_wt or 0) if leaf_summary else 0.0, 'color': 'indigo', 'prefix': 'customer_approval_pending'},
+            {'label': 'Verifying Team', 'pcs': int(leaf_summary.vt_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.vt_wt or 0) if leaf_summary else 0.0, 'color': 'yellow', 'prefix': 'verifying_team_approval_pending'},
+            {'label': 'Advance Verification', 'pcs': int(leaf_summary.adv_v_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.adv_v_wt or 0) if leaf_summary else 0.0, 'color': 'red', 'prefix': 'advance_verification_pending'},
+            {'label': 'Party Order Creation', 'pcs': int(leaf_summary.pty_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.pty_wt or 0) if leaf_summary else 0.0, 'color': 'cyan', 'prefix': 'party_order_creation_pending'},
+            {'label': 'Composition', 'pcs': int(leaf_summary.comp_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.comp_wt or 0) if leaf_summary else 0.0, 'color': 'teal', 'prefix': 'composition_pending'},
+        ]
+
+        # Fast record fetching capped to 300 to ensure fast DOM rendering
+        records = query.order_by(M.request_date.desc().nullslast(), M.id.desc()).limit(300).all()
+
         grouped_records = defaultdict(list)
         for rec in records:
             supplier_key = rec.party_name or 'Unknown Supplier'
             grouped_records[supplier_key].append(rec)
 
-        supplier_summaries = []
-        for idx, (sup_name, items) in enumerate(grouped_records.items()):
-            summary = {
-                'id': f"sup_{idx}",
-                'supplier': sup_name,
-                'party_code': items[0].party_code if items else '',
-                'party_type': items[0].party_type if items else '',
-                'manager_approval_pcs': sum(int(x.manager_approval_pending_pcs or 0) for x in items),
-                'manager_approval_wt': sum(float(x.manager_approval_pending_wt or 0) for x in items),
-                'order_confirmation_pcs': sum(int(x.estimation_and_advance_pending_pcs or 0) for x in items),
-                'order_confirmation_wt': sum(float(x.estimation_and_advance_pending_wt or 0) for x in items),
-                'collection_owner_pcs': sum(int(x.collection_owner_approval_pending_pcs or 0) for x in items),
-                'collection_owner_wt': sum(float(x.collection_owner_approval_pending_wt or 0) for x in items),
-                'customer_approval_pcs': sum(int(x.customer_approval_pending_pcs or 0) for x in items),
-                'customer_approval_wt': sum(float(x.customer_approval_pending_wt or 0) for x in items),
-                'verifying_team_pcs': sum(int(x.verifying_team_approval_pending_pcs or 0) for x in items),
-                'verifying_team_wt': sum(float(x.verifying_team_approval_pending_wt or 0) for x in items),
-                'advance_verification_pcs': sum(int(x.advance_verification_pending_pcs or 0) for x in items),
-                'advance_verification_wt': sum(float(x.advance_verification_pending_wt or 0) for x in items),
-                'party_order_creation_pcs': sum(int(x.party_order_creation_pending_pcs or 0) for x in items),
-                'party_order_creation_wt': sum(float(x.party_order_creation_pending_wt or 0) for x in items),
-                'composition_pcs': sum(int(x.composition_pending_pcs or 0) for x in items),
-                'composition_wt': sum(float(x.composition_pending_wt or 0) for x in items),
-                'total_pcs': sum(int(x.total_pending_pcs or 0) for x in items),
-                'total_weight': sum(float(x.total_pending_wt or 0) for x in items),
-                'details': items
-            }
-            supplier_summaries.append(summary)
+        supplier_summaries = [
+            {'id': f"sup_{idx}", 'supplier': k, 'party_code': items[0].party_code if items else '', 'details': items}
+            for idx, (k, items) in enumerate(grouped_records.items())
+        ]
 
         breadcrumbs = [
             {'label': label, 'value': value, 'icon': icon}
@@ -672,13 +698,15 @@ def get_pending_customer_order_approvals_leaf_detail():
             parent_classification_owner=parent_classification_owner,
             parent_make_owner=parent_make_owner,
             parent_collection_owner=parent_collection_owner,
-            supplier_summaries=supplier_summaries,
             records=records,
+            supplier_summaries=supplier_summaries,
+            stage_totals=stage_totals,
+            total_records=total_records,
             breadcrumbs=breadcrumbs,
         )
     except Exception as e:
         logger.error(f"Error in get_pending_customer_order_approvals_leaf_detail: {str(e)}")
-        return f"Error: {str(e)}", 500
+        return f'<div class="p-8 text-center text-red-500 font-bold">Error loading details: {str(e)}</div>', 200
 
 
 @dashboard_bp.route('/api/sync/pending-customer-order-approvals', methods=['POST'])

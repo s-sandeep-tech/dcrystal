@@ -9,6 +9,7 @@
     ('Party Order Creation', 'party_order_creation_pending', 'cyan'),
     ('Composition', 'composition_pending', 'teal')
 ] %}
+{% set display_total = total_records if total_records is defined else (records|length) %}
 {% macro value(v) %}{{ v if v is not none and v != '' else '-' }}{% endmacro %}
 {% macro date_value(v) %}{{ v.strftime('%d-%b-%Y') if v else '-' }}{% endmacro %}
 {% macro metric(label, pcs, wt, color) %}
@@ -18,7 +19,7 @@
     <header class="co-leaf-header">
         <span class="co-leaf-info material-symbols-outlined" aria-hidden="true">approval</span>
         <div class="co-leaf-heading">
-            <h2>Pending Customer Order Approval Details <span>{{ records|length }} Records</span></h2>
+            <h2>Pending Customer Order Approval Details <span>{{ display_total }} Records{% if display_total > records|length %} (Showing latest {{ records|length }}){% endif %}</span></h2>
             <div class="co-leaf-heading-row">
                 <div class="co-leaf-breadcrumb">
                     {% for b in breadcrumbs %}
@@ -53,16 +54,22 @@
         {% endfor %}
     </div>
 
-    <!-- Summary strip across all stages -->
+    <!-- Summary strip across all stages (precomputed in SQL) -->
     <div class="co-leaf-summary">
-        {% for label, prefix, color in stages %}
-            {% set sums = namespace(pcs=0, wt=0) %}
-            {% for rec in records %}
-                {% set sums.pcs = sums.pcs + (rec|attr(prefix ~ '_pcs') or 0) %}
-                {% set sums.wt = sums.wt + (rec|attr(prefix ~ '_wt') or 0) %}
+        {% if stage_totals is defined and stage_totals %}
+            {% for st in stage_totals %}
+                {{ metric(st.label, st.pcs, st.wt, st.color) }}
             {% endfor %}
-            {{ metric(label, sums.pcs, sums.wt, color) }}
-        {% endfor %}
+        {% else %}
+            {% for label, prefix, color in stages %}
+                {% set sums = namespace(pcs=0, wt=0) %}
+                {% for rec in records %}
+                    {% set sums.pcs = sums.pcs + (rec|attr(prefix ~ '_pcs') or 0) %}
+                    {% set sums.wt = sums.wt + (rec|attr(prefix ~ '_wt') or 0) %}
+                {% endfor %}
+                {{ metric(label, sums.pcs, sums.wt, color) }}
+            {% endfor %}
+        {% endif %}
     </div>
 
     <div class="co-leaf-body">
@@ -232,19 +239,29 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <th colspan="20">Grand Total ({{ records|length }} Records)</th>
-                        {% for label, prefix, color in stages %}
-                            {% set sums = namespace(pcs=0, wt=0) %}
-                            {% for rec in records %}
-                                {% set sums.pcs = sums.pcs + (rec|attr(prefix ~ '_pcs') or 0) %}
-                                {% set sums.wt = sums.wt + (rec|attr(prefix ~ '_wt') or 0) %}
+                        <th colspan="20">Grand Total ({{ display_total }} Total Records)</th>
+                        {% if stage_totals is defined and stage_totals %}
+                            {% for st in stage_totals %}
+                                <th>
+                                    {% if st.pcs or st.wt %}
+                                    {{ st.pcs|int }} / {{ '%.3f'|format(st.wt) }}
+                                    {% else %}-{% endif %}
+                                </th>
                             {% endfor %}
-                            <th>
-                                {% if sums.pcs or sums.wt %}
-                                {{ sums.pcs|int }} / {{ '%.3f'|format(sums.wt) }}
-                                {% else %}-{% endif %}
-                            </th>
-                        {% endfor %}
+                        {% else %}
+                            {% for label, prefix, color in stages %}
+                                {% set sums = namespace(pcs=0, wt=0) %}
+                                {% for rec in records %}
+                                    {% set sums.pcs = sums.pcs + (rec|attr(prefix ~ '_pcs') or 0) %}
+                                    {% set sums.wt = sums.wt + (rec|attr(prefix ~ '_wt') or 0) %}
+                                {% endfor %}
+                                <th>
+                                    {% if sums.pcs or sums.wt %}
+                                    {{ sums.pcs|int }} / {{ '%.3f'|format(sums.wt) }}
+                                    {% else %}-{% endif %}
+                                </th>
+                            {% endfor %}
+                        {% endif %}
                     </tr>
                 </tfoot>
             </table>
