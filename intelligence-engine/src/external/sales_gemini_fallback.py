@@ -4,6 +4,48 @@ from zoneinfo import ZoneInfo
 from ..config import settings
 from ..utils.logger import logger
 from .sales_audit import audit
+from .regional_calendar import CATALOG, region_for, validate_fallback
+import json
+
+
+def calendar_fallback(location, start_date, end_date, missing):
+    region = region_for(location)
+    if not region or not settings.active_gemini_api_key:
+        audit('skipped', provider='gemini_calendar', reason='missing_region_or_credentials')
+        return {}
+    years = list(range(int(start_date[:4]), int(end_date[:4]) + 1))
+    try:
+        from google import genai
+        from google.genai import types
+        audit('request', provider='gemini_calendar', region=region['state_code'], years=years, missing_parameters=missing)
+        prompt = f'''Use Google Search to find dated calendar facts for {region}, India, years {years}.
+Only supply missing groups {missing}. Festival names allowed: {list(CATALOG[region['state_code']])}.
+Return plain JSON with keys regional_festivals and weddings. Each has events and coverage arrays.
+Each event: name, kind (festival, wedding_date or wedding_season), date (YYYY-MM-DD),
+end_date (YYYY-MM-DD), region (exactly {region['state_code']}), source_url (a grounded source URL).
+Each coverage entry: year, complete_year, source_url. Mark complete_year true ONLY when a
+source supplies a complete calendar for that group and region for that entire year.
+Wedding seasons must be explicitly supported intervals, not invented from festival dates or
+broad national assumptions. Keep individual auspicious wedding dates separate from seasons.
+Omit unsupported facts and coverage. Cite sources with Google Search grounding.
+Do not supply prose, sales multipliers, turnover or past availability timestamps.'''
+        with genai.Client(api_key=settings.active_gemini_api_key,
+                          http_options=types.HttpOptions(timeout=60000)) as client:
+            response = client.models.generate_content(model=settings.GEMINI_MODEL, contents=prompt,
+                config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())]))
+        metadata = response.candidates[0].grounding_metadata
+        sources = [{'url': chunk.web.uri} for chunk in (metadata.grounding_chunks or [])
+                   if chunk.web and chunk.web.uri and chunk.web.uri.startswith('https://')] if metadata else []
+        raw = (response.text or '').strip()
+        if raw.startswith('```json') and raw.endswith('```'):
+            raw = raw[7:-3].strip()
+        result = validate_fallback(json.loads(raw), sources, region['state_code'], years)
+        result = {k: v for k, v in result.items() if k in missing}
+        audit('response', provider='gemini_calendar', accepted_groups=list(result), source_count=len(sources))
+        return result
+    except Exception as error:
+        audit('failure', provider='gemini_calendar', error_type=type(error).__name__)
+        return {}
 
 
 def gemini_fallback(location, start_date, end_date, missing):

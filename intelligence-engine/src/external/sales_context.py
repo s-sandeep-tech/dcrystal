@@ -11,7 +11,8 @@ from zoneinfo import ZoneInfo
 import redis
 from ..config import settings
 from ..utils.logger import logger
-from .sales_gemini_fallback import gemini_fallback
+from .sales_gemini_fallback import gemini_fallback, calendar_fallback
+from .regional_calendar import calendars
 from .sales_audit import audit, fetch_scope
 
 _redis_client = None
@@ -153,7 +154,8 @@ def sales_context(location, start_date, end_date, allow_gemini_fallback=False, t
         result = _sales_context(location, start_date, end_date, allow_gemini_fallback)
         for provider, data in result.get('parameters', {}).items():
             audit('coverage', provider=provider, status=data['status'],
-                  returned_days=len(data.get('days', [])), missing_events=data.get('missing_events', []))
+                  returned_days=len(data.get('days', [])), missing_events=data.get('missing_events', []),
+                  reason=data.get('message') if data['status'] != 'available' else None)
         return result
     finally:
         fetch_scope.reset(token)
@@ -167,6 +169,7 @@ def _sales_context(location, start_date, end_date, allow_gemini_fallback=False):
     # Isolate both location and forecast period, and never reuse old Gemini entries.
     identity = [location, start.isoformat(), end.isoformat(), retrieved[:10],
                 os.getenv('SALES_WEATHER_LOCATIONS_JSON', '{}'),
+                os.getenv('SALES_REGION_LOCATIONS_JSON', '{}'),
                 bool(os.getenv('SALES_WEATHER_API_KEY')), bool(os.getenv('SALES_CALENDARIFIC_API_KEY')),
                 allow_gemini_fallback, settings.GEMINI_MODEL if allow_gemini_fallback else None]
     digest = hashlib.sha256(json.dumps(identity).encode()).hexdigest()
@@ -180,6 +183,17 @@ def _sales_context(location, start_date, end_date, allow_gemini_fallback=False):
                 # Exceptions may contain credential-bearing URLs; log only their type.
                 logger.warning('Sales context %s unavailable (%s)', name, type(exc).__name__)
                 parameters[name] = unavailable(f'{name.capitalize()}: provider unavailable; no values inferred.')
+        parameters.update(calendars(location, start, end))
+        calendar_missing = [g for g in ('regional_festivals', 'weddings') if parameters[g]['status'] != 'available']
+        if allow_gemini_fallback and calendar_missing:
+            additions = calendar_fallback(location, start.isoformat(), end.isoformat(), calendar_missing)
+            for group, supplement in additions.items():
+                api = parameters[group]
+                # Keep API events and source attribution; supplement only uncovered calendar groups.
+                supplement['events'] = api.get('events', []) + supplement['events']
+                supplement['api_source'] = api.get('source')
+                supplement['coverage_years'] = sorted(set(api.get('coverage_years', []) + supplement['coverage_years']))
+                parameters[group] = supplement
         available = any(p['status'] in ('available', 'partial') for p in parameters.values())
         result = {'status': 'available' if available else 'unavailable',
             'summary': '\n\n'.join(p['message'] for p in parameters.values()),
@@ -187,7 +201,8 @@ def _sales_context(location, start_date, end_date, allow_gemini_fallback=False):
             'sources': [p['source'] for p in parameters.values() if 'source' in p],
             'parameters': parameters, 'location': location, 'start_date': start.isoformat(),
             'end_date': end.isoformat(), 'retrieved_at': retrieved, 'affects_forecast': False}
-        missing = [name for name, value in parameters.items() if value['status'] != 'available']
+        missing = [name for name, value in parameters.items() if value['status'] != 'available'
+                   and name not in ('regional_festivals', 'weddings')]
         result['gemini_fallback'] = {'status': 'disabled' if not allow_gemini_fallback else 'not_needed'}
         if allow_gemini_fallback and missing:
             fallback = gemini_fallback(location, start.isoformat(), end.isoformat(), missing)
@@ -201,4 +216,4 @@ def _sales_context(location, start_date, end_date, allow_gemini_fallback=False):
             else:
                 result['summary'] += '\n\n' + fallback['message']
         return result
-    return cached(f'intelligence:sales_context:api-v2:{digest}', 300, fetch)
+    return cached(f'intelligence:sales_context:api-v3:{digest}', 300, fetch)

@@ -9,7 +9,9 @@ from ..db.models import SalesExternalFeature, SalesForecastFeatureInput
 from .sales_audit import audit
 
 FIELDS = {'weather': ('rain_mm', 'max_temp_c'), 'gold': ('price_usd_oz',),
-          'festivals': ('dhanteras_proximity', 'akshaya_proximity')}
+          'festivals': ('dhanteras_proximity', 'akshaya_proximity'),
+          'regional_festivals': ('festival_day', 'festival_lead_7', 'festival_after_7'),
+          'weddings': ('wedding_season', 'days_to_wedding', 'wedding_dates_next_7')}
 
 
 def validate_feature(row):
@@ -37,8 +39,13 @@ def validate_feature(row):
         raise ValueError('Invalid gold price')
     if group == 'festivals' and not all(0 <= v <= 1 for v in values.values()):
         raise ValueError('Invalid festival proximity')
-    if group == 'weather' and not row['scope'].startswith('branch:'):
-        raise ValueError('Weather requires a branch scope')
+    if group == 'regional_festivals' and not all(0 <= v <= 1 for v in values.values()):
+        raise ValueError('Invalid regional festival values')
+    if group == 'weddings' and not (values['wedding_season'] in (0, 1) and 0 <= values['days_to_wedding'] <= 31
+            and 0 <= values['wedding_dates_next_7'] <= 7):
+        raise ValueError('Invalid wedding values')
+    if group in ('weather', 'regional_festivals', 'weddings') and not row['scope'].startswith('branch:'):
+        raise ValueError('Regional features require a branch scope')
     row['values_json'] = values
     row['id'] = hashlib.sha256(json.dumps(row, default=str, sort_keys=True).encode()).hexdigest()
     return row
@@ -62,6 +69,28 @@ def context_features(context, branch_id):
             observed = datetime.fromisoformat(data['observed_at'])
             rows.append({**common, 'scope': 'global', 'feature_date': observed.date().isoformat(),
                          'values_json': {'price_usd_oz': data['price']}})
+        elif group in ('regional_festivals', 'weddings') and branch_id is not None:
+            covered = set(data.get('coverage_years', []))
+            events = [(e, date.fromisoformat(e['date']), date.fromisoformat(e.get('end_date', e['date'])))
+                      for e in data['events']]
+            for year in covered:
+                day = date(year, 1, 1)
+                while day.year == year:
+                    lookahead = 7 if group == 'regional_festivals' else 30
+                    if (day + timedelta(days=lookahead)).year not in covered:
+                        day += timedelta(days=1)
+                        continue
+                    if group == 'regional_festivals':
+                        values = {'festival_day': float(any(a <= day <= b for _, a, b in events)),
+                            'festival_lead_7': max([0] + [max(0, 1 - (a - day).days / 8) for _, a, _ in events if 1 <= (a - day).days <= 7]),
+                            'festival_after_7': max([0] + [max(0, 1 - (day - b).days / 8) for _, _, b in events if 1 <= (day - b).days <= 7])}
+                    else:
+                        upcoming = {(a - day).days for e, a, _ in events if e['kind'] == 'wedding_date' and 0 <= (a - day).days <= 30}
+                        values = {'wedding_season': float(any(a <= day <= b for e, a, b in events if e['kind'] == 'wedding_season')),
+                            'days_to_wedding': min(upcoming, default=31),
+                            'wedding_dates_next_7': sum(0 <= days < 7 for days in upcoming)}
+                    rows.append({**common, 'scope': f'branch:{branch_id}', 'feature_date': day.isoformat(), 'values_json': values})
+                    day += timedelta(days=1)
         elif group == 'festivals' and not data.get('missing_events'):
             for year in {date.fromisoformat(e['date']).year for e in data['events']}:
                 events = {e['name']: date.fromisoformat(e['date']) for e in data['events']

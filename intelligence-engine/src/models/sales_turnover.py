@@ -44,7 +44,10 @@ def forecast_daily(rows, use_prophet=True, feature_rows=None, forecast_origin=No
         candidates['prophet'] = prophet_forecast
     index = FeatureIndex(feature_rows or [])
     groups = {'external_weather': ['weather'], 'external_gold': ['gold'],
-              'external_festivals': ['festivals'], 'external_combined': ['weather', 'gold', 'festivals']}
+              'external_festivals': ['festivals'], 'external_combined': ['weather', 'gold', 'festivals'],
+              'external_regional_festivals': ['regional_festivals'], 'external_weddings': ['weddings'],
+              'external_regional_calendar': ['regional_festivals', 'weddings'],
+              'external_all': ['weather', 'gold', 'festivals', 'regional_festivals', 'weddings']}
     if feature_rows is not None:
         for name, fields in groups.items():
             candidates[name] = lambda train, horizon, fields=fields: external_forecast(train, index, fields,

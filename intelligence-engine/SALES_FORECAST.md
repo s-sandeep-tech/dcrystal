@@ -115,6 +115,50 @@ https://calendarific.com/pricing
 
 ## External Feature Models
 
+### Regional Festivals and Weddings
+
+Configure exact branch labels in `.env`, then recreate the engine container:
+
+```dotenv
+SALES_REGION_LOCATIONS_JSON={"GUWAHATI":{"state_code":"IN-AS","city":"Guwahati"},"THRISSUR ROUND":{"state_code":"IN-KL","city":"Thrissur"}}
+```
+
+Supported state catalogs: KL (Onam/Vishu), TN (Pongal/Tamil New Year), AS (Bihu),
+WB (Durga Puja), KA (Ugadi/Dasara), AP (Ugadi/Sankranti), TS (Ugadi/Bathukamma),
+MH (Gudi Padwa/Ganesh Chaturthi), GJ (Navratri/Uttarayan), PB (Baisakhi), prefixed
+with `IN-`. Unsupported or unmapped branches retain baseline fallback for these
+groups. National aggregate models do not receive one branch's regional features.
+Calendarific is queried first using its state filter and the existing free-tier
+key. A holiday list does not constitute a wedding calendar; absent wedding dates
+are explicitly marked unavailable.
+
+With the existing Gemini fallback checkbox enabled, missing regional calendar
+groups trigger a separate Google Search grounded JSON request. Dates and seasons
+must match the requested region/year, have a valid bounded date interval, and cite
+a URL present in grounding metadata. Only catalogued festival names are accepted.
+Calendar coverage must explicitly identify a complete year before daily zero/nonzero
+features are generated; partial facts are displayed but are not treated as complete
+training calendars. Grounding and schema checks establish provenance, not independent
+proof of a source's calendar accuracy. Provider omissions can still require verified
+manual calendar backfill. Successful API events are retained alongside supplements.
+
+The new groups reuse existing feature/audit tables; no additional SQL migration is
+needed beyond the prior external-feature migration. They preserve retrieval-time
+availability and cannot be used retroactively to improve old backtests.
+
+New feature schemas for branch-scoped historical imports:
+
+- `regional_festivals`: `festival_day` (0/1), `festival_lead_7` and `festival_after_7`
+  (0..1 proximity to regional events).
+- `weddings`: `wedding_season` (0/1), `days_to_wedding` (0..30; 31 means no verified
+  wedding date in the next 30 days), `wedding_dates_next_7` (0..7, including today).
+
+Regional-calendar and wedding-only candidates, their combination and an all-feature
+candidate compete with existing models under the same 42-day/80%-coverage and 5%
+backtest improvement rules. Missing future inputs retain the baseline. Fetch logs
+include state, requested years, coverage gaps, accepted/rejected Gemini facts and
+fallback requests. No new paid service is activated automatically.
+
 Structured API features can now affect predictions. Gemini narrative remains
 commentary and is never parsed into numerical model inputs. A baseline is retained
 until historical coverage and backtests justify an external model.
