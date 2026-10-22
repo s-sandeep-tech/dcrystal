@@ -5233,7 +5233,7 @@ def sync_customer_order_analysis_task(task_type_override=None, progress_range=(0
                 'customer_name': row.get('customer_name'),
                 'customer_phone_number': row.get('customer_phone_number'),
                 'order_status': row.get('order_status'),
-                'expected_delivery_date': row.get('expected_delivery_date'),
+                'expected_delivery_date': row.get('customer_due_date'),
                 'classification_owner': row.get('classification_owner'),
                 'make_owner': row.get('make_owner'),
                 'collection_wner': row.get('collection_wner'),
@@ -5395,7 +5395,7 @@ def sync_customer_order_fulfilment_summary_task(task_type_override=None, progres
             off_delv_date = off_delv_dt.date() if off_delv_dt else None
             shop_delv_date = parse_date(r.get('shop_delivery_date'))
             cust_delv_date = parse_date(r.get('customer_delivery_date'))
-            exp_delv_dt = parse_datetime(r.get('expected_delivery_date'))
+            exp_delv_dt = parse_datetime(r.get('customer_due_date') or r.get('expected_delivery_date'))
             exp_delv_date = exp_delv_dt.date() if exp_delv_dt else None
             adv_dt = parse_datetime(r.get('advance_date'))
 

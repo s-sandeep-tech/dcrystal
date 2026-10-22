@@ -22,6 +22,24 @@ class CustomerOrderSyncTests(unittest.TestCase):
         self.assertEqual(records[0]['combine_order_status'], 'Customer delivery pending')
         self.assertEqual(records[0]['order_status'], 'Delivered to office')
 
+    def test_customer_due_date_maps_to_expected_delivery_date(self):
+        from datetime import datetime
+        from app.models.customer_order_analysis import CustomerOrderAnalysisSnapshot
+        due = datetime(2026, 11, 15, 10, 0, 0)
+        connection = Mock()
+        connection.cursor.return_value.fetchall.return_value = [{
+            'request_no': 'REQ-2',
+            'customer_due_date': due,
+        }]
+        with patch.object(sync_tasks, 'emit_sync_update'), \
+                patch.object(sync_tasks, 'get_external_db_connection', return_value=connection), \
+                patch.object(sync_tasks, 'db') as database, \
+                patch.object(CustomerOrderAnalysisSnapshot.__table__, 'create'):
+            result = sync_tasks.sync_customer_order_analysis_task()
+        self.assertEqual(result['status'], 'success')
+        records = database.session.bulk_insert_mappings.call_args.args[1]
+        self.assertEqual(records[0]['expected_delivery_date'], due)
+
     def test_progress_uses_supported_keyword_and_handles_source_failure(self):
         with patch.object(sync_tasks, 'emit_sync_update', autospec=True) as emit, \
                 patch.object(sync_tasks, 'get_external_db_connection', side_effect=RuntimeError('Source unavailable')), \
