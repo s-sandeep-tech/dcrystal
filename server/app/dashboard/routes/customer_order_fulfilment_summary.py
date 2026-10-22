@@ -522,61 +522,15 @@ def customer_order_fulfilment_summary():
         if hierarchy_id not in HIERARCHIES:
             hierarchy_id = 1
         current_hierarchy = HIERARCHIES[hierarchy_id]
-        levels = current_hierarchy['levels']
-
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 50, type=int)
-
-        search_field_names = [lvl['field'] for lvl in levels]
-        base_query = db.session.query(CustomerOrderFulfilmentSummarySnapshot)
-        filtered_query = build_filter_query(base_query, search_fields=search_field_names)
-
-        # Global stats across entire filtered dataset
-        stats = compute_global_stats(filtered_query)
-
-        # Level 0 Grouping
-        level_0_field = getattr(CustomerOrderFulfilmentSummarySnapshot, levels[0]['field'])
-        row_aggs = get_metric_aggregates()
-
-        group_query = filtered_query.with_entities(level_0_field, *row_aggs)
-        group_query = group_query.group_by(level_0_field).order_by(level_0_field.desc() if levels[0]['field'] in ('report_month', 'report_date') else level_0_field.asc())
-
-        pagination = group_query.paginate(page=page, per_page=per_page, error_out=False)
-
-        processed_rows = []
-        is_leaf = len(levels) == 1
-        for r in pagination.items:
-            val = r[0]
-            raw_val = str(val) if val is not None else 'Unknown'
-            display_label = format_display_label(levels[0]['field'], val)
-            processed_rows.append({
-                'label': display_label,
-                'level_idx': 0,
-                'level_name': levels[0]['label'],
-                'level_icon': levels[0]['icon'],
-                'path': [raw_val],
-                'is_leaf': is_leaf,
-                'ord_wt': float(r.ord_wt or 0), 'ord_pcs': int(r.ord_pcs or 0),
-                'rej_wt': float(r.rej_wt or 0), 'rej_pcs': int(r.rej_pcs or 0),
-                'can_wt': float(r.can_wt or 0), 'can_pcs': int(r.can_pcs or 0),
-                'appr_wt': float(r.appr_wt or 0), 'appr_pcs': int(r.appr_pcs or 0),
-                'acc_wt': float(r.acc_wt or 0), 'acc_pcs': int(r.acc_pcs or 0),
-                'bar_wt': float(r.bar_wt or 0), 'bar_pcs': int(r.bar_pcs or 0),
-                'hm_wt': float(r.hm_wt or 0), 'hm_pcs': int(r.hm_pcs or 0),
-                'qc_wt': float(r.qc_wt or 0), 'qc_pcs': int(r.qc_pcs or 0),
-                'inv_wt': float(r.inv_wt or 0), 'inv_pcs': int(r.inv_pcs or 0),
-                'del_wt': float(r.del_wt or 0), 'del_pcs': int(r.del_pcs or 0),
-                'pend_del_wt': float(r.pend_del_wt or 0), 'pend_del_pcs': int(r.pend_del_pcs or 0),
-            })
 
         filter_options = get_filter_options()
 
         return render_template('customer_order_fulfilment_summary.html',
                                unread_count=unread_count,
                                sync_time=sync_time,
-                               stats=stats,
-                               rows=processed_rows,
-                               pagination=pagination,
+                               stats=None,
+                               rows=[],
+                               pagination=None,
                                hierarchies=HIERARCHIES,
                                current_hierarchy=current_hierarchy,
                                current_level_idx=0,

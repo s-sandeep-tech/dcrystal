@@ -23,14 +23,24 @@ async function loadFulfilmentViewData() {
     const activeView = document.getElementById('view-customer-order-fulfilment');
     if (!activeView) return;
 
+    activeView.innerHTML = `
+        <div class="flex flex-col items-center justify-center min-h-[350px] text-gray-400 gap-3">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
+            <span class="text-xs font-semibold text-gray-500">Loading report data...</span>
+        </div>`;
+
     const urlParams = new URLSearchParams(window.location.search);
     const searchParams = urlParams.toString();
 
     try {
+        const headers = {};
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetch(`/partial/customerorderfulfilmentsummary?${searchParams}`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-            }
+            headers: headers
         });
         if (!response.ok) {
             const errorText = await response.text();
@@ -63,6 +73,7 @@ async function loadFulfilmentViewData() {
         activeView.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Error loading report data: ${error.message}</div>`;
     }
 }
+window.loadFulfilmentViewData = loadFulfilmentViewData;
 
 function updateHeaderStats(stats) {
     if (!stats) return;
@@ -389,6 +400,13 @@ function toggleFulfilmentFilters() {
 }
 window.toggleFulfilmentFilters = toggleFulfilmentFilters;
 
+window.updateHeaderStats = updateHeaderStats;
+window.changeHierarchy = changeHierarchy;
+window.changePage = changePage;
+window.changePerPage = changePerPage;
+window.applyFulfilmentFilters = applyFulfilmentFilters;
+window.resetFulfilmentFilters = resetFulfilmentFilters;
+
 document.addEventListener('DOMContentLoaded', () => {
     const tableArea = document.getElementById('table-area');
     if (tableArea) tableArea.style.zoom = currentZoom;
@@ -415,6 +433,12 @@ document.addEventListener('DOMContentLoaded', () => {
             button.classList.add('text-gray-400');
         }
     }
+
+    loadFulfilmentViewData();
+});
+
+window.addEventListener('popstate', () => {
+    loadFulfilmentViewData();
 });
 
 // Leaf Modal Functions
