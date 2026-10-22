@@ -383,6 +383,23 @@
 
             <!-- State -->
             <div id="filter-state-container"></div>
+
+            <!-- Request Date Range -->
+            <div class="space-y-1">
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Request Date Range</label>
+                <div class="grid grid-cols-2 gap-1.5">
+                    <div>
+                        <span class="text-[8px] text-gray-400 font-medium">From</span>
+                        <input type="date" id="filter-request-date-from"
+                            class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[11px] focus:ring-0 focus:border-primary p-1.5" />
+                    </div>
+                    <div>
+                        <span class="text-[8px] text-gray-400 font-medium">To</span>
+                        <input type="date" id="filter-request-date-to"
+                            class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-[11px] focus:ring-0 focus:border-primary p-1.5" />
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -394,12 +411,11 @@
         </button>
     </div>
 </aside>
-
-<div id="approvals-filter-data" data-options='{{ filter_options|tojson|safe }}' style="display:none;"></div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
+<div id="approvals-filter-data" hidden data-options='{{ filter_options | tojson }}'></div>
 <script src="{{ url_for('static', filename='js/pending_customer_order_approvals.js') }}"></script>
 {% endblock %}
 
