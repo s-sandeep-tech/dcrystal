@@ -183,6 +183,22 @@ function initializeApprovalsPage() {
         if (el) el.value = reqTo;
     }
 
+    const delivPeriod = urlParams.get('customer_delivery_period') || urlParams.get('delivery_period');
+    if (delivPeriod) {
+        const el = document.getElementById('filter-customer-delivery-period');
+        if (el) el.value = delivPeriod;
+    }
+    const delivFrom = urlParams.get('customer_delivery_date_from');
+    if (delivFrom) {
+        const el = document.getElementById('filter-customer-delivery-from');
+        if (el) el.value = delivFrom;
+    }
+    const delivTo = urlParams.get('customer_delivery_date_to');
+    if (delivTo) {
+        const el = document.getElementById('filter-customer-delivery-to');
+        if (el) el.value = delivTo;
+    }
+
     // Restore filter sidebar visibility if previously toggled
     if (localStorage.getItem('pending_approvals_filter_visible') === 'false') {
         const sidebar = document.getElementById('approvals-filter-sidebar');
@@ -229,6 +245,15 @@ function getFilterValues() {
     const reqTo = document.getElementById('filter-request-date-to')?.value;
     if (reqTo) filters['request_date_to'] = reqTo;
 
+    const delivPeriod = document.getElementById('filter-customer-delivery-period')?.value;
+    if (delivPeriod) filters['customer_delivery_period'] = delivPeriod;
+
+    const delivFrom = document.getElementById('filter-customer-delivery-from')?.value;
+    if (delivFrom) filters['customer_delivery_date_from'] = delivFrom;
+
+    const delivTo = document.getElementById('filter-customer-delivery-to')?.value;
+    if (delivTo) filters['customer_delivery_date_to'] = delivTo;
+
     const searchVal = document.getElementById('hierarchy-search')?.value?.trim();
     if (searchVal) filters['search'] = searchVal;
 
@@ -263,6 +288,12 @@ function resetGlobalFilters() {
     if (reqFrom) reqFrom.value = '';
     const reqTo = document.getElementById('filter-request-date-to');
     if (reqTo) reqTo.value = '';
+    const delivPeriod = document.getElementById('filter-customer-delivery-period');
+    if (delivPeriod) delivPeriod.value = '';
+    const delivFrom = document.getElementById('filter-customer-delivery-from');
+    if (delivFrom) delivFrom.value = '';
+    const delivTo = document.getElementById('filter-customer-delivery-to');
+    if (delivTo) delivTo.value = '';
     const searchVal = document.getElementById('hierarchy-search');
     if (searchVal) searchVal.value = '';
 
@@ -326,6 +357,18 @@ function removeFilterChip(key) {
     }
     if (key === 'request_date_to') {
         const el = document.getElementById('filter-request-date-to');
+        if (el) el.value = '';
+    }
+    if (key === 'customer_delivery_period' || key === 'delivery_period') {
+        const el = document.getElementById('filter-customer-delivery-period');
+        if (el) el.value = '';
+    }
+    if (key === 'customer_delivery_date_from') {
+        const el = document.getElementById('filter-customer-delivery-from');
+        if (el) el.value = '';
+    }
+    if (key === 'customer_delivery_date_to') {
+        const el = document.getElementById('filter-customer-delivery-to');
         if (el) el.value = '';
     }
     if (key === 'search') {

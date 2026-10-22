@@ -8,7 +8,7 @@ from app.models.customer_order_approval_pending import (
 )
 from app.extensions import db
 from sqlalchemy import String, false, func
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
 from collections import defaultdict
 import logging
@@ -99,7 +99,7 @@ def build_filter_query(base_query):
     elif reorder_val in ('no', 'n', 'false', '0'):
         query = query.filter(func.lower(CustomerOrderApprovalPending.reorder).in_(['no', 'n', 'false', '0']))
 
-    # Date range filters
+    # Request Date range filters
     req_date_from = request.args.get('request_date_from') or request.args.get('request_date_start')
     req_date_to = request.args.get('request_date_to') or request.args.get('request_date_end')
     if req_date_from:
@@ -114,6 +114,74 @@ def build_filter_query(base_query):
             query = query.filter(CustomerOrderApprovalPending.request_date <= d_to)
         except ValueError:
             pass
+
+    # Customer Delivery Date Range filters
+    deliv_date_from = request.args.get('customer_delivery_date_from') or request.args.get('customer_delivery_date_start')
+    deliv_date_to = request.args.get('customer_delivery_date_to') or request.args.get('customer_delivery_date_end')
+    if deliv_date_from:
+        try:
+            cd_from = datetime.strptime(deliv_date_from.strip(), "%Y-%m-%d").date()
+            query = query.filter(CustomerOrderApprovalPending.customer_expected_delivery_date >= cd_from)
+        except ValueError:
+            pass
+    if deliv_date_to:
+        try:
+            cd_to = datetime.strptime(deliv_date_to.strip(), "%Y-%m-%d").date()
+            query = query.filter(CustomerOrderApprovalPending.customer_expected_delivery_date <= cd_to)
+        except ValueError:
+            pass
+
+    # Customer Delivery Period (overdue, today, this_week, this_month, next_month, 1_3, 4_7, 7_plus)
+    deliv_period = (request.args.get('customer_delivery_period') or request.args.get('delivery_period') or '').strip().lower()
+    if deliv_period and deliv_period != 'all':
+        try:
+            today = datetime.now(ZoneInfo('Asia/Kolkata')).date()
+        except Exception:
+            today = date.today()
+
+        query = query.filter(CustomerOrderApprovalPending.customer_expected_delivery_date.isnot(None))
+
+        if deliv_period == 'overdue':
+            query = query.filter(CustomerOrderApprovalPending.customer_expected_delivery_date < today)
+        elif deliv_period in ('today', 'due_today'):
+            query = query.filter(CustomerOrderApprovalPending.customer_expected_delivery_date == today)
+        elif deliv_period in ('this_week', 'week'):
+            week_start = today - timedelta(days=today.weekday())
+            week_end = week_start + timedelta(days=6)
+            query = query.filter(
+                CustomerOrderApprovalPending.customer_expected_delivery_date >= week_start,
+                CustomerOrderApprovalPending.customer_expected_delivery_date <= week_end
+            )
+        elif deliv_period in ('this_month', 'month'):
+            month_start = date(today.year, today.month, 1)
+            next_month_start_date = date(today.year + 1, 1, 1) if today.month == 12 else date(today.year, today.month + 1, 1)
+            month_end = next_month_start_date - timedelta(days=1)
+            query = query.filter(
+                CustomerOrderApprovalPending.customer_expected_delivery_date >= month_start,
+                CustomerOrderApprovalPending.customer_expected_delivery_date <= month_end
+            )
+        elif deliv_period == 'next_month':
+            next_month_start_date = date(today.year + 1, 1, 1) if today.month == 12 else date(today.year, today.month + 1, 1)
+            month_after_next_date = date(next_month_start_date.year + 1, 1, 1) if next_month_start_date.month == 12 else date(next_month_start_date.year, next_month_start_date.month + 1, 1)
+            next_month_end = month_after_next_date - timedelta(days=1)
+            query = query.filter(
+                CustomerOrderApprovalPending.customer_expected_delivery_date >= next_month_start_date,
+                CustomerOrderApprovalPending.customer_expected_delivery_date <= next_month_end
+            )
+        elif deliv_period == '1_3':
+            query = query.filter(
+                CustomerOrderApprovalPending.customer_expected_delivery_date >= today + timedelta(days=1),
+                CustomerOrderApprovalPending.customer_expected_delivery_date <= today + timedelta(days=3)
+            )
+        elif deliv_period == '4_7':
+            query = query.filter(
+                CustomerOrderApprovalPending.customer_expected_delivery_date >= today + timedelta(days=4),
+                CustomerOrderApprovalPending.customer_expected_delivery_date <= today + timedelta(days=7)
+            )
+        elif deliv_period == '7_plus':
+            query = query.filter(
+                CustomerOrderApprovalPending.customer_expected_delivery_date > today + timedelta(days=7)
+            )
 
     # Search filter
     search = (request.args.get('search') or '').strip()
