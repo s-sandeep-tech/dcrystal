@@ -385,12 +385,21 @@
             <div id="filter-state-container"></div>
         </div>
     </div>
+
+    <!-- Apply Filters Button -->
+    <div class="p-4 bg-white dark:bg-background-dark border-t border-gray-200 dark:border-gray-800 shrink-0">
+        <button onclick="applyFilters()"
+            class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
+        </button>
+    </div>
 </aside>
 
 <div id="approvals-filter-data" data-options='{{ filter_options|tojson|safe }}' style="display:none;"></div>
 {% endblock %}
 
-{% block scripts %}
-<script src="{{ url_for('static', filename='js/custom_multi_select.js') }}"></script>
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pending_customer_order_approvals.js') }}"></script>
 {% endblock %}
+

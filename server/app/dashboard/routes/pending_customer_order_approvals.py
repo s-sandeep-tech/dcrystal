@@ -225,7 +225,7 @@ def customer_order_approvals_alias():
 
 
 @dashboard_bp.route('/api/pending-customer-order-approvals/data')
-@jwt_required()
+@jwt_required(optional=True)
 def pending_customer_order_approvals_data():
     try:
         CustomerOrderApprovalPendingSnapshot.__table__.create(db.engine, checkfirst=True)
@@ -367,7 +367,7 @@ def pending_customer_order_approvals_data():
 
 
 @dashboard_bp.route('/partial/pending-customer-order-approvals')
-@jwt_required()
+@jwt_required(optional=True)
 def get_pending_customer_order_approvals_partial():
     try:
         CustomerOrderApprovalPendingSnapshot.__table__.create(db.engine, checkfirst=True)
@@ -595,7 +595,7 @@ def get_pending_customer_order_approvals_partial():
 
 
 @dashboard_bp.route('/partial/pending-customer-order-approvals/leaf_detail')
-@jwt_required()
+@jwt_required(optional=True)
 def get_pending_customer_order_approvals_leaf_detail():
     try:
         parent_bh = request.args.get('parent_bh', '').strip()
