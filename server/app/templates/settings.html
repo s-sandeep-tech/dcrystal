@@ -485,13 +485,16 @@
                                 <div id="sync-wrapper-customer_order_approval_pending"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                                        <div
+                                            class="size-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
                                             <span
                                                 class="material-symbols-outlined text-amber-600 text-xl">approval</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Pending Customer Order Approvals Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Refresh customer order approval pending details from ext_view.vw_customer_order_approval_pending_details</p>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Pending
+                                                Customer Order Approvals Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Refresh customer order
+                                                approval pending details </p>
                                         </div>
                                     </div>
                                     <button id="sync-customer-order-approval-pending-btn"
@@ -504,10 +507,13 @@
                                 <div id="sync-wrapper-party_order_accept_cancel_delivery"
                                     class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all duration-300">
                                     <div class="flex items-center gap-4">
-                                        <span class="material-symbols-outlined text-blue-600 text-xl">local_shipping</span>
+                                        <span
+                                            class="material-symbols-outlined text-blue-600 text-xl">local_shipping</span>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Party Order Acceptance, Cancellation &amp; Delivery Sync</h4>
-                                            <p class="text-[11px] text-gray-500 font-medium">Refresh only the acceptance, cancellation and delivery snapshot</p>
+                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Party Order
+                                                Acceptance, Cancellation &amp; Delivery Sync</h4>
+                                            <p class="text-[11px] text-gray-500 font-medium">Refresh only the
+                                                acceptance, cancellation and delivery snapshot</p>
                                         </div>
                                     </div>
                                     <button id="sync-party-order-accept-cancel-delivery-btn"
@@ -966,34 +972,50 @@
                                 <div id="sync-wrapper-sales_prediction_data"
                                     class="flex flex-wrap items-center justify-between gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl transition-all">
                                     <div class="flex items-center gap-4">
-                                        <div class="size-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
-                                            <span class="material-symbols-outlined text-emerald-600 text-xl">monitoring</span>
+                                        <div
+                                            class="size-10 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                                            <span
+                                                class="material-symbols-outlined text-emerald-600 text-xl">monitoring</span>
                                         </div>
                                         <div>
                                             <div class="flex flex-wrap items-center gap-3">
-                                                <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Sales Prediction Data Sync</h4>
+                                                <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Sales
+                                                    Prediction Data Sync</h4>
                                                 <div class="flex items-center gap-3 text-xs">
-                                                    <label class="flex items-center gap-1.5 cursor-pointer text-gray-700 dark:text-gray-300 text-[11px] select-none">
-                                                        <input id="sales-auto-forecast" type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-0"> Forecast after sync
+                                                    <label
+                                                        class="flex items-center gap-1.5 cursor-pointer text-gray-700 dark:text-gray-300 text-[11px] select-none">
+                                                        <input id="sales-auto-forecast" type="checkbox"
+                                                            class="rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-0">
+                                                        Forecast after sync
                                                     </label>
-                                                    <label class="flex items-center gap-1.5 cursor-pointer text-gray-700 dark:text-gray-300 text-[11px] select-none">
-                                                        <input id="sales-settings-external" type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-0"> Gemini external context
+                                                    <label
+                                                        class="flex items-center gap-1.5 cursor-pointer text-gray-700 dark:text-gray-300 text-[11px] select-none">
+                                                        <input id="sales-settings-external" type="checkbox"
+                                                            class="rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-0">
+                                                        Gemini external context
                                                     </label>
                                                 </div>
                                             </div>
-                                            <p class="text-[11px] text-gray-500 font-medium">Daily turnover history and 3-day forecast by location</p>
-                                            <span class="text-[9px] font-black text-emerald-600 dark:text-emerald-400/90 block mt-1 uppercase tracking-wider">Manual Sync &amp; Forecast</span>
+                                            <p class="text-[11px] text-gray-500 font-medium">Daily turnover history and
+                                                3-day forecast by location</p>
+                                            <span
+                                                class="text-[9px] font-black text-emerald-600 dark:text-emerald-400/90 block mt-1 uppercase tracking-wider">Manual
+                                                Sync &amp; Forecast</span>
                                         </div>
                                     </div>
                                     <div class="flex flex-wrap items-center gap-2">
-                                        <button id="sync-sales-prediction-btn" class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-primary-dark transition-all shadow-md shadow-primary/20">
+                                        <button id="sync-sales-prediction-btn"
+                                            class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-primary-dark transition-all shadow-md shadow-primary/20">
                                             <span class="material-symbols-outlined text-[14px]">sync</span>Sync Now
                                         </button>
-                                        <button id="run-sales-forecast-settings" class="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
-                                            <span class="material-symbols-outlined text-[14px]">query_stats</span>Run 3-Day Forecast
+                                        <button id="run-sales-forecast-settings"
+                                            class="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
+                                            <span class="material-symbols-outlined text-[14px]">query_stats</span>Run
+                                            3-Day Forecast
                                         </button>
                                     </div>
-                                    <p id="sales-settings-status" class="w-full text-xs text-gray-500 font-medium mt-1" role="status"></p>
+                                    <p id="sales-settings-status" class="w-full text-xs text-gray-500 font-medium mt-1"
+                                        role="status"></p>
                                 </div>
 
                             </div>
@@ -1764,18 +1786,18 @@
                                                                                                                         syncCollectionWiseAverageDeliveryDaysUrl: "{{ url_for('dashboard.trigger_sync_collection_wise_average_delivery_days') }}",
                                                                                                                             syncSalesStockCompositionAnalysisUrl: "{{ url_for('dashboard.trigger_sync_sales_stock_composition_analysis') }}",
                                                                                                                                 syncCustomerOrderAnalysisUrl: "{{ url_for('dashboard.settings_sync_customer_order_analysis') }}",
-                                                                                                                                syncCustomerOrderApprovalPendingUrl: "{{ url_for('dashboard.settings_sync_pending_customer_order_approvals') }}",
-                                                                                                                                    syncPartyPerformanceMatrixUrl: "{{ url_for('dashboard.settings_sync_party_performance_matrix') }}",
-                                                                                                                                        syncLocationWiseOldGoldSettlementTransferUrl: "{{ url_for('dashboard.sync_location_wise_old_gold_settlement_transfer') }}",
-                                                                                                                                            syncWeeklyDeliveryOrderSummaryUrl: "{{ url_for('dashboard.settings_sync_weekly_delivery_order_summary') }}",
-                                                                                                                                                syncPartyMakeCapacityDetailsUrl: "{{ url_for('dashboard.sync_party_make_capacity_details') }}",
-                    syncCustomerOrderFulfilmentSummaryUrl: "{{ url_for('dashboard.sync_customer_order_fulfilment_summary_endpoint') }}",
-                                                                                                                                                    syncLogsUrl: "{{ url_for('dashboard.get_sync_logs') }}",
+                                                                                                                                    syncCustomerOrderApprovalPendingUrl: "{{ url_for('dashboard.settings_sync_pending_customer_order_approvals') }}",
+                                                                                                                                        syncPartyPerformanceMatrixUrl: "{{ url_for('dashboard.settings_sync_party_performance_matrix') }}",
+                                                                                                                                            syncLocationWiseOldGoldSettlementTransferUrl: "{{ url_for('dashboard.sync_location_wise_old_gold_settlement_transfer') }}",
+                                                                                                                                                syncWeeklyDeliveryOrderSummaryUrl: "{{ url_for('dashboard.settings_sync_weekly_delivery_order_summary') }}",
+                                                                                                                                                    syncPartyMakeCapacityDetailsUrl: "{{ url_for('dashboard.sync_party_make_capacity_details') }}",
+                                                                                                                                                        syncCustomerOrderFulfilmentSummaryUrl: "{{ url_for('dashboard.sync_customer_order_fulfilment_summary_endpoint') }}",
+                                                                                                                                                            syncLogsUrl: "{{ url_for('dashboard.get_sync_logs') }}",
 
 
-                                                                                                                                                        auditLogsUrl: "{{ url_for('admin_rbac.get_audit_logs') }}",
-                                                                                                                                                            clearCacheUrl: "{{ url_for('dashboard.clear_cache') }}",
-                                                                                                                                                                notificationsUrl: "{{ url_for('dashboard.get_settings_notifications') }}"
+                                                                                                                                                                auditLogsUrl: "{{ url_for('admin_rbac.get_audit_logs') }}",
+                                                                                                                                                                    clearCacheUrl: "{{ url_for('dashboard.clear_cache') }}",
+                                                                                                                                                                        notificationsUrl: "{{ url_for('dashboard.get_settings_notifications') }}"
         };
     </script>
     <script src="{{ url_for('static', filename='js/settings.js', v='20260910-offline-message') }}"></script>
