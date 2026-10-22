@@ -137,6 +137,20 @@
         const lowerSeries = allDates.map(d => predMap.has(d) && predMap.get(d).yhat_lower != null ? (predMap.get(d).yhat_lower / 100000) : null);
         const upperSeries = allDates.map(d => predMap.has(d) && predMap.get(d).yhat_upper != null ? (predMap.get(d).yhat_upper / 100000) : null);
 
+        // Connect prediction line and indicative range to the last actual day (e.g. 21st)
+        const lastActualIdx = latest ? allDates.lastIndexOf(latest.ds) : -1;
+        if (lastActualIdx !== -1 && forecast.length) {
+            if (predSeries[lastActualIdx] == null) {
+                predSeries[lastActualIdx] = latest.y / 100000;
+            }
+            if (lowerSeries[lastActualIdx] == null) {
+                lowerSeries[lastActualIdx] = latest.y / 100000;
+            }
+            if (upperSeries[lastActualIdx] == null) {
+                upperSeries[lastActualIdx] = latest.y / 100000;
+            }
+        }
+
         chart = new Chart(el('sf-chart'), {
             type: 'line', data: {labels: allDates, datasets: [
                 {label: 'Lower', data: lowerSeries, borderWidth: 0, pointRadius: 0},
@@ -151,6 +165,9 @@
                         callbacks: {
                             label: ctx => {
                                 if (ctx.raw == null) return null;
+                                if (ctx.dataset.label === 'Predicted' && ctx.dataIndex === lastActualIdx && !predMap.has(latest?.ds)) {
+                                    return null;
+                                }
                                 return `${ctx.dataset.label}: ${Number(ctx.raw).toLocaleString('en-IN', {maximumFractionDigits: 2})} lakhs`;
                             },
                             afterBody: items => {
