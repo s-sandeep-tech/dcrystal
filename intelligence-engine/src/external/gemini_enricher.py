@@ -60,7 +60,7 @@ Return raw JSON only, without markdown quotes or backticks.
         if self.client:
             import time
             # Resilient fallback across active Gemini models
-            candidate_models = ["gemini-3.5-flash", "gemini-3.8-flash", "gemini-flash-latest"]
+            candidate_models = ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"]
             if self.model_name and self.model_name not in candidate_models:
                 candidate_models.insert(0, self.model_name)
 

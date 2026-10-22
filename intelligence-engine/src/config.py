@@ -28,7 +28,7 @@ try:
         # Gemini configuration (Exclusive to IntelligenceEngine)
         INTELLIGENCE_GEMINI_API_KEY: Optional[str] = None
         GEMINI_API_KEY: Optional[str] = None
-        GEMINI_MODEL: str = "gemini-3.8-flash"
+        GEMINI_MODEL: str = "gemini-3.5-flash-lite"
 
         @property
         def active_gemini_api_key(self) -> Optional[str]:
