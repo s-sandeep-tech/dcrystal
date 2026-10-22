@@ -76,7 +76,10 @@ async function loadApprovalsReport() {
                     if (bar) bar.style.width = `${value}%`;
                 } else {
                     const element = document.getElementById(`stat-${id}`);
-                    if (element) element.textContent = `${value}${key.endsWith('_pcs') ? ' Pcs' : ''}`;
+                    if (element) {
+                        const isZero = !value || value === '0' || value === '0.000' || value === 0;
+                        element.textContent = isZero ? '' : `${value}${key.endsWith('_pcs') ? ' Pcs' : ''}`;
+                    }
                 }
             }
             const totalBar = document.getElementById('stat-total-bar');

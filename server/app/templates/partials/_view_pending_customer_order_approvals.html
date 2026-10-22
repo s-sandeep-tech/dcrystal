@@ -1,3 +1,18 @@
+{% macro format_cell(wt, pcs, wt_color, pcs_color) %}
+{% set has_wt = wt and wt|float > 0 %}
+{% set has_pcs = pcs and pcs|int > 0 %}
+{% if has_wt or has_pcs %}
+<div class="flex flex-col">
+    {% if has_wt %}
+    <span class="font-bold {{ wt_color }}">{{ "%.3f"|format(wt|float) }}</span>
+    {% endif %}
+    {% if has_pcs %}
+    <span class="text-[9px] {{ pcs_color }}">{{ pcs|int }} Pcs</span>
+    {% endif %}
+</div>
+{% endif %}
+{% endmacro %}
+
 {% if not is_child %}
 <table class="customer-order-grid enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
     <colgroup>
@@ -142,66 +157,39 @@
             </td>
             <!-- Manager Approval Pending -->
             <td class="text-right px-2 bg-purple-50/10">
-                <div class="flex flex-col">
-                    <span class="font-bold text-purple-700 dark:text-purple-400">{{ "%.3f"|format(r.manager_approval_wt) }}</span>
-                    <span class="text-[9px] text-purple-600/70">{{ r.manager_approval_pcs }} Pcs</span>
-                </div>
+                {{ format_cell(r.manager_approval_wt, r.manager_approval_pcs, 'text-purple-700 dark:text-purple-400', 'text-purple-600/70') }}
             </td>
             <!-- Order Confirmation Pending -->
             <td class="text-right px-2 bg-amber-50/10">
-                <div class="flex flex-col">
-                    <span class="font-bold text-amber-700 dark:text-amber-400">{{ "%.3f"|format(r.order_confirmation_wt) }}</span>
-                    <span class="text-[9px] text-amber-600/70">{{ r.order_confirmation_pcs }} Pcs</span>
-                </div>
+                {{ format_cell(r.order_confirmation_wt, r.order_confirmation_pcs, 'text-amber-700 dark:text-amber-400', 'text-amber-600/70') }}
             </td>
             <!-- Collection Owner Approval Pending -->
             <td class="text-right px-2 bg-blue-50/10">
-                <div class="flex flex-col">
-                    <span class="font-bold text-blue-700 dark:text-blue-400">{{ "%.3f"|format(r.collection_owner_wt) }}</span>
-                    <span class="text-[9px] text-blue-600/70">{{ r.collection_owner_pcs }} Pcs</span>
-                </div>
+                {{ format_cell(r.collection_owner_wt, r.collection_owner_pcs, 'text-blue-700 dark:text-blue-400', 'text-blue-600/70') }}
             </td>
             <!-- Customer Approval Pending -->
             <td class="text-right px-2 bg-indigo-50/10">
-                <div class="flex flex-col">
-                    <span class="font-bold text-indigo-700 dark:text-indigo-400">{{ "%.3f"|format(r.customer_approval_wt) }}</span>
-                    <span class="text-[9px] text-indigo-600/70">{{ r.customer_approval_pcs }} Pcs</span>
-                </div>
+                {{ format_cell(r.customer_approval_wt, r.customer_approval_pcs, 'text-indigo-700 dark:text-indigo-400', 'text-indigo-600/70') }}
             </td>
             <!-- Verifying Team Approval Pending -->
             <td class="text-right px-2 bg-yellow-50/10">
-                <div class="flex flex-col">
-                    <span class="font-bold text-yellow-700 dark:text-yellow-400">{{ "%.3f"|format(r.verifying_team_wt) }}</span>
-                    <span class="text-[9px] text-yellow-600/70">{{ r.verifying_team_pcs }} Pcs</span>
-                </div>
+                {{ format_cell(r.verifying_team_wt, r.verifying_team_pcs, 'text-yellow-700 dark:text-yellow-400', 'text-yellow-600/70') }}
             </td>
             <!-- Advance Verification Pending -->
             <td class="text-right px-2 bg-rose-50/10">
-                <div class="flex flex-col">
-                    <span class="font-bold text-rose-700 dark:text-rose-400">{{ "%.3f"|format(r.advance_verification_wt) }}</span>
-                    <span class="text-[9px] text-rose-600/70">{{ r.advance_verification_pcs }} Pcs</span>
-                </div>
+                {{ format_cell(r.advance_verification_wt, r.advance_verification_pcs, 'text-rose-700 dark:text-rose-400', 'text-rose-600/70') }}
             </td>
             <!-- Party Order Creation Pending -->
             <td class="text-right px-2 bg-cyan-50/10">
-                <div class="flex flex-col">
-                    <span class="font-bold text-cyan-700 dark:text-cyan-400">{{ "%.3f"|format(r.party_order_creation_wt) }}</span>
-                    <span class="text-[9px] text-cyan-600/70">{{ r.party_order_creation_pcs }} Pcs</span>
-                </div>
+                {{ format_cell(r.party_order_creation_wt, r.party_order_creation_pcs, 'text-cyan-700 dark:text-cyan-400', 'text-cyan-600/70') }}
             </td>
             <!-- Composition Pending -->
             <td class="text-right px-2 bg-teal-50/10">
-                <div class="flex flex-col">
-                    <span class="font-bold text-teal-700 dark:text-teal-400">{{ "%.3f"|format(r.composition_wt) }}</span>
-                    <span class="text-[9px] text-teal-600/70">{{ r.composition_pcs }} Pcs</span>
-                </div>
+                {{ format_cell(r.composition_wt, r.composition_pcs, 'text-teal-700 dark:text-teal-400', 'text-teal-600/70') }}
             </td>
             <!-- Total Pending -->
             <td class="text-right px-2 bg-emerald-50/20 font-bold">
-                <div class="flex flex-col">
-                    <span class="font-bold text-emerald-700 dark:text-emerald-400">{{ "%.3f"|format(r.total_weight) }}</span>
-                    <span class="text-[9px] text-emerald-600/70">{{ r.total_pcs }} Pcs</span>
-                </div>
+                {{ format_cell(r.total_weight, r.total_pcs, 'text-emerald-700 dark:text-emerald-400', 'text-emerald-600/70') }}
             </td>
         </tr>
         {% endfor %}

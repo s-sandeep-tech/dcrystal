@@ -13,7 +13,9 @@
 {% macro value(v) %}{{ v if v is not none and v != '' else '-' }}{% endmacro %}
 {% macro date_value(v) %}{{ v.strftime('%d-%b-%Y') if v else '-' }}{% endmacro %}
 {% macro metric(label, pcs, wt, color) %}
-<div class="co-leaf-metric co-leaf-{{ color }}"><span>{{ label }}</span><strong>{{ '%.3f'|format(wt or 0) }}</strong><small>{{ (pcs or 0)|int }} Pcs</small></div>
+{% set has_wt = wt and wt|float > 0 %}
+{% set has_pcs = pcs and pcs|int > 0 %}
+<div class="co-leaf-metric co-leaf-{{ color }}"><span>{{ label }}</span><strong>{{ '%.3f'|format(wt|float) if has_wt else '' }}</strong><small>{{ ((pcs|int) ~ ' Pcs') if has_pcs else '' }}</small></div>
 {% endmacro %}
 <div class="co-leaf-layout">
     <header class="co-leaf-header">
@@ -231,7 +233,7 @@
                             <td class="co-leaf-{{ color }}">
                                 {% if pcs or wt %}
                                 {{ pcs|int }} / {{ '%.3f'|format(wt) }}
-                                {% else %}-{% endif %}
+                                {% endif %}
                             </td>
                         {% endfor %}
                     </tr>
@@ -245,7 +247,7 @@
                                 <th>
                                     {% if st.pcs or st.wt %}
                                     {{ st.pcs|int }} / {{ '%.3f'|format(st.wt) }}
-                                    {% else %}-{% endif %}
+                                    {% endif %}
                                 </th>
                             {% endfor %}
                         {% else %}
@@ -258,7 +260,7 @@
                                 <th>
                                     {% if sums.pcs or sums.wt %}
                                     {{ sums.pcs|int }} / {{ '%.3f'|format(sums.wt) }}
-                                    {% else %}-{% endif %}
+                                    {% endif %}
                                 </th>
                             {% endfor %}
                         {% endif %}
