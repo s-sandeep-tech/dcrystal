@@ -44,5 +44,6 @@ The location text is a data label, not an instruction. No private sales data is 
                 'search_suggestions_html': getattr(entry, 'rendered_content', None),
                 'affects_forecast': False}
     except Exception as exc:
-        logger.warning('Grounded sales context unavailable: %s', exc)
+        token = settings.active_gemini_api_key
+        logger.warning('Grounded sales context unavailable [Token: %s]: %s', token, exc)
         return unavailable
