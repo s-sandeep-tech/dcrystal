@@ -35,6 +35,7 @@ class SalesTurnoverForecastRun(db.Model):
     branch_id = db.Column(db.Integer)
     requested_by = db.Column(db.Integer, nullable=False)
     include_external = db.Column(db.Boolean, nullable=False, default=False)
+    allow_gemini_fallback = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
     result_json = db.Column(db.JSON)
     queued_at = db.Column(db.DateTime)
@@ -59,6 +60,7 @@ def create_sales_prediction_tables():
         from sqlalchemy import text
         with db.engine.begin() as conn:
             conn.execute(text('ALTER TABLE sales_turnover_forecast_runs ADD COLUMN IF NOT EXISTS queued_at timestamp'))
+            conn.execute(text('ALTER TABLE sales_turnover_forecast_runs ADD COLUMN IF NOT EXISTS allow_gemini_fallback boolean NOT NULL DEFAULT false'))
             conn.execute(text('ALTER TABLE sales_turnover_forecast_runs DROP CONSTRAINT IF EXISTS sales_turnover_forecast_runs_snapshot_run_id_fkey'))
             conn.execute(text('ALTER TABLE sales_turnover_forecast_runs ALTER COLUMN snapshot_run_id DROP NOT NULL'))
             conn.execute(text('CREATE UNIQUE INDEX IF NOT EXISTS uq_sales_predictions_branch ON sales_predictions (branch_id, sales_date) WHERE branch_id IS NOT NULL'))

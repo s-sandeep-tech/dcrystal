@@ -48,6 +48,14 @@ class SalesPredictionTests(unittest.TestCase):
         self.assertTrue(record.include_external)
         self.assertTrue(redis.xadd.call_args.args[0].endswith(':stream'))
 
+    def test_gemini_fallback_is_persisted_and_requires_external_data(self):
+        with patch('app.services.sales_prediction.redis_client'):
+            result = enqueue_sales_forecast(self.user.id, 2, True, allow_gemini_fallback=True)
+        record = db.session.get(SalesTurnoverForecastRun, result['task_id'])
+        self.assertTrue(record.allow_gemini_fallback)
+        with self.assertRaises(ValueError):
+            enqueue_sales_forecast(self.user.id, 2, False, allow_gemini_fallback=True)
+
     def test_ungranted_user_cannot_view_or_run_forecast(self):
         token = create_access_token(identity=str(self.user.id))
         headers = {'Authorization': 'Bearer ' + token}

@@ -238,11 +238,17 @@
         el('sf-tab-outlook')?.classList.remove('active');
         if (el('sf-table-outlook')) el('sf-table-outlook').style.display = 'none';
         if (el('sf-table-compare')) el('sf-table-compare').style.display = '';
-    });    el('sf-run')?.addEventListener('click', async () => {
+    });
+    el('sf-external')?.addEventListener('change', () => {
+        el('sf-gemini-fallback').disabled = !el('sf-external').checked;
+        if (!el('sf-external').checked) el('sf-gemini-fallback').checked = false;
+    });
+    el('sf-run')?.addEventListener('click', async () => {
         const token = ++sequence; clearTimeout(pollTimer); busy(true); status('Queueing forecast...');
         try {
             const data = await api('/api/sales-turnover-forecast/run', {method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({branch_id: el('sf-location').value || null, include_external: el('sf-external').checked})});
+                body: JSON.stringify({branch_id: el('sf-location').value || null, include_external: el('sf-external').checked,
+                    allow_gemini_fallback: el('sf-gemini-fallback').checked})});
             if (token === sequence) poll(data.task_id, token);
         } catch (error) { if (token === sequence) { busy(false); status(error.message, true); } }
     });

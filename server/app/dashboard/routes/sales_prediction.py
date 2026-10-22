@@ -40,7 +40,10 @@ def start_sales_turnover_forecast():
         branch = int(body['branch_id']) if body.get('branch_id') else None
         if type(body.get('include_external', False)) is not bool:
             raise ValueError('External context must be enabled or disabled')
-        return jsonify(enqueue_sales_forecast(get_jwt_identity(), branch, body.get('include_external', False))), 202
+        if type(body.get('allow_gemini_fallback', False)) is not bool:
+            raise ValueError('Gemini fallback must be enabled or disabled')
+        return jsonify(enqueue_sales_forecast(get_jwt_identity(), branch, body.get('include_external', False),
+            allow_gemini_fallback=body.get('allow_gemini_fallback', False))), 202
     except (ValueError, TypeError) as error:
         return jsonify(message=str(error)), 400
     except Exception:
@@ -74,11 +77,12 @@ def start_sales_prediction_sync():
     body = request.get_json(silent=True) or {}
     auto = body.get('forecast_after_sync', False)
     external = body.get('include_external', False)
-    if type(auto) is not bool or type(external) is not bool:
+    fallback = body.get('allow_gemini_fallback', False)
+    if type(auto) is not bool or type(external) is not bool or type(fallback) is not bool or (fallback and not external):
         return jsonify(message='Invalid forecast options'), 400
     try:
         redis_client.rpush('sync_queue', json.dumps({'type': 'sales_prediction_data', 'user_id': get_jwt_identity(),
-            'forecast_after_sync': auto, 'include_external': external}))
+            'forecast_after_sync': auto, 'include_external': external, 'allow_gemini_fallback': fallback}))
         return jsonify(status='success', message='Sales Prediction Data Sync queued'), 202
     except Exception:
         return jsonify(message='Unable to queue sales sync'), 503

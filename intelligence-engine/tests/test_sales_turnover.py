@@ -39,8 +39,9 @@ class SalesTurnoverTests(unittest.TestCase):
         self.assertIn('prophet', result['metrics']['unavailable_methods'])
 
     def test_external_context_without_credentials_is_unavailable(self):
-        with patch('src.external.sales_context.settings') as config:
-            config.active_gemini_api_key = None
+        with patch.dict('os.environ', {}, clear=True), \
+             patch('src.external.sales_context.get_redis', side_effect=ConnectionError), \
+             patch('src.external.sales_context.get_json', side_effect=ConnectionError):
             result = sales_context('India', '2026-10-23', '2026-10-25')
         self.assertEqual(result['status'], 'unavailable')
         self.assertNotIn('impact_multiplier', result)

@@ -104,7 +104,8 @@ def run_sales_turnover_forecast(task_id, payload):
                       missing_days_policy=run['diagnostics'].get('missing_days_policy'),
                       external_context={'status': 'disabled'})
         if request['include_external']:
-            result['external_context'] = sales_context(location, result['forecast'][0]['ds'], result['forecast'][-1]['ds'])
+            result['external_context'] = sales_context(location, result['forecast'][0]['ds'], result['forecast'][-1]['ds'],
+                allow_gemini_fallback=bool(request.get('allow_gemini_fallback', False)))
         DatabaseWriter.save_forecasts(task_id, 'sales_net_turnover', result['forecast'],
                                       dimension=f'branch:{branch_id}' if branch_id else 'all_locations')
         for row in result['forecast']:

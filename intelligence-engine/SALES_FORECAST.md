@@ -66,18 +66,57 @@ repeated output writes. The sync itself uses the existing application sync queue
 
 ## Optional External Context
 
-Enable Gemini external context only when required. Configure the engine's existing
-Gemini API key and a model supporting Google Search grounding. The request includes
-only location and forecast dates, not sales amounts or customer data. It requests
-weather, dated gold-price information/outlooks, and relevant festival dates such
-as Dhanteras and Akshaya Tritiya. Grounded source links are shown in the report.
-Missing credentials, failed requests or missing citations yield an unavailable
-state without failing the numerical forecast.
+Select External API data in Settings or External data in the report. This path
+uses free APIs first. It returns structured `parameters.weather`,
+`parameters.gold` and `parameters.festivals` with provider attribution.
+
+- WeatherAPI.com: free plan, API key required, three-day weather window including
+  today. Configure `SALES_WEATHER_API_KEY` and `SALES_WEATHER_LOCATIONS_JSON` in
+  `.env`. The latter maps exact branch location labels to verified coordinates:
+  `{"YOUR LOCATION":{"lat":10.0,"lon":76.0}}` (illustrative, replace coordinates).
+  Missing coordinates, historical dates and uncovered forecast days are explicitly
+  unavailable. All-location weather is not approximated using one city.
+- Gold API: no key required for `/price/XAU`. Returns current USD/troy-ounce spot
+  observations with provider timestamps, NOT an Indian retail rate or gold-price
+  forecast. Current quotes are never substituted for historical forecast periods.
+- Calendarific: configure `SALES_CALENDARIFIC_API_KEY` from a free account
+  (500 calls/month). Fetches Indian holidays by year. Dhanteras/Akshaya Tritiya
+  coverage depends on the provider; absent events are marked missing, never inferred.
+  Provider source links remain visible for attribution.
+
+The context cache includes the exact location, start/end dates, retrieval day and
+coordinate configuration. Old Gemini caches and cross-period stale fallbacks are
+not used. Context/gold caches last five minutes, weather 30 minutes, and calendars
+seven days. Provider failures remain isolated and do not stop the forecast.
+Gemini fallback is a separate, default-off checkbox requiring External data to be
+enabled. It runs only when at least one API parameter is unavailable or partial.
+It requests only those gaps, preserves API values and missing-data flags, and adds
+sourced commentary separately under `gemini_fallback`. No unsourced answer is
+accepted. Gemini failure does not stop the forecast. Use the existing
+`INTELLIGENCE_GEMINI_API_KEY` (or `GEMINI_API_KEY`) and a search-capable `GEMINI_MODEL`.
+Gemini API charges may apply when this option is enabled. Cache identity includes
+the fallback option and model, so free-only requests never reuse Gemini results.
+
+Run this migration manually before deploying the updated server:
+
+```sql
+ALTER TABLE sales_turnover_forecast_runs
+ADD COLUMN IF NOT EXISTS allow_gemini_fallback boolean NOT NULL DEFAULT false;
+```
+
+No API keys or credential-bearing URLs are logged. Recreate the intelligence-engine
+container after changing environment variables. Existing saved forecasts retain
+their old context; run a new forecast to fetch API data.
+
+Provider documentation and free-tier limits:
+https://www.weatherapi.com/pricing
+https://gold-api.com/docs
+https://calendarific.com/pricing
 
 This information is advisory and does **not** multiply or modify predictions.
 Using weather, gold prices or festivals as model inputs requires aligned historical
-features and out-of-sample validation first. Published gold-price outlooks are not
-treated as certain future prices. Google API usage may incur charges.
+features and out-of-sample validation first. These integrations use free endpoints
+or free-tier keys; no subscriptions are created automatically.
 
 ## Verification
 

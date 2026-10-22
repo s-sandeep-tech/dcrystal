@@ -16,7 +16,9 @@ def latest_snapshot():
     return SalesPredictionSyncRun.query.order_by(SalesPredictionSyncRun.created_at.desc()).first()
 
 
-def enqueue_sales_forecast(user_id, branch_id=None, include_external=False, run_id=None):
+def enqueue_sales_forecast(user_id, branch_id=None, include_external=False, run_id=None, allow_gemini_fallback=False):
+    if allow_gemini_fallback and not include_external:
+        raise ValueError('Enable external data before enabling Gemini fallback')
     run = db.session.get(SalesPredictionSyncRun, run_id) if run_id else latest_snapshot()
     if not run:
         raise ValueError('Run Sales Prediction Data Sync first')
@@ -24,7 +26,8 @@ def enqueue_sales_forecast(user_id, branch_id=None, include_external=False, run_
         raise ValueError('Location is not present in this sales snapshot')
     task_id = str(uuid4())
     record = Forecast(task_id=task_id, snapshot_run_id=run.id, branch_id=branch_id,
-                      requested_by=int(user_id), include_external=include_external)
+                      requested_by=int(user_id), include_external=include_external,
+                      allow_gemini_fallback=allow_gemini_fallback)
     db.session.add(record)
     db.session.commit()
     payload = {'task_id': task_id, 'task_type': 'sales_turnover_forecast',

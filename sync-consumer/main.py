@@ -242,7 +242,8 @@ def process_sync_queue():
                             from app.services.sales_prediction import enqueue_sales_forecast
                             try:
                                 forecast = enqueue_sales_forecast(user_id, include_external=bool(task_data.get('include_external')),
-                                                                  run_id=res['run_id'])
+                                                                  run_id=res['run_id'],
+                                                                  allow_gemini_fallback=bool(task_data.get('allow_gemini_fallback')))
                                 res['forecast_task_id'] = forecast['task_id']
                             except Exception:
                                 logger.exception('Sales sync succeeded, but forecast queueing failed')

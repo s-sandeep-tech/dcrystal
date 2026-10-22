@@ -208,6 +208,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncAllBtn = document.getElementById('sync-all-btn');
     const salesSync = document.getElementById('sync-sales-prediction-btn');
     const salesForecast = document.getElementById('run-sales-forecast-settings');
+    const salesExternal = document.getElementById('sales-settings-external');
+    const salesFallback = document.getElementById('sales-settings-gemini-fallback');
+    salesExternal?.addEventListener('change', () => {
+        salesFallback.disabled = !salesExternal.checked;
+        if (!salesExternal.checked) salesFallback.checked = false;
+    });
     async function salesAction(button, url, payload) {
         const status = document.getElementById('sales-settings-status');
         button.disabled = true;
@@ -222,10 +228,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (salesSync) salesSync.addEventListener('click', () => salesAction(salesSync, '/api/sync/sales-prediction-data', {
         forecast_after_sync: document.getElementById('sales-auto-forecast').checked,
-        include_external: document.getElementById('sales-settings-external').checked
+        include_external: document.getElementById('sales-settings-external').checked,
+        allow_gemini_fallback: salesFallback.checked
     }));
     if (salesForecast) salesForecast.addEventListener('click', () => salesAction(salesForecast, '/api/sales-turnover-forecast/run', {
-        include_external: document.getElementById('sales-settings-external').checked
+        include_external: document.getElementById('sales-settings-external').checked,
+        allow_gemini_fallback: salesFallback.checked
     }));
 
 
