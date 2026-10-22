@@ -970,18 +970,22 @@
                                             <span class="material-symbols-outlined text-emerald-600 text-xl">monitoring</span>
                                         </div>
                                         <div>
-                                            <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Sales Prediction Data Sync</h4>
+                                            <div class="flex flex-wrap items-center gap-3">
+                                                <h4 class="text-[13px] font-bold text-gray-900 dark:text-white">Sales Prediction Data Sync</h4>
+                                                <div class="flex items-center gap-3 text-xs">
+                                                    <label class="flex items-center gap-1.5 cursor-pointer text-gray-700 dark:text-gray-300 text-[11px] select-none">
+                                                        <input id="sales-auto-forecast" type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-0"> Forecast after sync
+                                                    </label>
+                                                    <label class="flex items-center gap-1.5 cursor-pointer text-gray-700 dark:text-gray-300 text-[11px] select-none">
+                                                        <input id="sales-settings-external" type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-0"> Gemini external context
+                                                    </label>
+                                                </div>
+                                            </div>
                                             <p class="text-[11px] text-gray-500 font-medium">Daily turnover history and 3-day forecast by location</p>
                                             <span class="text-[9px] font-black text-emerald-600 dark:text-emerald-400/90 block mt-1 uppercase tracking-wider">Manual Sync &amp; Forecast</span>
                                         </div>
                                     </div>
-                                    <div class="flex flex-wrap items-center gap-3 text-xs">
-                                        <label class="flex items-center gap-1.5 cursor-pointer text-gray-700 dark:text-gray-300 text-[11px]">
-                                            <input id="sales-auto-forecast" type="checkbox" class="rounded border-gray-300 text-primary focus:ring-0"> Forecast after sync
-                                        </label>
-                                        <label class="flex items-center gap-1.5 cursor-pointer text-gray-700 dark:text-gray-300 text-[11px]">
-                                            <input id="sales-settings-external" type="checkbox" class="rounded border-gray-300 text-primary focus:ring-0"> Gemini external context
-                                        </label>
+                                    <div class="flex flex-wrap items-center gap-2">
                                         <button id="sync-sales-prediction-btn" class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-primary-dark transition-all shadow-md shadow-primary/20">
                                             <span class="material-symbols-outlined text-[14px]">sync</span>Sync Now
                                         </button>
