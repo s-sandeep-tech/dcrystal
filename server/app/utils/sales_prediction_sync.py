@@ -9,7 +9,12 @@ from zoneinfo import ZoneInfo
 from psycopg2.extras import RealDictCursor
 from sqlalchemy import text, func
 from app.extensions import db
-from app.models.sales_prediction import SalesPredictionSyncRun, SalesTurnoverDailySnapshot, create_sales_prediction_tables
+from app.models.sales_prediction import (
+    SalesPredictionSyncRun,
+    SalesTurnoverDailySnapshot,
+    SalesTurnoverForecastRun,
+    create_sales_prediction_tables,
+)
 
 logger = logging.getLogger(__name__)
 SOURCE = 'ext_view.vw_item_wise_tsk_details_data'
@@ -100,6 +105,17 @@ def sync_sales_prediction_data_task():
             raise ValueError('Source/local sales reconciliation failed')
         run.row_count = rows_count
         db.session.commit()
+
+        # Do not keep version history: remove older sync runs, snapshots, and forecasts
+        try:
+            db.session.query(SalesTurnoverDailySnapshot).filter(SalesTurnoverDailySnapshot.run_id != run_id).delete()
+            db.session.query(SalesTurnoverForecastRun).filter(SalesTurnoverForecastRun.snapshot_run_id != run_id).delete()
+            db.session.query(SalesPredictionSyncRun).filter(SalesPredictionSyncRun.id != run_id).delete()
+            db.session.commit()
+        except Exception as purge_err:
+            logger.warning(f"Could not purge previous prediction versions: {purge_err}")
+            db.session.rollback()
+
         emit('success', f'Sales prediction history synced: {rows_count:,} daily totals through {run.cutoff_date}', 100)
         return {'status': 'success', 'count': rows_count, 'run_id': run_id}
     except Exception as error:
