@@ -76,6 +76,8 @@ ALLOWED_SYNC_TASKS = {
     'sales_stock_composition_analysis',
     'customer_order_analysis',
     'customer_order_fulfilment_summary',
+    'customer_order_approval_pending',
+    'pending_customer_order_approvals',
 }
 
 

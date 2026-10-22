@@ -473,3 +473,13 @@ class PendingCustomerOrderApprovalsTests(unittest.TestCase):
                 self.assertEqual(synced.business_head_name, 'BH East')
                 self.assertEqual(synced.total_pending_pcs, 7)
                 self.assertAlmostEqual(float(synced.total_pending_wt), 70.0)
+
+    def test_allowed_sync_tasks(self):
+        from app.utils.sync_manager import ALLOWED_SYNC_TASKS, enqueue_sync_task
+        self.assertIn('customer_order_approval_pending', ALLOWED_SYNC_TASKS)
+        self.assertIn('pending_customer_order_approvals', ALLOWED_SYNC_TASKS)
+        with patch('app.utils.sync_manager.redis_client.rpush') as mock_rpush:
+            res = enqueue_sync_task('customer_order_approval_pending', 'USER_1')
+            self.assertEqual(res['status'], 'success')
+            mock_rpush.assert_called_once()
+
