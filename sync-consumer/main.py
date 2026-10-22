@@ -65,6 +65,7 @@ try:
         sync_sales_stock_composition_analysis_task,
         sync_customer_order_analysis_task,
         sync_customer_order_fulfilment_summary_task,
+        sync_customer_order_approval_pending_task,
         emit_sync_update
     )
 
@@ -238,6 +239,8 @@ def process_sync_queue():
                         res = sync_customer_order_analysis_task()
                     elif task_type == 'customer_order_fulfilment_summary':
                         res = sync_customer_order_fulfilment_summary_task()
+                    elif task_type in ('customer_order_approval_pending', 'pending_customer_order_approvals'):
+                        res = sync_customer_order_approval_pending_task()
                     else:
                         logger.error(f"Unknown sync task type: {task_type}")
 

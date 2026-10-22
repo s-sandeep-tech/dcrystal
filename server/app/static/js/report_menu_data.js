@@ -273,6 +273,14 @@ window.REPORT_MENU_DATA = [
                 tags: ["customer", "order", "analysis", "report", "pending", "stages", "summary"]
             },
             {
+                id: "pending-customer-order-approvals",
+                title: "Pending Customer Order Approvals",
+                href: "/pending-customer-order-approvals",
+                icon: "approval",
+                description: "Customer order approval pending analysis across Business Head, Classification Owner, Make Owner, and Collection Owner hierarchy with multi-stage approval metrics.",
+                tags: ["customer", "order", "approvals", "pending", "approval", "bh", "analysis", "report"]
+            },
+            {
                 id: "customer-order-fulfilment-summary",
                 title: "Customer Order Fulfilment Summary",
                 href: "/customerorderfulfilmentsummary",

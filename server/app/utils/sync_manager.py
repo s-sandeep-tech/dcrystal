@@ -266,3 +266,8 @@ def sync_customer_order_analysis_data(user_id=None):
 def sync_customer_order_fulfilment_summary_data(user_id=None):
     return enqueue_sync_task('customer_order_fulfilment_summary', user_id)
 
+
+def sync_customer_order_approval_pending_data(user_id=None):
+    return enqueue_sync_task('customer_order_approval_pending', user_id)
+
+

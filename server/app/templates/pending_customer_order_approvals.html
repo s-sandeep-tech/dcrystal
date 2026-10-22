@@ -1,0 +1,396 @@
+{% extends "base.html" %}
+
+{% block title %}Pending Customer Order Approvals{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/customer_order_leaf.css') }}">
+<style>
+    .customer-order-grid {
+        min-width: 1480px;
+    }
+
+    .customer-order-grid thead th {
+        white-space: normal;
+    }
+
+    .customer-order-grid thead th .material-symbols-outlined {
+        flex-shrink: 0;
+    }
+
+    .modal-grid {
+        table-layout: auto !important;
+        width: 100% !important;
+        border-collapse: separate !important;
+        border-spacing: 0;
+    }
+
+    .modal-row.hidden {
+        display: none !important;
+    }
+
+    #view-pending-customer-order-approvals table th,
+    #view-pending-customer-order-approvals table td,
+    #view-pending-customer-order-approvals table td div,
+    #view-pending-customer-order-approvals table td span:not(.material-symbols-outlined),
+    #leaf-detail-content table th,
+    #leaf-detail-content table td,
+    #leaf-detail-content table td div,
+    #leaf-detail-content table td span:not(.material-symbols-outlined) {
+        font-weight: 700;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main id="pending-approvals-main" class="flex-1 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    <!-- Header -->
+    <div
+        class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex items-center justify-between gap-4">
+        <!-- Left: Title -->
+        <div class="flex items-center gap-4 shrink-0">
+            <h2 class="text-sm font-bold tracking-tight">Pending Customer Order Approvals <span
+                    class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded uppercase tracking-widest text-gray-500">v1.0</span>
+            </h2>
+        </div>
+
+        <!-- Center: Hierarchy Indicator -->
+        <div class="flex items-center justify-center">
+            <div
+                class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300 shadow-inner">
+                <div class="px-2.5 py-0.5 rounded-md font-bold bg-white dark:bg-gray-700 shadow-xs text-primary flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[15px] leading-none text-primary" aria-hidden="true">account_tree</span>
+                    <span>BH &rsaquo; Classification Owner &rsaquo; Make Owner &rsaquo; Collection Owner</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Actions (Filter, Zoom, Search) -->
+        <div class="flex items-center gap-3 shrink-0">
+            <!-- Filter Toggle Button -->
+            <button id="approvals-filter-toggle" type="button" onclick="toggleApprovalsFilters()"
+                class="inline-flex items-center justify-center w-7 h-7 rounded border border-gray-200 dark:border-gray-700 text-primary hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors"
+                aria-controls="approvals-filter-sidebar" aria-expanded="true" aria-label="Hide filters"
+                title="Hide filters">
+                <span class="material-symbols-outlined text-[16px]" aria-hidden="true">filter_alt</span>
+            </button>
+
+            <!-- Zoom Controls -->
+            <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
+                <button onclick="adjustZoom(-0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom Out">-</button>
+                <button id="zoom-level" onclick="adjustZoom(0, true)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700"
+                    title="Reset Zoom">100%</button>
+                <button onclick="adjustZoom(0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom In">+</button>
+            </div>
+
+            <!-- Search -->
+            <div
+                class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
+                <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
+                <input id="hierarchy-search"
+                    class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0"
+                    placeholder="Search hierarchy..." type="text" oninput="onSearchInput(this.value)" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Grid at Top -->
+    <div id="approvals-stats" aria-busy="true"
+        style="grid-template-columns: 140px repeat(8, minmax(130px, 1fr)); overflow-x: auto;"
+        class="grid gap-0 p-1 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+        
+        <!-- Total Pending -->
+        <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center bg-emerald-50/20 dark:bg-emerald-950/20">
+            <p class="text-[9px] text-emerald-700 dark:text-emerald-400 font-bold uppercase flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-emerald-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">check_circle</span>
+                <span>Total Pending</span>
+            </p>
+            <div class="flex flex-col">
+                <p id="stat-total-wt" class="text-sm font-bold text-emerald-700 dark:text-emerald-300">{{ stats.total_wt if stats else '-' }}</p>
+                <p id="stat-total-pcs" class="text-[9px] text-emerald-600/70 font-medium">{{ stats.total_pcs if stats else '-' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-total-bar" class="h-full bg-emerald-500 transition-all duration-500" style="width: 100%"></div>
+            </div>
+        </div>
+
+        <!-- Manager Approval Pending -->
+        <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-purple-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">manage_accounts</span>
+                <span>Manager Approval</span>
+            </p>
+            <div class="flex flex-col">
+                <p id="stat-manager-approval-wt" class="text-sm font-bold text-purple-600">{{ stats.manager_approval_wt if stats else '-' }}</p>
+                <p id="stat-manager-approval-pcs" class="text-[9px] text-purple-600/70 font-medium">{{ stats.manager_approval_pcs if stats else '-' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-manager-approval-bar" class="h-full bg-purple-500 transition-all duration-500"
+                    style="width: {{ stats.manager_approval_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Order Confirmation Pending -->
+        <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-amber-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">thumb_up</span>
+                <span>Order Confirmation</span>
+            </p>
+            <div class="flex flex-col">
+                <p id="stat-order-confirmation-wt" class="text-sm font-bold text-amber-600">{{ stats.order_confirmation_wt if stats else '-' }}</p>
+                <p id="stat-order-confirmation-pcs" class="text-[9px] text-amber-600/70 font-medium">{{ stats.order_confirmation_pcs if stats else '-' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-order-confirmation-bar" class="h-full bg-amber-500 transition-all duration-500"
+                    style="width: {{ stats.order_confirmation_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Collection Owner Approval Pending -->
+        <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-blue-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">collections_bookmark</span>
+                <span>Collection Owner</span>
+            </p>
+            <div class="flex flex-col">
+                <p id="stat-collection-owner-wt" class="text-sm font-bold text-blue-600">{{ stats.collection_owner_wt if stats else '-' }}</p>
+                <p id="stat-collection-owner-pcs" class="text-[9px] text-blue-600/70 font-medium">{{ stats.collection_owner_pcs if stats else '-' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-collection-owner-bar" class="h-full bg-blue-500 transition-all duration-500"
+                    style="width: {{ stats.collection_owner_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Customer Approval Pending -->
+        <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-indigo-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">person</span>
+                <span>Customer Approval</span>
+            </p>
+            <div class="flex flex-col">
+                <p id="stat-customer-approval-wt" class="text-sm font-bold text-indigo-600">{{ stats.customer_approval_wt if stats else '-' }}</p>
+                <p id="stat-customer-approval-pcs" class="text-[9px] text-indigo-600/70 font-medium">{{ stats.customer_approval_pcs if stats else '-' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-customer-approval-bar" class="h-full bg-indigo-500 transition-all duration-500"
+                    style="width: {{ stats.customer_approval_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Verifying Team Approval Pending -->
+        <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-yellow-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">verified_user</span>
+                <span>Verifying Team</span>
+            </p>
+            <div class="flex flex-col">
+                <p id="stat-verifying-team-wt" class="text-sm font-bold text-yellow-600">{{ stats.verifying_team_wt if stats else '-' }}</p>
+                <p id="stat-verifying-team-pcs" class="text-[9px] text-yellow-600/70 font-medium">{{ stats.verifying_team_pcs if stats else '-' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-verifying-team-bar" class="h-full bg-yellow-500 transition-all duration-500"
+                    style="width: {{ stats.verifying_team_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Advance Verification Pending -->
+        <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-rose-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">fact_check</span>
+                <span>Advance Verification</span>
+            </p>
+            <div class="flex flex-col">
+                <p id="stat-advance-verification-wt" class="text-sm font-bold text-rose-600">{{ stats.advance_verification_wt if stats else '-' }}</p>
+                <p id="stat-advance-verification-pcs" class="text-[9px] text-rose-600/70 font-medium">{{ stats.advance_verification_pcs if stats else '-' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-advance-verification-bar" class="h-full bg-rose-500 transition-all duration-500"
+                    style="width: {{ stats.advance_verification_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Party Order Creation Pending -->
+        <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-cyan-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">post_add</span>
+                <span>Party Order Creation</span>
+            </p>
+            <div class="flex flex-col">
+                <p id="stat-party-order-creation-wt" class="text-sm font-bold text-cyan-600">{{ stats.party_order_creation_wt if stats else '-' }}</p>
+                <p id="stat-party-order-creation-pcs" class="text-[9px] text-cyan-600/70 font-medium">{{ stats.party_order_creation_pcs if stats else '-' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-party-order-creation-bar" class="h-full bg-cyan-500 transition-all duration-500"
+                    style="width: {{ stats.party_order_creation_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Composition Pending -->
+        <div class="px-2 py-2 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-teal-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">pie_chart</span>
+                <span>Composition Pend</span>
+            </p>
+            <div class="flex flex-col">
+                <p id="stat-composition-wt" class="text-sm font-bold text-teal-600">{{ stats.composition_wt if stats else '-' }}</p>
+                <p id="stat-composition-pcs" class="text-[9px] text-teal-600/70 font-medium">{{ stats.composition_pcs if stats else '-' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-composition-bar" class="h-full bg-teal-500 transition-all duration-500"
+                    style="width: {{ stats.composition_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Filters Display Bar -->
+    <div id="active-filters-bar"
+        class="hidden w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-1.5 shrink-0 flex items-center justify-between gap-2 overflow-x-auto">
+        <div class="flex items-center gap-1.5 flex-wrap flex-1" id="active-filter-chips">
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider shrink-0 mr-1">Active:</span>
+        </div>
+        <button onclick="resetGlobalFilters()"
+            class="text-[10px] text-red-500 hover:text-red-700 font-bold uppercase tracking-wider shrink-0 px-2 py-0.5 rounded border border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">Clear
+            All</button>
+    </div>
+
+    <!-- Pagination & Total Counts Summary Bar -->
+    <div
+        class="w-full bg-gray-50 dark:bg-background-dark/50 border-b border-gray-200 dark:border-gray-800 px-4 py-1 shrink-0 flex items-center justify-between text-[11px] text-gray-500">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-[13px] text-primary">analytics</span>
+            <span id="stat-badge-text">Hierarchical Drilldown Analysis</span>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5">
+                <span class="text-[10px] uppercase font-bold text-gray-400">Rows per page:</span>
+                <select id="per-page-select" onchange="changePerPage(this.value)"
+                    class="bg-transparent border-none text-[10px] font-bold focus:ring-0 p-0 cursor-pointer">
+                    <option value="50" {% if request.args.get('per_page')=='50' %}selected{% endif %}>50</option>
+                    <option value="100" {% if request.args.get('per_page')=='100' %}selected{% endif %}>100</option>
+                </select>
+            </div>
+            <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
+            <span id="pagination-info" class="font-medium">
+                Loading report...
+            </span>
+        </div>
+    </div>
+
+    <!-- Table Container -->
+    <div id="table-area" class="flex-1 overflow-auto relative">
+        <div id="view-pending-customer-order-approvals" class="dashboard-view">
+            <div class="p-6 flex items-center justify-center gap-2 text-xs text-gray-500" role="status"><span
+                    class="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>Loading
+                report...</div>
+        </div>
+    </div>
+
+    <!-- Leaf Detail Modal -->
+    <div id="modal-overlay"
+        class="hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] transition-all duration-300"
+        onclick="closeLeafModal()"></div>
+    <div id="leaf-detail-modal"
+        role="dialog" aria-modal="true" aria-label="Customer Order Approval Details"
+        class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[98vw] max-w-[98vw] h-[92vh] bg-white dark:bg-gray-900 shadow-2xl rounded-xl z-[101] overflow-hidden animate-zoom-in border border-gray-100 dark:border-gray-800">
+        <div id="leaf-detail-content" class="h-full">
+            <!-- Content loaded via AJAX -->
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block sidebar %}
+<aside id="approvals-filter-sidebar"
+    class="w-72 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden transition-all duration-300">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xs font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> FILTERS
+            </h2>
+            <button onclick="resetGlobalFilters()"
+                class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+        </div>
+
+        <div class="space-y-3">
+            <!-- 1. BH (Business Head) -->
+            <div id="filter-business-head-container"></div>
+
+            <!-- 2. Location -->
+            <div id="filter-location-container"></div>
+
+            <!-- 3. Classification Owner -->
+            <div id="filter-classification-owner-container"></div>
+
+            <!-- 4. Make Owner -->
+            <div id="filter-make-owner-container"></div>
+
+            <!-- 5. Collection Owner -->
+            <div id="filter-collection-owner-container"></div>
+
+            <!-- 6. Request Type -->
+            <div id="filter-request-type-container"></div>
+
+            <!-- 7. Order Item Type -->
+            <div id="filter-order-item-type-container"></div>
+
+            <!-- 8. Regional Office (Order RO) -->
+            <div id="filter-order-ro-container"></div>
+
+            <!-- 9. Division -->
+            <div id="filter-division-container"></div>
+
+            <!-- 10. Group Category -->
+            <div id="filter-group-category-container"></div>
+
+            <!-- 11. Group -->
+            <div id="filter-group-container"></div>
+
+            <!-- 12. Make -->
+            <div id="filter-make-container"></div>
+
+            <!-- 13. Classification -->
+            <div id="filter-classification-container"></div>
+
+            <!-- 14. Collection -->
+            <div id="filter-collection-container"></div>
+
+            <!-- 15. Purity -->
+            <div id="filter-purity-container"></div>
+
+            <!-- 16. Party Name -->
+            <div id="filter-party-name-container"></div>
+
+            <!-- 17. Reorder Y/N -->
+            <div id="filter-reorder-container"></div>
+
+            <!-- 18. Combine Order Status -->
+            <div id="filter-combine-order-status-container"></div>
+
+            <!-- State -->
+            <div id="filter-state-container"></div>
+        </div>
+    </div>
+</aside>
+
+<div id="approvals-filter-data" data-options='{{ filter_options|tojson|safe }}' style="display:none;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/custom_multi_select.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pending_customer_order_approvals.js') }}"></script>
+{% endblock %}

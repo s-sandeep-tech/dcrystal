@@ -1,0 +1,236 @@
+{% if not is_child %}
+<table class="customer-order-grid enterprise-grid w-full text-[10px] border-collapse bg-white dark:bg-gray-900 sticky-header">
+    <colgroup>
+        <col style="width: 32px;">
+        <col style="width: 240px;">
+        <col span="8" style="width: 125px;">
+        <col style="width: 135px;">
+    </colgroup>
+    <thead>
+        <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 uppercase font-bold text-[8px] tracking-wider select-none">
+            <th class="col-expander text-center px-0 w-8"></th>
+            <th class="text-left px-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group" onclick="toggleSort('primary')" title="Click to sort by Hierarchy">
+                <div class="flex items-center justify-between gap-1">
+                    <span>Hierarchy (BH &rsaquo; Classification Owner &rsaquo; Make Owner &rsaquo; Collection Owner)</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['primary', 'bh', 'business_head'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['primary', 'bh', 'business_head'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['primary', 'bh', 'business_head'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-purple-50/20 cursor-pointer hover:bg-purple-100/40 transition-colors group" onclick="toggleSort('manager_approval_wt')" title="Click to sort by Manager Approval Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Manager Approval</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['manager_approval_wt', 'manager_approval_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['manager_approval_wt', 'manager_approval_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['manager_approval_wt', 'manager_approval_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-amber-50/20 cursor-pointer hover:bg-amber-100/40 transition-colors group" onclick="toggleSort('order_confirmation_wt')" title="Click to sort by Order Confirmation Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Order Confirmation</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['order_confirmation_wt', 'order_confirmation_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['order_confirmation_wt', 'order_confirmation_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['order_confirmation_wt', 'order_confirmation_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-blue-50/20 cursor-pointer hover:bg-blue-100/40 transition-colors group" onclick="toggleSort('collection_owner_wt')" title="Click to sort by Collection Owner Approval Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Collection Owner</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['collection_owner_wt', 'collection_owner_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['collection_owner_wt', 'collection_owner_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['collection_owner_wt', 'collection_owner_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-indigo-50/20 cursor-pointer hover:bg-indigo-100/40 transition-colors group" onclick="toggleSort('customer_approval_wt')" title="Click to sort by Customer Approval Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Customer Approval</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['customer_approval_wt', 'customer_approval_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['customer_approval_wt', 'customer_approval_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['customer_approval_wt', 'customer_approval_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-yellow-50/20 cursor-pointer hover:bg-yellow-100/40 transition-colors group" onclick="toggleSort('verifying_team_wt')" title="Click to sort by Verifying Team Approval Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Verifying Team</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['verifying_team_wt', 'verifying_team_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['verifying_team_wt', 'verifying_team_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['verifying_team_wt', 'verifying_team_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-rose-50/20 cursor-pointer hover:bg-rose-100/40 transition-colors group" onclick="toggleSort('advance_verification_wt')" title="Click to sort by Advance Verification Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Advance Verification</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['advance_verification_wt', 'advance_verification_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['advance_verification_wt', 'advance_verification_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['advance_verification_wt', 'advance_verification_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-cyan-50/20 cursor-pointer hover:bg-cyan-100/40 transition-colors group" onclick="toggleSort('party_order_creation_wt')" title="Click to sort by Party Order Creation Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Party Order Creation</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['party_order_creation_wt', 'party_order_creation_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['party_order_creation_wt', 'party_order_creation_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['party_order_creation_wt', 'party_order_creation_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-teal-50/20 cursor-pointer hover:bg-teal-100/40 transition-colors group" onclick="toggleSort('composition_wt')" title="Click to sort by Composition Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Composition Pending</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['composition_wt', 'composition_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['composition_wt', 'composition_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['composition_wt', 'composition_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+            <th class="text-right px-2 bg-emerald-50/30 font-bold cursor-pointer hover:bg-emerald-100/50 transition-colors group" onclick="toggleSort('tot_wt')" title="Click to sort by Total Pending">
+                <div class="flex items-center justify-end gap-1">
+                    <span>Total Pending</span>
+                    <span class="material-symbols-outlined text-[13px] {% if sort_by in ['tot_wt', 'total_weight', 'tot_pcs', 'total_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
+                        {{ 'arrow_upward' if (sort_by in ['tot_wt', 'total_weight', 'tot_pcs', 'total_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['tot_wt', 'total_weight', 'tot_pcs', 'total_pcs'] and sort_order == 'desc') else 'unfold_more') }}
+                    </span>
+                </div>
+            </th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        {% endif %}
+
+        {% for r in rows %}
+        <tr class="parent-row hover:bg-blue-50/30 group animate-fade-in {{ 'cursor-pointer' if r.level == 'collection_owner' else '' }}"
+            data-level="{{ r.level }}"
+            data-bh="{{ r.bh|e }}"
+            data-classification-owner="{{ r.classification_owner|e }}"
+            data-make-owner="{{ r.make_owner|e }}"
+            data-collection-owner="{{ r.collection_owner|e }}"
+            {% if r.level == 'collection_owner' %}
+            onclick="openLeafModal('{{ r.bh|e }}', '{{ r.classification_owner|e }}', '{{ r.make_owner|e }}', '{{ r.collection_owner|e }}')"
+            title="Click to view detailed order breakdown for {{ r.collection_owner|e }}"
+            {% endif %}>
+            <td class="text-center px-0">
+                {% if r.level != 'collection_owner' %}
+                <button
+                    onclick="toggleRow(this, '{{ r.level }}', '{{ r.primary_value|e }}')"
+                    class="flex items-center justify-center w-full h-full text-gray-400 group-hover:text-primary transition-colors focus:outline-none"
+                    title="Expand details">
+                    <span class="material-symbols-outlined text-[14px]">add_circle</span>
+                </button>
+                {% else %}
+                <span class="material-symbols-outlined text-[10px] text-gray-300">subdirectory_arrow_right</span>
+                {% endif %}
+            </td>
+            <td class="px-2 font-bold">
+                <div class="flex items-center gap-1"
+                    style="padding-left: {{ '0px' if r.level == 'bh' else ('16px' if r.level == 'classification_owner' else ('32px' if r.level == 'make_owner' else '48px')) }}">
+                    <span class="material-symbols-outlined text-[12px] {{ 'text-primary' if r.level == 'bh' else ('text-purple-500' if r.level == 'classification_owner' else ('text-blue-500' if r.level == 'make_owner' else 'text-emerald-500')) }}">
+                        {% if r.level == 'bh' %}person
+                        {% elif r.level == 'classification_owner' %}category
+                        {% elif r.level == 'make_owner' %}precision_manufacturing
+                        {% else %}view_quilt{% endif %}
+                    </span>
+                    <span class="{{ 'text-gray-900 dark:text-white font-bold' if r.level == 'bh' else 'text-gray-700 dark:text-gray-300 font-semibold' }}">
+                        {{ r.primary_value }}
+                        {% if r.level == 'collection_owner' %}
+                        <span class="material-symbols-outlined text-[13px] text-primary/70 group-hover:text-primary transition-colors ml-1 align-middle" title="View order details">open_in_new</span>
+                        {% else %}
+                        <button type="button" class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-primary transition-opacity ml-1 align-middle"
+                            onclick="event.stopPropagation(); openLeafModal('{{ r.bh|e }}', '{{ r.classification_owner|e }}', '{{ r.make_owner|e }}', '{{ r.collection_owner|e }}')"
+                            title="Inspect details in modal">
+                            <span class="material-symbols-outlined text-[12px]">visibility</span>
+                        </button>
+                        {% endif %}
+                    </span>
+                </div>
+            </td>
+            <!-- Manager Approval Pending -->
+            <td class="text-right px-2 bg-purple-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-purple-700 dark:text-purple-400">{{ "%.3f"|format(r.manager_approval_wt) }}</span>
+                    <span class="text-[9px] text-purple-600/70">{{ r.manager_approval_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Order Confirmation Pending -->
+            <td class="text-right px-2 bg-amber-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-amber-700 dark:text-amber-400">{{ "%.3f"|format(r.order_confirmation_wt) }}</span>
+                    <span class="text-[9px] text-amber-600/70">{{ r.order_confirmation_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Collection Owner Approval Pending -->
+            <td class="text-right px-2 bg-blue-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-blue-700 dark:text-blue-400">{{ "%.3f"|format(r.collection_owner_wt) }}</span>
+                    <span class="text-[9px] text-blue-600/70">{{ r.collection_owner_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Customer Approval Pending -->
+            <td class="text-right px-2 bg-indigo-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-indigo-700 dark:text-indigo-400">{{ "%.3f"|format(r.customer_approval_wt) }}</span>
+                    <span class="text-[9px] text-indigo-600/70">{{ r.customer_approval_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Verifying Team Approval Pending -->
+            <td class="text-right px-2 bg-yellow-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-yellow-700 dark:text-yellow-400">{{ "%.3f"|format(r.verifying_team_wt) }}</span>
+                    <span class="text-[9px] text-yellow-600/70">{{ r.verifying_team_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Advance Verification Pending -->
+            <td class="text-right px-2 bg-rose-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-rose-700 dark:text-rose-400">{{ "%.3f"|format(r.advance_verification_wt) }}</span>
+                    <span class="text-[9px] text-rose-600/70">{{ r.advance_verification_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Party Order Creation Pending -->
+            <td class="text-right px-2 bg-cyan-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-cyan-700 dark:text-cyan-400">{{ "%.3f"|format(r.party_order_creation_wt) }}</span>
+                    <span class="text-[9px] text-cyan-600/70">{{ r.party_order_creation_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Composition Pending -->
+            <td class="text-right px-2 bg-teal-50/10">
+                <div class="flex flex-col">
+                    <span class="font-bold text-teal-700 dark:text-teal-400">{{ "%.3f"|format(r.composition_wt) }}</span>
+                    <span class="text-[9px] text-teal-600/70">{{ r.composition_pcs }} Pcs</span>
+                </div>
+            </td>
+            <!-- Total Pending -->
+            <td class="text-right px-2 bg-emerald-50/20 font-bold">
+                <div class="flex flex-col">
+                    <span class="font-bold text-emerald-700 dark:text-emerald-400">{{ "%.3f"|format(r.total_weight) }}</span>
+                    <span class="text-[9px] text-emerald-600/70">{{ r.total_pcs }} Pcs</span>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+
+        {% if not is_child %}
+    </tbody>
+</table>
+
+{% if pagination %}
+<!-- Pagination component -->
+<div class="flex items-center justify-between p-2 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 shrink-0">
+    <div class="text-[10px] text-gray-500 font-medium">
+        Showing Page {{ pagination.page }} of {{ pagination.pages }} (Total {{ pagination.total }} Business Heads)
+    </div>
+    <div class="flex items-center gap-1">
+        {% if pagination.has_prev %}
+        <button onclick="changePage({{ pagination.prev_num }})" class="p-1 px-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded text-[10px] font-bold text-gray-600 hover:text-primary transition-all">Prev</button>
+        {% else %}
+        <button class="p-1 px-2 border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 rounded text-[10px] font-bold text-gray-300 cursor-not-allowed" disabled>Prev</button>
+        {% endif %}
+
+        <span class="px-2 text-[10px] font-bold text-gray-500">{{ pagination.page }}</span>
+
+        {% if pagination.has_next %}
+        <button onclick="changePage({{ pagination.next_num }})" class="p-1 px-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded text-[10px] font-bold text-gray-600 hover:text-primary transition-all">Next</button>
+        {% else %}
+        <button class="p-1 px-2 border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 rounded text-[10px] font-bold text-gray-300 cursor-not-allowed" disabled>Next</button>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endif %}

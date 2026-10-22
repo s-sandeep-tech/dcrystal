@@ -5634,3 +5634,160 @@ def sync_customer_order_fulfilment_summary_task(task_type_override=None, progres
                 conn.close()
             except Exception:
                 pass
+
+
+def sync_customer_order_approval_pending_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+    """
+    Syncs customer order approval pending records from ext_view.vw_customer_order_approval_pending_details
+    into the local customer_order_approval_pending_snapshot table.
+    """
+    from app.models.customer_order_approval_pending import CustomerOrderApprovalPendingSnapshot
+
+    TASK_TYPE = task_type_override or 'customer_order_approval_pending'
+    start_p, end_p = progress_range
+
+    def emit(status, message, p):
+        scaled = int(start_p + (p / 100.0) * (end_p - start_p))
+        emit_sync_update(status, message, scaled, data_type=TASK_TYPE)
+
+    emit('processing', 'Starting Pending Customer Order Approvals sync...', 5)
+    conn = None
+    try:
+        conn = get_external_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        emit('processing', 'Connecting to external Azure PostgreSQL database...', 15)
+
+        cursor.execute("SET statement_timeout = 0")
+        started_at = time.time()
+        try:
+            query = "SELECT * FROM ext_view.vw_customer_order_approval_pending_details"
+            cursor.execute(query)
+            rows = cursor.fetchall()
+        except Exception as q_err:
+            logger.warning(f"Failed query on ext_view, trying public/default schema: {q_err}")
+            conn.rollback()
+            cursor.execute("SELECT * FROM vw_customer_order_approval_pending_details")
+            rows = cursor.fetchall()
+
+        duration = time.time() - started_at
+        emit('processing', f'Fetched {len(rows):,} records in {duration:.1f}s. Updating local snapshot...', 55)
+
+        CustomerOrderApprovalPendingSnapshot.__table__.create(db.engine, checkfirst=True)
+        db.session.query(CustomerOrderApprovalPendingSnapshot).delete()
+
+        records = []
+        for row in rows:
+            comp_pcs = row.get('composition_pending_pcs') or 0
+            comp_wt = float(row.get('composition_pending_wt') or 0)
+            vt_pcs = row.get('verifying_team_approval_pending_pcs') or 0
+            vt_wt = float(row.get('verifying_team_approval_pending_wt') or 0)
+            est_pcs = row.get('estimation_and_advance_pending_pcs') or 0
+            est_wt = float(row.get('estimation_and_advance_pending_wt') or 0)
+            mgr_pcs = row.get('manager_approval_pending_pcs') or 0
+            mgr_wt = float(row.get('manager_approval_pending_wt') or 0)
+            adv_v_pcs = row.get('advance_verification_pending_pcs') or 0
+            adv_v_wt = float(row.get('advance_verification_pending_wt') or 0)
+            coll_pcs = row.get('collection_owner_approval_pending_pcs') or 0
+            coll_wt = float(row.get('collection_owner_approval_pending_wt') or 0)
+            cust_pcs = row.get('customer_approval_pending_pcs') or 0
+            cust_wt = float(row.get('customer_approval_pending_wt') or 0)
+            pty_pcs = row.get('party_order_creation_pending_pcs') or 0
+            pty_wt = float(row.get('party_order_creation_pending_wt') or 0)
+
+            tot_pcs = comp_pcs + vt_pcs + est_pcs + mgr_pcs + adv_v_pcs + coll_pcs + cust_pcs + pty_pcs
+            tot_wt = comp_wt + vt_wt + est_wt + mgr_wt + adv_v_wt + coll_wt + cust_wt + pty_wt
+
+            records.append({
+                'state': row.get('state'),
+                'location': row.get('location'),
+                'business_head_name': row.get('business_head_name'),
+                'classification_owner': row.get('classification_owner'),
+                'classification_owner_emp_code': row.get('classification_owner_emp_code'),
+                'make_owner': row.get('make_owner'),
+                'make_owner_emp_code': row.get('make_owner_emp_code'),
+                'collection_owner': row.get('collection_owner'),
+                'collection_owner_emp_code': row.get('collection_owner_emp_code'),
+                'request_no': str(row.get('request_no') or '').strip(),
+                'request_date': row.get('request_date'),
+                'request_type': row.get('request_type'),
+                'order_item_type': row.get('order_item_type'),
+                'order_ro': row.get('order_ro'),
+                'po_number': row.get('po_number'),
+                'po_date': row.get('po_date'),
+                'sooc': str(row.get('sooc') or '').strip(),
+                'barcode': row.get('barcode'),
+                'division': row.get('division'),
+                'group_category': row.get('group_category'),
+                'group': row.get('group'),
+                'classification': row.get('classification'),
+                'sub_classification': row.get('sub_classification'),
+                'make': row.get('make'),
+                'refrerence_make': row.get('refrerence_make'),
+                'section': row.get('section'),
+                'collection': row.get('collection'),
+                'reference_collection': row.get('reference_collection'),
+                'purity': str(row.get('purity') or '') if row.get('purity') is not None else None,
+                'gender': row.get('gender'),
+                'weight': row.get('weight'),
+                'size': row.get('size'),
+                'gross_weight': row.get('gross_weight'),
+                'stone_weight': row.get('stone_weight'),
+                'other_weight': row.get('other_weight'),
+                'net_weight': row.get('net_weight'),
+                'advance_no': row.get('advance_no'),
+                'advance_date': row.get('advance_date'),
+                'party_name': row.get('party_name'),
+                'party_code': row.get('party_code'),
+                'party_type': row.get('party_type'),
+                'customer_name': row.get('customer_name'),
+                'customer_phone_number': row.get('customer_phone_number'),
+                'reorder': str(row.get('reorder') or '').strip(),
+                'supplier_expected_delivery_date': row.get('supplier_expected_delivery_date'),
+                'customer_expected_delivery_date': row.get('customer_expected_delivery_date'),
+                'combine_order_status': row.get('combine_order_status'),
+                'shop_manger': row.get('shop_manger'),
+                'verifying_team': row.get('verifying_team'),
+                'verifying_team_emp_code': row.get('verifying_team_emp_code'),
+                'composition_pending_pcs': comp_pcs,
+                'composition_pending_wt': comp_wt,
+                'verifying_team_approval_pending_pcs': vt_pcs,
+                'verifying_team_approval_pending_wt': vt_wt,
+                'estimation_and_advance_pending_pcs': est_pcs,
+                'estimation_and_advance_pending_wt': est_wt,
+                'manager_approval_pending_pcs': mgr_pcs,
+                'manager_approval_pending_wt': mgr_wt,
+                'advance_verification_pending_pcs': adv_v_pcs,
+                'advance_verification_pending_wt': adv_v_wt,
+                'collection_owner_approval_pending_pcs': coll_pcs,
+                'collection_owner_approval_pending_wt': coll_wt,
+                'customer_approval_pending_pcs': cust_pcs,
+                'customer_approval_pending_wt': cust_wt,
+                'party_order_creation_pending_pcs': pty_pcs,
+                'party_order_creation_pending_wt': pty_wt,
+                'total_pending_pcs': tot_pcs,
+                'total_pending_wt': tot_wt,
+            })
+
+        emit('processing', f'Writing {len(records):,} records to database...', 80)
+        chunk_size = 5000
+        for start in range(0, len(records), chunk_size):
+            db.session.bulk_insert_mappings(
+                CustomerOrderApprovalPendingSnapshot,
+                records[start:start + chunk_size]
+            )
+        db.session.commit()
+
+        emit('success', f'Sync completed! {len(records):,} records updated.', 100)
+        return {'status': 'success', 'count': len(records)}
+    except Exception as exc:
+        db.session.rollback()
+        logger.exception('Pending Customer Order Approvals sync failed')
+        emit('error', f'Sync failed: {exc}', 0)
+        return {'status': 'error', 'message': str(exc)}
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
