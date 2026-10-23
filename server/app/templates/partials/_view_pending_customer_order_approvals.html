@@ -108,7 +108,7 @@
             <th class="text-right px-2 bg-teal-50/20 cursor-pointer hover:bg-teal-100/40 transition-colors group"
                 onclick="toggleSort('composition_wt')" title="Click to sort by Composition Verification Pending">
                 <div class="flex items-center justify-end gap-1">
-                    <span>Composition Verification</span>
+                    <span>Composition</span>
                     <span
                         class="material-symbols-outlined text-[13px] {% if sort_by in ['composition_wt', 'composition_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
                         {{ 'arrow_upward' if (sort_by in ['composition_wt', 'composition_pcs'] and sort_order == 'asc')
