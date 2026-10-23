@@ -1,13 +1,13 @@
 {% set stages = [
     ('Total Pending', 'total_pending', 'green'),
-    ('Manager Approval', 'manager_approval_pending', 'purple'),
-    ('Order Confirmation', 'estimation_and_advance_pending', 'amber'),
-    ('Collection Owner', 'collection_owner_approval_pending', 'blue'),
-    ('Customer Approval', 'customer_approval_pending', 'indigo'),
-    ('Verifying Team', 'verifying_team_approval_pending', 'yellow'),
-    ('Advance Verification', 'advance_verification_pending', 'red'),
-    ('Party Order Creation', 'party_order_creation_pending', 'cyan'),
-    ('Composition', 'composition_pending', 'teal')
+    ('Estimation & Advance Pending', 'estimation_and_advance_pending', 'amber'),
+    ('Manager Approval Pending', 'manager_approval_pending', 'purple'),
+    ('Advance Verification Pending', 'advance_verification_pending', 'red'),
+    ('Customer Approval Pending', 'customer_approval_pending', 'indigo'),
+    ('Verifying Team (Article)', 'verifying_team_approval_pending', 'yellow'),
+    ('Composition Verification', 'composition_pending', 'teal'),
+    ('Collection Owner (Ornament)', 'collection_owner_approval_pending', 'blue'),
+    ('Party Order Creation Pending', 'party_order_creation_pending', 'cyan')
 ] %}
 {% set display_total = total_records if total_records is defined else (records|length) %}
 {% macro value(v) %}{{ v if v is not none and v != '' else '-' }}{% endmacro %}

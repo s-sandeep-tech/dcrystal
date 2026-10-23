@@ -104,7 +104,7 @@
         style="grid-template-columns: 140px repeat(8, minmax(130px, 1fr)); overflow-x: auto;"
         class="grid gap-0 p-1 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
         
-        <!-- Total Pending -->
+        <!-- 1. Total Pending -->
         <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center bg-emerald-50/20 dark:bg-emerald-950/20">
             <p class="text-[9px] text-emerald-700 dark:text-emerald-400 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-emerald-600 shrink-0" style="font-size: 13px; line-height: 1"
@@ -120,29 +120,12 @@
             </div>
         </div>
 
-        <!-- Manager Approval Pending -->
-        <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-purple-600 shrink-0" style="font-size: 13px; line-height: 1"
-                    aria-hidden="true">manage_accounts</span>
-                <span>Manager Approval</span>
-            </p>
-            <div class="flex flex-col">
-                <p id="stat-manager-approval-wt" class="text-sm font-bold text-purple-600">{{ stats.manager_approval_wt if stats else '-' }}</p>
-                <p id="stat-manager-approval-pcs" class="text-[9px] text-purple-600/70 font-medium">{{ stats.manager_approval_pcs if stats else '-' }} Pcs</p>
-            </div>
-            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-manager-approval-bar" class="h-full bg-purple-500 transition-all duration-500"
-                    style="width: {{ stats.manager_approval_perc if stats else 0 }}%"></div>
-            </div>
-        </div>
-
-        <!-- Order Confirmation Pending -->
+        <!-- 2. Estimation and Advance Pending -->
         <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-amber-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">thumb_up</span>
-                <span>Order Confirmation</span>
+                <span>Estimation & Advance Pending</span>
             </p>
             <div class="flex flex-col">
                 <p id="stat-order-confirmation-wt" class="text-sm font-bold text-amber-600">{{ stats.order_confirmation_wt if stats else '-' }}</p>
@@ -154,63 +137,29 @@
             </div>
         </div>
 
-        <!-- Collection Owner Approval Pending -->
+        <!-- 3. Manager Approval Pending -->
         <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-blue-600 shrink-0" style="font-size: 13px; line-height: 1"
-                    aria-hidden="true">collections_bookmark</span>
-                <span>Collection Owner</span>
+                <span class="material-symbols-outlined text-purple-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">manage_accounts</span>
+                <span>Manager Approval Pending</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-collection-owner-wt" class="text-sm font-bold text-blue-600">{{ stats.collection_owner_wt if stats else '-' }}</p>
-                <p id="stat-collection-owner-pcs" class="text-[9px] text-blue-600/70 font-medium">{{ stats.collection_owner_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-manager-approval-wt" class="text-sm font-bold text-purple-600">{{ stats.manager_approval_wt if stats else '-' }}</p>
+                <p id="stat-manager-approval-pcs" class="text-[9px] text-purple-600/70 font-medium">{{ stats.manager_approval_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-collection-owner-bar" class="h-full bg-blue-500 transition-all duration-500"
-                    style="width: {{ stats.collection_owner_perc if stats else 0 }}%"></div>
+                <div id="stat-manager-approval-bar" class="h-full bg-purple-500 transition-all duration-500"
+                    style="width: {{ stats.manager_approval_perc if stats else 0 }}%"></div>
             </div>
         </div>
 
-        <!-- Customer Approval Pending -->
-        <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-indigo-600 shrink-0" style="font-size: 13px; line-height: 1"
-                    aria-hidden="true">person</span>
-                <span>Customer Approval</span>
-            </p>
-            <div class="flex flex-col">
-                <p id="stat-customer-approval-wt" class="text-sm font-bold text-indigo-600">{{ stats.customer_approval_wt if stats else '-' }}</p>
-                <p id="stat-customer-approval-pcs" class="text-[9px] text-indigo-600/70 font-medium">{{ stats.customer_approval_pcs if stats else '-' }} Pcs</p>
-            </div>
-            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-customer-approval-bar" class="h-full bg-indigo-500 transition-all duration-500"
-                    style="width: {{ stats.customer_approval_perc if stats else 0 }}%"></div>
-            </div>
-        </div>
-
-        <!-- Verifying Team Approval Pending -->
-        <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
-            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-yellow-600 shrink-0" style="font-size: 13px; line-height: 1"
-                    aria-hidden="true">verified_user</span>
-                <span>Verifying Team</span>
-            </p>
-            <div class="flex flex-col">
-                <p id="stat-verifying-team-wt" class="text-sm font-bold text-yellow-600">{{ stats.verifying_team_wt if stats else '-' }}</p>
-                <p id="stat-verifying-team-pcs" class="text-[9px] text-yellow-600/70 font-medium">{{ stats.verifying_team_pcs if stats else '-' }} Pcs</p>
-            </div>
-            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-verifying-team-bar" class="h-full bg-yellow-500 transition-all duration-500"
-                    style="width: {{ stats.verifying_team_perc if stats else 0 }}%"></div>
-            </div>
-        </div>
-
-        <!-- Advance Verification Pending -->
+        <!-- 4. Advance Verification Pending -->
         <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-rose-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">fact_check</span>
-                <span>Advance Verification</span>
+                <span>Advance Verification Pending</span>
             </p>
             <div class="flex flex-col">
                 <p id="stat-advance-verification-wt" class="text-sm font-bold text-rose-600">{{ stats.advance_verification_wt if stats else '-' }}</p>
@@ -222,29 +171,46 @@
             </div>
         </div>
 
-        <!-- Party Order Creation Pending -->
+        <!-- 5. Customer Approval Pending -->
         <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-cyan-600 shrink-0" style="font-size: 13px; line-height: 1"
-                    aria-hidden="true">post_add</span>
-                <span>Party Order Creation</span>
+                <span class="material-symbols-outlined text-indigo-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">person</span>
+                <span>Customer Approval Pending</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-party-order-creation-wt" class="text-sm font-bold text-cyan-600">{{ stats.party_order_creation_wt if stats else '-' }}</p>
-                <p id="stat-party-order-creation-pcs" class="text-[9px] text-cyan-600/70 font-medium">{{ stats.party_order_creation_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-customer-approval-wt" class="text-sm font-bold text-indigo-600">{{ stats.customer_approval_wt if stats else '-' }}</p>
+                <p id="stat-customer-approval-pcs" class="text-[9px] text-indigo-600/70 font-medium">{{ stats.customer_approval_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-party-order-creation-bar" class="h-full bg-cyan-500 transition-all duration-500"
-                    style="width: {{ stats.party_order_creation_perc if stats else 0 }}%"></div>
+                <div id="stat-customer-approval-bar" class="h-full bg-indigo-500 transition-all duration-500"
+                    style="width: {{ stats.customer_approval_perc if stats else 0 }}%"></div>
             </div>
         </div>
 
-        <!-- Composition Pending -->
-        <div class="px-2 py-2 text-center">
+        <!-- 6. Verifying Team Approval Pending (Article) -->
+        <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-yellow-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">verified_user</span>
+                <span>Verifying Team Approval (Article)</span>
+            </p>
+            <div class="flex flex-col">
+                <p id="stat-verifying-team-wt" class="text-sm font-bold text-yellow-600">{{ stats.verifying_team_wt if stats else '-' }}</p>
+                <p id="stat-verifying-team-pcs" class="text-[9px] text-yellow-600/70 font-medium">{{ stats.verifying_team_pcs if stats else '-' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-verifying-team-bar" class="h-full bg-yellow-500 transition-all duration-500"
+                    style="width: {{ stats.verifying_team_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- 7. Composition Verification Pending -->
+        <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-teal-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">pie_chart</span>
-                <span>Composition Pend</span>
+                <span>Composition Verification Pending</span>
             </p>
             <div class="flex flex-col">
                 <p id="stat-composition-wt" class="text-sm font-bold text-teal-600">{{ stats.composition_wt if stats else '-' }}</p>
@@ -253,6 +219,40 @@
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-composition-bar" class="h-full bg-teal-500 transition-all duration-500"
                     style="width: {{ stats.composition_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- 8. Collection Owner Approval Pending (Ornament) -->
+        <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-blue-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">collections_bookmark</span>
+                <span>Collection Owner (Ornament)</span>
+            </p>
+            <div class="flex flex-col">
+                <p id="stat-collection-owner-wt" class="text-sm font-bold text-blue-600">{{ stats.collection_owner_wt if stats else '-' }}</p>
+                <p id="stat-collection-owner-pcs" class="text-[9px] text-blue-600/70 font-medium">{{ stats.collection_owner_pcs if stats else '-' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-collection-owner-bar" class="h-full bg-blue-500 transition-all duration-500"
+                    style="width: {{ stats.collection_owner_perc if stats else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- 9. Party Order Creation Pending -->
+        <div class="px-2 py-2 text-center">
+            <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-cyan-600 shrink-0" style="font-size: 13px; line-height: 1"
+                    aria-hidden="true">post_add</span>
+                <span>Party Order Creation Pending</span>
+            </p>
+            <div class="flex flex-col">
+                <p id="stat-party-order-creation-wt" class="text-sm font-bold text-cyan-600">{{ stats.party_order_creation_wt if stats else '-' }}</p>
+                <p id="stat-party-order-creation-pcs" class="text-[9px] text-cyan-600/70 font-medium">{{ stats.party_order_creation_pcs if stats else '-' }} Pcs</p>
+            </div>
+            <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div id="stat-party-order-creation-bar" class="h-full bg-cyan-500 transition-all duration-500"
+                    style="width: {{ stats.party_order_creation_perc if stats else 0 }}%"></div>
             </div>
         </div>
     </div>
