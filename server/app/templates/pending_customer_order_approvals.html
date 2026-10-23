@@ -58,8 +58,10 @@
         <div class="flex items-center justify-center">
             <div
                 class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300 shadow-inner">
-                <div class="px-2.5 py-0.5 rounded-md font-bold bg-white dark:bg-gray-700 shadow-xs text-primary flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-[15px] leading-none text-primary" aria-hidden="true">account_tree</span>
+                <div
+                    class="px-2.5 py-0.5 rounded-md font-bold bg-white dark:bg-gray-700 shadow-xs text-primary flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[15px] leading-none text-primary"
+                        aria-hidden="true">account_tree</span>
                     <span>BH &rsaquo; Classification Owner &rsaquo; Make Owner &rsaquo; Collection Owner</span>
                 </div>
             </div>
@@ -103,20 +105,25 @@
     <div id="approvals-stats" aria-busy="true"
         style="grid-template-columns: 140px repeat(8, minmax(130px, 1fr)); overflow-x: auto;"
         class="grid gap-0 p-1 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
-        
+
         <!-- 1. Total -->
-        <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center bg-emerald-50/20 dark:bg-emerald-950/20">
-            <p class="text-[9px] text-emerald-700 dark:text-emerald-400 font-bold uppercase flex items-center justify-center gap-1">
-                <span class="material-symbols-outlined text-emerald-600 shrink-0" style="font-size: 13px; line-height: 1"
-                    aria-hidden="true">check_circle</span>
+        <div
+            class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center bg-emerald-50/20 dark:bg-emerald-950/20">
+            <p
+                class="text-[9px] text-emerald-700 dark:text-emerald-400 font-bold uppercase flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-emerald-600 shrink-0"
+                    style="font-size: 13px; line-height: 1" aria-hidden="true">check_circle</span>
                 <span>Total</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-total-wt" class="text-sm font-bold text-emerald-700 dark:text-emerald-300">{{ stats.total_wt if stats else '-' }}</p>
-                <p id="stat-total-pcs" class="text-[9px] text-emerald-600/70 font-medium">{{ stats.total_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-total-wt" class="text-sm font-bold text-emerald-700 dark:text-emerald-300">{{ stats.total_wt
+                    if stats else '-' }}</p>
+                <p id="stat-total-pcs" class="text-[9px] text-emerald-600/70 font-medium">{{ stats.total_pcs if stats
+                    else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div id="stat-total-bar" class="h-full bg-emerald-500 transition-all duration-500" style="width: 100%"></div>
+                <div id="stat-total-bar" class="h-full bg-emerald-500 transition-all duration-500" style="width: 100%">
+                </div>
             </div>
         </div>
 
@@ -128,8 +135,10 @@
                 <span>Estimation & Advance</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-order-confirmation-wt" class="text-sm font-bold text-amber-600">{{ stats.order_confirmation_wt if stats else '-' }}</p>
-                <p id="stat-order-confirmation-pcs" class="text-[9px] text-amber-600/70 font-medium">{{ stats.order_confirmation_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-order-confirmation-wt" class="text-sm font-bold text-amber-600">{{
+                    stats.order_confirmation_wt if stats else '-' }}</p>
+                <p id="stat-order-confirmation-pcs" class="text-[9px] text-amber-600/70 font-medium">{{
+                    stats.order_confirmation_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-order-confirmation-bar" class="h-full bg-amber-500 transition-all duration-500"
@@ -145,8 +154,10 @@
                 <span>Manager Approval</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-manager-approval-wt" class="text-sm font-bold text-purple-600">{{ stats.manager_approval_wt if stats else '-' }}</p>
-                <p id="stat-manager-approval-pcs" class="text-[9px] text-purple-600/70 font-medium">{{ stats.manager_approval_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-manager-approval-wt" class="text-sm font-bold text-purple-600">{{ stats.manager_approval_wt
+                    if stats else '-' }}</p>
+                <p id="stat-manager-approval-pcs" class="text-[9px] text-purple-600/70 font-medium">{{
+                    stats.manager_approval_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-manager-approval-bar" class="h-full bg-purple-500 transition-all duration-500"
@@ -162,8 +173,10 @@
                 <span>Advance Verification</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-advance-verification-wt" class="text-sm font-bold text-rose-600">{{ stats.advance_verification_wt if stats else '-' }}</p>
-                <p id="stat-advance-verification-pcs" class="text-[9px] text-rose-600/70 font-medium">{{ stats.advance_verification_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-advance-verification-wt" class="text-sm font-bold text-rose-600">{{
+                    stats.advance_verification_wt if stats else '-' }}</p>
+                <p id="stat-advance-verification-pcs" class="text-[9px] text-rose-600/70 font-medium">{{
+                    stats.advance_verification_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-advance-verification-bar" class="h-full bg-rose-500 transition-all duration-500"
@@ -179,8 +192,10 @@
                 <span>Customer Approval</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-customer-approval-wt" class="text-sm font-bold text-indigo-600">{{ stats.customer_approval_wt if stats else '-' }}</p>
-                <p id="stat-customer-approval-pcs" class="text-[9px] text-indigo-600/70 font-medium">{{ stats.customer_approval_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-customer-approval-wt" class="text-sm font-bold text-indigo-600">{{
+                    stats.customer_approval_wt if stats else '-' }}</p>
+                <p id="stat-customer-approval-pcs" class="text-[9px] text-indigo-600/70 font-medium">{{
+                    stats.customer_approval_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-customer-approval-bar" class="h-full bg-indigo-500 transition-all duration-500"
@@ -196,8 +211,10 @@
                 <span>Verifying Team (Article)</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-verifying-team-wt" class="text-sm font-bold text-yellow-600">{{ stats.verifying_team_wt if stats else '-' }}</p>
-                <p id="stat-verifying-team-pcs" class="text-[9px] text-yellow-600/70 font-medium">{{ stats.verifying_team_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-verifying-team-wt" class="text-sm font-bold text-yellow-600">{{ stats.verifying_team_wt if
+                    stats else '-' }}</p>
+                <p id="stat-verifying-team-pcs" class="text-[9px] text-yellow-600/70 font-medium">{{
+                    stats.verifying_team_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-verifying-team-bar" class="h-full bg-yellow-500 transition-all duration-500"
@@ -213,8 +230,10 @@
                 <span>Composition Verification</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-composition-wt" class="text-sm font-bold text-teal-600">{{ stats.composition_wt if stats else '-' }}</p>
-                <p id="stat-composition-pcs" class="text-[9px] text-teal-600/70 font-medium">{{ stats.composition_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-composition-wt" class="text-sm font-bold text-teal-600">{{ stats.composition_wt if stats
+                    else '-' }}</p>
+                <p id="stat-composition-pcs" class="text-[9px] text-teal-600/70 font-medium">{{ stats.composition_pcs if
+                    stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-composition-bar" class="h-full bg-teal-500 transition-all duration-500"
@@ -227,11 +246,13 @@
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-blue-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">collections_bookmark</span>
-                <span>Collection Owner (Ornament)</span>
+                <span>Collection Owner</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-collection-owner-wt" class="text-sm font-bold text-blue-600">{{ stats.collection_owner_wt if stats else '-' }}</p>
-                <p id="stat-collection-owner-pcs" class="text-[9px] text-blue-600/70 font-medium">{{ stats.collection_owner_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-collection-owner-wt" class="text-sm font-bold text-blue-600">{{ stats.collection_owner_wt if
+                    stats else '-' }}</p>
+                <p id="stat-collection-owner-pcs" class="text-[9px] text-blue-600/70 font-medium">{{
+                    stats.collection_owner_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-collection-owner-bar" class="h-full bg-blue-500 transition-all duration-500"
@@ -247,8 +268,10 @@
                 <span>Party Order Creation</span>
             </p>
             <div class="flex flex-col">
-                <p id="stat-party-order-creation-wt" class="text-sm font-bold text-cyan-600">{{ stats.party_order_creation_wt if stats else '-' }}</p>
-                <p id="stat-party-order-creation-pcs" class="text-[9px] text-cyan-600/70 font-medium">{{ stats.party_order_creation_pcs if stats else '-' }} Pcs</p>
+                <p id="stat-party-order-creation-wt" class="text-sm font-bold text-cyan-600">{{
+                    stats.party_order_creation_wt if stats else '-' }}</p>
+                <p id="stat-party-order-creation-pcs" class="text-[9px] text-cyan-600/70 font-medium">{{
+                    stats.party_order_creation_pcs if stats else '-' }} Pcs</p>
             </div>
             <div class="mt-1.5 h-1 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div id="stat-party-order-creation-bar" class="h-full bg-cyan-500 transition-all duration-500"
@@ -304,8 +327,7 @@
     <div id="modal-overlay"
         class="hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] transition-all duration-300"
         onclick="closeLeafModal()"></div>
-    <div id="leaf-detail-modal"
-        role="dialog" aria-modal="true" aria-label="Customer Order Approval Details"
+    <div id="leaf-detail-modal" role="dialog" aria-modal="true" aria-label="Customer Order Approval Details"
         class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[98vw] max-w-[98vw] h-[92vh] bg-white dark:bg-gray-900 shadow-2xl rounded-xl z-[101] overflow-hidden animate-zoom-in border border-gray-100 dark:border-gray-800">
         <div id="leaf-detail-content" class="h-full">
             <!-- Content loaded via AJAX -->
@@ -411,20 +433,29 @@
                 <select id="filter-customer-delivery-period"
                     class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
                     <option value="">All Periods</option>
-                    <option value="overdue" {% if request.args.get('customer_delivery_period')=='overdue' %}selected{% endif %}>Overdue (&lt; Today)</option>
-                    <option value="today" {% if request.args.get('customer_delivery_period')=='today' %}selected{% endif %}>Due Today</option>
-                    <option value="1_3" {% if request.args.get('customer_delivery_period')=='1_3' %}selected{% endif %}>1 - 3 Days Left</option>
-                    <option value="4_7" {% if request.args.get('customer_delivery_period')=='4_7' %}selected{% endif %}>4 - 7 Days Left</option>
-                    <option value="7_plus" {% if request.args.get('customer_delivery_period')=='7_plus' %}selected{% endif %}>&gt; 7 Days Left</option>
-                    <option value="this_week" {% if request.args.get('customer_delivery_period')=='this_week' %}selected{% endif %}>Due This Week</option>
-                    <option value="this_month" {% if request.args.get('customer_delivery_period')=='this_month' %}selected{% endif %}>Due This Month</option>
-                    <option value="next_month" {% if request.args.get('customer_delivery_period')=='next_month' %}selected{% endif %}>Due Next Month</option>
+                    <option value="overdue" {% if request.args.get('customer_delivery_period')=='overdue' %}selected{%
+                        endif %}>Overdue (&lt; Today)</option>
+                    <option value="today" {% if request.args.get('customer_delivery_period')=='today' %}selected{% endif
+                        %}>Due Today</option>
+                    <option value="1_3" {% if request.args.get('customer_delivery_period')=='1_3' %}selected{% endif %}>
+                        1 - 3 Days Left</option>
+                    <option value="4_7" {% if request.args.get('customer_delivery_period')=='4_7' %}selected{% endif %}>
+                        4 - 7 Days Left</option>
+                    <option value="7_plus" {% if request.args.get('customer_delivery_period')=='7_plus' %}selected{%
+                        endif %}>&gt; 7 Days Left</option>
+                    <option value="this_week" {% if request.args.get('customer_delivery_period')=='this_week'
+                        %}selected{% endif %}>Due This Week</option>
+                    <option value="this_month" {% if request.args.get('customer_delivery_period')=='this_month'
+                        %}selected{% endif %}>Due This Month</option>
+                    <option value="next_month" {% if request.args.get('customer_delivery_period')=='next_month'
+                        %}selected{% endif %}>Due Next Month</option>
                 </select>
             </div>
 
             <!-- Customer Delivery Date Range -->
             <div class="space-y-1">
-                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Customer Delivery Date Range</label>
+                <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Customer Delivery Date
+                    Range</label>
                 <div class="grid grid-cols-2 gap-1.5">
                     <div>
                         <span class="text-[8px] text-gray-400 font-medium">From</span>
@@ -456,4 +487,3 @@
 <div id="approvals-filter-data" hidden data-options='{{ filter_options | tojson }}'></div>
 <script src="{{ url_for('static', filename='js/pending_customer_order_approvals.js') }}"></script>
 {% endblock %}
-
