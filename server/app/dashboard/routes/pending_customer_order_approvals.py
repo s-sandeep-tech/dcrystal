@@ -92,6 +92,16 @@ def build_filter_query(base_query):
     # 18. Combine Order Status
     query = apply_multi_value_filter(query, CustomerOrderApprovalPending.combine_order_status, request.args.get('combine_order_status') or request.args.get('order_status'))
 
+    # Request No text filter
+    req_no = (request.args.get('request_no') or '').strip()
+    if req_no:
+        if ',' in req_no:
+            req_nos = [x.strip() for x in req_no.split(',') if x.strip()]
+            if req_nos:
+                query = query.filter(func.lower(CustomerOrderApprovalPending.request_no).in_([x.lower() for x in req_nos]))
+        else:
+            query = query.filter(CustomerOrderApprovalPending.request_no.ilike(f"%{req_no}%"))
+
     # Reorder Y/N
     reorder_val = (request.args.get('reorder') or request.args.get('re_order') or '').strip().lower()
     if reorder_val in ('yes', 'y', 'true', '1'):

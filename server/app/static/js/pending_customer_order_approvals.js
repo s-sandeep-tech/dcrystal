@@ -174,6 +174,13 @@ function initializeApprovalsPage() {
         });
     }
 
+    // Set initial Request No value
+    const reqNo = urlParams.get('request_no');
+    if (reqNo) {
+        const el = document.getElementById('filter-request-no');
+        if (el) el.value = reqNo;
+    }
+
     // Set initial date range values
     const reqFrom = urlParams.get('request_date_from');
     if (reqFrom) {
@@ -242,6 +249,9 @@ function getFilterValues() {
         }
     }
 
+    const reqNo = document.getElementById('filter-request-no')?.value?.trim();
+    if (reqNo) filters['request_no'] = reqNo;
+
     const reqFrom = document.getElementById('filter-request-date-from')?.value;
     if (reqFrom) filters['request_date_from'] = reqFrom;
 
@@ -287,6 +297,8 @@ function resetGlobalFilters() {
             selectInstance.reset();
         }
     }
+    const reqNo = document.getElementById('filter-request-no');
+    if (reqNo) reqNo.value = '';
     const reqFrom = document.getElementById('filter-request-date-from');
     if (reqFrom) reqFrom.value = '';
     const reqTo = document.getElementById('filter-request-date-to');
@@ -353,6 +365,10 @@ function updateActiveFilterChips() {
 function removeFilterChip(key) {
     if (multiSelects[key] && typeof multiSelects[key].reset === 'function') {
         multiSelects[key].reset();
+    }
+    if (key === 'request_no') {
+        const el = document.getElementById('filter-request-no');
+        if (el) el.value = '';
     }
     if (key === 'request_date_from') {
         const el = document.getElementById('filter-request-date-from');
