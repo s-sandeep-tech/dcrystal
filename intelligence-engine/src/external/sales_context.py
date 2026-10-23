@@ -103,17 +103,19 @@ def weather(location, start, end):
 def gold(start, end):
     if end < datetime.now(TZ).date():
         return unavailable('Gold: current spot prices are not substituted for historical prices.')
-    raw = cached('intelligence:gold:v1:XAU:USD', 300,
-                 lambda: get_json('https://api.gold-api.com/price/XAU'))
+    raw = cached('intelligence:gold:v2:XAU:INR', 300,
+                 lambda: get_json('https://api.gold-api.com/price/XAU/INR'))
     price = float(raw['price'])
-    if raw.get('symbol') != 'XAU' or raw.get('currency', 'USD') != 'USD' or not math.isfinite(price) or price <= 0:
+    if raw.get('symbol') != 'XAU' or raw.get('currency') != 'INR' or not math.isfinite(price) or price <= 0:
         raise ValueError('Invalid gold quote')
     observed = datetime.fromisoformat(raw['updatedAt'].replace('Z', '+00:00'))
     if observed.tzinfo is None:
         raise ValueError('Gold quote has no timezone')
-    return {'status': 'available', 'provider': 'Gold API', 'price': price, 'currency': 'USD',
-        'unit': 'troy ounce', 'observed_at': observed.isoformat(), 'kind': 'spot_observation',
-        'message': f'Gold spot: USD {price:,.2f}/troy ounce, updated {observed.isoformat()}. Not an Indian retail rate or a future price forecast.',
+    per_gram = price / 31.1034768
+    return {'status': 'available', 'provider': 'Gold API', 'price': per_gram, 'currency': 'INR',
+        'unit': 'gram', 'source_price': price, 'source_unit': 'troy ounce',
+        'observed_at': observed.isoformat(), 'kind': 'spot_observation',
+        'message': f'Gold spot: INR {per_gram:,.2f}/gram, updated {observed.isoformat()}. Not an Indian retail rate or a future price forecast.',
         'source': {'title': 'Gold API', 'url': 'https://gold-api.com/'}}
 
 
@@ -214,4 +216,4 @@ def _sales_context(location, start_date, end_date, allow_gemini_fallback=False):
             else:
                 result['summary'] += '\n\n' + fallback['message']
         return result
-    return cached(f'intelligence:sales_context:api-v4:{digest}', 300, fetch)
+    return cached(f'intelligence:sales_context:api-v6:{digest}', 300, fetch)

@@ -18,6 +18,12 @@
         window.renderSalesForecastFactors(result);
         const c = result?.external_context;
         el('sf-context-text').textContent = c?.summary || '';
+        const savedGold = c?.parameters?.gold;
+        if (savedGold?.currency === 'INR' && savedGold.unit === 'troy ounce' && savedGold.message) {
+            const gold = window.salesGoldPerGram(savedGold);
+            el('sf-context-text').textContent = (c.summary || '').replace(savedGold.message,
+                `Gold spot: INR ${gold.price.toLocaleString('en-IN', {maximumFractionDigits: 2})}/gram. Observed: ${gold.observed_at}.`);
+        }
         el('sf-context-state').textContent = c?.status === 'available'
             ? `Sourced ${new Date(c.retrieved_at).toLocaleString('en-IN')}. ${c.affects_forecast ? 'Validated external features used in prediction.' : 'Baseline retained: external features did not pass validation or coverage requirements.'}`
             : c?.message || 'External context has not been requested.';

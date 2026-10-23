@@ -1,7 +1,7 @@
 (() => {
     const names = {weather: 'Weather', gold: 'Gold Price', festivals: 'National Festivals',
         regional_festivals: 'Regional Festivals', weddings: 'Wedding Calendar'};
-    const fields = {rain_mm: 'Rain (mm)', max_temp_c: 'Maximum temperature (C)', price_usd_oz: 'Gold (USD/troy oz)',
+    const fields = {rain_mm: 'Rain (mm)', max_temp_c: 'Maximum temperature (C)', price_usd_oz: 'Gold (USD/troy oz)', price_inr_oz: 'Gold (INR/gram)', price_inr_g: 'Gold (INR/gram)',
         dhanteras_proximity: 'Dhanteras proximity', akshaya_proximity: 'Akshaya Tritiya proximity',
         festival_day: 'Festival day', festival_lead_7: 'Festival lead (7 days)', festival_after_7: 'Festival lag (7 days)',
         wedding_season: 'Wedding season', days_to_wedding: 'Days to wedding', wedding_dates_next_7: 'Wedding dates (7 days)'};
@@ -10,6 +10,8 @@
         external_regional_festivals: 'Regional Festivals', external_weddings: 'Weddings',
         external_regional_calendar: 'Regional Festivals + Weddings', external_all: 'All External Factors'};
     const el = id => document.getElementById(id);
+    window.salesGoldPerGram = data => data?.currency === 'INR' && data.unit === 'troy ounce'
+        ? {...data, price: data.price / 31.1034768, unit: 'gram'} : data;
     const number = value => typeof value === 'number' && Number.isFinite(value)
         ? value.toLocaleString('en-IN', {maximumFractionDigits: 3}) : value == null ? 'Not supplied' : String(value);
     const mae = value => typeof value === 'number' ? (value / 100000).toLocaleString('en-IN', {maximumFractionDigits: 3}) : 'Not recorded';
@@ -19,6 +21,7 @@
         parent.append(node); return node;
     }
     function values(cell, key, data) {
+        if (key === 'gold') data = window.salesGoldPerGram(data);
         if (!data) { line(cell, 'Not fetched / not recorded'); return; }
         if (key === 'weather') {
             for (const day of data.days || []) line(cell, `${day.date}: ${number(day.min_temp_c)}–${number(day.max_temp_c)} C · Rain ${number(day.rain_mm)} mm · Chance ${number(day.rain_chance_pct)}%`);
@@ -56,7 +59,7 @@
                     for (const input of inputs) {
                         line(details, input.date, 'sf-factor-name');
                         for (const [field, value] of Object.entries(input.values || {}))
-                            line(details, `${fields[field] || field}: ${number(value)}${field === 'days_to_wedding' && value === 31 ? ' (none within 30 days)' : ''}`);
+                            line(details, `${fields[field] || field}: ${number(field === 'price_inr_oz' ? value / 31.1034768 : value)}${field === 'days_to_wedding' && value === 31 ? ' (none within 30 days)' : ''}`);
                     }
                     cells[2].append(details);
                 } else line(cells[2], 'Exact inputs were not recorded in this saved forecast.', 'sf-factor-secondary');

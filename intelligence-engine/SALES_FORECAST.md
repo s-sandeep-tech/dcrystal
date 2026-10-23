@@ -77,7 +77,7 @@ uses free APIs first. It returns structured `parameters.weather`,
   `{"YOUR LOCATION":{"lat":10.0,"lon":76.0}}` (illustrative, replace coordinates).
   Unresolved locations, historical dates and uncovered forecast days are explicitly
   unavailable. All-location weather is not approximated using one city.
-- Gold API: no key required for `/price/XAU`. Returns current USD/troy-ounce spot
+- Gold API: no key required for `/price/XAU/INR`. Source quotes are INR/troy-ounce spot
   observations with provider timestamps, NOT an Indian retail rate or gold-price
   forecast. Current quotes are never substituted for historical forecast periods.
 - Calendarific: configure `SALES_CALENDARIFIC_API_KEY` from a free account
@@ -205,8 +205,16 @@ commentary and is never parsed into numerical model inputs. A baseline is retain
 until historical coverage and backtests justify an external model.
 
 - Weather: rainfall and maximum temperature for a specific branch.
-- Gold: last known USD/troy-ounce quote, carried at most seven days. No future
+- Gold: last known INR/gram quote, carried at most seven days. Source INR/troy-ounce
+  prices are divided by 31.1034768 without rounding model inputs. Source price/unit
+  are preserved. Legacy INR/ounce features are converted on read; USD features remain
+  excluded. Saved INR/ounce report values are displayed per gram without rewriting
+  the stored forecast. No future
   gold price is invented. Forecasts use the price actually available at their origin.
+  Legacy USD feature rows remain stored for audit but are excluded from INR models.
+  New INR history must accumulate or be imported; no historical FX conversion is
+  guessed. Existing saved forecasts retain their original currency. Generate a new
+  forecast after restarting the engine to fetch INR quotes. No SQL migration is needed.
 - Festivals: separate Dhanteras and Akshaya Tritiya proximity values within seven
   days before/after each verified event. Missing calendars are not zero-filled.
 - Candidate models: standardized ridge regression with weekday/trend controls and
@@ -258,7 +266,7 @@ the engine container. Each row follows this shape:
 }
 ```
 
-Use `global` scope for `gold` (`price_usd_oz`) and `festivals`
+Use `global` scope for `gold` (`price_inr_g`) and `festivals`
 (`dhanteras_proximity`, `akshaya_proximity`, both 0..1). Do not assign historical
 availability timestamps unless the source proves that date. A calendar retrieved
 today is not automatically treated as available during past backtests. Weather

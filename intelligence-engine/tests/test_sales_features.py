@@ -48,7 +48,7 @@ class FeatureTests(unittest.TestCase):
             feature['feature_group'] = 'gold'
             feature['feature_date'] -= timedelta(days=1)
             feature['available_at'] = datetime.combine(feature['feature_date'], datetime.min.time(), tzinfo=timezone.utc)
-            feature['values_json'] = {'price_usd_oz': 3000 + i * 10}
+            feature['values_json'] = {'price_inr_g': 10000 + i * 30}
         for i, row in enumerate(rows):
             row['y'] = 10000 + i * 500
         result = forecast_daily(rows, use_prophet=False, feature_rows=features)
@@ -63,11 +63,17 @@ class FeatureTests(unittest.TestCase):
 
     def test_gold_uses_only_known_lagged_prices(self):
         row = {'id': 'g', 'feature_group': 'gold', 'feature_date': '2026-01-01',
-               'available_at': '2026-01-01T12:00:00+00:00', 'values_json': {'price_usd_oz': 4000}}
+               'available_at': '2026-01-01T12:00:00+00:00', 'values_json': {'price_inr_g': 12000}}
         index = FeatureIndex([row])
         origin = datetime(2026, 1, 2, tzinfo=timezone.utc)
-        self.assertEqual(index.vector(pd.Timestamp('2026-01-03'), origin, ['gold'], future=True), [4000])
+        self.assertEqual(index.vector(pd.Timestamp('2026-01-03'), origin, ['gold'], future=True), [12000])
         self.assertIsNone(index.vector(pd.Timestamp('2026-01-01'), origin, ['gold']))
+        row['values_json'] = {'price_inr_oz': 380000}
+        legacy = FeatureIndex([row])
+        self.assertAlmostEqual(legacy.vector(pd.Timestamp('2026-01-03'), origin, ['gold'], future=True)[0], 380000 / 31.1034768)
+        self.assertEqual(row['values_json'], {'price_inr_oz': 380000})
+        row['values_json'] = {'price_usd_oz': 4000}
+        self.assertIsNone(FeatureIndex([row]).vector(pd.Timestamp('2026-01-03'), origin, ['gold'], future=True))
 
     def test_fetched_calendar_is_not_backdated(self):
         context = {'retrieved_at': '2026-10-22T12:00:00+00:00', 'parameters': {'festivals': {

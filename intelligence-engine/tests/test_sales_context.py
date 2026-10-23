@@ -105,13 +105,26 @@ class SalesContextTests(unittest.TestCase):
 
     def test_gold_is_observation_not_forecast_and_rejects_historical_substitution(self):
         today = datetime.now(ctx.TZ).date()
-        raw = {'symbol': 'XAU', 'price': 4000, 'updatedAt': '2026-10-22T08:00:00Z'}
+        raw = {'symbol': 'XAU', 'currency': 'INR', 'price': 380000, 'updatedAt': '2026-10-22T08:00:00Z'}
         with patch.object(ctx, 'get_json', return_value=raw) as fetch:
             result = ctx.gold(today, today + timedelta(days=2))
             past = ctx.gold(today - timedelta(days=3), today - timedelta(days=1))
         self.assertEqual(fetch.call_count, 1)
         self.assertEqual(result['kind'], 'spot_observation')
+        self.assertEqual(result['currency'], 'INR')
+        self.assertEqual(result['unit'], 'gram')
+        self.assertAlmostEqual(result['price'], 380000 / 31.1034768)
+        self.assertEqual(result['source_price'], 380000)
+        self.assertEqual(fetch.call_args.args[0], 'https://api.gold-api.com/price/XAU/INR')
         self.assertEqual(past['status'], 'unavailable')
+
+    def test_gold_rejects_wrong_or_missing_currency(self):
+        today = datetime.now(ctx.TZ).date()
+        for currency in ('USD', None):
+            with patch.object(ctx, 'get_json', return_value={'symbol': 'XAU', 'price': 4000,
+                    'currency': currency, 'updatedAt': '2026-10-22T08:00:00Z'}):
+                with self.assertRaises(ValueError):
+                    ctx.gold(today, today)
 
 
 if __name__ == '__main__':

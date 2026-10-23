@@ -10,7 +10,11 @@ from ..external.sales_features import FIELDS
 
 class FeatureIndex:
     def __init__(self, rows):
-        self.rows = rows
+        self.rows = []
+        for row in rows:
+            if row['feature_group'] == 'gold' and set(row['values_json']) == {'price_inr_oz'}:
+                row = {**row, 'values_json': {'price_inr_g': float(row['values_json']['price_inr_oz']) / 31.1034768}}
+            self.rows.append(row)
 
     def vector(self, day, origin, groups, future=False):
         day = day.date() if hasattr(day, 'date') else day
@@ -22,6 +26,8 @@ class FeatureIndex:
             for row in self.rows:
                 if row['feature_group'] != group:
                     continue
+                if set(row['values_json']) != set(FIELDS[group]):
+                    continue  # Legacy USD vintages cannot be mixed with INR features.
                 dt = row['feature_date']
                 if isinstance(dt, str):
                     dt = datetime.fromisoformat(dt).date()

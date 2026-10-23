@@ -8,7 +8,7 @@ from sqlalchemy.dialects.postgresql import insert
 from ..db.models import SalesExternalFeature, SalesForecastFeatureInput
 from .sales_audit import audit
 
-FIELDS = {'weather': ('rain_mm', 'max_temp_c'), 'gold': ('price_usd_oz',),
+FIELDS = {'weather': ('rain_mm', 'max_temp_c'), 'gold': ('price_inr_g',),
           'festivals': ('dhanteras_proximity', 'akshaya_proximity'),
           'regional_festivals': ('festival_day', 'festival_lead_7', 'festival_after_7'),
           'weddings': ('wedding_season', 'days_to_wedding', 'wedding_dates_next_7')}
@@ -35,7 +35,7 @@ def validate_feature(row):
         raise ValueError('Non-finite feature')
     if group == 'weather' and (values['rain_mm'] < 0 or not -90 <= values['max_temp_c'] <= 65):
         raise ValueError('Invalid weather feature')
-    if group == 'gold' and values['price_usd_oz'] <= 0:
+    if group == 'gold' and values['price_inr_g'] <= 0:
         raise ValueError('Invalid gold price')
     if group == 'festivals' and not all(0 <= v <= 1 for v in values.values()):
         raise ValueError('Invalid festival proximity')
@@ -66,9 +66,12 @@ def context_features(context, branch_id):
                 rows.append({**common, 'scope': f'branch:{branch_id}', 'feature_date': day['date'],
                              'values_json': {k: day[k] for k in FIELDS['weather']}})
         elif group == 'gold':
+            if data.get('currency') != 'INR' or data.get('unit') != 'gram':
+                audit('feature_rejected', provider=data['provider'], feature_group='gold', reason='wrong_currency_or_unit')
+                continue
             observed = datetime.fromisoformat(data['observed_at'])
             rows.append({**common, 'scope': 'global', 'feature_date': observed.date().isoformat(),
-                         'values_json': {'price_usd_oz': data['price']}})
+                         'values_json': {'price_inr_g': data['price']}})
         elif group in ('regional_festivals', 'weddings') and branch_id is not None:
             covered = set(data.get('coverage_years', []))
             events = [(e, date.fromisoformat(e['date']), date.fromisoformat(e.get('end_date', e['date'])))
