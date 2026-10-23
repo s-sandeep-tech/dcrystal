@@ -77,8 +77,13 @@ async function loadApprovalsReport() {
                 } else {
                     const element = document.getElementById(`stat-${id}`);
                     if (element) {
-                        const isZero = !value || value === '0' || value === '0.000' || value === 0;
-                        element.textContent = isZero ? '' : `${value}${key.endsWith('_pcs') ? ' Pcs' : ''}`;
+                        if (key.endsWith('_pcs')) {
+                            const pcsVal = (value !== undefined && value !== null && value !== '') ? value : '0';
+                            element.textContent = `${pcsVal} Pcs`;
+                        } else {
+                            const wtVal = (value !== undefined && value !== null && value !== '') ? value : '0.000';
+                            element.textContent = wtVal;
+                        }
                     }
                 }
             }

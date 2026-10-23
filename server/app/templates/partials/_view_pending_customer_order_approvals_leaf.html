@@ -16,7 +16,7 @@
 {% set has_wt = wt and wt|float > 0 %}
 {% set has_pcs = pcs and pcs|int > 0 %}
 <div class="co-leaf-metric co-leaf-{{ color }}"><span>{{ label }}</span><strong>{{ '%.3f'|format(wt|float) if has_wt
-        else '' }}</strong><small>{{ ((pcs|int) ~ ' Pcs') if has_pcs else '' }}</small></div>
+        else '0.000' }}</strong><small>{{ ((pcs|int) ~ ' Pcs') if has_pcs else '0 Pcs' }}</small></div>
 {% endmacro %}
 <div class="co-leaf-layout">
     <header class="co-leaf-header">
