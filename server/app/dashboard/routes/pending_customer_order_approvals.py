@@ -732,7 +732,7 @@ def get_pending_customer_order_approvals_leaf_detail():
             {'label': 'Advance Verification', 'pcs': int(leaf_summary.adv_v_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.adv_v_wt or 0) if leaf_summary else 0.0, 'color': 'red', 'prefix': 'advance_verification_pending'},
             {'label': 'Customer Approval', 'pcs': int(leaf_summary.cust_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.cust_wt or 0) if leaf_summary else 0.0, 'color': 'indigo', 'prefix': 'customer_approval_pending'},
             {'label': 'Verifying Team', 'pcs': int(leaf_summary.vt_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.vt_wt or 0) if leaf_summary else 0.0, 'color': 'yellow', 'prefix': 'verifying_team_approval_pending'},
-            {'label': 'Composition Verification', 'pcs': int(leaf_summary.comp_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.comp_wt or 0) if leaf_summary else 0.0, 'color': 'teal', 'prefix': 'composition_pending'},
+            {'label': 'Composition', 'pcs': int(leaf_summary.comp_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.comp_wt or 0) if leaf_summary else 0.0, 'color': 'teal', 'prefix': 'composition_pending'},
             {'label': 'Collection Owner', 'pcs': int(leaf_summary.coll_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.coll_wt or 0) if leaf_summary else 0.0, 'color': 'blue', 'prefix': 'collection_owner_approval_pending'},
             {'label': 'Party Order Creation', 'pcs': int(leaf_summary.pty_pcs or 0) if leaf_summary else 0, 'wt': float(leaf_summary.pty_wt or 0) if leaf_summary else 0.0, 'color': 'cyan', 'prefix': 'party_order_creation_pending'},
         ]
