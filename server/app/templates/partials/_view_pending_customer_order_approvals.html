@@ -104,9 +104,9 @@
                     </span>
                 </div>
             </th>
-            <th class="text-right px-2 bg-emerald-50/30 font-bold cursor-pointer hover:bg-emerald-100/50 transition-colors group" onclick="toggleSort('tot_wt')" title="Click to sort by Total Pending">
+            <th class="text-right px-2 bg-emerald-50/30 font-bold cursor-pointer hover:bg-emerald-100/50 transition-colors group" onclick="toggleSort('tot_wt')" title="Click to sort by Total">
                 <div class="flex items-center justify-end gap-1">
-                    <span>Total Pending</span>
+                    <span>Total</span>
                     <span class="material-symbols-outlined text-[13px] {% if sort_by in ['tot_wt', 'total_weight', 'tot_pcs', 'total_pcs'] %}text-primary font-bold opacity-100{% else %}text-gray-300 opacity-0 group-hover:opacity-100{% endif %}">
                         {{ 'arrow_upward' if (sort_by in ['tot_wt', 'total_weight', 'tot_pcs', 'total_pcs'] and sort_order == 'asc') else ('arrow_downward' if (sort_by in ['tot_wt', 'total_weight', 'tot_pcs', 'total_pcs'] and sort_order == 'desc') else 'unfold_more') }}
                     </span>
