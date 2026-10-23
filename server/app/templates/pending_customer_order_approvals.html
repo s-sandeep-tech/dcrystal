@@ -104,12 +104,12 @@
         style="grid-template-columns: 140px repeat(8, minmax(130px, 1fr)); overflow-x: auto;"
         class="grid gap-0 p-1 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
         
-        <!-- 1. Total Pending -->
+        <!-- 1. Total -->
         <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center bg-emerald-50/20 dark:bg-emerald-950/20">
             <p class="text-[9px] text-emerald-700 dark:text-emerald-400 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-emerald-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">check_circle</span>
-                <span>Total Pending</span>
+                <span>Total</span>
             </p>
             <div class="flex flex-col">
                 <p id="stat-total-wt" class="text-sm font-bold text-emerald-700 dark:text-emerald-300">{{ stats.total_wt if stats else '-' }}</p>
@@ -120,12 +120,12 @@
             </div>
         </div>
 
-        <!-- 2. Estimation and Advance Pending -->
+        <!-- 2. Estimation and Advance -->
         <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-amber-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">thumb_up</span>
-                <span>Estimation & Advance Pending</span>
+                <span>Estimation & Advance</span>
             </p>
             <div class="flex flex-col">
                 <p id="stat-order-confirmation-wt" class="text-sm font-bold text-amber-600">{{ stats.order_confirmation_wt if stats else '-' }}</p>
@@ -137,12 +137,12 @@
             </div>
         </div>
 
-        <!-- 3. Manager Approval Pending -->
+        <!-- 3. Manager Approval -->
         <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-purple-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">manage_accounts</span>
-                <span>Manager Approval Pending</span>
+                <span>Manager Approval</span>
             </p>
             <div class="flex flex-col">
                 <p id="stat-manager-approval-wt" class="text-sm font-bold text-purple-600">{{ stats.manager_approval_wt if stats else '-' }}</p>
@@ -154,12 +154,12 @@
             </div>
         </div>
 
-        <!-- 4. Advance Verification Pending -->
+        <!-- 4. Advance Verification -->
         <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-rose-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">fact_check</span>
-                <span>Advance Verification Pending</span>
+                <span>Advance Verification</span>
             </p>
             <div class="flex flex-col">
                 <p id="stat-advance-verification-wt" class="text-sm font-bold text-rose-600">{{ stats.advance_verification_wt if stats else '-' }}</p>
@@ -171,12 +171,12 @@
             </div>
         </div>
 
-        <!-- 5. Customer Approval Pending -->
+        <!-- 5. Customer Approval -->
         <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-indigo-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">person</span>
-                <span>Customer Approval Pending</span>
+                <span>Customer Approval</span>
             </p>
             <div class="flex flex-col">
                 <p id="stat-customer-approval-wt" class="text-sm font-bold text-indigo-600">{{ stats.customer_approval_wt if stats else '-' }}</p>
@@ -188,12 +188,12 @@
             </div>
         </div>
 
-        <!-- 6. Verifying Team Approval Pending (Article) -->
+        <!-- 6. Verifying Team (Article) -->
         <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-yellow-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">verified_user</span>
-                <span>Verifying Team Approval (Article)</span>
+                <span>Verifying Team (Article)</span>
             </p>
             <div class="flex flex-col">
                 <p id="stat-verifying-team-wt" class="text-sm font-bold text-yellow-600">{{ stats.verifying_team_wt if stats else '-' }}</p>
@@ -205,12 +205,12 @@
             </div>
         </div>
 
-        <!-- 7. Composition Verification Pending -->
+        <!-- 7. Composition Verification -->
         <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-teal-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">pie_chart</span>
-                <span>Composition Verification Pending</span>
+                <span>Composition Verification</span>
             </p>
             <div class="flex flex-col">
                 <p id="stat-composition-wt" class="text-sm font-bold text-teal-600">{{ stats.composition_wt if stats else '-' }}</p>
@@ -222,7 +222,7 @@
             </div>
         </div>
 
-        <!-- 8. Collection Owner Approval Pending (Ornament) -->
+        <!-- 8. Collection Owner (Ornament) -->
         <div class="px-2 py-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-blue-600 shrink-0" style="font-size: 13px; line-height: 1"
@@ -239,12 +239,12 @@
             </div>
         </div>
 
-        <!-- 9. Party Order Creation Pending -->
+        <!-- 9. Party Order Creation -->
         <div class="px-2 py-2 text-center">
             <p class="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-cyan-600 shrink-0" style="font-size: 13px; line-height: 1"
                     aria-hidden="true">post_add</span>
-                <span>Party Order Creation Pending</span>
+                <span>Party Order Creation</span>
             </p>
             <div class="flex flex-col">
                 <p id="stat-party-order-creation-wt" class="text-sm font-bold text-cyan-600">{{ stats.party_order_creation_wt if stats else '-' }}</p>
