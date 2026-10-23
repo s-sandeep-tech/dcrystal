@@ -112,10 +112,10 @@ services:
       - LOG_LEVEL=INFO
       - HTTP_PROXY=http://10.150.32.8:3128
       - HTTPS_PROXY=http://10.150.32.8:3128
-      - NO_PROXY=localhost,127.0.0.1,db,redis
+      - NO_PROXY=localhost,127.0.0.1,db,redis,api.gold-api.com
       - http_proxy=http://10.150.32.8:3128
       - https_proxy=http://10.150.32.8:3128
-      - no_proxy=localhost,127.0.0.1,db,redis
+      - no_proxy=localhost,127.0.0.1,db,redis,api.gold-api.com
 
 
     depends_on:
