@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Sales Turnover Forecast{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_forecast.css') }}">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_forecast.css') }}?v=3">{% endblock %}
 {% block content %}
 <main class="sf-page" id="sales-forecast">
     <header class="sf-toolbar">
@@ -24,6 +24,18 @@
     <section class="sf-chart-section">
         <div class="sf-section-title"><h2>Daily Net Turnover <small>INR lakhs</small></h2><div class="sf-legend"><span class="sf-actual-key">Actual</span><span class="sf-forecast-key">Forecast</span><span class="sf-range-key">Indicative range</span></div></div>
         <div class="sf-chart"><canvas id="sf-chart" role="img" aria-label="Actual and predicted daily net turnover"></canvas><div id="sf-empty" hidden>No sales data synced yet.</div></div>
+    </section>
+    <section class="sf-factors" aria-labelledby="sf-factors-title">
+        <h2 id="sf-factors-title"><span class="material-symbols-outlined">tune</span>External Factors &amp; Prediction Decision</h2>
+        <p id="sf-decision" class="sf-note" role="status">No forecast available.</p>
+        <p id="sf-factor-meta" class="sf-note"></p>
+        <div class="sf-table-wrap"><table class="sf-factor-table">
+            <thead><tr><th>Factor</th><th>Fetched Values</th><th>Prediction Usage</th><th>Reason / Coverage</th></tr></thead>
+            <tbody id="sf-factor-rows"></tbody>
+        </table></div>
+        <details class="sf-model-details"><summary>Model comparison</summary>
+            <div class="sf-table-wrap"><table class="sf-factor-table"><thead><tr><th>Model</th><th>Backtest MAE · INR lakhs</th><th>Result</th></tr></thead><tbody id="sf-model-rows"></tbody></table></div>
+        </details>
     </section>
     <section class="sf-bottom">
         <div class="sf-results">
@@ -55,5 +67,6 @@
 {% endblock %}
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
-<script src="{{ url_for('static', filename='js/sales_forecast.js') }}?v=2.1"></script>
+<script src="{{ url_for('static', filename='js/sales_forecast_factors.js') }}?v=1"></script>
+<script src="{{ url_for('static', filename='js/sales_forecast.js') }}?v=3"></script>
 {% endblock %}

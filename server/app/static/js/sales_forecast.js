@@ -15,6 +15,7 @@
         el('sf-refresh').disabled = value;
     }
     function context(result) {
+        window.renderSalesForecastFactors(result);
         const c = result?.external_context;
         el('sf-context-text').textContent = c?.summary || '';
         el('sf-context-state').textContent = c?.status === 'available'

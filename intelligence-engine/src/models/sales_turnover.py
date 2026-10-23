@@ -7,7 +7,7 @@ from sqlalchemy import text
 from ..db.connection import get_db_session
 from ..db.writer import DatabaseWriter
 from ..external.sales_context import sales_context
-from ..external.sales_features import store_context, load_features, save_inputs
+from ..external.sales_features import store_context, load_features, save_inputs, FIELDS
 from .sales_regressors import FeatureIndex, external_forecast
 
 
@@ -153,6 +153,13 @@ def run_sales_turnover_forecast(task_id, payload):
         origin = now if last_sales_date >= now.date() - timedelta(days=1) else datetime.combine(
             last_sales_date + timedelta(days=1), time.min, tzinfo=ZoneInfo('Asia/Kolkata'))
         result = forecast_daily(rows, feature_rows=feature_rows, forecast_origin=origin)
+        result['external_feature_inputs'] = []
+        index = FeatureIndex(feature_rows or [])
+        for prediction in result['forecast']:
+            for group in result['metrics']['external_features_used']:
+                values = index.vector(datetime.fromisoformat(prediction['ds']), origin, [group], future=True)
+                result['external_feature_inputs'].append({'date': prediction['ds'], 'factor': group,
+                    'values': dict(zip(FIELDS[group], values)) if values is not None else None})
         save_inputs(session, task_id, feature_rows or [], result['metrics'])
         cutoff = datetime.fromisoformat(result['cutoff_date']).date()
         today = datetime.now(ZoneInfo('Asia/Kolkata')).date()
