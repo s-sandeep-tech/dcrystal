@@ -1,13 +1,13 @@
 {% set stages = [
-    ('Total', 'total_pending', 'green'),
-    ('Estimation & Advance', 'estimation_and_advance_pending', 'amber'),
-    ('Manager Approval', 'manager_approval_pending', 'purple'),
-    ('Advance Verification', 'advance_verification_pending', 'red'),
-    ('Customer Approval', 'customer_approval_pending', 'indigo'),
-    ('Verifying Team (Article)', 'verifying_team_approval_pending', 'yellow'),
-    ('Composition Verification', 'composition_pending', 'teal'),
-    ('Collection Owner (Ornament)', 'collection_owner_approval_pending', 'blue'),
-    ('Party Order Creation', 'party_order_creation_pending', 'cyan')
+('Total', 'total_pending', 'green'),
+('Estimation & Advance', 'estimation_and_advance_pending', 'amber'),
+('Manager Approval', 'manager_approval_pending', 'purple'),
+('Advance Verification', 'advance_verification_pending', 'red'),
+('Customer Approval', 'customer_approval_pending', 'indigo'),
+('Verifying Team', 'verifying_team_approval_pending', 'yellow'),
+('Composition Verification', 'composition_pending', 'teal'),
+('Collection Owner (Ornament)', 'collection_owner_approval_pending', 'blue'),
+('Party Order Creation', 'party_order_creation_pending', 'cyan')
 ] %}
 {% set display_total = total_records if total_records is defined else (records|length) %}
 {% macro value(v) %}{{ v if v is not none and v != '' else '-' }}{% endmacro %}
@@ -15,13 +15,15 @@
 {% macro metric(label, pcs, wt, color) %}
 {% set has_wt = wt and wt|float > 0 %}
 {% set has_pcs = pcs and pcs|int > 0 %}
-<div class="co-leaf-metric co-leaf-{{ color }}"><span>{{ label }}</span><strong>{{ '%.3f'|format(wt|float) if has_wt else '' }}</strong><small>{{ ((pcs|int) ~ ' Pcs') if has_pcs else '' }}</small></div>
+<div class="co-leaf-metric co-leaf-{{ color }}"><span>{{ label }}</span><strong>{{ '%.3f'|format(wt|float) if has_wt
+        else '' }}</strong><small>{{ ((pcs|int) ~ ' Pcs') if has_pcs else '' }}</small></div>
 {% endmacro %}
 <div class="co-leaf-layout">
     <header class="co-leaf-header">
         <span class="co-leaf-info material-symbols-outlined" aria-hidden="true">approval</span>
         <div class="co-leaf-heading">
-            <h2>Pending Customer Order Approval Details <span>{{ display_total }} Records{% if display_total > records|length %} (Showing latest {{ records|length }}){% endif %}</span></h2>
+            <h2>Pending Customer Order Approval Details <span>{{ display_total }} Records{% if display_total >
+                    records|length %} (Showing latest {{ records|length }}){% endif %}</span></h2>
             <div class="co-leaf-heading-row">
                 <div class="co-leaf-breadcrumb">
                     {% for b in breadcrumbs %}
@@ -31,13 +33,16 @@
                 <div class="co-leaf-controls">
                     <label class="co-leaf-search">
                         <span class="material-symbols-outlined" aria-hidden="true">search</span>
-                        <input type="search" placeholder="Search in these records..." aria-label="Search records" oninput="filterApprovalLeaf(this.value)">
+                        <input type="search" placeholder="Search in these records..." aria-label="Search records"
+                            oninput="filterApprovalLeaf(this.value)">
                     </label>
                     <div class="co-leaf-toggle" role="group" aria-label="Record view">
-                        <button type="button" data-co-view="cards" aria-pressed="true" onclick="switchApprovalLeafView('cards')">
+                        <button type="button" data-co-view="cards" aria-pressed="true"
+                            onclick="switchApprovalLeafView('cards')">
                             <span class="material-symbols-outlined" aria-hidden="true">dashboard</span>Cards
                         </button>
-                        <button type="button" data-co-view="grid" aria-pressed="false" onclick="switchApprovalLeafView('grid')">
+                        <button type="button" data-co-view="grid" aria-pressed="false"
+                            onclick="switchApprovalLeafView('grid')">
                             <span class="material-symbols-outlined" aria-hidden="true">table_chart</span>Grid
                         </button>
                     </div>
@@ -52,106 +57,134 @@
     <div class="co-leaf-hierarchy">
         <strong>Hierarchy:</strong>
         {% for b in breadcrumbs %}
-        <span><i class="material-symbols-outlined" aria-hidden="true">{{ b.icon }}</i><small>{{ b.label }}:</small> {{ b.value }}</span>{% if not loop.last %}<i aria-hidden="true">&rsaquo;</i>{% endif %}
+        <span><i class="material-symbols-outlined" aria-hidden="true">{{ b.icon }}</i><small>{{ b.label }}:</small> {{
+            b.value }}</span>{% if not loop.last %}<i aria-hidden="true">&rsaquo;</i>{% endif %}
         {% endfor %}
     </div>
 
     <!-- Summary strip across all stages (precomputed in SQL) -->
     <div class="co-leaf-summary">
         {% if stage_totals is defined and stage_totals %}
-            {% for st in stage_totals %}
-                {{ metric(st.label, st.pcs, st.wt, st.color) }}
-            {% endfor %}
+        {% for st in stage_totals %}
+        {{ metric(st.label, st.pcs, st.wt, st.color) }}
+        {% endfor %}
         {% else %}
-            {% for label, prefix, color in stages %}
-                {% set sums = namespace(pcs=0, wt=0) %}
-                {% for rec in records %}
-                    {% set sums.pcs = sums.pcs + (rec|attr(prefix ~ '_pcs') or 0) %}
-                    {% set sums.wt = sums.wt + (rec|attr(prefix ~ '_wt') or 0) %}
-                {% endfor %}
-                {{ metric(label, sums.pcs, sums.wt, color) }}
-            {% endfor %}
+        {% for label, prefix, color in stages %}
+        {% set sums = namespace(pcs=0, wt=0) %}
+        {% for rec in records %}
+        {% set sums.pcs = sums.pcs + (rec|attr(prefix ~ '_pcs') or 0) %}
+        {% set sums.wt = sums.wt + (rec|attr(prefix ~ '_wt') or 0) %}
+        {% endfor %}
+        {{ metric(label, sums.pcs, sums.wt, color) }}
+        {% endfor %}
         {% endif %}
     </div>
 
     <div class="co-leaf-body">
         <!-- Cards View -->
         <div data-co-panel="cards" class="co-leaf-cards">
-        {% for rec in records %}
+            {% for rec in records %}
             {% set party = rec.party_name or 'Unknown Supplier' %}
             {% set code = rec.party_code or '-' %}
             {% set fields = [
-                ('Request No', rec.request_no), ('SOOC No', rec.sooc), ('PO Number', rec.po_number), ('Advance No', rec.advance_no),
-                ('Order Status', rec.combine_order_status), ('Request Type', rec.request_type), ('Order Item Type', rec.order_item_type),
-                ('Customer Name', rec.customer_name), ('Customer Phone', rec.customer_phone_number), ('Party / Supplier', party),
-                ('Party Code', code), ('Party Type', rec.party_type), ('Reorder', rec.reorder)
+            ('Request No', rec.request_no), ('SOOC No', rec.sooc), ('PO Number', rec.po_number), ('Advance No',
+            rec.advance_no),
+            ('Order Status', rec.combine_order_status), ('Request Type', rec.request_type), ('Order Item Type',
+            rec.order_item_type),
+            ('Customer Name', rec.customer_name), ('Customer Phone', rec.customer_phone_number), ('Party / Supplier',
+            party),
+            ('Party Code', code), ('Party Type', rec.party_type), ('Reorder', rec.reorder)
             ] %}
             {% set product = [
-                ('Division', rec.division), ('Group Category', rec.group_category), ('Group', rec.group), ('Section', rec.section),
-                ('Classification', rec.classification), ('Sub-classification', rec.sub_classification), ('Collection', rec.collection),
-                ('Make', rec.make), ('Purity', rec.purity), ('Gender', rec.gender), ('Weight', rec.weight), ('Gross Weight', rec.gross_weight),
-                ('Net Weight', rec.net_weight), ('Stone Weight', rec.stone_weight), ('Other Weight', rec.other_weight), ('Size', rec.size)
+            ('Division', rec.division), ('Group Category', rec.group_category), ('Group', rec.group), ('Section',
+            rec.section),
+            ('Classification', rec.classification), ('Sub-classification', rec.sub_classification), ('Collection',
+            rec.collection),
+            ('Make', rec.make), ('Purity', rec.purity), ('Gender', rec.gender), ('Weight', rec.weight), ('Gross Weight',
+            rec.gross_weight),
+            ('Net Weight', rec.net_weight), ('Stone Weight', rec.stone_weight), ('Other Weight', rec.other_weight),
+            ('Size', rec.size)
             ] %}
-            <article class="co-leaf-record" data-co-search="{{ [rec.request_no or '', rec.sooc or '', rec.po_number or '', rec.advance_no or '', rec.customer_name or '', rec.customer_phone_number or '', party, code, rec.combine_order_status or '', rec.make or '', rec.collection or '', rec.section or '', rec.business_head_name or '', rec.classification_owner or '', rec.make_owner or '', rec.collection_owner or '']|join(' ')|lower }}">
+            <article class="co-leaf-record"
+                data-co-search="{{ [rec.request_no or '', rec.sooc or '', rec.po_number or '', rec.advance_no or '', rec.customer_name or '', rec.customer_phone_number or '', party, code, rec.combine_order_status or '', rec.make or '', rec.collection or '', rec.section or '', rec.business_head_name or '', rec.classification_owner or '', rec.make_owner or '', rec.collection_owner or '']|join(' ')|lower }}">
                 <div class="co-leaf-record-heading">
                     <span class="co-leaf-number">{{ loop.index }}</span>
                     <div>
                         <strong>Request # {{ rec.request_no or '-' }}</strong>
                         <span class="co-leaf-tag">SOOC: {{ rec.sooc or '-' }}</span>
-                        {% if rec.advance_no %}<span class="co-leaf-advance">Adv # {{ rec.advance_no }}</span>{% endif %}
-                        <p>{{ rec.customer_name or 'Unknown Customer' }} &middot; {{ rec.customer_phone_number or '-' }} &middot; <b>{{ party }}</b></p>
+                        {% if rec.advance_no %}<span class="co-leaf-advance">Adv # {{ rec.advance_no }}</span>{% endif
+                        %}
+                        <p>{{ rec.customer_name or 'Unknown Customer' }} &middot; {{ rec.customer_phone_number or '-' }}
+                            &middot; <b>{{ party }}</b></p>
                     </div>
                     <span class="co-leaf-status">{{ rec.combine_order_status or '-' }}</span>
                 </div>
                 <div class="co-leaf-record-body">
                     <section class="co-leaf-section">
-                        <h3 class="co-leaf-blue"><span class="material-symbols-outlined">badge</span>Order &amp; Party Information</h3>
+                        <h3 class="co-leaf-blue"><span class="material-symbols-outlined">badge</span>Order &amp; Party
+                            Information</h3>
                         <dl>
                             {% for label, v in fields %}
-                            <div><dt>{{ label }}</dt><dd>{{ value(v) }}</dd></div>
+                            <div>
+                                <dt>{{ label }}</dt>
+                                <dd>{{ value(v) }}</dd>
+                            </div>
                             {% endfor %}
                         </dl>
                     </section>
                     <section class="co-leaf-section">
-                        <h3 class="co-leaf-purple"><span class="material-symbols-outlined">category</span>Product Taxonomy &amp; Specs</h3>
+                        <h3 class="co-leaf-purple"><span class="material-symbols-outlined">category</span>Product
+                            Taxonomy &amp; Specs</h3>
                         <dl>
                             {% for label, v in product %}
-                            <div><dt>{{ label }}</dt><dd>{{ value(v) }}</dd></div>
+                            <div>
+                                <dt>{{ label }}</dt>
+                                <dd>{{ value(v) }}</dd>
+                            </div>
                             {% endfor %}
                         </dl>
                     </section>
                     <section class="co-leaf-section">
-                        <h3 class="co-leaf-orange"><span class="material-symbols-outlined">calendar_month</span>Milestone Lifecycle Dates</h3>
+                        <h3 class="co-leaf-orange"><span
+                                class="material-symbols-outlined">calendar_month</span>Milestone Lifecycle Dates</h3>
                         <dl>
                             {% for label, v in [
-                                ('Request Date', rec.request_date),
-                                ('PO Date', rec.po_date),
-                                ('Advance Date', rec.advance_date),
-                                ('Supplier Delivery Date', rec.supplier_expected_delivery_date),
-                                ('Customer Delivery Date', rec.customer_expected_delivery_date)
+                            ('Request Date', rec.request_date),
+                            ('PO Date', rec.po_date),
+                            ('Advance Date', rec.advance_date),
+                            ('Supplier Delivery Date', rec.supplier_expected_delivery_date),
+                            ('Customer Delivery Date', rec.customer_expected_delivery_date)
                             ] %}
-                            <div><dt>{{ label }}</dt><dd>{{ date_value(v) }}</dd></div>
+                            <div>
+                                <dt>{{ label }}</dt>
+                                <dd>{{ date_value(v) }}</dd>
+                            </div>
                             {% endfor %}
                         </dl>
-                        <h3 class="co-leaf-organization"><span class="material-symbols-outlined">domain</span>Hierarchy &amp; Ownership</h3>
+                        <h3 class="co-leaf-organization"><span class="material-symbols-outlined">domain</span>Hierarchy
+                            &amp; Ownership</h3>
                         <dl>
                             {% for label, v in [
-                                ('Business Head', rec.business_head_name),
-                                ('Classification Owner', rec.classification_owner),
-                                ('Make Owner', rec.make_owner),
-                                ('Collection Owner', rec.collection_owner),
-                                ('Verifying Team', rec.verifying_team),
-                                ('Shop Manager', rec.shop_manger),
-                                ('Location', rec.location),
-                                ('State', rec.state),
-                                ('Order RO', rec.order_ro)
+                            ('Business Head', rec.business_head_name),
+                            ('Classification Owner', rec.classification_owner),
+                            ('Make Owner', rec.make_owner),
+                            ('Collection Owner', rec.collection_owner),
+                            ('Verifying Team', rec.verifying_team),
+                            ('Shop Manager', rec.shop_manger),
+                            ('Location', rec.location),
+                            ('State', rec.state),
+                            ('Order RO', rec.order_ro)
                             ] %}
-                            <div><dt>{{ label }}</dt><dd>{{ value(v) }}</dd></div>
+                            <div>
+                                <dt>{{ label }}</dt>
+                                <dd>{{ value(v) }}</dd>
+                            </div>
                             {% endfor %}
                         </dl>
                     </section>
                     <section class="co-leaf-breakdown">
-                        <h3 class="co-leaf-green"><span class="material-symbols-outlined">analytics</span>Pending Approval Stages Quantities &amp; Weights</h3>
+                        <h3 class="co-leaf-green"><span class="material-symbols-outlined">analytics</span>Pending
+                            Approval Stages Quantities &amp; Weights</h3>
                         <div class="co-leaf-stage-grid">
                             {% for label, prefix, color in stages %}
                             {{ metric(label, rec|attr(prefix ~ '_pcs'), rec|attr(prefix ~ '_wt'), color) }}
@@ -160,9 +193,9 @@
                     </section>
                 </div>
             </article>
-        {% else %}
+            {% else %}
             <p class="co-leaf-empty">No records found matching criteria.</p>
-        {% endfor %}
+            {% endfor %}
         </div>
 
         <!-- Grid View -->
@@ -203,10 +236,11 @@
                     </tr>
                 </thead>
                 <tbody>
-                {% for rec in records %}
+                    {% for rec in records %}
                     {% set party = rec.party_name or '-' %}
                     {% set code = rec.party_code or '-' %}
-                    <tr data-co-search="{{ [rec.request_no or '', rec.sooc or '', rec.po_number or '', rec.advance_no or '', rec.customer_name or '', rec.customer_phone_number or '', party, code, rec.combine_order_status or '', rec.make or '', rec.collection or '', rec.section or '', rec.business_head_name or '', rec.classification_owner or '', rec.make_owner or '', rec.collection_owner or '']|join(' ')|lower }}">
+                    <tr
+                        data-co-search="{{ [rec.request_no or '', rec.sooc or '', rec.po_number or '', rec.advance_no or '', rec.customer_name or '', rec.customer_phone_number or '', party, code, rec.combine_order_status or '', rec.make or '', rec.collection or '', rec.section or '', rec.business_head_name or '', rec.classification_owner or '', rec.make_owner or '', rec.collection_owner or '']|join(' ')|lower }}">
                         <td>{{ value(rec.request_no) }}</td>
                         <td>{{ value(rec.sooc) }}</td>
                         <td>{{ value(rec.po_number) }}</td>
@@ -228,41 +262,41 @@
                         <td>{{ date_value(rec.supplier_expected_delivery_date) }}</td>
                         <td>{{ date_value(rec.customer_expected_delivery_date) }}</td>
                         {% for label, prefix, color in stages %}
-                            {% set pcs = rec|attr(prefix ~ '_pcs') or 0 %}
-                            {% set wt = rec|attr(prefix ~ '_wt') or 0 %}
-                            <td class="co-leaf-{{ color }}">
-                                {% if pcs or wt %}
-                                {{ pcs|int }} / {{ '%.3f'|format(wt) }}
-                                {% endif %}
-                            </td>
+                        {% set pcs = rec|attr(prefix ~ '_pcs') or 0 %}
+                        {% set wt = rec|attr(prefix ~ '_wt') or 0 %}
+                        <td class="co-leaf-{{ color }}">
+                            {% if pcs or wt %}
+                            {{ pcs|int }} / {{ '%.3f'|format(wt) }}
+                            {% endif %}
+                        </td>
                         {% endfor %}
                     </tr>
-                {% endfor %}
+                    {% endfor %}
                 </tbody>
                 <tfoot>
                     <tr>
                         <th colspan="20">Grand Total ({{ display_total }} Total Records)</th>
                         {% if stage_totals is defined and stage_totals %}
-                            {% for st in stage_totals %}
-                                <th>
-                                    {% if st.pcs or st.wt %}
-                                    {{ st.pcs|int }} / {{ '%.3f'|format(st.wt) }}
-                                    {% endif %}
-                                </th>
-                            {% endfor %}
+                        {% for st in stage_totals %}
+                        <th>
+                            {% if st.pcs or st.wt %}
+                            {{ st.pcs|int }} / {{ '%.3f'|format(st.wt) }}
+                            {% endif %}
+                        </th>
+                        {% endfor %}
                         {% else %}
-                            {% for label, prefix, color in stages %}
-                                {% set sums = namespace(pcs=0, wt=0) %}
-                                {% for rec in records %}
-                                    {% set sums.pcs = sums.pcs + (rec|attr(prefix ~ '_pcs') or 0) %}
-                                    {% set sums.wt = sums.wt + (rec|attr(prefix ~ '_wt') or 0) %}
-                                {% endfor %}
-                                <th>
-                                    {% if sums.pcs or sums.wt %}
-                                    {{ sums.pcs|int }} / {{ '%.3f'|format(sums.wt) }}
-                                    {% endif %}
-                                </th>
-                            {% endfor %}
+                        {% for label, prefix, color in stages %}
+                        {% set sums = namespace(pcs=0, wt=0) %}
+                        {% for rec in records %}
+                        {% set sums.pcs = sums.pcs + (rec|attr(prefix ~ '_pcs') or 0) %}
+                        {% set sums.wt = sums.wt + (rec|attr(prefix ~ '_wt') or 0) %}
+                        {% endfor %}
+                        <th>
+                            {% if sums.pcs or sums.wt %}
+                            {{ sums.pcs|int }} / {{ '%.3f'|format(sums.wt) }}
+                            {% endif %}
+                        </th>
+                        {% endfor %}
                         {% endif %}
                     </tr>
                 </tfoot>
