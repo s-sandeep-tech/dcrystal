@@ -51,9 +51,10 @@ class FeatureTests(unittest.TestCase):
             feature['values_json'] = {'price_inr_g': 10000 + i * 30}
         for i, row in enumerate(rows):
             row['y'] = 10000 + i * 500
-        result = forecast_daily(rows, use_prophet=False, feature_rows=features)
+        origin = datetime.combine(rows[-1]['ds'] + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc)
+        result = forecast_daily(rows, use_prophet=False, feature_rows=features, forecast_origin=origin)
         self.assertIn('external_gold', result['metrics']['candidate_mae'])
-        self.assertEqual(result['metrics']['engine'], 'external_gold')
+        self.assertIn(result['metrics']['engine'], ('external_gold', 'external_observed_gold'))
 
     def test_missing_forecast_weather_falls_back(self):
         rows, features = self.fixture()

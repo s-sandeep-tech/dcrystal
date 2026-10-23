@@ -1,0 +1,141 @@
+{
+  "branch_id": 20,
+  "location": "ERNAKULAM",
+  "coordinates": {
+    "lat": 9.98,
+    "lon": 76.3
+  },
+  "requested_start": "2026-04-01",
+  "requested_end": "2026-10-22",
+  "retrieved_at": "2026-10-23T12:05:29.669382+00:00",
+  "weather_rows": 180,
+  "missing_weather_dates": [
+    "2026-10-22"
+  ],
+  "extreme_rainfall_for_review": [
+    {
+      "date": "2026-05-04",
+      "rain_mm": 510.24,
+      "max_temp_c": 33.1
+    },
+    {
+      "date": "2026-05-24",
+      "rain_mm": 565.44,
+      "max_temp_c": 29.95
+    },
+    {
+      "date": "2026-05-27",
+      "rain_mm": 521.52,
+      "max_temp_c": 29.91
+    },
+    {
+      "date": "2026-05-28",
+      "rain_mm": 533.76,
+      "max_temp_c": 29.55
+    },
+    {
+      "date": "2026-05-29",
+      "rain_mm": 809.04,
+      "max_temp_c": 30.33
+    },
+    {
+      "date": "2026-06-02",
+      "rain_mm": 528.96,
+      "max_temp_c": 28.89
+    },
+    {
+      "date": "2026-06-03",
+      "rain_mm": 949.2,
+      "max_temp_c": 29.08
+    },
+    {
+      "date": "2026-06-04",
+      "rain_mm": 861.6,
+      "max_temp_c": 29.94
+    },
+    {
+      "date": "2026-06-07",
+      "rain_mm": 612.0,
+      "max_temp_c": 29.02
+    },
+    {
+      "date": "2026-06-08",
+      "rain_mm": 534.96,
+      "max_temp_c": 29.29
+    },
+    {
+      "date": "2026-06-21",
+      "rain_mm": 520.08,
+      "max_temp_c": 28.47
+    },
+    {
+      "date": "2026-06-22",
+      "rain_mm": 604.08,
+      "max_temp_c": 28.12
+    },
+    {
+      "date": "2026-06-28",
+      "rain_mm": 646.8,
+      "max_temp_c": 29.01
+    },
+    {
+      "date": "2026-07-08",
+      "rain_mm": 600.48,
+      "max_temp_c": 29.01
+    },
+    {
+      "date": "2026-07-31",
+      "rain_mm": 1562.64,
+      "max_temp_c": 28.0
+    },
+    {
+      "date": "2026-08-01",
+      "rain_mm": 1170.72,
+      "max_temp_c": 26.97
+    },
+    {
+      "date": "2026-08-02",
+      "rain_mm": 1129.92,
+      "max_temp_c": 27.86
+    },
+    {
+      "date": "2026-08-03",
+      "rain_mm": 715.44,
+      "max_temp_c": 27.17
+    },
+    {
+      "date": "2026-08-04",
+      "rain_mm": 666.72,
+      "max_temp_c": 27.89
+    },
+    {
+      "date": "2026-08-06",
+      "rain_mm": 739.2,
+      "max_temp_c": 27.09
+    },
+    {
+      "date": "2026-08-14",
+      "rain_mm": 521.52,
+      "max_temp_c": 27.69
+    },
+    {
+      "date": "2026-08-24",
+      "rain_mm": 817.92,
+      "max_temp_c": 27.75
+    },
+    {
+      "date": "2026-09-20",
+      "rain_mm": 579.6,
+      "max_temp_c": 28.59
+    },
+    {
+      "date": "2026-10-21",
+      "rain_mm": 1149.84,
+      "max_temp_c": 29.31
+    }
+  ],
+  "gold_rows": 0,
+  "gold_status": "Historical endpoint requires x-api-key; no key available in this workspace.",
+  "source": "https://power.larc.nasa.gov/api/temporal/daily/point?parameters=T2M_MAX%2CPRECTOTCORR&community=AG&longitude=76.3&latitude=9.98&start=20260401&end=20261022&format=JSON&time-standard=UTC",
+  "sql_sha256": "52a43225511456ef1d26cf9c03b8a8d638ea3504fe4c9cc23000ca26b22d1280"
+}

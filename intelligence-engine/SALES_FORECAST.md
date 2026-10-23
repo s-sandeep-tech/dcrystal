@@ -116,6 +116,40 @@ https://calendarific.com/pricing
 
 ## External Feature Models
 
+### Historical Observations and Leakage Protection
+
+`weather_observations` now has the weather schema (`rain_mm`, `max_temp_c`) but is
+separate from advance `weather` forecasts. Legacy NASA POWER historical observation
+rows are classified as observations on read; existing data need not be rewritten.
+Lagged weather, lagged gold, and combined observation candidates are evaluated.
+
+Each candidate now trains a separate model for leads 1, 2 and 3. A training target's
+inputs are selected at that target's historical prediction origin for that lead,
+not using a later day's gold quote or realised future weather. Weather forecasts
+must have been issued by that origin; observations must both describe earlier
+dates and have `available_at <= origin`. Only observations within seven days are
+carried, and the final three-day observation inputs are frozen at the actual origin.
+Scaling and regression fit only on the training slice. The existing 5% improvement
+gate and coverage requirement remain; external factors are not forced into a model.
+
+**The current Ernakulam download is not proof of historical publication times.**
+Those rows record availability on retrieval in October. Moving their availability
+to April would invent evidence and invalidate the backtest. These files can be
+stored now and become known inputs for subsequent origins, but strict historical
+backtests still require original release timestamps or archived forecast vintages.
+The read-only `sql/audit_sales_history_availability.sql` identifies this condition.
+Metrics include `feature_availability`, `feature_timing_policy`, and an observation
+model flag. Saved observation inputs include source feature IDs for reproduction.
+
+To make a historical dataset eligible, import verified source records through
+`scripts/import_sales_features.py` with their actual published/issued `available_at`
+and actual download `retrieved_at`, preserving source attribution. Weather actuals
+released after a day may only serve lagged observation features. Do not use a
+blanket UPDATE to backdate availability or treat a dataset's date as its release
+time. Publication evidence is currently missing for the previously generated SQL;
+the code deliberately retains baseline fallback rather than asserting an unavailable
+historical accuracy improvement. No new table migration is required.
+
 ### Regional Festivals and Weddings
 
 ### Automatic Weather Coordinates

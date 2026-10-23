@@ -9,6 +9,7 @@ from ..db.models import SalesExternalFeature, SalesForecastFeatureInput
 from .sales_audit import audit
 
 FIELDS = {'weather': ('rain_mm', 'max_temp_c'), 'gold': ('price_inr_g',),
+          'weather_observations': ('rain_mm', 'max_temp_c'),
           'festivals': ('dhanteras_proximity', 'akshaya_proximity'),
           'regional_festivals': ('festival_day', 'festival_lead_7', 'festival_after_7'),
           'weddings': ('wedding_season', 'days_to_wedding', 'wedding_dates_next_7')}
@@ -33,7 +34,7 @@ def validate_feature(row):
     values = {k: float(v) for k, v in row['values_json'].items()}
     if not all(math.isfinite(v) for v in values.values()):
         raise ValueError('Non-finite feature')
-    if group == 'weather' and (values['rain_mm'] < 0 or not -90 <= values['max_temp_c'] <= 65):
+    if group in ('weather', 'weather_observations') and (values['rain_mm'] < 0 or not -90 <= values['max_temp_c'] <= 65):
         raise ValueError('Invalid weather feature')
     if group == 'gold' and values['price_inr_g'] <= 0:
         raise ValueError('Invalid gold price')
@@ -44,7 +45,7 @@ def validate_feature(row):
     if group == 'weddings' and not (values['wedding_season'] in (0, 1) and 0 <= values['days_to_wedding'] <= 31
             and 0 <= values['wedding_dates_next_7'] <= 7):
         raise ValueError('Invalid wedding values')
-    if group in ('weather', 'regional_festivals', 'weddings') and not row['scope'].startswith('branch:'):
+    if group in ('weather', 'weather_observations', 'regional_festivals', 'weddings') and not row['scope'].startswith('branch:'):
         raise ValueError('Regional features require a branch scope')
     row['values_json'] = values
     row['id'] = hashlib.sha256(json.dumps(row, default=str, sort_keys=True).encode()).hexdigest()

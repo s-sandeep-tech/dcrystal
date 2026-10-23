@@ -1,5 +1,5 @@
 (() => {
-    const names = {weather: 'Weather', gold: 'Gold Price', festivals: 'National Festivals',
+    const names = {weather: 'Weather Forecast', weather_observations: 'Past Weather Observations', gold: 'Gold Price', festivals: 'National Festivals',
         regional_festivals: 'Regional Festivals', weddings: 'Wedding Calendar'};
     const fields = {rain_mm: 'Rain (mm)', max_temp_c: 'Maximum temperature (C)', price_usd_oz: 'Gold (USD/troy oz)', price_inr_oz: 'Gold (INR/gram)', price_inr_g: 'Gold (INR/gram)',
         dhanteras_proximity: 'Dhanteras proximity', akshaya_proximity: 'Akshaya Tritiya proximity',
@@ -8,7 +8,9 @@
     const modelNames = {weekday_average: 'Weekday Average', prophet: 'Prophet', external_weather: 'Weather',
         external_gold: 'Gold', external_festivals: 'National Festivals', external_combined: 'Weather + Gold + National Festivals',
         external_regional_festivals: 'Regional Festivals', external_weddings: 'Weddings',
-        external_regional_calendar: 'Regional Festivals + Weddings', external_all: 'All External Factors'};
+        external_regional_calendar: 'Regional Festivals + Weddings', external_all: 'All External Factors',
+        external_observed_weather: 'Lagged Weather Observations', external_observed_gold: 'Lagged Gold (Direct Horizons)',
+        external_observed_weather_gold: 'Lagged Weather + Gold'};
     const el = id => document.getElementById(id);
     window.salesGoldPerGram = data => data?.currency === 'INR' && data.unit === 'troy ounce'
         ? {...data, price: data.price / 31.1034768, unit: 'gram'} : data;
@@ -48,7 +50,8 @@
             const cells = Array.from({length: 4}, () => { const td = document.createElement('td'); tr.append(td); return td; });
             line(cells[0], label, 'sf-factor-name');
             const data = context.parameters?.[key];
-            values(cells[1], key, data);
+            if (key === 'weather_observations') line(cells[1], 'Historical feature store; only released past observations are eligible.');
+            else values(cells[1], key, data);
             const isUsed = used.includes(key);
             line(cells[2], isUsed ? 'Used' : result ? 'Not used' : 'No forecast', isUsed ? 'sf-factor-used' : 'sf-factor-secondary');
             if (isUsed) {
@@ -64,12 +67,14 @@
                     cells[2].append(details);
                 } else line(cells[2], 'Exact inputs were not recorded in this saved forecast.', 'sf-factor-secondary');
             }
-            const single = `external_${key}`;
+            const single = key === 'weather_observations' ? 'external_observed_weather' : `external_${key}`;
             const reason = isUsed ? 'Selected through backtesting; required forecast inputs available.'
                 : rejected[single] || (scored[single] != null ? 'Not selected: another model won or the required 5% baseline improvement was not met.'
                     : context.status === 'disabled' ? 'External data was disabled for this forecast.'
                     : metrics.fallback_reason || 'No model decision recorded for this factor.');
             line(cells[3], result ? reason : 'Generate a forecast to view factor decisions.');
+            const availability = metrics.feature_availability?.[key];
+            if (availability) line(cells[3], `Stored rows: ${availability.rows}; released after observation day: ${availability.available_after_feature_day}. Each backtest checks the release timestamp.`, 'sf-factor-secondary');
             if (data?.status) line(cells[3], `Fetch coverage: ${data.status}`, 'sf-factor-secondary');
             if (data?.missing_events?.length) line(cells[3], `Missing: ${data.missing_events.join(', ')}`, 'sf-factor-secondary');
             if (data?.coverage_years) line(cells[3], `Complete calendar years: ${data.coverage_years.join(', ') || 'None'}`, 'sf-factor-secondary');

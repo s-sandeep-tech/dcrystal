@@ -8,7 +8,7 @@ from ..db.connection import get_db_session
 from ..db.writer import DatabaseWriter
 from ..external.sales_context import sales_context
 from ..external.sales_features import store_context, load_features, save_inputs, FIELDS
-from .sales_regressors import FeatureIndex, external_forecast
+from .sales_regressors import FeatureIndex, external_forecast, observation_forecast
 
 
 def weekday_forecast(series, horizon=3):
@@ -47,10 +47,15 @@ def forecast_daily(rows, use_prophet=True, feature_rows=None, forecast_origin=No
               'external_festivals': ['festivals'], 'external_combined': ['weather', 'gold', 'festivals'],
               'external_regional_festivals': ['regional_festivals'], 'external_weddings': ['weddings'],
               'external_regional_calendar': ['regional_festivals', 'weddings'],
-              'external_all': ['weather', 'gold', 'festivals', 'regional_festivals', 'weddings']}
+              'external_all': ['weather', 'gold', 'festivals', 'regional_festivals', 'weddings'],
+              'external_observed_weather': ['weather_observations'],
+              'external_observed_gold': ['gold'],
+              'external_observed_weather_gold': ['weather_observations', 'gold']}
+    observation_models = {name for name in groups if name.startswith('external_observed_')}
     if feature_rows is not None:
         for name, fields in groups.items():
-            candidates[name] = lambda train, horizon, fields=fields: external_forecast(train, index, fields,
+            predict = observation_forecast if name in observation_models else external_forecast
+            candidates[name] = lambda train, horizon, fields=fields, predict=predict: predict(train, index, fields,
                 datetime.combine((train.index[-1] + timedelta(days=1)).date(), time.min,
                                  tzinfo=ZoneInfo('Asia/Kolkata')), horizon)
     offsets = (18, 15, 12, 9, 6, 3) if len(series) >= 90 else (9, 6, 3)
@@ -79,7 +84,8 @@ def forecast_daily(rows, use_prophet=True, feature_rows=None, forecast_origin=No
         fallback_reason = 'Insufficient point-in-time external history or forecast coverage; baseline retained'
     try:
         if method in groups:
-            values = external_forecast(series, index, groups[method],
+            predict = observation_forecast if method in observation_models else external_forecast
+            values = predict(series, index, groups[method],
                 forecast_origin or datetime.now(ZoneInfo('Asia/Kolkata')), 3)
         else:
             values = candidates[method](series, 3)
@@ -106,6 +112,9 @@ def forecast_daily(rows, use_prophet=True, feature_rows=None, forecast_origin=No
                     'external_features_used': groups.get(method, []), 'fallback_reason': fallback_reason,
                     'baseline_engine': baseline, 'baseline_mae': scores[baseline],
                     'feature_forecast_origin': forecast_origin.isoformat(),
+                    'feature_timing_policy': 'Released by each prediction origin; observations strictly from earlier dates; horizon-specific training',
+                    'feature_availability': index.timing_summary(),
+                    'observation_model': method in observation_models,
                     'zero_filled_days': len(series) - observed_days,
                     'interval_method': f'90th percentile absolute backtest error; indicative, {len(offsets) * 3} observations'},
         'cutoff_date': series.index[-1].date().isoformat(),
@@ -157,9 +166,14 @@ def run_sales_turnover_forecast(task_id, payload):
         index = FeatureIndex(feature_rows or [])
         for prediction in result['forecast']:
             for group in result['metrics']['external_features_used']:
-                values = index.vector(datetime.fromisoformat(prediction['ds']), origin, [group], future=True)
+                ids = []
+                if result['metrics']['observation_model']:
+                    values, ids = index.observations(origin, [group])
+                else:
+                    values = index.vector(datetime.fromisoformat(prediction['ds']), origin, [group], future=True)
                 result['external_feature_inputs'].append({'date': prediction['ds'], 'factor': group,
-                    'values': dict(zip(FIELDS[group], values)) if values is not None else None})
+                    'values': dict(zip(FIELDS[group], values)) if values is not None else None,
+                    'source_feature_ids': ids})
         save_inputs(session, task_id, feature_rows or [], result['metrics'])
         cutoff = datetime.fromisoformat(result['cutoff_date']).date()
         today = datetime.now(ZoneInfo('Asia/Kolkata')).date()
