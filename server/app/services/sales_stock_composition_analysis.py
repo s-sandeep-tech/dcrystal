@@ -1,6 +1,6 @@
 from datetime import date
 from decimal import Decimal
-from sqlalchemy import String, case, cast, func
+from sqlalchemy import String, case, cast, func, or_
 from app.extensions import db
 from app.models.sales_stock_composition_analysis import SalesStockCompositionAnalysisSnapshot as S
 
@@ -172,7 +172,8 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
 
     stock_filtered = db.session.query(stocks_q)
     if selected_date:
-        stock_filtered = stock_filtered.filter(stocks_q.c.date <= selected_date)
+        # Stock-only summary rows have no sales date but still carry provision.
+        stock_filtered = stock_filtered.filter(or_(stocks_q.c.date <= selected_date, stocks_q.c.date.is_(None)))
     for name in FILTERS:
         values = selections.get(name)
         if values:

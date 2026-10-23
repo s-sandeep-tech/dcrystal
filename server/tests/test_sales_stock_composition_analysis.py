@@ -192,6 +192,30 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
         self.assertIsNone(data['total']['provision_value'])
         self.assertIsNone(data['total']['value_turn'])
 
+    def test_cutoff_includes_undated_provision_in_stats_hierarchy_and_turns(self):
+        dimensions = dict(zip(HIERARCHY, ['CHAIN', 'BRAND', 'CUSTOM', 'LIGHT', 'C1', 'M1', 920]))
+        db.session.add_all([
+            Snapshot(id=1, branch_id=2, date=date(2026, 10, 22), gross_weight=106984,
+                turn_over=1486945000, provision_weight=15099, purchase_board_rate=10, **dimensions),
+            Snapshot(id=2, branch_id=2, date=None, provision_weight=77718,
+                purchase_board_rate=10, **dimensions),
+            Snapshot(id=3, branch_id=2, date=date(2026, 10, 23), provision_weight=999,
+                purchase_board_rate=10, **dimensions),
+            Snapshot(id=4, branch_id=3, date=None, provision_weight=999,
+                purchase_board_rate=10, **dimensions),
+        ])
+        db.session.commit()
+        for path in ([], ['CHAIN']):
+            data = composition_analysis_data(date(2026, 10, 22), {'branch_id': ['2']}, path)
+            self.assertEqual(data['stats']['sales_weight'], 106984)
+            self.assertEqual(data['stats']['turnover'], 1486945000)
+            self.assertEqual(data['stats']['provision_weight'], 92817)
+            self.assertEqual(data['total']['provision_value'], 928170)
+            self.assertEqual(data['rows'][0]['stock_weight'], 92817)
+            self.assertAlmostEqual(data['stats']['turn_weight'], 106984 * 365 / 205 / 92817)
+        filtered = composition_analysis_data(date(2026, 10, 22), {'branch_id': ['2'], 'section': ['OTHER']})
+        self.assertEqual(filtered['stats']['provision_weight'], 0)
+
     def test_summary_without_transaction_type_uses_location_date_and_design(self):
         dimensions = dict(zip(HIERARCHY, ['CHAIN', 'BRAND', 'CUSTOM', 'LIGHT', 'C1', 'M1', 920]))
         db.session.add_all([
