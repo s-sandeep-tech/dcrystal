@@ -86,7 +86,7 @@ async function loadApprovalsReport() {
             if (totalBar) totalBar.style.width = '100%';
         }
 
-        if (info) info.textContent = `Showing ${data.count} of ${data.total} Business Heads`;
+        if (info) info.textContent = `Showing ${data.count} of ${data.total} `;
 
         updateBadgeText();
         adjustZoom(0);
