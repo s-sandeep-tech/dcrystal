@@ -329,42 +329,8 @@ function resetGlobalFilters() {
 }
 
 function updateActiveFilterChips() {
-    const chipsContainer = document.getElementById('active-filter-chips');
-    const bar = document.getElementById('active-filters-bar');
-    if (!chipsContainer || !bar) return;
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const ignoreKeys = ['page', 'per_page', 'sort_by', 'sort_order'];
-    const activeEntries = [];
-
-    urlParams.forEach((val, k) => {
-        if (!ignoreKeys.includes(k) && val) {
-            activeEntries.push([k, val]);
-        }
-    });
-
-    if (activeEntries.length === 0) {
-        bar.classList.add('hidden');
-        chipsContainer.innerHTML = '<span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider shrink-0 mr-1">Active:</span>';
-        return;
-    }
-
-    bar.classList.remove('hidden');
-    let html = '<span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider shrink-0 mr-1">Active:</span>';
-
-    activeEntries.forEach(([key, value]) => {
-        const prettyKey = key.replaceAll('_', ' ');
-        const displayVal = value.length > 25 ? value.substring(0, 22) + '...' : value;
-        html += `
-            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-blue-50 dark:bg-blue-900/30 text-primary border border-blue-200 dark:border-blue-800 font-medium">
-                <span class="capitalize text-gray-500 dark:text-gray-400">${prettyKey}:</span>
-                <span class="font-bold">${displayVal}</span>
-                <button type="button" onclick="removeFilterChip('${key}')" class="hover:text-red-500 font-bold ml-0.5 text-xs">&times;</button>
-            </span>
-        `;
-    });
-
-    chipsContainer.innerHTML = html;
+    // Active filters bar removed per user request
+    return;
 }
 
 function removeFilterChip(key) {
