@@ -353,6 +353,16 @@
         </div>
 
         <div class="space-y-3">
+            <div class="space-y-1">
+                <label for="filter-location" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Location</label>
+                <select id="filter-location"
+                    class="w-full bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded text-xs focus:ring-0 focus:border-primary p-2">
+                    <option value="">All Locations</option>
+                    {% for location in filter_options.locations %}
+                    <option value="{{ location }}" {% if request.args.get('location') == location %}selected{% endif %}>{{ location }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <!-- Month -->
             <div class="space-y-1">
                 <label class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Month</label>
@@ -724,5 +734,5 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/customer_order_fulfilment_summary.js', v='20261022-1') }}"></script>
+<script src="{{ url_for('static', filename='js/customer_order_fulfilment_summary.js', v='20261027-location-1') }}"></script>
 {% endblock %}

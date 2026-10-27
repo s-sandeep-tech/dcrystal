@@ -223,6 +223,7 @@ function applyFulfilmentFilters() {
     const urlParams = new URLSearchParams(window.location.search);
 
     const configs = {
+        'location': 'filter-location',
         'report_month': 'filter-report-month',
         'report_date': 'filter-report-date',
         'from_date': 'filter-from-date',
@@ -276,6 +277,7 @@ function applyFulfilmentFilters() {
 function resetFulfilmentFilters() {
     const urlParams = new URLSearchParams(window.location.search);
     const configs = {
+        'location': 'filter-location',
         'report_month': 'filter-report-month',
         'report_date': 'filter-report-date',
         'from_date': 'filter-from-date',

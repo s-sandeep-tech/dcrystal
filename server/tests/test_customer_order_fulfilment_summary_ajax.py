@@ -5,6 +5,8 @@ from app.models import Notification, CustomerOrderFulfilmentSummarySnapshot
 from app.dashboard.routes.customer_order_fulfilment_summary import (
     customer_order_fulfilment_summary,
     customer_order_fulfilment_summary_partial,
+    build_filter_query,
+    get_filter_options,
     HIERARCHIES
 )
 from unittest.mock import patch, MagicMock
@@ -50,3 +52,14 @@ class CustomerOrderFulfilmentSummaryAjaxTestCase(unittest.TestCase):
             self.assertIsNotNone(kwargs['stats'])
             self.assertIn('ordered_wt', kwargs['stats'])
             self.assertIsNotNone(kwargs['pagination'])
+
+    def test_location_options_and_shared_query_filter(self):
+        M = CustomerOrderFulfilmentSummarySnapshot
+        db.session.add_all([M(id=1, location='ERNAKULAM'), M(id=2, location='THRISSUR ROUND'),
+                            M(id=3, location='ERNAKULAM')])
+        db.session.commit()
+        with self.app.test_request_context('/customerorderfulfilmentsummary?location=ERNAKULAM'):
+            self.assertEqual(get_filter_options()['locations'], ['ERNAKULAM', 'THRISSUR ROUND'])
+            self.assertEqual([r.id for r in build_filter_query(M.query).order_by(M.id)], [1, 3])
+        with self.app.test_request_context('/customerorderfulfilmentsummary'):
+            self.assertEqual(build_filter_query(M.query).count(), 3)
