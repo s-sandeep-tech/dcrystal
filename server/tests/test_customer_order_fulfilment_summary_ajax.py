@@ -78,7 +78,11 @@ class CustomerOrderFulfilmentSummaryAjaxTestCase(unittest.TestCase):
                     self.icons.append(attrs)
 
         folder = Path(__file__).resolve().parents[1] / 'app/templates'
-        expected = ['PO Generated Weight', 'Collection Owner Approved \u2013 Order Not Generated weight']
+        expected = ['PO Generated Weight', 'Rejected Weight', 'Cancelled Weight',
+                    'Collection Owner Approved \u2013 Order Not Generated weight',
+                    'Party Accepted Weight', 'Barcoded Weight', 'Hallmarked Weight',
+                    'Quality Control Passed Weight', 'Invoiced Weight',
+                    'Delivered to Customer Weight', 'Pending to be Delivered Weight']
         for filename in ['customer_order_fulfilment_summary.html',
                          'partials/_view_customer_order_fulfilment_summary.html']:
             parser = InfoParser()
