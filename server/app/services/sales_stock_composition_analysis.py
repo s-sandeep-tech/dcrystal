@@ -54,7 +54,22 @@ def turn_ratio(numerator_annualised, denominator):
     return None
 
 
-def composition_analysis_data(source_date, selections, path=None, contributors=False):
+SORT_COLUMNS = ('label', 'sales_composition', 'stock_composition', 'weight_turn', 'value_turn', 'tsk_pct')
+
+
+def sort_composition_rows(rows, sort_by='label', sort_order='asc'):
+    key = sort_by if sort_by in SORT_COLUMNS else 'label'
+    descending = sort_order == 'desc'
+    alphabetical = sorted(rows, key=lambda row: (str(row.get('label') or '').casefold(), str(row.get('label') or '')))
+    if key == 'label':
+        return list(reversed(alphabetical)) if descending else alphabetical
+    present = [row for row in alphabetical if row.get(key) is not None]
+    missing = [row for row in alphabetical if row.get(key) is None]
+    return sorted(present, key=lambda row: row[key], reverse=descending) + missing
+
+
+def composition_analysis_data(source_date, selections, path=None, contributors=False,
+                              sort_by='label', sort_order='asc'):
     if path is None:
         path = []
 
@@ -308,7 +323,7 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
     }
 
     return {
-        'rows': rows,
+        'rows': sort_composition_rows(rows, sort_by, sort_order),
         'total': total_row,
         'stats': stats,
         'level': current_level,

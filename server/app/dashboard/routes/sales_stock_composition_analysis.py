@@ -15,6 +15,7 @@ from app.services.sales_stock_composition_analysis import (
     composition_analysis_data,
     dimension,
     calculate_fy_factor,
+    SORT_COLUMNS,
 )
 from app.utils.decorators import require_report_access, require_role, require_perm
 
@@ -27,6 +28,12 @@ ALIAS_URL = '/sales-stock-composition'
 def selected_report_date():
     value = request.args.get('date', '').strip()
     return date.fromisoformat(value) if value else None
+
+
+def selected_sort():
+    key = request.args.get('sort_by', 'label')
+    order = request.args.get('sort_order', 'asc')
+    return (key if key in SORT_COLUMNS else 'label', 'desc' if order == 'desc' else 'asc')
 
 
 @dashboard_bp.route('/api/sales-stock-composition-analysis/contributors')
@@ -103,7 +110,9 @@ def get_sales_stock_composition_analysis_partial():
         path_str = request.args.get('path', '[]')
         path = json.loads(path_str) if path_str else []
 
-        data = composition_analysis_data(selected_report_date(), selections, path=path)
+        sort_by, sort_order = selected_sort()
+        data = composition_analysis_data(selected_report_date(), selections, path=path,
+                                        sort_by=sort_by, sort_order=sort_order)
 
         return render_template(
             'partials/_view_sales_stock_composition_analysis.html',
@@ -115,7 +124,9 @@ def get_sales_stock_composition_analysis_partial():
             factor=data.get('factor', 1.0),
             fy_label=data.get('fy_label', 'FY'),
             path=path,
-            search=request.args.get('search', '')
+            search=request.args.get('search', ''),
+            sort_by=sort_by,
+            sort_order=sort_order,
         )
     except Exception as e:
         logger.exception("Error in sales_stock_composition_analysis partial: %s", str(e))
@@ -146,7 +157,9 @@ def get_sales_stock_composition_analysis_branch():
             if vals:
                 selections[k] = vals
 
-        data = composition_analysis_data(selected_report_date(), selections, path=path)
+        sort_by, sort_order = selected_sort()
+        data = composition_analysis_data(selected_report_date(), selections, path=path,
+                                        sort_by=sort_by, sort_order=sort_order)
 
         return render_template(
             'partials/_view_sales_stock_composition_analysis_branch.html',

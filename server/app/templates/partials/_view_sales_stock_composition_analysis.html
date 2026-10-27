@@ -1,5 +1,15 @@
 {% from 'partials/_sales_stock_tsk_cell.html' import tsk_cell %}
 {% from 'partials/_sales_composition_cell.html' import sales_cell %}
+{% set sort_by = sort_by|default('label') %}
+{% set sort_order = sort_order|default('asc') %}
+{% macro sort_button(key, label) -%}
+<button type="button" onclick="sortComposition('{{ key }}')" data-composition-sort="{{ key }}"
+        title="Sort {{ label }} {{ 'descending' if sort_by == key and sort_order == 'asc' else 'ascending' }}"
+        class="inline-flex max-w-full items-center gap-1 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+    <span>{{ label }}</span>
+    <span class="material-symbols-outlined shrink-0 text-[13px]" aria-hidden="true">{{ ('arrow_upward' if sort_order == 'asc' else 'arrow_downward') if sort_by == key else 'unfold_more' }}</span>
+</button>
+{%- endmacro %}
 <div class="h-full flex flex-col bg-white dark:bg-gray-900" id="partial-root">
     {% if error_message %}
     <div class="h-full flex flex-col items-center justify-center p-8 text-center">
@@ -26,10 +36,10 @@
             </colgroup>
             <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr class="text-[9px] uppercase text-gray-500 font-bold tracking-wider">
-                    <th scope="col" class="px-3 py-1.5 border-r border-gray-200 dark:border-gray-700">
+                    <th scope="col" aria-sort="{{ ('ascending' if sort_order == 'asc' else 'descending') if sort_by == 'label' else 'none' }}" class="px-3 py-1.5 border-r border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between gap-1">
                             <span class="truncate" title="Product Hierarchy (Section &gt; Classification &gt; Make &gt; Wide Range &gt; Collection &gt; Master Collection &gt; Purity)">
-                                Product Hierarchy <span class="text-[8px] font-normal normal-case text-gray-400 dark:text-gray-400 tracking-tight">(Section &gt; Classification &gt; Make &gt; Wide Range &gt; Collection &gt; Master Collection &gt; Purity)</span>
+                                {{ sort_button('label', 'Product Hierarchy') }} <span class="text-[8px] font-normal normal-case text-gray-400 dark:text-gray-400 tracking-tight">(Section &gt; Classification &gt; Make &gt; Wide Range &gt; Collection &gt; Master Collection &gt; Purity)</span>
                             </span>
                             <span class="material-symbols-outlined text-[15px] cursor-pointer hover:text-primary transition-colors select-none shrink-0"
                                   id="expand-collapse-all-btn"
@@ -37,11 +47,10 @@
                                   title="Collapse All">keyboard_double_arrow_up</span>
                         </div>
                     </th>
-                    <th scope="col" class="px-3 py-1.5 text-right border-r border-gray-200 dark:border-gray-700">Sales Composition %</th>
-                    <th scope="col" class="px-3 py-1.5 text-right border-r border-gray-200 dark:border-gray-700">Stock Composition %</th>
-                    <th scope="col" class="px-3 py-1.5 text-right border-r border-gray-200 dark:border-gray-700">Stock Turn in Weight</th>
-                    <th scope="col" class="px-3 py-1.5 text-right border-r border-gray-200 dark:border-gray-700">Stock Turn in Value</th>
-                    <th scope="col" class="px-3 py-1.5 text-right">TSK %</th>
+                    {% for key, label in [('sales_composition', 'Sales Composition %'), ('stock_composition', 'Stock Composition %'), ('weight_turn', 'Stock Turn in Weight'), ('value_turn', 'Stock Turn in Value'), ('tsk_pct', 'TSK %')] %}
+                    <th scope="col" aria-sort="{{ ('ascending' if sort_order == 'asc' else 'descending') if sort_by == key else 'none' }}"
+                        class="px-3 py-1.5 text-right {{ 'border-r border-gray-200 dark:border-gray-700' if not loop.last else '' }}">{{ sort_button(key, label) }}</th>
+                    {% endfor %}
                 </tr>
             </thead>
             <tbody class="divide-y divide-blue-200 dark:divide-blue-800/80 text-[10px]">

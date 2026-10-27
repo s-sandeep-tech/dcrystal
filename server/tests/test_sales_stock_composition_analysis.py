@@ -13,7 +13,24 @@ from app.models.auth import User
 from app.models.rbac import Role, Menu, Permission, UserRole, RoleMenu, RolePermission
 from app.models import SalesStockCompositionAnalysisSnapshot as Snapshot
 from app.dashboard import dashboard_bp
-from app.services.sales_stock_composition_analysis import calculate_fy_factor, HIERARCHY, FILTERS, composition_analysis_data
+from app.services.sales_stock_composition_analysis import calculate_fy_factor, HIERARCHY, FILTERS, composition_analysis_data, sort_composition_rows, SORT_COLUMNS
+
+
+class CompositionSortTests(unittest.TestCase):
+    def test_all_metrics_sort_numerically_with_na_last_and_stable_ties(self):
+        for key in SORT_COLUMNS[1:]:
+            rows = [{'label': label, key: value} for label, value in
+                    [('Z', None), ('B', 10), ('C', -2), ('A', 10), ('D', 0), ('E', 2)]]
+            with self.subTest(key=key):
+                self.assertEqual([r['label'] for r in sort_composition_rows(rows, key)], ['C', 'D', 'E', 'A', 'B', 'Z'])
+                self.assertEqual([r['label'] for r in sort_composition_rows(rows, key, 'desc')], ['A', 'B', 'E', 'D', 'C', 'Z'])
+                self.assertEqual(rows[0]['label'], 'Z')
+
+    def test_label_and_invalid_sort_defaults(self):
+        rows = [{'label': 'zebra'}, {'label': 'Alpha'}, {'label': 'beta'}]
+        self.assertEqual([r['label'] for r in sort_composition_rows(rows)], ['Alpha', 'beta', 'zebra'])
+        self.assertEqual([r['label'] for r in sort_composition_rows(rows, 'label', 'desc')], ['zebra', 'beta', 'Alpha'])
+        self.assertEqual(sort_composition_rows(rows, 'untrusted SQL', 'invalid'), sort_composition_rows(rows))
 
 
 class SalesStockCompositionSecurityTests(unittest.TestCase):
@@ -108,6 +125,37 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
                 response = self.client.post('/api/sync/sales-stock-composition-analysis', headers=self.headers())
                 self.assertEqual(response.status_code, 200)
                 enqueue.assert_called_once_with('EMP001')
+
+    def test_sort_parameters_apply_to_root_and_expanded_branches(self):
+        self.role.menus.append(Menu(title='Sales & Stock Composition', url='/sales-stock-composition-analysis'))
+        db.session.commit()
+        for endpoint in ['/partial/sales-stock-composition-analysis', '/partial/sales-stock-composition-analysis/branch']:
+            with self.subTest(endpoint=endpoint), patch(
+                'app.dashboard.routes.sales_stock_composition_analysis.render_template', return_value='report'
+            ), patch('app.dashboard.routes.sales_stock_composition_analysis.composition_analysis_data',
+                     return_value={'rows': []}) as calculate:
+                response = self.client.get(endpoint + '?sort_by=value_turn&sort_order=desc&branch_id=2', headers=self.headers())
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(calculate.call_args.kwargs['sort_by'], 'value_turn')
+                self.assertEqual(calculate.call_args.kwargs['sort_order'], 'desc')
+                self.assertEqual(calculate.call_args.args[1], {'branch_id': ['2']})
+
+    def test_calculated_rows_sort_without_changing_totals(self):
+        for i, (section, classification, weight) in enumerate([
+            ('ZARA', 'C', 2), ('alpha', 'C', 3), ('BETA', 'C', 10),
+            ('CHAIN', 'C2', 2), ('CHAIN', 'C10', 10)
+        ], 1):
+            db.session.add(Snapshot(id=i, date=date(2026, 9, 25), branch_id=2,
+                section=section, classification=classification, gross_weight=weight,
+                turn_over=weight * 100, provision_weight=1, purchase_board_rate=100))
+        db.session.commit()
+        data = composition_analysis_data(None, {}, sort_by='sales_composition', sort_order='desc')
+        self.assertEqual([r['label'] for r in data['rows']], ['CHAIN', 'BETA', 'alpha', 'ZARA'])
+        original = composition_analysis_data(None, {})
+        self.assertEqual(data['total'], original['total'])
+        self.assertEqual(data['stats'], original['stats'])
+        branch = composition_analysis_data(None, {}, path=['CHAIN'], sort_by='sales_composition', sort_order='desc')
+        self.assertEqual([r['label'] for r in branch['rows']], ['C10', 'C2'])
 
     def test_fy_factor_calculation(self):
         factor, fy_days, elapsed_days, fy_label = calculate_fy_factor(date(2026, 4, 1))

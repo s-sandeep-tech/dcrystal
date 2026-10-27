@@ -19,6 +19,11 @@ let currentZoom = 1.0;
 let searchTimeout = null;
 let appliedCompositionParams = new URLSearchParams();
 let latestSalesDate = '';
+const compositionSortKeys = ['label', 'sales_composition', 'stock_composition', 'weight_turn', 'value_turn', 'tsk_pct'];
+const initialCompositionParams = new URLSearchParams(window.location.search);
+let compositionSortBy = compositionSortKeys.includes(initialCompositionParams.get('sort_by'))
+    ? initialCompositionParams.get('sort_by') : 'label';
+let compositionSortOrder = initialCompositionParams.get('sort_order') === 'desc' ? 'desc' : 'asc';
 
 let filterValues = {
     location: '',
@@ -94,6 +99,8 @@ function buildRequestParams() {
     }
     if (filterValues.search) params.set('search', filterValues.search);
     if (filterValues.date) params.set('date', filterValues.date);
+    params.set('sort_by', compositionSortBy);
+    params.set('sort_order', compositionSortOrder);
 
     return params;
 }
@@ -146,7 +153,7 @@ async function initFilters() {
     }
 }
 
-async function loadReportData() {
+async function loadReportData(requestParams = null) {
     const container = document.getElementById('view-sales-stock-composition-analysis');
     const tableArea = document.getElementById('table-area');
     const progressBar = document.getElementById('report-progress');
@@ -170,7 +177,7 @@ async function loadReportData() {
     }
 
     try {
-        const params = buildRequestParams();
+        const params = requestParams || buildRequestParams();
         const headers = await requestHeaders();
 
         const response = await fetch(`/partial/sales-stock-composition-analysis?${params.toString()}`, { headers });
@@ -336,6 +343,16 @@ function applyFilters() {
     loadReportData();
 }
 
+function sortComposition(column) {
+    if (!compositionSortKeys.includes(column)) return;
+    compositionSortOrder = compositionSortBy === column && compositionSortOrder === 'asc' ? 'desc' : 'asc';
+    compositionSortBy = column;
+    const params = new URLSearchParams(appliedCompositionParams);
+    params.set('sort_by', compositionSortBy);
+    params.set('sort_order', compositionSortOrder);
+    loadReportData(params);
+}
+
 function resetFilters() {
     const dateSelect = document.getElementById('filter-max-date');
     if (dateSelect) dateSelect.value = latestSalesDate;
@@ -346,6 +363,8 @@ function resetFilters() {
     const searchInput = document.getElementById('report-search');
     if (searchInput) searchInput.value = '';
     currentSearch = '';
+    compositionSortBy = 'label';
+    compositionSortOrder = 'asc';
 
     loadReportData();
 }
@@ -402,6 +421,7 @@ window.resetFilters = resetFilters;
 window.collapseAllBranches = collapseAllBranches;
 window.toggleHierarchyBranch = toggleHierarchyBranch;
 window.exportToExcel = exportToExcel;
+window.sortComposition = sortComposition;
 
 let salesContributorsChart = null;
 let salesChartRequest = null;
