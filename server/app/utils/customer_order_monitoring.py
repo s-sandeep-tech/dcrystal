@@ -35,7 +35,7 @@ STATUS = {
 TERMINAL = {'delivered to customer', 'cancelled/rejected by party',
             'cancelled/rejected by verifying team', 'cancelled/rejected by customer'}
 FILTERS = ['state', 'order_ro', 'location', 'customer_order_type', 'division',
-           'collection', 'business_head_name', 'order_status']
+           'collection', 'business_head_name', 'combine_order_status']
 RISK_LABELS = {'critical': 'Overdue', 'high': 'Due Within 0-2 Days',
                'medium': 'Due Within 3-7 Days', 'normal': 'Due After 7 Days',
                'undated': 'Missing Delivery Date'}
@@ -83,7 +83,7 @@ def prepare(rows, today, high_days=2, medium_days=7):
     rows, duplicates = deduplicate(rows)
     due_dates = defaultdict(list)
     for row in rows:
-        row['_status'] = normalize(row.get('order_status'))
+        row['_status'] = normalize(row.get('combine_order_status'))
         row['_classification'] = STATUS.get(row['_status'], 'Unclassified')
         row['_stages'] = [key for key, _, prefix in STAGES
                           if number(row.get(prefix + '_pcs')) > 0 or number(row.get(prefix + '_wt')) > 0]
@@ -174,5 +174,5 @@ def sort_rows(rows, args):
             return as_date(r.get(key)) or date.max
         if key in {'total_pending_pcs', 'total_pending_wt'}:
             return number(r.get(key))
-        return normalize(r.get(key if key in {'request_no', 'sooc', 'location', 'party_name', 'customer_order_status'} else 'request_no'))
+        return normalize(r.get(key if key in {'request_no', 'sooc', 'location', 'party_name', 'combine_order_status', 'customer_order_status'} else 'request_no'))
     return sorted(rows, key=lambda r: (value(r), r['id']), reverse=args.get('direction') == 'desc')

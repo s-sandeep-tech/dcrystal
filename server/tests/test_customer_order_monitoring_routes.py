@@ -30,7 +30,7 @@ class MonitoringRouteTests(unittest.TestCase):
         for i in range(1, 4):
             db.session.add(Snapshot(id=i, request_no=f'R{i}', sooc=f'S{i}', branch_id=i,
                 location=f'Branch {i}', bh_emp_code=str(i), party_name=f'Supplier {i}', party_code=f'Code {i}',
-                order_status='Delivered to shop', total_pending_pcs=i, total_pending_wt=i * 10,
+                order_status='Legacy status', combine_order_status='Delivered to shop', total_pending_pcs=i, total_pending_wt=i * 10,
                 customer_delivery_pending_pcs=i, expected_delivery_date=datetime.now() - timedelta(days=3)))
         db.session.add(BranchAuthoritySnapshot(branch_id=2, emp_code=1235))
         db.session.commit()
@@ -96,3 +96,17 @@ class MonitoringRouteTests(unittest.TestCase):
         db.session.add(Snapshot(request_no='Other', sooc='S1'))
         db.session.commit()
         self.assertEqual(self.client.get('/api/monitor', headers=self.headers).status_code, 409)
+
+    def test_combined_status_options_display_and_export(self):
+        self.login(['ADMIN'])
+        data = self.client.get('/api/monitor?combine_order_status=Delivered+to+shop', headers=self.headers).get_json()
+        self.assertEqual(data['total'], 3)
+        self.assertEqual(data['options']['combine_order_status'], ['Delivered to shop'])
+        self.assertNotIn('order_status', data['options'])
+        self.assertIn('data-sort="combine_order_status"', data['html'])
+        self.assertNotIn('Legacy status', data['html'])
+        with patch('app.utils.decorators.get_user_permissions', return_value={'report.export'}):
+            response = self.client.get('/api/monitor/export', headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Delivered to shop', response.text)
+        self.assertNotIn('Legacy status', response.text)

@@ -8,7 +8,7 @@ from app.utils.customer_order_monitoring import prepare, summarize, filter_rows,
 class MonitoringTests(unittest.TestCase):
     def row(self, **changes):
         row = dict(id=1, sooc='S1', request_no='R1', branch_id=2, location='Kochi',
-                   order_status='Delivered to shop', expected_delivery_date=datetime(2026, 10, 1),
+                   combine_order_status='Delivered to shop', expected_delivery_date=datetime(2026, 10, 1),
                    total_pending_pcs=0, total_pending_wt=0)
         row.update(changes)
         return row
@@ -28,7 +28,7 @@ class MonitoringTests(unittest.TestCase):
     def test_terminal_statuses_never_outstanding_even_with_stale_quantities(self):
         for status in ['Delivered to customer', 'Cancelled/rejected by party',
                        'Cancelled/rejected by verifying team', 'Cancelled/rejected by customer']:
-            rows, _ = self.prepare([self.row(order_status=status, total_pending_pcs=5)])
+            rows, _ = self.prepare([self.row(combine_order_status=status, total_pending_pcs=5)])
             self.assertFalse(rows[0]['_active'])
             self.assertEqual(filter_rows(rows, {}), [])
 
@@ -37,7 +37,7 @@ class MonitoringTests(unittest.TestCase):
             self.row(expected_delivery_date=datetime(2026, 10, 8)),
             self.row(id=2, sooc='S2', expected_delivery_date=datetime(2026, 9, 30)),
             self.row(id=3, sooc='S3', request_no='R2', expected_delivery_date=None),
-            self.row(id=4, sooc='S4', order_status='Delivered to customer', expected_delivery_date=datetime(2026, 8, 1)),
+            self.row(id=4, sooc='S4', combine_order_status='Delivered to customer', expected_delivery_date=datetime(2026, 8, 1)),
         ])
         stats, charts = summarize(rows)
         self.assertEqual(stats['overdue'], 1)
@@ -76,12 +76,25 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(len(filter_rows(rows, {'search': 'Secret'}, masked=False)), 1)
 
     def test_unknown_and_missing_dates(self):
-        rows, _ = self.prepare([self.row(order_status='new status', expected_delivery_date=datetime(1, 1, 1))])
+        rows, _ = self.prepare([self.row(combine_order_status='new status', expected_delivery_date=datetime(1, 1, 1))])
         self.assertFalse(rows[0]['_active'])
         self.assertIsNone(rows[0]['_due'])
-        rows, _ = self.prepare([self.row(order_status=None, process_pending_pcs=1)])
+        rows, _ = self.prepare([self.row(combine_order_status=None, process_pending_pcs=1)])
         self.assertTrue(rows[0]['_active'])
         self.assertEqual(rows[0]['_classification'], 'Unclassified')
+
+    def test_combined_status_controls_classification_filters_and_sort(self):
+        rows, _ = self.prepare([
+            self.row(order_status='Delivered to customer', combine_order_status='Delivered to shop'),
+            self.row(id=2, sooc='S2', order_status='Delivered to shop', combine_order_status='Delivered to customer', total_pending_pcs=5),
+        ])
+        self.assertTrue(rows[0]['_active'])
+        self.assertFalse(rows[1]['_active'])
+        self.assertEqual([r['id'] for r in filter_rows(rows, {'combine_order_status': 'Delivered to shop'})], [1])
+        self.assertEqual([r['id'] for r in sort_rows(rows, {'sort': 'combine_order_status'})], [2, 1])
+        missing, _ = self.prepare([self.row(combine_order_status=None, order_status='Delivered to shop')])
+        self.assertEqual(missing[0]['_classification'], 'Unclassified')
+        self.assertFalse(missing[0]['_active'])
 
     def test_table_has_14_columns_and_escaped_supplier(self):
         from app.models.customer_order_analysis import CustomerOrderAnalysisSnapshot

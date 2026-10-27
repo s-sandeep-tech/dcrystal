@@ -110,7 +110,7 @@ def customer_order_monitoring_export():
     writer.writerow(['Priority', 'Expected Delivery Date', 'Days Remaining', 'Request Number', 'SOOC',
                      'Request Date', 'RO / Location', 'Division / Make', 'Pending Stages',
                      'Production Pending Pieces', 'Production Pending Weight (g)', 'Responsibility',
-                     'Customer Order Status', 'Party / Supplier'])
+                     'Order Status', 'Party / Supplier'])
     labels = dict((k, label) for k, label, _ in STAGES)
     owners = [('Business Head', 'business_head_name'), ('Shop Manager', 'shop_manger'),
               ('Make Owner', 'make_owner'), ('Collection Owner', 'collection_wner'),
@@ -121,7 +121,7 @@ def customer_order_monitoring_export():
                   f"{r.get('division') or ''} / {r.get('make') or ''}",
                   ', '.join(labels[k] for k in r['_stages']), r.get('total_pending_pcs'), r.get('total_pending_wt'),
                   '; '.join(f'{label}: {r.get(field)}' for label, field in owners if r.get(field)),
-                  r.get('customer_order_status'), r.get('party_name')]
+                  r.get('combine_order_status'), r.get('party_name')]
         # Neutralize spreadsheet formulas in exported text without altering numeric measures.
         writer.writerow(["'" + v if isinstance(v, str) and v.lstrip().startswith(('=', '+', '-', '@')) else v for v in values])
     return Response(output.getvalue(), mimetype='text/csv', headers={
