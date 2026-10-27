@@ -1,4 +1,6 @@
 import unittest
+from html.parser import HTMLParser
+from pathlib import Path
 from flask import Flask
 from app.extensions import db
 from app.models import Notification, CustomerOrderFulfilmentSummarySnapshot
@@ -63,3 +65,25 @@ class CustomerOrderFulfilmentSummaryAjaxTestCase(unittest.TestCase):
             self.assertEqual([r.id for r in build_filter_query(M.query).order_by(M.id)], [1, 3])
         with self.app.test_request_context('/customerorderfulfilmentsummary'):
             self.assertEqual(build_filter_query(M.query).count(), 3)
+
+    def test_weight_heading_information_icons_have_exact_tooltips(self):
+        class InfoParser(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.icons = []
+
+            def handle_starttag(self, tag, attrs):
+                attrs = dict(attrs)
+                if 'fulfilment-metric-info' in attrs.get('class', '').split():
+                    self.icons.append(attrs)
+
+        folder = Path(__file__).resolve().parents[1] / 'app/templates'
+        expected = ['PO Generated Weight', 'Collection Owner Approved \u2013 Order Not Generated weight']
+        for filename in ['customer_order_fulfilment_summary.html',
+                         'partials/_view_customer_order_fulfilment_summary.html']:
+            parser = InfoParser()
+            parser.feed((folder / filename).read_text())
+            self.assertEqual([icon['title'] for icon in parser.icons], expected)
+            for icon in parser.icons:
+                self.assertEqual(icon['aria-label'], icon['title'])
+                self.assertEqual(icon['tabindex'], '0')
