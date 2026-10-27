@@ -38,6 +38,9 @@ def generate_location_wise_old_gold_export(filters, as_of=None):
     sheet = workbook.active
     sheet.title = 'Old Gold Pending'
     sheet.sheet_view.showGridLines = False
+    column_line = Side(style='thin', color='D0D0D0')
+    bucket_line = Side(style='medium', color='A6A6A6')
+    bucket_ends = {2, 4, 6, 8, 10, 12}
     for col, label in [(1, 'RO NAME'), (2, 'SHOP NAME')]:
         sheet.cell(1, col, label)
         sheet.merge_cells(start_row=1, start_column=col, end_row=2, end_column=col)
@@ -49,9 +52,11 @@ def generate_location_wise_old_gold_export(filters, as_of=None):
         sheet.cell(2, col + 1, 'INTRANSIT')
     for row in sheet.iter_rows(min_row=1, max_row=2, max_col=14):
         for cell in row:
-            cell.fill = PatternFill('solid', fgColor='285E59')
-            cell.font = Font(name='Arial', size=11, bold=True, color='FFFFFF')
+            cell.fill = PatternFill('solid', fgColor='E7E6E6' if cell.row == 1 else 'F2F2F2')
+            cell.font = Font(name='Arial', size=11, bold=True, color='333333')
             cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = Border(bottom=column_line,
+                                 right=bucket_line if cell.column in bucket_ends else column_line)
     sheet.row_dimensions[1].height = 26
     sheet.row_dimensions[2].height = 24
     totals = [Decimal(0)] * 12
@@ -70,15 +75,17 @@ def generate_location_wise_old_gold_export(filters, as_of=None):
             cell.alignment = Alignment(horizontal='left' if cell.column < 3 else 'right', vertical='center')
             if cell.column >= 3:
                 cell.number_format = '#,##0.000'
-            if cell.row == sheet.max_row or cell.row % 2:
-                cell.fill = PatternFill('solid', fgColor='EDF3F2')
-            if cell.column in (4, 6, 8, 10, 12):
-                cell.border = Border(right=Side(style='thin', color='ADBDBA'))
+            if cell.row == sheet.max_row:
+                cell.fill = PatternFill('solid', fgColor='E7E6E6')
+            elif cell.row % 2:
+                cell.fill = PatternFill('solid', fgColor='F7F7F7')
+            cell.border = Border(right=bucket_line if cell.column in bucket_ends else column_line,
+                                 top=column_line if cell.row == sheet.max_row else Side())
         sheet.row_dimensions[row[0].row].height = 23
     sheet.column_dimensions['A'].width = 38
     sheet.column_dimensions['B'].width = 38
     for col in range(3, 15):
-        sheet.column_dimensions[get_column_letter(col)].width = 19
+        sheet.column_dimensions[get_column_letter(col)].width = 17
     sheet.freeze_panes = 'C3'
     if last_data_row >= 3:
         sheet.auto_filter.ref = f'A2:N{last_data_row}'

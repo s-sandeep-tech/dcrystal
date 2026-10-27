@@ -93,6 +93,20 @@ class OldGoldExportTests(unittest.TestCase):
         self.assertEqual(sheet['C3'].value, 2.25)
         self.assertEqual(sheet['M6'].value, 4.5)
 
+    def test_neutral_headers_and_column_and_bucket_separators(self):
+        self.add()
+        sheet = self.workbook()
+        self.assertEqual(sheet['C1'].fill.fgColor.rgb, '00E7E6E6')
+        self.assertEqual(sheet['C1'].font.color.rgb, '00333333')
+        self.assertEqual(sheet['C2'].fill.fgColor.rgb, '00F2F2F2')
+        for col in range(1, 15):
+            expected = 'medium' if col in (2, 4, 6, 8, 10, 12) else 'thin'
+            self.assertEqual(sheet.cell(3, col).border.right.style, expected)
+            self.assertEqual(sheet.cell(4, col).border.right.style, expected)
+            self.assertEqual(sheet.cell(4, col).border.top.style, 'thin')
+        self.assertEqual(sheet['M4'].fill.fgColor.rgb, '00E7E6E6')
+        self.assertEqual(sheet.column_dimensions['C'].width, 17)
+
     def test_all_applied_filters_are_shared_with_report(self):
         self.add()
         self.add(office='RO B', locationname='SHOP B')
