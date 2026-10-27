@@ -27,6 +27,13 @@
             </h2>
         </div>
         <div class="flex items-center gap-3">
+            {% if 'report.export' in permissions or 'ADMIN' in permissions %}
+            <button id="old-gold-export" onclick="exportOldGoldToExcel()" title="Export all filtered shops to Excel"
+                class="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded transition-colors shadow-sm">
+                <span id="old-gold-export-icon" class="material-symbols-outlined text-[14px]">download</span>
+                <span id="old-gold-export-label">Export</span>
+            </button>
+            {% endif %}
             <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
                 <button onclick="adjustZoom(-0.1)" class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors" title="Zoom Out">-</button>
                 <button id="zoom-level" onclick="adjustZoom(0, true)" class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700" title="Reset Zoom">100%</button>
@@ -277,5 +284,5 @@
     window.OLD_GOLD_FILTER_OPTIONS = {{ filter_options|tojson }};
 </script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/location_wise_old_gold_settlement_transfer.js', v='20260902-1') }}"></script>
+<script src="{{ url_for('static', filename='js/location_wise_old_gold_settlement_transfer.js', v='20261027-export-1') }}"></script>
 {% endblock %}

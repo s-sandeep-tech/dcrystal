@@ -332,6 +332,8 @@ def process_export_queue():
                     _handle_export_location_physical_stock_status(task_data)
                 elif task_type == 'export_location_provision_stock_analysis':
                     _handle_export_location_provision_stock_analysis(task_data)
+                elif task_type == 'export_location_wise_old_gold':
+                    _handle_export_location_wise_old_gold(task_data)
                 else:
                     logger.error(f"Unknown export task type: {task_type}")
 
@@ -688,6 +690,45 @@ def _handle_export_location_physical_stock_status(task_data: dict):
                 redis_client.publish('global_notifications', json.dumps(err_payload))
         except Exception as inner_e:
             logger.error(f"Failed to send error notification: {inner_e}")
+
+
+def _handle_export_location_wise_old_gold(task_data: dict):
+    """Generate the filtered old-gold workbook and notify its requesting user."""
+    from datetime import datetime
+    from app.models import Notification
+    from app.extensions import db, socketio
+    from app.services.old_gold_export import generate_location_wise_old_gold_export
+
+    try:
+        filename = generate_location_wise_old_gold_export(
+            task_data.get('filters', {}), task_data.get('as_of'))
+        notification = Notification(
+            title='Export Ready - Old Gold Pending & InTransit',
+            message='Your Old Gold Pending & InTransit Excel file is ready to download.',
+            notification_type='success', icon='download', priority='high',
+            user_id=task_data.get('user_id'), created_at=datetime.utcnow(),
+            is_read=False, action_url=f'/exports/download/{filename}',
+        )
+    except Exception:
+        db.session.rollback()
+        logger.exception('Old gold Excel export failed')
+        notification = Notification(
+            title='Export Failed - Old Gold Pending & InTransit',
+            message='The old gold export could not be generated. Please try again.',
+            notification_type='error', icon='error', priority='high',
+            user_id=task_data.get('user_id'), created_at=datetime.utcnow(), is_read=False,
+        )
+    db.session.add(notification)
+    db.session.commit()
+    payload = {
+        'id': notification.id, 'title': notification.title, 'message': notification.message,
+        'type': notification.notification_type, 'icon': notification.icon,
+        'priority': notification.priority, 'time': notification.get_time_ago(),
+        'related_order_id': None, 'action_url': notification.action_url,
+        'socket_id': task_data.get('socket_id'), 'user_id': task_data.get('user_id'),
+    }
+    socketio.emit('new_notification', payload)
+    redis_client.publish('global_notifications', json.dumps(payload))
 
 
 def _handle_export_location_provision_stock_analysis(task_data: dict):

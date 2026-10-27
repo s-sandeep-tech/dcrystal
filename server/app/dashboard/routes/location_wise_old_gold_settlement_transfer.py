@@ -4,7 +4,8 @@ from app.dashboard import dashboard_bp
 from app.models import Notification, User, LocationWiseOldGoldSettlementTransferSnapshot
 from app.extensions import db, redis_client
 from sqlalchemy import func, case
-from datetime import datetime
+from datetime import datetime, timedelta
+from app.utils.decorators import require_perm
 from zoneinfo import ZoneInfo
 import hashlib
 import json
@@ -67,17 +68,18 @@ def ensure_table_exists():
         logger.debug(f"ensure_table_exists notice: {e}")
 
 
-def build_filters(query):
-    search = request.args.get('search', '').strip()
-    offices = split_filter_values(request.args.get('office'))
-    locations = split_filter_values(request.args.get('location'))
-    location_types = split_filter_values(request.args.get('locationtype'))
-    divisions = split_filter_values(request.args.get('division'))
-    group_name = request.args.get('group', '').strip()
-    purities = split_filter_values(request.args.get('purity'))
-    from_date = request.args.get('from_date', '').strip()
-    to_date = request.args.get('to_date', '').strip()
-    enable_date_filter = request.args.get('enable_date_filter', 'false') == 'true'
+def build_filters(query, filters=None):
+    filters = request.args if filters is None else filters
+    search = filters.get('search', '').strip()
+    offices = split_filter_values(filters.get('office'))
+    locations = split_filter_values(filters.get('location'))
+    location_types = split_filter_values(filters.get('locationtype'))
+    divisions = split_filter_values(filters.get('division'))
+    group_name = filters.get('group', '').strip()
+    purities = split_filter_values(filters.get('purity'))
+    from_date = filters.get('from_date', '').strip()
+    to_date = filters.get('to_date', '').strip()
+    enable_date_filter = filters.get('enable_date_filter', 'false') == 'true'
 
     if search:
         query = query.filter(
@@ -111,15 +113,17 @@ def build_filters(query):
     return query
 
 
-def get_aggregation_columns():
+def get_aggregation_columns(as_of=None):
     trans_date = func.cast(LocationWiseOldGoldSettlementTransferSnapshot.transdate, db.Date)
     curr_date = func.current_date()
+    def days_ago(days):
+        return as_of - timedelta(days=days) if as_of is not None else curr_date - days
 
-    cond_today = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date == curr_date - 1)
-    cond_2_5 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(curr_date - 5, curr_date - 2))
-    cond_6_10 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(curr_date - 10, curr_date - 6))
-    cond_11_15 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(curr_date - 15, curr_date - 11))
-    cond_gt_15 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date < curr_date - 15)
+    cond_today = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date == days_ago(1))
+    cond_2_5 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(days_ago(5), days_ago(2)))
+    cond_6_10 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(days_ago(10), days_ago(6)))
+    cond_11_15 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date.between(days_ago(15), days_ago(11)))
+    cond_gt_15 = (LocationWiseOldGoldSettlementTransferSnapshot.transdate.isnot(None)) & (trans_date < days_ago(15))
 
     return [
         # Overall Totals
@@ -619,3 +623,37 @@ def sync_location_wise_old_gold_settlement_transfer():
     from app.utils.sync_manager import sync_location_wise_old_gold_settlement_transfer_data
     user_id = session.get('user_id')
     return jsonify(sync_location_wise_old_gold_settlement_transfer_data(user_id))
+
+
+@dashboard_bp.route('/api/location-wise-old-gold-settlement-transfer/export', methods=['POST'])
+@jwt_required()
+@require_perm('report.export')
+def queue_location_wise_old_gold_export():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not isinstance(data.get('filters', {}), dict):
+        return jsonify(status='error', message='Invalid export filters.'), 400
+    allowed = ('office', 'location', 'locationtype', 'division', 'group', 'purity',
+               'search', 'from_date', 'to_date', 'enable_date_filter', 'sort_by', 'sort_order')
+    filters = {key: data['filters'][key] for key in allowed if key in data.get('filters', {})}
+    if any(not isinstance(value, str) for value in filters.values()):
+        return jsonify(status='error', message='Export filters must be text values.'), 400
+    if filters.get('enable_date_filter') == 'true':
+        try:
+            start = datetime.strptime(filters.get('from_date', ''), '%Y-%m-%d').date()
+            end = datetime.strptime(filters.get('to_date', ''), '%Y-%m-%d').date()
+            if start > end:
+                raise ValueError('Invalid range')
+        except ValueError:
+            return jsonify(status='error', message='Select a valid transaction date range.'), 400
+    payload = {
+        'type': 'export_location_wise_old_gold', 'filters': filters,
+        'user_id': get_jwt_identity(), 'socket_id': data.get('socket_id'),
+    }
+    try:
+        # Match the report's database CURRENT_DATE, including its session timezone.
+        payload['as_of'] = db.session.query(func.current_date()).scalar().isoformat()
+        redis_client.rpush('export_queue', json.dumps(payload))
+    except Exception:
+        logger.exception('Failed to queue old gold export')
+        return jsonify(status='error', message='Unable to queue export. Please try again.'), 503
+    return jsonify(status='success', message='Export job enqueued.'), 200

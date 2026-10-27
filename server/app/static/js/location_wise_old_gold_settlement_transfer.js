@@ -2,6 +2,50 @@ let currentZoom = parseFloat(localStorage.getItem('oldgold-zoom')) || 1.0;
 let searchTimeout;
 const oldGoldMultiSelects = {};
 
+async function exportOldGoldToExcel() {
+    const button = document.getElementById('old-gold-export');
+    if (!button || button.disabled) return;
+    const notify = (title, message, type) => typeof showToast === 'function'
+        ? showToast(title, message, type) : window.alert(message);
+    const cooldownKey = 'last_old_gold_export_time';
+    if (Date.now() - Number(localStorage.getItem(cooldownKey) || 0) < 120000) {
+        notify('Export', 'An export was recently queued. Check your notifications for the download.', 'warning');
+        return;
+    }
+    const label = document.getElementById('old-gold-export-label');
+    const icon = document.getElementById('old-gold-export-icon');
+    button.disabled = true;
+    label.textContent = 'Queuing...';
+    icon.textContent = 'sync';
+    icon.classList.add('animate-spin');
+    try {
+        // The URL is the applied report state, not unsaved filter-control changes.
+        const params = new URLSearchParams(window.location.search);
+        const filters = {};
+        for (const key of ['office', 'location', 'locationtype', 'division', 'group', 'purity',
+            'search', 'from_date', 'to_date', 'enable_date_filter', 'sort_by', 'sort_order']) {
+            if (params.has(key)) filters[key] = params.get(key);
+        }
+        const response = await fetch('/api/location-wise-old-gold-settlement-transfer/export', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json',
+                Authorization: `Bearer ${localStorage.getItem('access_token') || ''}`},
+            body: JSON.stringify({filters, socket_id: window.socket?.id})
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || result.msg || 'Unable to queue export.');
+        localStorage.setItem(cooldownKey, String(Date.now()));
+        notify('Export', 'Export queued. You will receive a download notification when it is ready.', 'success');
+    } catch (error) {
+        notify('Export failed', error.message, 'error');
+    } finally {
+        button.disabled = false;
+        label.textContent = 'Export';
+        icon.textContent = 'download';
+        icon.classList.remove('animate-spin');
+    }
+}
+
 function initializeMultiSelectFilters() {
     if (typeof CustomMultiSelect === 'undefined') return;
 
