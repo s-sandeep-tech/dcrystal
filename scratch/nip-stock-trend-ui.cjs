@@ -21,7 +21,7 @@ const fields=['location','division','group_name','purity','classification','sub_
   const body={periods,balance_dates:periods,series:['Gold','Silver','Platinum'].map((name,i)=>({name,values:periods.map((_,j)=>10+i*10+j)})),
    metric:url.searchParams.get('metric')||'gross_wt',group_by:url.searchParams.get('group_by')||'division',interval:url.searchParams.get('interval')||'daily',
    stats:{opening:60,closing:120,change:60,change_pct:100,average:90},first_date:periods[0],last_date:periods.at(-1),observed_days:21};
-  const groups=body.series;
+  const groups=body.group_by==='purity'?['750.00','920.00','995.00','999.00'].map((name,i)=>({name,values:periods.map(()=>i+1)})):body.series;
   body.unit=body.metric==='pieces'?'Nos.':'kg';
   body.table_rows=periods.flatMap((period,p)=>groups.map(s=>({period,balance_date:period,group:s.name,total:s.values[p],nip:s.values[p]/2,excess:s.values[p]/4})));
   body.series=groups.flatMap(s=>[['total',1],['nip',.5],['excess',.25]].map(([kind,factor])=>({name:s.name+' - '+kind,group:s.name,kind,values:s.values.map(v=>v*factor)})));
@@ -75,6 +75,14 @@ const fields=['location','division','group_name','purity','classification','sub_
  await page.locator('#nip-expand').click();await page.waitForFunction(()=>!document.fullscreenElement);
  const downloadPromise=page.waitForEvent('download');await page.locator('#nip-png').click();assert.equal((await downloadPromise).suggestedFilename(),'nip-stock-trend.png');
  await page.locator('#nip-clear').click();await page.waitForFunction(()=>!document.getElementById('nip-from').value);
+ await page.locator('#nip-group').selectOption('purity');
+ await page.waitForFunction(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.some(d=>d.comparisonGroup==='999.00'));
+ const purityLabels=await page.evaluate(()=>{
+  const c=Chart.getChart(document.getElementById('nip-chart')),labels=[],original=c.ctx.fillText;
+  c.ctx.fillText=function(text,...args){labels.push(text);return original.call(this,text,...args);};
+  c.draw();c.ctx.fillText=original;return labels;
+ });
+ for(const purity of ['750','920','995','999'])assert(purityLabels.includes(purity));
  await page.locator('#nip-filter-toggle').click();await page.setViewportSize({width:390,height:844});
  await page.screenshot({path:'/tmp/nip-stock-trend-mobile.png'});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);

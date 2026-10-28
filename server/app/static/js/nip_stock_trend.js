@@ -36,7 +36,7 @@
                 type:'bar',label:'',data:data.periods.map(()=>null),groupSpacer:true,order:1
             });
             const color = ({total:'#1683ef',nip:'#e59b18',excess:'#e05260'})[series.kind] || `hsl(${(i * 137.508) % 360} 65% 44%)`;
-            datasets.push({type:'bar',label:series.name,data:series.values,borderColor:color,backgroundColor:color,
+            datasets.push({type:'bar',label:series.name,comparisonGroup:series.group,data:series.values,borderColor:color,backgroundColor:color,
                 borderWidth:1,barPercentage:0.96,order:1});
             if (el('nip-average').checked) datasets.push({type:'line',label:`${series.name} (3-period MA)`,borderColor:color,
                 backgroundColor:color,order:0,
@@ -71,10 +71,32 @@
                         }
                     });
                 });
+            },
+            afterDraw(current) {
+                const groups=new Map();
+                current.data.datasets.forEach((dataset,index)=>{
+                    if(dataset.type!=='bar'||dataset.groupSpacer||!current.isDatasetVisible(index))return;
+                    if(!groups.has(dataset.comparisonGroup))groups.set(dataset.comparisonGroup,[]);
+                    groups.get(dataset.comparisonGroup).push(current.getDatasetMeta(index));
+                });
+                const ctx=current.ctx;
+                ctx.save();ctx.font='500 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
+                ctx.fillStyle=document.documentElement.classList.contains('dark')?'#d1d5db':'#4b5563';
+                data.periods.forEach((_,position)=>{
+                    groups.forEach((metas,group)=>{
+                        const bars=metas.map(meta=>meta.data[position]).filter(Boolean);
+                        if(!bars.length)return;
+                        const left=Math.min(...bars.map(bar=>bar.x-bar.width/2));
+                        const right=Math.max(...bars.map(bar=>bar.x+bar.width/2));
+                        const label=data.group_by==='purity'&&Number.isFinite(Number(group))?String(Number(group)):String(group);
+                        ctx.fillText(label,(left+right)/2,current.chartArea.bottom+7,Math.max(1,right-left));
+                    });
+                });
+                ctx.restore();
             }
         }],options:{
             responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
-            scales:{y:{beginAtZero:true,title:{display:true,text:data.unit},ticks:{precision:data.metric==='pieces'?0:3}}},
+            scales:{x:{ticks:{padding:26}},y:{beginAtZero:true,title:{display:true,text:data.unit},ticks:{precision:data.metric==='pieces'?0:3}}},
             plugins:{legend:{position:'bottom',labels:{filter:item=>!datasets[item.datasetIndex].groupSpacer}},tooltip:{filter:item=>!item.dataset.groupSpacer,callbacks:{title:items => `${items[0].label} (balance ${data.balance_dates[items[0].dataIndex]})`,
                 label:context=>`${context.dataset.label}: ${number(context.raw)} ${data.unit}`}}}}});
         else el('nip-status').textContent += ' Chart library unavailable; table values remain available.';
