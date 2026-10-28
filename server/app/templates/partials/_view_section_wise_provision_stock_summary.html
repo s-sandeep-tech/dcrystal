@@ -1,13 +1,17 @@
 {% macro weight_val(val) -%}
-    {{ "{:,.3f}".format(val|float) if val is not none else '0.000' }}
+{{ "{:,.3f}".format(val|float) if val is not none else '0.000' }}
+{%- endmacro %}
+
+{% macro kg_val(val) -%}
+    {{ "{:,.3f}".format((val|float) / 1000.0) if val is not none else '0.000' }}
 {%- endmacro %}
 
 {% macro pcs_val(val) -%}
-    {{ "{:,.0f}".format(val|float) if val is not none else '0' }}
+{{ "{:,.0f}".format(val|float) if val is not none else '0' }}
 {%- endmacro %}
 
 {% macro pct_val(val) -%}
-    {{ "{:,.1f}%".format(val|float) if val is not none else '0.0%' }}
+{{ "{:,.1f}%".format(val|float) if val is not none else '0.0%' }}
 {%- endmacro %}
 
 <style>
@@ -16,43 +20,51 @@
         border-collapse: collapse;
         border-spacing: 0;
     }
+
     #sectionWiseProvisionStockTable td {
-        padding: 7px 8px;
+        padding: 5px 6px;
         border: 1px solid #e2e8f0;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-size: 11px;
-        line-height: 1.4;
+        line-height: 1.35;
         text-align: right;
         white-space: nowrap;
         vertical-align: middle;
     }
+
     .dark #sectionWiseProvisionStockTable td {
         border-color: #334155;
     }
+
     #sectionWiseProvisionStockTable td:first-child {
         text-align: left;
         font-family: inherit;
         border-left: none;
-        font-size: 11.5px;
+        font-size: 11px;
     }
+
     #sectionWiseProvisionStockTable td:last-child {
         border-right: none;
     }
+
     #sectionWiseProvisionStockTable th {
-        padding: 8px 8px;
+        padding: 6px 6px;
         border: 1px solid #cbd5e1;
         font-size: 11px;
-        line-height: 1.4;
+        line-height: 1.35;
         white-space: nowrap;
         border-top: none;
         vertical-align: middle;
     }
+
     #sectionWiseProvisionStockTable th:first-child {
         border-left: none;
     }
+
     #sectionWiseProvisionStockTable th:last-child {
         border-right: none;
     }
+
     .dark #sectionWiseProvisionStockTable th {
         border-color: #334155;
     }
@@ -64,70 +76,90 @@
     <div class="px-3 py-2.5 bg-slate-50/80 dark:bg-gray-900/90 border-b border-gray-200 dark:border-gray-800 shrink-0">
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 gap-2">
             <!-- 1. Provision Pieces -->
-            <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-slate-200/90 dark:border-gray-700/80 bg-white dark:bg-gray-800 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate mb-1 leading-none">Prov Pcs</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-gray-900 dark:text-gray-100 font-mono leading-none tracking-tight">{{ pcs_val(grand_totals.prov_pcs) }}</span>
+            <div
+                class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-slate-200/90 dark:border-gray-700/80 bg-white dark:bg-gray-800 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
+                <span
+                    class="text-[9.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate mb-1 leading-none">Prov
+                    Pcs</span>
+                <span
+                    class="text-[13px] sm:text-[13.5px] font-extrabold text-gray-900 dark:text-gray-100 font-mono leading-none tracking-tight">{{
+                    pcs_val(grand_totals.prov_pcs) }}</span>
             </div>
 
-            <!-- 2. Provision Gross Wt -->
+            <!-- 2. Provision Gross Wt (kg) -->
             <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-slate-200/90 dark:border-gray-700/80 bg-white dark:bg-gray-800 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate mb-1 leading-none">Prov Gr.Wt</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-gray-900 dark:text-gray-100 font-mono leading-none tracking-tight">{{ weight_val(grand_totals.prov_gr_wt) }}</span>
+                <span class="text-[9.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate mb-1 leading-none">Prov Gr.Wt (kg)</span>
+                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-gray-900 dark:text-gray-100 font-mono leading-none tracking-tight">{{ kg_val(grand_totals.prov_gr_wt) }}</span>
             </div>
 
-            <!-- 3. In Shop Wt -->
+            <!-- 3. In Shop Wt (kg) -->
             <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-slate-200/90 dark:border-gray-700/80 bg-white dark:bg-gray-800 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate mb-1 leading-none">In Shop Wt</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-gray-900 dark:text-gray-100 font-mono leading-none tracking-tight">{{ weight_val(grand_totals.in_shop_wt) }}</span>
+                <span class="text-[9.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate mb-1 leading-none">In Shop Wt (kg)</span>
+                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-gray-900 dark:text-gray-100 font-mono leading-none tracking-tight">{{ kg_val(grand_totals.in_shop_wt) }}</span>
             </div>
 
-            <!-- 4. Transit Wt -->
+            <!-- 4. Transit Wt (kg) -->
             <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-slate-200/90 dark:border-gray-700/80 bg-white dark:bg-gray-800 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate mb-1 leading-none">Transit Wt</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-gray-900 dark:text-gray-100 font-mono leading-none tracking-tight">{{ weight_val(grand_totals.in_transit_wt) }}</span>
+                <span class="text-[9.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate mb-1 leading-none">Transit Wt (kg)</span>
+                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-gray-900 dark:text-gray-100 font-mono leading-none tracking-tight">{{ kg_val(grand_totals.in_transit_wt) }}</span>
             </div>
 
             <!-- 5. Short Pieces -->
-            <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50/70 dark:bg-red-950/25 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider truncate mb-1 leading-none">Short Pcs</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-red-600 dark:text-red-400 font-mono leading-none tracking-tight">{{ pcs_val(grand_totals.short_pcs) }}</span>
+            <div
+                class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50/70 dark:bg-red-950/25 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
+                <span
+                    class="text-[9.5px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider truncate mb-1 leading-none">Short
+                    Pcs</span>
+                <span
+                    class="text-[13px] sm:text-[13.5px] font-extrabold text-red-600 dark:text-red-400 font-mono leading-none tracking-tight">{{
+                    pcs_val(grand_totals.short_pcs) }}</span>
             </div>
 
             <!-- 6. Excess Pieces -->
-            <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/25 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider truncate mb-1 leading-none">Excess Pcs</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-emerald-700 dark:text-emerald-400 font-mono leading-none tracking-tight">{{ pcs_val(grand_totals.excess_pcs) }}</span>
+            <div
+                class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/25 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
+                <span
+                    class="text-[9.5px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider truncate mb-1 leading-none">Excess
+                    Pcs</span>
+                <span
+                    class="text-[13px] sm:text-[13.5px] font-extrabold text-emerald-700 dark:text-emerald-400 font-mono leading-none tracking-tight">{{
+                    pcs_val(grand_totals.excess_pcs) }}</span>
             </div>
 
             <!-- 7. Short % -->
-            <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-950/25 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider truncate mb-1 leading-none">Short %</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-amber-700 dark:text-amber-400 font-mono leading-none tracking-tight">{{ pct_val(grand_totals.short_percent) }}</span>
+            <div
+                class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-950/25 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
+                <span
+                    class="text-[9.5px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider truncate mb-1 leading-none">Short
+                    %</span>
+                <span
+                    class="text-[13px] sm:text-[13.5px] font-extrabold text-amber-700 dark:text-amber-400 font-mono leading-none tracking-tight">{{
+                    pct_val(grand_totals.short_percent) }}</span>
             </div>
 
-            <!-- 8. Short Wt -->
+            <!-- 8. Short Wt (kg) -->
             <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50/70 dark:bg-red-950/25 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider truncate mb-1 leading-none">Short Wt</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-red-600 dark:text-red-400 font-mono leading-none tracking-tight">{{ weight_val(grand_totals.short_wt) }}</span>
+                <span class="text-[9.5px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider truncate mb-1 leading-none">Short Wt (kg)</span>
+                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-red-600 dark:text-red-400 font-mono leading-none tracking-tight">{{ kg_val(grand_totals.short_wt) }}</span>
             </div>
 
-            <!-- 9. Excess Wt -->
+            <!-- 9. Excess Wt (kg) -->
             <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/25 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider truncate mb-1 leading-none">Excess Wt</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-emerald-700 dark:text-emerald-400 font-mono leading-none tracking-tight">{{ weight_val(grand_totals.excess_wt) }}</span>
+                <span class="text-[9.5px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider truncate mb-1 leading-none">Excess Wt (kg)</span>
+                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-emerald-700 dark:text-emerald-400 font-mono leading-none tracking-tight">{{ kg_val(grand_totals.excess_wt) }}</span>
             </div>
 
-            <!-- 10. Net Short/Excess -->
+            <!-- 10. Net Short/Excess (kg) -->
             {% set net_tot = grand_totals.net_short_excess|float %}
             <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border {% if net_tot < 0 %}border-red-200 dark:border-red-900/50 bg-red-50/70 dark:bg-red-950/25{% else %}border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/25{% endif %} shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold {% if net_tot < 0 %}text-red-600 dark:text-red-400{% else %}text-emerald-700 dark:text-emerald-400{% endif %} uppercase tracking-wider truncate mb-1 leading-none">Net Short/Exc</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold {% if net_tot < 0 %}text-red-600 dark:text-red-400{% else %}text-emerald-700 dark:text-emerald-400{% endif %} font-mono leading-none tracking-tight">{{ weight_val(grand_totals.net_short_excess) }}</span>
+                <span class="text-[9.5px] font-bold {% if net_tot < 0 %}text-red-600 dark:text-red-400{% else %}text-emerald-700 dark:text-emerald-400{% endif %} uppercase tracking-wider truncate mb-1 leading-none">Net Short/Exc (kg)</span>
+                <span class="text-[13px] sm:text-[13.5px] font-extrabold {% if net_tot < 0 %}text-red-600 dark:text-red-400{% else %}text-emerald-700 dark:text-emerald-400{% endif %} font-mono leading-none tracking-tight">{{ kg_val(grand_totals.net_short_excess) }}</span>
             </div>
 
-            <!-- 11. Ordered Wt -->
+            <!-- 11. Ordered Wt (kg) -->
             <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50/70 dark:bg-blue-950/25 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider truncate mb-1 leading-none">Ordered Wt</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-blue-700 dark:text-blue-400 font-mono leading-none tracking-tight">{{ weight_val(grand_totals.ordered_wt) }}</span>
+                <span class="text-[9.5px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider truncate mb-1 leading-none">Ordered Wt (kg)</span>
+                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-blue-700 dark:text-blue-400 font-mono leading-none tracking-tight">{{ kg_val(grand_totals.ordered_wt) }}</span>
             </div>
         </div>
     </div>
@@ -139,10 +171,11 @@
             <thead class="sticky top-0 z-10 shadow-sm">
                 <tr class="bg-[#fce4ec] dark:bg-pink-900/30 text-gray-800 dark:text-gray-200">
                     <!-- Column 1: Drill Hierarchy -->
-                    <th class="text-left font-bold min-w-[290px]">
+                    <th class="text-left font-bold min-w-[240px]">
                         <div class="flex items-center justify-between gap-1.5">
                             <span>Section &rarr; Make &rarr; Collection &rarr; Type &rarr; Wide Range</span>
-                            <button type="button" id="btn-toggle-all-tree" data-expanded="false" onclick="toggleAllSectionTree(this, event)"
+                            <button type="button" id="btn-toggle-all-tree" data-expanded="false"
+                                onclick="toggleAllSectionTree(this, event)"
                                 class="inline-flex items-center justify-center size-5 rounded text-primary hover:bg-white/60 dark:hover:bg-gray-800 transition-colors"
                                 title="Expand/Collapse all levels">
                                 <span class="material-symbols-outlined text-[16px]">unfold_more</span>
@@ -151,63 +184,72 @@
                     </th>
 
                     <!-- Column 2: Provision pieces -->
-                    <th class="text-right font-bold min-w-[75px]">Prov Pcs</th>
+                    <th class="text-right font-bold min-w-[65px]">Prov Pcs</th>
 
                     <!-- Column 3: Provision gross wt -->
-                    <th class="text-right font-bold min-w-[95px]">Prov Gr.Wt</th>
+                    <th class="text-right font-bold min-w-[82px]">Prov Gr.Wt</th>
 
                     <!-- Column 4: In shop wt -->
-                    <th class="text-right font-bold min-w-[95px]">In Shop Wt</th>
+                    <th class="text-right font-bold min-w-[82px]">In Shop Wt</th>
 
                     <!-- Column 5: Intransit wt -->
-                    <th class="text-right font-bold min-w-[85px]">Intransit Wt</th>
+                    <th class="text-right font-bold min-w-[75px]">Intransit Wt</th>
 
                     <!-- Column 6: Short pieces -->
-                    <th class="text-right font-bold min-w-[75px] text-red-600 dark:text-red-400">Short Pcs</th>
+                    <th class="text-right font-bold min-w-[65px] text-red-600 dark:text-red-400">Short Pcs</th>
 
                     <!-- Column 7: Excess pieces -->
-                    <th class="text-right font-bold min-w-[75px] text-green-700 dark:text-green-400">Excess Pcs</th>
+                    <th class="text-right font-bold min-w-[65px] text-green-700 dark:text-green-400">Excess Pcs</th>
 
                     <!-- Column 8: Short percentage -->
-                    <th class="text-right font-bold min-w-[60px]">Short %</th>
+                    <th class="text-right font-bold min-w-[52px]">Short %</th>
 
                     <!-- Column 9: Short wt -->
-                    <th class="text-right font-bold min-w-[95px] text-red-600 dark:text-red-400">Short Wt</th>
+                    <th class="text-right font-bold min-w-[82px] text-red-600 dark:text-red-400">Short Wt</th>
 
                     <!-- Column 10: Excess wt -->
-                    <th class="text-right font-bold min-w-[95px] text-green-700 dark:text-green-400">Excess Wt</th>
+                    <th class="text-right font-bold min-w-[82px] text-green-700 dark:text-green-400">Excess Wt</th>
 
                     <!-- Column 11: Net short/excess -->
-                    <th class="text-right font-bold min-w-[100px]" title="Excess Wt minus Short Wt (negative is Net Short)">Net Short / Excess</th>
+                    <th class="text-right font-bold min-w-[88px]"
+                        title="Excess Wt minus Short Wt (negative is Net Short)">Net Short / Excess</th>
 
                     <!-- Column 12: Ordered wt -->
-                    <th class="text-right font-bold min-w-[95px] text-primary dark:text-blue-400">Ordered Wt</th>
+                    <th class="text-right font-bold min-w-[82px] text-primary dark:text-blue-400">Ordered Wt</th>
                 </tr>
             </thead>
             <tbody>
                 {% for row in rows %}
                 {% set level = row.level_id %}
-                {% set badge_color = 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' if level == 1 else ('bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' if level == 2 else ('bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300' if level == 3 else ('bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300' if level == 4 else 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'))) %}
-                
-                <tr data-tree-row
-                    data-node-id="{{ row.node_id }}"
-                    data-parent-id="{{ row.parent_id }}"
+                {% set badge_color = 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' if level == 1
+                else ('bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' if level == 2 else
+                ('bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300' if level == 3 else
+                ('bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300' if level == 4 else 'bg-emerald-100
+                text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'))) %}
+
+                <tr data-tree-row data-node-id="{{ row.node_id }}" data-parent-id="{{ row.parent_id }}"
                     data-level="{{ level }}"
                     class="{% if level > 1 %}hidden {% endif %}{% if level == 1 %}bg-slate-100/90 font-bold dark:bg-slate-800/90 border-t border-slate-300 dark:border-slate-700{% elif level == 2 %}bg-sky-50/40 font-semibold dark:bg-sky-950/20{% elif level == 3 %}bg-slate-50/60 font-medium dark:bg-slate-800/40{% else %}bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300{% endif %} hover:bg-blue-50/70 dark:hover:bg-blue-900/25 transition-colors">
-                    
+
                     <!-- 1. Drill Tree Cell with Indent -->
                     <td>
-                        <div class="flex items-center min-h-[26px]" style="padding-left: {{ (level - 1) * 0.9 }}rem;">
+                        <div class="flex items-center min-h-[24px]" style="padding-left: {{ (level - 1) * 0.85 }}rem;">
                             {% if not row.is_leaf %}
-                            <button type="button" data-tree-toggle onclick="toggleSectionTreeNode(this, event)" class="mr-1 inline-flex size-5 shrink-0 items-center justify-center rounded text-gray-500 hover:text-primary hover:bg-blue-100/60 transition-colors" aria-label="Toggle {{ row.hierarchy_label }}">
+                            <button type="button" data-tree-toggle onclick="toggleSectionTreeNode(this, event)"
+                                class="mr-1 inline-flex size-5 shrink-0 items-center justify-center rounded text-gray-500 hover:text-primary hover:bg-blue-100/60 transition-colors"
+                                aria-label="Toggle {{ row.hierarchy_label }}">
                                 <span class="material-symbols-outlined text-[15px]">arrow_right</span>
                             </button>
                             {% else %}
-                            <span class="material-symbols-outlined mr-1.5 ml-1 text-[8px] text-gray-300 dark:text-gray-600">fiber_manual_record</span>
+                            <span
+                                class="material-symbols-outlined mr-1.5 ml-1 text-[8px] text-gray-300 dark:text-gray-600">fiber_manual_record</span>
                             {% endif %}
 
-                            <span class="mr-1.5 shrink-0 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase {{ badge_color }} leading-none">{{ row.hierarchy_level_name }}</span>
-                            <span class="whitespace-nowrap font-semibold select-all text-gray-800 dark:text-gray-100" title="{{ row.hierarchy_label }}">{{ row.hierarchy_label }}</span>
+                            <span
+                                class="mr-1.5 shrink-0 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase {{ badge_color }} leading-none">{{
+                                row.hierarchy_level_name }}</span>
+                            <span class="whitespace-nowrap font-semibold select-all text-gray-800 dark:text-gray-100"
+                                title="{{ row.hierarchy_label }}">{{ row.hierarchy_label }}</span>
                         </div>
                     </td>
 
@@ -224,40 +266,53 @@
                     <td>{{ weight_val(row.in_transit_wt) }}</td>
 
                     <!-- 6. Short Pcs -->
-                    <td class="text-red-600 dark:text-red-400{% if (row.short_pcs|float) > 0 %} font-bold{% endif %}">{{ pcs_val(row.short_pcs) }}</td>
+                    <td class="text-red-600 dark:text-red-400{% if (row.short_pcs|float) > 0 %} font-bold{% endif %}">{{
+                        pcs_val(row.short_pcs) }}</td>
 
                     <!-- 7. Excess Pcs -->
-                    <td class="text-green-700 dark:text-green-400{% if (row.excess_pcs|float) > 0 %} font-bold{% endif %}">{{ pcs_val(row.excess_pcs) }}</td>
+                    <td
+                        class="text-green-700 dark:text-green-400{% if (row.excess_pcs|float) > 0 %} font-bold{% endif %}">
+                        {{ pcs_val(row.excess_pcs) }}</td>
 
                     <!-- 8. Short % -->
                     {% set pct = [0, [row.short_percent|float, 100]|min]|max %}
                     <td class="short-percent-bar relative" style="--short-fill: {{ pct }}%;">
-                        <span class="relative z-10{% if (row.short_percent|float) > 0 %} text-red-600 dark:text-red-400 font-semibold{% endif %}">{{ pct_val(row.short_percent) }}</span>
+                        <span
+                            class="relative z-10{% if (row.short_percent|float) > 0 %} text-red-600 dark:text-red-400 font-semibold{% endif %}">{{
+                            pct_val(row.short_percent) }}</span>
                     </td>
 
                     <!-- 9. Short Wt -->
-                    <td class="text-red-600 dark:text-red-400{% if (row.short_wt|float) > 0 %} font-semibold{% endif %}">{{ weight_val(row.short_wt) }}</td>
+                    <td
+                        class="text-red-600 dark:text-red-400{% if (row.short_wt|float) > 0 %} font-semibold{% endif %}">
+                        {{ weight_val(row.short_wt) }}</td>
 
                     <!-- 10. Excess Wt -->
-                    <td class="text-green-700 dark:text-green-400{% if (row.excess_wt|float) > 0 %} font-semibold{% endif %}">{{ weight_val(row.excess_wt) }}</td>
+                    <td
+                        class="text-green-700 dark:text-green-400{% if (row.excess_wt|float) > 0 %} font-semibold{% endif %}">
+                        {{ weight_val(row.excess_wt) }}</td>
 
                     <!-- 11. Net Short/Excess -->
                     {% set net = row.net_short_excess|float %}
-                    <td class="font-semibold{% if net < 0 %} text-red-600 dark:text-red-400{% elif net > 0 %} text-green-700 dark:text-green-400{% endif %}">{{ weight_val(net) }}</td>
+                    <td
+                        class="font-semibold{% if net < 0 %} text-red-600 dark:text-red-400{% elif net > 0 %} text-green-700 dark:text-green-400{% endif %}">
+                        {{ weight_val(net) }}</td>
 
                     <!-- 12. Ordered Wt -->
                     <td class="text-primary dark:text-blue-400">{{ weight_val(row.ordered_wt) }}</td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="12" class="p-8 text-center text-gray-400 italic">No provision and stock data found matching the selected filters.</td>
+                    <td colspan="12" class="p-8 text-center text-gray-400 italic">No provision and stock data found
+                        matching the selected filters.</td>
                 </tr>
                 {% endfor %}
             </tbody>
 
             {% if grand_totals %}
             <tfoot>
-                <tr class="bg-[#d6d6d6] dark:bg-gray-700 font-bold text-gray-900 dark:text-white border-t-2 border-gray-400">
+                <tr
+                    class="bg-[#d6d6d6] dark:bg-gray-700 font-bold text-gray-900 dark:text-white border-t-2 border-gray-400">
                     <td class="text-left uppercase tracking-wider">Grand Total</td>
                     <td>{{ pcs_val(grand_totals.prov_pcs) }}</td>
                     <td>{{ weight_val(grand_totals.prov_gr_wt) }}</td>
@@ -269,7 +324,8 @@
                     <td class="text-red-600 dark:text-red-400">{{ weight_val(grand_totals.short_wt) }}</td>
                     <td class="text-green-700 dark:text-green-400">{{ weight_val(grand_totals.excess_wt) }}</td>
                     {% set gt_net = grand_totals.net_short_excess|float %}
-                    <td class="{% if gt_net < 0 %}text-red-600 dark:text-red-400{% elif gt_net > 0 %}text-green-700 dark:text-green-400{% endif %}">
+                    <td
+                        class="{% if gt_net < 0 %}text-red-600 dark:text-red-400{% elif gt_net > 0 %}text-green-700 dark:text-green-400{% endif %}">
                         {{ weight_val(gt_net) }}
                     </td>
                     <td class="text-primary dark:text-blue-400">{{ weight_val(grand_totals.ordered_wt) }}</td>
