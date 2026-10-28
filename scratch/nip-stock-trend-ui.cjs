@@ -74,6 +74,9 @@ const fields=['location','division','group_name','purity','classification','sub_
  await page.locator('#nip-order').selectOption('asc');
  await page.waitForResponse(response=>response.url().includes('/data?')&&new URL(response.url()).searchParams.get('order')==='asc');
  assert.equal(requests.at(-1).searchParams.get('limiter'),'top');
+ await page.locator('#nip-rank-by').selectOption('excess');
+ await page.waitForResponse(response=>response.url().includes('/data?')&&new URL(response.url()).searchParams.get('rank_by')==='excess');
+ assert.equal(requests.at(-1).searchParams.get('limiter'),'top');
  const pixels=await page.evaluate(()=>{const c=Chart.getChart(document.getElementById('nip-chart'));return c.ctx.getImageData(0,0,c.width,c.height).data.filter((v,i)=>i%4===3&&v>0).length;});assert(pixels>1000);
  await page.screenshot({path:'/tmp/nip-stock-trend-desktop.png'});
  await page.locator('#nip-expand').click();await page.waitForFunction(()=>!!document.fullscreenElement);

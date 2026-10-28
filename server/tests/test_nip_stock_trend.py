@@ -88,8 +88,31 @@ class StockTrendDataTests(unittest.TestCase):
             session['roles']=['ADMIN']
             for args in [{'metric':'weight'},{'group_by':'uid'},{'interval':'hourly'},
                          {'from_date':'2026-10-02','to_date':'2026-10-01'},{'is_excess':'invalid'},
-                         {'limiter':'invalid'},{'order':'invalid'}]:
+                         {'limiter':'invalid'},{'order':'invalid'},{'rank_by':'invalid'}]:
                 with self.assertRaises(ValueError):trend_data(MultiDict(args))
+
+    def test_rank_by_stock_type(self):
+        S.query.delete()
+        for i in range(1,26):
+            nip=(26-i)*100
+            excess=(13-abs(13-i))*100
+            for kind,weight in [('base',i*10000-nip-excess),('nip',nip),('excess',excess)]:
+                db.session.add(S(uid=f'{i}-{kind}',date=date(2026,10,2),division=f'Group {i:02}',
+                                 gross_wt=weight,pieces=weight,is_nip=kind=='nip',is_excess=kind=='excess'))
+        db.session.commit()
+        with self.app.test_request_context('/'):
+            session['roles']=['ADMIN']
+            for kind,first in [('total','Group 25'),('nip','Group 01'),('excess','Group 13')]:
+                result=trend_data(MultiDict({'limiter':'top','rank_by':kind}))
+                self.assertEqual(result['series'][0]['group'],first)
+                self.assertEqual(result['rank_by'],kind)
+                self.assertEqual(result['displayed_groups'],12)
+                self.assertEqual(result['stats']['closing'],3250)
+            for limiter,first in [('middle','Group 07'),('bottom','Group 14')]:
+                result=trend_data(MultiDict({'limiter':limiter,'rank_by':'nip'}))
+                self.assertEqual(result['series'][0]['group'],first)
+            ascending=trend_data(MultiDict({'limiter':'top','rank_by':'nip','order':'asc'}))
+            self.assertEqual(ascending['series'][0]['group'],'Group 12')
 
     def test_group_limiter_and_order_use_latest_total_not_history_sum(self):
         S.query.delete()
@@ -101,17 +124,17 @@ class StockTrendDataTests(unittest.TestCase):
         db.session.commit()
         with self.app.test_request_context('/'):
             session['roles']=['ADMIN']
-            for limiter, expected in [('top',list(range(25,15,-1))),
-                                      ('middle',list(range(18,8,-1))),
-                                      ('bottom',list(range(10,0,-1)))]:
+            for limiter, expected in [('top',list(range(25,13,-1))),
+                                      ('middle',list(range(19,7,-1))),
+                                      ('bottom',list(range(12,0,-1)))]:
                 result=trend_data(MultiDict({'limiter':limiter}))
                 self.assertEqual([s['group'] for s in result['series'][::3]],
                                  [f'Group {i:02}' for i in expected])
-                self.assertEqual(result['displayed_groups'],10)
+                self.assertEqual(result['displayed_groups'],12)
                 self.assertEqual(result['stats']['closing'],325)
-                self.assertEqual(len(result['table_rows']),20)
+                self.assertEqual(len(result['table_rows']),24)
             ascending=trend_data(MultiDict({'limiter':'top','order':'asc'}))
-            self.assertEqual(ascending['series'][0]['group'],'Group 16')
+            self.assertEqual(ascending['series'][0]['group'],'Group 14')
             pieces=trend_data(MultiDict({'limiter':'top','metric':'pieces'}))
             self.assertEqual(pieces['series'][0]['group'],'Group 01')
             all_groups=trend_data(MultiDict({'order':'asc'}))

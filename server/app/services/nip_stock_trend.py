@@ -97,9 +97,10 @@ def prepare_trend(daily, interval):
 def trend_data(args):
     metric, group, interval = args.get('metric', 'gross_wt'), args.get('group_by', 'division'), args.get('interval', 'daily')
     limiter, order = args.get('limiter', 'all'), args.get('order', 'desc')
+    rank_by = args.get('rank_by', 'total')
     if metric not in ('gross_wt', 'pieces') or group not in DIMENSIONS or interval not in INTERVALS:
         raise ValueError('Invalid graph configuration')
-    if limiter not in ('all', 'top', 'middle', 'bottom') or order not in ('asc', 'desc'):
+    if limiter not in ('all', 'top', 'middle', 'bottom') or order not in ('asc', 'desc') or rank_by not in ('total', 'nip', 'excess'):
         raise ValueError('Invalid data limiter or order')
     query = filter_query(scoped_query(), args)
     # Missing measures are unknown, not zero. Never silently omit a null measure.
@@ -117,22 +118,23 @@ def trend_data(args):
                 for r in rows], interval) for i, (kind, _) in enumerate(kinds)}
     data = dict(prepared['total'])
     totals = prepared['total']['series']
-    ranked = sorted((i for i, series in enumerate(totals) if series['values'] and series['values'][-1] is not None),
-                    key=lambda i: -totals[i]['values'][-1])
+    ranking = prepared[rank_by]['series']
+    ranked = sorted((i for i, series in enumerate(ranking) if series['values'] and series['values'][-1] is not None),
+                    key=lambda i: -ranking[i]['values'][-1])
     if limiter == 'top':
-        selected = ranked[:10]
+        selected = ranked[:12]
     elif limiter == 'bottom':
-        selected = ranked[-10:]
+        selected = ranked[-12:]
     elif limiter == 'middle':
-        start = max(0, (len(ranked) - 10) // 2)
-        selected = ranked[start:start + 10]
+        start = max(0, (len(ranked) - 12) // 2)
+        selected = ranked[start:start + 12]
     else:
         selected = list(range(len(totals)))
     # Stable alphabetical ties and unknown closing balances last in either direction.
     selected.sort(key=lambda i: totals[i]['name'])
-    known = [i for i in selected if totals[i]['values'][-1] is not None]
-    unknown = [i for i in selected if totals[i]['values'][-1] is None]
-    selected = sorted(known, key=lambda i: totals[i]['values'][-1], reverse=order == 'desc') + unknown
+    known = [i for i in selected if ranking[i]['values'][-1] is not None]
+    unknown = [i for i in selected if ranking[i]['values'][-1] is None]
+    selected = sorted(known, key=lambda i: ranking[i]['values'][-1], reverse=order == 'desc') + unknown
     # Headline statistics use total stock only; NIP and Excess are overlapping subsets.
     data['series'] = [{**prepared[kind]['series'][i], 'group': series['name'], 'kind': kind,
                        'name': series['name'] + ' - ' + label}
@@ -143,6 +145,6 @@ def trend_data(args):
                           for i in selected for series in [totals[i]]]
     data.update(metric=metric, group_by=group, interval=interval,
                 unit='kg' if metric == 'gross_wt' else 'Nos.',
-                missing_measure_rows=sum(r[3] for r in rows), limiter=limiter, order=order,
+                missing_measure_rows=sum(r[3] for r in rows), limiter=limiter, order=order, rank_by=rank_by,
                 displayed_groups=len(selected), total_groups=len(totals))
     return data

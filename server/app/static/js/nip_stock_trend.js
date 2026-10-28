@@ -19,7 +19,7 @@
     }
     function requestParams() {
         const params = new URLSearchParams(applied);
-        for (const [key,id] of [['metric','nip-metric'],['group_by','nip-group'],['interval','nip-interval'],['limiter','nip-limiter'],['order','nip-order']]) params.set(key, el(id).value);
+        for (const [key,id] of [['metric','nip-metric'],['group_by','nip-group'],['interval','nip-interval'],['limiter','nip-limiter'],['order','nip-order'],['rank_by','nip-rank-by']]) params.set(key, el(id).value);
         return params;
     }
     function showViews() {
@@ -203,7 +203,7 @@
         const clear=()=>{Object.values(controls).forEach(control=>control.reset());el('nip-from').value='';el('nip-to').value='';
             document.querySelectorAll('[data-nip-boolean]').forEach(node=>node.value='');applied=new URLSearchParams();load();};
         el('nip-clear').onclick=clear;el('nip-reset').onclick=clear;el('nip-refresh').onclick=load;
-        ['nip-interval','nip-metric','nip-group','nip-limiter','nip-order'].forEach(id=>el(id).onchange=load);el('nip-average').onchange=draw;
+        ['nip-interval','nip-metric','nip-group','nip-limiter','nip-order','nip-rank-by'].forEach(id=>el(id).onchange=load);el('nip-average').onchange=draw;
         document.querySelectorAll('[data-view]').forEach(node=>node.onclick=()=>{mode=node.dataset.view;showViews();});
         el('nip-filter-toggle').onclick=()=>{const node=el('nip-sidebar');node.hidden=!node.hidden;node.style.display=node.hidden?'none':'';
             el('nip-filter-toggle').setAttribute('aria-expanded',String(!node.hidden));chart?.resize();};
