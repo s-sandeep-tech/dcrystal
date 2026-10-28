@@ -32,6 +32,8 @@ const fields=['location','division','group_name','purity','classification','sub_
  await page.locator('[data-view="combined"]').click();
  await page.locator('#nip-average').check();
  assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.length),6);
+ assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).config.type),'bar');
+ assert.deepEqual(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.map(d=>d.type)),['bar','line','bar','line','bar','line']);
  await page.locator('#nip-metric').selectOption('pieces');await page.waitForFunction(()=>document.getElementById('nip-stat-opening').textContent==='60');
  await page.locator('#nip-interval').selectOption('monthly');
  await page.locator('#nip-from').fill('2026-10-01');await page.locator('#nip-to').fill('2026-10-21');
