@@ -96,8 +96,11 @@ def prepare_trend(daily, interval):
 
 def trend_data(args):
     metric, group, interval = args.get('metric', 'gross_wt'), args.get('group_by', 'division'), args.get('interval', 'daily')
+    limiter, order = args.get('limiter', 'all'), args.get('order', 'desc')
     if metric not in ('gross_wt', 'pieces') or group not in DIMENSIONS or interval not in INTERVALS:
         raise ValueError('Invalid graph configuration')
+    if limiter not in ('all', 'top', 'middle', 'bottom') or order not in ('asc', 'desc'):
+        raise ValueError('Invalid data limiter or order')
     query = filter_query(scoped_query(), args)
     # Missing measures are unknown, not zero. Never silently omit a null measure.
     measure = getattr(S, metric)
@@ -113,15 +116,33 @@ def trend_data(args):
     prepared = {kind: prepare_trend([(r[0], r[1], None if r[3 + i * 2] else r[2 + i * 2])
                 for r in rows], interval) for i, (kind, _) in enumerate(kinds)}
     data = dict(prepared['total'])
+    totals = prepared['total']['series']
+    ranked = sorted((i for i, series in enumerate(totals) if series['values'] and series['values'][-1] is not None),
+                    key=lambda i: -totals[i]['values'][-1])
+    if limiter == 'top':
+        selected = ranked[:10]
+    elif limiter == 'bottom':
+        selected = ranked[-10:]
+    elif limiter == 'middle':
+        start = max(0, (len(ranked) - 10) // 2)
+        selected = ranked[start:start + 10]
+    else:
+        selected = list(range(len(totals)))
+    # Stable alphabetical ties and unknown closing balances last in either direction.
+    selected.sort(key=lambda i: totals[i]['name'])
+    known = [i for i in selected if totals[i]['values'][-1] is not None]
+    unknown = [i for i in selected if totals[i]['values'][-1] is None]
+    selected = sorted(known, key=lambda i: totals[i]['values'][-1], reverse=order == 'desc') + unknown
     # Headline statistics use total stock only; NIP and Excess are overlapping subsets.
     data['series'] = [{**prepared[kind]['series'][i], 'group': series['name'], 'kind': kind,
                        'name': series['name'] + ' - ' + label}
-                      for i, series in enumerate(prepared['total']['series']) for kind, label in kinds]
+                      for i in selected for series in [totals[i]] for kind, label in kinds]
     data['table_rows'] = [dict(period=period, balance_date=data['balance_dates'][p], group=series['name'],
                               **{kind: prepared[kind]['series'][i]['values'][p] for kind, _ in kinds})
                           for p, period in enumerate(data['periods'])
-                          for i, series in enumerate(prepared['total']['series'])]
+                          for i in selected for series in [totals[i]]]
     data.update(metric=metric, group_by=group, interval=interval,
                 unit='kg' if metric == 'gross_wt' else 'Nos.',
-                missing_measure_rows=sum(r[3] for r in rows))
+                missing_measure_rows=sum(r[3] for r in rows), limiter=limiter, order=order,
+                displayed_groups=len(selected), total_groups=len(totals))
     return data

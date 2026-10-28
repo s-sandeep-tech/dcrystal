@@ -69,6 +69,11 @@ const fields=['location','division','group_name','purity','classification','sub_
  await page.locator('#nip-apply').click();await page.waitForFunction(()=>document.getElementById('nip-status').textContent.includes('Last reporting date'));
  assert.equal(requests.at(-1).searchParams.get('from_date'),'2026-10-01');
  assert.equal(requests.at(-1).searchParams.get('metric'),'pieces');
+ await page.locator('#nip-limiter').selectOption('top');
+ await page.waitForResponse(response=>response.url().includes('/data?')&&new URL(response.url()).searchParams.get('limiter')==='top');
+ await page.locator('#nip-order').selectOption('asc');
+ await page.waitForResponse(response=>response.url().includes('/data?')&&new URL(response.url()).searchParams.get('order')==='asc');
+ assert.equal(requests.at(-1).searchParams.get('limiter'),'top');
  const pixels=await page.evaluate(()=>{const c=Chart.getChart(document.getElementById('nip-chart'));return c.ctx.getImageData(0,0,c.width,c.height).data.filter((v,i)=>i%4===3&&v>0).length;});assert(pixels>1000);
  await page.screenshot({path:'/tmp/nip-stock-trend-desktop.png'});
  await page.locator('#nip-expand').click();await page.waitForFunction(()=>!!document.fullscreenElement);
@@ -94,6 +99,12 @@ const fields=['location','division','group_name','purity','classification','sub_
  await page.waitForTimeout(100);
  const tooltipGroups=await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).tooltip.dataPoints.map(point=>point.dataset.comparisonGroup));
  assert.deepEqual(tooltipGroups,['920.00','920.00','920.00']);
+ const tooltipText=await page.evaluate(()=>{
+  const tooltip=Chart.getChart(document.getElementById('nip-chart')).tooltip;
+  return {heading:tooltip.title[0],rows:tooltip.body.flatMap(row=>row.lines)};
+ });
+ assert.equal(tooltipText.heading,'920');
+ assert.deepEqual(tooltipText.rows.map(row=>row.split(':')[0]),['Total Stock','NIP Stock','Excess Stock']);
  assert.deepEqual(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).legend.legendItems.map(item=>item.text)),['Total Stock','NIP Stock','Excess Stock']);
  const legendPoint=await page.evaluate(()=>{
   const c=Chart.getChart(document.getElementById('nip-chart')),box=c.legend.legendHitBoxes[1],rect=c.canvas.getBoundingClientRect();

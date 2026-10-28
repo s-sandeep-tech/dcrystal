@@ -19,7 +19,7 @@
     }
     function requestParams() {
         const params = new URLSearchParams(applied);
-        for (const [key,id] of [['metric','nip-metric'],['group_by','nip-group'],['interval','nip-interval']]) params.set(key, el(id).value);
+        for (const [key,id] of [['metric','nip-metric'],['group_by','nip-group'],['interval','nip-interval'],['limiter','nip-limiter'],['order','nip-order']]) params.set(key, el(id).value);
         return params;
     }
     function showViews() {
@@ -140,8 +140,12 @@
                     if(dataset.stockKind===item.stockKind)current.setDatasetVisibility(index,visible);
                 });
                 current.update();
-            }},tooltip:{filter:item=>!item.dataset.groupSpacer,callbacks:{title:items => `${items[0].label} (balance ${data.balance_dates[items[0].dataIndex]})`,
-                label:context=>`${context.dataset.label}: ${number(context.raw)} ${data.unit}`}}}}});
+            }},tooltip:{filter:item=>!item.dataset.groupSpacer,callbacks:{title:items => {
+                if(!items.length)return '';
+                const group=items[0].dataset.comparisonGroup;
+                const label=data.group_by==='purity'&&Number.isFinite(Number(group))?String(Number(group)):String(group);
+                return [label,`${items[0].label} (balance ${data.balance_dates[items[0].dataIndex]})`];
+            },label:context=>`${({total:'Total Stock',nip:'NIP Stock',excess:'Excess Stock'})[context.dataset.stockKind]}: ${number(context.raw)} ${data.unit}`}}}}});
         } else el('nip-status').textContent += ' Chart library unavailable; table values remain available.';
     }
     function renderTable() {
@@ -177,6 +181,7 @@
         el('nip-status').textContent = data.periods.length
             ? `${data.first_date} to ${data.last_date} · ${data.observed_days} observed days · Total / NIP / Excess · ${data.interval === 'daily' ? 'Daily balances' : 'Last reporting date per period'}${data.missing_measure_rows ? ' · Missing measurements: '+data.missing_measure_rows : ''}`
             : 'No stock balances match these filters. Run the sync in Settings or change the selected dates.';
+        if(data.total_groups!=null)el('nip-status').textContent+=` · ${data.displayed_groups} of ${data.total_groups} groups · Summary totals include all filtered groups`;
         draw(); showViews();
     }
     async function load() {
@@ -198,7 +203,7 @@
         const clear=()=>{Object.values(controls).forEach(control=>control.reset());el('nip-from').value='';el('nip-to').value='';
             document.querySelectorAll('[data-nip-boolean]').forEach(node=>node.value='');applied=new URLSearchParams();load();};
         el('nip-clear').onclick=clear;el('nip-reset').onclick=clear;el('nip-refresh').onclick=load;
-        ['nip-interval','nip-metric','nip-group'].forEach(id=>el(id).onchange=load);el('nip-average').onchange=draw;
+        ['nip-interval','nip-metric','nip-group','nip-limiter','nip-order'].forEach(id=>el(id).onchange=load);el('nip-average').onchange=draw;
         document.querySelectorAll('[data-view]').forEach(node=>node.onclick=()=>{mode=node.dataset.view;showViews();});
         el('nip-filter-toggle').onclick=()=>{const node=el('nip-sidebar');node.hidden=!node.hidden;node.style.display=node.hidden?'none':'';
             el('nip-filter-toggle').setAttribute('aria-expanded',String(!node.hidden));chart?.resize();};
