@@ -332,6 +332,8 @@ def process_export_queue():
                     _handle_export_location_physical_stock_status(task_data)
                 elif task_type == 'export_location_provision_stock_analysis':
                     _handle_export_location_provision_stock_analysis(task_data)
+                elif task_type == 'export_section_wise_provision_stock_summary':
+                    _handle_export_section_wise_provision_stock_summary(task_data)
                 elif task_type == 'export_location_wise_old_gold':
                     _handle_export_location_wise_old_gold(task_data)
                 else:
@@ -776,6 +778,53 @@ def _handle_export_location_provision_stock_analysis(task_data: dict):
         logger.info(f'Provision stock analysis export ready: {filename}')
     except Exception as error:
         logger.exception(f'Provision stock analysis export failed: {error}')
+
+
+def _handle_export_section_wise_provision_stock_summary(task_data: dict):
+    """Generate the independent Section-wise Provision and Stock Summary export."""
+    from datetime import datetime
+    from app.models import Notification
+    from app.extensions import db, socketio
+    from app.services.section_wise_provision_stock_summary_export import (
+        SectionWiseProvisionStockSummaryExport,
+    )
+
+    try:
+        filename = SectionWiseProvisionStockSummaryExport.generate(
+            task_data.get('filters', {})
+        )
+        download_url = f'/exports/download/{filename}'
+        notification = Notification(
+            title='Export Ready — Section-wise Provision and Stock Summary',
+            message='Your Section-wise Provision and Stock Summary Excel file is ready.',
+            notification_type='success',
+            icon='download',
+            priority='high',
+            user_id=task_data.get('user_id'),
+            created_at=datetime.utcnow(),
+            is_read=False,
+            action_url=download_url,
+        )
+        db.session.add(notification)
+        db.session.commit()
+        payload = {
+            'id': notification.id,
+            'title': notification.title,
+            'message': notification.message,
+            'type': notification.notification_type,
+            'icon': notification.icon,
+            'priority': notification.priority,
+            'time': notification.get_time_ago(),
+            'related_order_id': None,
+            'action_url': download_url,
+            'socket_id': task_data.get('socket_id'),
+            'user_id': task_data.get('user_id'),
+        }
+        socketio.emit('new_notification', payload)
+        redis_client.publish('global_notifications', json.dumps(payload))
+        logger.info(f'Section-wise provision stock summary export ready: {filename}')
+    except Exception as error:
+        logger.exception(f'Section-wise provision stock summary export failed: {error}')
 
 
 # ─────────────────────────────────────────────────────────────────────────────
