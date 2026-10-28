@@ -1,0 +1,134 @@
+import unittest
+from datetime import date
+from io import BytesIO
+from unittest.mock import patch
+from unittest.mock import MagicMock
+from types import SimpleNamespace
+from flask import Flask, session
+from flask_jwt_extended import JWTManager, create_access_token
+from werkzeug.datastructures import MultiDict
+from openpyxl import load_workbook
+from app.extensions import db
+from app.models.nip_stock_trend import NIPStockTrendSnapshot as S
+from app.models.snapshots import BranchAuthoritySnapshot
+from app.services.nip_stock_trend import prepare_trend, period_start, trend_data, scoped_query
+from app.dashboard.routes.nip_stock_trend import nip_stock_trend_data, export_nip_stock_trend
+
+
+class StockTrendTests(unittest.TestCase):
+    def test_period_closing_not_sum_and_synchronized_dates(self):
+        rows=[(date(2026,10,1),'Gold',100),(date(2026,10,2),'Gold',150),
+              (date(2026,10,1),'Silver',20)]
+        data=prepare_trend(rows,'monthly')
+        self.assertEqual(data['series'][0]['values'],[150])
+        self.assertEqual(data['series'][1]['values'],[None])
+        self.assertEqual(data['balance_dates'],['2026-10-02'])
+        self.assertEqual(data['stats']['opening'],120)
+        self.assertEqual(data['stats']['closing'],150)
+        self.assertEqual(data['stats']['average'],135)
+
+    def test_boundaries(self):
+        day=date(2026,10,28)
+        self.assertEqual(period_start(day,'weekly'),date(2026,10,26))
+        self.assertEqual(period_start(day,'quarterly'),date(2026,10,1))
+        self.assertEqual(period_start(day,'yearly'),date(2026,1,1))
+        self.assertEqual(period_start(day,'monthly'),date(2026,10,1))
+
+    def test_empty_zero_and_missing_measure(self):
+        self.assertIsNone(prepare_trend([],'daily')['stats']['opening'])
+        data=prepare_trend([(date(2026,1,1),'Gold',0),(date(2026,1,2),'Gold',10)],'daily')
+        self.assertIsNone(data['stats']['change_pct'])
+        data=prepare_trend([(date(2026,1,1),'Gold',None)],'daily')
+        self.assertIsNone(data['stats']['opening'])
+
+
+class StockTrendDataTests(unittest.TestCase):
+    def setUp(self):
+        self.app=Flask(__name__)
+        self.app.config.update(TESTING=True,SECRET_KEY='test-secret-at-least-32-characters',
+            JWT_SECRET_KEY='test-jwt-secret-at-least-32-characters',SQLALCHEMY_DATABASE_URI='sqlite:///:memory:')
+        db.init_app(self.app);JWTManager(self.app)
+        self.ctx=self.app.app_context();self.ctx.push()
+        S.__table__.create(db.engine);BranchAuthoritySnapshot.__table__.create(db.engine)
+        self.app.add_url_rule('/api/data',view_func=nip_stock_trend_data.__wrapped__)
+        self.app.add_url_rule('/api/export',view_func=export_nip_stock_trend.__wrapped__)
+        for i,(day,branch,weight,pieces,nip) in enumerate([
+            (1,20,1000,2,True),(2,20,2000,3,True),(2,2,5000,4,True),(2,20,9999,20,False)
+        ],1):
+            db.session.add(S(id=i,uid=str(i),date=date(2026,10,day),branch_id=branch,
+                location='ERNAKULAM' if branch==20 else 'THRISSUR ROUND',division='Gold',
+                gross_wt=weight,pieces=pieces,is_nip=nip,is_excess=branch==20))
+        db.session.add(BranchAuthoritySnapshot(branch_id=20,emp_code=1235));db.session.commit()
+
+    def tearDown(self):
+        db.session.remove();self.ctx.pop()
+
+    def test_metric_conversion_and_location_multi_select(self):
+        with self.app.test_request_context('/?location=ERNAKULAM'):
+            session['roles']=['ADMIN']
+            data=trend_data(MultiDict([('location','ERNAKULAM')]))
+            self.assertEqual(data['series'][0]['values'],[1,2])
+            self.assertEqual(data['stats']['change'],1)
+            all_locations=trend_data(MultiDict([('location','ERNAKULAM'),('location','THRISSUR ROUND'),('metric','pieces')]))
+            self.assertEqual(all_locations['stats']['closing'],7)
+
+    def test_date_boolean_and_scope(self):
+        with self.app.test_request_context('/'):
+            session['roles']=['SHOWROOM_MANAGER'];session['user_id']='1235'
+            data=trend_data(MultiDict([('from_date','2026-10-02'),('is_excess','true')]))
+            self.assertEqual(data['stats']['closing'],2)
+            session['user_id']='999'
+            self.assertEqual(scoped_query().count(),0)
+
+    def test_invalid_parameters(self):
+        with self.app.test_request_context('/'):
+            session['roles']=['ADMIN']
+            for args in [{'metric':'weight'},{'group_by':'uid'},{'interval':'hourly'},
+                         {'from_date':'2026-10-02','to_date':'2026-10-01'},{'is_excess':'invalid'}]:
+                with self.assertRaises(ValueError):trend_data(MultiDict(args))
+
+    def test_export_numeric_values_and_period_dates(self):
+        token=create_access_token(identity='1')
+        with self.app.test_request_context('/api/export?location=ERNAKULAM&interval=monthly',headers={'Authorization':'Bearer '+token}):
+            session['roles']=['ADMIN']
+            with patch('app.utils.decorators.get_user_permissions',return_value={'report.export'}):
+                response=export_nip_stock_trend.__wrapped__()
+            response.direct_passthrough=False
+            workbook=load_workbook(BytesIO(response.get_data()))
+            self.assertEqual(workbook.active['D2'].value,2)
+            self.assertEqual(workbook.active['D2'].data_type,'n')
+            self.assertEqual(workbook.active['B2'].value.date(),date(2026,10,2))
+            workbook.close()
+
+    def test_sync_retains_older_dates_and_rolls_back_failed_refresh(self):
+        from app.utils.nip_stock_trend_sync import sync_nip_stock_trend_task
+        execute = db.session.execute
+        def execute_with_lock(statement, *args, **kwargs):
+            if str(statement).startswith('SELECT pg_try_advisory_xact_lock'):
+                return SimpleNamespace(scalar=lambda: True)
+            return execute(statement, *args, **kwargs)
+        def connection(fail=False):
+            conn=MagicMock()
+            count, dates, stream=MagicMock(),MagicMock(),MagicMock()
+            count.fetchone.return_value=(2,0,0,3000,3)
+            dates.fetchall.return_value=[(date(2026,10,2),)]
+            records=[{'uid':'new-1','date':date(2026,10,2),'gross_wt':1000,'pieces':1,'is_nip':True},
+                     {'uid':'new-2','date':date(2026,10,2),'gross_wt':2000,'pieces':2,'is_nip':True}]
+            stream.fetchmany.side_effect=[records,RuntimeError('source stream interrupted')] if fail else [records,[]]
+            contexts=[]
+            for cursor in (count,dates,stream):
+                context=MagicMock();context.__enter__.return_value=cursor;contexts.append(context)
+            conn.cursor.side_effect=contexts
+            return conn
+        with patch('app.utils.sync_tasks.emit_sync_update'), patch.object(db.session,'execute',side_effect=execute_with_lock):
+            with patch('app.utils.sync_tasks.get_external_db_connection',return_value=connection()):
+                self.assertEqual(sync_nip_stock_trend_task()['status'],'success')
+            self.assertEqual(S.query.count(),3)
+            self.assertEqual(S.query.filter(S.date==date(2026,10,1)).count(),1)
+            with patch('app.utils.sync_tasks.get_external_db_connection',return_value=connection(True)):
+                self.assertEqual(sync_nip_stock_trend_task()['status'],'error')
+            self.assertEqual(S.query.count(),3)
+            self.assertEqual(S.query.filter_by(uid='new-2').count(),1)
+
+
+if __name__=='__main__':unittest.main()

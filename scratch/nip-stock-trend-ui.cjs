@@ -1,0 +1,51 @@
+const {chromium}=require('/Users/sandeeps/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const {execFileSync}=require('child_process');const assert=require('assert');
+const py=`from app import create_app
+from flask import render_template
+from app.services.nip_stock_trend import DIMENSIONS,FILTER_FIELDS
+a=create_app()
+with a.test_request_context('/nip-stock-trend-analysis'):
+ print(render_template('nip_stock_trend.html',permissions={'ADMIN'},dimensions=DIMENSIONS,filter_fields=FILTER_FIELDS,unread_count=0,sync_time=''))`;
+const raw=execFileSync('docker',['exec','dcrystal-server-1','python','-c',py],{encoding:'utf8'}),html=raw.slice(raw.toLowerCase().indexOf('<!doctype html>'));
+const fields=['location','division','group_name','purity','classification','sub_classification','make','master_collection','collection','section','sub_section','type','gender','wide_range','branch_type','prov_type'];
+(async()=>{const browser=await chromium.launch({headless:true,channel:'chrome'});try{
+ const page=await browser.newPage({viewport:{width:1600,height:1000}}),requests=[],errors=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>localStorage.setItem('access_token','fixture'));
+ await page.route('**/nip-stock-trend-analysis',r=>r.fulfill({contentType:'text/html',body:html}));
+ await page.route('**/api/**',r=>{
+  const url=new URL(r.request().url());
+  if(url.pathname.endsWith('/options'))return r.fulfill({contentType:'application/json',body:JSON.stringify({options:Object.fromEntries(fields.map(k=>[k,k==='location'?['ERNAKULAM','THRISSUR ROUND']:['Gold','Silver']]))})});
+  requests.push(url);
+  const periods=Array.from({length:21},(_,i)=>`2026-10-${String(i+1).padStart(2,'0')}`);
+  const body={periods,balance_dates:periods,series:['Gold','Silver','Platinum'].map((name,i)=>({name,values:periods.map((_,j)=>10+i*10+j)})),
+   metric:url.searchParams.get('metric')||'gross_wt',group_by:url.searchParams.get('group_by')||'division',interval:url.searchParams.get('interval')||'daily',
+   stats:{opening:60,closing:120,change:60,change_pct:100,average:90},first_date:periods[0],last_date:periods.at(-1),observed_days:21};
+  return r.fulfill({contentType:'application/json',body:JSON.stringify(body)});
+ });
+ await page.goto('http://127.0.0.1:8091/nip-stock-trend-analysis');
+ try {await page.waitForFunction(()=>document.getElementById('nip-stat-opening')?.textContent==='60.000',{},{timeout:10000});}
+ catch(error){console.log({errors,requests:requests.map(String),url:page.url(),status:await page.locator('#nip-status').textContent()});await page.screenshot({path:'/tmp/nip-debug.png'});throw error;}
+ assert.equal(await page.locator('#nip-table tbody tr').count(),50);
+ await page.getByRole('button',{name:'Next page',exact:true}).click();assert.equal(await page.locator('#nip-table tbody tr').count(),13);
+ await page.locator('[data-view="graph"]').click();assert.equal(await page.locator('#nip-table').isVisible(),false);
+ await page.locator('[data-view="combined"]').click();
+ await page.locator('#nip-average').check();
+ assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.length),6);
+ await page.locator('#nip-metric').selectOption('pieces');await page.waitForFunction(()=>document.getElementById('nip-stat-opening').textContent==='60');
+ await page.locator('#nip-interval').selectOption('monthly');
+ await page.locator('#nip-from').fill('2026-10-01');await page.locator('#nip-to').fill('2026-10-21');
+ await page.locator('#nip-apply').click();await page.waitForFunction(()=>document.getElementById('nip-status').textContent.includes('Last reporting date'));
+ assert.equal(requests.at(-1).searchParams.get('from_date'),'2026-10-01');
+ assert.equal(requests.at(-1).searchParams.get('metric'),'pieces');
+ const pixels=await page.evaluate(()=>{const c=Chart.getChart(document.getElementById('nip-chart'));return c.ctx.getImageData(0,0,c.width,c.height).data.filter((v,i)=>i%4===3&&v>0).length;});assert(pixels>1000);
+ await page.screenshot({path:'/tmp/nip-stock-trend-desktop.png'});
+ await page.locator('#nip-expand').click();await page.waitForFunction(()=>!!document.fullscreenElement);
+ await page.locator('#nip-expand').click();await page.waitForFunction(()=>!document.fullscreenElement);
+ const downloadPromise=page.waitForEvent('download');await page.locator('#nip-png').click();assert.equal((await downloadPromise).suggestedFilename(),'nip-stock-trend.png');
+ await page.locator('#nip-clear').click();await page.waitForFunction(()=>!document.getElementById('nip-from').value);
+ await page.locator('#nip-filter-toggle').click();await page.setViewportSize({width:390,height:844});
+ await page.screenshot({path:'/tmp/nip-stock-trend-mobile.png'});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ assert.deepEqual(errors,[]);console.log('PASS: chart pixels, table pagination, view modes, moving average, metric/interval/filter controls, fullscreen, PNG export, clear, mobile overflow, no page errors');
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exit(1)});

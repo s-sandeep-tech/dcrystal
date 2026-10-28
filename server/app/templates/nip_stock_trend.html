@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}NIP Stock Trend Analysis{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nip_stock_trend.css') }}">
+{% endblock %}
+{% block content %}
+<main id="nip-main" class="flex-1 min-w-0 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    <div class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex flex-wrap gap-3 items-center justify-between">
+        <h2 class="text-sm font-bold">NIP Stock Trend Analysis <span class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-gray-500">v1.0</span></h2>
+        <div class="flex items-center gap-2">
+            <button id="nip-filter-toggle" class="nip-icon" title="Hide filters" aria-label="Hide filters" aria-expanded="true" aria-controls="nip-sidebar"><span class="material-symbols-outlined">filter_alt</span></button>
+            <button id="nip-refresh" class="nip-icon" title="Refresh report" aria-label="Refresh report"><span class="material-symbols-outlined">refresh</span></button>
+            {% if 'report.export' in permissions or 'ADMIN' in permissions %}<button id="nip-export" class="nip-icon" title="Export trend data to Excel" aria-label="Export trend data to Excel"><span class="material-symbols-outlined">download</span></button>{% endif %}
+        </div>
+    </div>
+    <div class="nip-stats bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+        {% for key,label,tip in [('opening','Opening Stock','First observed daily balance in the selected period'),('closing','Closing Stock','Last observed daily balance in the selected period'),('change','Stock Change','Closing stock minus opening stock'),('change_pct','Stock Change %','Stock change divided by opening stock; unavailable when opening is zero'),('average','Average Stock','Mean of observed daily balances; missing dates are not filled')] %}
+        <div class="p-3 text-center border-r border-gray-100 dark:border-gray-800"><p class="text-[9px] text-gray-500 font-bold uppercase">{{ label }} <span title="{{ tip }}" tabindex="0" role="img" aria-label="{{ tip }}" class="material-symbols-outlined text-[11px] align-middle cursor-help">info</span></p><p id="nip-stat-{{ key }}" class="mt-1 text-sm font-bold text-primary">-</p><span class="nip-unit text-[9px] text-gray-500"></span></div>
+        {% endfor %}
+    </div>
+    <div class="nip-toolbar bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+        <div role="group" aria-label="Report view" class="flex border border-gray-200 dark:border-gray-700 rounded overflow-hidden">
+            {% for key,icon,label in [('table','table_chart','Table'),('graph','show_chart','Graph'),('combined','view_agenda','Combined')] %}<button data-view="{{ key }}" aria-pressed="{{ 'true' if key == 'combined' else 'false' }}" class="nip-view px-3 py-1.5 text-xs"><span class="material-symbols-outlined text-[15px] align-middle">{{ icon }}</span> {{ label }}</button>{% endfor %}
+        </div>
+        <label>Interval<select id="nip-interval">{% for v in ['daily','weekly','monthly','quarterly','yearly'] %}<option value="{{ v }}">{{ v|title }}</option>{% endfor %}</select></label>
+        <label>Measurement<select id="nip-metric"><option value="gross_wt">Gross Weight (kg)</option><option value="pieces">Stock Pieces (Nos.)</option></select></label>
+        <label>Compare By<select id="nip-group">{% for v in dimensions %}<option value="{{ v }}" {% if v == 'division' %}selected{% endif %}>{{ v|replace('_',' ')|title }}</option>{% endfor %}</select></label>
+        <label class="flex items-center gap-1"><input id="nip-average" type="checkbox">3-period moving average</label>
+    </div>
+    <p id="nip-status" role="status" class="px-4 py-2 text-xs text-gray-500 border-b border-gray-200 dark:border-gray-800">Loading stock history...</p>
+    <div id="nip-output" class="flex-1 min-h-0 overflow-auto">
+        <section id="nip-graph" class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+            <div class="flex items-center justify-between px-4 py-2"><h3 class="text-xs font-bold">Stock Trend</h3><div class="flex gap-2"><button id="nip-png" class="nip-icon" title="Download graph as PNG" aria-label="Download graph as PNG"><span class="material-symbols-outlined">image</span></button><button id="nip-expand" class="nip-icon" title="Expand graph" aria-label="Expand graph"><span class="material-symbols-outlined">fullscreen</span></button></div></div>
+            <div class="nip-chart-frame"><canvas id="nip-chart" aria-label="NIP stock trend line chart" role="img"></canvas></div>
+        </section>
+        <section id="nip-table" class="overflow-auto bg-white dark:bg-gray-900"></section>
+    </div>
+</main>
+{% endblock %}
+{% block sidebar %}
+<aside id="nip-sidebar" class="w-64 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto">
+        <div class="flex items-center justify-between mb-4"><h2 class="text-xs font-bold"><span class="material-symbols-outlined text-sm text-primary align-middle">filter_alt</span> FILTERS</h2><button id="nip-reset" class="text-primary text-[10px] font-bold uppercase">Reset</button></div>
+        <div class="space-y-3">
+            <div class="grid grid-cols-2 gap-2"><label class="nip-filter-label">From Date<input id="nip-from" type="date"></label><label class="nip-filter-label">To Date<input id="nip-to" type="date"></label></div>
+            {% for field in filter_fields %}<div id="nip-filter-{{ field }}"></div>{% endfor %}
+            {% for field,label in [('is_franchise','Franchise Stock'),('is_excess','Excess Stock'),('is_to_be_replaced','Stock to be Replaced')] %}<label class="nip-filter-label">{{ label }}<select data-nip-boolean="{{ field }}"><option value="">All</option><option value="true">Yes</option><option value="false">No</option></select></label>{% endfor %}
+            {% for label in ['Branch Status','State','Category'] %}<label class="nip-filter-label">{{ label }}<select disabled title="Source field mapping not configured"><option>Not available in source</option></select></label>{% endfor %}
+        </div>
+    </div>
+    <div class="p-4 border-t border-gray-200 dark:border-gray-800"><button id="nip-apply" class="w-full bg-primary text-white font-bold py-2.5 rounded text-[11px] flex items-center justify-center gap-2"><span class="material-symbols-outlined text-sm">search_check</span>APPLY FILTERS</button><button id="nip-clear" class="w-full mt-2 text-gray-500 text-xs">Clear Filters</button></div>
+</aside>
+{% endblock %}
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
+<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='1') }}"></script>
+{% endblock %}

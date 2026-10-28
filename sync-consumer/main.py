@@ -136,7 +136,10 @@ def process_sync_queue():
                 start_t = time.time()
                 res = None
                 try:
-                    if task_type == 'owner_wise':
+                    if task_type == 'nip_stock_trend':
+                        from app.utils.nip_stock_trend_sync import sync_nip_stock_trend_task
+                        res = sync_nip_stock_trend_task()
+                    elif task_type == 'owner_wise':
                         res = sync_owner_wise_data_task()
                     elif task_type == 'process_delay':
                         res = sync_process_level_delay_data_task()

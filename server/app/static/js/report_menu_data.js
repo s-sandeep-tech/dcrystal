@@ -329,6 +329,14 @@ window.REPORT_MENU_DATA = [
                 tags: ["stock", "location", "physical"]
             },
             {
+                id: "nip-stock-trend-analysis",
+                title: "NIP Stock Trend Analysis",
+                href: "/nip-stock-trend-analysis",
+                icon: "show_chart",
+                description: "Compare dated NIP stock balances by location and product attributes.",
+                tags: ["nip", "stock", "trend", "history"]
+            },
+            {
                 id: "location-provision-stock-analysis",
                 title: "Location Provision & Stock Analysis",
                 href: "/location-provision-stock-analysis",

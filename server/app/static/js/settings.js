@@ -278,6 +278,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncOwnerShowroomBtn) syncOwnerShowroomBtn.addEventListener('click', () => triggerSync(syncOwnerShowroomBtn, window.SETTINGS_CONFIG.syncOwnerShowroomUrl, 'Owner, Showroom, Pending Order Details & Active Orders Sync', 'owner_showroom_combined'));
     if (syncProcessBtn) syncProcessBtn.addEventListener('click', () => triggerSync(syncProcessBtn, window.SETTINGS_CONFIG.syncProcessDelayUrl, 'Process Delay Sync', 'process_delay'));
 
+    const nipStockTrendSyncBtn = document.getElementById('sync-nip-stock-trend-btn');
+    if (nipStockTrendSyncBtn) nipStockTrendSyncBtn.addEventListener('click', () => triggerSync(nipStockTrendSyncBtn, '/api/sync/nip-stock-trend-analysis', 'NIP Stock Trend Analysis Sync', 'nip_stock_trend'));
     if (syncOutstandingPOBtn) syncOutstandingPOBtn.addEventListener('click', () => triggerSync(syncOutstandingPOBtn, window.SETTINGS_CONFIG.syncOutstandingPOUrl, 'PO Sync', 'outstanding_po'));
     if (syncStageDelayBtn) syncStageDelayBtn.addEventListener('click', () => triggerSync(syncStageDelayBtn, window.SETTINGS_CONFIG.syncStageDelayUrl, 'Stage Delay Sync', 'stage_delay'));
     if (syncOrderDelayBtn) syncOrderDelayBtn.addEventListener('click', () => triggerSync(syncOrderDelayBtn, window.SETTINGS_CONFIG.syncOrderDelayUrl, 'Order Delay Sync', 'order_delay_tracking'));

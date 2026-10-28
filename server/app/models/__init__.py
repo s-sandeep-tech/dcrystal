@@ -112,3 +112,4 @@ __all__ = [
 
 
 
+from .nip_stock_trend import NIPStockTrendSnapshot
