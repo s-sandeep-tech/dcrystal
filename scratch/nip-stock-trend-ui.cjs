@@ -25,6 +25,8 @@ const fields=['location','division','group_name','purity','classification','sub_
   body.unit=body.metric==='pieces'?'Nos.':'kg';
   body.table_rows=periods.flatMap((period,p)=>groups.map(s=>({period,balance_date:period,group:s.name,total:s.values[p],nip:s.values[p]/2,excess:s.values[p]/4})));
   body.series=groups.flatMap(s=>[['total',1],['nip',.5],['excess',.25]].map(([kind,factor])=>({name:s.name+' - '+kind,group:s.name,kind,values:s.values.map(v=>v*factor)})));
+  body.series[0].values[0]=0.0001;
+  body.series[2].values[0]=0;
   return r.fulfill({contentType:'application/json',body:JSON.stringify(body)});
  });
  await page.goto('http://127.0.0.1:8091/nip-stock-trend-analysis');
@@ -54,6 +56,13 @@ const fields=['location','division','group_name','purity','classification','sub_
    between:bars[3].x-bars[2].x-(bars[2].width+bars[3].width)/2};
  });
  assert(gaps.between>gaps.inside*5,JSON.stringify(gaps));
+ const smallBars=await page.evaluate(()=>{
+  const c=Chart.getChart(document.getElementById('nip-chart'));
+  const bars=c.data.datasets.flatMap((d,i)=>d.type==='bar'&&!d.groupSpacer?[c.getDatasetMeta(i).data[0]]:[]);
+  return {tiny:Math.abs(bars[0].base-bars[0].y),zero:Math.abs(bars[2].base-bars[2].y)};
+ });
+ assert(smallBars.tiny>=2.5,JSON.stringify(smallBars));
+ assert(smallBars.zero===0,JSON.stringify(smallBars));
  await page.locator('#nip-metric').selectOption('pieces');await page.waitForFunction(()=>document.getElementById('nip-stat-opening').textContent==='60');
  await page.locator('#nip-interval').selectOption('monthly');
  await page.locator('#nip-from').fill('2026-10-01');await page.locator('#nip-to').fill('2026-10-21');

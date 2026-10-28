@@ -56,9 +56,24 @@
                     dataset.categoryPercentage=categoryWidth/(current.chartArea.width/Math.max(1,data.periods.length));
                     dataset.maxBarThickness=slot;
                 });
+            },
+            afterDatasetsUpdate(current) {
+                current.data.datasets.forEach((dataset,index)=>{
+                    if(dataset.type!=='bar'||dataset.groupSpacer)return;
+                    current.getDatasetMeta(index).data.forEach((bar,position)=>{
+                        const value=dataset.data[position];
+                        if(value==null||Number(value)===0)return;
+                        const target=bar.getProps(['y','base'],true);
+                        if(Math.abs(target.base-target.y)<3){
+                            const y=target.base+(Number(value)>0?-3:3);
+                            bar.y=y;
+                            bar.height=3;
+                        }
+                    });
+                });
             }
         }],options:{
-            responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+            responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
             scales:{y:{beginAtZero:true,title:{display:true,text:data.unit},ticks:{precision:data.metric==='pieces'?0:3}}},
             plugins:{legend:{position:'bottom',labels:{filter:item=>!datasets[item.datasetIndex].groupSpacer}},tooltip:{filter:item=>!item.dataset.groupSpacer,callbacks:{title:items => `${items[0].label} (balance ${data.balance_dates[items[0].dataIndex]})`,
                 label:context=>`${context.dataset.label}: ${number(context.raw)} ${data.unit}`}}}}});
