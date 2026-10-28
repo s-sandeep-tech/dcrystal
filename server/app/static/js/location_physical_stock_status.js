@@ -1,7 +1,7 @@
 let currentSearch = '';
 let filterValues = {
     location: '',
-    division: 'GOLD',
+    division: 'Gold',
     purity: '',
     classification: '',
     make: '',
@@ -138,16 +138,16 @@ document.addEventListener('DOMContentLoaded', () => {
         options: [],
         onSearch: async (query, callback) => {
             try {
-                    const response = await fetch(`/api/location-physical-stock-status/makes/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-                    });
-                    const data = await response.json();
-                    callback(data);
-                } catch (err) {
-                    console.error('Make search failed:', err);
-                    callback([]);
-                }
+                const response = await fetch(`/api/location-physical-stock-status/makes/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Make search failed:', err);
+                callback([]);
             }
+        }
     });
 
     collectionMultiSelect = new CustomMultiSelect({
@@ -157,16 +157,16 @@ document.addEventListener('DOMContentLoaded', () => {
         options: [],
         onSearch: async (query, callback) => {
             try {
-                    const response = await fetch(`/api/location-physical-stock-status/collections/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-                    });
-                    const data = await response.json();
-                    callback(data);
-                } catch (err) {
-                    console.error('Collection search failed:', err);
-                    callback([]);
-                }
+                const response = await fetch(`/api/location-physical-stock-status/collections/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Collection search failed:', err);
+                callback([]);
             }
+        }
     });
 
     makeHeaderFilter = new HeaderFilter({
@@ -180,16 +180,16 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onSearch: async (query, callback) => {
             try {
-                    const response = await fetch(`/api/location-physical-stock-status/makes/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-                    });
-                    const data = await response.json();
-                    callback(data);
-                } catch (err) {
-                    console.error('Make header search failed:', err);
-                    callback([]);
-                }
+                const response = await fetch(`/api/location-physical-stock-status/makes/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Make header search failed:', err);
+                callback([]);
             }
+        }
     });
 
     sectionHeaderFilter = new HeaderFilter({
@@ -225,16 +225,16 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onSearch: async (query, callback) => {
             try {
-                    const response = await fetch(`/api/location-physical-stock-status/collections/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-                    });
-                    const data = await response.json();
-                    callback(data);
-                } catch (err) {
-                    console.error('Collection header search failed:', err);
-                    callback([]);
-                }
+                const response = await fetch(`/api/location-physical-stock-status/collections/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Collection header search failed:', err);
+                callback([]);
             }
+        }
     });
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -307,7 +307,7 @@ async function loadOptions(throwOnError = false) {
                 const placeholder = select.options[0]?.cloneNode(true);
                 select.replaceChildren();
                 if (placeholder) select.appendChild(placeholder);
-                const options = [...new Set([...item.data, ...(selected ? [selected] : [])])];
+                const options = Array.isArray(item.data) ? item.data : [];
                 options.forEach(opt => {
                     const el = document.createElement('option');
                     el.value = opt;
@@ -321,8 +321,16 @@ async function loadOptions(throwOnError = false) {
                         if (item.id === 'filter-division') {
                             filterValues.division = matchedOpt;
                         }
+                    } else if (item.id === 'filter-division') {
+                        const goldOpt = options.find(o => String(o).toLowerCase() === 'gold');
+                        if (goldOpt) {
+                            select.value = goldOpt;
+                            filterValues.division = goldOpt;
+                        } else {
+                            select.value = '';
+                        }
                     } else {
-                        select.value = selected;
+                        select.value = '';
                     }
                 } else if (item.id === 'filter-division') {
                     const goldOpt = options.find(o => String(o).toLowerCase() === 'gold');
@@ -484,11 +492,11 @@ function resetFilters() {
             divSelect.value = goldOpt.value;
             filterValues.division = goldOpt.value;
         } else {
-            divSelect.value = 'GOLD';
-            filterValues.division = 'GOLD';
+            divSelect.value = 'Gold';
+            filterValues.division = 'Gold';
         }
     } else {
-        filterValues.division = 'GOLD';
+        filterValues.division = 'Gold';
     }
 
     if (locationMultiSelect) locationMultiSelect.reset();

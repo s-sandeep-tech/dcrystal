@@ -51,9 +51,15 @@ def location_physical_stock_status():
                 is_today = False
         else:
             sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d, %I:%M %p")
+
+        roles = [r.upper() for r in session.get('roles', [])]
+        base_q = db.session.query(ProvisionStockRawSnapshot)
+        base_q = apply_franchise_india_branch_filter(base_q, roles)
+        divisions = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.division.distinct()).order_by(ProvisionStockRawSnapshot.division).all() if r[0]]
             
         return render_template('location_physical_stock_status.html', sync_time=sync_time, is_today=is_today,
-                               snapshot_version=snapshot_date.isoformat() if snapshot_date else '')
+                               snapshot_version=snapshot_date.isoformat() if snapshot_date else '',
+                               divisions=divisions)
     except Exception as e:
         logger.error(f"Error in location_physical_stock_status: {str(e)}")
         return f"Error: {str(e)}", 500
@@ -94,12 +100,14 @@ def location_physical_stock_status_options():
             elif is_showroom_manager and user_id:
                 cache_suffix = f"sm_{user_id}"
             
-        cache_key = f"loc_phys_stock_status_options:{date_str}:{cache_suffix}"
+        cache_key = f"loc_phys_stock_status_options_v2:{date_str}:{cache_suffix}"
         
         cached_data = redis_client.get(cache_key)
         if cached_data:
-            redis_client.expire(cache_key, 18000)  # Sliding expiry
-            return jsonify(json.loads(cached_data))
+            parsed = json.loads(cached_data)
+            if 'divisions' in parsed:
+                redis_client.expire(cache_key, 18000)  # Sliding expiry
+                return jsonify(parsed)
 
         base_q = db.session.query(ProvisionStockRawSnapshot)
         base_q = apply_franchise_india_branch_filter(base_q, roles)
@@ -241,7 +249,7 @@ def get_location_physical_stock_status_partial():
     try:
         # Read filters from request
         location = request.args.get('location', '')
-        division = request.args.get('division', 'GOLD' if 'division' not in request.args else '')
+        division = request.args.get('division', 'Gold' if 'division' not in request.args else '')
         purity = request.args.get('purity', '')
         classification = request.args.get('classification', '')
         make = request.args.get('make', '')
