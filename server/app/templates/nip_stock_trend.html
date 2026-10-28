@@ -34,7 +34,7 @@
         <label>Interval<select id="nip-interval">{% for v in ['daily','weekly','monthly','quarterly','yearly'] %}<option value="{{ v }}">{{ v|title }}</option>{% endfor %}</select></label>
         <label>Measurement<select id="nip-metric"><option value="gross_wt">Gross Weight (kg)</option><option value="pieces">Stock Pieces (Nos.)</option></select></label>
         <label>Compare By<select id="nip-group">{% for v in dimensions %}<option value="{{ v }}" {% if v == 'division' %}selected{% endif %}>{{ v|replace('_',' ')|title }}</option>{% endfor %}</select></label>
-        <label>Show<select id="nip-limiter" title="Ranked by the selected stock type on the latest reporting date"><option value="all">All Groups</option><option value="top">Top 12</option><option value="middle">Middle 12</option><option value="bottom">Bottom 12</option></select></label>
+        <label>Show<select id="nip-limiter" title="Ranked by the selected stock type on the latest reporting date"><option value="all">All Groups</option><option value="top" selected>Top 16</option><option value="middle">Middle 16</option><option value="bottom">Bottom 16</option></select></label>
         <label>Rank By<select id="nip-rank-by"><option value="total">Total Stock</option><option value="nip">NIP Stock</option><option value="excess">Excess Stock</option></select></label>
         <label>Order<select id="nip-order"><option value="desc">Descending</option><option value="asc">Ascending</option></select></label>
         <label class="nip-average-control" title="Show a trailing 3-period moving average"><input id="nip-average" type="checkbox">3-period average</label>

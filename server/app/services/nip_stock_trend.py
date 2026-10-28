@@ -96,7 +96,7 @@ def prepare_trend(daily, interval):
 
 def trend_data(args):
     metric, group, interval = args.get('metric', 'gross_wt'), args.get('group_by', 'division'), args.get('interval', 'daily')
-    limiter, order = args.get('limiter', 'all'), args.get('order', 'desc')
+    limiter, order = args.get('limiter', 'top'), args.get('order', 'desc')
     rank_by = args.get('rank_by', 'total')
     if metric not in ('gross_wt', 'pieces') or group not in DIMENSIONS or interval not in INTERVALS:
         raise ValueError('Invalid graph configuration')
@@ -122,12 +122,12 @@ def trend_data(args):
     ranked = sorted((i for i, series in enumerate(ranking) if series['values'] and series['values'][-1] is not None),
                     key=lambda i: -ranking[i]['values'][-1])
     if limiter == 'top':
-        selected = ranked[:12]
+        selected = ranked[:16]
     elif limiter == 'bottom':
-        selected = ranked[-12:]
+        selected = ranked[-16:]
     elif limiter == 'middle':
-        start = max(0, (len(ranked) - 12) // 2)
-        selected = ranked[start:start + 12]
+        start = max(0, (len(ranked) - 16) // 2)
+        selected = ranked[start:start + 16]
     else:
         selected = list(range(len(totals)))
     # Stable alphabetical ties and unknown closing balances last in either direction.

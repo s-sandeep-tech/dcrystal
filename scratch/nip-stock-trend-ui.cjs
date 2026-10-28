@@ -33,6 +33,9 @@ const fields=['location','division','group_name','purity','classification','sub_
  try {await page.waitForFunction(()=>document.getElementById('nip-stat-opening')?.textContent==='60.000',{},{timeout:10000});}
  catch(error){console.log({errors,requests:requests.map(String),url:page.url(),status:await page.locator('#nip-status').textContent()});await page.screenshot({path:'/tmp/nip-debug.png'});throw error;}
  assert.equal(await page.locator('#nip-table tbody tr').count(),50);
+ assert.equal(await page.locator('#nip-limiter').inputValue(),'top');
+ assert.equal(await page.locator('#nip-limiter option:checked').textContent(),'Top 16');
+ assert.equal(await page.locator('#nip-order').inputValue(),'desc');
  assert(!(await page.locator('#nip-table thead').textContent()).includes('undefined'));
  assert.equal(await page.locator('[data-view="combined"]').count(),0);
  await page.locator('[data-view="table"]').click();

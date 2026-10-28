@@ -106,13 +106,13 @@ class StockTrendDataTests(unittest.TestCase):
                 result=trend_data(MultiDict({'limiter':'top','rank_by':kind}))
                 self.assertEqual(result['series'][0]['group'],first)
                 self.assertEqual(result['rank_by'],kind)
-                self.assertEqual(result['displayed_groups'],12)
+                self.assertEqual(result['displayed_groups'],16)
                 self.assertEqual(result['stats']['closing'],3250)
-            for limiter,first in [('middle','Group 07'),('bottom','Group 14')]:
+            for limiter,first in [('middle','Group 05'),('bottom','Group 10')]:
                 result=trend_data(MultiDict({'limiter':limiter,'rank_by':'nip'}))
                 self.assertEqual(result['series'][0]['group'],first)
             ascending=trend_data(MultiDict({'limiter':'top','rank_by':'nip','order':'asc'}))
-            self.assertEqual(ascending['series'][0]['group'],'Group 12')
+            self.assertEqual(ascending['series'][0]['group'],'Group 16')
 
     def test_group_limiter_and_order_use_latest_total_not_history_sum(self):
         S.query.delete()
@@ -124,20 +124,22 @@ class StockTrendDataTests(unittest.TestCase):
         db.session.commit()
         with self.app.test_request_context('/'):
             session['roles']=['ADMIN']
-            for limiter, expected in [('top',list(range(25,13,-1))),
-                                      ('middle',list(range(19,7,-1))),
-                                      ('bottom',list(range(12,0,-1)))]:
+            default=trend_data(MultiDict())
+            self.assertEqual((default['limiter'],default['order'],default['displayed_groups']),('top','desc',16))
+            for limiter, expected in [('top',list(range(25,9,-1))),
+                                      ('middle',list(range(21,5,-1))),
+                                      ('bottom',list(range(16,0,-1)))]:
                 result=trend_data(MultiDict({'limiter':limiter}))
                 self.assertEqual([s['group'] for s in result['series'][::3]],
                                  [f'Group {i:02}' for i in expected])
-                self.assertEqual(result['displayed_groups'],12)
+                self.assertEqual(result['displayed_groups'],16)
                 self.assertEqual(result['stats']['closing'],325)
-                self.assertEqual(len(result['table_rows']),24)
+                self.assertEqual(len(result['table_rows']),32)
             ascending=trend_data(MultiDict({'limiter':'top','order':'asc'}))
-            self.assertEqual(ascending['series'][0]['group'],'Group 14')
+            self.assertEqual(ascending['series'][0]['group'],'Group 10')
             pieces=trend_data(MultiDict({'limiter':'top','metric':'pieces'}))
             self.assertEqual(pieces['series'][0]['group'],'Group 01')
-            all_groups=trend_data(MultiDict({'order':'asc'}))
+            all_groups=trend_data(MultiDict({'limiter':'all','order':'asc'}))
             self.assertEqual(all_groups['series'][-1]['group'],'Stale')
 
     def test_export_numeric_values_and_period_dates(self):
