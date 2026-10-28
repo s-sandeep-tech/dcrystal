@@ -17,11 +17,11 @@
         border-spacing: 0;
     }
     #sectionWiseProvisionStockTable td {
-        padding: 5px 8px;
+        padding: 8px 10px;
         border: 1px solid #e2e8f0;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-size: 11px;
-        line-height: 1.35;
+        line-height: 1.45;
         text-align: right;
         white-space: nowrap;
         vertical-align: middle;
@@ -39,10 +39,10 @@
         border-right: none;
     }
     #sectionWiseProvisionStockTable th {
-        padding: 7px 8px;
+        padding: 9px 10px;
         border: 1px solid #cbd5e1;
         font-size: 11px;
-        line-height: 1.35;
+        line-height: 1.45;
         white-space: nowrap;
         border-top: none;
         vertical-align: middle;
@@ -197,7 +197,7 @@
                     
                     <!-- 1. Drill Tree Cell with Indent -->
                     <td>
-                        <div class="flex items-center min-h-[22px]" style="padding-left: {{ (level - 1) * 0.9 }}rem;">
+                        <div class="flex items-center min-h-[26px]" style="padding-left: {{ (level - 1) * 0.9 }}rem;">
                             {% if not row.is_leaf %}
                             <button type="button" data-tree-toggle onclick="toggleSectionTreeNode(this, event)" class="mr-1 inline-flex size-5 shrink-0 items-center justify-center rounded text-gray-500 hover:text-primary hover:bg-blue-100/60 transition-colors" aria-label="Toggle {{ row.hierarchy_label }}">
                                 <span class="material-symbols-outlined text-[15px]">arrow_right</span>
