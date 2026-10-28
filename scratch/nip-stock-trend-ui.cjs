@@ -83,6 +83,23 @@ const fields=['location','division','group_name','purity','classification','sub_
   c.draw();c.ctx.fillText=original;return labels;
  });
  for(const purity of ['750','920','995','999'])assert(purityLabels.includes(purity));
+ assert.deepEqual(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).legend.legendItems.map(item=>item.text)),['Total Stock','NIP Stock','Excess Stock']);
+ const legendPoint=await page.evaluate(()=>{
+  const c=Chart.getChart(document.getElementById('nip-chart')),box=c.legend.legendHitBoxes[1],rect=c.canvas.getBoundingClientRect();
+  return {x:rect.left+box.left+box.width/2,y:rect.top+box.top+box.height/2};
+ });
+ await page.mouse.click(legendPoint.x,legendPoint.y);
+ await page.waitForTimeout(100);
+ assert.equal(await page.evaluate(()=>{
+  const c=Chart.getChart(document.getElementById('nip-chart'));
+  return c.data.datasets.every((d,i)=>d.stockKind!=='nip'||!c.isDatasetVisible(i));
+ }),true);
+ await page.mouse.click(legendPoint.x,legendPoint.y);
+ await page.waitForTimeout(100);
+ assert.equal(await page.evaluate(()=>{
+  const c=Chart.getChart(document.getElementById('nip-chart'));
+  return c.data.datasets.every((d,i)=>d.stockKind!=='nip'||c.isDatasetVisible(i));
+ }),true);
  await page.locator('#nip-filter-toggle').click();await page.setViewportSize({width:390,height:844});
  await page.screenshot({path:'/tmp/nip-stock-trend-mobile.png'});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
