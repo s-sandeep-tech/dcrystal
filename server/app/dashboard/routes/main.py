@@ -480,10 +480,21 @@ def get_sync_logs():
     
     from app.models.core import SyncLog
     from app.models.auth import User
+    from datetime import datetime, timedelta, timezone
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
+    date_filter = request.args.get('date', None)  # e.g. 'today'
     
-    pagination = SyncLog.query.order_by(SyncLog.start_time.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    query = SyncLog.query
+    
+    if date_filter == 'today':
+        ist = ZoneInfo('Asia/Kolkata')
+        today_ist = datetime.now(ist).date()
+        start_of_day_ist = datetime.combine(today_ist, datetime.min.time(), tzinfo=ist)
+        start_of_day_utc = start_of_day_ist.astimezone(timezone.utc).replace(tzinfo=None)
+        query = query.filter(SyncLog.start_time >= start_of_day_utc)
+    
+    pagination = query.order_by(SyncLog.start_time.desc()).paginate(page=page, per_page=per_page, error_out=False)
     
     user_ids = [log.initiated_by for log in pagination.items if log.initiated_by]
     users_dict = {}

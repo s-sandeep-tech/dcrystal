@@ -994,8 +994,12 @@
                                                             class="rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-0">
                                                         External API data
                                                     </label>
-                                                    <label class="flex items-center gap-1.5 cursor-pointer text-gray-700 dark:text-gray-300 text-[11px] select-none" title="Use Gemini only for unavailable API data; API charges may apply">
-                                                        <input id="sales-settings-gemini-fallback" type="checkbox" disabled class="rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-0">
+                                                    <label
+                                                        class="flex items-center gap-1.5 cursor-pointer text-gray-700 dark:text-gray-300 text-[11px] select-none"
+                                                        title="Use Gemini only for unavailable API data; API charges may apply">
+                                                        <input id="sales-settings-gemini-fallback" type="checkbox"
+                                                            disabled
+                                                            class="rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-0">
                                                         Gemini fallback
                                                     </label>
                                                 </div>
@@ -1690,6 +1694,18 @@
                     class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
                     <span class="material-symbols-outlined">close</span>
                 </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="syncLogsTodayBtn" onclick="toggleSyncLogsToday()" class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-all duration-200
+                        bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700
+                        hover:bg-primary/10 hover:text-primary hover:border-primary/30">
+                        <span class="material-symbols-outlined text-[14px] align-middle mr-0.5">today</span>
+                        Today
+                    </button>
+                    <button type="button" onclick="closeSyncLogsModal()"
+                        class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
             </div>
 
             <div class="overflow-y-auto p-0 flex-1 relative min-h-0">

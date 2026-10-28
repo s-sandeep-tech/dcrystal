@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
         button.disabled = true;
         status.textContent = 'Queueing...';
         try {
-            const response = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+            const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Unable to queue task');
             status.textContent = data.message;
@@ -1290,8 +1290,8 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const user of data.users) {
                 const row = document.createElement('tr');
                 const values = [user.user_id, user.username, user.email,
-                    user.is_active ? 'Active' : 'Inactive',
-                    user.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'Never'];
+                user.is_active ? 'Active' : 'Inactive',
+                user.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'Never'];
                 values.forEach((value, index) => {
                     const cell = document.createElement('td');
                     cell.className = 'p-2';
@@ -3158,6 +3158,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let syncLogsCurrentPage = 1;
+    let syncLogsTodayFilter = false;
 
     window.openSyncLogsModal = function () {
         if (!syncLogsModal) return;
@@ -3165,7 +3166,26 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => syncLogsModal.classList.remove('opacity-0'), 10);
 
         syncLogsCurrentPage = 1;
+        syncLogsTodayFilter = false;
+        updateTodayBtnStyle();
         fetchSyncLogsData(syncLogsCurrentPage);
+    }
+
+    window.toggleSyncLogsToday = function () {
+        syncLogsTodayFilter = !syncLogsTodayFilter;
+        syncLogsCurrentPage = 1;
+        updateTodayBtnStyle();
+        fetchSyncLogsData(syncLogsCurrentPage);
+    }
+
+    function updateTodayBtnStyle() {
+        const btn = document.getElementById('syncLogsTodayBtn');
+        if (!btn) return;
+        if (syncLogsTodayFilter) {
+            btn.className = 'px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-all duration-200 bg-primary text-white border-primary shadow-sm';
+        } else {
+            btn.className = 'px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-all duration-200 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-primary/10 hover:text-primary hover:border-primary/30';
+        }
     }
 
     window.fetchSyncLogsPage = function (delta) {
@@ -3187,7 +3207,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nextBtn) nextBtn.disabled = true;
 
         try {
-            const url = `${window.SETTINGS_CONFIG.syncLogsUrl}?page=${page}&per_page=20`;
+            const dateParam = syncLogsTodayFilter ? '&date=today' : '';
+            const url = `${window.SETTINGS_CONFIG.syncLogsUrl}?page=${page}&per_page=20${dateParam}`;
             const res = await fetch(url);
             const data = await res.json();
 
