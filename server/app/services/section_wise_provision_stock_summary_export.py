@@ -34,7 +34,7 @@ class SectionWiseProvisionStockSummaryExport:
         sheet.title = 'Section-wise Summary'
 
         headers = (
-            'Level', 'Section', 'Make', 'Collection', 'Type', 'Wide Range',
+            'Level', 'Section', 'Make', 'Collection', 'Wide Range', 'Type',
             'Provision Pieces', 'Provision Gross Wt', 'In Shop Wt', 'Transit Wt',
             'Short Pieces', 'Excess Pieces', 'Short %', 'Short Wt', 'Excess Wt',
             'Net Short / Excess', 'Ordered Wt',
@@ -62,8 +62,8 @@ class SectionWiseProvisionStockSummaryExport:
             1: 'Section',
             2: 'Make',
             3: 'Collection',
-            4: 'Type',
-            5: 'Wide Range',
+            4: 'Wide Range',
+            5: 'Type',
         }
 
         level_fills = {
@@ -83,16 +83,16 @@ class SectionWiseProvisionStockSummaryExport:
             sec_val = row.get('section') if level >= 1 else 'Grand Total'
             make_val = row.get('make') if level >= 2 else ''
             coll_val = row.get('collection') if level >= 3 else ''
-            typ_val = row.get('type') if level >= 4 else ''
-            rng_val = row.get('wide_range') if level >= 5 else ''
+            rng_val = row.get('wide_range') if level >= 4 else ''
+            typ_val = row.get('type') if level >= 5 else ''
 
             row_data = (
                 level_name,
                 sec_val,
                 make_val,
                 coll_val,
-                typ_val,
                 rng_val,
+                typ_val,
                 float(row.get('prov_pcs') or 0),
                 float(row.get('prov_gr_wt') or 0),
                 float(row.get('in_shop_wt') or 0),

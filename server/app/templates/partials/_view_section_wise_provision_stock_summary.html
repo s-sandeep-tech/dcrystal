@@ -3,7 +3,7 @@
 {%- endmacro %}
 
 {% macro kg_val(val) -%}
-    {{ "{:,.3f}".format((val|float) / 1000.0) if val is not none else '0.000' }}
+{{ "{:,.3f}".format((val|float) / 1000.0) if val is not none else '0.000' }}
 {%- endmacro %}
 
 {% macro pcs_val(val) -%}
@@ -87,21 +87,36 @@
             </div>
 
             <!-- 2. Provision Gross Wt (kg) -->
-            <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-slate-200/90 dark:border-gray-700/80 bg-white dark:bg-gray-800 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate mb-1 leading-none">Prov Gr.Wt (kg)</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-gray-900 dark:text-gray-100 font-mono leading-none tracking-tight">{{ kg_val(grand_totals.prov_gr_wt) }}</span>
+            <div
+                class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-slate-200/90 dark:border-gray-700/80 bg-white dark:bg-gray-800 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
+                <span
+                    class="text-[9.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate mb-1 leading-none">Prov
+                    Gr.Wt (kg)</span>
+                <span
+                    class="text-[13px] sm:text-[13.5px] font-extrabold text-gray-900 dark:text-gray-100 font-mono leading-none tracking-tight">{{
+                    kg_val(grand_totals.prov_gr_wt) }}</span>
             </div>
 
             <!-- 3. In Shop Wt (kg) -->
-            <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-slate-200/90 dark:border-gray-700/80 bg-white dark:bg-gray-800 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate mb-1 leading-none">In Shop Wt (kg)</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-gray-900 dark:text-gray-100 font-mono leading-none tracking-tight">{{ kg_val(grand_totals.in_shop_wt) }}</span>
+            <div
+                class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-slate-200/90 dark:border-gray-700/80 bg-white dark:bg-gray-800 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
+                <span
+                    class="text-[9.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate mb-1 leading-none">In
+                    Shop Wt (kg)</span>
+                <span
+                    class="text-[13px] sm:text-[13.5px] font-extrabold text-gray-900 dark:text-gray-100 font-mono leading-none tracking-tight">{{
+                    kg_val(grand_totals.in_shop_wt) }}</span>
             </div>
 
             <!-- 4. Transit Wt (kg) -->
-            <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-slate-200/90 dark:border-gray-700/80 bg-white dark:bg-gray-800 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate mb-1 leading-none">Transit Wt (kg)</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-gray-900 dark:text-gray-100 font-mono leading-none tracking-tight">{{ kg_val(grand_totals.in_transit_wt) }}</span>
+            <div
+                class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-slate-200/90 dark:border-gray-700/80 bg-white dark:bg-gray-800 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
+                <span
+                    class="text-[9.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate mb-1 leading-none">Transit
+                    Wt (kg)</span>
+                <span
+                    class="text-[13px] sm:text-[13.5px] font-extrabold text-gray-900 dark:text-gray-100 font-mono leading-none tracking-tight">{{
+                    kg_val(grand_totals.in_transit_wt) }}</span>
             </div>
 
             <!-- 5. Short Pieces -->
@@ -138,28 +153,48 @@
             </div>
 
             <!-- 8. Short Wt (kg) -->
-            <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50/70 dark:bg-red-950/25 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider truncate mb-1 leading-none">Short Wt (kg)</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-red-600 dark:text-red-400 font-mono leading-none tracking-tight">{{ kg_val(grand_totals.short_wt) }}</span>
+            <div
+                class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50/70 dark:bg-red-950/25 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
+                <span
+                    class="text-[9.5px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider truncate mb-1 leading-none">Short
+                    Wt (kg)</span>
+                <span
+                    class="text-[13px] sm:text-[13.5px] font-extrabold text-red-600 dark:text-red-400 font-mono leading-none tracking-tight">{{
+                    kg_val(grand_totals.short_wt) }}</span>
             </div>
 
             <!-- 9. Excess Wt (kg) -->
-            <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/25 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider truncate mb-1 leading-none">Excess Wt (kg)</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-emerald-700 dark:text-emerald-400 font-mono leading-none tracking-tight">{{ kg_val(grand_totals.excess_wt) }}</span>
+            <div
+                class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/25 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
+                <span
+                    class="text-[9.5px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider truncate mb-1 leading-none">Excess
+                    Wt (kg)</span>
+                <span
+                    class="text-[13px] sm:text-[13.5px] font-extrabold text-emerald-700 dark:text-emerald-400 font-mono leading-none tracking-tight">{{
+                    kg_val(grand_totals.excess_wt) }}</span>
             </div>
 
             <!-- 10. Net Short/Excess (kg) -->
             {% set net_tot = grand_totals.net_short_excess|float %}
-            <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border {% if net_tot < 0 %}border-red-200 dark:border-red-900/50 bg-red-50/70 dark:bg-red-950/25{% else %}border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/25{% endif %} shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold {% if net_tot < 0 %}text-red-600 dark:text-red-400{% else %}text-emerald-700 dark:text-emerald-400{% endif %} uppercase tracking-wider truncate mb-1 leading-none">Net Short/Exc (kg)</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold {% if net_tot < 0 %}text-red-600 dark:text-red-400{% else %}text-emerald-700 dark:text-emerald-400{% endif %} font-mono leading-none tracking-tight">{{ kg_val(grand_totals.net_short_excess) }}</span>
+            <div
+                class="p-2 sm:px-2.5 sm:py-2 rounded-lg border {% if net_tot < 0 %}border-red-200 dark:border-red-900/50 bg-red-50/70 dark:bg-red-950/25{% else %}border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/70 dark:bg-emerald-950/25{% endif %} shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
+                <span
+                    class="text-[9.5px] font-bold {% if net_tot < 0 %}text-red-600 dark:text-red-400{% else %}text-emerald-700 dark:text-emerald-400{% endif %} uppercase tracking-wider truncate mb-1 leading-none">Net
+                    Short/Exc (kg)</span>
+                <span
+                    class="text-[13px] sm:text-[13.5px] font-extrabold {% if net_tot < 0 %}text-red-600 dark:text-red-400{% else %}text-emerald-700 dark:text-emerald-400{% endif %} font-mono leading-none tracking-tight">{{
+                    kg_val(grand_totals.net_short_excess) }}</span>
             </div>
 
             <!-- 11. Ordered Wt (kg) -->
-            <div class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50/70 dark:bg-blue-950/25 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
-                <span class="text-[9.5px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider truncate mb-1 leading-none">Ordered Wt (kg)</span>
-                <span class="text-[13px] sm:text-[13.5px] font-extrabold text-blue-700 dark:text-blue-400 font-mono leading-none tracking-tight">{{ kg_val(grand_totals.ordered_wt) }}</span>
+            <div
+                class="p-2 sm:px-2.5 sm:py-2 rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50/70 dark:bg-blue-950/25 shadow-sm hover:shadow transition-shadow flex flex-col justify-between">
+                <span
+                    class="text-[9.5px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider truncate mb-1 leading-none">Ordered
+                    Wt (kg)</span>
+                <span
+                    class="text-[13px] sm:text-[13.5px] font-extrabold text-blue-700 dark:text-blue-400 font-mono leading-none tracking-tight">{{
+                    kg_val(grand_totals.ordered_wt) }}</span>
             </div>
         </div>
     </div>
@@ -173,7 +208,7 @@
                     <!-- Column 1: Drill Hierarchy -->
                     <th class="text-left font-bold min-w-[240px]">
                         <div class="flex items-center justify-between gap-1.5">
-                            <span>Section &rarr; Make &rarr; Collection &rarr; Type &rarr; Wide Range</span>
+                            <span>Section &rarr; Make &rarr; Collection &rarr; Wide Range &rarr; Type</span>
                             <button type="button" id="btn-toggle-all-tree" data-expanded="false"
                                 onclick="toggleAllSectionTree(this, event)"
                                 class="inline-flex items-center justify-center size-5 rounded text-primary hover:bg-white/60 dark:hover:bg-gray-800 transition-colors"

@@ -107,12 +107,12 @@ WITH base AS (
         AND (:authorized_branch_ids IS NULL OR branch_id = ANY(string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]))
 )
 SELECT 
-    5 - (GROUPING(section) + GROUPING(make) + GROUPING(collection) + GROUPING(type) + GROUPING(wide_range)) AS level_id,
+    5 - (GROUPING(section) + GROUPING(make) + GROUPING(collection) + GROUPING(wide_range) + GROUPING(type)) AS level_id,
     section,
     make,
     collection,
-    type,
     wide_range,
+    type,
     SUM(COALESCE(prov_pieces, 0)) AS prov_pcs,
     ROUND(SUM(COALESCE(prov_gr_wt, 0)), 3) AS prov_gr_wt,
     ROUND(SUM(COALESCE(in_shop_wt, 0)), 3) AS in_shop_wt,
@@ -128,13 +128,13 @@ SELECT
     ROUND(SUM(COALESCE(excess_gr_weight, 0) + COALESCE(not_in_prov_gr_weight, 0)) - SUM(COALESCE(short_gr_wt, 0)), 3) AS net_short_excess,
     ROUND(SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)), 3) AS ordered_wt
 FROM base
-GROUP BY ROLLUP (section, make, collection, type, wide_range)
+GROUP BY ROLLUP (section, make, collection, wide_range, type)
 ORDER BY 
     GROUPING(section) DESC,
     section, 
     make NULLS FIRST, 
     collection NULLS FIRST, 
-    type NULLS FIRST, 
-    wide_range NULLS FIRST
+    wide_range NULLS FIRST,
+    type NULLS FIRST
     """
 

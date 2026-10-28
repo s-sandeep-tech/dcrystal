@@ -296,8 +296,8 @@ def get_section_wise_provision_stock_summary_partial():
             else:
                 tree_rows.append(r)
 
-        hierarchy_columns = ('section', 'make', 'collection', 'type', 'wide_range')
-        hierarchy_labels = ('Section', 'Make', 'Collection', 'Type', 'Wide Range')
+        hierarchy_columns = ('section', 'make', 'collection', 'wide_range', 'type')
+        hierarchy_labels = ('Section', 'Make', 'Collection', 'Wide Range', 'Type')
         node_ids = {}
         hierarchy_paths = []
 
