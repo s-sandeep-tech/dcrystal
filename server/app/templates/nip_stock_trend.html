@@ -2,7 +2,7 @@
 {% block title %}NIP Stock Trend Analysis{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/nip_stock_trend.css', v='20261028-three-bars') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nip_stock_trend.css', v='20261028-full-height') }}">
 {% endblock %}
 {% block content %}
 <main id="nip-main" class="flex-1 min-w-0 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
@@ -29,7 +29,7 @@
     </div>
     <div class="nip-toolbar bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <div role="group" aria-label="Report view" class="flex border border-gray-200 dark:border-gray-700 rounded overflow-hidden">
-            {% for key,icon,label in [('table','table_chart','Table'),('graph','show_chart','Graph'),('combined','view_agenda','Combined')] %}<button data-view="{{ key }}" aria-pressed="{{ 'true' if key == 'combined' else 'false' }}" class="nip-view px-3 py-1.5 text-xs"><span class="material-symbols-outlined text-[15px] align-middle">{{ icon }}</span> {{ label }}</button>{% endfor %}
+            {% for key,icon,label in [('table','table_chart','Table'),('graph','bar_chart','Graph')] %}<button data-view="{{ key }}" aria-pressed="{{ 'true' if key == 'graph' else 'false' }}" class="nip-view px-3 py-1.5 text-xs"><span class="material-symbols-outlined text-[15px] align-middle">{{ icon }}</span> {{ label }}</button>{% endfor %}
         </div>
         <label>Interval<select id="nip-interval">{% for v in ['daily','weekly','monthly','quarterly','yearly'] %}<option value="{{ v }}">{{ v|title }}</option>{% endfor %}</select></label>
         <label>Measurement<select id="nip-metric"><option value="gross_wt">Gross Weight (kg)</option><option value="pieces">Stock Pieces (Nos.)</option></select></label>
@@ -42,7 +42,7 @@
             <div class="flex items-center justify-between px-4 py-2"><h3 class="text-xs font-bold">Stock Trend</h3><div class="flex gap-2"><button id="nip-png" class="nip-icon" title="Download graph as PNG" aria-label="Download graph as PNG"><span class="material-symbols-outlined">image</span></button><button id="nip-expand" class="nip-icon" title="Expand graph" aria-label="Expand graph"><span class="material-symbols-outlined">fullscreen</span></button></div></div>
             <div class="nip-chart-frame"><canvas id="nip-chart" aria-label="NIP stock trend bar chart" role="img"></canvas></div>
         </section>
-        <section id="nip-table" class="overflow-auto bg-white dark:bg-gray-900"></section>
+        <section id="nip-table" hidden class="overflow-auto bg-white dark:bg-gray-900"></section>
     </div>
 </main>
 {% endblock %}
@@ -63,5 +63,5 @@
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261028-bar-spacing') }}"></script>
+<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261028-category-spacing') }}"></script>
 {% endblock %}

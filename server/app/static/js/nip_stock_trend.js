@@ -1,6 +1,6 @@
 (() => {
     const el = id => document.getElementById(id), controls = {};
-    let applied = new URLSearchParams(), chart = null, data = null, pending = null, mode = 'combined', tablePage = 1;
+    let applied = new URLSearchParams(), chart = null, data = null, pending = null, mode = 'graph', tablePage = 1;
     const headers = () => ({Authorization: `Bearer ${localStorage.getItem('access_token') || ''}`});
     const name = key => key.replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
     const number = value => value == null ? 'N/A' : Number(value).toLocaleString('en-IN', {
@@ -32,19 +32,35 @@
         if (!data) return;
         const datasets = [];
         data.series.forEach((series, i) => {
+            if (i && series.group !== data.series[i-1].group) datasets.push({
+                type:'bar',label:'',data:data.periods.map(()=>null),groupSpacer:true,order:1
+            });
             const color = ({total:'#1683ef',nip:'#e59b18',excess:'#e05260'})[series.kind] || `hsl(${(i * 137.508) % 360} 65% 44%)`;
             datasets.push({type:'bar',label:series.name,data:series.values,borderColor:color,backgroundColor:color,
-                borderWidth:1,maxBarThickness:28,categoryPercentage:0.65,barPercentage:0.75,order:1});
+                borderWidth:1,barPercentage:0.96,order:1});
             if (el('nip-average').checked) datasets.push({type:'line',label:`${series.name} (3-period MA)`,borderColor:color,
                 backgroundColor:color,order:0,
                 borderDash:[5,4],pointRadius:0,borderWidth:1,spanGaps:false,
                 data:series.values.map((_,index) => index < 2 || series.values.slice(index-2,index+1).some(v=>v==null)
                     ? null : series.values.slice(index-2,index+1).reduce((sum,v)=>sum+v,0)/3)});
         });
-        if (typeof Chart !== 'undefined') chart = new Chart(el('nip-chart'), {type:'bar',data:{labels:data.periods,datasets},options:{
+        if (typeof Chart !== 'undefined') chart = new Chart(el('nip-chart'), {type:'bar',data:{labels:data.periods,datasets},plugins:[{
+            id:'categoryGroupSpacing',
+            beforeDatasetsUpdate(current) {
+                const bars=current.data.datasets.filter(dataset=>dataset.type==='bar');
+                const visibleBars=bars.filter(dataset=>current.isDatasetVisible(current.data.datasets.indexOf(dataset)));
+                // Reserve one empty bar slot between comparison groups, keeping each trio tight.
+                const slot=Math.min(29,current.chartArea.width/Math.max(1,data.periods.length)/Math.max(1,visibleBars.length)*0.8);
+                const categoryWidth=slot*visibleBars.length;
+                bars.forEach(dataset=>{
+                    dataset.categoryPercentage=categoryWidth/(current.chartArea.width/Math.max(1,data.periods.length));
+                    dataset.maxBarThickness=slot;
+                });
+            }
+        }],options:{
             responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
             scales:{y:{beginAtZero:true,title:{display:true,text:data.unit},ticks:{precision:data.metric==='pieces'?0:3}}},
-            plugins:{legend:{position:'bottom'},tooltip:{callbacks:{title:items => `${items[0].label} (balance ${data.balance_dates[items[0].dataIndex]})`,
+            plugins:{legend:{position:'bottom',labels:{filter:item=>!datasets[item.datasetIndex].groupSpacer}},tooltip:{filter:item=>!item.dataset.groupSpacer,callbacks:{title:items => `${items[0].label} (balance ${data.balance_dates[items[0].dataIndex]})`,
                 label:context=>`${context.dataset.label}: ${number(context.raw)} ${data.unit}`}}}}});
         else el('nip-status').textContent += ' Chart library unavailable; table values remain available.';
     }
@@ -60,7 +76,8 @@
             const record=rows[index],row=body.insertRow();
             for(const value of [record.period,record.balance_date,record.group,number(record.total),number(record.nip),number(record.excess)]) row.insertCell().textContent=value;
         }
-        el('nip-table').append(table);
+        const scroll=document.createElement('div');scroll.className='nip-table-scroll';scroll.append(table);
+        el('nip-table').append(scroll);
         const paging=document.createElement('div');paging.className='flex items-center justify-end gap-3 px-4 py-2 text-xs';
         const label=document.createElement('span');label.textContent=`${total?start+1:0}-${Math.min(total,start+50)} of ${total}`;paging.append(label);
         for(const [direction,icon] of [[-1,'chevron_left'],[1,'chevron_right']]){

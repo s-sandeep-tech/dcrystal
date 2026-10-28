@@ -32,13 +32,28 @@ const fields=['location','division','group_name','purity','classification','sub_
  catch(error){console.log({errors,requests:requests.map(String),url:page.url(),status:await page.locator('#nip-status').textContent()});await page.screenshot({path:'/tmp/nip-debug.png'});throw error;}
  assert.equal(await page.locator('#nip-table tbody tr').count(),50);
  assert(!(await page.locator('#nip-table thead').textContent()).includes('undefined'));
+ assert.equal(await page.locator('[data-view="combined"]').count(),0);
+ await page.locator('[data-view="table"]').click();
+ assert.equal(await page.locator('#nip-graph').isVisible(),false);
+ const outputBox=await page.locator('#nip-output').boundingBox();
+ const tableBox=await page.locator('#nip-table').boundingBox();
+ assert(Math.abs(outputBox.height-tableBox.height)<2);
  await page.getByRole('button',{name:'Next page',exact:true}).click();assert.equal(await page.locator('#nip-table tbody tr').count(),13);
  await page.locator('[data-view="graph"]').click();assert.equal(await page.locator('#nip-table').isVisible(),false);
- await page.locator('[data-view="combined"]').click();
+ const graphBox=await page.locator('#nip-graph').boundingBox();
+ assert(Math.abs(outputBox.height-graphBox.height)<2);
  await page.locator('#nip-average').check();
- assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.length),18);
+ assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.filter(d=>!d.groupSpacer).length),18);
  assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).config.type),'bar');
- assert.deepEqual(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.map(d=>d.type)),Array.from({length:9},()=>['bar','line']).flat());
+ assert.deepEqual(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.filter(d=>!d.groupSpacer).map(d=>d.type)),Array.from({length:9},()=>['bar','line']).flat());
+ await page.waitForTimeout(1000);
+ const gaps=await page.evaluate(()=>{
+  const c=Chart.getChart(document.getElementById('nip-chart'));
+  const bars=c.data.datasets.flatMap((d,i)=>d.type==='bar'&&!d.groupSpacer?[c.getDatasetMeta(i).data[0]]:[]);
+  return {inside:bars[1].x-bars[0].x-(bars[0].width+bars[1].width)/2,
+   between:bars[3].x-bars[2].x-(bars[2].width+bars[3].width)/2};
+ });
+ assert(gaps.between>gaps.inside*5,JSON.stringify(gaps));
  await page.locator('#nip-metric').selectOption('pieces');await page.waitForFunction(()=>document.getElementById('nip-stat-opening').textContent==='60');
  await page.locator('#nip-interval').selectOption('monthly');
  await page.locator('#nip-from').fill('2026-10-01');await page.locator('#nip-to').fill('2026-10-21');

@@ -21,7 +21,14 @@
 .nip-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid #d1d5db;border-radius:4px;color:#1683ef}
 .nip-icon .material-symbols-outlined{font-size:17px}
 .nip-view[aria-pressed=true]{background:#e6f2ff;color:#0879e5;font-weight:bold}
-.nip-chart-frame{height:340px;position:relative;padding:8px 16px 16px}
+#nip-main>.nip-stats,#nip-main>.nip-toolbar,#nip-status{flex-shrink:0}
+#nip-output{display:flex;overflow:hidden}
+#nip-graph,#nip-table{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+#nip-output>[hidden]{display:none}
+#nip-graph>div:first-child{flex-shrink:0}
+.nip-chart-frame{flex:1;min-height:0;position:relative;padding:8px 16px 16px}
+.nip-table-scroll{flex:1;min-height:0;overflow:auto}
+#nip-table>div:last-child{flex-shrink:0}
 #nip-graph:fullscreen{background:white;overflow:auto}#nip-graph:fullscreen .nip-chart-frame{height:calc(100vh - 55px)}
 #nip-table table{min-width:650px;width:100%;border-collapse:collapse;font-size:11px}
 #nip-table th{background:#f3f4f6;color:#6b7280;text-align:left;position:sticky;top:0}
