@@ -93,9 +93,25 @@
                     });
                 });
                 ctx.restore();
+                ctx.save();
+                ctx.font='500 10px sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
+                ctx.fillStyle=document.documentElement.classList.contains('dark')?'#e5e7eb':'#374151';
+                current.data.datasets.forEach((dataset,index)=>{
+                    if(dataset.type!=='bar'||dataset.groupSpacer||!current.isDatasetVisible(index))return;
+                    current.getDatasetMeta(index).data.forEach((bar,position)=>{
+                        const value=dataset.data[position];
+                        if(value==null)return;
+                        ctx.save();
+                        ctx.translate(bar.x,Math.min(bar.y,bar.base)-5);
+                        ctx.rotate(-Math.PI/2);
+                        ctx.fillText(number(value),0,0);
+                        ctx.restore();
+                    });
+                });
+                ctx.restore();
             }
         }],options:{
-            responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
+            responsive:true,maintainAspectRatio:false,animation:false,layout:{padding:{top:70}},interaction:{mode:'index',intersect:false},
             scales:{x:{ticks:{padding:26}},y:{beginAtZero:true,title:{display:true,text:data.unit},ticks:{precision:data.metric==='pieces'?0:3}}},
             plugins:{legend:{position:'bottom',labels:{generateLabels:current=>[
                 ['total','Total Stock'],['nip','NIP Stock'],['excess','Excess Stock']

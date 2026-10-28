@@ -83,6 +83,7 @@ const fields=['location','division','group_name','purity','classification','sub_
   c.draw();c.ctx.fillText=original;return labels;
  });
  for(const purity of ['750','920','995','999'])assert(purityLabels.includes(purity));
+ for(const value of ['1','2','3','4'])assert(purityLabels.includes(value),'Missing bar value '+value);
  assert.deepEqual(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).legend.legendItems.map(item=>item.text)),['Total Stock','NIP Stock','Excess Stock']);
  const legendPoint=await page.evaluate(()=>{
   const c=Chart.getChart(document.getElementById('nip-chart')),box=c.legend.legendHitBoxes[1],rect=c.canvas.getBoundingClientRect();
