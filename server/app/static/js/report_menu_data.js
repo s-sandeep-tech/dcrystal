@@ -337,6 +337,14 @@ window.REPORT_MENU_DATA = [
                 tags: ["stock", "location", "provision", "analysis"]
             },
             {
+                id: "section-wise-provision-stock-summary",
+                title: "Section-wise Provision and Stock Summary",
+                href: "/section-wise-provision-stock-summary",
+                icon: "account_tree",
+                description: "Analyze section-wise provision, in-shop stock, and short/excess details with multi-level drill down.",
+                tags: ["section", "provision", "stock", "summary", "drilldown"]
+            },
+            {
                 id: "provision-stock-status",
                 title: "Provision Stock Status",
                 href: "/provision-stock-status",
