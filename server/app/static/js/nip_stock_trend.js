@@ -34,7 +34,7 @@
         data.series.forEach((series, i) => {
             const color = ({total:'#1683ef',nip:'#e59b18',excess:'#e05260'})[series.kind] || `hsl(${(i * 137.508) % 360} 65% 44%)`;
             datasets.push({type:'bar',label:series.name,data:series.values,borderColor:color,backgroundColor:color,
-                borderWidth:1,maxBarThickness:40,order:1});
+                borderWidth:1,maxBarThickness:28,categoryPercentage:0.65,barPercentage:0.75,order:1});
             if (el('nip-average').checked) datasets.push({type:'line',label:`${series.name} (3-period MA)`,borderColor:color,
                 backgroundColor:color,order:0,
                 borderDash:[5,4],pointRadius:0,borderWidth:1,spanGaps:false,
