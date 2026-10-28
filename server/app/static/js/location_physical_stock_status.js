@@ -1,6 +1,7 @@
 let currentSearch = '';
 let filterValues = {
     location: '',
+    division: 'GOLD',
     purity: '',
     classification: '',
     make: '',
@@ -137,16 +138,16 @@ document.addEventListener('DOMContentLoaded', () => {
         options: [],
         onSearch: async (query, callback) => {
             try {
-                const response = await fetch(`/api/location-physical-stock-status/makes/search?q=${encodeURIComponent(query)}`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-                });
-                const data = await response.json();
-                callback(data);
-            } catch (err) {
-                console.error('Make search failed:', err);
-                callback([]);
+                    const response = await fetch(`/api/location-physical-stock-status/makes/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                    });
+                    const data = await response.json();
+                    callback(data);
+                } catch (err) {
+                    console.error('Make search failed:', err);
+                    callback([]);
+                }
             }
-        }
     });
 
     collectionMultiSelect = new CustomMultiSelect({
@@ -156,16 +157,16 @@ document.addEventListener('DOMContentLoaded', () => {
         options: [],
         onSearch: async (query, callback) => {
             try {
-                const response = await fetch(`/api/location-physical-stock-status/collections/search?q=${encodeURIComponent(query)}`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-                });
-                const data = await response.json();
-                callback(data);
-            } catch (err) {
-                console.error('Collection search failed:', err);
-                callback([]);
+                    const response = await fetch(`/api/location-physical-stock-status/collections/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                    });
+                    const data = await response.json();
+                    callback(data);
+                } catch (err) {
+                    console.error('Collection search failed:', err);
+                    callback([]);
+                }
             }
-        }
     });
 
     makeHeaderFilter = new HeaderFilter({
@@ -179,16 +180,16 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onSearch: async (query, callback) => {
             try {
-                const response = await fetch(`/api/location-physical-stock-status/makes/search?q=${encodeURIComponent(query)}`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-                });
-                const data = await response.json();
-                callback(data);
-            } catch (err) {
-                console.error('Make header search failed:', err);
-                callback([]);
+                    const response = await fetch(`/api/location-physical-stock-status/makes/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                    });
+                    const data = await response.json();
+                    callback(data);
+                } catch (err) {
+                    console.error('Make header search failed:', err);
+                    callback([]);
+                }
             }
-        }
     });
 
     sectionHeaderFilter = new HeaderFilter({
@@ -224,17 +225,25 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onSearch: async (query, callback) => {
             try {
-                const response = await fetch(`/api/location-physical-stock-status/collections/search?q=${encodeURIComponent(query)}`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-                });
-                const data = await response.json();
-                callback(data);
-            } catch (err) {
-                console.error('Collection header search failed:', err);
-                callback([]);
+                    const response = await fetch(`/api/location-physical-stock-status/collections/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                    });
+                    const data = await response.json();
+                    callback(data);
+                } catch (err) {
+                    console.error('Collection header search failed:', err);
+                    callback([]);
+                }
             }
-        }
     });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlDivision = urlParams.get('division');
+    if (urlDivision !== null) {
+        filterValues.division = urlDivision;
+        const divSelect = document.getElementById('filter-division');
+        if (divSelect) divSelect.value = urlDivision;
+    }
 
     setupStockRefreshPrompt();
     loadOptions();
@@ -259,6 +268,7 @@ async function loadOptions(throwOnError = false) {
         const data = await response.json();
 
         const config = [
+            { id: 'filter-division', data: data.divisions },
             { id: 'filter-purity', data: data.purities },
             { id: 'filter-classification', data: data.classifications },
             { id: 'filter-prov-type', data: data.prov_types },
@@ -281,7 +291,7 @@ async function loadOptions(throwOnError = false) {
         populatePreservingSelection(stateMultiSelect, data.states);
         populatePreservingSelection(sectionMultiSelect, data.sections);
         // makeMultiSelect is now dynamic
-        if (makeHeaderFilter) makeHeaderFilter.setOptions([]); 
+        if (makeHeaderFilter) makeHeaderFilter.setOptions([]);
         if (sectionHeaderFilter) sectionHeaderFilter.setOptions(data.sections);
         if (purityHeaderFilter) purityHeaderFilter.setOptions(data.purities);
         // collectionMultiSelect is now dynamic
@@ -290,7 +300,10 @@ async function loadOptions(throwOnError = false) {
         config.forEach(item => {
             const select = document.getElementById(item.id);
             if (select && item.data) {
-                const selected = select.value;
+                let selected = select.value;
+                if (item.id === 'filter-division' && !selected && filterValues.division) {
+                    selected = filterValues.division;
+                }
                 const placeholder = select.options[0]?.cloneNode(true);
                 select.replaceChildren();
                 if (placeholder) select.appendChild(placeholder);
@@ -301,7 +314,27 @@ async function loadOptions(throwOnError = false) {
                     el.textContent = opt;
                     select.appendChild(el);
                 });
-                select.value = selected;
+                if (selected) {
+                    const matchedOpt = options.find(o => String(o).toLowerCase() === String(selected).toLowerCase());
+                    if (matchedOpt) {
+                        select.value = matchedOpt;
+                        if (item.id === 'filter-division') {
+                            filterValues.division = matchedOpt;
+                        }
+                    } else {
+                        select.value = selected;
+                    }
+                } else if (item.id === 'filter-division') {
+                    const goldOpt = options.find(o => String(o).toLowerCase() === 'gold');
+                    if (goldOpt) {
+                        select.value = goldOpt;
+                        filterValues.division = goldOpt;
+                    } else {
+                        select.value = '';
+                    }
+                } else {
+                    select.value = '';
+                }
             }
         });
     } catch (err) {
@@ -316,7 +349,7 @@ async function loadReport(throwOnError = false) {
     const mainContainer = document.getElementById('table-area');
     const progressBar = document.getElementById('report-progress');
     if (!tableArea) return;
-    
+
     mainContainer.classList.add('opacity-50', 'pointer-events-none');
     if (progressBar) progressBar.classList.remove('hidden');
 
@@ -392,6 +425,7 @@ function applyFilters() {
     filterValues.branch_type = '';
     filterValues.branch_status = '';
     filterValues.business_head = document.getElementById('filter-business-head').value;
+    filterValues.division = document.getElementById('filter-division')?.value || '';
 
     if (locationMultiSelect) filterValues.location = locationMultiSelect.getValues().join(',');
     if (branchStatusMultiSelect) filterValues.branch_status = branchStatusMultiSelect.getValues().join(',');
@@ -425,16 +459,16 @@ function applyFilters() {
     let headerCollections = collectionHeaderFilter ? collectionHeaderFilter.selectedValues : [];
     let combinedCollections = new Set([...sidebarCollections, ...headerCollections]);
     filterValues.collection = Array.from(combinedCollections).join(',');
-    
+
     loadReport();
 }
 
 function resetFilters() {
     Object.keys(filterValues).forEach(key => filterValues[key] = '');
     currentSearch = '';
-    
+
     const filterIds = [
-        'filter-purity', 'filter-classification', 
+        'filter-purity', 'filter-classification',
         'filter-prov-type', 'filter-provision-mode',
         'filter-business-head'
     ];
@@ -443,6 +477,20 @@ function resetFilters() {
         if (el) el.value = '';
     });
 
+    const divSelect = document.getElementById('filter-division');
+    if (divSelect) {
+        const goldOpt = Array.from(divSelect.options).find(o => o.value.toLowerCase() === 'gold');
+        if (goldOpt) {
+            divSelect.value = goldOpt.value;
+            filterValues.division = goldOpt.value;
+        } else {
+            divSelect.value = 'GOLD';
+            filterValues.division = 'GOLD';
+        }
+    } else {
+        filterValues.division = 'GOLD';
+    }
+
     if (locationMultiSelect) locationMultiSelect.reset();
     if (branchStatusMultiSelect) branchStatusMultiSelect.reset();
     if (branchTypeMultiSelect) branchTypeMultiSelect.reset();
@@ -450,7 +498,7 @@ function resetFilters() {
     if (sectionMultiSelect) sectionMultiSelect.reset();
     if (makeMultiSelect) makeMultiSelect.reset();
     if (collectionMultiSelect) collectionMultiSelect.reset();
-    
+
     if (makeHeaderFilter) makeHeaderFilter.setSelectedValues([]);
     if (sectionHeaderFilter) sectionHeaderFilter.setSelectedValues([]);
     if (purityHeaderFilter) purityHeaderFilter.setSelectedValues([]);
@@ -461,7 +509,7 @@ function resetFilters() {
 
     const searchInput = document.getElementById('report-search');
     if (searchInput) searchInput.value = '';
-    
+
     loadReport();
 }
 
@@ -485,7 +533,7 @@ function toggleSort(column) {
 function adjustZoom(delta, reset = false) {
     const main = document.getElementById('location-physical-stock-status-main');
     if (!main) return;
-    
+
     let currentZoom = parseFloat(main.getAttribute('data-zoom') || '1');
 
     if (reset) currentZoom = 1;
@@ -494,7 +542,7 @@ function adjustZoom(delta, reset = false) {
     currentZoom = Math.max(0.7, Math.min(1.5, currentZoom));
     main.style.zoom = currentZoom;
     main.setAttribute('data-zoom', currentZoom);
-    
+
     const zoomText = document.getElementById('zoom-level');
     if (zoomText) zoomText.textContent = `${Math.round(currentZoom * 100)}%`;
 }
@@ -503,7 +551,7 @@ function adjustZoom(delta, reset = false) {
 function toggleHeaderFilter(event, id) {
     event.stopPropagation();
     const icon = event.currentTarget;
-    
+
     if (id === 'make' && makeHeaderFilter) {
         if (makeHeaderFilter.isOpen) {
             makeHeaderFilter.close();
@@ -1160,6 +1208,7 @@ async function exportToExcel() {
         const activeFilters = {
             search: currentSearch,
             location: filterValues.location,
+            division: filterValues.division,
             purity: filterValues.purity,
             classification: filterValues.classification,
             make: filterValues.make,

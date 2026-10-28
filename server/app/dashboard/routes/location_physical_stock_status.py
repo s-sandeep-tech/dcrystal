@@ -114,6 +114,7 @@ def location_physical_stock_status_options():
 
         # Query distinct values for filters from the local raw snapshot
         locations = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.location.distinct()).order_by(ProvisionStockRawSnapshot.location).all() if r[0]]
+        divisions = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.division.distinct()).order_by(ProvisionStockRawSnapshot.division).all() if r[0]]
         purities = [float(r[0]) for r in base_q.with_entities(ProvisionStockRawSnapshot.purity.distinct()).order_by(ProvisionStockRawSnapshot.purity).all() if r[0]]
         classifications = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.classification.distinct()).order_by(ProvisionStockRawSnapshot.classification).all() if r[0]]
         # makes and collections removed for dynamic loading
@@ -127,6 +128,7 @@ def location_physical_stock_status_options():
 
         data = {
             'locations': locations,
+            'divisions': divisions,
             'purities': purities,
             'classifications': classifications,
             'sections': sections,
@@ -150,6 +152,7 @@ def location_physical_stock_status_options():
 def location_physical_stock_status_collections_search():
     try:
         q = request.args.get('q', '').strip()
+        division = request.args.get('division', '').strip()
         
         # Role-based filtering (identical logic to options API)
         roles = [r.upper() for r in session.get('roles', [])]
@@ -174,6 +177,9 @@ def location_physical_stock_status_collections_search():
                 else:
                     return jsonify([])
 
+        if division:
+            base_q = base_q.filter(func.upper(ProvisionStockRawSnapshot.division) == division.upper())
+
         if q:
             base_q = base_q.filter(ProvisionStockRawSnapshot.collection.ilike(f'%{q}%'))
         
@@ -190,6 +196,7 @@ def location_physical_stock_status_collections_search():
 def location_physical_stock_status_makes_search():
     try:
         q = request.args.get('q', '').strip()
+        division = request.args.get('division', '').strip()
         
         # Role-based filtering
         roles = [r.upper() for r in session.get('roles', [])]
@@ -214,6 +221,9 @@ def location_physical_stock_status_makes_search():
                 else:
                     return jsonify([])
 
+        if division:
+            base_q = base_q.filter(func.upper(ProvisionStockRawSnapshot.division) == division.upper())
+
         if q:
             base_q = base_q.filter(ProvisionStockRawSnapshot.make.ilike(f'%{q}%'))
         
@@ -231,6 +241,7 @@ def get_location_physical_stock_status_partial():
     try:
         # Read filters from request
         location = request.args.get('location', '')
+        division = request.args.get('division', 'GOLD' if 'division' not in request.args else '')
         purity = request.args.get('purity', '')
         classification = request.args.get('classification', '')
         make = request.args.get('make', '')
@@ -247,6 +258,7 @@ def get_location_physical_stock_status_partial():
 
         params = {
             'location': location if location else None,
+            'division': division if division else None,
             'state': state if state else None,
             'purity': purity if purity else None,
             'classification': classification if classification else None,
@@ -306,6 +318,7 @@ WITH base AS (
     FROM provision_stock_raw_snapshot
     WHERE 
         (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
+        AND (:division IS NULL OR UPPER(division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
         AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
         AND (:purity IS NULL OR purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
         AND (:classification IS NULL OR classification = ANY(string_to_array(CAST(:classification AS text), ',')))
@@ -774,6 +787,7 @@ def get_location_physical_stock_status_drilldown():
     try:
         # Read filters from request
         location = request.args.get('location', '')
+        division = request.args.get('division', '')
         purity = request.args.get('purity', '')
         classification = request.args.get('classification', '')
         make = request.args.get('make', '')
@@ -791,6 +805,7 @@ def get_location_physical_stock_status_drilldown():
 
         params = {
             'location': location if location else None,
+            'division': division if division else None,
             'purity': purity if purity else None,
             'classification': classification if classification else None,
             'make': make if make else None,
@@ -839,6 +854,7 @@ WITH base AS (
     FROM provision_stock_raw_snapshot
     WHERE 
         (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
+        AND (:division IS NULL OR UPPER(division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
         AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
         AND (:purity IS NULL OR purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
         AND (:classification IS NULL OR classification = ANY(string_to_array(CAST(:classification AS text), ',')))
@@ -978,6 +994,7 @@ def get_location_physical_stock_in_shop_details():
 
         params = {
             'location': request.args.get('location') or None,
+            'division': request.args.get('division') or None,
             'purity': request.args.get('purity') or None,
             'classification': request.args.get('classification') or None,
             'make': request.args.get('make') or None,
@@ -1049,7 +1066,7 @@ def get_location_physical_stock_in_shop_details():
         )
         barcode_filters = '\n'.join(
             f"AND (:{name} IS NULL OR b.{name} = ANY(string_to_array(CAST(:{name} AS text), ',')))"
-            for name in ('location', 'classification', 'make', 'collection', 'section', 'prov_type', 'branch_type')
+            for name in ('location', 'division', 'classification', 'make', 'collection', 'section', 'prov_type', 'branch_type')
         )
 
         query = text(f'''
@@ -1058,6 +1075,7 @@ WITH matching_stock AS MATERIALIZED (
         {stock_identity_columns}
     FROM provision_stock_raw_snapshot AS p
     WHERE (:location IS NULL OR p.location = ANY(string_to_array(CAST(:location AS text), ',')))
+          AND (:division IS NULL OR UPPER(p.division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
           AND (:state IS NULL OR p.state = ANY(string_to_array(CAST(:state AS text), ',')))
           AND (:purity IS NULL OR p.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
           AND (:classification IS NULL OR p.classification = ANY(string_to_array(CAST(:classification AS text), ',')))
@@ -1135,6 +1153,7 @@ def get_location_physical_stock_provision_details():
 
         params = {
             'location': request.args.get('location') or None,
+            'division': request.args.get('division') or None,
             'purity': request.args.get('purity') or None,
             'classification': request.args.get('classification') or None,
             'make': request.args.get('make') or None,
@@ -1216,6 +1235,7 @@ SELECT
     COALESCE(SUM(p.prov_gr_wt) OVER (), 0) AS total_gross_wt
 FROM provision_stock_raw_snapshot AS p
 WHERE (:location IS NULL OR p.location = ANY(string_to_array(CAST(:location AS text), ',')))
+  AND (:division IS NULL OR UPPER(p.division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
   AND (:state IS NULL OR p.state = ANY(string_to_array(CAST(:state AS text), ',')))
   AND (:purity IS NULL OR p.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
   AND (:classification IS NULL OR p.classification = ANY(string_to_array(CAST(:classification AS text), ',')))
@@ -1277,6 +1297,7 @@ def get_location_physical_stock_comparison():
 
         params = {
             'location': request.args.get('location') or None,
+            'division': request.args.get('division') or None,
             'purity': request.args.get('purity') or None,
             'classification': request.args.get('classification') or None,
             'make': request.args.get('make') or None,
@@ -1375,6 +1396,7 @@ WITH provision_rows AS MATERIALIZED (
         COALESCE(SUM(p.prov_gr_wt), 0) AS provision_weight
     FROM provision_stock_raw_snapshot AS p
     WHERE (:location IS NULL OR p.location = ANY(string_to_array(CAST(:location AS text), ',')))
+      AND (:division IS NULL OR UPPER(p.division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
       AND (:state IS NULL OR p.state = ANY(string_to_array(CAST(:state AS text), ',')))
       AND (:purity IS NULL OR p.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
       AND (:classification IS NULL OR p.classification = ANY(string_to_array(CAST(:classification AS text), ',')))

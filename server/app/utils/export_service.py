@@ -1458,6 +1458,7 @@ def generate_location_physical_stock_status_export(filters: dict) -> str:
 
     # 1. Parse and build query params
     location = filters.get('location', '')
+    division = filters.get('division', '')
     state = filters.get('state', '')
     purity = filters.get('purity', '')
     classification = filters.get('classification', '')
@@ -1477,6 +1478,7 @@ def generate_location_physical_stock_status_export(filters: dict) -> str:
 
     params = {
         'location': location if location else None,
+        'division': division if division else None,
         'state': state if state else None,
         'purity': purity if purity else None,
         'classification': classification if classification else None,
@@ -1499,6 +1501,7 @@ WITH base AS (
     FROM provision_stock_raw_snapshot
     WHERE 
         (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
+        AND (:division IS NULL OR UPPER(division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
         AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
         AND (:purity IS NULL OR purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
         AND (:classification IS NULL OR classification = ANY(string_to_array(CAST(:classification AS text), ',')))

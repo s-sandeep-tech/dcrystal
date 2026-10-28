@@ -25,11 +25,11 @@ class InShopBarcodeFilterTests(unittest.TestCase):
 
     def test_shared_filters_apply_to_both_source_tables(self):
         sql, params = self.capture_query(
-            'drill_section_ids=1&location=BANGALORE&classification=BRAND&make=MUDHRA'
+            'drill_section_ids=1&location=BANGALORE&division=GOLD&classification=BRAND&make=MUDHRA'
             '&collection=EMPIRE&section=NECKLACE&prov_type=Individual&branch_type=SHOP&purity=920'
             '&state=KARNATAKA&business_head=HEAD&provision_mode=Fixed&branch_status=ACTIVE'
         )
-        for field in ['location', 'classification', 'make', 'collection', 'section', 'prov_type', 'branch_type', 'purity']:
+        for field in ['location', 'division', 'classification', 'make', 'collection', 'section', 'prov_type', 'branch_type', 'purity']:
             self.assertIn('p.' + field, sql)
             self.assertIn('b.' + field, sql)
             self.assertIsNotNone(params[field])
@@ -38,6 +38,7 @@ class InShopBarcodeFilterTests(unittest.TestCase):
         self.assertIn('p.provision_mode_filter', sql)
         self.assertIn('p.business_head_name', sql)
         self.assertIn('p.branch_id = b.branch_id', sql)
+        self.assertEqual(params['division'], 'GOLD')
 
     def test_franchise_scope_also_applies_to_barcode_rows(self):
         sql, params = self.capture_query('drill_section_ids=1&branch_type=OTHER', ['FRANCHISE_INDIA_HEAD'])
