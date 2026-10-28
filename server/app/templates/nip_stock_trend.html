@@ -2,7 +2,7 @@
 {% block title %}NIP Stock Trend Analysis{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/nip_stock_trend.css', v='20261028-full-height') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nip_stock_trend.css', v='20261028-six-stats') }}">
 {% endblock %}
 {% block content %}
 <main id="nip-main" class="flex-1 min-w-0 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
@@ -15,15 +15,15 @@
         </div>
     </div>
     <div class="nip-stats bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        {% for key,label,tip in [('opening','Opening Stock','First observed daily balance in the selected period'),('closing','Closing Stock','Last observed daily balance in the selected period'),('change','Stock Change','Closing stock minus opening stock'),('change_pct','Stock Change %','Stock change divided by opening stock; unavailable when opening is zero'),('average','Average Stock','Mean of observed daily balances; missing dates are not filled')] %}
-        {% set icon = {'opening':'inventory_2', 'closing':'inventory', 'change':'swap_vert', 'change_pct':'percent', 'average':'bar_chart'}[key] %}
+        {% for key,label,tip in [('total_stock','Total Stock','Total stock on the latest reporting date across all filtered groups'),('total_nip','Total NIP','NIP stock on the latest reporting date across all filtered groups'),('total_excess','Total Excess','Excess stock on the latest reporting date across all filtered groups'),('change','Stock Change','Closing stock minus opening stock'),('change_pct','Stock Change %','Stock change divided by opening stock; unavailable when opening is zero'),('average','Average Stock','Mean of observed daily balances; missing dates are not filled')] %}
+        {% set icon = {'total_stock':'warehouse', 'total_nip':'inventory_2', 'total_excess':'inventory', 'change':'swap_vert', 'change_pct':'percent', 'average':'bar_chart'}[key] %}
         <div class="p-3 text-center border-r border-gray-100 dark:border-gray-800">
             <p class="text-[9px] text-gray-500 font-bold uppercase">{{ label }} <span title="{{ tip }}" tabindex="0" role="img" aria-label="{{ tip }}" class="material-symbols-outlined text-[11px] align-middle cursor-help">info</span></p>
             <div class="mt-1 flex items-center justify-center gap-1.5 text-primary">
                 <span class="material-symbols-outlined text-[17px] shrink-0" aria-hidden="true">{{ icon }}</span>
                 <p id="nip-stat-{{ key }}" class="text-sm font-bold">-</p>
             </div>
-            <span class="nip-unit text-[9px] text-gray-500"></span>
+            <span class="nip-unit text-[9px] text-gray-500" data-stat="{{ key }}"></span>
         </div>
         {% endfor %}
     </div>
@@ -66,5 +66,5 @@
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261028-rank-by') }}"></script>
+<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261028-six-stats') }}"></script>
 {% endblock %}

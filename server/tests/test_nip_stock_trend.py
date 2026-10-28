@@ -70,6 +70,9 @@ class StockTrendDataTests(unittest.TestCase):
             self.assertEqual(data['series'][0]['values'],[1,11.999])
             self.assertEqual(data['series'][1]['values'],[1,2])
             self.assertEqual(data['series'][2]['values'],[1,11.999])
+            self.assertEqual(data['stats']['total_nip'],2)
+            self.assertEqual(data['stats']['total_stock'],11.999)
+            self.assertEqual(data['stats']['total_excess'],11.999)
             self.assertAlmostEqual(data['stats']['change'],10.999)
             self.assertEqual([s['kind'] for s in data['series']],['total','nip','excess'])
             all_locations=trend_data(MultiDict([('location','ERNAKULAM'),('location','THRISSUR ROUND'),('metric','pieces')]))
@@ -108,6 +111,8 @@ class StockTrendDataTests(unittest.TestCase):
                 self.assertEqual(result['rank_by'],kind)
                 self.assertEqual(result['displayed_groups'],16)
                 self.assertEqual(result['stats']['closing'],3250)
+                self.assertEqual(result['stats']['total_nip'],32.5)
+                self.assertEqual(result['stats']['total_excess'],16.9)
             for limiter,first in [('middle','Group 05'),('bottom','Group 10')]:
                 result=trend_data(MultiDict({'limiter':limiter,'rank_by':'nip'}))
                 self.assertEqual(result['series'][0]['group'],first)

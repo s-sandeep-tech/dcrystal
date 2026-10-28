@@ -117,6 +117,9 @@ def trend_data(args):
     prepared = {kind: prepare_trend([(r[0], r[1], None if r[3 + i * 2] else r[2 + i * 2])
                 for r in rows], interval) for i, (kind, _) in enumerate(kinds)}
     data = dict(prepared['total'])
+    data['stats'] = {**data['stats'], 'total_stock': prepared['total']['stats']['closing'],
+                     'total_nip': prepared['nip']['stats']['closing'],
+                     'total_excess': prepared['excess']['stats']['closing']}
     totals = prepared['total']['series']
     ranking = prepared[rank_by]['series']
     ranked = sorted((i for i, series in enumerate(ranking) if series['values'] and series['values'][-1] is not None),

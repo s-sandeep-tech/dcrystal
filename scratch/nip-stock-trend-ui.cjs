@@ -20,7 +20,7 @@ const fields=['location','division','group_name','purity','classification','sub_
   const periods=Array.from({length:21},(_,i)=>`2026-10-${String(i+1).padStart(2,'0')}`);
   const body={periods,balance_dates:periods,series:['Gold','Silver','Platinum'].map((name,i)=>({name,values:periods.map((_,j)=>10+i*10+j)})),
    metric:url.searchParams.get('metric')||'gross_wt',group_by:url.searchParams.get('group_by')||'division',interval:url.searchParams.get('interval')||'daily',
-   stats:{opening:60,closing:120,change:60,change_pct:100,average:90},first_date:periods[0],last_date:periods.at(-1),observed_days:21};
+   stats:{total_stock:120,total_nip:60,total_excess:30,change:60,change_pct:100,average:90},first_date:periods[0],last_date:periods.at(-1),observed_days:21};
   const groups=body.group_by==='purity'?['750.00','920.00','995.00','999.00'].map((name,i)=>({name,values:periods.map(()=>i+1)})):body.series;
   body.unit=body.metric==='pieces'?'Nos.':'kg';
   body.table_rows=periods.flatMap((period,p)=>groups.map(s=>({period,balance_date:period,group:s.name,total:s.values[p],nip:s.values[p]/2,excess:s.values[p]/4})));
@@ -30,9 +30,12 @@ const fields=['location','division','group_name','purity','classification','sub_
   return r.fulfill({contentType:'application/json',body:JSON.stringify(body)});
  });
  await page.goto('http://127.0.0.1:8091/nip-stock-trend-analysis');
- try {await page.waitForFunction(()=>document.getElementById('nip-stat-opening')?.textContent==='60.000',{},{timeout:10000});}
+ try {await page.waitForFunction(()=>document.getElementById('nip-stat-total_nip')?.textContent==='60.000',{},{timeout:10000});}
  catch(error){console.log({errors,requests:requests.map(String),url:page.url(),status:await page.locator('#nip-status').textContent()});await page.screenshot({path:'/tmp/nip-debug.png'});throw error;}
  assert.equal(await page.locator('#nip-table tbody tr').count(),50);
+ assert.equal(await page.locator('#nip-stat-total_stock').textContent(),'120.000');
+ assert.equal(await page.locator('.nip-stats>div').count(),6);
+ assert.equal(await page.locator('.nip-unit[data-stat="change_pct"]').textContent(),'');
  assert.equal(await page.locator('#nip-limiter').inputValue(),'top');
  assert.equal(await page.locator('#nip-limiter option:checked').textContent(),'Top 16');
  assert.equal(await page.locator('#nip-order').inputValue(),'desc');
@@ -66,7 +69,7 @@ const fields=['location','division','group_name','purity','classification','sub_
  });
  assert(smallBars.tiny>=2.5,JSON.stringify(smallBars));
  assert(smallBars.zero===0,JSON.stringify(smallBars));
- await page.locator('#nip-metric').selectOption('pieces');await page.waitForFunction(()=>document.getElementById('nip-stat-opening').textContent==='60');
+ await page.locator('#nip-metric').selectOption('pieces');await page.waitForFunction(()=>document.getElementById('nip-stat-total_nip').textContent==='60');
  await page.locator('#nip-interval').selectOption('monthly');
  await page.locator('#nip-from').fill('2026-10-01');await page.locator('#nip-to').fill('2026-10-21');
  await page.locator('#nip-apply').click();await page.waitForFunction(()=>document.getElementById('nip-status').textContent.includes('Last reporting date'));
