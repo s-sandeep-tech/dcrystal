@@ -67,16 +67,19 @@ class StockTrendDataTests(unittest.TestCase):
         with self.app.test_request_context('/?location=ERNAKULAM'):
             session['roles']=['ADMIN']
             data=trend_data(MultiDict([('location','ERNAKULAM')]))
-            self.assertEqual(data['series'][0]['values'],[1,2])
-            self.assertEqual(data['stats']['change'],1)
+            self.assertEqual(data['series'][0]['values'],[1,11.999])
+            self.assertEqual(data['series'][1]['values'],[1,2])
+            self.assertEqual(data['series'][2]['values'],[1,11.999])
+            self.assertAlmostEqual(data['stats']['change'],10.999)
+            self.assertEqual([s['kind'] for s in data['series']],['total','nip','excess'])
             all_locations=trend_data(MultiDict([('location','ERNAKULAM'),('location','THRISSUR ROUND'),('metric','pieces')]))
-            self.assertEqual(all_locations['stats']['closing'],7)
+            self.assertEqual(all_locations['stats']['closing'],27)
 
     def test_date_boolean_and_scope(self):
         with self.app.test_request_context('/'):
             session['roles']=['SHOWROOM_MANAGER'];session['user_id']='1235'
             data=trend_data(MultiDict([('from_date','2026-10-02'),('is_excess','true')]))
-            self.assertEqual(data['stats']['closing'],2)
+            self.assertEqual(data['stats']['closing'],11.999)
             session['user_id']='999'
             self.assertEqual(scoped_query().count(),0)
 
@@ -95,10 +98,23 @@ class StockTrendDataTests(unittest.TestCase):
                 response=export_nip_stock_trend.__wrapped__()
             response.direct_passthrough=False
             workbook=load_workbook(BytesIO(response.get_data()))
-            self.assertEqual(workbook.active['D2'].value,2)
+            self.assertEqual(workbook.active['D2'].value,11.999)
+            self.assertEqual(workbook.active['E2'].value,2)
+            self.assertEqual(workbook.active['F2'].value,11.999)
             self.assertEqual(workbook.active['D2'].data_type,'n')
             self.assertEqual(workbook.active['B2'].value.date(),date(2026,10,2))
             workbook.close()
+
+    def test_subset_filter_zero_and_overlapping_flags(self):
+        with self.app.test_request_context('/'):
+            session['roles']=['ADMIN']
+            data=trend_data(MultiDict([('location','THRISSUR ROUND')]))
+            self.assertEqual([s['values'] for s in data['series']],[[5],[5],[0]])
+            filtered=trend_data(MultiDict([('location','ERNAKULAM'),('is_excess','true')]))
+            self.assertEqual(filtered['stats']['closing'],11.999)
+            self.assertEqual(filtered['table_rows'][-1]['total'],11.999)
+            self.assertEqual(filtered['table_rows'][-1]['nip'],2)
+            self.assertEqual(filtered['table_rows'][-1]['excess'],11.999)
 
     def test_sync_retains_older_dates_and_rolls_back_failed_refresh(self):
         from app.utils.nip_stock_trend_sync import sync_nip_stock_trend_task

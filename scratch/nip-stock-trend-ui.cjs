@@ -21,19 +21,24 @@ const fields=['location','division','group_name','purity','classification','sub_
   const body={periods,balance_dates:periods,series:['Gold','Silver','Platinum'].map((name,i)=>({name,values:periods.map((_,j)=>10+i*10+j)})),
    metric:url.searchParams.get('metric')||'gross_wt',group_by:url.searchParams.get('group_by')||'division',interval:url.searchParams.get('interval')||'daily',
    stats:{opening:60,closing:120,change:60,change_pct:100,average:90},first_date:periods[0],last_date:periods.at(-1),observed_days:21};
+  const groups=body.series;
+  body.unit=body.metric==='pieces'?'Nos.':'kg';
+  body.table_rows=periods.flatMap((period,p)=>groups.map(s=>({period,balance_date:period,group:s.name,total:s.values[p],nip:s.values[p]/2,excess:s.values[p]/4})));
+  body.series=groups.flatMap(s=>[['total',1],['nip',.5],['excess',.25]].map(([kind,factor])=>({name:s.name+' - '+kind,group:s.name,kind,values:s.values.map(v=>v*factor)})));
   return r.fulfill({contentType:'application/json',body:JSON.stringify(body)});
  });
  await page.goto('http://127.0.0.1:8091/nip-stock-trend-analysis');
  try {await page.waitForFunction(()=>document.getElementById('nip-stat-opening')?.textContent==='60.000',{},{timeout:10000});}
  catch(error){console.log({errors,requests:requests.map(String),url:page.url(),status:await page.locator('#nip-status').textContent()});await page.screenshot({path:'/tmp/nip-debug.png'});throw error;}
  assert.equal(await page.locator('#nip-table tbody tr').count(),50);
+ assert(!(await page.locator('#nip-table thead').textContent()).includes('undefined'));
  await page.getByRole('button',{name:'Next page',exact:true}).click();assert.equal(await page.locator('#nip-table tbody tr').count(),13);
  await page.locator('[data-view="graph"]').click();assert.equal(await page.locator('#nip-table').isVisible(),false);
  await page.locator('[data-view="combined"]').click();
  await page.locator('#nip-average').check();
- assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.length),6);
+ assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.length),18);
  assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).config.type),'bar');
- assert.deepEqual(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.map(d=>d.type)),['bar','line','bar','line','bar','line']);
+ assert.deepEqual(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.map(d=>d.type)),Array.from({length:9},()=>['bar','line']).flat());
  await page.locator('#nip-metric').selectOption('pieces');await page.waitForFunction(()=>document.getElementById('nip-stat-opening').textContent==='60');
  await page.locator('#nip-interval').selectOption('monthly');
  await page.locator('#nip-from').fill('2026-10-01');await page.locator('#nip-to').fill('2026-10-21');

@@ -4,7 +4,9 @@
 - Source: `ext_view.vw_weight_level_excess_nip_barcode_data`.
 - Snapshot: `nip_stock_trend_snapshots`.
 - Settings task: **NIP Stock Trend Analysis Sync**, key `nip_stock_trend` (manual).
-- Report includes `is_nip = true` only. Other flags use independent All/Yes/No filters.
+- Each comparison group shows Total Stock, NIP Stock (`is_nip=true`), and Excess Stock
+  (`is_excess=true`). There is no implicit NIP-only filter. Explicit sidebar filters
+  apply to all three series. NIP and Excess may overlap and must not be added to Total.
 
 The sync streams 20,000 rows per batch in one consistent source transaction. It
 validates nonempty data, non-null unique `(date, uid)` keys and exact row/weight/pieces
@@ -14,7 +16,9 @@ Source rows must be barcode stock balances, not duplicate joins or stock movemen
 Historical dates cannot be reconstructed from a current-only view. Such a view
 starts with one reporting date and accumulates dates on subsequent syncs.
 
-Gross weight is SUM(gross_wt)/1000 kg; pieces is SUM(pieces). Null measurements
+Gross weight is SUM(gross_wt)/1000 kg; pieces is SUM(pieces). NIP/Excess use conditional
+SUM on the same measure and filtered records. Summary indicators use Total only.
+The table and Excel show the same three measures. Null measurements
 remain unavailable. For weeks (Monday start), months, calendar quarters and years,
 select the last available **common reporting date** in each period, then display
 that day's grouped balance. Never sum daily balances across the interval.

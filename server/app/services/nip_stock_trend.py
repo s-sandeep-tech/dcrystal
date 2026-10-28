@@ -15,7 +15,7 @@ INTERVALS = ('daily', 'weekly', 'monthly', 'quarterly', 'yearly')
 
 
 def scoped_query():
-    query = S.query.filter(S.is_nip.is_(True))
+    query = S.query
     roles = {str(r).upper() for r in session.get('roles', [])}
     if roles.intersection({'ADMIN', 'MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'}):
         return query
@@ -101,11 +101,26 @@ def trend_data(args):
     query = filter_query(scoped_query(), args)
     # Missing measures are unknown, not zero. Never silently omit a null measure.
     measure = getattr(S, metric)
-    aggregated = func.sum(measure) / 1000 if metric == 'gross_wt' else func.sum(measure)
+    divisor = 1000 if metric == 'gross_wt' else 1
+    expressions = [func.sum(measure) / divisor, func.count() - func.count(measure)]
+    for flag in (S.is_nip, S.is_excess):
+        expressions.extend([func.coalesce(func.sum(measure).filter(flag.is_(True)), 0) / divisor,
+                            func.count().filter(flag.is_(True)) - func.count(measure).filter(flag.is_(True))])
     group_column = func.coalesce(func.nullif(func.trim(getattr(S, group)), ''), '(Unspecified)')
-    rows = query.with_entities(S.date, group_column, aggregated, func.count() - func.count(measure)).group_by(
+    rows = query.with_entities(S.date, group_column, *expressions).group_by(
         S.date, group_column).order_by(S.date, group_column).all()
-    data = prepare_trend([(r[0], r[1], None if r[3] else r[2]) for r in rows], interval)
+    kinds = [('total', 'Total Stock'), ('nip', 'NIP Stock'), ('excess', 'Excess Stock')]
+    prepared = {kind: prepare_trend([(r[0], r[1], None if r[3 + i * 2] else r[2 + i * 2])
+                for r in rows], interval) for i, (kind, _) in enumerate(kinds)}
+    data = dict(prepared['total'])
+    # Headline statistics use total stock only; NIP and Excess are overlapping subsets.
+    data['series'] = [{**prepared[kind]['series'][i], 'group': series['name'], 'kind': kind,
+                       'name': series['name'] + ' - ' + label}
+                      for i, series in enumerate(prepared['total']['series']) for kind, label in kinds]
+    data['table_rows'] = [dict(period=period, balance_date=data['balance_dates'][p], group=series['name'],
+                              **{kind: prepared[kind]['series'][i]['values'][p] for kind, _ in kinds})
+                          for p, period in enumerate(data['periods'])
+                          for i, series in enumerate(prepared['total']['series'])]
     data.update(metric=metric, group_by=group, interval=interval,
                 unit='kg' if metric == 'gross_wt' else 'Nos.',
                 missing_measure_rows=sum(r[3] for r in rows))

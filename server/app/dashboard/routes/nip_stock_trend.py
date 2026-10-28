@@ -68,21 +68,21 @@ def export_nip_stock_trend():
     sheet = workbook.active
     sheet.title = 'NIP Stock Trend'
     sheet.append(['Period Start', 'Balance Date', data['group_by'].replace('_', ' ').title(),
-                  'Gross Weight (kg)' if data['metric'] == 'gross_wt' else 'Stock Pieces (Nos.)'])
-    for index, period in enumerate(data['periods']):
-        for series in data['series']:
-            sheet.append([date.fromisoformat(period), date.fromisoformat(data['balance_dates'][index]),
-                          series['name'], series['values'][index]])
-            sheet.cell(sheet.max_row, 3).data_type = 's'
+                  f"Total ({data['unit']})", f"NIP ({data['unit']})", f"Excess ({data['unit']})"])
+    for row in data['table_rows']:
+        sheet.append([date.fromisoformat(row['period']), date.fromisoformat(row['balance_date']),
+                      row['group'], row['total'], row['nip'], row['excess']])
+        sheet.cell(sheet.max_row, 3).data_type = 's'
     for cell in sheet[1]:
         cell.fill = PatternFill('solid', fgColor='E7E6E6')
         cell.font = Font(bold=True, color='333333')
     for row in sheet.iter_rows(min_row=2):
         row[0].number_format = row[1].number_format = 'yyyy-mm-dd'
-        row[3].number_format = '#,##0.000' if data['metric'] == 'gross_wt' else '#,##0'
+        for cell in row[3:]:
+            cell.number_format = '#,##0.000' if data['metric'] == 'gross_wt' else '#,##0'
         for cell in row:
             cell.border = Border(right=Side(style='thin', color='D0D0D0'))
-    for column, width in [('A', 18), ('B', 18), ('C', 42), ('D', 25)]:
+    for column, width in [('A', 18), ('B', 18), ('C', 42), ('D', 22), ('E', 22), ('F', 22)]:
         sheet.column_dimensions[column].width = width
     sheet.freeze_panes = 'C2'
     sheet.auto_filter.ref = sheet.dimensions

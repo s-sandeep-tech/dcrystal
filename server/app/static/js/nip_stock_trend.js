@@ -32,7 +32,7 @@
         if (!data) return;
         const datasets = [];
         data.series.forEach((series, i) => {
-            const color = `hsl(${(i * 137.508) % 360} 65% 44%)`;
+            const color = ({total:'#1683ef',nip:'#e59b18',excess:'#e05260'})[series.kind] || `hsl(${(i * 137.508) % 360} 65% 44%)`;
             datasets.push({type:'bar',label:series.name,data:series.values,borderColor:color,backgroundColor:color,
                 borderWidth:1,maxBarThickness:40,order:1});
             if (el('nip-average').checked) datasets.push({type:'line',label:`${series.name} (3-period MA)`,borderColor:color,
@@ -51,14 +51,14 @@
     function renderTable() {
         el('nip-table').replaceChildren();
         const table = document.createElement('table'), head = table.createTHead().insertRow();
-        for (const text of ['Time Period','Balance Date',name(data.group_by),data.metric==='pieces'?'Stock Pieces (Nos.)':'Gross Weight (kg)']) {
+        for (const text of ['Time Period','Balance Date',name(data.group_by),`Total (${data.unit})`,`NIP (${data.unit})`,`Excess (${data.unit})`]) {
             const th=document.createElement('th');th.textContent=text;head.append(th);
         }
         const body=table.createTBody();
-        const total=data.periods.length*data.series.length, start=(tablePage-1)*50;
+        const rows=data.table_rows || [],total=rows.length, start=(tablePage-1)*50;
         for(let index=start;index<Math.min(total,start+50);index++){
-            const i=Math.floor(index/data.series.length),series=data.series[index%data.series.length],row=body.insertRow();
-            for(const value of [data.periods[i],data.balance_dates[i],series.name,number(series.values[i])]) row.insertCell().textContent=value;
+            const record=rows[index],row=body.insertRow();
+            for(const value of [record.period,record.balance_date,record.group,number(record.total),number(record.nip),number(record.excess)]) row.insertCell().textContent=value;
         }
         el('nip-table').append(table);
         const paging=document.createElement('div');paging.className='flex items-center justify-end gap-3 px-4 py-2 text-xs';
@@ -78,8 +78,8 @@
         document.querySelectorAll('.nip-unit').forEach((node,i)=>node.textContent=i===3?'':data.unit);
         tablePage=1;renderTable();
         el('nip-status').textContent = data.periods.length
-            ? `${data.first_date} to ${data.last_date} · ${data.observed_days} observed days · NIP stock · ${data.interval === 'daily' ? 'Daily balances' : 'Last reporting date per period'}${data.missing_measure_rows ? ' · Missing measurements: '+data.missing_measure_rows : ''}`
-            : 'No NIP stock balances match these filters. Run the sync in Settings or change the selected dates.';
+            ? `${data.first_date} to ${data.last_date} · ${data.observed_days} observed days · Total / NIP / Excess · ${data.interval === 'daily' ? 'Daily balances' : 'Last reporting date per period'}${data.missing_measure_rows ? ' · Missing measurements: '+data.missing_measure_rows : ''}`
+            : 'No stock balances match these filters. Run the sync in Settings or change the selected dates.';
         draw(); showViews();
     }
     async function load() {

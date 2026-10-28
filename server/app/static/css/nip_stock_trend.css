@@ -26,6 +26,6 @@
 #nip-table table{min-width:650px;width:100%;border-collapse:collapse;font-size:11px}
 #nip-table th{background:#f3f4f6;color:#6b7280;text-align:left;position:sticky;top:0}
 #nip-table th,#nip-table td{padding:9px 12px;border-bottom:1px solid #e5e7eb;border-right:1px solid #e5e7eb}
-#nip-table td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+#nip-table td:nth-child(n+4){text-align:right;font-variant-numeric:tabular-nums}
 .dark #nip-table th{background:#1f2937}.dark #nip-graph:fullscreen{background:#111827}
 @media(max-width:760px){.nip-stats{grid-template-columns:repeat(2,minmax(0,1fr))}#nip-sidebar{width:220px}.nip-chart-frame{height:290px}.nip-toolbar{gap:6px 10px;padding:6px 8px}.nip-toolbar select{max-width:175px}.nip-toolbar .nip-average-control{border-left:0;padding-left:0}}
