@@ -2,7 +2,7 @@
 {% block title %}NIP Stock Trend Analysis{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/nip_stock_trend.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nip_stock_trend.css', v='20261028-compact') }}">
 {% endblock %}
 {% block content %}
 <main id="nip-main" class="flex-1 min-w-0 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
@@ -34,7 +34,7 @@
         <label>Interval<select id="nip-interval">{% for v in ['daily','weekly','monthly','quarterly','yearly'] %}<option value="{{ v }}">{{ v|title }}</option>{% endfor %}</select></label>
         <label>Measurement<select id="nip-metric"><option value="gross_wt">Gross Weight (kg)</option><option value="pieces">Stock Pieces (Nos.)</option></select></label>
         <label>Compare By<select id="nip-group">{% for v in dimensions %}<option value="{{ v }}" {% if v == 'division' %}selected{% endif %}>{{ v|replace('_',' ')|title }}</option>{% endfor %}</select></label>
-        <label class="flex items-center gap-1"><input id="nip-average" type="checkbox">3-period moving average</label>
+        <label class="nip-average-control" title="Show a trailing 3-period moving average"><input id="nip-average" type="checkbox">3-period average</label>
     </div>
     <p id="nip-status" role="status" class="px-4 py-2 text-xs text-gray-500 border-b border-gray-200 dark:border-gray-800">Loading stock history...</p>
     <div id="nip-output" class="flex-1 min-h-0 overflow-auto">
