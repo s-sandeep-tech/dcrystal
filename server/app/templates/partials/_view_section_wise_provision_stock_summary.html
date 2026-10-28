@@ -17,11 +17,11 @@
         border-spacing: 0;
     }
     #sectionWiseProvisionStockTable td {
-        padding: 8px 12px;
+        padding: 7px 8px;
         border: 1px solid #e2e8f0;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-size: 11px;
-        line-height: 1.45;
+        line-height: 1.4;
         text-align: right;
         white-space: nowrap;
         vertical-align: middle;
@@ -39,10 +39,10 @@
         border-right: none;
     }
     #sectionWiseProvisionStockTable th {
-        padding: 9px 12px;
+        padding: 8px 8px;
         border: 1px solid #cbd5e1;
         font-size: 11px;
-        line-height: 1.45;
+        line-height: 1.4;
         white-space: nowrap;
         border-top: none;
         vertical-align: middle;
@@ -139,7 +139,7 @@
             <thead class="sticky top-0 z-10 shadow-sm">
                 <tr class="bg-[#fce4ec] dark:bg-pink-900/30 text-gray-800 dark:text-gray-200">
                     <!-- Column 1: Drill Hierarchy -->
-                    <th class="text-left font-bold min-w-[360px]">
+                    <th class="text-left font-bold min-w-[290px]">
                         <div class="flex items-center justify-between gap-1.5">
                             <span>Section &rarr; Make &rarr; Collection &rarr; Type &rarr; Wide Range</span>
                             <button type="button" id="btn-toggle-all-tree" data-expanded="false" onclick="toggleAllSectionTree(this, event)"
@@ -151,37 +151,37 @@
                     </th>
 
                     <!-- Column 2: Provision pieces -->
-                    <th class="text-right font-bold min-w-[90px]">Prov Pcs</th>
+                    <th class="text-right font-bold min-w-[75px]">Prov Pcs</th>
 
                     <!-- Column 3: Provision gross wt -->
-                    <th class="text-right font-bold min-w-[120px]">Prov Gr.Wt</th>
+                    <th class="text-right font-bold min-w-[95px]">Prov Gr.Wt</th>
 
                     <!-- Column 4: In shop wt -->
-                    <th class="text-right font-bold min-w-[120px]">In Shop Wt</th>
+                    <th class="text-right font-bold min-w-[95px]">In Shop Wt</th>
 
                     <!-- Column 5: Intransit wt -->
-                    <th class="text-right font-bold min-w-[110px]">Intransit Wt</th>
+                    <th class="text-right font-bold min-w-[85px]">Intransit Wt</th>
 
                     <!-- Column 6: Short pieces -->
-                    <th class="text-right font-bold min-w-[90px] text-red-600 dark:text-red-400">Short Pcs</th>
+                    <th class="text-right font-bold min-w-[75px] text-red-600 dark:text-red-400">Short Pcs</th>
 
                     <!-- Column 7: Excess pieces -->
-                    <th class="text-right font-bold min-w-[90px] text-green-700 dark:text-green-400">Excess Pcs</th>
+                    <th class="text-right font-bold min-w-[75px] text-green-700 dark:text-green-400">Excess Pcs</th>
 
                     <!-- Column 8: Short percentage -->
-                    <th class="text-right font-bold min-w-[75px]">Short %</th>
+                    <th class="text-right font-bold min-w-[60px]">Short %</th>
 
                     <!-- Column 9: Short wt -->
-                    <th class="text-right font-bold min-w-[120px] text-red-600 dark:text-red-400">Short Wt</th>
+                    <th class="text-right font-bold min-w-[95px] text-red-600 dark:text-red-400">Short Wt</th>
 
                     <!-- Column 10: Excess wt -->
-                    <th class="text-right font-bold min-w-[120px] text-green-700 dark:text-green-400">Excess Wt</th>
+                    <th class="text-right font-bold min-w-[95px] text-green-700 dark:text-green-400">Excess Wt</th>
 
                     <!-- Column 11: Net short/excess -->
-                    <th class="text-right font-bold min-w-[130px]" title="Excess Wt minus Short Wt (negative is Net Short)">Net Short / Excess</th>
+                    <th class="text-right font-bold min-w-[100px]" title="Excess Wt minus Short Wt (negative is Net Short)">Net Short / Excess</th>
 
                     <!-- Column 12: Ordered wt -->
-                    <th class="text-right font-bold min-w-[120px] text-primary dark:text-blue-400">Ordered Wt</th>
+                    <th class="text-right font-bold min-w-[95px] text-primary dark:text-blue-400">Ordered Wt</th>
                 </tr>
             </thead>
             <tbody>
