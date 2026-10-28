@@ -331,6 +331,7 @@ function applyFilters() {
     filterValues.branch_type = ''; // Will be set by multi-select below
     filterValues.branch_status = ''; // Will be set by multi-select below
     filterValues.business_head = document.getElementById('filter-business-head').value;
+    filterValues.division = document.getElementById('filter-division')?.value || '';
 
     if (locationMultiSelect) {
         filterValues.location = locationMultiSelect.getValues().join(',');
@@ -400,6 +401,20 @@ function resetFilters() {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
+
+    const divSelect = document.getElementById('filter-division');
+    if (divSelect) {
+        const goldOpt = Array.from(divSelect.options).find(o => o.value.toLowerCase() === 'gold');
+        if (goldOpt) {
+            divSelect.value = goldOpt.value;
+            filterValues.division = goldOpt.value;
+        } else {
+            divSelect.value = 'Gold';
+            filterValues.division = 'Gold';
+        }
+    } else {
+        filterValues.division = 'Gold';
+    }
 
     if (locationMultiSelect) {
         locationMultiSelect.reset();

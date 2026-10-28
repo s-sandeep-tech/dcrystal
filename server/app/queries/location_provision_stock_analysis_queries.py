@@ -15,6 +15,7 @@ ORDER BY branch_id
 
     FILTER_OPTIONS = """
 SELECT
+    ARRAY_REMOVE(ARRAY_AGG(DISTINCT division ORDER BY division), NULL) AS divisions,
     ARRAY_REMOVE(ARRAY_AGG(DISTINCT location ORDER BY location), NULL) AS locations,
     ARRAY_REMOVE(ARRAY_AGG(DISTINCT purity ORDER BY purity), NULL) AS purities,
     ARRAY_REMOVE(ARRAY_AGG(DISTINCT classification ORDER BY classification), NULL) AS classifications,
@@ -39,6 +40,7 @@ SELECT DISTINCT collection AS value
 FROM provision_stock_raw_snapshot
 WHERE collection IS NOT NULL
   AND (:search IS NULL OR collection ILIKE :search)
+  AND (:division IS NULL OR UPPER(division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
   AND (:branch_type IS NULL OR branch_type = :branch_type)
   AND (:business_head_emp_code IS NULL OR business_head_emp_code = :business_head_emp_code)
   AND (:authorized_branch_ids IS NULL OR branch_id = ANY(
@@ -54,6 +56,7 @@ SELECT DISTINCT make AS value
 FROM provision_stock_raw_snapshot
 WHERE make IS NOT NULL
   AND (:search IS NULL OR make ILIKE :search)
+  AND (:division IS NULL OR UPPER(division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
   AND (:branch_type IS NULL OR branch_type = :branch_type)
   AND (:business_head_emp_code IS NULL OR business_head_emp_code = :business_head_emp_code)
   AND (:authorized_branch_ids IS NULL OR branch_id = ANY(
@@ -70,6 +73,7 @@ WITH base AS (
     FROM provision_stock_raw_snapshot
     WHERE 
         (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
+        AND (:division IS NULL OR UPPER(division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
         AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
         AND (:purity IS NULL OR purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
         AND (:classification IS NULL OR classification = ANY(string_to_array(CAST(:classification AS text), ',')))
@@ -536,6 +540,7 @@ WITH base AS (
     FROM provision_stock_raw_snapshot
     WHERE 
         (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
+        AND (:division IS NULL OR UPPER(division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
         AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
         AND (:purity IS NULL OR purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
         AND (:classification IS NULL OR classification = ANY(string_to_array(CAST(:classification AS text), ',')))
@@ -631,6 +636,7 @@ WITH filtered AS (
     SELECT *
     FROM provision_stock_raw_snapshot
     WHERE location = :detail_location
+      AND (:division IS NULL OR UPPER(division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
       AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
       AND (:purity IS NULL OR purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
       AND (:classification IS NULL OR classification = ANY(string_to_array(CAST(:classification AS text), ',')))
@@ -756,6 +762,7 @@ SELECT
     COALESCE(SUM(p.prov_gr_wt) OVER (), 0) AS total_gross_wt
 FROM provision_stock_raw_snapshot AS p
 WHERE (:location IS NULL OR p.location = ANY(string_to_array(CAST(:location AS text), ',')))
+  AND (:division IS NULL OR UPPER(p.division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
   AND (:state IS NULL OR p.state = ANY(string_to_array(CAST(:state AS text), ',')))
   AND (:purity IS NULL OR p.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
   AND (:classification IS NULL OR p.classification = ANY(string_to_array(CAST(:classification AS text), ',')))
@@ -787,6 +794,7 @@ WITH matching_stock AS MATERIALIZED (
         {stock_identity_columns}
     FROM provision_stock_raw_snapshot AS p
     WHERE (:location IS NULL OR p.location = ANY(string_to_array(CAST(:location AS text), ',')))
+          AND (:division IS NULL OR UPPER(p.division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
           AND (:state IS NULL OR p.state = ANY(string_to_array(CAST(:state AS text), ',')))
           AND (:purity IS NULL OR p.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
           AND (:classification IS NULL OR p.classification = ANY(string_to_array(CAST(:classification AS text), ',')))
@@ -850,6 +858,7 @@ WITH provision_rows AS MATERIALIZED (
         COALESCE(SUM(p.prov_gr_wt), 0) AS provision_weight
     FROM provision_stock_raw_snapshot AS p
     WHERE (:location IS NULL OR p.location = ANY(string_to_array(CAST(:location AS text), ',')))
+      AND (:division IS NULL OR UPPER(p.division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
       AND (:state IS NULL OR p.state = ANY(string_to_array(CAST(:state AS text), ',')))
       AND (:purity IS NULL OR p.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
       AND (:classification IS NULL OR p.classification = ANY(string_to_array(CAST(:classification AS text), ',')))

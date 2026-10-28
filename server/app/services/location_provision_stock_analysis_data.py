@@ -54,6 +54,7 @@ class LocationProvisionStockAnalysisData:
         )
         row = rows[0] if rows else {}
         return {
+            'divisions': row.get('divisions') or [],
             'locations': row.get('locations') or [],
             'purities': [float(value) for value in row.get('purities') or []],
             'classifications': row.get('classifications') or [],
@@ -67,9 +68,10 @@ class LocationProvisionStockAnalysisData:
         }
 
     @classmethod
-    def search_collections(cls, search='', **scope):
+    def search_collections(cls, search='', division=None, **scope):
         params = cls._scope_params(scope)
         params['search'] = f'%{search}%' if search else None
+        params['division'] = division if division else None
         rows = cls._fetch_rows(
             LocationProvisionStockAnalysisQuery.SEARCH_COLLECTIONS,
             params,
@@ -77,9 +79,10 @@ class LocationProvisionStockAnalysisData:
         return [row['value'] for row in rows]
 
     @classmethod
-    def search_makes(cls, search='', **scope):
+    def search_makes(cls, search='', division=None, **scope):
         params = cls._scope_params(scope)
         params['search'] = f'%{search}%' if search else None
+        params['division'] = division if division else None
         rows = cls._fetch_rows(
             LocationProvisionStockAnalysisQuery.SEARCH_MAKES,
             params,

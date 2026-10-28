@@ -21,7 +21,7 @@ class LocationProvisionStockAnalysisExport:
         params = {
             key: filters.get(key) or None
             for key in (
-                'location', 'state', 'purity', 'classification', 'make',
+                'division', 'location', 'state', 'purity', 'classification', 'make',
                 'collection', 'section', 'prov_type', 'provision_mode',
                 'branch_type', 'branch_status', 'business_head',
                 'bh_emp_code', 'authorized_branch_ids',

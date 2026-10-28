@@ -1,5 +1,6 @@
 let currentSearch = '';
 let filterValues = {
+    division: 'Gold',
     location: '',
     purity: '',
     classification: '',
@@ -28,6 +29,13 @@ let collectionMultiSelect;
 let collectionHeaderFilter;
 
 document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('division')) {
+        filterValues.division = urlParams.get('division');
+        const divSelect = document.getElementById('filter-division');
+        if (divSelect) divSelect.value = filterValues.division;
+    }
+
     locationMultiSelect = new CustomMultiSelect({
         containerId: 'filter-location-container',
         label: 'Location',
@@ -70,7 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
         options: [],
         onSearch: async (query, callback) => {
             try {
-                const response = await fetch(`/api/location-provision-stock-analysis/makes/search?q=${encodeURIComponent(query)}`, {
+                const divParam = encodeURIComponent(filterValues.division || '');
+                const response = await fetch(`/api/location-provision-stock-analysis/makes/search?q=${encodeURIComponent(query)}&division=${divParam}`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
                 });
                 const data = await response.json();
@@ -89,7 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
         options: [],
         onSearch: async (query, callback) => {
             try {
-                const response = await fetch(`/api/location-provision-stock-analysis/collections/search?q=${encodeURIComponent(query)}`, {
+                const divParam = encodeURIComponent(filterValues.division || '');
+                const response = await fetch(`/api/location-provision-stock-analysis/collections/search?q=${encodeURIComponent(query)}&division=${divParam}`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
                 });
                 const data = await response.json();
@@ -112,7 +122,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onSearch: async (query, callback) => {
             try {
-                const response = await fetch(`/api/location-provision-stock-analysis/makes/search?q=${encodeURIComponent(query)}`, {
+                const divParam = encodeURIComponent(filterValues.division || '');
+                const response = await fetch(`/api/location-provision-stock-analysis/makes/search?q=${encodeURIComponent(query)}&division=${divParam}`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
                 });
                 const data = await response.json();
@@ -157,7 +168,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onSearch: async (query, callback) => {
             try {
-                const response = await fetch(`/api/location-provision-stock-analysis/collections/search?q=${encodeURIComponent(query)}`, {
+                const divParam = encodeURIComponent(filterValues.division || '');
+                const response = await fetch(`/api/location-provision-stock-analysis/collections/search?q=${encodeURIComponent(query)}&division=${divParam}`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
                 });
                 const data = await response.json();
@@ -220,6 +232,26 @@ async function loadOptions() {
                 });
             }
         });
+
+        if (data.divisions) {
+            const divSelect = document.getElementById('filter-division');
+            if (divSelect) {
+                const currentVal = divSelect.value || filterValues.division || 'Gold';
+                divSelect.innerHTML = '<option value="">All Divisions</option>';
+                data.divisions.forEach(opt => {
+                    const el = document.createElement('option');
+                    el.value = opt;
+                    el.textContent = opt;
+                    if (opt.toLowerCase() === currentVal.toLowerCase()) {
+                        el.selected = true;
+                    }
+                    divSelect.appendChild(el);
+                });
+                if (divSelect.value) {
+                    filterValues.division = divSelect.value;
+                }
+            }
+        }
     } catch (err) {
         console.error('Failed to load filter options:', err);
     }
@@ -295,6 +327,7 @@ function onSearchInput(val) {
 }
 
 function applyFilters() {
+    filterValues.division = document.getElementById('filter-division')?.value || '';
     filterValues.branch_type = '';
     filterValues.branch_status = '';
     filterValues.business_head = document.getElementById('filter-business-head').value;
@@ -337,6 +370,7 @@ function applyFilters() {
 
 function resetFilters() {
     Object.keys(filterValues).forEach(key => filterValues[key] = '');
+    filterValues.division = 'Gold';
     currentSearch = '';
     
     const filterIds = [
@@ -348,6 +382,20 @@ function resetFilters() {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
+
+    const divSelect = document.getElementById('filter-division');
+    if (divSelect) {
+        divSelect.value = 'Gold';
+        if (!divSelect.value) {
+            for (let i = 0; i < divSelect.options.length; i++) {
+                if (divSelect.options[i].value.toLowerCase() === 'gold') {
+                    divSelect.selectedIndex = i;
+                    filterValues.division = divSelect.options[i].value;
+                    break;
+                }
+            }
+        }
+    }
 
     if (locationMultiSelect) locationMultiSelect.reset();
     if (branchStatusMultiSelect) branchStatusMultiSelect.reset();
@@ -1183,6 +1231,7 @@ async function exportToExcel() {
         // Extract current active filters
         const activeFilters = {
             search: currentSearch,
+            division: filterValues.division,
             location: filterValues.location,
             purity: filterValues.purity,
             classification: filterValues.classification,

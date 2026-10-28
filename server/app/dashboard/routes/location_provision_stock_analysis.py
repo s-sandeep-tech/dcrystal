@@ -1,7 +1,8 @@
 from flask import render_template, request, jsonify, session
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.dashboard import dashboard_bp
-from app.extensions import redis_client
+from app.extensions import db, redis_client
+from app.models.snapshots import ProvisionStockRawSnapshot
 from app.utils.cache_utils import generate_cache_key
 from app.services.location_provision_stock_analysis_data import (
     LocationProvisionStockAnalysisData,
@@ -42,8 +43,14 @@ def location_provision_stock_analysis():
                 is_today = False
         else:
             sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d, %I:%M %p")
+
+        roles = [r.upper() for r in session.get('roles', [])]
+        base_q = db.session.query(ProvisionStockRawSnapshot)
+        if is_franchise_india_head(roles):
+            base_q = base_q.filter(ProvisionStockRawSnapshot.branch_type == FRANCHISE_INDIA_BRANCH_TYPE)
+        divisions = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.division.distinct()).order_by(ProvisionStockRawSnapshot.division).all() if r[0]]
             
-        return render_template('location_provision_stock_analysis.html', sync_time=sync_time, is_today=is_today)
+        return render_template('location_provision_stock_analysis.html', sync_time=sync_time, is_today=is_today, divisions=divisions)
     except Exception as e:
         logger.error(f"Error in location_provision_stock_analysis: {str(e)}")
         return f"Error: {str(e)}", 500
@@ -82,14 +89,16 @@ def location_provision_stock_analysis_options():
                 cache_suffix = f"sm_{user_id}"
             
         cache_key = (
-            f"location_provision_stock_analysis_options_v2:"
+            f"location_provision_stock_analysis_options_v3:"
             f"{date_str}:{cache_suffix}"
         )
         
         cached_data = redis_client.get(cache_key)
         if cached_data:
-            redis_client.expire(cache_key, 18000)  # Sliding expiry
-            return jsonify(json.loads(cached_data))
+            parsed = json.loads(cached_data)
+            if 'divisions' in parsed:
+                redis_client.expire(cache_key, 18000)  # Sliding expiry
+                return jsonify(parsed)
 
         data = LocationProvisionStockAnalysisData.fetch_filter_options(
             branch_type=(
@@ -122,6 +131,7 @@ def location_provision_stock_analysis_options():
 def location_provision_stock_analysis_collections_search():
     try:
         q = request.args.get('q', '').strip()
+        division = request.args.get('division', '').strip()
         
         # Role-based filtering (identical logic to options API)
         roles = [r.upper() for r in session.get('roles', [])]
@@ -137,6 +147,7 @@ def location_provision_stock_analysis_collections_search():
         )
         collections = LocationProvisionStockAnalysisData.search_collections(
             search=q,
+            division=division if division else None,
             branch_type=(
                 FRANCHISE_INDIA_BRANCH_TYPE
                 if is_franchise_india_head(roles) else None
@@ -162,6 +173,7 @@ def location_provision_stock_analysis_collections_search():
 def location_provision_stock_analysis_makes_search():
     try:
         q = request.args.get('q', '').strip()
+        division = request.args.get('division', '').strip()
         
         # Role-based filtering
         roles = [r.upper() for r in session.get('roles', [])]
@@ -177,6 +189,7 @@ def location_provision_stock_analysis_makes_search():
         )
         makes = LocationProvisionStockAnalysisData.search_makes(
             search=q,
+            division=division if division else None,
             branch_type=(
                 FRANCHISE_INDIA_BRANCH_TYPE
                 if is_franchise_india_head(roles) else None
@@ -203,6 +216,7 @@ def get_location_provision_stock_analysis_partial():
     try:
         # Read filters from request
         location = request.args.get('location', '')
+        division = request.args.get('division', 'Gold' if 'division' not in request.args else '')
         purity = request.args.get('purity', '')
         classification = request.args.get('classification', '')
         make = request.args.get('make', '')
@@ -219,6 +233,7 @@ def get_location_provision_stock_analysis_partial():
 
         params = {
             'location': location if location else None,
+            'division': division if division else None,
             'state': state if state else None,
             'purity': purity if purity else None,
             'classification': classification if classification else None,
@@ -330,6 +345,7 @@ def get_location_provision_stock_analysis_drilldown():
     try:
         # Read filters from request
         location = request.args.get('location', '')
+        division = request.args.get('division', '')
         purity = request.args.get('purity', '')
         classification = request.args.get('classification', '')
         make = request.args.get('make', '')
@@ -347,6 +363,7 @@ def get_location_provision_stock_analysis_drilldown():
 
         params = {
             'location': location if location else None,
+            'division': division if division else None,
             'purity': purity if purity else None,
             'classification': classification if classification else None,
             'make': make if make else None,
@@ -433,6 +450,7 @@ def get_location_provision_stock_analysis_location_details():
 
         params = {
             'detail_location': detail_location,
+            'division': request.args.get('division') or None,
             'state': request.args.get('state') or None,
             'purity': request.args.get('purity') or None,
             'classification': request.args.get('classification') or None,
@@ -559,6 +577,7 @@ def get_location_provision_stock_analysis_in_shop_details():
 
         params = {
             'location': request.args.get('location') or None,
+            'division': request.args.get('division') or None,
             'purity': request.args.get('purity') or None,
             'classification': request.args.get('classification') or None,
             'make': request.args.get('make') or None,
@@ -666,6 +685,7 @@ def get_location_provision_stock_analysis_provision_details():
 
         params = {
             'location': request.args.get('location') or None,
+            'division': request.args.get('division') or None,
             'purity': request.args.get('purity') or None,
             'classification': request.args.get('classification') or None,
             'make': request.args.get('make') or None,
@@ -757,6 +777,7 @@ def get_location_provision_stock_analysis_comparison():
 
         params = {
             'location': request.args.get('location') or None,
+            'division': request.args.get('division') or None,
             'purity': request.args.get('purity') or None,
             'classification': request.args.get('classification') or None,
             'make': request.args.get('make') or None,
