@@ -1,6 +1,7 @@
 let currentSearch = '';
 let filterValues = {
     location: '',
+    division: 'Gold',
     purity: '',
     classification: '',
     make: '',
@@ -79,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         defaultText: 'All Sections',
         options: []
     });
-    
+
     makeHeaderFilter = new HeaderFilter({
         id: 'make',
         title: 'Make Wise',
@@ -124,6 +125,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlDivision = urlParams.get('division');
+    if (urlDivision !== null) {
+        filterValues.division = urlDivision;
+        const divSelect = document.getElementById('filter-division');
+        if (divSelect) divSelect.value = urlDivision;
+    }
+
     loadOptions();
 
 
@@ -139,6 +148,7 @@ async function loadOptions() {
         const data = await response.json();
 
         const config = [
+            { id: 'filter-division', data: data.divisions },
             { id: 'filter-purity', data: data.purities },
             { id: 'filter-classification', data: data.classifications },
             { id: 'filter-prov-type', data: data.prov_types },
@@ -190,19 +200,53 @@ async function loadOptions() {
             collectionHeaderFilter.setOptions(data.collections);
         }
 
-
-
-
         config.forEach(item => {
             const select = document.getElementById(item.id);
             if (select && item.data) {
-                item.data.forEach(opt => {
-                    const el = document.createElement('option');
-                    el.value = opt;
-                    el.textContent = opt;
-                    select.appendChild(el);
-                });
-            }
+                    let selected = select.value;
+                    if (item.id === 'filter-division' && !selected && filterValues.division) {
+                        selected = filterValues.division;
+                    }
+                    const placeholder = select.options[0]?.cloneNode(true);
+                    select.replaceChildren();
+                    if (placeholder) select.appendChild(placeholder);
+                    const options = Array.isArray(item.data) ? item.data : [];
+                    options.forEach(opt => {
+                        const el = document.createElement('option');
+                        el.value = opt;
+                        el.textContent = opt;
+                        select.appendChild(el);
+                    });
+                    if (selected) {
+                        const matchedOpt = options.find(o => String(o).toLowerCase() === String(selected).toLowerCase());
+                        if (matchedOpt) {
+                            select.value = matchedOpt;
+                            if (item.id === 'filter-division') {
+                                filterValues.division = matchedOpt;
+                            }
+                        } else if (item.id === 'filter-division') {
+                            const goldOpt = options.find(o => String(o).toLowerCase() === 'gold');
+                            if (goldOpt) {
+                                select.value = goldOpt;
+                                filterValues.division = goldOpt;
+                            } else {
+                                select.value = '';
+                            }
+                        } else {
+                            select.value = '';
+                        }
+                    } else if (item.id === 'filter-division') {
+                        const goldOpt = options.find(o => String(o).toLowerCase() === 'gold');
+                        if (goldOpt) {
+                            select.value = goldOpt;
+                            filterValues.division = goldOpt;
+                        } else {
+                            select.value = '';
+                        }
+                    } else {
+                        select.value = '';
+                    }
+                }
         });
     } catch (err) {
         console.error('Failed to load filter options:', err);
@@ -214,7 +258,7 @@ async function loadReport() {
     const mainContainer = document.getElementById('table-area');
     const progressBar = document.getElementById('report-progress');
     if (!tableArea) return;
-    
+
     mainContainer.classList.add('opacity-50', 'pointer-events-none');
     if (progressBar) progressBar.classList.remove('hidden');
 
@@ -334,7 +378,7 @@ function applyFilters() {
     let headerCollections = collectionHeaderFilter ? collectionHeaderFilter.selectedValues : [];
     let combinedCollections = new Set([...sidebarCollections, ...headerCollections]);
     filterValues.collection = Array.from(combinedCollections).join(',');
-    
+
     loadReport();
 }
 
@@ -345,10 +389,10 @@ function resetFilters() {
     // Reset internal state
     Object.keys(filterValues).forEach(key => filterValues[key] = '');
     currentSearch = '';
-    
+
     // Reset UI elements
     const filterIds = [
-        'filter-purity', 'filter-classification', 
+        'filter-purity', 'filter-classification',
         'filter-prov-type', 'filter-provision-mode',
         'filter-branch-type', 'filter-branch-status', 'filter-business-head'
     ];
@@ -406,7 +450,7 @@ function resetFilters() {
 
     const searchInput = document.getElementById('report-search');
     if (searchInput) searchInput.value = '';
-    
+
     loadReport();
 }
 
@@ -430,7 +474,7 @@ function toggleSort(column) {
 function adjustZoom(delta, reset = false) {
     const main = document.getElementById('provision-stock-status-main');
     if (!main) return;
-    
+
     let currentZoom = parseFloat(main.getAttribute('data-zoom') || '1');
 
     if (reset) currentZoom = 1;
@@ -439,7 +483,7 @@ function adjustZoom(delta, reset = false) {
     currentZoom = Math.max(0.7, Math.min(1.5, currentZoom));
     main.style.zoom = currentZoom;
     main.setAttribute('data-zoom', currentZoom);
-    
+
     const zoomText = document.getElementById('zoom-level');
     if (zoomText) zoomText.textContent = `${Math.round(currentZoom * 100)}%`;
 }
@@ -448,7 +492,7 @@ function adjustZoom(delta, reset = false) {
 function toggleHeaderFilter(event, id) {
     event.stopPropagation();
     const icon = event.currentTarget;
-    
+
     if (id === 'make' && makeHeaderFilter) {
         if (makeHeaderFilter.isOpen) {
             makeHeaderFilter.close();
@@ -485,7 +529,7 @@ function toggleHeaderFilter(event, id) {
             icon.classList.add('active');
             collectionHeaderFilter.render(icon);
         }
-}
+    }
 }
 
 

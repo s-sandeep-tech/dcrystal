@@ -30,7 +30,8 @@ def provision_stock_status():
         else:
             sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d, %I:%M %p")
 
-        return render_template('provision_stock_status.html', sync_time=sync_time, is_today=is_today)
+        divisions = [r[0] for r in db.session.query(ProvisionStockRawSnapshot.division.distinct()).order_by(ProvisionStockRawSnapshot.division).all() if r[0]]
+        return render_template('provision_stock_status.html', sync_time=sync_time, is_today=is_today, divisions=divisions)
     except Exception as e:
         logger.error(f"Error in provision_stock_status: {str(e)}")
         return f"Error: {str(e)}", 500
@@ -55,12 +56,14 @@ def provision_stock_status_options():
         if not is_admin and not is_manager_2 and is_business_head and user_id:
             cache_suffix = f"bh_{user_id}"
             
-        cache_key = f"prov_stock_status_options:{date_str}:{cache_suffix}"
+        cache_key = f"prov_stock_status_options_v2:{date_str}:{cache_suffix}"
         
         cached_data = redis_client.get(cache_key)
         if cached_data:
-            redis_client.expire(cache_key, 18000)  # Sliding expiry
-            return jsonify(json.loads(cached_data))
+            parsed = json.loads(cached_data)
+            if 'divisions' in parsed:
+                redis_client.expire(cache_key, 18000)  # Sliding expiry
+                return jsonify(parsed)
 
         base_q = db.session.query(ProvisionStockRawSnapshot)
         if not is_admin and not is_manager_2:
@@ -69,6 +72,7 @@ def provision_stock_status_options():
 
         # Query distinct values for filters from the local raw snapshot
         locations = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.location.distinct()).order_by(ProvisionStockRawSnapshot.location).all() if r[0]]
+        divisions = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.division.distinct()).order_by(ProvisionStockRawSnapshot.division).all() if r[0]]
         purities = [float(r[0]) for r in base_q.with_entities(ProvisionStockRawSnapshot.purity.distinct()).order_by(ProvisionStockRawSnapshot.purity).all() if r[0]]
         classifications = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.classification.distinct()).order_by(ProvisionStockRawSnapshot.classification).all() if r[0]]
         makes = [r[0] for r in base_q.with_entities(ProvisionStockRawSnapshot.make.distinct()).order_by(ProvisionStockRawSnapshot.make).all() if r[0]]
@@ -83,6 +87,7 @@ def provision_stock_status_options():
 
         data = {
             'locations': locations,
+            'divisions': divisions,
             'purities': purities,
             'classifications': classifications,
             'makes': makes,
@@ -109,6 +114,7 @@ def get_provision_stock_status_partial():
     try:
         # Read filters from request
         location = request.args.get('location', '')
+        division = request.args.get('division', 'Gold' if 'division' not in request.args else '')
         purity = request.args.get('purity', '')
         classification = request.args.get('classification', '')
         make = request.args.get('make', '')
@@ -125,6 +131,7 @@ def get_provision_stock_status_partial():
 
         params = {
             'location': location if location else None,
+            'division': division if division else None,
             'purity': purity if purity else None,
             'classification': classification if classification else None,
             'make': make if make else None,
@@ -168,6 +175,7 @@ WITH base AS (
     FROM provision_stock_raw_snapshot
     WHERE 
         (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
+        AND (:division IS NULL OR UPPER(division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
         AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
         AND (:purity IS NULL OR purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
         AND (:classification IS NULL OR classification = ANY(string_to_array(CAST(:classification AS text), ',')))
@@ -636,6 +644,7 @@ def get_provision_stock_status_drilldown():
     try:
         # Read filters from request
         location = request.args.get('location', '')
+        division = request.args.get('division', '')
         purity = request.args.get('purity', '')
         classification = request.args.get('classification', '')
         make = request.args.get('make', '')
@@ -653,6 +662,7 @@ def get_provision_stock_status_drilldown():
 
         params = {
             'location': location if location else None,
+            'division': division if division else None,
             'purity': purity if purity else None,
             'classification': classification if classification else None,
             'make': make if make else None,
@@ -686,6 +696,7 @@ WITH base AS (
     FROM provision_stock_raw_snapshot
     WHERE 
         (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
+        AND (:division IS NULL OR UPPER(division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
         AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
         AND (:purity IS NULL OR purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
         AND (:classification IS NULL OR classification = ANY(string_to_array(CAST(:classification AS text), ',')))
