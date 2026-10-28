@@ -38,13 +38,24 @@
             const color = ({total:'#1683ef',nip:'#e59b18',excess:'#e05260'})[series.kind] || `hsl(${(i * 137.508) % 360} 65% 44%)`;
             datasets.push({type:'bar',label:series.name,stockKind:series.kind,comparisonGroup:series.group,data:series.values,borderColor:color,backgroundColor:color,
                 borderWidth:1,barPercentage:0.96,order:1});
-            if (el('nip-average').checked) datasets.push({type:'line',label:`${series.name} (3-period MA)`,stockKind:series.kind,borderColor:color,
+            if (el('nip-average').checked) datasets.push({type:'line',label:`${series.name} (3-period MA)`,stockKind:series.kind,comparisonGroup:series.group,borderColor:color,
                 backgroundColor:color,order:0,
                 borderDash:[5,4],pointRadius:0,borderWidth:1,spanGaps:false,
                 data:series.values.map((_,index) => index < 2 || series.values.slice(index-2,index+1).some(v=>v==null)
                     ? null : series.values.slice(index-2,index+1).reduce((sum,v)=>sum+v,0)/3)});
         });
-        if (typeof Chart !== 'undefined') chart = new Chart(el('nip-chart'), {type:'bar',data:{labels:data.periods,datasets},plugins:[{
+        if (typeof Chart !== 'undefined') {
+            Chart.Interaction.modes.nipGroup=(current,event,options,useFinalPosition)=>{
+                const nearest=current.getElementsAtEventForMode(event,'nearest',{axis:'xy',intersect:false},useFinalPosition)[0];
+                if(!nearest)return [];
+                const group=current.data.datasets[nearest.datasetIndex].comparisonGroup;
+                return current.data.datasets.flatMap((dataset,index)=>{
+                    if(dataset.type!=='bar'||dataset.groupSpacer||dataset.comparisonGroup!==group||!current.isDatasetVisible(index)
+                        ||dataset.data[nearest.index]==null)return [];
+                    return [{element:current.getDatasetMeta(index).data[nearest.index],datasetIndex:index,index:nearest.index}];
+                });
+            };
+            chart = new Chart(el('nip-chart'), {type:'bar',data:{labels:data.periods,datasets},plugins:[{
             id:'categoryGroupSpacing',
             beforeDatasetsUpdate(current) {
                 const bars=current.data.datasets.filter(dataset=>dataset.type==='bar');
@@ -111,7 +122,7 @@
                 ctx.restore();
             }
         }],options:{
-            responsive:true,maintainAspectRatio:false,animation:false,layout:{padding:{top:70}},interaction:{mode:'index',intersect:false},
+            responsive:true,maintainAspectRatio:false,animation:false,layout:{padding:{top:70}},interaction:{mode:'nipGroup',intersect:false},
             scales:{x:{ticks:{padding:26}},y:{beginAtZero:true,title:{display:true,text:data.unit},ticks:{precision:data.metric==='pieces'?0:3}}},
             plugins:{legend:{position:'bottom',labels:{generateLabels:current=>[
                 ['total','Total Stock'],['nip','NIP Stock'],['excess','Excess Stock']
@@ -131,7 +142,7 @@
                 current.update();
             }},tooltip:{filter:item=>!item.dataset.groupSpacer,callbacks:{title:items => `${items[0].label} (balance ${data.balance_dates[items[0].dataIndex]})`,
                 label:context=>`${context.dataset.label}: ${number(context.raw)} ${data.unit}`}}}}});
-        else el('nip-status').textContent += ' Chart library unavailable; table values remain available.';
+        } else el('nip-status').textContent += ' Chart library unavailable; table values remain available.';
     }
     function renderTable() {
         el('nip-table').replaceChildren();

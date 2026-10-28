@@ -84,6 +84,16 @@ const fields=['location','division','group_name','purity','classification','sub_
  });
  for(const purity of ['750','920','995','999'])assert(purityLabels.includes(purity));
  for(const value of ['1','2','3','4'])assert(purityLabels.includes(value),'Missing bar value '+value);
+ const hoverPoint=await page.evaluate(()=>{
+  const c=Chart.getChart(document.getElementById('nip-chart'));
+  const index=c.data.datasets.findIndex(d=>d.type==='bar'&&d.comparisonGroup==='920.00'&&d.stockKind==='total');
+  const bar=c.getDatasetMeta(index).data[5],rect=c.canvas.getBoundingClientRect();
+  return {x:rect.left+bar.x,y:rect.top+(bar.y+bar.base)/2};
+ });
+ await page.mouse.move(hoverPoint.x,hoverPoint.y);
+ await page.waitForTimeout(100);
+ const tooltipGroups=await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).tooltip.dataPoints.map(point=>point.dataset.comparisonGroup));
+ assert.deepEqual(tooltipGroups,['920.00','920.00','920.00']);
  assert.deepEqual(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).legend.legendItems.map(item=>item.text)),['Total Stock','NIP Stock','Excess Stock']);
  const legendPoint=await page.evaluate(()=>{
   const c=Chart.getChart(document.getElementById('nip-chart')),box=c.legend.legendHitBoxes[1],rect=c.canvas.getBoundingClientRect();
