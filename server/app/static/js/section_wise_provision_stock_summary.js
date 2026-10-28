@@ -200,10 +200,20 @@ async function loadReport() {
     const tableArea = document.getElementById('view-section-wise-provision-stock-summary');
     const mainContainer = document.getElementById('table-area');
     const progressBar = document.getElementById('report-progress');
+    const reportLoader = document.getElementById('report-loader');
+    const topLoader = document.getElementById('top-sync-loader');
+    const applySpinner = document.getElementById('apply-filter-spinner');
+    const applyIcon = document.getElementById('apply-filter-icon');
+    const applyBtn = document.getElementById('btn-apply-filters');
     if (!tableArea) return;
 
-    mainContainer.classList.add('opacity-50', 'pointer-events-none');
+    mainContainer.classList.add('opacity-75', 'pointer-events-none');
     if (progressBar) progressBar.classList.remove('hidden');
+    if (reportLoader) reportLoader.classList.remove('hidden');
+    if (topLoader) topLoader.classList.remove('hidden');
+    if (applySpinner) applySpinner.classList.remove('hidden');
+    if (applyIcon) applyIcon.classList.add('hidden');
+    if (applyBtn) applyBtn.disabled = true;
 
     try {
         const params = new URLSearchParams({
@@ -224,8 +234,13 @@ async function loadReport() {
         console.error('Failed to load report:', err);
         tableArea.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Failed to load data: ${err.message}</div>`;
     } finally {
-        mainContainer.classList.remove('opacity-50', 'pointer-events-none');
+        mainContainer.classList.remove('opacity-75', 'pointer-events-none');
         if (progressBar) progressBar.classList.add('hidden');
+        if (reportLoader) reportLoader.classList.add('hidden');
+        if (topLoader) topLoader.classList.add('hidden');
+        if (applySpinner) applySpinner.classList.add('hidden');
+        if (applyIcon) applyIcon.classList.remove('hidden');
+        if (applyBtn) applyBtn.disabled = false;
     }
 }
 
