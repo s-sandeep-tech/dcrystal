@@ -1,5 +1,6 @@
 """Atomic, streaming full-history import; failed imports retain the previous data."""
 import logging
+import time
 from datetime import datetime
 from psycopg2.extras import RealDictCursor
 from sqlalchemy import text, func
@@ -11,6 +12,22 @@ logger = logging.getLogger(__name__)
 
 
 def sync_nip_stock_trend_task():
+    from app.utils.sync_tasks import emit_sync_update
+    for attempt in range(1, 4):
+        result = _sync_nip_stock_trend_attempt()
+        if result['status'] == 'success':
+            return result
+        if not result.pop('retryable', False) or attempt == 3:
+            emit_sync_update('error', result['message'], 0, 'nip_stock_trend')
+            return result
+        delay = attempt * 5
+        message = f'NIP stock trend sync attempt {attempt}/3 failed; retrying in {delay}s: {result["message"]}'
+        logger.warning(message)
+        emit_sync_update('processing', message, 0, 'nip_stock_trend')
+        time.sleep(delay)
+
+
+def _sync_nip_stock_trend_attempt():
     from app.utils.sync_tasks import get_external_db_connection, emit_sync_update
     emit = lambda status, message, progress: emit_sync_update(status, message, progress, 'nip_stock_trend')
     conn = None
@@ -58,8 +75,10 @@ def sync_nip_stock_trend_task():
     except Exception as error:
         db.session.rollback()
         logger.exception('NIP stock trend sync failed')
-        emit('error', str(error), 0)
-        return {'status': 'error', 'message': str(error)}
+        return {'status': 'error', 'message': str(error), 'retryable': not isinstance(error, ValueError)}
     finally:
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except Exception:
+                logger.warning('Failed to close NIP trend source connection', exc_info=True)

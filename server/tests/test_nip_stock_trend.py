@@ -193,15 +193,49 @@ class StockTrendDataTests(unittest.TestCase):
                 context=MagicMock();context.__enter__.return_value=cursor;contexts.append(context)
             conn.cursor.side_effect=contexts
             return conn
-        with patch('app.utils.sync_tasks.emit_sync_update'), patch.object(db.session,'execute',side_effect=execute_with_lock):
+        with patch('app.utils.sync_tasks.emit_sync_update'), patch('app.utils.nip_stock_trend_sync.time.sleep'), patch.object(db.session,'execute',side_effect=execute_with_lock):
             with patch('app.utils.sync_tasks.get_external_db_connection',return_value=connection()):
                 self.assertEqual(sync_nip_stock_trend_task()['status'],'success')
             self.assertEqual(S.query.count(),3)
             self.assertEqual(S.query.filter(S.date==date(2026,10,1)).count(),1)
-            with patch('app.utils.sync_tasks.get_external_db_connection',return_value=connection(True)):
+            with patch('app.utils.sync_tasks.get_external_db_connection',side_effect=lambda: connection(True)) as source:
                 self.assertEqual(sync_nip_stock_trend_task()['status'],'error')
+                self.assertEqual(source.call_count,3)
             self.assertEqual(S.query.count(),3)
             self.assertEqual(S.query.filter_by(uid='new-2').count(),1)
+            interrupted, healthy=connection(True),connection()
+            with patch('app.utils.sync_tasks.get_external_db_connection',side_effect=[interrupted,healthy]):
+                self.assertEqual(sync_nip_stock_trend_task()['status'],'success')
+                interrupted.close.assert_called_once()
+                healthy.close.assert_called_once()
+            self.assertEqual(S.query.count(),3)
+
+    def test_sync_retries_and_reports_only_final_failure(self):
+        from app.utils.nip_stock_trend_sync import sync_nip_stock_trend_task
+        failure={'status':'error','message':'connection lost','retryable':True}
+        with patch('app.utils.nip_stock_trend_sync._sync_nip_stock_trend_attempt',
+                   side_effect=[dict(failure),dict(failure),{'status':'success','count':5}]) as attempt, \
+             patch('app.utils.nip_stock_trend_sync.time.sleep') as sleep, \
+             patch('app.utils.sync_tasks.emit_sync_update') as emit:
+            self.assertEqual(sync_nip_stock_trend_task(),{'status':'success','count':5})
+            self.assertEqual(attempt.call_count,3)
+            self.assertEqual([call.args[0] for call in sleep.call_args_list],[5,10])
+            self.assertTrue(all(call.args[0]=='processing' for call in emit.call_args_list))
+        with patch('app.utils.nip_stock_trend_sync._sync_nip_stock_trend_attempt',
+                   side_effect=[dict(failure) for _ in range(3)]) as attempt, \
+             patch('app.utils.nip_stock_trend_sync.time.sleep'), \
+             patch('app.utils.sync_tasks.emit_sync_update') as emit:
+            result=sync_nip_stock_trend_task()
+            self.assertEqual(result,{'status':'error','message':'connection lost'})
+            self.assertEqual(attempt.call_count,3)
+            self.assertEqual(emit.call_args.args[0],'error')
+        with patch('app.utils.nip_stock_trend_sync._sync_nip_stock_trend_attempt',
+                   return_value={'status':'error','message':'invalid source','retryable':False}) as attempt, \
+             patch('app.utils.nip_stock_trend_sync.time.sleep') as sleep, \
+             patch('app.utils.sync_tasks.emit_sync_update'):
+            self.assertEqual(sync_nip_stock_trend_task()['status'],'error')
+            self.assertEqual(attempt.call_count,1)
+            sleep.assert_not_called()
 
 
 if __name__=='__main__':unittest.main()
