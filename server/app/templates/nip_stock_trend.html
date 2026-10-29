@@ -2,7 +2,7 @@
 {% block title %}NIP Stock Trend Analysis{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/nip_stock_trend.css', v='20261029-loading') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nip_stock_trend.css', v='20261029-stable-refresh') }}">
 {% endblock %}
 {% block content %}
 <main id="nip-main" class="flex-1 min-w-0 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
@@ -41,7 +41,6 @@
     </div>
     <p id="nip-status" role="status" class="px-4 py-2 text-xs text-gray-500 border-b border-gray-200 dark:border-gray-800">Loading stock history...</p>
     <div id="nip-output" aria-busy="true" class="flex-1 min-h-0 overflow-auto">
-        <div id="nip-loading" role="status" aria-label="Loading stock data"><span class="nip-spinner" aria-hidden="true"></span><span>Loading stock data...</span></div>
         <section id="nip-graph" class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
             <div class="flex items-center justify-between px-4 py-2"><h3 class="text-xs font-bold">Stock Trend</h3><div class="flex gap-2"><button id="nip-png" class="nip-icon" title="Download graph as PNG" aria-label="Download graph as PNG"><span class="material-symbols-outlined">image</span></button><button id="nip-expand" class="nip-icon" title="Expand graph" aria-label="Expand graph"><span class="material-symbols-outlined">fullscreen</span></button></div></div>
             <div class="nip-chart-frame"><canvas id="nip-chart" aria-label="NIP stock trend bar chart" role="img"></canvas></div>
@@ -67,5 +66,5 @@
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261029-loading') }}"></script>
+<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261029-stable-refresh') }}"></script>
 {% endblock %}

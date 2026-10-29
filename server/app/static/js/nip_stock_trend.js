@@ -32,7 +32,6 @@
         chart?.resize();
     }
     function draw() {
-        chart?.destroy(); chart = null;
         if (!data) return;
         const datasets = [];
         data.series.forEach((series, i) => {
@@ -48,6 +47,18 @@
                 data:series.values.map((_,index) => index < 2 || series.values.slice(index-2,index+1).some(v=>v==null)
                     ? null : series.values.slice(index-2,index+1).reduce((sum,v)=>sum+v,0)/3)});
         });
+        if(chart){
+            const hiddenKinds=new Set(['total','nip','excess'].filter(kind=>
+                chart.data.datasets.some(dataset=>dataset.type==='bar'&&dataset.stockKind===kind)&&
+                !chart.data.datasets.some((dataset,index)=>dataset.type==='bar'&&dataset.stockKind===kind&&chart.isDatasetVisible(index))));
+            chart.data.labels=data.periods;
+            chart.data.datasets=datasets;
+            datasets.forEach((dataset,index)=>chart.setDatasetVisibility(index,!hiddenKinds.has(dataset.stockKind)));
+            chart.options.scales.y.title.text=data.unit;
+            chart.options.scales.y.ticks.precision=data.metric==='pieces'?0:3;
+            chart.update('none');
+            return;
+        }
         if (typeof Chart !== 'undefined') {
             Chart.Interaction.modes.nipGroup=(current,event,options,useFinalPosition)=>{
                 const nearest=current.getElementsAtEventForMode(event,'nearest',{axis:'xy',intersect:false},useFinalPosition)[0];
@@ -192,7 +203,6 @@
         await pageLoaded;
         pending?.abort(); const controller=new AbortController();pending=controller;
         el('nip-output').setAttribute('aria-busy','true');
-        el('nip-loading').hidden=false;
         el('nip-status').textContent='Loading stock history...';
         try {
             const result=await responseJSON(await fetch('/api/nip-stock-trend-analysis/data?'+requestParams(), {headers:headers(),signal:controller.signal}));
@@ -200,7 +210,7 @@
             data=result;render();
         } catch(error){if(error.name!=='AbortError'){el('nip-status').textContent=error.message;data=null;chart?.destroy();chart=null;el('nip-table').replaceChildren();
             ['total_stock','total_nip','total_excess','change','change_pct','average'].forEach(key=>el('nip-stat-'+key).textContent='-');}}
-        finally{if(pending===controller){el('nip-output').setAttribute('aria-busy','false');el('nip-loading').hidden=true;pending=null;}}
+        finally{if(pending===controller){el('nip-output').setAttribute('aria-busy','false');pending=null;}}
     }
     async function download(response,filename) {
         if(!response.ok)throw new Error((await response.json()).error || 'Export permission required');
@@ -231,6 +241,6 @@
             const result=await responseJSON(await fetch('/api/nip-stock-trend-analysis/options',{headers:headers()}));
             for(const [key,values] of Object.entries(result.options))controls[key]=new CustomMultiSelect({containerId:'nip-filter-'+key,label:name(key),defaultText:'All '+name(key),options:values.map(value=>({value,label:value}))});
             await load();
-        }catch(error){el('nip-status').textContent=error.message;el('nip-loading').hidden=true;el('nip-output').setAttribute('aria-busy','false');}
+        }catch(error){el('nip-status').textContent=error.message;el('nip-output').setAttribute('aria-busy','false');}
     });
 })();

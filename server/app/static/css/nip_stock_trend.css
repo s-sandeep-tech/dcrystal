@@ -23,11 +23,6 @@
 .nip-view[aria-pressed=true]{background:#e6f2ff;color:#0879e5;font-weight:bold}
 #nip-main>.nip-stats,#nip-main>.nip-toolbar,#nip-status{flex-shrink:0}
 #nip-output{display:flex;overflow:hidden;position:relative}
-#nip-loading{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(255,255,255,.9);color:#4b5563;font-size:12px}
-.nip-spinner{width:24px;height:24px;border:3px solid #dbeafe;border-top-color:#1683ef;border-radius:50%;animation:nip-spin .8s linear infinite}
-.dark #nip-loading{background:rgba(17,24,39,.9);color:#d1d5db}
-@keyframes nip-spin{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.nip-spinner{animation-duration:2s}}
 #nip-graph,#nip-table{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 #nip-output>[hidden]{display:none}
 #nip-graph>div:first-child{flex-shrink:0}

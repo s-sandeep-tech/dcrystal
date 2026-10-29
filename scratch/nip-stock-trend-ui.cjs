@@ -43,13 +43,15 @@ const fields=['location','division','group_name','purity','classification','sub_
  catch(error){console.log({errors,requests:requests.map(String),url:page.url(),status:await page.locator('#nip-status').textContent()});await page.screenshot({path:'/tmp/nip-debug.png'});throw error;}
  assert.equal(await page.locator('#nip-table tbody tr').count(),50);
  assert.equal(await page.locator('#nip-stat-total_stock').textContent(),'120.000');
- assert.equal(await page.locator('#nip-loading').isVisible(),false);
+ assert.equal(await page.locator('#nip-loading').count(),0);
+ const chartId=await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).id);
  assert.deepEqual(await page.evaluate(()=>window.dataLoadStates),['complete']);
  await page.locator('#nip-refresh').click();
  await page.waitForFunction(()=>document.getElementById('nip-output').getAttribute('aria-busy')==='true');
- assert.equal(await page.locator('#nip-loading').isVisible(),true);
+ assert.equal(await page.locator('#nip-loading').count(),0);
+ assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).id),chartId);
  await page.waitForFunction(()=>document.getElementById('nip-output').getAttribute('aria-busy')==='false');
- assert.equal(await page.locator('#nip-loading').isVisible(),false);
+ assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).id),chartId);
  assert.equal(await page.locator('.nip-stats>div').count(),6);
  assert.equal(await page.locator('.nip-unit[data-stat="change_pct"]').textContent(),'');
  assert.equal(await page.locator('#nip-limiter').inputValue(),'top');
