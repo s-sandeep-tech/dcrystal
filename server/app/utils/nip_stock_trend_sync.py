@@ -9,7 +9,7 @@ from app.extensions import db
 from app.models.nip_stock_trend import NIPStockTrendSnapshot as S, SOURCE_COLUMNS
 
 SOURCE = 'ext_view.vw_weight_level_excess_nip_barcode_data'
-BATCH_SIZE = 1000
+BATCH_SIZE = 40000
 logger = logging.getLogger(__name__)
 COLUMNS_SQL = ', '.join('"' + name + '"' for name in SOURCE_COLUMNS)
 HASH_SQL = f'md5(ROW({COLUMNS_SQL})::text)'

@@ -8,7 +8,7 @@
   (`is_excess=true`). There is no implicit NIP-only filter. Explicit sidebar filters
   apply to all three series. NIP and Excess may overlap and must not be added to Total.
 
-The sync reads 1,000 rows per page using native `(date, uid)` UUID keyset pagination.
+The sync reads 40,000 rows per page using native `(date, uid)` UUID keyset pagination.
 Source reads use READ COMMITTED/autocommit, with a separate short transaction for
 each page and validation query. There is no named cursor or source transaction
 held open during local inserts. An underlying source `(date, uid)` index is
