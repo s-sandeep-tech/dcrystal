@@ -60,11 +60,11 @@
             {% for label in ['Branch Status','State','Category'] %}<label class="nip-filter-label">{{ label }}<select disabled title="Source field mapping not configured"><option>Not available in source</option></select></label>{% endfor %}
         </div>
     </div>
-    <div class="p-4 border-t border-gray-200 dark:border-gray-800"><button id="nip-apply" class="w-full bg-primary text-white font-bold py-2.5 rounded text-[11px] flex items-center justify-center gap-2"><span class="material-symbols-outlined text-sm">search_check</span>APPLY FILTERS</button><button id="nip-clear" class="w-full mt-2 text-gray-500 text-xs">Clear Filters</button></div>
+    <div class="p-4 border-t border-gray-200 dark:border-gray-800"><button id="nip-apply" class="w-full bg-primary text-white font-bold py-2.5 rounded text-[11px] flex items-center justify-center gap-2"><span class="material-symbols-outlined text-sm">search_check</span>APPLY FILTERS</button></div>
 </aside>
 {% endblock %}
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261028-six-stats') }}"></script>
+<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261029-reset-defaults') }}"></script>
 {% endblock %}

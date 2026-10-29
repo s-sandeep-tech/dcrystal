@@ -186,6 +186,7 @@
     }
     async function load() {
         pending?.abort(); const controller=new AbortController();pending=controller;
+        el('nip-output').setAttribute('aria-busy','true');
         el('nip-status').textContent='Loading stock history...';
         try {
             const result=await responseJSON(await fetch('/api/nip-stock-trend-analysis/data?'+requestParams(), {headers:headers(),signal:controller.signal}));
@@ -193,6 +194,7 @@
             data=result;render();
         } catch(error){if(error.name!=='AbortError'){el('nip-status').textContent=error.message;data=null;chart?.destroy();chart=null;el('nip-table').replaceChildren();
             ['total_stock','total_nip','total_excess','change','change_pct','average'].forEach(key=>el('nip-stat-'+key).textContent='-');}}
+        finally{if(pending===controller){el('nip-output').setAttribute('aria-busy','false');pending=null;}}
     }
     async function download(response,filename) {
         if(!response.ok)throw new Error((await response.json()).error || 'Export permission required');
@@ -201,8 +203,12 @@
     document.addEventListener('DOMContentLoaded', async()=>{
         el('nip-apply').onclick=()=>{applied=collect();load();};
         const clear=()=>{Object.values(controls).forEach(control=>control.reset());el('nip-from').value='';el('nip-to').value='';
-            document.querySelectorAll('[data-nip-boolean]').forEach(node=>node.value='');applied=new URLSearchParams();load();};
-        el('nip-clear').onclick=clear;el('nip-reset').onclick=clear;el('nip-refresh').onclick=load;
+            document.querySelectorAll('[data-nip-boolean]').forEach(node=>node.value='');
+            for(const [id,value] of [['nip-limiter','top'],['nip-rank-by','total'],['nip-order','desc'],
+                ['nip-interval','daily'],['nip-metric','gross_wt'],['nip-group','division']])el(id).value=value;
+            el('nip-average').checked=false;
+            applied=new URLSearchParams();load();};
+        el('nip-reset').onclick=clear;el('nip-refresh').onclick=load;
         ['nip-interval','nip-metric','nip-group','nip-limiter','nip-order','nip-rank-by'].forEach(id=>el(id).onchange=load);el('nip-average').onchange=draw;
         document.querySelectorAll('[data-view]').forEach(node=>node.onclick=()=>{mode=node.dataset.view;showViews();});
         el('nip-filter-toggle').onclick=()=>{const node=el('nip-sidebar');node.hidden=!node.hidden;node.style.display=node.hidden?'none':'';

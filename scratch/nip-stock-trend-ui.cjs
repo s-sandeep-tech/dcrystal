@@ -88,7 +88,18 @@ const fields=['location','division','group_name','purity','classification','sub_
  await page.locator('#nip-expand').click();await page.waitForFunction(()=>!!document.fullscreenElement);
  await page.locator('#nip-expand').click();await page.waitForFunction(()=>!document.fullscreenElement);
  const downloadPromise=page.waitForEvent('download');await page.locator('#nip-png').click();assert.equal((await downloadPromise).suggestedFilename(),'nip-stock-trend.png');
- await page.locator('#nip-clear').click();await page.waitForFunction(()=>!document.getElementById('nip-from').value);
+ assert.equal(await page.locator('#nip-clear').count(),0);
+ const documentLoads=await page.evaluate(()=>performance.getEntriesByType('navigation').length);
+ await page.locator('[data-nip-boolean="is_excess"]').selectOption('true');
+ const resetResponse=page.waitForResponse(response=>response.url().includes('/data?')&&new URL(response.url()).searchParams.get('metric')==='gross_wt');
+ await page.locator('#nip-reset').click();await resetResponse;
+ await page.waitForFunction(()=>document.getElementById('nip-output').getAttribute('aria-busy')==='false');
+ for(const [id,value] of [['nip-limiter','top'],['nip-rank-by','total'],['nip-order','desc'],['nip-interval','daily'],['nip-metric','gross_wt'],['nip-group','division'],['nip-from',''],['nip-to','']])assert.equal(await page.locator('#'+id).inputValue(),value);
+ assert.equal(await page.locator('#nip-average').isChecked(),false);
+ assert.equal(await page.locator('[data-nip-boolean="is_excess"]').inputValue(),'');
+ assert.equal(requests.at(-1).searchParams.has('from_date'),false);
+ assert.equal(requests.at(-1).searchParams.has('is_excess'),false);
+ assert.equal(await page.evaluate(()=>performance.getEntriesByType('navigation').length),documentLoads);
  await page.locator('#nip-group').selectOption('purity');
  await page.waitForFunction(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.some(d=>d.comparisonGroup==='999.00'));
  const purityLabels=await page.evaluate(()=>{
@@ -97,7 +108,7 @@ const fields=['location','division','group_name','purity','classification','sub_
   c.draw();c.ctx.fillText=original;return labels;
  });
  for(const purity of ['750','920','995','999'])assert(purityLabels.includes(purity));
- for(const value of ['1','2','3','4'])assert(purityLabels.includes(value),'Missing bar value '+value);
+ for(const value of ['1.000','2.000','3.000','4.000'])assert(purityLabels.includes(value),'Missing bar value '+value);
  const hoverPoint=await page.evaluate(()=>{
   const c=Chart.getChart(document.getElementById('nip-chart'));
   const index=c.data.datasets.findIndex(d=>d.type==='bar'&&d.comparisonGroup==='920.00'&&d.stockKind==='total');
