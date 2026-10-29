@@ -73,8 +73,15 @@ def _sync_nip_stock_trend_attempt():
         emit('success', f'NIP stock history synced: {loaded:,} rows', 100)
         return {'status': 'success', 'count': loaded}
     except Exception as error:
-        db.session.rollback()
         logger.exception('NIP stock trend sync failed')
+        try:
+            db.session.rollback()
+        except Exception:
+            logger.warning('Rollback failed after NIP sync disconnect; invalidating local connection', exc_info=True)
+            try:
+                db.session().invalidate()
+            except Exception:
+                logger.warning('Failed to invalidate NIP sync session', exc_info=True)
         return {'status': 'error', 'message': str(error), 'retryable': not isinstance(error, ValueError)}
     finally:
         if conn:

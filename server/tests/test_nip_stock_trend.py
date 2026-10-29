@@ -237,5 +237,19 @@ class StockTrendDataTests(unittest.TestCase):
             self.assertEqual(attempt.call_count,1)
             sleep.assert_not_called()
 
+    def test_ssl_disconnect_remains_retryable_when_rollback_fails(self):
+        from psycopg2 import OperationalError
+        from app.utils.nip_stock_trend_sync import _sync_nip_stock_trend_attempt
+        ssl_error=OperationalError('SSL connection has been closed unexpectedly')
+        with patch('app.utils.sync_tasks.emit_sync_update'), \
+             patch.object(db.session,'execute',return_value=SimpleNamespace(scalar=lambda:True)), \
+             patch('app.utils.sync_tasks.get_external_db_connection',side_effect=ssl_error), \
+             patch.object(db.session,'rollback',side_effect=ssl_error), \
+             patch.object(db.session(),'invalidate') as invalidate:
+            result=_sync_nip_stock_trend_attempt()
+            self.assertTrue(result['retryable'])
+            self.assertEqual(result['message'],'SSL connection has been closed unexpectedly')
+            invalidate.assert_called_once()
+
 
 if __name__=='__main__':unittest.main()
