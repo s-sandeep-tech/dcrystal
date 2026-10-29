@@ -187,7 +187,13 @@ class StockTrendDataTests(unittest.TestCase):
             dates.fetchall.return_value=[(date(2026,10,2),)]
             records=[{'uid':'new-1','date':date(2026,10,2),'gross_wt':1000,'pieces':1,'is_nip':True},
                      {'uid':'new-2','date':date(2026,10,2),'gross_wt':2000,'pieces':2,'is_nip':True}]
-            stream.fetchmany.side_effect=[records,RuntimeError('source stream interrupted')] if fail else [records,[]]
+            batches=iter([records,RuntimeError('source stream interrupted')] if fail else [records,[]])
+            def fetchmany(size):
+                self.assertEqual(size,5000)
+                batch=next(batches)
+                if isinstance(batch,Exception):raise batch
+                return batch
+            stream.fetchmany.side_effect=fetchmany
             contexts=[]
             for cursor in (count,dates,stream):
                 context=MagicMock();context.__enter__.return_value=cursor;contexts.append(context)

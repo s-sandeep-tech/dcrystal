@@ -8,12 +8,14 @@ from app.extensions import db
 from app.models.nip_stock_trend import NIPStockTrendSnapshot as S, SOURCE_COLUMNS
 
 SOURCE = 'ext_view.vw_weight_level_excess_nip_barcode_data'
+BATCH_SIZE = 5000
 logger = logging.getLogger(__name__)
 
 
 def sync_nip_stock_trend_task():
     from app.utils.sync_tasks import emit_sync_update
     for attempt in range(1, 4):
+        logger.info('NIP stock trend sync starting attempt %s/3 (batch size %s)', attempt, BATCH_SIZE)
         result = _sync_nip_stock_trend_attempt()
         if result['status'] == 'success':
             return result
@@ -38,10 +40,12 @@ def _sync_nip_stock_trend_attempt():
         emit('processing', 'Reading dated NIP barcode history...', 5)
         conn = get_external_db_connection()
         conn.set_session(isolation_level='REPEATABLE READ', readonly=True, autocommit=False)
+        logger.info('NIP source connected; validating source history')
         with conn.cursor() as cur:
             cur.execute(f'''SELECT COUNT(*), COUNT(*) FILTER (WHERE date IS NULL OR uid IS NULL),
                 COUNT(*) - COUNT(DISTINCT (date, uid)), SUM(gross_wt), SUM(pieces) FROM {SOURCE}''')
             count, missing, duplicates, weight, pieces = cur.fetchone()
+        logger.info('NIP source validation: rows=%s, missing keys=%s, duplicate keys=%s', count, missing, duplicates)
         if not count or missing or duplicates:
             raise ValueError('Source empty or has missing/duplicate (date, uid) keys; previous snapshot preserved')
         with conn.cursor() as dates_cursor:
@@ -52,10 +56,13 @@ def _sync_nip_stock_trend_attempt():
         columns = ', '.join('"' + name + '"' for name in SOURCE_COLUMNS)
         loaded, synced_at = 0, datetime.utcnow()
         with conn.cursor(name='nip_stock_trend_sync', cursor_factory=RealDictCursor) as cur:
-            cur.itersize = 20000
+            cur.itersize = BATCH_SIZE
             cur.execute(f'SELECT {columns} FROM {SOURCE}')
             while True:
-                batch = cur.fetchmany(20000)
+                started = time.monotonic()
+                logger.info('NIP source fetching batch %s; loaded=%s/%s', loaded // BATCH_SIZE + 1, loaded, count)
+                batch = cur.fetchmany(BATCH_SIZE)
+                logger.info('NIP source fetched %s rows in %.2fs', len(batch), time.monotonic() - started)
                 if not batch:
                     break
                 records = []
