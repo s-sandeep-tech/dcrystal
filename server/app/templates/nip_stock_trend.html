@@ -57,7 +57,6 @@
             <div class="grid grid-cols-2 gap-2"><label class="nip-filter-label">From Date<input id="nip-from" type="date"></label><label class="nip-filter-label">To Date<input id="nip-to" type="date"></label></div>
             {% for field in filter_fields %}<div id="nip-filter-{{ field }}"></div>{% endfor %}
             {% for field,label in [('is_franchise','Franchise Stock'),('is_excess','Excess Stock'),('is_to_be_replaced','Stock to be Replaced')] %}<label class="nip-filter-label">{{ label }}<select data-nip-boolean="{{ field }}"><option value="">All</option><option value="true">Yes</option><option value="false">No</option></select></label>{% endfor %}
-            {% for label in ['Branch Status','State','Category'] %}<label class="nip-filter-label">{{ label }}<select disabled title="Source field mapping not configured"><option>Not available in source</option></select></label>{% endfor %}
         </div>
     </div>
     <div class="p-4 border-t border-gray-200 dark:border-gray-800"><button id="nip-apply" class="w-full bg-primary text-white font-bold py-2.5 rounded text-[11px] flex items-center justify-center gap-2"><span class="material-symbols-outlined text-sm">search_check</span>APPLY FILTERS</button></div>

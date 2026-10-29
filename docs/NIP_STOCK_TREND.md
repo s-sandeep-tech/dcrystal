@@ -52,8 +52,8 @@ using elapsed days between reporting dates. It requires at least two non-null
 dated balances; missing values are excluded from fitting. It is a historical
 trend, not a future forecast. Table, graph, summaries and Excel share the applied filters.
 
-State, Branch Status and Top/Middle/Bottom Category are disabled because the view
-does not supply them and a category rule was not specified. No values are inferred.
+State, Branch Status and Category are omitted from the filter panel because the
+view does not supply them and a category rule was not specified. No values are inferred.
 Business-head and showroom-manager branch restrictions reuse existing local branch
 metadata; report access is controlled through normal menu assignments. Assign the
 new menu through RBAC after running the registration SQL. No roles are auto-granted.

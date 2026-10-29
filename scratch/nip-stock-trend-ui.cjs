@@ -54,6 +54,8 @@ const fields=['location','division','group_name','purity','classification','sub_
  await page.waitForFunction(()=>document.getElementById('nip-output').getAttribute('aria-busy')==='false');
  assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).id),chartId);
  assert.equal(await page.locator('.nip-stats>div').count(),6);
+ assert.equal(await page.locator('#nip-sidebar select:disabled').count(),0);
+ for(const label of ['Branch Status','State','Category'])assert.equal(await page.locator('#nip-sidebar .nip-filter-label').filter({hasText:label}).count(),0);
  assert.equal(await page.locator('.nip-unit[data-stat="change_pct"]').textContent(),'');
  assert.equal(await page.locator('#nip-limiter').inputValue(),'top');
  assert.equal(await page.locator('#nip-limiter option:checked').textContent(),'Top 16');
