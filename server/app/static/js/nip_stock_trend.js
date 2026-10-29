@@ -31,6 +31,19 @@
         document.querySelectorAll('[data-view]').forEach(node => node.setAttribute('aria-pressed', String(node.dataset.view === mode)));
         chart?.resize();
     }
+    function trendline(values) {
+        const dates=data.balance_dates.map(day=>Date.parse(day));
+        const origin=dates[0];
+        const x=dates.map(day=>(day-origin)/86400000);
+        const points=values.flatMap((value,index)=>value==null?[]:[{x:x[index],y:Number(value)}]);
+        if(points.length<2)return values.map(()=>null);
+        const meanX=points.reduce((sum,p)=>sum+p.x,0)/points.length;
+        const meanY=points.reduce((sum,p)=>sum+p.y,0)/points.length;
+        const variance=points.reduce((sum,p)=>sum+(p.x-meanX)**2,0);
+        if(!variance)return values.map(()=>null);
+        const slope=points.reduce((sum,p)=>sum+(p.x-meanX)*(p.y-meanY),0)/variance;
+        return x.map(day=>meanY+slope*(day-meanX));
+    }
     function draw() {
         if (!data) return;
         const datasets = [];
@@ -41,12 +54,15 @@
             const color = ({total:'#1683ef',nip:'#e59b18',excess:'#e05260'})[series.kind] || `hsl(${(i * 137.508) % 360} 65% 44%)`;
             datasets.push({type:'bar',label:series.name,stockKind:series.kind,comparisonGroup:series.group,data:series.values,borderColor:color,backgroundColor:color,
                 borderWidth:1,barPercentage:0.96,order:1});
-            if (el('nip-average').checked) datasets.push({type:'line',label:`${series.name} (3-period MA)`,stockKind:series.kind,comparisonGroup:series.group,borderColor:color,
+            if (el('nip-average').checked) datasets.push({type:'line',label:`${series.name} (Trendline)`,stockKind:series.kind,comparisonGroup:series.group,borderColor:color,
                 backgroundColor:color,order:0,
-                borderDash:[5,4],pointRadius:0,borderWidth:1,spanGaps:false,
-                data:series.values.map((_,index) => index < 2 || series.values.slice(index-2,index+1).some(v=>v==null)
-                    ? null : series.values.slice(index-2,index+1).reduce((sum,v)=>sum+v,0)/3)});
+                borderDash:[5,4],pointRadius:0,borderWidth:2,spanGaps:false,
+                data:trendline(series.values)});
         });
+        const unavailable=' · Trendline unavailable: at least two dated balances per series required';
+        el('nip-status').textContent=el('nip-status').textContent.replace(unavailable,'');
+        if(el('nip-average').checked&&!datasets.some(dataset=>dataset.type==='line'&&dataset.data.some(value=>value!=null)))
+            el('nip-status').textContent+=unavailable;
         if(chart){
             const hiddenKinds=new Set(['total','nip','excess'].filter(kind=>
                 chart.data.datasets.some(dataset=>dataset.type==='bar'&&dataset.stockKind===kind)&&

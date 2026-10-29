@@ -10,6 +10,7 @@ const raw=execFileSync('docker',['exec','dcrystal-server-1','python','-c',py],{e
 const fields=['location','division','group_name','purity','classification','sub_classification','make','master_collection','collection','section','sub_section','type','gender','wide_range','branch_type','prov_type'];
 (async()=>{const browser=await chromium.launch({headless:true,channel:'chrome'});try{
  const page=await browser.newPage({viewport:{width:1600,height:1000}}),requests=[],errors=[];
+ let singlePeriod=false;
  page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>localStorage.setItem('access_token','fixture'));
  await page.addInitScript(()=>{
@@ -25,7 +26,7 @@ const fields=['location','division','group_name','purity','classification','sub_
   const url=new URL(r.request().url());
   if(url.pathname.endsWith('/options'))return r.fulfill({contentType:'application/json',body:JSON.stringify({options:Object.fromEntries(fields.map(k=>[k,k==='location'?['ERNAKULAM','THRISSUR ROUND']:['Gold','Silver']]))})});
   requests.push(url);
-  const periods=Array.from({length:21},(_,i)=>`2026-10-${String(i+1).padStart(2,'0')}`);
+  const periods=Array.from({length:singlePeriod?1:21},(_,i)=>`2026-10-${String(i+1).padStart(2,'0')}`);
   const body={periods,balance_dates:periods,series:['Gold','Silver','Platinum'].map((name,i)=>({name,values:periods.map((_,j)=>10+i*10+j)})),
    metric:url.searchParams.get('metric')||'gross_wt',group_by:url.searchParams.get('group_by')||'division',interval:url.searchParams.get('interval')||'daily',
    stats:{total_stock:120,total_nip:60,total_excess:30,change:60,change_pct:100,average:90},first_date:periods[0],last_date:periods.at(-1),observed_days:21};
@@ -72,6 +73,10 @@ const fields=['location','division','group_name','purity','classification','sub_
  assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.filter(d=>!d.groupSpacer).length),18);
  assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).config.type),'bar');
  assert.deepEqual(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.filter(d=>!d.groupSpacer).map(d=>d.type)),Array.from({length:9},()=>['bar','line']).flat());
+ const fitted=await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.find(d=>d.type==='line'&&d.comparisonGroup==='Gold'&&d.stockKind==='nip'));
+ assert(fitted.label.endsWith('(Trendline)'));
+ assert(Math.abs(fitted.data[0]-5)<1e-9);
+ assert(Math.abs(fitted.data.at(-1)-15)<1e-9);
  await page.waitForTimeout(1000);
  const gaps=await page.evaluate(()=>{
   const c=Chart.getChart(document.getElementById('nip-chart'));
@@ -163,5 +168,11 @@ const fields=['location','division','group_name','purity','classification','sub_
  await page.locator('#nip-filter-toggle').click();await page.setViewportSize({width:390,height:844});
  await page.screenshot({path:'/tmp/nip-stock-trend-mobile.png'});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
- assert.deepEqual(errors,[]);console.log('PASS: chart pixels, table pagination, view modes, moving average, metric/interval/filter controls, fullscreen, PNG export, clear, mobile overflow, no page errors');
+ singlePeriod=true;
+ await page.locator('#nip-refresh').click();
+ await page.waitForFunction(()=>Chart.getChart(document.getElementById('nip-chart')).data.labels.length===1);
+ await page.locator('#nip-average').check();
+ assert((await page.locator('#nip-status').textContent()).includes('Trendline unavailable'));
+ assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.filter(d=>d.type==='line').every(d=>d.data.every(v=>v===null))),true);
+ assert.deepEqual(errors,[]);console.log('PASS: chart pixels, table pagination, view modes, linear trendline and one-date guard, metric/interval/filter controls, fullscreen, PNG export, reset, mobile overflow, no page errors');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exit(1)});

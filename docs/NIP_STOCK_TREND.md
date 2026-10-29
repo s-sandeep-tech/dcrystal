@@ -47,8 +47,10 @@ Absent group/date points are gaps, not backfilled or interpolated observations.
 Opening and closing are the first/last observed daily filtered portfolio balance.
 Change = closing - opening; change % = change/opening*100 (N/A when opening=0).
 Average is the mean of observed daily balances, not the mean of sampled period ends.
-The optional moving average is trailing three displayed periods and requires all
-three values. Table, graph, summaries and Excel share the applied filters.
+The optional Trendline is a least-squares linear fit per displayed stock series,
+using elapsed days between reporting dates. It requires at least two non-null
+dated balances; missing values are excluded from fitting. It is a historical
+trend, not a future forecast. Table, graph, summaries and Excel share the applied filters.
 
 State, Branch Status and Top/Middle/Bottom Category are disabled because the view
 does not supply them and a category rule was not specified. No values are inferred.

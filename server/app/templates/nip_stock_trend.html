@@ -37,7 +37,7 @@
         <label>Show<select id="nip-limiter" title="Ranked by the selected stock type on the latest reporting date"><option value="all">All Groups</option><option value="top" selected>Top 16</option><option value="middle">Middle 16</option><option value="bottom">Bottom 16</option></select></label>
         <label>Rank By<select id="nip-rank-by"><option value="total">Total Stock</option><option value="nip">NIP Stock</option><option value="excess">Excess Stock</option></select></label>
         <label>Order<select id="nip-order"><option value="desc">Descending</option><option value="asc">Ascending</option></select></label>
-        <label class="nip-average-control" title="Show a trailing 3-period moving average"><input id="nip-average" type="checkbox">3-period average</label>
+        <label class="nip-average-control" title="Linear trend over reporting dates; requires at least two dated balances"><input id="nip-average" type="checkbox">Trendline</label>
     </div>
     <p id="nip-status" role="status" class="px-4 py-2 text-xs text-gray-500 border-b border-gray-200 dark:border-gray-800">Loading stock history...</p>
     <div id="nip-output" aria-busy="true" class="flex-1 min-h-0 overflow-auto">
@@ -66,5 +66,5 @@
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261029-stable-refresh') }}"></script>
+<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261029-trendline') }}"></script>
 {% endblock %}
