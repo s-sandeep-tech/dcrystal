@@ -189,7 +189,7 @@ class StockTrendDataTests(unittest.TestCase):
                      {'uid':'new-2','date':date(2026,10,2),'gross_wt':2000,'pieces':2,'is_nip':True}]
             batches=iter([records,RuntimeError('source stream interrupted')] if fail else [records,[]])
             def fetchmany(size):
-                self.assertEqual(size,5000)
+                self.assertEqual(size,1000)
                 batch=next(batches)
                 if isinstance(batch,Exception):raise batch
                 return batch

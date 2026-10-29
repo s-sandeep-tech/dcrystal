@@ -8,7 +8,7 @@ from app.extensions import db
 from app.models.nip_stock_trend import NIPStockTrendSnapshot as S, SOURCE_COLUMNS
 
 SOURCE = 'ext_view.vw_weight_level_excess_nip_barcode_data'
-BATCH_SIZE = 5000
+BATCH_SIZE = 1000
 logger = logging.getLogger(__name__)
 
 
