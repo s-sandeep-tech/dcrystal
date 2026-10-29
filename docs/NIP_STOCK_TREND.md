@@ -8,10 +8,30 @@
   (`is_excess=true`). There is no implicit NIP-only filter. Explicit sidebar filters
   apply to all three series. NIP and Excess may overlap and must not be added to Total.
 
-The sync streams 20,000 rows per batch in one consistent source transaction. It
-validates nonempty data, non-null unique `(date, uid)` keys and exact row/weight/pieces
-totals before publishing. Dates present in the source are replaced atomically;
-older dates absent from the source remain. Failed syncs retain the previous data.
+The sync reads 1,000 rows per page using native `(date, uid)` UUID keyset pagination.
+Source reads use READ COMMITTED/autocommit, with a separate short transaction for
+each page and validation query. There is no named cursor or source transaction
+held open during local inserts. An underlying source `(date, uid)` index is
+important for page performance; this application does not alter external indexes.
+
+Rows are inserted into a private local temporary staging table, never the live
+snapshot while fetching. Before publication, per-date source manifests from before
+and after transfer must match staged counts, unique keys, gross weight, pieces,
+and two signed 64-bit sums of full-row MD5 checksums. Checksums cover every synced
+source field, so metadata-only changes also reject publication. Source instability
+or failed reconciliation retries the entire import with fresh staging. These
+checks detect changed content; they do not provide a single source MVCC snapshot
+across all pages or freeze the source after the final validation query.
+
+Only a validated stage replaces source-present dates, in one local transaction.
+Older dates absent from the source remain. Failed syncs retain the previous data.
+The transaction-level advisory lock prevents concurrent publication/imports, and
+temporary staging is removed on success, rollback, or database-session loss.
+There are three attempts with 5- and 10-second retry delays. Source key validation
+failures and an already-running sync stop immediately. No permanent staging table
+or manual schema migration is required. Individual queries can still encounter
+replica recovery conflicts; shortening snapshots reduces, but cannot eliminate,
+that risk.
 Source rows must be barcode stock balances, not duplicate joins or stock movements.
 Historical dates cannot be reconstructed from a current-only view. Such a view
 starts with one reporting date and accumulates dates on subsequent syncs.

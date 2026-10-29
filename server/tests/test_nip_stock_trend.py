@@ -1,5 +1,6 @@
 import unittest
 from datetime import date
+from decimal import Decimal
 from io import BytesIO
 from unittest.mock import patch
 from unittest.mock import MagicMock
@@ -173,6 +174,39 @@ class StockTrendDataTests(unittest.TestCase):
             self.assertEqual(filtered['table_rows'][-1]['nip'],2)
             self.assertEqual(filtered['table_rows'][-1]['excess'],11.999)
 
+    def _nip_source(self, fail=False, changed=False, corrupt=False):
+        conn=MagicMock()
+        records=[{'uid':'00000000-0000-0000-0000-000000000001','date':date(2026,10,2),
+                  'gross_wt':1000,'pieces':1,'is_nip':True,'_source_hash':'0'*31+'1'},
+                 {'uid':'00000000-0000-0000-0000-000000000002','date':date(2026,10,2),
+                  'gross_wt':2000,'pieces':2,'is_nip':True,'_source_hash':'0'*31+'2'}]
+        manifests, pages=0,0
+        def cursor(*args,**kwargs):
+            self.assertNotIn('name',kwargs)
+            cur=MagicMock()
+            def execute(query,params=None):
+                cur.query=query;cur.params=params
+            def fetchall():
+                nonlocal manifests,pages
+                if 'GROUP BY date' in cur.query:
+                    manifests+=1
+                    return [(date(2026,10,2),2,0,0,3000,3,0,4 if changed and manifests>1 else 3)]
+                pages+=1
+                self.assertIn('ORDER BY date, uid LIMIT %s',cur.query)
+                self.assertEqual(cur.params[-1],1)
+                if fail and pages==2:raise RuntimeError('source stream interrupted')
+                if len(cur.params)==3:
+                    self.assertIn('(date, uid) > (%s::date, %s::uuid)',cur.query)
+                    batch=[r for r in records if (r['date'],r['uid'])>cur.params[:2]][:1]
+                else:batch=records[:1]
+                if corrupt and batch:return [{**batch[0],'_source_hash':'0'*31+'9'}]
+                return batch
+            cur.execute.side_effect=execute;cur.fetchall.side_effect=fetchall
+            context=MagicMock();context.__enter__.return_value=cur
+            return context
+        conn.cursor.side_effect=cursor
+        return conn
+
     def test_sync_retains_older_dates_and_rolls_back_failed_refresh(self):
         from app.utils.nip_stock_trend_sync import sync_nip_stock_trend_task
         execute = db.session.execute
@@ -180,41 +214,42 @@ class StockTrendDataTests(unittest.TestCase):
             if str(statement).startswith('SELECT pg_try_advisory_xact_lock'):
                 return SimpleNamespace(scalar=lambda: True)
             return execute(statement, *args, **kwargs)
-        def connection(fail=False):
-            conn=MagicMock()
-            count, dates, stream=MagicMock(),MagicMock(),MagicMock()
-            count.fetchone.return_value=(2,0,0,3000,3)
-            dates.fetchall.return_value=[(date(2026,10,2),)]
-            records=[{'uid':'new-1','date':date(2026,10,2),'gross_wt':1000,'pieces':1,'is_nip':True},
-                     {'uid':'new-2','date':date(2026,10,2),'gross_wt':2000,'pieces':2,'is_nip':True}]
-            batches=iter([records,RuntimeError('source stream interrupted')] if fail else [records,[]])
-            def fetchmany(size):
-                self.assertEqual(size,1000)
-                batch=next(batches)
-                if isinstance(batch,Exception):raise batch
-                return batch
-            stream.fetchmany.side_effect=fetchmany
-            contexts=[]
-            for cursor in (count,dates,stream):
-                context=MagicMock();context.__enter__.return_value=cursor;contexts.append(context)
-            conn.cursor.side_effect=contexts
-            return conn
-        with patch('app.utils.sync_tasks.emit_sync_update'), patch('app.utils.nip_stock_trend_sync.time.sleep'), patch.object(db.session,'execute',side_effect=execute_with_lock):
-            with patch('app.utils.sync_tasks.get_external_db_connection',return_value=connection()):
+        with patch('app.utils.sync_tasks.emit_sync_update'), patch('app.utils.nip_stock_trend_sync.time.sleep'), \
+             patch('app.utils.nip_stock_trend_sync.BATCH_SIZE',1), patch.object(db.session,'execute',side_effect=execute_with_lock):
+            healthy=self._nip_source()
+            with patch('app.utils.sync_tasks.get_external_db_connection',return_value=healthy):
                 self.assertEqual(sync_nip_stock_trend_task()['status'],'success')
+                healthy.set_session.assert_called_once_with(isolation_level='READ COMMITTED',readonly=True,autocommit=True)
             self.assertEqual(S.query.count(),3)
             self.assertEqual(S.query.filter(S.date==date(2026,10,1)).count(),1)
-            with patch('app.utils.sync_tasks.get_external_db_connection',side_effect=lambda: connection(True)) as source:
+            with patch('app.utils.sync_tasks.get_external_db_connection',side_effect=lambda: self._nip_source(fail=True)) as source:
                 self.assertEqual(sync_nip_stock_trend_task()['status'],'error')
                 self.assertEqual(source.call_count,3)
             self.assertEqual(S.query.count(),3)
-            self.assertEqual(S.query.filter_by(uid='new-2').count(),1)
-            interrupted, healthy=connection(True),connection()
+            self.assertEqual(S.query.filter_by(uid='00000000-0000-0000-0000-000000000002').count(),1)
+            interrupted, healthy=self._nip_source(fail=True),self._nip_source()
             with patch('app.utils.sync_tasks.get_external_db_connection',side_effect=[interrupted,healthy]):
                 self.assertEqual(sync_nip_stock_trend_task()['status'],'success')
                 interrupted.close.assert_called_once()
                 healthy.close.assert_called_once()
             self.assertEqual(S.query.count(),3)
+
+    def test_sync_rejects_changed_source_and_staging_checksum_mismatch(self):
+        from app.utils.nip_stock_trend_sync import _sync_nip_stock_trend_attempt
+        execute=db.session.execute
+        def execute_with_lock(statement,*args,**kwargs):
+            if str(statement).startswith('SELECT pg_try_advisory_xact_lock'):
+                return SimpleNamespace(scalar=lambda:True)
+            return execute(statement,*args,**kwargs)
+        for options in [{'changed':True},{'corrupt':True}]:
+            with patch('app.utils.sync_tasks.emit_sync_update'), patch('app.utils.nip_stock_trend_sync.BATCH_SIZE',1), \
+                 patch.object(db.session,'execute',side_effect=execute_with_lock), \
+                 patch('app.utils.sync_tasks.get_external_db_connection',return_value=self._nip_source(**options)):
+                result=_sync_nip_stock_trend_attempt()
+                self.assertEqual(result['status'],'error')
+                self.assertTrue(result['retryable'])
+                self.assertEqual(S.query.count(),4)
+                self.assertEqual(S.query.filter_by(uid='4').one().gross_wt,Decimal(9999))
 
     def test_sync_retries_and_reports_only_final_failure(self):
         from app.utils.nip_stock_trend_sync import sync_nip_stock_trend_task
