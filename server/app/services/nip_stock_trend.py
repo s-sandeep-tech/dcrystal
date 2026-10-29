@@ -120,6 +120,11 @@ def trend_data(args):
     data['stats'] = {**data['stats'], 'total_stock': prepared['total']['stats']['closing'],
                      'total_nip': prepared['nip']['stats']['closing'],
                      'total_excess': prepared['excess']['stats']['closing']}
+    total = data['stats']['total_stock']
+    for kind in ('nip', 'excess'):
+        value = data['stats']['total_' + kind]
+        data['stats'][kind + '_pct'] = value / total * 100 if value is not None and total else None
+    data['stats']['excess_change_pct'] = prepared['excess']['stats']['change_pct']
     totals = prepared['total']['series']
     ranking = prepared[rank_by]['series']
     ranked = sorted((i for i, series in enumerate(ranking) if series['values'] and series['values'][-1] is not None),

@@ -73,6 +73,9 @@ class StockTrendDataTests(unittest.TestCase):
             self.assertEqual(data['series'][2]['values'],[1,11.999])
             self.assertEqual(data['stats']['total_nip'],2)
             self.assertEqual(data['stats']['total_stock'],11.999)
+            self.assertAlmostEqual(data['stats']['nip_pct'],2/11.999*100)
+            self.assertEqual(data['stats']['excess_pct'],100)
+            self.assertAlmostEqual(data['stats']['excess_change_pct'],1099.9)
             self.assertEqual(data['stats']['total_excess'],11.999)
             self.assertAlmostEqual(data['stats']['change'],10.999)
             self.assertEqual([s['kind'] for s in data['series']],['total','nip','excess'])
@@ -86,6 +89,24 @@ class StockTrendDataTests(unittest.TestCase):
             self.assertEqual(data['stats']['closing'],11.999)
             session['user_id']='999'
             self.assertEqual(scoped_query().count(),0)
+
+    def test_percentage_stats_zero_missing_and_reduction(self):
+        S.query.delete()
+        first=S(uid='first',date=date(2026,10,1),division='Gold',gross_wt=0,pieces=0,is_nip=True,is_excess=True)
+        last=S(uid='last',date=date(2026,10,2),division='Gold',gross_wt=1000,pieces=1,is_nip=True,is_excess=True)
+        db.session.add_all([first,last]);db.session.commit()
+        with self.app.test_request_context('/'):
+            session['roles']=['ADMIN']
+            stats=trend_data(MultiDict())['stats']
+            self.assertEqual(stats['nip_pct'],100)
+            self.assertIsNone(stats['excess_change_pct'])
+            zero=trend_data(MultiDict({'to_date':'2026-10-01'}))['stats']
+            self.assertIsNone(zero['nip_pct']);self.assertIsNone(zero['excess_pct'])
+            first.gross_wt=2000;db.session.commit()
+            self.assertEqual(trend_data(MultiDict())['stats']['excess_change_pct'],-50)
+            last.gross_wt=None;db.session.commit()
+            missing=trend_data(MultiDict())['stats']
+            for key in ['nip_pct','excess_pct','excess_change_pct']:self.assertIsNone(missing[key])
 
     def test_invalid_parameters(self):
         with self.app.test_request_context('/'):

@@ -1,5 +1,6 @@
 (() => {
     const el = id => document.getElementById(id), controls = {};
+    const statKeys=['total_stock','total_nip','total_excess','nip_pct','excess_pct','excess_change_pct','change','change_pct','average'];
     const pageLoaded = new Promise(resolve=>{
         if(document.readyState==='complete')resolve();
         else window.addEventListener('load',resolve,{once:true});
@@ -203,11 +204,13 @@
         el('nip-table').append(paging);
     }
     function render() {
-        for (const key of ['total_stock','total_nip','total_excess','change','change_pct','average']) {
-            el(`nip-stat-${key}`).textContent = key === 'change_pct'
+        for (const key of statKeys) {
+            el(`nip-stat-${key}`).textContent = key.endsWith('_pct')
                 ? (data.stats[key] == null ? 'N/A' : data.stats[key].toFixed(2)+'%') : number(data.stats[key]);
         }
-        document.querySelectorAll('.nip-unit').forEach(node=>node.textContent=node.dataset.stat==='change_pct'?'':data.unit);
+        const excessChange=data.stats.excess_change_pct;
+        el('nip-stat-excess_change_pct').dataset.direction=excessChange>0?'increase':excessChange<0?'decrease':'neutral';
+        document.querySelectorAll('.nip-unit').forEach(node=>node.textContent=node.dataset.stat.endsWith('_pct')?'':data.unit);
         tablePage=1;renderTable();
         el('nip-status').textContent = data.periods.length
             ? `${data.first_date} to ${data.last_date} · ${data.observed_days} observed days · Total / NIP / Excess · ${data.interval === 'daily' ? 'Daily balances' : 'Last reporting date per period'}${data.missing_measure_rows ? ' · Missing measurements: '+data.missing_measure_rows : ''}`
@@ -225,7 +228,7 @@
             if(controller.signal.aborted)return;
             data=result;render();
         } catch(error){if(error.name!=='AbortError'){el('nip-status').textContent=error.message;data=null;chart?.destroy();chart=null;el('nip-table').replaceChildren();
-            ['total_stock','total_nip','total_excess','change','change_pct','average'].forEach(key=>el('nip-stat-'+key).textContent='-');}}
+            statKeys.forEach(key=>{el('nip-stat-'+key).textContent='-';delete el('nip-stat-'+key).dataset.direction;});}}
         finally{if(pending===controller){el('nip-output').setAttribute('aria-busy','false');pending=null;}}
     }
     async function download(response,filename) {
