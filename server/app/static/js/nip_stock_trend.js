@@ -1,5 +1,9 @@
 (() => {
     const el = id => document.getElementById(id), controls = {};
+    const pageLoaded = new Promise(resolve=>{
+        if(document.readyState==='complete')resolve();
+        else window.addEventListener('load',resolve,{once:true});
+    });
     let applied = new URLSearchParams(), chart = null, data = null, pending = null, mode = 'graph', tablePage = 1;
     const headers = () => ({Authorization: `Bearer ${localStorage.getItem('access_token') || ''}`});
     const name = key => key.replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -185,8 +189,10 @@
         draw(); showViews();
     }
     async function load() {
+        await pageLoaded;
         pending?.abort(); const controller=new AbortController();pending=controller;
         el('nip-output').setAttribute('aria-busy','true');
+        el('nip-loading').hidden=false;
         el('nip-status').textContent='Loading stock history...';
         try {
             const result=await responseJSON(await fetch('/api/nip-stock-trend-analysis/data?'+requestParams(), {headers:headers(),signal:controller.signal}));
@@ -194,7 +200,7 @@
             data=result;render();
         } catch(error){if(error.name!=='AbortError'){el('nip-status').textContent=error.message;data=null;chart?.destroy();chart=null;el('nip-table').replaceChildren();
             ['total_stock','total_nip','total_excess','change','change_pct','average'].forEach(key=>el('nip-stat-'+key).textContent='-');}}
-        finally{if(pending===controller){el('nip-output').setAttribute('aria-busy','false');pending=null;}}
+        finally{if(pending===controller){el('nip-output').setAttribute('aria-busy','false');el('nip-loading').hidden=true;pending=null;}}
     }
     async function download(response,filename) {
         if(!response.ok)throw new Error((await response.json()).error || 'Export permission required');
@@ -225,6 +231,6 @@
             const result=await responseJSON(await fetch('/api/nip-stock-trend-analysis/options',{headers:headers()}));
             for(const [key,values] of Object.entries(result.options))controls[key]=new CustomMultiSelect({containerId:'nip-filter-'+key,label:name(key),defaultText:'All '+name(key),options:values.map(value=>({value,label:value}))});
             await load();
-        }catch(error){el('nip-status').textContent=error.message;}
+        }catch(error){el('nip-status').textContent=error.message;el('nip-loading').hidden=true;el('nip-output').setAttribute('aria-busy','false');}
     });
 })();

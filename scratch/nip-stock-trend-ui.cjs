@@ -12,8 +12,16 @@ const fields=['location','division','group_name','purity','classification','sub_
  const page=await browser.newPage({viewport:{width:1600,height:1000}}),requests=[],errors=[];
  page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>localStorage.setItem('access_token','fixture'));
+ await page.addInitScript(()=>{
+  const fetch=window.fetch;
+  window.dataLoadStates=[];
+  window.fetch=function(input,...args){
+   if(String(input).includes('/api/nip-stock-trend-analysis/data?'))window.dataLoadStates.push(document.readyState);
+   return fetch.call(this,input,...args);
+  };
+ });
  await page.route('**/nip-stock-trend-analysis',r=>r.fulfill({contentType:'text/html',body:html}));
- await page.route('**/api/**',r=>{
+ await page.route('**/api/**',async r=>{
   const url=new URL(r.request().url());
   if(url.pathname.endsWith('/options'))return r.fulfill({contentType:'application/json',body:JSON.stringify({options:Object.fromEntries(fields.map(k=>[k,k==='location'?['ERNAKULAM','THRISSUR ROUND']:['Gold','Silver']]))})});
   requests.push(url);
@@ -27,6 +35,7 @@ const fields=['location','division','group_name','purity','classification','sub_
   body.series=groups.flatMap(s=>[['total',1],['nip',.5],['excess',.25]].map(([kind,factor])=>({name:s.name+' - '+kind,group:s.name,kind,values:s.values.map(v=>v*factor)})));
   body.series[0].values[0]=0.0001;
   body.series[2].values[0]=0;
+  await new Promise(resolve=>setTimeout(resolve,250));
   return r.fulfill({contentType:'application/json',body:JSON.stringify(body)});
  });
  await page.goto('http://127.0.0.1:8091/nip-stock-trend-analysis');
@@ -34,6 +43,13 @@ const fields=['location','division','group_name','purity','classification','sub_
  catch(error){console.log({errors,requests:requests.map(String),url:page.url(),status:await page.locator('#nip-status').textContent()});await page.screenshot({path:'/tmp/nip-debug.png'});throw error;}
  assert.equal(await page.locator('#nip-table tbody tr').count(),50);
  assert.equal(await page.locator('#nip-stat-total_stock').textContent(),'120.000');
+ assert.equal(await page.locator('#nip-loading').isVisible(),false);
+ assert.deepEqual(await page.evaluate(()=>window.dataLoadStates),['complete']);
+ await page.locator('#nip-refresh').click();
+ await page.waitForFunction(()=>document.getElementById('nip-output').getAttribute('aria-busy')==='true');
+ assert.equal(await page.locator('#nip-loading').isVisible(),true);
+ await page.waitForFunction(()=>document.getElementById('nip-output').getAttribute('aria-busy')==='false');
+ assert.equal(await page.locator('#nip-loading').isVisible(),false);
  assert.equal(await page.locator('.nip-stats>div').count(),6);
  assert.equal(await page.locator('.nip-unit[data-stat="change_pct"]').textContent(),'');
  assert.equal(await page.locator('#nip-limiter').inputValue(),'top');
