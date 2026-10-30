@@ -437,18 +437,27 @@ function switchPurchasePlanModalTab(tab) {
     }
 
     if (tab === 'sales') {
-        if (modal) modal.classList.remove('compare-mode');
-        if (grid) grid.className = 'grid grid-cols-1 gap-5 h-full flex-1 min-h-0';
+        if (modal) {
+            modal.classList.remove('compare-mode');
+            modal.classList.add('single-mode');
+        }
+        if (grid) grid.className = 'grid grid-cols-1 gap-4 h-full flex-1 min-h-0';
         if (salesPanel) salesPanel.hidden = false;
         if (stockPanel) stockPanel.hidden = true;
     } else if (tab === 'stock') {
-        if (modal) modal.classList.remove('compare-mode');
-        if (grid) grid.className = 'grid grid-cols-1 gap-5 h-full flex-1 min-h-0';
+        if (modal) {
+            modal.classList.remove('compare-mode');
+            modal.classList.add('single-mode');
+        }
+        if (grid) grid.className = 'grid grid-cols-1 gap-4 h-full flex-1 min-h-0';
         if (salesPanel) salesPanel.hidden = true;
         if (stockPanel) stockPanel.hidden = false;
     } else { // compare
-        if (modal) modal.classList.add('compare-mode');
-        if (grid) grid.className = 'grid grid-cols-1 lg:grid-cols-2 gap-5 h-full flex-1 min-h-0';
+        if (modal) {
+            modal.classList.add('compare-mode');
+            modal.classList.remove('single-mode');
+        }
+        if (grid) grid.className = 'grid grid-cols-2 gap-4 h-full flex-1 min-h-0';
         if (salesPanel) salesPanel.hidden = false;
         if (stockPanel) stockPanel.hidden = false;
     }
