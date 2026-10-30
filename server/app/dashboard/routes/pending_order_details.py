@@ -10,6 +10,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def has_full_pending_data_access():
+    roles = {str(role).upper() for role in session.get('roles', [])}
+    return bool(roles.intersection({'ADMIN', 'MANAGER_2', 'EXECUTIVE_DIRECTOR'}))
+
+
 def owner_group_value(column):
     return func.coalesce(func.nullif(func.trim(column), ''), 'NULL')
 
@@ -153,10 +158,8 @@ def pending_order_details():
                 query = query.filter(PendingOrderDetailsSnapshot.qc_ro == qc_ro)
             
             roles = [r.upper() for r in session.get('roles', [])]
-            is_admin = 'ADMIN' in roles
-            is_manager_2 = 'MANAGER_2' in roles
             
-            if not is_admin and not is_manager_2:
+            if not has_full_pending_data_access():
                 if 'MANAGER_KMU' in roles:
                     query = query.filter(PendingOrderDetailsSnapshot.make.in_([
                         'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
@@ -169,7 +172,7 @@ def pending_order_details():
 
         def apply_options_filter(q):
             roles = [r.upper() for r in session.get('roles', [])]
-            if 'ADMIN' in roles or 'MANAGER_2' in roles:
+            if has_full_pending_data_access():
                 return q
             
             if 'MANAGER_KMU' in roles:
@@ -413,10 +416,8 @@ def get_pending_order_details_partial():
                 query = query.filter(PendingOrderDetailsSnapshot.qc_ro == qc_ro)
             
             roles = [r.upper() for r in session.get('roles', [])]
-            is_admin = 'ADMIN' in roles
-            is_manager_2 = 'MANAGER_2' in roles
             
-            if not is_admin and not is_manager_2:
+            if not has_full_pending_data_access():
                 if 'MANAGER_KMU' in roles:
                     query = query.filter(PendingOrderDetailsSnapshot.make.in_([
                         'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
@@ -587,10 +588,8 @@ def get_pending_order_details_leaf_detail():
             query = query.filter(PendingOrderDetailsSnapshot.qc_ro == qc_ro)
 
         roles = [r.upper() for r in session.get('roles', [])]
-        is_admin = 'ADMIN' in roles
-        is_manager_2 = 'MANAGER_2' in roles
         
-        if not is_admin and not is_manager_2:
+        if not has_full_pending_data_access():
             if 'MANAGER_KMU' in roles:
                 query = query.filter(PendingOrderDetailsSnapshot.make.in_([
                     'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
