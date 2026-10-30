@@ -44,6 +44,12 @@ select the last available **common reporting date** in each period, then display
 that day's grouped balance. Never sum daily balances across the interval.
 Absent group/date points are gaps, not backfilled or interpolated observations.
 
+The Line Chart tab shows exactly two portfolio series: NIP Stock and Excess Stock.
+They use all filtered groups (independent of Top/Middle/Bottom limits), the selected
+measurement, and the same period-end reporting dates as the bar chart. Missing
+measurements remain gaps. Comparison/ranking and the bar Trendline controls are
+disabled in this view; date, sidebar, interval and measurement controls still apply.
+
 Opening and closing are the first/last observed daily filtered portfolio balance.
 Change = closing - opening; change % = change/opening*100 (N/A when opening=0).
 Average is the mean of observed daily balances, not the mean of sampled period ends.

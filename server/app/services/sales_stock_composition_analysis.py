@@ -123,7 +123,7 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
         (S.branch_id.isnot(None), 'branch:' + cast(S.branch_id, String)),
         else_='location:' + dimension('location_name'),
     )
-    dates_query = db.session.query(location_key, func.max(S.date)).group_by(location_key)
+    dates_query = db.session.query(location_key, func.max(S.date), func.min(S.min_trans_date)).group_by(location_key)
     if selected_date:
         dates_query = dates_query.filter(S.date <= selected_date)
     branch_ids = [int(v) for v in selections.get('branch_id', []) if str(v).isdigit()]
@@ -131,12 +131,18 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
         dates_query = dates_query.filter(S.branch_id.in_(branch_ids))
     location_factors = []
     factors_by_location = {}
-    for key, effective_date in dates_query.all():
+    late_locations = set()
+    for key, effective_date, first_date in dates_query.all():
         if effective_date is None:
             continue
         local_factor, days, elapsed, label = calculate_fy_factor(effective_date)
+        local_fy_start = date(effective_date.year if effective_date.month >= 4 else effective_date.year - 1, 4, 1)
+        if first_date and first_date > local_fy_start:
+            late_locations.add(key)
         factors_by_location[key] = local_factor
         location_factors.append({'location_key': key, 'date': effective_date.isoformat(),
+                                 'first_sales_date': first_date.isoformat() if first_date else None,
+                                 'turn_na_b': key in late_locations,
                                  'factor': local_factor, 'fy_label': label,
                                  'inclusive_fy_days': days, 'inclusive_elapsed_days': elapsed})
     def aggregate_sales(query, group_dimension=None):
@@ -151,7 +157,9 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
         for result in results:
             label = None if group_dimension is None else result[0]
             key, weight, turnover, tsk = result[-4:]
-            totals = groups.setdefault(label, [0.0] * 6)
+            totals = groups.setdefault(label, [0.0] * 7)
+            if key in late_locations:
+                totals[6] += 1
             local_factor = factors_by_location.get(key)
             totals[0] += float(weight or 0)
             totals[1] += float(turnover or 0)
@@ -200,13 +208,14 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
                 stock_filtered = stock_filtered.filter(cast(getattr(stocks_q.c, name), String).in_(values))
 
     # Overall report totals (denominators)
-    sales_totals = aggregate_sales(sales).get(None, [0.0] * 6)
+    sales_totals = aggregate_sales(sales).get(None, [0.0] * 7)
 
     total_sales_weight = float(sales_totals[0] or 0)
     total_turnover = float(sales_totals[1] or 0)
     total_tsk = float(sales_totals[2] or 0)
-    total_annual_weight = None if sales_totals[5] else float(sales_totals[3] or 0)
-    total_annual_value = None if sales_totals[5] else float(sales_totals[4] or 0)
+    total_na_b = bool(sales_totals[6])
+    total_annual_weight = None if sales_totals[5] or total_na_b else float(sales_totals[3] or 0)
+    total_annual_value = None if sales_totals[5] or total_na_b else float(sales_totals[4] or 0)
 
     stock_totals = stock_filtered.with_entities(
         func.sum(stocks_q.c.provision),
@@ -242,8 +251,9 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
             'sales_weight': float(r[1] or 0),
             'turnover': float(r[2] or 0),
             'tsk': float(r[3] or 0),
-            'annual_weight': None if r[6] else float(r[4] or 0),
-            'annual_value': None if r[6] else float(r[5] or 0),
+            'annual_weight': None if r[6] or r[7] else float(r[4] or 0),
+            'annual_value': None if r[6] or r[7] else float(r[5] or 0),
+            'turn_na_b': bool(r[7]),
             'stock_weight': 0.0,
             'stock_value': 0.0
         }
@@ -284,6 +294,7 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
             'sales_composition': sales_comp,
             'stock_composition': stock_comp,
             'weight_turn': turn_weight,
+            'turn_na_b': g.get('turn_na_b', False),
             'value_turn': turn_value,
             'tsk_pct': tsk_pct
         })
@@ -302,6 +313,7 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
         'sales_composition': 100.0 if total_sales_weight > 0 else None,
         'stock_composition': 100.0 if total_stock_weight > 0 else None,
         'weight_turn': gt_turn_weight,
+        'turn_na_b': total_na_b,
         'value_turn': gt_turn_value,
         'tsk_pct': gt_tsk_pct
     }
@@ -310,6 +322,7 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
         'sales_weight': total_sales_weight,
         'provision_weight': total_stock_weight,
         'turn_weight': gt_turn_weight,
+        'turn_na_b': total_na_b,
         'turnover': total_turnover,
         'tsk_pct': gt_tsk_pct or 0.0,
         'factor': factor,

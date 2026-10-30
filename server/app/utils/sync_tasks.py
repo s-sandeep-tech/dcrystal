@@ -5038,9 +5038,13 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
                 report_date = row.get('max_trans_date')
                 if isinstance(report_date, datetime):
                     report_date = report_date.date()
+                first_date = row.get('min_trans_date')
+                if isinstance(first_date, datetime):
+                    first_date = first_date.date()
                 records.append({
                     'source_id': to_int(row.get('id')),
                     'date': report_date,
+                    'min_trans_date': first_date,
                     'branch_id': to_int(row.get('branch_id')),
                     'location_name': to_str(row.get('location')),
                     'state_name': to_str(row.get('state_name')),

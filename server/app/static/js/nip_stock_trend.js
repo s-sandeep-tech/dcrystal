@@ -28,7 +28,10 @@
         return params;
     }
     function showViews() {
-        el('nip-graph').hidden = mode === 'table'; el('nip-table').hidden = mode === 'graph';
+        el('nip-graph').hidden = mode === 'table'; el('nip-table').hidden = mode !== 'table';
+        ['nip-group','nip-limiter','nip-order','nip-rank-by','nip-average'].forEach(id=>el(id).disabled=mode==='line');
+        el('nip-chart').setAttribute('aria-label',mode==='line'?'NIP and Excess stock line chart':'NIP stock trend bar chart');
+        el('nip-graph').querySelector('h3').textContent=mode==='line'?'NIP & Excess - All Filtered Groups':'Stock Trend';
         document.querySelectorAll('[data-view]').forEach(node => node.setAttribute('aria-pressed', String(node.dataset.view === mode)));
         chart?.resize();
     }
@@ -47,6 +50,8 @@
     }
     function draw() {
         if (!data) return;
+        if(mode==='line'){drawLineChart();return;}
+        if(chart?._nipLineView){chart.destroy();chart=null;}
         const datasets = [];
         data.series.forEach((series, i) => {
             if (i && series.group !== data.series[i-1].group) datasets.push({
@@ -180,6 +185,27 @@
             },label:context=>`${({total:'Total Stock',nip:'NIP Stock',excess:'Excess Stock'})[context.dataset.stockKind]}: ${number(context.raw)} ${data.unit}`}}}}});
         } else el('nip-status').textContent += ' Chart library unavailable; table values remain available.';
     }
+    function drawLineChart() {
+        if(typeof Chart==='undefined')return;
+        const datasets=(data.line_series||[]).map(series=>{
+            const color=series.kind==='nip'?'#e59b18':'#e05260';
+            return {label:series.name,data:series.values,borderColor:color,backgroundColor:color,
+                borderWidth:2,pointRadius:3,pointHoverRadius:5,spanGaps:false,tension:0,fill:false};
+        });
+        if(chart?._nipLineView){
+            chart.data.labels=data.periods;chart.data.datasets=datasets;
+            chart.options.scales.y.title.text=data.unit;chart.update('none');return;
+        }
+        chart?.destroy();
+        chart=new Chart(el('nip-chart'),{type:'line',data:{labels:data.periods,datasets},options:{
+            responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
+            scales:{y:{beginAtZero:true,title:{display:true,text:data.unit}}},
+            plugins:{legend:{position:'bottom'},tooltip:{callbacks:{
+                title:items=>items.length?`${items[0].label} (balance ${data.balance_dates[items[0].dataIndex]})`:'',
+                label:context=>`${context.dataset.label}: ${number(context.raw)} ${data.unit}`}}}
+        }});
+        chart._nipLineView=true;
+    }
     function renderTable() {
         el('nip-table').replaceChildren();
         const table = document.createElement('table'), head = table.createTHead().insertRow();
@@ -245,7 +271,7 @@
             applied=new URLSearchParams();load();};
         el('nip-reset').onclick=clear;el('nip-refresh').onclick=load;
         ['nip-interval','nip-metric','nip-group','nip-limiter','nip-order','nip-rank-by'].forEach(id=>el(id).onchange=load);el('nip-average').onchange=draw;
-        document.querySelectorAll('[data-view]').forEach(node=>node.onclick=()=>{mode=node.dataset.view;showViews();});
+        document.querySelectorAll('[data-view]').forEach(node=>node.onclick=()=>{mode=node.dataset.view;showViews();if(mode!=='table')draw();});
         el('nip-filter-toggle').onclick=()=>{const node=el('nip-sidebar');node.hidden=!node.hidden;node.style.display=node.hidden?'none':'';
             el('nip-filter-toggle').setAttribute('aria-expanded',String(!node.hidden));chart?.resize();};
         el('nip-expand').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await el('nip-graph').requestFullscreen();}catch{el('nip-status').textContent='Fullscreen is unavailable in this browser.';}};

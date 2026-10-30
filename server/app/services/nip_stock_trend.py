@@ -88,6 +88,7 @@ def prepare_trend(daily, interval):
               'change_pct': change / opening * 100 if change is not None and opening else None,
               'average': average}
     return {'periods': [p.isoformat() for p in periods],
+            'totals': [float(totals[closes[p]]) if totals[closes[p]] is not None else None for p in periods],
             'balance_dates': [closes[p].isoformat() for p in periods], 'series': series,
             'stats': {k: float(v) if v is not None else None for k, v in values.items()},
             'first_date': dates[0].isoformat() if dates else None,
@@ -125,6 +126,8 @@ def trend_data(args):
         value = data['stats']['total_' + kind]
         data['stats'][kind + '_pct'] = value / total * 100 if value is not None and total else None
     data['stats']['excess_change_pct'] = prepared['excess']['stats']['change_pct']
+    data['line_series'] = [{'name': label, 'kind': kind, 'values': prepared[kind]['totals']}
+                           for kind, label in [('nip','NIP Stock'),('excess','Excess Stock')]]
     totals = prepared['total']['series']
     ranking = prepared[rank_by]['series']
     ranked = sorted((i for i, series in enumerate(ranking) if series['values'] and series['values'][-1] is not None),

@@ -165,6 +165,37 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
         factor_end, fy_days_end, elapsed_days_end, fy_label_end = calculate_fy_factor(date(2027, 3, 31))
         self.assertEqual(round(factor_end, 2), Decimal('1.00'))
 
+    def test_late_start_location_disables_both_turns_before_product_filters(self):
+        for i,branch,section,first in [(1,2,'CHAIN',date(2026,7,1)),
+                                       (2,2,'BANGLE',date(2026,4,1)),
+                                       (3,3,'CHAIN',date(2026,5,1))]:
+            db.session.add(Snapshot(id=i,branch_id=branch,date=date(2026,9,25),
+                min_trans_date=first,section=section,gross_weight=10,turn_over=100,
+                provision_weight=5,purchase_board_rate=10))
+        db.session.commit()
+        late=composition_analysis_data(None,{'branch_id':['3']})
+        self.assertTrue(late['rows'][0]['turn_na_b'])
+        self.assertIsNone(late['rows'][0]['weight_turn'])
+        self.assertIsNone(late['rows'][0]['value_turn'])
+        valid=composition_analysis_data(None,{'branch_id':['2'],'section':['CHAIN']})
+        self.assertFalse(valid['total']['turn_na_b'])
+        self.assertIsNotNone(valid['total']['weight_turn'])
+        mixed=composition_analysis_data(None,{})
+        self.assertTrue(mixed['total']['turn_na_b'])
+        self.assertTrue(mixed['stats']['turn_na_b'])
+        self.assertEqual(mixed['stats']['sales_weight'],30)
+        self.assertEqual(mixed['stats']['provision_weight'],15)
+        self.assertIsNone(mixed['total']['value_turn'])
+        drill=composition_analysis_data(None,{},['CHAIN'])
+        self.assertTrue(all(row['turn_na_b'] for row in drill['rows']))
+        env=Environment(loader=FileSystemLoader(str(Path(__file__).resolve().parents[1]/'app'/'templates')))
+        html=env.get_template('partials/_view_sales_stock_composition_analysis.html').render(
+            rows=late['rows'],total=late['total'],stats=late['stats'])
+        self.assertEqual(html.count('>NA-B</td>'),4)
+        branch_html=env.get_template('partials/_view_sales_stock_composition_analysis_branch.html').render(
+            rows=late['rows'],parent_path=['CHAIN'],can_expand=False)
+        self.assertEqual(branch_html.count('>NA-B</td>'),2)
+
     def test_hierarchy_levels(self):
         self.assertEqual(HIERARCHY, [
             'section',
@@ -361,6 +392,7 @@ class SummarySyncTests(unittest.TestCase):
         from app.utils import sync_tasks
         rows = [{'branch_id': 12, 'item_definition_id': i,
                  'max_trans_date': datetime(2026, 9, 30, 16, 30),
+                 'min_trans_date': datetime(2026, 5, 1, 8, 0),
                  'location': ' THRISSUR ROUND ', 'design_no': 'D-001',
                  'size': Decimal('22'), 'gross_weight': Decimal('-2.5'),
                  'purchase_board_rate': 5000} for i in range(30001)]
@@ -375,6 +407,7 @@ class SummarySyncTests(unittest.TestCase):
         self.assertEqual([len(c.args[1]) for c in batches], [30000, 1])
         record = batches[0].args[1][0]
         self.assertEqual(record['date'], date(2026, 9, 30))
+        self.assertEqual(record['min_trans_date'], date(2026, 5, 1))
         self.assertEqual(record['location_name'], 'THRISSUR ROUND')
         self.assertEqual(record['barcode'], 'D-001')
         self.assertEqual(record['gross_weight'], Decimal('-2.5'))

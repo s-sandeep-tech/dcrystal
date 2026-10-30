@@ -73,6 +73,9 @@ class StockTrendDataTests(unittest.TestCase):
             self.assertEqual(data['series'][2]['values'],[1,11.999])
             self.assertEqual(data['stats']['total_nip'],2)
             self.assertEqual(data['stats']['total_stock'],11.999)
+            self.assertEqual(data['line_series'],[
+                {'name':'NIP Stock','kind':'nip','values':[1,2]},
+                {'name':'Excess Stock','kind':'excess','values':[1,11.999]}])
             self.assertAlmostEqual(data['stats']['nip_pct'],2/11.999*100)
             self.assertEqual(data['stats']['excess_pct'],100)
             self.assertAlmostEqual(data['stats']['excess_change_pct'],1099.9)
@@ -133,6 +136,7 @@ class StockTrendDataTests(unittest.TestCase):
                 self.assertEqual(result['rank_by'],kind)
                 self.assertEqual(result['displayed_groups'],16)
                 self.assertEqual(result['stats']['closing'],3250)
+                self.assertAlmostEqual(result['line_series'][0]['values'][-1],32.5)
                 self.assertEqual(result['stats']['total_nip'],32.5)
                 self.assertEqual(result['stats']['total_excess'],16.9)
             for limiter,first in [('middle','Group 05'),('bottom','Group 10')]:

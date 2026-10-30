@@ -34,6 +34,7 @@ const fields=['location','division','group_name','purity','classification','sub_
   body.unit=body.metric==='pieces'?'Nos.':'kg';
   body.table_rows=periods.flatMap((period,p)=>groups.map(s=>({period,balance_date:period,group:s.name,total:s.values[p],nip:s.values[p]/2,excess:s.values[p]/4})));
   body.series=groups.flatMap(s=>[['total',1],['nip',.5],['excess',.25]].map(([kind,factor])=>({name:s.name+' - '+kind,group:s.name,kind,values:s.values.map(v=>v*factor)})));
+  body.line_series=[{name:'NIP Stock',kind:'nip',values:periods.map(()=>60)},{name:'Excess Stock',kind:'excess',values:periods.map(()=>30)}];
   body.series[0].values[0]=0.0001;
   body.series[2].values[0]=0;
   await new Promise(resolve=>setTimeout(resolve,250));
@@ -75,6 +76,20 @@ const fields=['location','division','group_name','purity','classification','sub_
  await page.locator('[data-view="graph"]').click();assert.equal(await page.locator('#nip-table').isVisible(),false);
  const graphBox=await page.locator('#nip-graph').boundingBox();
  assert(Math.abs(outputBox.height-graphBox.height)<2);
+ await page.locator('[data-view="line"]').click();
+ assert.equal(await page.locator('#nip-table').isVisible(),false);
+ assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).config.type),'line');
+ assert.deepEqual(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.map(d=>d.label)),['NIP Stock','Excess Stock']);
+ assert.equal(await page.locator('#nip-group').isDisabled(),true);
+ assert(await page.evaluate(()=>{
+  const c=Chart.getChart(document.getElementById('nip-chart'));
+  return c.ctx.getImageData(0,0,c.width,c.height).data.filter((value,index)=>index%4===3&&value>0).length>1000;
+ }));
+ await page.screenshot({path:'/tmp/nip-stock-line-chart.png'});
+ await page.locator('[data-view="table"]').click();
+ assert.equal(await page.locator('#nip-graph').isVisible(),false);
+ await page.locator('[data-view="graph"]').click();
+ assert.equal(await page.locator('#nip-group').isDisabled(),false);
  await page.locator('#nip-average').check();
  assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.filter(d=>!d.groupSpacer).length),18);
  assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).config.type),'bar');

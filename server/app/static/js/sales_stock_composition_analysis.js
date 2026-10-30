@@ -240,7 +240,7 @@ function updateTopStats(stats) {
             : '-';
     }
     if (turnWeightEl) {
-        turnWeightEl.textContent = stats.turn_weight != null
+        turnWeightEl.textContent = stats.turn_na_b ? 'NA-B' : stats.turn_weight != null
             ? Number(stats.turn_weight).toFixed(2)
             : (stats.turn_weight === null ? 'N/A' : '-');
     }

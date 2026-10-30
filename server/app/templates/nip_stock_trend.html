@@ -51,7 +51,7 @@
     <div class="nip-toolbar bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <div role="group" aria-label="Report view"
             class="flex border border-gray-200 dark:border-gray-700 rounded overflow-hidden">
-            {% for key,icon,label in [('table','table_chart','Table'),('graph','bar_chart','Graph')] %}<button
+            {% for key,icon,label in [('table','table_chart','Table'),('graph','bar_chart','Graph'),('line','show_chart','Line Chart')] %}<button
                 data-view="{{ key }}" aria-pressed="{{ 'true' if key == 'graph' else 'false' }}"
                 class="nip-view px-3 py-1.5 text-xs"><span class="material-symbols-outlined text-[15px] align-middle">{{
                     icon }}</span> {{ label }}</button>{% endfor %}
@@ -134,5 +134,5 @@
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261029-nine-stats') }}"></script>
+<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261030-line-chart') }}"></script>
 {% endblock %}

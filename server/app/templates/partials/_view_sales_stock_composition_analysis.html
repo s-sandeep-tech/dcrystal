@@ -73,8 +73,8 @@
                     </td>
                     <td class="px-3 py-1 text-right font-mono border-r border-b border-blue-200 dark:border-blue-800">{{ sales_cell(row.sales_composition, current_path) }}</td>
                     <td class="px-3 py-1 text-right font-mono border-r border-b border-blue-200 dark:border-blue-800">{{ "{:,.2f}%".format(row.stock_composition) if row.stock_composition is not none else 'N/A' }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-r border-b border-blue-200 dark:border-blue-800">{{ "{:,.2f}".format(row.weight_turn) if row.weight_turn is not none else 'N/A' }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-r border-b border-blue-200 dark:border-blue-800">{{ "{:,.2f}".format(row.value_turn) if row.value_turn is not none else 'N/A' }}</td>
+<td class="px-3 py-1 text-right font-mono border-r border-b border-blue-200 dark:border-blue-800" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if row.turn_na_b else ("{:,.2f}".format(row.weight_turn) if row.weight_turn is not none else 'N/A') }}</td>
+<td class="px-3 py-1 text-right font-mono border-r border-b border-blue-200 dark:border-blue-800" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if row.turn_na_b else ("{:,.2f}".format(row.value_turn) if row.value_turn is not none else 'N/A') }}</td>
                     <td class="px-3 py-1 text-right font-mono border-b border-blue-200 dark:border-blue-800">{{ tsk_cell(row.tsk_pct) }}</td>
                 </tr>
                 {% endfor %}
@@ -89,8 +89,8 @@
                     </td>
                     <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ sales_cell(total.sales_composition, []) }}</td>
                     <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ "{:,.2f}%".format(total.stock_composition) if total.stock_composition is not none else 'N/A' }}</td>
-                    <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ "{:,.2f}".format(total.weight_turn) if total.weight_turn is not none else 'N/A' }}</td>
-                    <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ "{:,.2f}".format(total.value_turn) if total.value_turn is not none else 'N/A' }}</td>
+<td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if total.turn_na_b else ("{:,.2f}".format(total.weight_turn) if total.weight_turn is not none else 'N/A') }}</td>
+<td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if total.turn_na_b else ("{:,.2f}".format(total.value_turn) if total.value_turn is not none else 'N/A') }}</td>
                     <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white">{{ tsk_cell(total.tsk_pct) }}</td>
                 </tr>
             </tfoot>
