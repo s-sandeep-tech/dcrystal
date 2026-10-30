@@ -61,3 +61,8 @@
 .dark #view-sales-stock-composition-analysis-for-purchase-plan .child-row:hover > td {
     background-color: #1f2937 !important;
 }
+
+/* Ensure contributor modal dialog is completely hidden until opened */
+#purchase-plan-sales-chart-modal:not([open]) {
+    display: none !important;
+}
