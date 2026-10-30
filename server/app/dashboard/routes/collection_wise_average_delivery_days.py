@@ -361,7 +361,7 @@ def apply_owner_visibility_filter(query):
         return query.filter(false())
 
     roles = [role.upper() for role in session.get('roles', [])]
-    if 'ADMIN' in roles or 'MANAGER_2' in roles:
+    if 'ADMIN' in roles or 'MANAGER_2' in roles or 'EXECUTIVE_DIRECTOR' in roles:
         return query
 
     snapshot = CollectionWiseAverageDeliveryDaysSnapshot

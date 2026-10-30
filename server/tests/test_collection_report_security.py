@@ -9,7 +9,7 @@ from app.models.auth import User
 from app.models.rbac import Role, Menu, Permission, UserRole, RoleMenu, RolePermission
 from app.models import CollectionWiseAverageDeliveryDaysSnapshot as Snapshot
 from app.dashboard import dashboard_bp
-from app.dashboard.routes.collection_wise_average_delivery_days import apply_owner_visibility_filter
+from app.dashboard.routes.collection_wise_average_delivery_days import apply_owner_visibility_filter, build_snapshot_query, get_distinct
 
 
 class CollectionSecurityTests(unittest.TestCase):
@@ -90,6 +90,21 @@ class CollectionSecurityTests(unittest.TestCase):
             self.assertEqual([r.id for r in apply_owner_visibility_filter(Snapshot.query).all()], [1])
             session['roles'] = ['ADMIN']
             self.assertEqual(apply_owner_visibility_filter(Snapshot.query).count(), 2)
+
+    def test_executive_director_matches_manager_visibility_and_options(self):
+        db.session.get(Snapshot,1).make='Make A'
+        db.session.get(Snapshot,2).make='Make B'
+        db.session.commit()
+        with self.app.test_request_context('/'):
+            session['user_id']='UNMAPPED'
+            for roles in [['MANAGER_2'],['EXECUTIVE_DIRECTOR'],['executive_director'],['EXECUTIVE_DIRECTOR','MANAGER_KMU']]:
+                session['roles']=roles
+                self.assertEqual(apply_owner_visibility_filter(Snapshot.query).count(),2)
+                self.assertEqual(build_snapshot_query({}).count(),2)
+                self.assertEqual(get_distinct(Snapshot.make),['Make A','Make B'])
+                self.assertEqual([row.id for row in build_snapshot_query({'make':'Make B'})],[2])
+            session.pop('user_id')
+            self.assertEqual(apply_owner_visibility_filter(Snapshot.query).count(),0)
 
 
 if __name__ == '__main__':
