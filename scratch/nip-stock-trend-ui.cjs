@@ -55,6 +55,8 @@ const fields=['location','division','group_name','purity','classification','sub_
  await page.waitForFunction(()=>document.getElementById('nip-output').getAttribute('aria-busy')==='false');
  assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).id),chartId);
  assert.equal(await page.locator('.nip-stats>div').count(),9);
+ const statOrder=await page.locator('.nip-stats [id^="nip-stat-"]').evaluateAll(nodes=>nodes.map(node=>node.id));
+ assert.equal(statOrder.indexOf('nip-stat-nip_change_pct'),statOrder.indexOf('nip-stat-excess_change_pct')+1);
  assert.equal(await page.locator('#nip-stat-average').count(),0);
  assert.equal(await page.locator('#nip-stat-nip_change_pct').textContent(),'120.00%');
  assert.equal(await page.locator('[data-progress]').count(),5);
