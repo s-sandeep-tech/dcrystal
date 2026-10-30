@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Sales & Stock Composition Analysis for Purchase Plan{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_stock_composition_purchase_plan.css', v='20261030-1') }}">
+{% endblock %}
+
+{% block content %}
+<main id="sales-stock-composition-analysis-for-purchase-plan-main"
+    class="flex-1 min-w-0 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    <!-- Header -->
+    <div
+        class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex flex-wrap gap-2 items-center justify-between">
+        <div class="flex items-center gap-4">
+            <h2 class="text-sm font-bold tracking-tight text-gray-800 dark:text-white">
+                Sales &amp; Stock Composition Analysis for Purchase Plan
+                <span
+                    class="ml-2 text-[10px] font-normal px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded uppercase tracking-widest text-gray-500">v1.0</span>
+            </h2>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+            {% if 'report.export' in permissions or 'ADMIN' in permissions %}
+            <!-- Export Button -->
+            <button id="btn-export-purchase-plan-excel" onclick="exportPurchasePlanToExcel()" title="Export filtered data to Excel"
+                class="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded transition-colors shadow-sm uppercase tracking-wider">
+                <span id="purchase-plan-export-btn-icon" class="material-symbols-outlined text-[14px]">download</span>
+                <span id="purchase-plan-export-btn-label">Export</span>
+            </button>
+            {% endif %}
+
+            <!-- Filter Toggle Button -->
+            <button id="purchase-plan-filter-toggle" type="button" onclick="togglePurchasePlanFilters()"
+                class="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-200 dark:border-gray-700 text-primary hover:bg-blue-50 dark:hover:bg-gray-800"
+                aria-controls="purchase-plan-filter-sidebar" aria-expanded="true" aria-label="Hide filters"
+                title="Hide filters">
+                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">filter_alt</span>
+            </button>
+
+            <!-- Zoom Controls -->
+            <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
+                <button onclick="adjustPurchasePlanZoom(-0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom Out">-</button>
+                <button id="purchase-plan-zoom-level" onclick="adjustPurchasePlanZoom(0, true)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-400 hover:text-primary transition-colors border-x border-gray-200 dark:border-gray-700"
+                    title="Reset Zoom">100%</button>
+                <button onclick="adjustPurchasePlanZoom(0.1)"
+                    class="p-1 px-2 text-[10px] font-bold text-gray-500 hover:text-primary transition-colors"
+                    title="Zoom In">+</button>
+            </div>
+
+            <!-- Search Box -->
+            <div
+                class="flex bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 items-center gap-2">
+                <span class="material-symbols-outlined text-gray-400 text-[14px]">search</span>
+                <input id="purchase-plan-report-search"
+                    class="bg-transparent border-none focus:ring-0 text-[11px] w-48 placeholder:text-gray-400 text-gray-700 dark:text-white p-0"
+                    placeholder="Search hierarchy..." type="text" oninput="onPurchasePlanSearchInput(this.value)" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Grid at Top -->
+    <div
+        class="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+        <!-- Stat 1: Net Sales Weight -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[13px] text-primary">scale</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Net Sales Wt (YTD, kg)</p>
+            </div>
+            <div class="flex flex-col mt-1">
+                <p id="stat-sales-weight" class="text-base font-bold text-primary">-</p>
+            </div>
+        </div>
+        <!-- Stat 2: Provision Weight -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[13px] text-emerald-600">inventory_2</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Provision Wt (kg)</p>
+            </div>
+            <div class="flex flex-col mt-1">
+                <p id="stat-provision-weight" class="text-base font-bold text-emerald-600">-</p>
+            </div>
+        </div>
+        <!-- Stat 3: Stock Turn in Weight -->
+        <div class="p-2 text-center">
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[13px] text-amber-600">autorenew</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Stock Turn (Wt)</p>
+            </div>
+            <div class="flex flex-col mt-1">
+                <p id="stat-turn-weight" class="text-base font-bold text-amber-600">-</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Strip -->
+    <div
+        class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <span class="material-symbols-outlined text-[14px]">info</span>
+            <span>Sales and provision totals for the selected filters.</span>
+        </div>
+
+        <div class="flex items-center gap-4 text-[10px] text-gray-500">
+            <span id="purchase-plan-fy-factor-info"
+                class="flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-primary dark:text-blue-300 rounded font-medium text-[9.5px]">
+                <span class="material-symbols-outlined text-[13px]">calculate</span>
+                <span id="purchase-plan-fy-factor-label">Loading sales cutoff...</span>
+            </span>
+            <div class="h-3 w-px bg-gray-200 dark:bg-gray-700"></div>
+            <span id="purchase-plan-sync-time-info" class="flex items-center gap-1 font-medium uppercase tracking-wider">
+                <span class="material-symbols-outlined text-[14px]">schedule</span>
+                <span id="purchase-plan-selected-source-date-display">{{ sync_time }}</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- Table Container -->
+    <div id="purchase-plan-table-area" class="flex-1 overflow-auto relative">
+        <!-- Progress Bar -->
+        <div id="purchase-plan-report-progress" class="absolute top-0 left-0 right-0 h-0.5 bg-primary/20 overflow-hidden hidden z-10">
+            <div class="h-full bg-primary w-1/3 animate-[progress_1s_ease-in-out_infinite]"></div>
+        </div>
+        <style>
+            @keyframes progress {
+                0% {
+                    left: -33%;
+                }
+
+                100% {
+                    left: 100%;
+                }
+            }
+
+            #purchase-plan-report-progress div {
+                position: absolute;
+            }
+        </style>
+
+        <div id="view-sales-stock-composition-analysis-for-purchase-plan" class="dashboard-view h-full">
+            <div class="h-full flex flex-col items-center justify-center p-12 text-center text-gray-500">
+                <span class="material-symbols-outlined text-4xl text-primary animate-spin mb-3">progress_activity</span>
+                <p class="text-sm font-bold text-gray-700 dark:text-gray-200">Loading Sales &amp; Stock Composition Analysis for Purchase Plan...</p>
+                <p class="mt-1 text-xs text-gray-400">Fetching report data via AJAX...</p>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block sidebar %}
+<aside id="purchase-plan-filter-sidebar"
+    class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xs font-bold flex items-center gap-2 text-gray-800 dark:text-white">
+                <span class="material-symbols-outlined text-primary text-sm">filter_alt</span> FILTERS
+            </h2>
+            <button onclick="resetPurchasePlanFilters()"
+                class="text-primary text-[10px] font-bold uppercase hover:underline">Reset</button>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label for="purchase-plan-filter-max-date" class="block text-[10px] font-bold uppercase text-gray-500 mb-2">Max Transaction Date</label>
+                <input type="date" id="purchase-plan-filter-max-date" class="w-full min-w-0 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-xs p-2">
+            </div>
+            <!-- Location (Multi-select) -->
+            <div id="purchase-plan-filter-location-container"></div>
+
+            <!-- Section (Multi-select) -->
+            <div id="purchase-plan-filter-section-container"></div>
+
+            <!-- Classification (Multi-select) -->
+            <div id="purchase-plan-filter-classification-container"></div>
+        </div>
+    </div>
+    <!-- Fixed Footer for Apply Button -->
+    <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark shrink-0">
+        <button onclick="applyPurchasePlanFilters()"
+            class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2.5 rounded text-[11px] shadow-sm flex items-center justify-center gap-2 transition-all">
+            <span class="material-symbols-outlined text-sm">search_check</span> APPLY FILTERS
+        </button>
+    </div>
+</aside>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+    #purchase-plan-sales-chart-modal { width: min(760px, calc(100vw - 32px)); max-height: 90vh; padding: 24px; border: 1px solid #d1d5db; border-radius: 8px; }
+    #purchase-plan-sales-chart-modal::backdrop { background: rgba(0, 0, 0, .45); }
+    #purchase-plan-sales-chart-modal h2 { overflow-wrap: anywhere; }
+    .purchase-plan-chart-frame { position: relative; height: 380px; max-height: 55vh; }
+    #purchase-plan-chart-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; }
+    #purchase-plan-chart-values li { min-width: 0; align-items: flex-start; }
+    @media (max-width: 640px) {
+        #purchase-plan-chart-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 420px) {
+        #purchase-plan-chart-values { grid-template-columns: minmax(0, 1fr); }
+    }
+</style>
+<dialog id="purchase-plan-sales-chart-modal" aria-labelledby="purchase-plan-sales-chart-title" class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100">
+    <header class="flex items-start justify-between gap-3 mb-4">
+        <h2 id="purchase-plan-sales-chart-title" class="text-base font-bold">Top Sales Contributors</h2>
+        <button type="button" onclick="document.getElementById('purchase-plan-sales-chart-modal').close()" aria-label="Close chart" title="Close" class="w-8 h-8 shrink-0">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+    </header>
+    <p id="purchase-plan-sales-chart-status" role="status" class="text-sm text-gray-500 mb-3"></p>
+    <div class="purchase-plan-chart-frame" id="purchase-plan-chart-frame" hidden><canvas id="purchase-plan-sales-contributors-chart" aria-label="Sales contributors doughnut chart" role="img"></canvas></div>
+    <ul id="purchase-plan-chart-values" class="text-xs mt-4"></ul>
+</dialog>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
+<script
+    src="{{ url_for('static', filename='js/sales_stock_composition_analysis_for_purchase_plan.js', v='20261030-2') }}"></script>
+{% endblock %}

@@ -311,6 +311,14 @@ window.REPORT_MENU_DATA = [
                 icon: "pie_chart",
                 description: "Hierarchical product analysis of sales and stock composition, turn rates, and TSK%.",
                 tags: ["sales", "stock", "composition", "turnover", "tsk", "analysis"]
+            },
+            {
+                id: "sales-stock-composition-analysis-for-purchase-plan",
+                title: "Sales & Stock Composition Analysis for Purchase Plan",
+                href: "/sales-stock-composition-analysis-for-purchase-plan",
+                icon: "pie_chart",
+                description: "Hierarchical product analysis of sales and stock composition, and stock turn in weight for purchase planning.",
+                tags: ["sales", "stock", "composition", "turnover", "purchase", "plan", "analysis"]
             }
         ]
     },
