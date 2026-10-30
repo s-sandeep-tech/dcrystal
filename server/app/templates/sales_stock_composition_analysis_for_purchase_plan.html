@@ -168,6 +168,16 @@
                 <label for="purchase-plan-filter-max-date" class="block text-[10px] font-bold uppercase text-gray-500 mb-2">Max Transaction Date</label>
                 <input type="date" id="purchase-plan-filter-max-date" class="w-full min-w-0 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-xs p-2">
             </div>
+
+            <!-- Division (Single-select dropdown) -->
+            <div>
+                <label for="purchase-plan-filter-division" class="block text-[10px] font-bold uppercase text-gray-500 mb-2">Division</label>
+                <select id="purchase-plan-filter-division" class="w-full min-w-0 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-xs p-2 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary">
+                    <option value="">All Divisions</option>
+                    <option value="Gold" selected>Gold</option>
+                </select>
+            </div>
+
             <!-- Location (Multi-select) -->
             <div id="purchase-plan-filter-location-container"></div>
 
@@ -176,6 +186,12 @@
 
             <!-- Classification (Multi-select) -->
             <div id="purchase-plan-filter-classification-container"></div>
+
+            <!-- Make (Multi-select) -->
+            <div id="purchase-plan-filter-make-container"></div>
+
+            <!-- Purity (Multi-select) -->
+            <div id="purchase-plan-filter-purity-container"></div>
         </div>
     </div>
     <!-- Fixed Footer for Apply Button -->
@@ -316,5 +332,5 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script
-    src="{{ url_for('static', filename='js/sales_stock_composition_analysis_for_purchase_plan.js', v='20261030-7') }}"></script>
+    src="{{ url_for('static', filename='js/sales_stock_composition_analysis_for_purchase_plan.js', v='20261030-10') }}"></script>
 {% endblock %}

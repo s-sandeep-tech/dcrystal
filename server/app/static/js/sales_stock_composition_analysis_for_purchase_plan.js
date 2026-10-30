@@ -32,15 +32,20 @@ let purchasePlanSortOrder = initialPurchasePlanParams.get('sort_order') === 'des
 
 let purchasePlanFilterValues = {
     date: '',
+    division: 'Gold',
     location: '',
     section: '',
     classification: '',
+    make: '',
+    purity: '',
     search: ''
 };
 
 let purchasePlanLocationSelect = null;
 let purchasePlanSectionSelect = null;
 let purchasePlanClassificationSelect = null;
+let purchasePlanMakeSelect = null;
+let purchasePlanPuritySelect = null;
 
 function togglePurchasePlanFilters() {
     const sidebar = document.getElementById('purchase-plan-filter-sidebar');
@@ -90,9 +95,12 @@ function onPurchasePlanSearchInput(val) {
 
 function collectPurchasePlanFilterValues() {
     purchasePlanFilterValues.date = document.getElementById('purchase-plan-filter-max-date')?.value || '';
+    purchasePlanFilterValues.division = document.getElementById('purchase-plan-filter-division')?.value || '';
     purchasePlanFilterValues.location = purchasePlanLocationSelect ? purchasePlanLocationSelect.getValues().join(',') : '';
     purchasePlanFilterValues.section = purchasePlanSectionSelect ? purchasePlanSectionSelect.getValues().join(',') : '';
     purchasePlanFilterValues.classification = purchasePlanClassificationSelect ? purchasePlanClassificationSelect.getValues().join(',') : '';
+    purchasePlanFilterValues.make = purchasePlanMakeSelect ? purchasePlanMakeSelect.getValues().join(',') : '';
+    purchasePlanFilterValues.purity = purchasePlanPuritySelect ? purchasePlanPuritySelect.getValues().join(',') : '';
     purchasePlanFilterValues.search = purchasePlanSearch;
 }
 
@@ -100,10 +108,15 @@ function buildPurchasePlanRequestParams() {
     collectPurchasePlanFilterValues();
     const params = new URLSearchParams();
 
+    const divisionVal = document.getElementById('purchase-plan-filter-division')?.value || '';
+    if (divisionVal) params.append('division', divisionVal);
+
     for (const [key, ctrl] of [
         ['branch_id', purchasePlanLocationSelect],
         ['section', purchasePlanSectionSelect],
-        ['classification', purchasePlanClassificationSelect]
+        ['classification', purchasePlanClassificationSelect],
+        ['make', purchasePlanMakeSelect],
+        ['purity', purchasePlanPuritySelect]
     ]) {
         for (const v of ctrl?.getValues() || []) params.append(key, v);
     }
@@ -134,6 +147,31 @@ async function initPurchasePlanFilters() {
         const dateInput = document.getElementById('purchase-plan-filter-max-date');
         if (dateInput && !dateInput.value) dateInput.value = latestPurchasePlanSalesDate;
 
+        const divisionSelect = document.getElementById('purchase-plan-filter-division');
+        if (divisionSelect) {
+            const currentDiv = divisionSelect.value || 'Gold';
+            divisionSelect.innerHTML = '<option value="">All Divisions</option>';
+            (data.divisions || []).forEach(div => {
+                const opt = document.createElement('option');
+                opt.value = div;
+                opt.textContent = div;
+                divisionSelect.appendChild(opt);
+            });
+            const targetDiv = currentDiv || 'Gold';
+            const matchedOpt = Array.from(divisionSelect.options).find(o => o.value.toLowerCase() === targetDiv.toLowerCase());
+            if (matchedOpt) {
+                divisionSelect.value = matchedOpt.value;
+                purchasePlanFilterValues.division = matchedOpt.value;
+            } else if (targetDiv) {
+                const opt = document.createElement('option');
+                opt.value = targetDiv;
+                opt.textContent = targetDiv;
+                opt.selected = true;
+                divisionSelect.appendChild(opt);
+                purchasePlanFilterValues.division = targetDiv;
+            }
+        }
+
         purchasePlanLocationSelect = new CustomMultiSelect({
             containerId: 'purchase-plan-filter-location-container',
             label: 'Location',
@@ -153,6 +191,20 @@ async function initPurchasePlanFilters() {
             label: 'Classification',
             defaultText: 'All Classifications',
             options: data.classifications || []
+        });
+
+        purchasePlanMakeSelect = new CustomMultiSelect({
+            containerId: 'purchase-plan-filter-make-container',
+            label: 'Make',
+            defaultText: 'All Makes',
+            options: data.makes || []
+        });
+
+        purchasePlanPuritySelect = new CustomMultiSelect({
+            containerId: 'purchase-plan-filter-purity-container',
+            label: 'Purity',
+            defaultText: 'All Purities',
+            options: data.purities || []
         });
     } catch (err) {
         console.error('Failed to initialize purchase plan filters:', err);
@@ -343,9 +395,19 @@ function sortPurchasePlan(column) {
 function resetPurchasePlanFilters() {
     const dateSelect = document.getElementById('purchase-plan-filter-max-date');
     if (dateSelect) dateSelect.value = latestPurchasePlanSalesDate;
+
+    const divisionSelect = document.getElementById('purchase-plan-filter-division');
+    if (divisionSelect) {
+        const goldOpt = Array.from(divisionSelect.options).find(o => o.value.toLowerCase() === 'gold');
+        divisionSelect.value = goldOpt ? goldOpt.value : 'Gold';
+        purchasePlanFilterValues.division = divisionSelect.value;
+    }
+
     if (purchasePlanLocationSelect) purchasePlanLocationSelect.reset();
     if (purchasePlanSectionSelect) purchasePlanSectionSelect.reset();
     if (purchasePlanClassificationSelect) purchasePlanClassificationSelect.reset();
+    if (purchasePlanMakeSelect) purchasePlanMakeSelect.reset();
+    if (purchasePlanPuritySelect) purchasePlanPuritySelect.reset();
 
     const searchInput = document.getElementById('purchase-plan-report-search');
     if (searchInput) searchInput.value = '';

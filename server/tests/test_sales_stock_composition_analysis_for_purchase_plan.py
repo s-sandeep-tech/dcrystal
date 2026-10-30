@@ -210,6 +210,27 @@ class PurchasePlanSecurityAndRouteTests(unittest.TestCase):
                 self.assertEqual(calculate.call_args.kwargs['sort_by'], 'weight_turn')
                 self.assertEqual(calculate.call_args.kwargs['sort_order'], 'desc')
 
+    def test_division_make_purity_filters_passed_to_service(self):
+        self.role.menus.append(Menu(title='Purchase Plan',
+                                    url='/sales-stock-composition-analysis-for-purchase-plan'))
+        db.session.commit()
+        with patch(
+            'app.dashboard.routes.sales_stock_composition_analysis_for_purchase_plan.render_template',
+            return_value='report'
+        ), patch(
+            'app.dashboard.routes.sales_stock_composition_analysis_for_purchase_plan.fetch_purchase_plan_composition_data',
+            return_value={'rows': []}
+        ) as calculate:
+            response = self.client.get(
+                '/partial/sales-stock-composition-analysis-for-purchase-plan?division=GOLD&make=CALCUTTA&purity=22.0',
+                headers=self.headers()
+            )
+            self.assertEqual(response.status_code, 200)
+            selections = calculate.call_args.args[1]
+            self.assertEqual(selections.get('division'), ['GOLD'])
+            self.assertEqual(selections.get('make'), ['CALCUTTA'])
+            self.assertEqual(selections.get('purity'), ['22.0'])
+
     def test_admin_sync_role(self):
         for role in ['ADMIN', 'DATA_SYNC_USER']:
             self.role.name = role
@@ -279,6 +300,14 @@ class TemplateRenderingTests(unittest.TestCase):
         # Should have exactly 4 <td> elements
         self.assertEqual(html.count('<td '), 4)
         self.assertIn('openPurchasePlanChart', html)
+
+    def test_main_template_contains_division_make_purity_filters(self):
+        with open(Path(__file__).resolve().parents[1] / 'app/templates/sales_stock_composition_analysis_for_purchase_plan.html') as f:
+            content = f.read()
+        self.assertIn('id="purchase-plan-filter-division"', content)
+        self.assertIn('All Divisions', content)
+        self.assertIn('id="purchase-plan-filter-make-container"', content)
+        self.assertIn('id="purchase-plan-filter-purity-container"', content)
 
 
 if __name__ == '__main__':

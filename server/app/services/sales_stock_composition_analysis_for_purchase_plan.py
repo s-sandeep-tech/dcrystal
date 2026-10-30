@@ -24,6 +24,7 @@ HIERARCHY: List[str] = [
 
 FILTERS: List[str] = [
     'branch_id',
+    'division',
     'section',
     'classification',
     'make',
@@ -115,6 +116,11 @@ def get_purchase_plan_options() -> Dict[str, Any]:
         .order_by(func.max(Snapshot.location_name))
     ]
 
+    divisions = [
+        r[0] for r in db.session.query(dimension_expr('division'))
+        .distinct().order_by(dimension_expr('division')) if r[0] and r[0] != '(Unspecified)'
+    ]
+
     sections = [
         r[0] for r in db.session.query(dimension_expr('section'))
         .distinct().order_by(dimension_expr('section')) if r[0] and r[0] != '(Unspecified)'
@@ -125,6 +131,16 @@ def get_purchase_plan_options() -> Dict[str, Any]:
         .distinct().order_by(dimension_expr('classification')) if r[0] and r[0] != '(Unspecified)'
     ]
 
+    makes = [
+        r[0] for r in db.session.query(dimension_expr('make'))
+        .distinct().order_by(dimension_expr('make')) if r[0] and r[0] != '(Unspecified)'
+    ]
+
+    purities = [
+        r[0] for r in db.session.query(dimension_expr('purity'))
+        .distinct().order_by(dimension_expr('purity')) if r[0] and r[0] != '(Unspecified)'
+    ]
+
     dates = [
         r[0].isoformat() for r in db.session.query(Snapshot.date)
         .filter(Snapshot.date.isnot(None)).distinct().order_by(Snapshot.date.desc())
@@ -133,8 +149,11 @@ def get_purchase_plan_options() -> Dict[str, Any]:
     return {
         'dates': dates,
         'locations': locations,
+        'divisions': divisions,
         'sections': sections,
-        'classifications': classifications
+        'classifications': classifications,
+        'makes': makes,
+        'purities': purities,
     }
 
 
@@ -173,6 +192,9 @@ def fetch_purchase_plan_composition_data(
                 b_ids = [int(v) for v in vals if str(v).isdigit()]
                 if b_ids:
                     sales_q = sales_q.filter(Snapshot.branch_id.in_(b_ids))
+            elif name == 'division':
+                upper_vals = [v.upper() for v in vals]
+                sales_q = sales_q.filter(func.upper(dimension_expr('division')).in_(upper_vals))
             else:
                 sales_q = sales_q.filter(dimension_expr(name).in_(vals))
 
@@ -212,6 +234,9 @@ def fetch_purchase_plan_composition_data(
                     b_ids = [int(v) for v in vals if str(v).isdigit()]
                     if b_ids:
                         stock_c_q = stock_c_q.filter(Snapshot.branch_id.in_(b_ids))
+                elif name == 'division':
+                    upper_vals = [v.upper() for v in vals]
+                    stock_c_q = stock_c_q.filter(func.upper(dimension_expr('division')).in_(upper_vals))
                 else:
                     stock_c_q = stock_c_q.filter(dimension_expr(name).in_(vals))
 
@@ -321,7 +346,11 @@ def fetch_purchase_plan_composition_data(
         return aggregates
 
     # Stock query
-    dims = [dimension_expr(k).label(k) for k in HIERARCHY]
+    filter_dims = {
+        k: dimension_expr(k).label(k)
+        for k in (HIERARCHY + [f for f in FILTERS if f not in HIERARCHY and f != 'branch_id'])
+    }
+    dims = list(filter_dims.values())
     prov_expr = func.coalesce(Snapshot.provision_weight, 0)
     stock_subq = db.session.query(
         Snapshot.branch_id.label('branch_id'),
@@ -341,6 +370,9 @@ def fetch_purchase_plan_composition_data(
                 b_ids = [int(v) for v in vals if str(v).isdigit()]
                 if b_ids:
                     stock_q = stock_q.filter(stock_subq.c.branch_id.in_(b_ids))
+            elif name == 'division':
+                upper_vals = [v.upper() for v in vals]
+                stock_q = stock_q.filter(func.upper(cast(getattr(stock_subq.c, 'division'), String)).in_(upper_vals))
             else:
                 stock_q = stock_q.filter(cast(getattr(stock_subq.c, name), String).in_(vals))
 
