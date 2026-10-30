@@ -1,6 +1,6 @@
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     resetTopStats();
-    await initFilters();
+    initFilters();
     loadReportData();
 });
 
@@ -26,6 +26,8 @@ let compositionSortBy = compositionSortKeys.includes(initialCompositionParams.ge
 let compositionSortOrder = initialCompositionParams.get('sort_order') === 'desc' ? 'desc' : 'asc';
 
 let filterValues = {
+    date: '',
+    division: 'Gold',
     location: '',
     section: '',
     classification: '',
@@ -84,6 +86,7 @@ function onSearchInput(val) {
 
 function collectFilterValues() {
     filterValues.date = document.getElementById('filter-max-date')?.value || '';
+    filterValues.division = document.getElementById('filter-division')?.value || '';
     filterValues.location = locationMultiSelect ? locationMultiSelect.getValues().join(',') : '';
     filterValues.section = sectionMultiSelect ? sectionMultiSelect.getValues().join(',') : '';
     filterValues.classification = classificationMultiSelect ? classificationMultiSelect.getValues().join(',') : '';
@@ -93,6 +96,9 @@ function collectFilterValues() {
 function buildRequestParams() {
     collectFilterValues();
     const params = new URLSearchParams();
+
+    const divisionVal = document.getElementById('filter-division')?.value;
+    if (divisionVal) params.append('division', divisionVal);
 
     for (const [key, control] of [['branch_id', locationMultiSelect], ['section', sectionMultiSelect], ['classification', classificationMultiSelect]]) {
         for (const value of control?.getValues() || []) params.append(key, value);
@@ -113,41 +119,92 @@ async function requestHeaders() {
     };
 }
 
-async function initFilters() {
-    try {
-        const headers = await requestHeaders();
-        const response = await fetch('/api/sales-stock-composition-analysis/options', { headers });
-        if (!response.ok) return;
+function applyFilterOptions(data) {
+    if (!data) return;
 
-        const data = await response.json();
-        latestSalesDate = data.dates?.[0] || '';
-        const dateInput = document.getElementById('filter-max-date');
-        if (dateInput && !dateInput.value) dateInput.value = latestSalesDate;
+    latestSalesDate = data.dates?.[0] || latestSalesDate || '';
+    const dateInput = document.getElementById('filter-max-date');
+    if (dateInput && !dateInput.value) dateInput.value = latestSalesDate;
 
-        // 2. Location MultiSelect
+    const divisionSelect = document.getElementById('filter-division');
+    if (divisionSelect) {
+        const currentDiv = divisionSelect.value || 'Gold';
+        if (data.divisions && data.divisions.length > 0) {
+            divisionSelect.innerHTML = '<option value="">All Divisions</option>';
+            data.divisions.forEach(div => {
+                const opt = document.createElement('option');
+                opt.value = div;
+                opt.textContent = div;
+                divisionSelect.appendChild(opt);
+            });
+        }
+        const targetDiv = currentDiv || 'Gold';
+        const matchedOpt = Array.from(divisionSelect.options).find(o => o.value.toLowerCase() === targetDiv.toLowerCase());
+        if (matchedOpt) {
+            divisionSelect.value = matchedOpt.value;
+            filterValues.division = matchedOpt.value;
+        } else if (targetDiv) {
+            const opt = document.createElement('option');
+            opt.value = targetDiv;
+            opt.textContent = targetDiv;
+            opt.selected = true;
+            divisionSelect.appendChild(opt);
+            filterValues.division = targetDiv;
+        }
+    }
+
+    // 2. Location MultiSelect
+    if (!locationMultiSelect) {
         locationMultiSelect = new CustomMultiSelect({
             containerId: 'filter-location-container',
             label: 'Location',
             defaultText: 'All Locations',
             options: data.locations || []
         });
+    }
 
-        // 3. Section MultiSelect
+    // 3. Section MultiSelect
+    if (!sectionMultiSelect) {
         sectionMultiSelect = new CustomMultiSelect({
             containerId: 'filter-section-container',
             label: 'Section',
             defaultText: 'All Sections',
             options: data.sections || []
         });
+    }
 
-        // 4. Classification MultiSelect
+    // 4. Classification MultiSelect
+    if (!classificationMultiSelect) {
         classificationMultiSelect = new CustomMultiSelect({
             containerId: 'filter-classification-container',
             label: 'Classification',
             defaultText: 'All Classifications',
             options: data.classifications || []
         });
+    }
+}
 
+async function initFilters() {
+    const optionsEl = document.getElementById('filter-options-data');
+    if (optionsEl) {
+        try {
+            const initialOptions = JSON.parse(optionsEl.textContent || '{}');
+            if (initialOptions && Object.keys(initialOptions).length > 0) {
+                applyFilterOptions(initialOptions);
+                return;
+            }
+        } catch (e) {
+            console.warn('Could not parse initial filter options:', e);
+        }
+    }
+
+    try {
+        const headers = await requestHeaders();
+        const response = await fetch('/api/sales-stock-composition-analysis/options', { headers });
+        if (!response.ok) return;
+
+        const data = await response.json();
+        applyFilterOptions(data);
     } catch (err) {
         console.error('Failed to initialize filters:', err);
     }
@@ -356,6 +413,14 @@ function sortComposition(column) {
 function resetFilters() {
     const dateSelect = document.getElementById('filter-max-date');
     if (dateSelect) dateSelect.value = latestSalesDate;
+
+    const divisionSelect = document.getElementById('filter-division');
+    if (divisionSelect) {
+        const goldOpt = Array.from(divisionSelect.options).find(o => o.value.toLowerCase() === 'gold');
+        divisionSelect.value = goldOpt ? goldOpt.value : 'Gold';
+        filterValues.division = divisionSelect.value;
+    }
+
     if (locationMultiSelect) locationMultiSelect.reset();
     if (sectionMultiSelect) sectionMultiSelect.reset();
     if (classificationMultiSelect) classificationMultiSelect.reset();

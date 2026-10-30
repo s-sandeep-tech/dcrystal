@@ -187,9 +187,30 @@
         </div>
         <div class="space-y-4">
             <div>
-                <label for="filter-max-date" class="block text-[10px] font-bold uppercase text-gray-500 mb-2">Max Transaction Date</label>
-                <input type="date" id="filter-max-date" class="w-full min-w-0 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-xs p-2">
+                <label for="filter-max-date" class="block text-[10px] font-bold uppercase text-gray-500 mb-2">Max
+                    Transaction Date</label>
+                <input type="date" id="filter-max-date"
+                    value="{{ (filter_options.dates[0] if filter_options and filter_options.dates else '') }}"
+                    class="w-full min-w-0 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-xs p-2">
             </div>
+
+            <!-- Division (Single-select dropdown) -->
+            <div>
+                <label for="filter-division"
+                    class="block text-[10px] font-bold uppercase text-gray-500 mb-2">Division</label>
+                <select id="filter-division"
+                    class="w-full min-w-0 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-xs p-2 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary">
+                    <option value="">All Divisions</option>
+                    {% if filter_options and filter_options.divisions %}
+                    {% for div in filter_options.divisions %}
+                    <option value="{{ div }}" {% if div|lower=='gold' %}selected{% endif %}>{{ div }}</option>
+                    {% endfor %}
+                    {% else %}
+                    <option value="Gold" selected>Gold</option>
+                    {% endif %}
+                </select>
+            </div>
+
             <!-- Location (Multi-select) -->
             <div id="filter-location-container"></div>
 
@@ -212,32 +233,69 @@
 
 {% block extra_scripts %}
 <style>
-    #sales-chart-modal { width: min(760px, calc(100vw - 32px)); max-height: 90vh; padding: 24px; border: 1px solid #d1d5db; border-radius: 8px; }
-    #sales-chart-modal::backdrop { background: rgba(0, 0, 0, .45); }
-    #sales-chart-modal h2 { overflow-wrap: anywhere; }
-    .sales-chart-frame { position: relative; height: 380px; max-height: 55vh; }
-    #sales-chart-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; }
-    #sales-chart-values li { min-width: 0; align-items: flex-start; }
-    @media (max-width: 640px) {
-        #sales-chart-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #sales-chart-modal {
+        width: min(760px, calc(100vw - 32px));
+        max-height: 90vh;
+        padding: 24px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
     }
+
+    #sales-chart-modal::backdrop {
+        background: rgba(0, 0, 0, .45);
+    }
+
+    #sales-chart-modal h2 {
+        overflow-wrap: anywhere;
+    }
+
+    .sales-chart-frame {
+        position: relative;
+        height: 380px;
+        max-height: 55vh;
+    }
+
+    #sales-chart-values {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px 16px;
+    }
+
+    #sales-chart-values li {
+        min-width: 0;
+        align-items: flex-start;
+    }
+
+    @media (max-width: 640px) {
+        #sales-chart-values {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
     @media (max-width: 420px) {
-        #sales-chart-values { grid-template-columns: minmax(0, 1fr); }
+        #sales-chart-values {
+            grid-template-columns: minmax(0, 1fr);
+        }
     }
 </style>
-<dialog id="sales-chart-modal" aria-labelledby="sales-chart-title" class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100">
+<dialog id="sales-chart-modal" aria-labelledby="sales-chart-title"
+    class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100">
     <header class="flex items-start justify-between gap-3 mb-4">
         <h2 id="sales-chart-title" class="text-base font-bold">Top Sales Contributors</h2>
-        <button type="button" onclick="document.getElementById('sales-chart-modal').close()" aria-label="Close chart" title="Close" class="w-8 h-8 shrink-0">
+        <button type="button" onclick="document.getElementById('sales-chart-modal').close()" aria-label="Close chart"
+            title="Close" class="w-8 h-8 shrink-0">
             <span class="material-symbols-outlined">close</span>
         </button>
     </header>
     <p id="sales-chart-status" role="status" class="text-sm text-gray-500 mb-3"></p>
-    <div class="sales-chart-frame" id="sales-chart-frame" hidden><canvas id="sales-contributors-chart" aria-label="Sales contributors doughnut chart" role="img"></canvas></div>
+    <div class="sales-chart-frame" id="sales-chart-frame" hidden><canvas id="sales-contributors-chart"
+            aria-label="Sales contributors doughnut chart" role="img"></canvas></div>
     <ul id="sales-chart-values" class="text-xs mt-4"></ul>
 </dialog>
+<script id="filter-options-data" type="application/json">
+    {{ (filter_options or {}) | tojson | safe }}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script
-    src="{{ url_for('static', filename='js/sales_stock_composition_analysis.js', v='20261029-na-b') }}"></script>
+<script src="{{ url_for('static', filename='js/sales_stock_composition_analysis.js', v='20261030-div') }}"></script>
 {% endblock %}

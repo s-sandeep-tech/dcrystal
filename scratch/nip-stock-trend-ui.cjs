@@ -7,7 +7,7 @@ a=create_app()
 with a.test_request_context('/nip-stock-trend-analysis'):
  print(render_template('nip_stock_trend.html',permissions={'ADMIN'},dimensions=DIMENSIONS,filter_fields=FILTER_FIELDS,unread_count=0,sync_time=''))`;
 const raw=execFileSync('docker',['exec','dcrystal-server-1','python','-c',py],{encoding:'utf8'}),html=raw.slice(raw.toLowerCase().indexOf('<!doctype html>'));
-const fields=['location','division','group_name','purity','classification','sub_classification','make','master_collection','collection','section','sub_section','type','gender','wide_range','branch_type','prov_type'];
+const fields=['location','division','group_name','purity','classification','sub_classification','make','master_collection','collection','section','sub_section','type','gender','wide_range','branch_type','prov_type','weight'];
 (async()=>{const browser=await chromium.launch({headless:true,channel:'chrome'});try{
  const page=await browser.newPage({viewport:{width:1600,height:1000}}),requests=[],errors=[];
  let singlePeriod=false;

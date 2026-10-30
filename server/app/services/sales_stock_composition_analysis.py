@@ -5,7 +5,7 @@ from app.extensions import db
 from app.models.sales_stock_composition_analysis import SalesStockCompositionAnalysisSnapshot as S
 
 HIERARCHY = ['section', 'classification', 'make', 'wide_range', 'collection', 'master_collection', 'purity']
-FILTERS = ['branch_id', 'section', 'classification', 'make', 'wide_range', 'collection', 'master_collection', 'purity']
+FILTERS = ['branch_id', 'division', 'section', 'classification', 'make', 'wide_range', 'collection', 'master_collection', 'purity']
 
 
 def dimension(name):
@@ -79,7 +79,11 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
     factor, inclusive_fy_days, inclusive_elapsed_days, fy_label = calculate_fy_factor(source_date)
     fy_start = date(source_date.year if source_date.month >= 4 else source_date.year - 1, 4, 1) if source_date else None
 
-    dims = [dimension(k).label(k) for k in HIERARCHY]
+    filter_dims = {
+        k: dimension(k).label(k)
+        for k in (HIERARCHY + [f for f in FILTERS if f not in HIERARCHY and f != 'branch_id'])
+    }
+    dims = list(filter_dims.values())
 
     # Filter base query by selections
     # Source supplies net FY sales, including returns, already aggregated.
@@ -93,6 +97,9 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
                 branch_ids = [int(v) for v in values if str(v).isdigit()]
                 if branch_ids:
                     sales = sales.filter(S.branch_id.in_(branch_ids))
+            elif name == 'division':
+                upper_vals = [v.upper() for v in values]
+                sales = sales.filter(func.upper(dimension('division')).in_(upper_vals))
             else:
                 sales = sales.filter(dimension(name).in_(values))
 
@@ -204,6 +211,9 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
                 branch_ids = [int(v) for v in values if str(v).isdigit()]
                 if branch_ids:
                     stock_filtered = stock_filtered.filter(stocks_q.c.branch_id.in_(branch_ids))
+            elif name == 'division':
+                upper_vals = [v.upper() for v in values]
+                stock_filtered = stock_filtered.filter(func.upper(cast(getattr(stocks_q.c, 'division'), String)).in_(upper_vals))
             else:
                 stock_filtered = stock_filtered.filter(cast(getattr(stocks_q.c, name), String).in_(values))
 
@@ -343,4 +353,37 @@ def composition_analysis_data(source_date, selections, path=None, contributors=F
         'can_expand': depth < (len(HIERARCHY) - 1),
         'factor': factor,
         'fy_label': fy_label
+    }
+
+
+def get_composition_options():
+    locations = [
+        {'value': str(r[0]), 'label': r[1] or str(r[0])}
+        for r in db.session.query(S.branch_id, func.max(S.location_name))
+        .filter(S.branch_id.isnot(None))
+        .group_by(S.branch_id)
+        .order_by(func.max(S.location_name))
+    ]
+    divisions = [
+        r[0] for r in db.session.query(dimension('division'))
+        .distinct().order_by(dimension('division')) if r[0] and r[0] != '(Unspecified)'
+    ]
+    sections = [
+        r[0] for r in db.session.query(dimension('section'))
+        .distinct().order_by(dimension('section')) if r[0] and r[0] != '(Unspecified)'
+    ]
+    classifications = [
+        r[0] for r in db.session.query(dimension('classification'))
+        .distinct().order_by(dimension('classification')) if r[0] and r[0] != '(Unspecified)'
+    ]
+    dates = [
+        r[0].isoformat() for r in db.session.query(S.date)
+        .filter(S.date.isnot(None)).distinct().order_by(S.date.desc())
+    ]
+    return {
+        'dates': dates,
+        'locations': locations,
+        'divisions': divisions,
+        'sections': sections,
+        'classifications': classifications
     }

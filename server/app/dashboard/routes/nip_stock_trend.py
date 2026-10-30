@@ -22,9 +22,14 @@ def nip_stock_trend_page():
 def nip_stock_trend_options():
     try:
         query = scoped_query()
-        options = {name: [r[0] for r in query.with_entities(getattr(S, name)).filter(
-            getattr(S, name).isnot(None), getattr(S, name) != '').distinct().order_by(getattr(S, name))]
-            for name in FILTER_FIELDS}
+        options = {}
+        for name in FILTER_FIELDS:
+            column = getattr(S, name)
+            values = query.with_entities(column).filter(column.isnot(None))
+            if name != 'weight':
+                values = values.filter(column != '')
+            options[name] = [format(row[0], 'f') if name == 'weight' else row[0]
+                             for row in values.distinct().order_by(column)]
         from sqlalchemy import func
         first, last = query.with_entities(func.min(S.date), func.max(S.date)).one()
         return jsonify(options=options, first_date=first.isoformat() if first else None,

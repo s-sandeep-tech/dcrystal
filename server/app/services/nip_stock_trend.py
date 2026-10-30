@@ -1,6 +1,6 @@
 """Daily stock balances and common-date period closing balances, never flow sums."""
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from flask import session
 from sqlalchemy import func, false
 from app.extensions import db
@@ -10,7 +10,7 @@ from app.models.snapshots import BranchAuthoritySnapshot, ProvisionStockRawSnaps
 DIMENSIONS = ('location', 'division', 'group_name', 'purity', 'classification',
               'sub_classification', 'make', 'master_collection', 'collection',
               'section', 'sub_section', 'type', 'gender', 'wide_range', 'branch_type')
-FILTER_FIELDS = DIMENSIONS + ('prov_type',)
+FILTER_FIELDS = DIMENSIONS + ('prov_type', 'weight')
 INTERVALS = ('daily', 'weekly', 'monthly', 'quarterly', 'yearly')
 
 
@@ -37,6 +37,13 @@ def filter_query(query, args):
     for name in FILTER_FIELDS:
         values = args.getlist(name)
         if values:
+            if name == 'weight':
+                try:
+                    values = [Decimal(value) for value in values]
+                    if any(not value.is_finite() for value in values):
+                        raise ValueError('Invalid weight filter')
+                except (InvalidOperation, TypeError):
+                    raise ValueError('Invalid weight filter') from None
             query = query.filter(getattr(S, name).in_(values))
     for name in BOOL_FIELDS[1:]:
         value = args.get(name, '')

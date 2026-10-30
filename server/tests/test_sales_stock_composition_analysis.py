@@ -386,6 +386,41 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
         self.assertIsNone(data['total']['weight_turn'])
         self.assertIsNone(data['total']['value_turn'])
 
+    def test_division_filter_applied_in_partial_route(self):
+        self.role.menus.append(Menu(title='Sales & Stock Composition', url='/sales-stock-composition-analysis'))
+        db.session.commit()
+        with patch('app.dashboard.routes.sales_stock_composition_analysis.composition_analysis_data',
+                   return_value={'rows': [], 'stats': {}, 'total': None}) as mock_data, \
+             patch('app.dashboard.routes.sales_stock_composition_analysis.render_template',
+                   return_value='ok'):
+            response = self.client.get('/partial/sales-stock-composition-analysis?division=GOLD', headers=self.headers())
+            self.assertEqual(response.status_code, 200)
+            mock_data.assert_called_once()
+            selections = mock_data.call_args[0][1]
+            self.assertEqual(selections.get('division'), ['GOLD'])
+
+    def test_division_filter_in_service(self):
+        db.session.add_all([
+            Snapshot(id=1, branch_id=1, date=date(2026, 9, 30), division='GOLD', section='CHAIN',
+                     classification='C1', gross_weight=100, turn_over=1000, provision_weight=50),
+            Snapshot(id=2, branch_id=1, date=date(2026, 9, 30), division='SILVER', section='RING',
+                     classification='C2', gross_weight=200, turn_over=2000, provision_weight=80),
+        ])
+        db.session.commit()
+        data = composition_analysis_data(date(2026, 9, 30), {'division': ['gold']})
+        self.assertEqual(data['stats']['sales_weight'], 100)
+        self.assertEqual(data['stats']['provision_weight'], 50)
+        self.assertEqual(len(data['rows']), 1)
+        self.assertEqual(data['rows'][0]['label'], 'CHAIN')
+
+    def test_main_template_contains_division_filter(self):
+        from pathlib import Path
+        with open(Path(__file__).resolve().parents[1] / 'app/templates/sales_stock_composition_analysis.html') as f:
+            content = f.read()
+        self.assertIn('id="filter-division"', content)
+        self.assertIn('All Divisions', content)
+        self.assertIn('id="filter-options-data"', content)
+
 
 class SummarySyncTests(unittest.TestCase):
     def test_source_mapping_and_atomic_commit(self):

@@ -13,7 +13,7 @@ from app.extensions import db
 from app.models.nip_stock_trend import NIPStockTrendSnapshot as S
 from app.models.snapshots import BranchAuthoritySnapshot
 from app.services.nip_stock_trend import prepare_trend, period_start, trend_data, scoped_query
-from app.dashboard.routes.nip_stock_trend import nip_stock_trend_data, export_nip_stock_trend
+from app.dashboard.routes.nip_stock_trend import nip_stock_trend_data, export_nip_stock_trend, nip_stock_trend_options
 
 
 class StockTrendTests(unittest.TestCase):
@@ -93,6 +93,23 @@ class StockTrendDataTests(unittest.TestCase):
             self.assertEqual(data['stats']['closing'],11.999)
             session['user_id']='999'
             self.assertEqual(scoped_query().count(),0)
+
+    def test_numeric_weight_filter_options_and_multi_select(self):
+        for row,weight in [(1,'10.5'),(2,'20'),(3,'10.5'),(4,'0')]:
+            db.session.get(S,row).weight=Decimal(weight)
+        db.session.commit()
+        with self.app.test_request_context('/'):
+            session['roles']=['ADMIN']
+            options=nip_stock_trend_options.__wrapped__().get_json()['options']['weight']
+            self.assertEqual([Decimal(value) for value in options],[Decimal(0),Decimal('10.5'),Decimal(20)])
+            single=trend_data(MultiDict({'weight':'10.500'}))
+            self.assertEqual(single['stats']['total_stock'],5)
+            self.assertEqual(single['line_series'][0]['values'],[1,5])
+            multi=trend_data(MultiDict([('weight','10.5'),('weight','20')]))
+            self.assertEqual(multi['stats']['total_stock'],7)
+            self.assertEqual(trend_data(MultiDict({'weight':'0'}))['stats']['total_stock'],9.999)
+            for value in ['invalid','NaN','Infinity']:
+                with self.assertRaises(ValueError):trend_data(MultiDict({'weight':value}))
 
     def test_percentage_stats_zero_missing_and_reduction(self):
         S.query.delete()

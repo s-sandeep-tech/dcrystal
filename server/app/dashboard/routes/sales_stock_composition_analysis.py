@@ -15,6 +15,7 @@ from app.services.sales_stock_composition_analysis import (
     composition_analysis_data,
     dimension,
     calculate_fy_factor,
+    get_composition_options,
     SORT_COLUMNS,
 )
 from app.utils.decorators import require_report_access, require_role, require_perm
@@ -65,6 +66,7 @@ def sales_stock_composition_analysis_page():
         permissions = session.get('permissions', [])
         
         factor, fy_days, elapsed_days, fy_label = calculate_fy_factor(snapshot_date or date.today())
+        filter_options = get_composition_options()
 
         return render_template(
             'sales_stock_composition_analysis.html',
@@ -73,6 +75,7 @@ def sales_stock_composition_analysis_page():
             permissions=permissions,
             factor=factor,
             fy_label=fy_label,
+            filter_options=filter_options,
             stats={},
             rows=[],
             total=None
@@ -87,6 +90,7 @@ def sales_stock_composition_analysis_page():
             permissions=session.get('permissions', []),
             factor=1.0,
             fy_label="FY",
+            filter_options={'dates': [], 'locations': [], 'divisions': ['Gold'], 'sections': [], 'classifications': []},
             stats={},
             rows=[],
             total=None
@@ -180,28 +184,11 @@ def get_sales_stock_composition_analysis_branch():
 @require_report_access(ROUTE_URL)
 def sales_stock_composition_analysis_options():
     try:
-        locations = [
-            {'value': str(r[0]), 'label': r[1] or str(r[0])}
-            for r in db.session.query(S.branch_id, func.max(S.location_name))
-            .filter(S.branch_id.isnot(None))
-            .group_by(S.branch_id)
-            .order_by(func.max(S.location_name))
-        ]
-        
-        sections = [r[0] for r in db.session.query(dimension('section')).distinct().order_by(dimension('section')) if r[0]]
-        classifications = [r[0] for r in db.session.query(dimension('classification')).distinct().order_by(dimension('classification')) if r[0]]
-        
-        return jsonify({
-            'dates': [r[0].isoformat() for r in db.session.query(S.date)
-                      .filter(S.date.isnot(None)).distinct().order_by(S.date.desc())],
-            'locations': locations,
-            'sections': sections,
-            'classifications': classifications
-        })
+        return jsonify(get_composition_options())
     except Exception as e:
         logger.exception("Error fetching sales_stock_composition_analysis options: %s", str(e))
         db.session.rollback()
-        return jsonify({'dates': [], 'locations': [], 'sections': [], 'classifications': []})
+        return jsonify({'dates': [], 'locations': [], 'divisions': [], 'sections': [], 'classifications': []})
 
 
 @dashboard_bp.route('/api/sync/sales-stock-composition-analysis', methods=['POST'])

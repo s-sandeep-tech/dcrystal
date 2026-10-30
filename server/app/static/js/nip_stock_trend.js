@@ -326,7 +326,7 @@
             catch(error){el('nip-status').textContent=error.message;}finally{button.disabled=false;}};
         try {
             const result=await responseJSON(await fetch('/api/nip-stock-trend-analysis/options',{headers:headers()}));
-            for(const [key,values] of Object.entries(result.options))controls[key]=new CustomMultiSelect({containerId:'nip-filter-'+key,label:name(key),defaultText:'All '+name(key),options:values.map(value=>({value,label:value}))});
+            for(const [key,values] of Object.entries(result.options))controls[key]=new CustomMultiSelect({containerId:'nip-filter-'+key,label:key==='weight'?'Weight (g)':name(key),defaultText:'All '+name(key),options:values.map(value=>({value,label:value}))});
             await load();
         }catch(error){el('nip-status').textContent=error.message;el('nip-output').setAttribute('aria-busy','false');}
     });
