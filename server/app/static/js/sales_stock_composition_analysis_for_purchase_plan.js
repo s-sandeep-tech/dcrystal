@@ -436,9 +436,11 @@ function renderContributorPanel(type, dataSection, canvasId, frameId, emptyMsgId
     const totalPositive = dataSection?.total_positive_weight ?? items.reduce((sum, item) => sum + item.weight, 0);
 
     if (subtitle) {
-        subtitle.textContent = `Total: ${Number(totalPositive).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })} g`;
+        const totalKg = Number(totalPositive) / 1000;
+        subtitle.textContent = `Total: ${totalKg.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg`;
         if (dataSection?.negative_weight < 0) {
-            subtitle.textContent += ` · Excl. neg: ${Number(dataSection.negative_weight).toFixed(3)} g`;
+            const negKg = Number(dataSection.negative_weight) / 1000;
+            subtitle.textContent += ` · Excl. neg: ${negKg.toFixed(3)} kg`;
         }
     }
 
