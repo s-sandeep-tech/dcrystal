@@ -57,6 +57,11 @@ def apply_make_filter(query, make):
     return query.filter(OwnerWiseOrderSummarySnapshot.make.in_(makes))
 
 
+def has_full_owner_data_access():
+    roles = {str(role).upper() for role in session.get('roles', [])}
+    return bool(roles.intersection({'ADMIN', 'MANAGER_2', 'EXECUTIVE_DIRECTOR'}))
+
+
 def current_user_owner_filter():
     user_id = str(session.get('user_id') or '').strip()
 
@@ -170,12 +175,10 @@ def owner_wise_order_summary():
                 except ValueError:
                     pass
             
-            # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
+            # Full-access roles bypass owner and KMU data restrictions.
             roles = [r.upper() for r in session.get('roles', [])]
-            is_admin = 'ADMIN' in roles
-            is_manager_2 = 'MANAGER_2' in roles
             
-            if not is_admin and not is_manager_2:
+            if not has_full_owner_data_access():
                 if 'MANAGER_KMU' in roles:
                     query = query.filter(OwnerWiseOrderSummarySnapshot.make.in_([
                         'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
@@ -190,7 +193,7 @@ def owner_wise_order_summary():
         # Fetch filter options - Restricted for non-admins/non-managers
         def apply_options_filter(q):
             roles = [r.upper() for r in session.get('roles', [])]
-            if 'ADMIN' in roles or 'MANAGER_2' in roles:
+            if has_full_owner_data_access():
                 return q
             
             if 'MANAGER_KMU' in roles:
@@ -431,12 +434,10 @@ def get_owner_wise_partial():
                 except ValueError:
                     pass
             
-            # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
+            # Full-access roles bypass owner and KMU data restrictions.
             roles = [r.upper() for r in session.get('roles', [])]
-            is_admin = 'ADMIN' in roles
-            is_manager_2 = 'MANAGER_2' in roles
             
-            if not is_admin and not is_manager_2:
+            if not has_full_owner_data_access():
                 if 'MANAGER_KMU' in roles:
                     query = query.filter(OwnerWiseOrderSummarySnapshot.make.in_([
                         'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
@@ -653,12 +654,10 @@ def get_leaf_detail():
             except ValueError:
                 pass
 
-        # User-based filtering: Restrict to any owner = username if not admin or MANAGER_2
+        # Full-access roles bypass owner and KMU data restrictions.
         roles = [r.upper() for r in session.get('roles', [])]
-        is_admin = 'ADMIN' in roles
-        is_manager_2 = 'MANAGER_2' in roles
         
-        if not is_admin and not is_manager_2:
+        if not has_full_owner_data_access():
             if 'MANAGER_KMU' in roles:
                 query = query.filter(OwnerWiseOrderSummarySnapshot.make.in_([
                     'KMU - KERALA', 'KMU 999 COIN', 'KMU B2B', 'KMU KARNATAKA', 
