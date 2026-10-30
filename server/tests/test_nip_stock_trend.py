@@ -72,6 +72,7 @@ class StockTrendDataTests(unittest.TestCase):
             self.assertEqual(data['series'][1]['values'],[1,2])
             self.assertEqual(data['series'][2]['values'],[1,11.999])
             self.assertEqual(data['stats']['total_nip'],2)
+            self.assertEqual(data['stats']['nip_change_pct'],100)
             self.assertEqual(data['stats']['total_stock'],11.999)
             self.assertEqual(data['line_series'],[
                 {'name':'NIP Stock','kind':'nip','values':[1,2]},
@@ -103,10 +104,12 @@ class StockTrendDataTests(unittest.TestCase):
             stats=trend_data(MultiDict())['stats']
             self.assertEqual(stats['nip_pct'],100)
             self.assertIsNone(stats['excess_change_pct'])
+            self.assertIsNone(stats['nip_change_pct'])
             zero=trend_data(MultiDict({'to_date':'2026-10-01'}))['stats']
             self.assertIsNone(zero['nip_pct']);self.assertIsNone(zero['excess_pct'])
             first.gross_wt=2000;db.session.commit()
             self.assertEqual(trend_data(MultiDict())['stats']['excess_change_pct'],-50)
+            self.assertEqual(trend_data(MultiDict())['stats']['nip_change_pct'],-50)
             last.gross_wt=None;db.session.commit()
             missing=trend_data(MultiDict())['stats']
             for key in ['nip_pct','excess_pct','excess_change_pct']:self.assertIsNone(missing[key])

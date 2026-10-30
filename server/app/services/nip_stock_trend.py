@@ -126,6 +126,7 @@ def trend_data(args):
         value = data['stats']['total_' + kind]
         data['stats'][kind + '_pct'] = value / total * 100 if value is not None and total else None
     data['stats']['excess_change_pct'] = prepared['excess']['stats']['change_pct']
+    data['stats']['nip_change_pct'] = prepared['nip']['stats']['change_pct']
     data['line_series'] = [{'name': label, 'kind': kind, 'values': prepared[kind]['totals']}
                            for kind, label in [('nip','NIP Stock'),('excess','Excess Stock')]]
     totals = prepared['total']['series']

@@ -1,6 +1,6 @@
 (() => {
     const el = id => document.getElementById(id), controls = {};
-    const statKeys=['total_stock','total_nip','total_excess','nip_pct','excess_pct','excess_change_pct','change','change_pct','average'];
+    const statKeys=['total_stock','total_nip','total_excess','nip_pct','excess_pct','excess_change_pct','change','change_pct','nip_change_pct'];
     const pageLoaded = new Promise(resolve=>{
         if(document.readyState==='complete')resolve();
         else window.addEventListener('load',resolve,{once:true});
@@ -263,8 +263,18 @@
             el(`nip-stat-${key}`).textContent = key.endsWith('_pct')
                 ? (data.stats[key] == null ? 'N/A' : data.stats[key].toFixed(2)+'%') : number(data.stats[key]);
         }
-        const excessChange=data.stats.excess_change_pct;
-        el('nip-stat-excess_change_pct').dataset.direction=excessChange>0?'increase':excessChange<0?'decrease':'neutral';
+        for(const key of ['excess_change_pct','nip_change_pct']){
+            const value=data.stats[key];
+            el('nip-stat-'+key).dataset.direction=value>0?'increase':value<0?'decrease':'neutral';
+        }
+        document.querySelectorAll('[data-progress]').forEach(node=>{
+            const value=data.stats[node.dataset.progress];
+            node.firstElementChild.style.width=(value==null?0:Math.min(100,Math.abs(value)))+'%';
+            node.dataset.direction=node.dataset.progress.includes('change')?(value>0?'increase':value<0?'decrease':'neutral'):'neutral';
+            const label=el('nip-stat-'+node.dataset.progress).textContent;
+            node.setAttribute('aria-label',name(node.dataset.progress)+': '+label);
+            node.title=label+(value!=null&&Math.abs(value)>100?' (bar capped at 100%)':'');
+        });
         document.querySelectorAll('.nip-unit').forEach(node=>node.textContent=node.dataset.stat.endsWith('_pct')?'':data.unit);
         tablePage=1;renderTable();
         el('nip-status').textContent = data.periods.length
@@ -283,7 +293,10 @@
             if(controller.signal.aborted)return;
             data=result;render();
         } catch(error){if(error.name!=='AbortError'){el('nip-status').textContent=error.message;data=null;chart?.destroy();chart=null;el('nip-table').replaceChildren();
-            statKeys.forEach(key=>{el('nip-stat-'+key).textContent='-';delete el('nip-stat-'+key).dataset.direction;});}}
+            statKeys.forEach(key=>{el('nip-stat-'+key).textContent='-';delete el('nip-stat-'+key).dataset.direction;});
+            document.querySelectorAll('[data-progress]').forEach(node=>{
+                node.firstElementChild.style.width='0%';delete node.dataset.direction;node.title='N/A';node.setAttribute('aria-label','Unavailable');
+            });}}
         finally{if(pending===controller){el('nip-output').setAttribute('aria-busy','false');pending=null;}}
     }
     async function download(response,filename) {

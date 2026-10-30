@@ -29,7 +29,7 @@ const fields=['location','division','group_name','purity','classification','sub_
   const periods=Array.from({length:singlePeriod?1:21},(_,i)=>`2026-10-${String(i+1).padStart(2,'0')}`);
   const body={periods,balance_dates:periods,series:['Gold','Silver','Platinum'].map((name,i)=>({name,values:periods.map((_,j)=>10+i*10+j)})),
    metric:url.searchParams.get('metric')||'gross_wt',group_by:url.searchParams.get('group_by')||'division',interval:url.searchParams.get('interval')||'daily',
-   stats:{total_stock:120,total_nip:60,total_excess:30,nip_pct:50,excess_pct:25,excess_change_pct:-20,change:60,change_pct:100,average:90},first_date:periods[0],last_date:periods.at(-1),observed_days:21};
+   stats:{total_stock:120,total_nip:60,total_excess:30,nip_pct:50,excess_pct:25,excess_change_pct:-20,change:60,change_pct:100,nip_change_pct:120},first_date:periods[0],last_date:periods.at(-1),observed_days:21};
   const groups=body.group_by==='purity'?['750.00','920.00','995.00','999.00'].map((name,i)=>({name,values:periods.map(()=>i+1)})):body.series;
   body.unit=body.metric==='pieces'?'Nos.':'kg';
   body.table_rows=periods.flatMap((period,p)=>groups.map(s=>({period,balance_date:period,group:s.name,total:s.values[p],nip:s.values[p]/2,excess:s.values[p]/4})));
@@ -55,6 +55,12 @@ const fields=['location','division','group_name','purity','classification','sub_
  await page.waitForFunction(()=>document.getElementById('nip-output').getAttribute('aria-busy')==='false');
  assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).id),chartId);
  assert.equal(await page.locator('.nip-stats>div').count(),9);
+ assert.equal(await page.locator('#nip-stat-average').count(),0);
+ assert.equal(await page.locator('#nip-stat-nip_change_pct').textContent(),'120.00%');
+ assert.equal(await page.locator('[data-progress]').count(),5);
+ assert.equal(await page.locator('[data-progress="nip_change_pct"]>span').evaluate(node=>node.style.width),'100%');
+ assert.equal(await page.locator('[data-progress="nip_pct"]>span').evaluate(node=>node.style.width),'50%');
+ assert.equal(await page.locator('[data-progress="excess_change_pct"]').getAttribute('data-direction'),'decrease');
  assert.equal(await page.locator('#nip-stat-nip_pct').textContent(),'50.00%');
  assert.equal(await page.locator('#nip-stat-excess_pct').textContent(),'25.00%');
  assert.equal(await page.locator('#nip-stat-excess_change_pct').textContent(),'-20.00%');
