@@ -1,23 +1,5 @@
-{% macro sales_comp_cell(value, path) -%}
-<span class="inline-flex items-center justify-end gap-1">
-    <span>{{ "{:,.2f}%".format(value) if value is not none else 'N/A' }}</span>
-    <button type="button" class="inline-flex items-center justify-center w-6 h-6 text-primary hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded"
-        data-chart-path='{{ path|tojson }}' onclick="event.stopPropagation(); openPurchasePlanChart(this, 'compare')"
-        title="View sales & stock contributors" aria-label="View sales & stock contributors">
-        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">pie_chart</span>
-    </button>
-</span>
-{%- endmacro %}
-
-{% macro stock_comp_cell(value, path) -%}
-<span class="inline-flex items-center justify-end gap-1">
-    <span>{{ "{:,.2f}%".format(value) if value is not none else 'N/A' }}</span>
-    <button type="button" class="inline-flex items-center justify-center w-6 h-6 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded"
-        data-chart-path='{{ path|tojson }}' onclick="event.stopPropagation(); openPurchasePlanChart(this, 'compare')"
-        title="View sales & stock contributors" aria-label="View sales & stock contributors">
-        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">pie_chart</span>
-    </button>
-</span>
+{% macro format_pct(value) -%}
+{{ "{:,.2f}%".format(value) if value is not none else 'N/A' }}
 {%- endmacro %}
 
 {% for row in rows %}
@@ -37,10 +19,15 @@
             <span class="inline-flex items-center justify-center text-gray-400 w-4 text-[11px] select-none">→</span>
             {% endif %}
             <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-gray-700 dark:text-gray-200">{{ row.label or '(Unspecified)' }}</span>
+            <button type="button" class="inline-flex items-center justify-center w-6 h-6 text-primary hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded shrink-0 ml-auto"
+                data-chart-path='{{ child_path|tojson }}' onclick="event.stopPropagation(); openPurchasePlanChart(this)"
+                title="View top 10 contributors" aria-label="View top 10 contributors">
+                <span class="material-symbols-outlined text-[16px]" aria-hidden="true">pie_chart</span>
+            </button>
         </div>
     </td>
-    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ sales_comp_cell(row.sales_composition, child_path) }}</td>
-    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ stock_comp_cell(row.stock_composition, child_path) }}</td>
+    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.sales_composition) }}</td>
+    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.stock_composition) }}</td>
     <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if row.turn_na_b else ("{:,.2f}%".format(row.weight_turn) if row.weight_turn is not none else 'N/A') }}</td>
 </tr>
 {% endfor %}

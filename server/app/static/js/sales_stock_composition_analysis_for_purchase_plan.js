@@ -411,58 +411,12 @@ const CHART_COLORS = [
 ];
 
 function switchPurchasePlanModalTab(tab) {
-    currentPurchasePlanModalTab = tab;
-    const modal = document.getElementById('purchase-plan-sales-chart-modal');
-    const grid = document.getElementById('purchase-plan-panels-grid');
+    currentPurchasePlanModalTab = 'compare';
     const salesPanel = document.getElementById('purchase-plan-sales-panel');
     const stockPanel = document.getElementById('purchase-plan-stock-panel');
+    if (salesPanel) salesPanel.hidden = false;
+    if (stockPanel) stockPanel.hidden = false;
 
-    const btnSales = document.getElementById('tab-btn-sales');
-    const btnStock = document.getElementById('tab-btn-stock');
-    const btnCompare = document.getElementById('tab-btn-compare');
-
-    const activeClasses = ['bg-white', 'dark:bg-gray-700', 'text-primary', 'dark:text-blue-400', 'font-bold', 'shadow-sm'];
-    const inactiveClasses = ['text-gray-600', 'dark:text-gray-300', 'font-medium'];
-
-    [btnSales, btnStock, btnCompare].forEach(btn => {
-        if (!btn) return;
-        btn.classList.remove(...activeClasses);
-        btn.classList.add(...inactiveClasses);
-    });
-
-    const activeBtn = tab === 'sales' ? btnSales : (tab === 'stock' ? btnStock : btnCompare);
-    if (activeBtn) {
-        activeBtn.classList.remove(...inactiveClasses);
-        activeBtn.classList.add(...activeClasses);
-    }
-
-    if (tab === 'sales') {
-        if (modal) {
-            modal.classList.remove('compare-mode');
-            modal.classList.add('single-mode');
-        }
-        if (grid) grid.className = 'grid grid-cols-1 gap-4 h-full flex-1 min-h-0';
-        if (salesPanel) salesPanel.hidden = false;
-        if (stockPanel) stockPanel.hidden = true;
-    } else if (tab === 'stock') {
-        if (modal) {
-            modal.classList.remove('compare-mode');
-            modal.classList.add('single-mode');
-        }
-        if (grid) grid.className = 'grid grid-cols-1 gap-4 h-full flex-1 min-h-0';
-        if (salesPanel) salesPanel.hidden = true;
-        if (stockPanel) stockPanel.hidden = false;
-    } else { // compare
-        if (modal) {
-            modal.classList.add('compare-mode');
-            modal.classList.remove('single-mode');
-        }
-        if (grid) grid.className = 'grid grid-cols-2 gap-4 h-full flex-1 min-h-0';
-        if (salesPanel) salesPanel.hidden = false;
-        if (stockPanel) stockPanel.hidden = false;
-    }
-
-    // Resize charts to adapt to container changes
     setTimeout(() => {
         purchasePlanSalesChart?.resize();
         purchasePlanStockChart?.resize();
@@ -557,7 +511,7 @@ function renderContributorPanel(type, dataSection, canvasId, frameId, emptyMsgId
     });
 }
 
-async function openPurchasePlanChart(button, defaultTab = 'compare') {
+async function openPurchasePlanChart(button) {
     const dialog = document.getElementById('purchase-plan-sales-chart-modal');
     const status = document.getElementById('purchase-plan-sales-chart-status');
     const path = JSON.parse(button.dataset.chartPath || '[]');
@@ -583,7 +537,11 @@ async function openPurchasePlanChart(button, defaultTab = 'compare') {
     document.getElementById('purchase-plan-sales-chart-title').textContent = `Top 10 Contributors: ${titleTarget}`;
     if (status) status.textContent = 'Loading sales & stock contributors...';
 
-    switchPurchasePlanModalTab(defaultTab);
+    const salesPanel = document.getElementById('purchase-plan-sales-panel');
+    const stockPanel = document.getElementById('purchase-plan-stock-panel');
+    if (salesPanel) salesPanel.hidden = false;
+    if (stockPanel) stockPanel.hidden = false;
+
     if (!dialog.open) dialog.showModal();
 
     try {
@@ -628,7 +586,6 @@ async function openPurchasePlanChart(button, defaultTab = 'compare') {
             'stock-panel-subtitle'
         );
 
-        switchPurchasePlanModalTab(defaultTab);
         requestAnimationFrame(() => {
             purchasePlanSalesChart?.resize();
             purchasePlanStockChart?.resize();
@@ -639,7 +596,7 @@ async function openPurchasePlanChart(button, defaultTab = 'compare') {
 }
 
 function openPurchasePlanSalesChart(button) {
-    return openPurchasePlanChart(button, 'sales');
+    return openPurchasePlanChart(button);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
