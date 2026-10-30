@@ -438,17 +438,17 @@ function switchPurchasePlanModalTab(tab) {
 
     if (tab === 'sales') {
         if (modal) modal.classList.remove('compare-mode');
-        if (grid) grid.className = 'space-y-4';
+        if (grid) grid.className = 'grid grid-cols-1 gap-5 h-full flex-1 min-h-0';
         if (salesPanel) salesPanel.hidden = false;
         if (stockPanel) stockPanel.hidden = true;
     } else if (tab === 'stock') {
         if (modal) modal.classList.remove('compare-mode');
-        if (grid) grid.className = 'space-y-4';
+        if (grid) grid.className = 'grid grid-cols-1 gap-5 h-full flex-1 min-h-0';
         if (salesPanel) salesPanel.hidden = true;
         if (stockPanel) stockPanel.hidden = false;
     } else { // compare
         if (modal) modal.classList.add('compare-mode');
-        if (grid) grid.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+        if (grid) grid.className = 'grid grid-cols-1 lg:grid-cols-2 gap-5 h-full flex-1 min-h-0';
         if (salesPanel) salesPanel.hidden = false;
         if (stockPanel) stockPanel.hidden = false;
     }
@@ -457,7 +457,7 @@ function switchPurchasePlanModalTab(tab) {
     setTimeout(() => {
         purchasePlanSalesChart?.resize();
         purchasePlanStockChart?.resize();
-    }, 50);
+    }, 60);
 }
 
 function renderContributorPanel(type, dataSection, canvasId, frameId, emptyMsgId, listId, subtitleId) {
@@ -620,6 +620,10 @@ async function openPurchasePlanChart(button, defaultTab = 'compare') {
         );
 
         switchPurchasePlanModalTab(defaultTab);
+        requestAnimationFrame(() => {
+            purchasePlanSalesChart?.resize();
+            purchasePlanStockChart?.resize();
+        });
     } catch (err) {
         if (err.name !== 'AbortError' && status) status.textContent = err.message;
     }
