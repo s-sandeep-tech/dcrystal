@@ -121,9 +121,25 @@ class LocationMakePendingOrderTypeFilterTests(unittest.TestCase):
     def test_privileged_roles_bypass_business_head_scope(self):
         with self.app.test_request_context('/'):
             session['user_id'] = '123'
-            for role in ('ADMIN', 'MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'):
+            for role in ('ADMIN', 'MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR', 'EXECUTIVE_DIRECTOR'):
                 session['roles'] = ['BUSINESS_HEAD', role]
                 self.assertEqual(build_filter_query(PendingOrderDetailsSnapshot.query).count(), 3)
+
+    def test_executive_director_matches_manager_scope_and_leaf_access(self):
+        for role in ('MANAGER_2','EXECUTIVE_DIRECTOR','executive_director'):
+            with self.subTest(role=role),self.app.test_request_context('/'):
+                session['roles']=[role];session['user_id']='unmapped'
+                for scope in (apply_visibility_filter,build_filter_query):
+                    self.assertEqual(scope(PendingOrderDetailsSnapshot.query).count(),3)
+                with patch('app.dashboard.routes.location_make_pending_order_summary.render_template') as render:
+                    get_location_make_pending_order_summary_leaf_detail.__wrapped__()
+                    summaries=render.call_args.kwargs['supplier_summaries']
+                    self.assertEqual(sum(len(row['details']) for row in summaries),3)
+                    self.assertTrue(all(row['supplier']=='AACHAL JEWELLERS' for row in summaries))
+            with self.app.test_request_context('/?order_type=CUSTOM'):
+                session['roles']=[role]
+                rows=build_filter_query(PendingOrderDetailsSnapshot.query).all()
+                self.assertEqual([row.id for row in rows],[2])
 
     def test_modal_supplier_names_masked_for_business_head(self):
         with self.app.test_request_context('/'):

@@ -91,7 +91,7 @@ def apply_owner_visibility_filter(query):
 
 def apply_visibility_filter(query):
     roles = {str(role).strip().upper() for role in session.get('roles', [])}
-    if roles.intersection({'ADMIN', 'MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'}):
+    if roles.intersection({'ADMIN', 'MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR', 'EXECUTIVE_DIRECTOR'}):
         return query
     if 'BUSINESS_HEAD' in roles:
         emp_code = str(session.get('user_id') or '').strip()
