@@ -9,7 +9,7 @@
 
 {% block content %}
 <main id="sales-stock-composition-analysis-for-purchase-plan-main"
-    class="flex-1 min-w-0 overflow-hidden flex flex-col bg-[#f8fafc] dark:bg-background-dark">
+    class="flex-1 min-w-0 overflow-hidden flex flex-col bg-white dark:bg-background-dark">
     <!-- Header -->
     <div
         class="w-full bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-800 px-4 py-2 shrink-0 flex flex-wrap gap-2 items-center justify-between">
@@ -32,7 +32,7 @@
 
             <!-- Filter Toggle Button -->
             <button id="purchase-plan-filter-toggle" type="button" onclick="togglePurchasePlanFilters()"
-                class="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-200 dark:border-gray-700 text-primary hover:bg-blue-50 dark:hover:bg-gray-800"
+                class="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                 aria-controls="purchase-plan-filter-sidebar" aria-expanded="true" aria-label="Hide filters"
                 title="Hide filters">
                 <span class="material-symbols-outlined text-[18px]" aria-hidden="true">filter_alt</span>
@@ -190,29 +190,90 @@
 
 {% block extra_scripts %}
 <style>
-    #purchase-plan-sales-chart-modal { width: min(760px, calc(100vw - 32px)); max-height: 90vh; padding: 24px; border: 1px solid #d1d5db; border-radius: 8px; }
+    #purchase-plan-sales-chart-modal {
+        width: min(920px, calc(100vw - 32px));
+        max-height: 92vh;
+        padding: 24px;
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+    }
     #purchase-plan-sales-chart-modal::backdrop { background: rgba(0, 0, 0, .45); }
     #purchase-plan-sales-chart-modal h2 { overflow-wrap: anywhere; }
-    .purchase-plan-chart-frame { position: relative; height: 380px; max-height: 55vh; }
-    #purchase-plan-chart-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; }
-    #purchase-plan-chart-values li { min-width: 0; align-items: flex-start; }
-    @media (max-width: 640px) {
-        #purchase-plan-chart-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .purchase-plan-chart-frame { position: relative; height: 320px; max-height: 45vh; }
+    .compare-mode .purchase-plan-chart-frame { height: 230px; max-height: 35vh; }
+    .purchase-plan-chart-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; }
+    .compare-mode .purchase-plan-chart-values { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
+    @media (max-width: 768px) {
+        .purchase-plan-chart-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .compare-mode .purchase-plan-chart-values { grid-template-columns: minmax(0, 1fr); }
     }
-    @media (max-width: 420px) {
-        #purchase-plan-chart-values { grid-template-columns: minmax(0, 1fr); }
+    @media (max-width: 480px) {
+        .purchase-plan-chart-values { grid-template-columns: minmax(0, 1fr); }
     }
 </style>
-<dialog id="purchase-plan-sales-chart-modal" aria-labelledby="purchase-plan-sales-chart-title" class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100">
-    <header class="flex items-start justify-between gap-3 mb-4">
-        <h2 id="purchase-plan-sales-chart-title" class="text-base font-bold">Top Sales Contributors</h2>
-        <button type="button" onclick="document.getElementById('purchase-plan-sales-chart-modal').close()" aria-label="Close chart" title="Close" class="w-8 h-8 shrink-0">
+<dialog id="purchase-plan-sales-chart-modal" aria-labelledby="purchase-plan-sales-chart-title" class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 shadow-2xl">
+    <header class="flex items-start justify-between gap-3 mb-3 border-b border-gray-100 dark:border-gray-800 pb-3">
+        <div>
+            <h2 id="purchase-plan-sales-chart-title" class="text-base font-bold text-gray-800 dark:text-gray-100">Top Contributors</h2>
+            <div class="flex items-center gap-1.5 mt-2 bg-gray-100 dark:bg-gray-800 p-0.5 rounded-lg w-fit">
+                <button type="button" id="tab-btn-sales" onclick="switchPurchasePlanModalTab('sales')"
+                    class="px-3 py-1 text-xs font-bold rounded-md transition-all bg-white dark:bg-gray-700 text-primary dark:text-blue-400 shadow-sm flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">pie_chart</span>
+                    <span>Sales Composition</span>
+                </button>
+                <button type="button" id="tab-btn-stock" onclick="switchPurchasePlanModalTab('stock')"
+                    class="px-3 py-1 text-xs font-medium rounded-md transition-all text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">inventory_2</span>
+                    <span>Stock Composition</span>
+                </button>
+                <button type="button" id="tab-btn-compare" onclick="switchPurchasePlanModalTab('compare')"
+                    class="px-3 py-1 text-xs font-medium rounded-md transition-all text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">compare_arrows</span>
+                    <span>Compare Both</span>
+                </button>
+            </div>
+        </div>
+        <button type="button" onclick="document.getElementById('purchase-plan-sales-chart-modal').close()" aria-label="Close chart" title="Close" class="w-8 h-8 shrink-0 rounded flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
             <span class="material-symbols-outlined">close</span>
         </button>
     </header>
-    <p id="purchase-plan-sales-chart-status" role="status" class="text-sm text-gray-500 mb-3"></p>
-    <div class="purchase-plan-chart-frame" id="purchase-plan-chart-frame" hidden><canvas id="purchase-plan-sales-contributors-chart" aria-label="Sales contributors doughnut chart" role="img"></canvas></div>
-    <ul id="purchase-plan-chart-values" class="text-xs mt-4"></ul>
+
+    <p id="purchase-plan-sales-chart-status" role="status" class="text-xs text-gray-500 dark:text-gray-400 mb-3"></p>
+
+    <!-- Modal Content Panes -->
+    <div id="purchase-plan-modal-body" class="overflow-y-auto max-h-[calc(92vh-160px)] custom-scrollbar pr-1">
+        <div id="purchase-plan-panels-grid" class="space-y-4">
+            <!-- Sales Composition Panel -->
+            <div id="purchase-plan-sales-panel" class="p-3.5 bg-gray-50/70 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-800">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xs font-bold text-primary dark:text-blue-400 flex items-center gap-1.5 uppercase tracking-wide">
+                        <span class="material-symbols-outlined text-[15px]">trending_up</span> Sales Composition (Top 10)
+                    </h3>
+                    <span id="sales-panel-subtitle" class="text-[10px] text-gray-400"></span>
+                </div>
+                <div class="purchase-plan-chart-frame" id="purchase-plan-sales-frame" hidden>
+                    <canvas id="purchase-plan-sales-contributors-chart" aria-label="Sales contributors doughnut chart" role="img"></canvas>
+                </div>
+                <p id="sales-empty-msg" class="text-xs text-gray-400 py-8 text-center hidden">No positive net sales contributors for this selection.</p>
+                <ul id="purchase-plan-sales-values" class="purchase-plan-chart-values text-xs mt-3"></ul>
+            </div>
+
+            <!-- Stock Composition Panel -->
+            <div id="purchase-plan-stock-panel" class="p-3.5 bg-gray-50/70 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-800">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 uppercase tracking-wide">
+                        <span class="material-symbols-outlined text-[15px]">inventory_2</span> Stock Composition (Top 10)
+                    </h3>
+                    <span id="stock-panel-subtitle" class="text-[10px] text-gray-400"></span>
+                </div>
+                <div class="purchase-plan-chart-frame" id="purchase-plan-stock-frame" hidden>
+                    <canvas id="purchase-plan-stock-contributors-chart" aria-label="Stock contributors doughnut chart" role="img"></canvas>
+                </div>
+                <p id="stock-empty-msg" class="text-xs text-gray-400 py-8 text-center hidden">No positive stock / provision contributors for this selection.</p>
+                <ul id="purchase-plan-stock-values" class="purchase-plan-chart-values text-xs mt-3"></ul>
+            </div>
+        </div>
+    </div>
 </dialog>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>

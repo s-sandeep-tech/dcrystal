@@ -14,8 +14,19 @@
 <span class="inline-flex items-center justify-end gap-1">
     <span>{{ "{:,.2f}%".format(value) if value is not none else 'N/A' }}</span>
     <button type="button" class="inline-flex items-center justify-center w-6 h-6 text-primary hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded"
-        data-chart-path='{{ path|tojson }}' onclick="event.stopPropagation(); openPurchasePlanSalesChart(this)"
+        data-chart-path='{{ path|tojson }}' onclick="event.stopPropagation(); openPurchasePlanChart(this, 'sales')"
         title="View top 10 sales contributors" aria-label="View top 10 sales contributors">
+        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">pie_chart</span>
+    </button>
+</span>
+{%- endmacro %}
+
+{% macro stock_comp_cell(value, path) -%}
+<span class="inline-flex items-center justify-end gap-1">
+    <span>{{ "{:,.2f}%".format(value) if value is not none else 'N/A' }}</span>
+    <button type="button" class="inline-flex items-center justify-center w-6 h-6 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded"
+        data-chart-path='{{ path|tojson }}' onclick="event.stopPropagation(); openPurchasePlanChart(this, 'stock')"
+        title="View top 10 stock contributors" aria-label="View top 10 stock contributors">
         <span class="material-symbols-outlined text-[16px]" aria-hidden="true">pie_chart</span>
     </button>
 </span>
@@ -62,15 +73,15 @@
                     {% endfor %}
                 </tr>
             </thead>
-            <tbody class="divide-y divide-blue-200 dark:divide-blue-800/80 text-[10px]">
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700 text-[10px]">
                 {% for row in rows %}
                 {% set current_path = [row.label] %}
-                <tr class="bg-[#e3f2fd] dark:bg-blue-900/30 font-bold hover:bg-blue-100/70 dark:hover:bg-blue-900/50 cursor-pointer parent-row transition-colors border-b border-blue-200 dark:border-blue-800"
+                <tr class="bg-white dark:bg-gray-800 font-bold hover:bg-slate-100 dark:hover:bg-gray-700/60 cursor-pointer parent-row transition-colors border-b border-gray-200 dark:border-gray-700"
                     data-path='{{ current_path|tojson }}'
                     data-depth="1"
                     data-expanded="false"
                     onclick="togglePurchasePlanBranch(this)">
-                    <td class="px-3 py-1 text-left border-r border-b border-blue-200 dark:border-blue-800 h-7">
+                    <td class="px-3 py-1 text-left border-r border-b border-gray-200 dark:border-gray-700 h-7">
                         <div class="flex items-center gap-1.5 h-full">
                             {% if can_expand %}
                             <span class="inline-flex items-center justify-center w-4 text-[10px] text-gray-600 dark:text-gray-300 font-bold toggle-arrow transition-transform duration-200 select-none">▶</span>
@@ -80,9 +91,9 @@
                             <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-gray-800 dark:text-gray-100">{{ row.label or '(Unspecified)' }}</span>
                         </div>
                     </td>
-                    <td class="px-3 py-1 text-right font-mono border-r border-b border-blue-200 dark:border-blue-800">{{ sales_comp_cell(row.sales_composition, current_path) }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-r border-b border-blue-200 dark:border-blue-800">{{ "{:,.2f}%".format(row.stock_composition) if row.stock_composition is not none else 'N/A' }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-b border-blue-200 dark:border-blue-800" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if row.turn_na_b else ("{:,.2f}%".format(row.weight_turn) if row.weight_turn is not none else 'N/A') }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ sales_comp_cell(row.sales_composition, current_path) }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ stock_comp_cell(row.stock_composition, current_path) }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if row.turn_na_b else ("{:,.2f}%".format(row.weight_turn) if row.weight_turn is not none else 'N/A') }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -95,7 +106,7 @@
                         </div>
                     </td>
                     <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ sales_comp_cell(total.sales_composition, []) }}</td>
-                    <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ "{:,.2f}%".format(total.stock_composition) if total.stock_composition is not none else 'N/A' }}</td>
+                    <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ stock_comp_cell(total.stock_composition, []) }}</td>
                     <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if total.turn_na_b else ("{:,.2f}%".format(total.weight_turn) if total.weight_turn is not none else 'N/A') }}</td>
                 </tr>
             </tfoot>

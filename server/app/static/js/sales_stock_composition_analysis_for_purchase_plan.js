@@ -399,28 +399,182 @@ async function exportPurchasePlanToExcel() {
     }
 }
 
-let purchasePlanChartInstance = null;
+let purchasePlanSalesChart = null;
+let purchasePlanStockChart = null;
 let purchasePlanChartRequest = null;
+let currentPurchasePlanModalTab = 'sales';
+let cachedContributorData = null;
 
-async function openPurchasePlanSalesChart(button) {
+const CHART_COLORS = [
+    '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+    '#06b6d4', '#ec4899', '#64748b', '#84cc16', '#f97316', '#a855f7'
+];
+
+function switchPurchasePlanModalTab(tab) {
+    currentPurchasePlanModalTab = tab;
+    const modal = document.getElementById('purchase-plan-sales-chart-modal');
+    const grid = document.getElementById('purchase-plan-panels-grid');
+    const salesPanel = document.getElementById('purchase-plan-sales-panel');
+    const stockPanel = document.getElementById('purchase-plan-stock-panel');
+
+    const btnSales = document.getElementById('tab-btn-sales');
+    const btnStock = document.getElementById('tab-btn-stock');
+    const btnCompare = document.getElementById('tab-btn-compare');
+
+    const activeClasses = ['bg-white', 'dark:bg-gray-700', 'text-primary', 'dark:text-blue-400', 'font-bold', 'shadow-sm'];
+    const inactiveClasses = ['text-gray-600', 'dark:text-gray-300', 'font-medium'];
+
+    [btnSales, btnStock, btnCompare].forEach(btn => {
+        if (!btn) return;
+        btn.classList.remove(...activeClasses);
+        btn.classList.add(...inactiveClasses);
+    });
+
+    const activeBtn = tab === 'sales' ? btnSales : (tab === 'stock' ? btnStock : btnCompare);
+    if (activeBtn) {
+        activeBtn.classList.remove(...inactiveClasses);
+        activeBtn.classList.add(...activeClasses);
+    }
+
+    if (tab === 'sales') {
+        if (modal) modal.classList.remove('compare-mode');
+        if (grid) grid.className = 'space-y-4';
+        if (salesPanel) salesPanel.hidden = false;
+        if (stockPanel) stockPanel.hidden = true;
+    } else if (tab === 'stock') {
+        if (modal) modal.classList.remove('compare-mode');
+        if (grid) grid.className = 'space-y-4';
+        if (salesPanel) salesPanel.hidden = true;
+        if (stockPanel) stockPanel.hidden = false;
+    } else { // compare
+        if (modal) modal.classList.add('compare-mode');
+        if (grid) grid.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+        if (salesPanel) salesPanel.hidden = false;
+        if (stockPanel) stockPanel.hidden = false;
+    }
+
+    // Resize charts to adapt to container changes
+    setTimeout(() => {
+        purchasePlanSalesChart?.resize();
+        purchasePlanStockChart?.resize();
+    }, 50);
+}
+
+function renderContributorPanel(type, dataSection, canvasId, frameId, emptyMsgId, listId, subtitleId) {
+    const frame = document.getElementById(frameId);
+    const canvas = document.getElementById(canvasId);
+    const emptyMsg = document.getElementById(emptyMsgId);
+    const list = document.getElementById(listId);
+    const subtitle = document.getElementById(subtitleId);
+
+    if (list) list.replaceChildren();
+
+    const items = dataSection?.items || [];
+    const totalPositive = dataSection?.total_positive_weight ?? items.reduce((sum, item) => sum + item.weight, 0);
+
+    if (subtitle) {
+        subtitle.textContent = `Total: ${Number(totalPositive).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })} g`;
+        if (dataSection?.negative_weight < 0) {
+            subtitle.textContent += ` · Excl. neg: ${Number(dataSection.negative_weight).toFixed(3)} g`;
+        }
+    }
+
+    if (!items.length || totalPositive <= 0) {
+        if (frame) frame.hidden = true;
+        if (emptyMsg) emptyMsg.classList.remove('hidden');
+        return null;
+    }
+
+    if (emptyMsg) emptyMsg.classList.add('hidden');
+    if (frame) frame.hidden = false;
+
+    items.forEach((item, index) => {
+        const li = document.createElement('li');
+        li.style.display = 'flex';
+        li.style.gap = '6px';
+        li.style.alignItems = 'flex-start';
+
+        const swatch = document.createElement('span');
+        Object.assign(swatch.style, {
+            background: CHART_COLORS[index % CHART_COLORS.length],
+            width: '9px',
+            height: '9px',
+            borderRadius: '50%',
+            flexShrink: '0',
+            marginTop: '3px'
+        });
+
+        const pct = totalPositive > 0 ? (item.weight / totalPositive * 100).toFixed(2) : '0.00';
+        const label = document.createElement('span');
+        label.style.overflowWrap = 'anywhere';
+        label.className = 'text-gray-700 dark:text-gray-300';
+        label.textContent = `${item.label}: ${Number(item.weight).toFixed(3)} g (${pct}%)`;
+
+        li.append(swatch, label);
+        list.append(li);
+    });
+
+    if (typeof Chart === 'undefined' || !canvas) return null;
+
+    return new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            labels: items.map(i => i.label),
+            datasets: [{
+                data: items.map(i => i.weight),
+                backgroundColor: CHART_COLORS.slice(0, items.length),
+                borderWidth: 2,
+                borderColor: '#ffffff',
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '52%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            const val = Number(ctx.raw);
+                            const p = totalPositive > 0 ? (val / totalPositive * 100).toFixed(2) : '0.00';
+                            return ` ${val.toFixed(3)} g (${p}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+async function openPurchasePlanChart(button, defaultTab = 'sales') {
     const dialog = document.getElementById('purchase-plan-sales-chart-modal');
     const status = document.getElementById('purchase-plan-sales-chart-status');
-    const frame = document.getElementById('purchase-plan-chart-frame');
-    const list = document.getElementById('purchase-plan-chart-values');
     const path = JSON.parse(button.dataset.chartPath || '[]');
 
     purchasePlanChartRequest?.abort();
     const controller = new AbortController();
     purchasePlanChartRequest = controller;
-    purchasePlanChartInstance?.destroy();
-    purchasePlanChartInstance = null;
-    frame.hidden = true;
-    list.replaceChildren();
 
-    document.getElementById('purchase-plan-sales-chart-title').textContent =
-        `Top 10 Sales Contributors: ${path.join(' / ') || 'All Sections'}`;
-    status.textContent = 'Loading contributors...';
+    purchasePlanSalesChart?.destroy();
+    purchasePlanSalesChart = null;
+    purchasePlanStockChart?.destroy();
+    purchasePlanStockChart = null;
 
+    const salesFrame = document.getElementById('purchase-plan-sales-frame');
+    const stockFrame = document.getElementById('purchase-plan-stock-frame');
+    if (salesFrame) salesFrame.hidden = true;
+    if (stockFrame) stockFrame.hidden = true;
+
+    document.getElementById('purchase-plan-sales-values')?.replaceChildren();
+    document.getElementById('purchase-plan-stock-values')?.replaceChildren();
+
+    const titleTarget = path.join(' / ') || 'All Sections';
+    document.getElementById('purchase-plan-sales-chart-title').textContent = `Top 10 Contributors: ${titleTarget}`;
+    if (status) status.textContent = 'Loading sales & stock contributors...';
+
+    switchPurchasePlanModalTab(defaultTab);
     if (!dialog.open) dialog.showModal();
 
     try {
@@ -435,69 +589,44 @@ async function openPurchasePlanSalesChart(button) {
 
         const data = await response.json();
         if (controller.signal.aborted || !dialog.open) return;
+        cachedContributorData = data;
 
-        if (!data.items || !data.items.length) {
-            status.textContent = 'No positive net sales contributors for this selection.';
-            return;
+        const levelDisplay = (data.level || '').replaceAll('_', ' ');
+        if (status) {
+            status.textContent = `${levelDisplay} · Cutoff: ${data.cutoff || 'Current'} · Top contributors by weight`;
         }
 
-        const total = data.items.reduce((sum, item) => sum + item.weight, 0);
-        status.textContent = `${data.level.replaceAll('_', ' ')} · As on ${data.cutoff} · Share of positive net sales weight`;
-        if (data.negative_weight < 0) {
-            status.textContent += ` · Negative contributors excluded from chart: ${data.negative_weight.toFixed(3)} g`;
-        }
+        const salesSection = data.sales || { items: data.items || [], negative_weight: data.negative_weight, total_positive_weight: data.net_weight };
+        const stockSection = data.stock || { items: [], negative_weight: 0, total_positive_weight: 0 };
 
-        const colors = ['#3b82f6', '#16a34a', '#eab308', '#ea580c', '#8b5cf6', '#06b6d4', '#ec4899', '#64748b', '#84cc16', '#b45309', '#9ca3af'];
-        data.items.forEach((item, index) => {
-            const li = document.createElement('li');
-            li.style.display = 'flex';
-            li.style.gap = '8px';
-            const swatch = document.createElement('span');
-            Object.assign(swatch.style, {
-                background: colors[index % colors.length],
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-                flexShrink: '0',
-                marginTop: '3px'
-            });
-            const label = document.createElement('span');
-            label.style.overflowWrap = 'anywhere';
-            label.textContent = `${item.label}: ${item.weight.toFixed(3)} g (${(item.weight / total * 100).toFixed(2)}%)`;
-            li.append(swatch, label);
-            list.append(li);
-        });
+        purchasePlanSalesChart = renderContributorPanel(
+            'sales',
+            salesSection,
+            'purchase-plan-sales-contributors-chart',
+            'purchase-plan-sales-frame',
+            'sales-empty-msg',
+            'purchase-plan-sales-values',
+            'sales-panel-subtitle'
+        );
 
-        if (typeof Chart === 'undefined') throw new Error('Chart library unavailable. Contributor values are listed below.');
-        frame.hidden = false;
-        purchasePlanChartInstance = new Chart(document.getElementById('purchase-plan-sales-contributors-chart'), {
-            type: 'doughnut',
-            data: {
-                labels: data.items.map(i => i.label),
-                datasets: [{
-                    data: data.items.map(i => i.weight),
-                    backgroundColor: colors,
-                    borderWidth: 2,
-                    hoverOffset: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '52%',
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: ctx => ` ${Number(ctx.raw).toFixed(3)} g · ${(ctx.raw / total * 100).toFixed(2)}%`
-                        }
-                    }
-                }
-            }
-        });
+        purchasePlanStockChart = renderContributorPanel(
+            'stock',
+            stockSection,
+            'purchase-plan-stock-contributors-chart',
+            'purchase-plan-stock-frame',
+            'stock-empty-msg',
+            'purchase-plan-stock-values',
+            'stock-panel-subtitle'
+        );
+
+        switchPurchasePlanModalTab(defaultTab);
     } catch (err) {
-        if (err.name !== 'AbortError') status.textContent = err.message;
+        if (err.name !== 'AbortError' && status) status.textContent = err.message;
     }
+}
+
+function openPurchasePlanSalesChart(button) {
+    return openPurchasePlanChart(button, 'sales');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -505,8 +634,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dialog) {
         dialog.addEventListener('close', () => {
             purchasePlanChartRequest?.abort();
-            purchasePlanChartInstance?.destroy();
-            purchasePlanChartInstance = null;
+            purchasePlanSalesChart?.destroy();
+            purchasePlanSalesChart = null;
+            purchasePlanStockChart?.destroy();
+            purchasePlanStockChart = null;
         });
     }
 });
@@ -521,4 +652,6 @@ window.collapseAllPurchasePlanBranches = collapseAllPurchasePlanBranches;
 window.togglePurchasePlanBranch = togglePurchasePlanBranch;
 window.exportPurchasePlanToExcel = exportPurchasePlanToExcel;
 window.sortPurchasePlan = sortPurchasePlan;
+window.openPurchasePlanChart = openPurchasePlanChart;
 window.openPurchasePlanSalesChart = openPurchasePlanSalesChart;
+window.switchPurchasePlanModalTab = switchPurchasePlanModalTab;

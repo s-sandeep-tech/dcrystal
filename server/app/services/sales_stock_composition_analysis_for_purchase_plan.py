@@ -201,12 +201,57 @@ def fetch_purchase_plan_composition_data(
         if others > 0.000001:
             items.append({'label': 'Others', 'weight': others})
 
+        # Query stock contributors
+        stock_c_q = db.session.query(Snapshot)
+        if selected_date:
+            stock_c_q = stock_c_q.filter(or_(Snapshot.date <= selected_date, Snapshot.date.is_(None)))
+        for name in FILTERS:
+            vals = selections.get(name)
+            if vals:
+                if name == 'branch_id':
+                    b_ids = [int(v) for v in vals if str(v).isdigit()]
+                    if b_ids:
+                        stock_c_q = stock_c_q.filter(Snapshot.branch_id.in_(b_ids))
+                else:
+                    stock_c_q = stock_c_q.filter(dimension_expr(name).in_(vals))
+
+        for name, value in zip(HIERARCHY, path):
+            stock_c_q = stock_c_q.filter(dimension_expr(name) == value)
+
+        stock_weight_sum = func.sum(func.coalesce(Snapshot.provision_weight, 0))
+        stock_grouped = stock_c_q.with_entities(level_expr.label('lbl'), stock_weight_sum.label('wt')).group_by(level_expr).subquery()
+        stock_pos_total, stock_neg_total = db.session.query(
+            func.sum(case((stock_grouped.c.wt > 0, stock_grouped.c.wt), else_=0)),
+            func.sum(case((stock_grouped.c.wt < 0, stock_grouped.c.wt), else_=0))
+        ).one()
+
+        stock_top_rows = db.session.query(stock_grouped).filter(stock_grouped.c.wt > 0).order_by(
+            stock_grouped.c.wt.desc(), stock_grouped.c.lbl
+        ).limit(10).all()
+
+        stock_items = [{'label': r.lbl, 'weight': float(r.wt)} for r in stock_top_rows]
+        stock_others = float(stock_pos_total or 0) - sum(i['weight'] for i in stock_items)
+        if stock_others > 0.000001:
+            stock_items.append({'label': 'Others', 'weight': stock_others})
+
         return {
-            'items': items,
             'level': level_name,
+            'cutoff': effective_date.isoformat() if effective_date else None,
+            'items': items,
             'negative_weight': float(neg_total or 0),
             'net_weight': float(pos_total or 0) + float(neg_total or 0),
-            'cutoff': effective_date.isoformat() if effective_date else None
+            'sales': {
+                'items': items,
+                'negative_weight': float(neg_total or 0),
+                'net_weight': float(pos_total or 0) + float(neg_total or 0),
+                'total_positive_weight': float(pos_total or 0),
+            },
+            'stock': {
+                'items': stock_items,
+                'negative_weight': float(stock_neg_total or 0),
+                'net_weight': float(stock_pos_total or 0) + float(stock_neg_total or 0),
+                'total_positive_weight': float(stock_pos_total or 0),
+            }
         }
 
     # Resolve location dates and factors

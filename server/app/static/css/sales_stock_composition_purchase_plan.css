@@ -2,51 +2,62 @@
 
 #view-sales-stock-composition-analysis-for-purchase-plan table {
     border-collapse: collapse;
+    background-color: #ffffff;
 }
 
-/* Parent hierarchy rows (Sections) */
+/* Parent hierarchy rows (Sections) - Clean white background */
 #view-sales-stock-composition-analysis-for-purchase-plan .parent-row {
-    border-bottom: 1px solid #90caf9 !important;
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
 }
 
 #view-sales-stock-composition-analysis-for-purchase-plan .parent-row > td {
-    border-bottom: 1px solid #90caf9 !important;
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
 }
 
-/* Hover state on parent row */
+/* Mouse over row highlight for parent row */
 #view-sales-stock-composition-analysis-for-purchase-plan .parent-row:hover > td {
-    background-color: #bbdefb !important;
+    background-color: #f1f5f9 !important;
 }
 
-/* Child hierarchy rows */
+/* Child hierarchy rows - Clean white background */
 #view-sales-stock-composition-analysis-for-purchase-plan .child-row {
-    border-bottom: 1px solid #e0e0e0 !important;
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #f1f5f9 !important;
 }
 
 #view-sales-stock-composition-analysis-for-purchase-plan .child-row > td {
-    border-bottom: 1px solid #e0e0e0 !important;
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #f1f5f9 !important;
 }
 
+/* Mouse over row highlight for child row */
 #view-sales-stock-composition-analysis-for-purchase-plan .child-row:hover > td {
-    background-color: #f5f5f5 !important;
+    background-color: #f8fafc !important;
 }
 
 /* Dark mode adjustments */
+.dark #view-sales-stock-composition-analysis-for-purchase-plan table {
+    background-color: #111827;
+}
+
 .dark #view-sales-stock-composition-analysis-for-purchase-plan .parent-row,
 .dark #view-sales-stock-composition-analysis-for-purchase-plan .parent-row > td {
-    border-bottom: 1px solid #1e3a8a !important;
+    background-color: #111827 !important;
+    border-bottom: 1px solid #374151 !important;
 }
 
 .dark #view-sales-stock-composition-analysis-for-purchase-plan .parent-row:hover > td {
-    background-color: #1e3a8a !important;
+    background-color: #1f2937 !important;
 }
 
 .dark #view-sales-stock-composition-analysis-for-purchase-plan .child-row,
 .dark #view-sales-stock-composition-analysis-for-purchase-plan .child-row > td {
-    border-bottom: 1px solid #374151 !important;
+    background-color: #111827 !important;
+    border-bottom: 1px solid #1f2937 !important;
 }
 
 .dark #view-sales-stock-composition-analysis-for-purchase-plan .child-row:hover > td {
     background-color: #1f2937 !important;
 }
-

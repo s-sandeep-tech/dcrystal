@@ -64,6 +64,50 @@ class PurchasePlanServiceTests(unittest.TestCase):
         self.assertEqual([r['label'] for r in sort_purchase_plan_rows(rows)], ['Alpha', 'beta', 'zebra'])
         self.assertEqual([r['label'] for r in sort_purchase_plan_rows(rows, sort_order='desc')], ['zebra', 'beta', 'Alpha'])
 
+    def test_contributors_returns_both_sales_and_stock(self):
+        app = Flask(__name__)
+        app.config.update(
+            TESTING=True,
+            SQLALCHEMY_DATABASE_URI='sqlite:///:memory:',
+            SQLALCHEMY_TRACK_MODIFICATIONS=False,
+        )
+        db.init_app(app)
+        with app.app_context():
+            db.metadata.create_all(db.engine, tables=[Snapshot.__table__])
+            db.session.add_all([
+                Snapshot(id=1, branch_id=1, date=date(2026, 9, 30), section='BANGLE',
+                         classification='GENERIC', gross_weight=500, provision_weight=200),
+                Snapshot(id=2, branch_id=1, date=date(2026, 9, 30), section='BANGLE',
+                         classification='BRAND', gross_weight=300, provision_weight=400),
+                Snapshot(id=3, branch_id=1, date=None, section='BANGLE',
+                         classification='LIFESTYLE', gross_weight=0, provision_weight=600),
+            ])
+            db.session.commit()
+
+            result = fetch_purchase_plan_composition_data(
+                source_date=date(2026, 9, 30),
+                selections={},
+                path=['BANGLE'],
+                contributors=True
+            )
+
+            self.assertEqual(result['level'], 'classification')
+            # Check sales contributors
+            self.assertIn('sales', result)
+            self.assertEqual(result['sales']['items'][0]['label'], 'GENERIC')
+            self.assertEqual(result['sales']['items'][0]['weight'], 500)
+            self.assertEqual(result['sales']['items'][1]['label'], 'BRAND')
+            self.assertEqual(result['sales']['items'][1]['weight'], 300)
+
+            # Check stock contributors
+            self.assertIn('stock', result)
+            self.assertEqual(result['stock']['items'][0]['label'], 'LIFESTYLE')
+            self.assertEqual(result['stock']['items'][0]['weight'], 600)
+            self.assertEqual(result['stock']['items'][1]['label'], 'BRAND')
+            self.assertEqual(result['stock']['items'][1]['weight'], 400)
+            self.assertEqual(result['stock']['items'][2]['label'], 'GENERIC')
+            self.assertEqual(result['stock']['items'][2]['weight'], 200)
+
 
 class PurchasePlanSecurityAndRouteTests(unittest.TestCase):
     def setUp(self):
@@ -215,7 +259,7 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertIn('3.45%', html)
         self.assertIn('GOLD', html)
         self.assertIn('Grand Total', html)
-        self.assertIn('openPurchasePlanSalesChart', html)
+        self.assertIn('openPurchasePlanChart', html)
 
     def test_branch_template_renders_four_columns_only(self):
         tmpl = self.env.get_template('partials/_view_sales_stock_composition_analysis_for_purchase_plan_branch.html')
@@ -234,7 +278,7 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertIn('2.10%', html)
         # Should have exactly 4 <td> elements
         self.assertEqual(html.count('<td '), 4)
-        self.assertIn('openPurchasePlanSalesChart', html)
+        self.assertIn('openPurchasePlanChart', html)
 
 
 if __name__ == '__main__':
