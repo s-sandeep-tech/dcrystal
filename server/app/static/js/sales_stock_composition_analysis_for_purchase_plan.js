@@ -402,7 +402,7 @@ async function exportPurchasePlanToExcel() {
 let purchasePlanSalesChart = null;
 let purchasePlanStockChart = null;
 let purchasePlanChartRequest = null;
-let currentPurchasePlanModalTab = 'sales';
+let currentPurchasePlanModalTab = 'compare';
 let cachedContributorData = null;
 
 const CHART_COLORS = [
@@ -548,7 +548,7 @@ function renderContributorPanel(type, dataSection, canvasId, frameId, emptyMsgId
     });
 }
 
-async function openPurchasePlanChart(button, defaultTab = 'sales') {
+async function openPurchasePlanChart(button, defaultTab = 'compare') {
     const dialog = document.getElementById('purchase-plan-sales-chart-modal');
     const status = document.getElementById('purchase-plan-sales-chart-status');
     const path = JSON.parse(button.dataset.chartPath || '[]');

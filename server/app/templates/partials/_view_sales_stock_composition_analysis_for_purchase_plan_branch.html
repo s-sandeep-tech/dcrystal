@@ -2,8 +2,8 @@
 <span class="inline-flex items-center justify-end gap-1">
     <span>{{ "{:,.2f}%".format(value) if value is not none else 'N/A' }}</span>
     <button type="button" class="inline-flex items-center justify-center w-6 h-6 text-primary hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded"
-        data-chart-path='{{ path|tojson }}' onclick="event.stopPropagation(); openPurchasePlanChart(this, 'sales')"
-        title="View top 10 sales contributors" aria-label="View top 10 sales contributors">
+        data-chart-path='{{ path|tojson }}' onclick="event.stopPropagation(); openPurchasePlanChart(this, 'compare')"
+        title="View sales & stock contributors" aria-label="View sales & stock contributors">
         <span class="material-symbols-outlined text-[16px]" aria-hidden="true">pie_chart</span>
     </button>
 </span>
@@ -13,8 +13,8 @@
 <span class="inline-flex items-center justify-end gap-1">
     <span>{{ "{:,.2f}%".format(value) if value is not none else 'N/A' }}</span>
     <button type="button" class="inline-flex items-center justify-center w-6 h-6 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded"
-        data-chart-path='{{ path|tojson }}' onclick="event.stopPropagation(); openPurchasePlanChart(this, 'stock')"
-        title="View top 10 stock contributors" aria-label="View top 10 stock contributors">
+        data-chart-path='{{ path|tojson }}' onclick="event.stopPropagation(); openPurchasePlanChart(this, 'compare')"
+        title="View sales & stock contributors" aria-label="View sales & stock contributors">
         <span class="material-symbols-outlined text-[16px]" aria-hidden="true">pie_chart</span>
     </button>
 </span>
