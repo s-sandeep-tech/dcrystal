@@ -56,7 +56,7 @@ class CapacityOwnerVisibilityTests(unittest.TestCase):
             self.assertEqual(kpis['total_capacity_kg'], 3)
 
     def test_requested_bypasses_and_kmu_scope(self):
-        for role in ['ADMIN', 'SUPER_ADMIN', 'BIC_MANAGER', 'MANAGER_2', 'MANAGER_KMU']:
+        for role in ['ADMIN', 'SUPER_ADMIN', 'BIC_MANAGER', 'MANAGER_2', 'EXECUTIVE_DIRECTOR', 'MANAGER_KMU']:
             with self.subTest(role=role), self.app.test_request_context('/'), \
                     patch.object(report, 'get_jwt_identity', return_value='42'), \
                     patch.object(db.session, 'get', return_value=self.actor(role)):
@@ -64,6 +64,16 @@ class CapacityOwnerVisibilityTests(unittest.TestCase):
                 self.assertEqual(len(rows), 1 if role == 'MANAGER_KMU' else 4)
                 if role == 'MANAGER_KMU':
                     self.assertEqual(rows[0]['supplier'], 'Other')
+
+    def test_executive_director_options_and_unrelated_supplier_drilldown(self):
+        for role in ['MANAGER_2','EXECUTIVE_DIRECTOR','executive_director']:
+            with self.subTest(role=role),self.app.test_request_context('/?supplier=Other'), \
+                 patch.object(report,'get_jwt_identity',return_value='42'), \
+                 patch.object(db.session,'get',return_value=self.actor(role)):
+                self.assertIsNone(report.capacity_owner_condition())
+                self.assertEqual(len(report.fetch_all_filter_options()['parties']),4)
+                result=report.api_party_make_capacity_drilldown.__wrapped__().get_json()
+                self.assertEqual(result['total'],1)
 
     def test_missing_identity_inactive_or_missing_code_fail_closed(self):
         for actor in [None, self.actor(active=False), self.actor(code='')]:

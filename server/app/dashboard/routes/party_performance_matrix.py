@@ -65,7 +65,7 @@ def current_user_owner_condition(model):
         str(role).strip().upper().replace('-', '_').replace(' ', '_')
         for role in session.get('roles', [])
     }
-    if roles & {'ADMIN', 'MANAGER_2', 'MANAGER-BIC'}:
+    if roles & {'ADMIN', 'MANAGER_2', 'MANAGER-BIC', 'EXECUTIVE_DIRECTOR'}:
         return None
 
     user_id = str(session.get('user_id') or '').strip()

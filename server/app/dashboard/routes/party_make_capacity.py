@@ -28,7 +28,7 @@ def capacity_owner_condition():
     if not user or not user.is_active:
         return false()
     roles = {role.upper() for role in effective_roles(user)}
-    if roles & {'ADMIN', 'SUPER_ADMIN', 'BIC_MANAGER', 'MANAGER_2'}:
+    if roles & {'ADMIN', 'SUPER_ADMIN', 'BIC_MANAGER', 'MANAGER_2', 'EXECUTIVE_DIRECTOR'}:
         return None
     if 'MANAGER_KMU' in roles:
         return PartyMakeCapacityDetailsSnapshot.make.in_([
