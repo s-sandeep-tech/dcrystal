@@ -10,6 +10,7 @@ from flask import Flask
 from flask_jwt_extended import JWTManager, create_access_token
 from app.extensions import db
 from app.models.auth import User
+from app.models.core import Notification
 from app.models.rbac import Role, Menu, Permission, UserRole, RoleMenu, RolePermission
 from app.models import SalesStockCompositionAnalysisSnapshot as Snapshot
 from app.dashboard import dashboard_bp
@@ -125,7 +126,7 @@ class PurchasePlanSecurityAndRouteTests(unittest.TestCase):
         self.ctx = self.app.app_context()
         self.ctx.push()
         db.metadata.create_all(db.engine, tables=[m.__table__ for m in
-                              [User, Role, Menu, Permission, UserRole, RoleMenu, RolePermission, Snapshot]])
+                              [User, Notification, Role, Menu, Permission, UserRole, RoleMenu, RolePermission, Snapshot]])
         self.role = Role(name='READER')
         self.user = User(user_id='EMP001', username='reader', email='reader@example.com',
                          password_hash='unused', is_active=True, roles=[self.role])
@@ -231,6 +232,26 @@ class PurchasePlanSecurityAndRouteTests(unittest.TestCase):
             self.assertEqual(selections.get('make'), ['CALCUTTA'])
             self.assertEqual(selections.get('purity'), ['22.0'])
 
+    def test_page_renders_with_filter_options_on_initial_load(self):
+        self.role.menus.append(Menu(title='Purchase Plan',
+                                    url='/sales-stock-composition-analysis-for-purchase-plan'))
+        db.session.commit()
+        with patch(
+            'app.dashboard.routes.sales_stock_composition_analysis_for_purchase_plan.render_template',
+            return_value='rendered_page'
+        ) as render_mock, patch(
+            'app.dashboard.routes.sales_stock_composition_analysis_for_purchase_plan.get_purchase_plan_options',
+            return_value={'dates': ['2026-10-30'], 'locations': [], 'divisions': ['Gold'], 'sections': [], 'classifications': [], 'makes': [], 'purities': []}
+        ) as options_mock:
+            response = self.client.get('/sales-stock-composition-analysis-for-purchase-plan', headers=self.headers())
+            self.assertEqual(response.status_code, 200)
+            options_mock.assert_called_once()
+            call_kwargs = render_mock.call_args.kwargs
+            self.assertIn('filter_options', call_kwargs)
+            self.assertEqual(call_kwargs['filter_options']['divisions'], ['Gold'])
+            # Rows must be empty so heavy data calculation only occurs post-load via AJAX
+            self.assertEqual(call_kwargs['rows'], [])
+
     def test_admin_sync_role(self):
         for role in ['ADMIN', 'DATA_SYNC_USER']:
             self.role.name = role
@@ -308,6 +329,7 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertIn('All Divisions', content)
         self.assertIn('id="purchase-plan-filter-make-container"', content)
         self.assertIn('id="purchase-plan-filter-purity-container"', content)
+        self.assertIn('id="purchase-plan-filter-options-data"', content)
 
 
 if __name__ == '__main__':

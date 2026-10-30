@@ -3,9 +3,9 @@
  * Standalone JavaScript View
  */
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     resetPurchasePlanTopStats();
-    await initPurchasePlanFilters();
+    initPurchasePlanFilters();
     loadPurchasePlanReportData();
 });
 
@@ -136,76 +136,107 @@ async function getPurchasePlanAuthHeaders() {
     };
 }
 
-async function initPurchasePlanFilters() {
-    try {
-        const headers = await getPurchasePlanAuthHeaders();
-        const response = await fetch('/api/sales-stock-composition-analysis-for-purchase-plan/options', { headers });
-        if (!response.ok) return;
+function applyPurchasePlanFilterOptions(data) {
+    if (!data) return;
 
-        const data = await response.json();
-        latestPurchasePlanSalesDate = data.dates?.[0] || '';
-        const dateInput = document.getElementById('purchase-plan-filter-max-date');
-        if (dateInput && !dateInput.value) dateInput.value = latestPurchasePlanSalesDate;
+    latestPurchasePlanSalesDate = data.dates?.[0] || latestPurchasePlanSalesDate || '';
+    const dateInput = document.getElementById('purchase-plan-filter-max-date');
+    if (dateInput && !dateInput.value) dateInput.value = latestPurchasePlanSalesDate;
 
-        const divisionSelect = document.getElementById('purchase-plan-filter-division');
-        if (divisionSelect) {
-            const currentDiv = divisionSelect.value || 'Gold';
+    const divisionSelect = document.getElementById('purchase-plan-filter-division');
+    if (divisionSelect) {
+        const currentDiv = divisionSelect.value || 'Gold';
+        if (data.divisions && data.divisions.length > 0) {
             divisionSelect.innerHTML = '<option value="">All Divisions</option>';
-            (data.divisions || []).forEach(div => {
+            data.divisions.forEach(div => {
                 const opt = document.createElement('option');
                 opt.value = div;
                 opt.textContent = div;
                 divisionSelect.appendChild(opt);
             });
-            const targetDiv = currentDiv || 'Gold';
-            const matchedOpt = Array.from(divisionSelect.options).find(o => o.value.toLowerCase() === targetDiv.toLowerCase());
-            if (matchedOpt) {
-                divisionSelect.value = matchedOpt.value;
-                purchasePlanFilterValues.division = matchedOpt.value;
-            } else if (targetDiv) {
-                const opt = document.createElement('option');
-                opt.value = targetDiv;
-                opt.textContent = targetDiv;
-                opt.selected = true;
-                divisionSelect.appendChild(opt);
-                purchasePlanFilterValues.division = targetDiv;
-            }
         }
+        const targetDiv = currentDiv || 'Gold';
+        const matchedOpt = Array.from(divisionSelect.options).find(o => o.value.toLowerCase() === targetDiv.toLowerCase());
+        if (matchedOpt) {
+            divisionSelect.value = matchedOpt.value;
+            purchasePlanFilterValues.division = matchedOpt.value;
+        } else if (targetDiv) {
+            const opt = document.createElement('option');
+            opt.value = targetDiv;
+            opt.textContent = targetDiv;
+            opt.selected = true;
+            divisionSelect.appendChild(opt);
+            purchasePlanFilterValues.division = targetDiv;
+        }
+    }
 
+    if (!purchasePlanLocationSelect) {
         purchasePlanLocationSelect = new CustomMultiSelect({
             containerId: 'purchase-plan-filter-location-container',
             label: 'Location',
             defaultText: 'All Locations',
             options: data.locations || []
         });
+    }
 
+    if (!purchasePlanSectionSelect) {
         purchasePlanSectionSelect = new CustomMultiSelect({
             containerId: 'purchase-plan-filter-section-container',
             label: 'Section',
             defaultText: 'All Sections',
             options: data.sections || []
         });
+    }
 
+    if (!purchasePlanClassificationSelect) {
         purchasePlanClassificationSelect = new CustomMultiSelect({
             containerId: 'purchase-plan-filter-classification-container',
             label: 'Classification',
             defaultText: 'All Classifications',
             options: data.classifications || []
         });
+    }
 
+    if (!purchasePlanMakeSelect) {
         purchasePlanMakeSelect = new CustomMultiSelect({
             containerId: 'purchase-plan-filter-make-container',
             label: 'Make',
             defaultText: 'All Makes',
             options: data.makes || []
         });
+    }
 
+    if (!purchasePlanPuritySelect) {
         purchasePlanPuritySelect = new CustomMultiSelect({
             containerId: 'purchase-plan-filter-purity-container',
             label: 'Purity',
             defaultText: 'All Purities',
             options: data.purities || []
         });
+    }
+}
+
+async function initPurchasePlanFilters() {
+    const optionsEl = document.getElementById('purchase-plan-filter-options-data');
+    if (optionsEl) {
+        try {
+            const initialOptions = JSON.parse(optionsEl.textContent || '{}');
+            if (initialOptions && Object.keys(initialOptions).length > 0) {
+                applyPurchasePlanFilterOptions(initialOptions);
+                return;
+            }
+        } catch (e) {
+            console.warn('Could not parse initial purchase plan filter options:', e);
+        }
+    }
+
+    try {
+        const headers = await getPurchasePlanAuthHeaders();
+        const response = await fetch('/api/sales-stock-composition-analysis-for-purchase-plan/options', { headers });
+        if (!response.ok) return;
+
+        const data = await response.json();
+        applyPurchasePlanFilterOptions(data);
     } catch (err) {
         console.error('Failed to initialize purchase plan filters:', err);
     }

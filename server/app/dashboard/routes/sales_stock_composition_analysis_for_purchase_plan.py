@@ -63,6 +63,7 @@ def sales_stock_composition_analysis_for_purchase_plan_page():
         permissions = session.get('permissions', [])
 
         factor, fy_days, elapsed_days, fy_label = calculate_fy_factor(snapshot_date or date.today())
+        filter_options = get_purchase_plan_options()
 
         return render_template(
             'sales_stock_composition_analysis_for_purchase_plan.html',
@@ -71,6 +72,7 @@ def sales_stock_composition_analysis_for_purchase_plan_page():
             permissions=permissions,
             factor=factor,
             fy_label=fy_label,
+            filter_options=filter_options,
             stats={},
             rows=[],
             total=None
@@ -85,6 +87,7 @@ def sales_stock_composition_analysis_for_purchase_plan_page():
             permissions=session.get('permissions', []),
             factor=1.0,
             fy_label="FY",
+            filter_options={'dates': [], 'locations': [], 'divisions': ['Gold'], 'sections': [], 'classifications': [], 'makes': [], 'purities': []},
             stats={},
             rows=[],
             total=None
