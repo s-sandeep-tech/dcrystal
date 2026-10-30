@@ -197,8 +197,37 @@
             chart.options.scales.y.title.text=data.unit;chart.update('none');return;
         }
         chart?.destroy();
-        chart=new Chart(el('nip-chart'),{type:'line',data:{labels:data.periods,datasets},options:{
-            responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
+        chart=new Chart(el('nip-chart'),{type:'line',data:{labels:data.periods,datasets},plugins:[{
+            id:'stockPointValues',
+            afterDatasetsDraw(current){
+                const ctx=current.ctx,area=current.chartArea;
+                ctx.save();ctx.font='500 10px sans-serif';
+                ctx.fillStyle=document.documentElement.classList.contains('dark')?'#e5e7eb':'#374151';
+                const vertical=area.width/Math.max(1,current.data.labels.length)<65;
+                current.data.datasets.forEach((dataset,index)=>{
+                    if(!current.isDatasetVisible(index))return;
+                    current.getDatasetMeta(index).data.forEach((point,position)=>{
+                        const value=dataset.data[position];
+                        if(value==null||point.skip)return;
+                        const label=number(value),width=ctx.measureText(label).width;
+                        const below=index===1&&point.y+(vertical?width:12)+10<area.bottom;
+                        ctx.save();
+                        if(vertical){
+                            ctx.translate(point.x,point.y+(below?8:-8));ctx.rotate(-Math.PI/2);
+                            ctx.textAlign=below?'right':'left';ctx.textBaseline='middle';
+                            ctx.fillText(label,0,0);
+                        }else{
+                            ctx.textAlign='center';ctx.textBaseline=below?'top':'bottom';
+                            const x=Math.min(area.right-width/2,Math.max(area.left+width/2,point.x));
+                            ctx.fillText(label,x,point.y+(below?8:-(index===1?22:8)));
+                        }
+                        ctx.restore();
+                    });
+                });
+                ctx.restore();
+            }
+        }],options:{
+            responsive:true,maintainAspectRatio:false,animation:false,layout:{padding:{top:70}},interaction:{mode:'index',intersect:false},
             scales:{y:{beginAtZero:true,title:{display:true,text:data.unit}}},
             plugins:{legend:{position:'bottom'},tooltip:{callbacks:{
                 title:items=>items.length?`${items[0].label} (balance ${data.balance_dates[items[0].dataIndex]})`:'',

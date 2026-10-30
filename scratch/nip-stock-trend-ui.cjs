@@ -81,6 +81,13 @@ const fields=['location','division','group_name','purity','classification','sub_
  assert.equal(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).config.type),'line');
  assert.deepEqual(await page.evaluate(()=>Chart.getChart(document.getElementById('nip-chart')).data.datasets.map(d=>d.label)),['NIP Stock','Excess Stock']);
  assert.equal(await page.locator('#nip-group').isDisabled(),true);
+ const pointLabels=await page.evaluate(()=>{
+  const c=Chart.getChart(document.getElementById('nip-chart')),labels=[],original=c.ctx.fillText;
+  c.ctx.fillText=function(value,...args){labels.push(value);return original.call(this,value,...args);};
+  c.draw();c.ctx.fillText=original;return labels;
+ });
+ assert.equal(pointLabels.filter(label=>label==='60.000').length,21);
+ assert.equal(pointLabels.filter(label=>label==='30.000').length,21);
  assert(await page.evaluate(()=>{
   const c=Chart.getChart(document.getElementById('nip-chart'));
   return c.ctx.getImageData(0,0,c.width,c.height).data.filter((value,index)=>index%4===3&&value>0).length>1000;
