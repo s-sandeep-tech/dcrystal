@@ -80,7 +80,7 @@
                     </td>
                     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.sales_composition) }}</td>
                     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.stock_composition) }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if row.turn_na_b else ("{:,.2f} times".format(row.weight_turn) if row.weight_turn is not none else 'N/A') }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if row.turn_na_b else ("{:,.2f}".format(row.weight_turn) if row.weight_turn is not none else 'N/A') }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -99,7 +99,7 @@
                     </td>
                     <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ format_pct(total.sales_composition) }}</td>
                     <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ format_pct(total.stock_composition) }}</td>
-                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if total.turn_na_b else ("{:,.2f} times".format(total.weight_turn) if total.weight_turn is not none else 'N/A') }}</td>
+                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if total.turn_na_b else ("{:,.2f}".format(total.weight_turn) if total.weight_turn is not none else 'N/A') }}</td>
                 </tr>
             </tfoot>
             {% endif %}

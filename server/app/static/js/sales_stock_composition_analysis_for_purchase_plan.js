@@ -323,7 +323,7 @@ function updatePurchasePlanTopStats(stats) {
     }
     if (turnWeightEl) {
         turnWeightEl.textContent = stats.turn_na_b ? 'NA-B' : stats.turn_weight != null
-            ? `${Number(stats.turn_weight).toFixed(2)} times`
+            ? Number(stats.turn_weight).toFixed(2)
             : (stats.turn_weight === null ? 'N/A' : '-');
     }
     if (factorLabel && stats.location_factors) {
