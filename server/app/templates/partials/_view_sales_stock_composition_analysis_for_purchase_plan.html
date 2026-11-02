@@ -5,7 +5,11 @@
 <button type="button" onclick="sortPurchasePlan('{{ key }}')" data-purchase-plan-sort="{{ key }}"
         title="Sort {{ label }} {{ 'descending' if sort_by == key and sort_order == 'asc' else 'ascending' }}"
         class="inline-flex max-w-full items-center gap-1 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
-    <span>{{ label }}</span>
+    {% if key == 'weight_turn' %}
+    <span>Stock Turn in Weight<span class="block text-[8px] font-normal normal-case leading-tight mt-0.5">(based on provision weight, times)</span></span>
+    {% elif key == 'shop_weight_turn' %}
+    <span>Stock Turn in Weight<span class="block text-[8px] font-normal normal-case leading-tight mt-0.5">(based on shopweight, times)</span></span>
+    {% else %}<span>{{ label }}</span>{% endif %}
     <span class="material-symbols-outlined shrink-0 text-[13px]" aria-hidden="true">{{ ('arrow_upward' if sort_order == 'asc' else 'arrow_downward') if sort_by == key else 'unfold_more' }}</span>
 </button>
 {%- endmacro %}
@@ -52,7 +56,15 @@
                     </th>
                     {% for key, label in [('sales_composition', 'Sales Composition %'), ('stock_composition', 'Stock Composition %'), ('weight_turn', 'Stock Turn in Weight (times)'), ('shop_weight_turn', 'Stock Turn in Weight (based on shopweight, times)')] %}
                     <th scope="col" aria-sort="{{ ('ascending' if sort_order == 'asc' else 'descending') if sort_by == key else 'none' }}"
-                        class="px-3 py-1.5 text-right {{ 'border-r border-gray-200 dark:border-gray-700' if not loop.last else '' }}">{{ sort_button(key, label) }}</th>
+                        class="px-3 py-1.5 text-right {{ 'border-r border-gray-200 dark:border-gray-700' if not loop.last else '' }}">
+                        <div class="flex items-center justify-end gap-1">
+                            {{ sort_button(key, label) }}
+                            {% if key in ['weight_turn', 'shop_weight_turn'] %}
+                            {% set tip = 'Annualised Sales Weight divided by Provision Weight (provision_weight). Expressed in times.' if key == 'weight_turn' else 'Annualised Sales Weight divided by Shop Weight (inshop_weight). Expressed in times.' %}
+                            <span class="material-symbols-outlined text-[12px] shrink-0 cursor-help" role="img" tabindex="0" title="{{ tip }}" aria-label="{{ tip }}">info</span>
+                            {% endif %}
+                        </div>
+                    </th>
                     {% endfor %}
                 </tr>
             </thead>
