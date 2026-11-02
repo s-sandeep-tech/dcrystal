@@ -289,7 +289,8 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertIn('Product Hierarchy', html)
         self.assertIn('Sales Composition %', html)
         self.assertIn('Stock Composition %', html)
-        self.assertIn('Stock Turn in Weight %', html)
+        self.assertIn('Stock Turn in Weight (times)', html)
+        self.assertNotIn('Stock Turn in Weight %', html)
 
         # Check removed columns are NOT present
         self.assertNotIn('Stock Turn in Value', html)
@@ -298,7 +299,8 @@ class TemplateRenderingTests(unittest.TestCase):
         # Verify values rendered
         self.assertIn('55.25%', html)
         self.assertIn('45.10%', html)
-        self.assertIn('3.45%', html)
+        self.assertIn('3.45 times', html)
+        self.assertNotIn('3.45%', html)
         self.assertIn('GOLD', html)
         self.assertIn('Grand Total', html)
         self.assertIn('openPurchasePlanChart', html)
@@ -317,7 +319,8 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertIn('CHAINS', html)
         self.assertIn('20.00%', html)
         self.assertIn('15.00%', html)
-        self.assertIn('2.10%', html)
+        self.assertIn('2.10 times', html)
+        self.assertNotIn('2.10%', html)
         # Should have exactly 4 <td> elements
         self.assertEqual(html.count('<td '), 4)
         self.assertIn('openPurchasePlanChart', html)
