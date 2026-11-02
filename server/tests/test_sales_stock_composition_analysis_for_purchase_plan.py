@@ -337,6 +337,9 @@ class TemplateRenderingTests(unittest.TestCase):
         with open(Path(__file__).resolve().parents[1] / 'app/templates/sales_stock_composition_analysis_for_purchase_plan.html') as f:
             content = f.read()
         self.assertIn('id="purchase-plan-filter-division"', content)
+        self.assertIn('Shop Weight (kg)', content)
+        self.assertLess(content.index('id="stat-provision-weight"'),content.index('id="stat-shop-weight"'))
+        self.assertLess(content.index('id="stat-shop-weight"'),content.index('id="stat-turn-weight"'))
         self.assertIn('All Divisions', content)
         self.assertIn('id="purchase-plan-filter-make-container"', content)
         self.assertIn('id="purchase-plan-filter-purity-container"', content)

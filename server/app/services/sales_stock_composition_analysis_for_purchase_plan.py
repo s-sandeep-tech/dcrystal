@@ -479,6 +479,7 @@ def fetch_purchase_plan_composition_data(
         'stats': {
             'sales_weight': grand_sales_weight,
             'provision_weight': grand_stock_weight,
+            'inshop_weight': grand_shop_weight,
             'turn_weight': grand_turn_weight,
             'turn_na_b': grand_na_b,
             'factor': effective_factor,

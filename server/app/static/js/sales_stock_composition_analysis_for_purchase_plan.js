@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function resetPurchasePlanTopStats() {
-    const ids = ['stat-sales-weight', 'stat-provision-weight', 'stat-turn-weight'];
+    const ids = ['stat-sales-weight', 'stat-provision-weight', 'stat-shop-weight', 'stat-turn-weight'];
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.textContent = '-';
@@ -303,6 +303,7 @@ async function loadPurchasePlanReportData(requestParams = null) {
 function updatePurchasePlanTopStats(stats) {
     const salesWeightEl = document.getElementById('stat-sales-weight');
     const provisionWeightEl = document.getElementById('stat-provision-weight');
+    const shopWeightEl = document.getElementById('stat-shop-weight');
     const turnWeightEl = document.getElementById('stat-turn-weight');
     const factorLabel = document.getElementById('purchase-plan-fy-factor-label');
 
@@ -320,6 +321,11 @@ function updatePurchasePlanTopStats(stats) {
         provisionWeightEl.textContent = stats.provision_weight != null
             ? (Number(stats.provision_weight) / 1000).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })
             : '-';
+    }
+    if (shopWeightEl) {
+        shopWeightEl.textContent = stats.inshop_weight != null
+            ? (Number(stats.inshop_weight) / 1000).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+            : 'N/A';
     }
     if (turnWeightEl) {
         turnWeightEl.textContent = stats.turn_na_b ? 'NA-B' : stats.turn_weight != null

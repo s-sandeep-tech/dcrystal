@@ -64,7 +64,7 @@
 
     <!-- Stats Grid at Top -->
     <div
-        class="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+        class="grid grid-cols-2 md:grid-cols-4 gap-2 p-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
         <!-- Stat 1: Net Sales Weight -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <div class="flex items-center justify-center gap-1">
@@ -85,7 +85,16 @@
                 <p id="stat-provision-weight" class="text-base font-bold text-emerald-600">-</p>
             </div>
         </div>
-        <!-- Stat 3: Stock Turn in Weight -->
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[13px] text-cyan-600">storefront</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Shop Weight (kg)</p>
+            </div>
+            <div class="flex flex-col mt-1">
+                <p id="stat-shop-weight" class="text-base font-bold text-cyan-600">-</p>
+            </div>
+        </div>
+        <!-- Stat 4: Stock Turn in Weight -->
         <div class="p-2 text-center">
             <div class="flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-[13px] text-amber-600">autorenew</span>
@@ -341,5 +350,5 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script
-    src="{{ url_for('static', filename='js/sales_stock_composition_analysis_for_purchase_plan.js', v='20261102-shopweight') }}"></script>
+    src="{{ url_for('static', filename='js/sales_stock_composition_analysis_for_purchase_plan.js', v='20261102-shopweight-stat') }}"></script>
 {% endblock %}
