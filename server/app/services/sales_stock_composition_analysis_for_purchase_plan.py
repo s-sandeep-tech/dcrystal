@@ -481,6 +481,7 @@ def fetch_purchase_plan_composition_data(
             'provision_weight': grand_stock_weight,
             'inshop_weight': grand_shop_weight,
             'turn_weight': grand_turn_weight,
+            'shop_weight_turn': compute_turn_ratio(grand_annual_sales_wt, grand_shop_weight),
             'turn_na_b': grand_na_b,
             'factor': effective_factor,
             'cutoff_date': effective_date.isoformat() if effective_date else None,

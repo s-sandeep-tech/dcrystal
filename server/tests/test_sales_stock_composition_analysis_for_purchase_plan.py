@@ -345,6 +345,8 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertIn('Shop Weight (kg)', content)
         self.assertLess(content.index('id="stat-provision-weight"'),content.index('id="stat-shop-weight"'))
         self.assertLess(content.index('id="stat-shop-weight"'),content.index('id="stat-turn-weight"'))
+        self.assertLess(content.index('id="stat-turn-weight"'),content.index('id="stat-shop-turn-weight"'))
+        self.assertIn('Stock Turn (Shop Wt, times)',content)
         self.assertIn('All Divisions', content)
         self.assertIn('id="purchase-plan-filter-make-container"', content)
         self.assertIn('id="purchase-plan-filter-purity-container"', content)

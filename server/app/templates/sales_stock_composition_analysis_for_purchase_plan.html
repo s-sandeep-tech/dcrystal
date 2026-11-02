@@ -64,7 +64,7 @@
 
     <!-- Stats Grid at Top -->
     <div
-        class="grid grid-cols-2 md:grid-cols-4 gap-2 p-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+        class="grid grid-cols-2 md:grid-cols-5 gap-2 p-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
         <!-- Stat 1: Net Sales Weight -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <div class="flex items-center justify-center gap-1">
@@ -95,13 +95,22 @@
             </div>
         </div>
         <!-- Stat 4: Stock Turn in Weight -->
-        <div class="p-2 text-center">
+        <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center" title="Annualised Sales Weight divided by Provision Weight">
             <div class="flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-[13px] text-amber-600">autorenew</span>
                 <p class="text-[9px] text-gray-500 font-bold uppercase">Stock Turn (Wt, times)</p>
             </div>
             <div class="flex flex-col mt-1">
                 <p id="stat-turn-weight" class="text-base font-bold text-amber-600">-</p>
+            </div>
+        </div>
+        <div class="p-2 text-center" title="Annualised Sales Weight divided by Shop Weight (inshop_weight)">
+            <div class="flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined text-[13px] text-violet-600">autorenew</span>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Stock Turn (Shop Wt, times)</p>
+            </div>
+            <div class="flex flex-col mt-1">
+                <p id="stat-shop-turn-weight" class="text-base font-bold text-violet-600">-</p>
             </div>
         </div>
     </div>
@@ -350,5 +359,5 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script
-    src="{{ url_for('static', filename='js/sales_stock_composition_analysis_for_purchase_plan.js', v='20261102-shopweight-stat') }}"></script>
+    src="{{ url_for('static', filename='js/sales_stock_composition_analysis_for_purchase_plan.js', v='20261102-shop-turn-stat') }}"></script>
 {% endblock %}

@@ -3,14 +3,17 @@
 
 {% macro sort_button(key, label) -%}
 <button type="button" onclick="sortPurchasePlan('{{ key }}')" data-purchase-plan-sort="{{ key }}"
-        title="Sort {{ label }} {{ 'descending' if sort_by == key and sort_order == 'asc' else 'ascending' }}"
-        class="inline-flex max-w-full items-center gap-1 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+    title="Sort {{ label }} {{ 'descending' if sort_by == key and sort_order == 'asc' else 'ascending' }}"
+    class="inline-flex max-w-full items-center gap-1 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
     {% if key == 'weight_turn' %}
-    <span>Stock Turn in Weight<span class="block text-[8px] font-normal normal-case leading-tight mt-0.5">(based on provision weight, times)</span></span>
+    <span>Stock Turn in Weight<span class="block text-[8px] font-normal normal-case leading-tight mt-0.5">(based on
+            prov. weight, times)</span></span>
     {% elif key == 'shop_weight_turn' %}
-    <span>Stock Turn in Weight<span class="block text-[8px] font-normal normal-case leading-tight mt-0.5">(based on shopweight, times)</span></span>
+    <span>Stock Turn in Weight<span class="block text-[8px] font-normal normal-case leading-tight mt-0.5">(based on
+            shopweight, times)</span></span>
     {% else %}<span>{{ label }}</span>{% endif %}
-    <span class="material-symbols-outlined shrink-0 text-[13px]" aria-hidden="true">{{ ('arrow_upward' if sort_order == 'asc' else 'arrow_downward') if sort_by == key else 'unfold_more' }}</span>
+    <span class="material-symbols-outlined shrink-0 text-[13px]" aria-hidden="true">{{ ('arrow_upward' if sort_order ==
+        'asc' else 'arrow_downward') if sort_by == key else 'unfold_more' }}</span>
 </button>
 {%- endmacro %}
 
@@ -22,7 +25,8 @@
     {% if error_message %}
     <div class="h-full flex flex-col items-center justify-center p-8 text-center">
         <span class="material-symbols-outlined text-3xl text-red-500 mb-2">error</span>
-        <p class="text-sm font-bold text-gray-800 dark:text-white">Unable to load Sales &amp; Stock Composition Analysis for Purchase Plan</p>
+        <p class="text-sm font-bold text-gray-800 dark:text-white">Unable to load Sales &amp; Stock Composition Analysis
+            for Purchase Plan</p>
         <p class="mt-1 text-xs text-gray-500 max-w-2xl break-words">{{ error_message }}</p>
     </div>
     {% elif not rows %}
@@ -43,25 +47,37 @@
             </colgroup>
             <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr class="text-[9px] uppercase text-gray-500 font-bold tracking-wider">
-                    <th scope="col" aria-sort="{{ ('ascending' if sort_order == 'asc' else 'descending') if sort_by == 'label' else 'none' }}" class="px-3 py-1.5 border-r border-gray-200 dark:border-gray-700">
+                    <th scope="col"
+                        aria-sort="{{ ('ascending' if sort_order == 'asc' else 'descending') if sort_by == 'label' else 'none' }}"
+                        class="px-3 py-1.5 border-r border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between gap-1">
-                            <span class="truncate" title="Product Hierarchy (Section &gt; Classification &gt; Make &gt; Wide Range &gt; Collection &gt; Master Collection &gt; Purity)">
-                                {{ sort_button('label', 'Product Hierarchy') }} <span class="text-[8px] font-normal normal-case text-gray-400 dark:text-gray-400 tracking-tight">(Section &gt; Classification &gt; Make &gt; Wide Range &gt; Collection &gt; Master Collection &gt; Purity)</span>
+                            <span class="truncate"
+                                title="Product Hierarchy (Section &gt; Classification &gt; Make &gt; Wide Range &gt; Collection &gt; Master Collection &gt; Purity)">
+                                {{ sort_button('label', 'Product Hierarchy') }} <span
+                                    class="text-[8px] font-normal normal-case text-gray-400 dark:text-gray-400 tracking-tight">(Section
+                                    &gt; Classification &gt; Make &gt; Wide Range &gt; Collection &gt; Master Collection
+                                    &gt; Purity)</span>
                             </span>
-                            <span class="material-symbols-outlined text-[15px] cursor-pointer hover:text-primary transition-colors select-none shrink-0"
-                                  id="purchase-plan-collapse-all-btn"
-                                  onclick="collapseAllPurchasePlanBranches()"
-                                  title="Collapse All">keyboard_double_arrow_up</span>
+                            <span
+                                class="material-symbols-outlined text-[15px] cursor-pointer hover:text-primary transition-colors select-none shrink-0"
+                                id="purchase-plan-collapse-all-btn" onclick="collapseAllPurchasePlanBranches()"
+                                title="Collapse All">keyboard_double_arrow_up</span>
                         </div>
                     </th>
-                    {% for key, label in [('sales_composition', 'Sales Composition %'), ('stock_composition', 'Stock Composition %'), ('weight_turn', 'Stock Turn in Weight (times)'), ('shop_weight_turn', 'Stock Turn in Weight (based on shopweight, times)')] %}
-                    <th scope="col" aria-sort="{{ ('ascending' if sort_order == 'asc' else 'descending') if sort_by == key else 'none' }}"
+                    {% for key, label in [('sales_composition', 'Sales Composition %'), ('stock_composition', 'Stock
+                    Composition %'), ('weight_turn', 'Stock Turn in Weight (times)'), ('shop_weight_turn', 'Stock Turn
+                    in Weight (based on shopweight, times)')] %}
+                    <th scope="col"
+                        aria-sort="{{ ('ascending' if sort_order == 'asc' else 'descending') if sort_by == key else 'none' }}"
                         class="px-3 py-1.5 text-right {{ 'border-r border-gray-200 dark:border-gray-700' if not loop.last else '' }}">
                         <div class="flex items-center justify-end gap-1">
                             {{ sort_button(key, label) }}
                             {% if key in ['weight_turn', 'shop_weight_turn'] %}
-                            {% set tip = 'Annualised Sales Weight divided by Provision Weight (provision_weight). Expressed in times.' if key == 'weight_turn' else 'Annualised Sales Weight divided by Shop Weight (inshop_weight). Expressed in times.' %}
-                            <span class="material-symbols-outlined text-[12px] shrink-0 cursor-help" role="img" tabindex="0" title="{{ tip }}" aria-label="{{ tip }}">info</span>
+                            {% set tip = 'Annualised Sales Weight divided by Provision Weight (provision_weight).
+                            Expressed in times.' if key == 'weight_turn' else 'Annualised Sales Weight divided by Shop
+                            Weight (inshop_weight). Expressed in times.' %}
+                            <span class="material-symbols-outlined text-[12px] shrink-0 cursor-help" role="img"
+                                tabindex="0" title="{{ tip }}" aria-label="{{ tip }}">info</span>
                             {% endif %}
                         </div>
                     </th>
@@ -72,49 +88,72 @@
                 {% for row in rows %}
                 {% set current_path = [row.label] %}
                 <tr class="bg-white dark:bg-gray-800 font-bold hover:bg-slate-100 dark:hover:bg-gray-700/60 cursor-pointer parent-row transition-colors border-b border-gray-200 dark:border-gray-700"
-                    data-path='{{ current_path|tojson }}'
-                    data-depth="1"
-                    data-expanded="false"
+                    data-path='{{ current_path|tojson }}' data-depth="1" data-expanded="false"
                     onclick="togglePurchasePlanBranch(this)">
                     <td class="px-3 py-1 text-left border-r border-b border-gray-200 dark:border-gray-700 h-7">
                         <div class="flex items-center gap-1.5 h-full">
                             {% if can_expand %}
-                            <span class="inline-flex items-center justify-center w-4 text-[10px] text-gray-600 dark:text-gray-300 font-bold toggle-arrow transition-transform duration-200 select-none">▶</span>
+                            <span
+                                class="inline-flex items-center justify-center w-4 text-[10px] text-gray-600 dark:text-gray-300 font-bold toggle-arrow transition-transform duration-200 select-none">▶</span>
                             {% else %}
-                            <span class="inline-flex items-center justify-center text-gray-400 w-4 text-[11px] select-none">→</span>
+                            <span
+                                class="inline-flex items-center justify-center text-gray-400 w-4 text-[11px] select-none">→</span>
                             {% endif %}
-                            <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-gray-800 dark:text-gray-100">{{ row.label or '(Unspecified)' }}</span>
-                            <button type="button" class="inline-flex items-center justify-center w-6 h-6 text-primary hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded shrink-0 ml-auto"
-                                data-chart-path='{{ current_path|tojson }}' onclick="event.stopPropagation(); openPurchasePlanChart(this)"
+                            <span
+                                class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-gray-800 dark:text-gray-100">{{
+                                row.label or '(Unspecified)' }}</span>
+                            <button type="button"
+                                class="inline-flex items-center justify-center w-6 h-6 text-primary hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded shrink-0 ml-auto"
+                                data-chart-path='{{ current_path|tojson }}'
+                                onclick="event.stopPropagation(); openPurchasePlanChart(this)"
                                 title="View top 10 contributors" aria-label="View top 10 contributors">
                                 <span class="material-symbols-outlined text-[16px]" aria-hidden="true">pie_chart</span>
                             </button>
                         </div>
                     </td>
-                    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.sales_composition) }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.stock_composition) }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if row.turn_na_b else ("{:,.2f}".format(row.weight_turn) if row.weight_turn is not none else 'N/A') }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{ 'NA-B' if row.turn_na_b else ("{:,.2f}".format(row.shop_weight_turn) if row.shop_weight_turn|default(none) is not none else 'N/A') }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{
+                        format_pct(row.sales_composition) }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{
+                        format_pct(row.stock_composition) }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700"
+                        title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if
+                        row.turn_na_b else ("{:,.2f}".format(row.weight_turn) if row.weight_turn is not none else 'N/A')
+                        }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{ 'NA-B'
+                        if row.turn_na_b else ("{:,.2f}".format(row.shop_weight_turn) if
+                        row.shop_weight_turn|default(none) is not none else 'N/A') }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
             {% if total %}
-            <tfoot class="sticky bottom-0 z-10 bg-[#d6d6d6] dark:bg-gray-700 font-bold border-t-2 border-gray-300 dark:border-gray-600 text-[10px]">
+            <tfoot
+                class="sticky bottom-0 z-10 bg-[#d6d6d6] dark:bg-gray-700 font-bold border-t-2 border-gray-300 dark:border-gray-600 text-[10px]">
                 <tr>
-                    <td class="px-3 py-1.5 text-left border-r border-gray-300 dark:border-gray-600 h-7 uppercase tracking-wider text-gray-900 dark:text-white">
+                    <td
+                        class="px-3 py-1.5 text-left border-r border-gray-300 dark:border-gray-600 h-7 uppercase tracking-wider text-gray-900 dark:text-white">
                         <div class="flex items-center justify-between gap-1.5 h-full pl-5">
                             <span>Grand Total</span>
-                            <button type="button" class="inline-flex items-center justify-center w-6 h-6 text-primary hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded shrink-0"
+                            <button type="button"
+                                class="inline-flex items-center justify-center w-6 h-6 text-primary hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded shrink-0"
                                 data-chart-path='[]' onclick="event.stopPropagation(); openPurchasePlanChart(this)"
                                 title="View top 10 contributors" aria-label="View top 10 contributors">
                                 <span class="material-symbols-outlined text-[16px]" aria-hidden="true">pie_chart</span>
                             </button>
                         </div>
                     </td>
-                    <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ format_pct(total.sales_composition) }}</td>
-                    <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ format_pct(total.stock_composition) }}</td>
-                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if total.turn_na_b else ("{:,.2f}".format(total.weight_turn) if total.weight_turn is not none else 'N/A') }}</td>
-                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white">{{ 'NA-B' if total.turn_na_b else ("{:,.2f}".format(total.shop_weight_turn) if total.shop_weight_turn|default(none) is not none else 'N/A') }}</td>
+                    <td
+                        class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
+                        {{ format_pct(total.sales_composition) }}</td>
+                    <td
+                        class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
+                        {{ format_pct(total.stock_composition) }}</td>
+                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white"
+                        title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if
+                        total.turn_na_b else ("{:,.2f}".format(total.weight_turn) if total.weight_turn is not none else
+                        'N/A') }}</td>
+                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white">{{ 'NA-B' if
+                        total.turn_na_b else ("{:,.2f}".format(total.shop_weight_turn) if
+                        total.shop_weight_turn|default(none) is not none else 'N/A') }}</td>
                 </tr>
             </tfoot>
             {% endif %}

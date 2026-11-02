@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function resetPurchasePlanTopStats() {
-    const ids = ['stat-sales-weight', 'stat-provision-weight', 'stat-shop-weight', 'stat-turn-weight'];
+    const ids = ['stat-sales-weight', 'stat-provision-weight', 'stat-shop-weight', 'stat-turn-weight', 'stat-shop-turn-weight'];
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.textContent = '-';
@@ -305,6 +305,7 @@ function updatePurchasePlanTopStats(stats) {
     const provisionWeightEl = document.getElementById('stat-provision-weight');
     const shopWeightEl = document.getElementById('stat-shop-weight');
     const turnWeightEl = document.getElementById('stat-turn-weight');
+    const shopTurnWeightEl = document.getElementById('stat-shop-turn-weight');
     const factorLabel = document.getElementById('purchase-plan-fy-factor-label');
 
     if (!stats || Object.keys(stats).length === 0) {
@@ -331,6 +332,10 @@ function updatePurchasePlanTopStats(stats) {
         turnWeightEl.textContent = stats.turn_na_b ? 'NA-B' : stats.turn_weight != null
             ? Number(stats.turn_weight).toFixed(2)
             : (stats.turn_weight === null ? 'N/A' : '-');
+    }
+    if (shopTurnWeightEl) {
+        shopTurnWeightEl.textContent = stats.turn_na_b ? 'NA-B' : stats.shop_weight_turn != null
+            ? Number(stats.shop_weight_turn).toFixed(2) : 'N/A';
     }
     if (factorLabel && stats.location_factors) {
         const factors = stats.location_factors;
