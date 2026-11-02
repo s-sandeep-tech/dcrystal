@@ -34,7 +34,7 @@ FILTERS: List[str] = [
     'purity',
 ]
 
-SORT_KEYS: Tuple[str, ...] = ('label', 'sales_composition', 'stock_composition', 'weight_turn')
+SORT_KEYS: Tuple[str, ...] = ('label', 'sales_composition', 'stock_composition', 'weight_turn', 'shop_weight_turn')
 
 
 def dimension_expr(name: str):
@@ -356,7 +356,8 @@ def fetch_purchase_plan_composition_data(
         Snapshot.branch_id.label('branch_id'),
         Snapshot.date.label('date'),
         *dims,
-        prov_expr.label('provision')
+        prov_expr.label('provision'),
+        Snapshot.inshop_weight.label('inshop_weight')
     ).subquery()
 
     stock_q = db.session.query(stock_subq)
@@ -383,6 +384,9 @@ def fetch_purchase_plan_composition_data(
     grand_annual_sales_wt = None if (total_sales_agg[2] or grand_na_b) else float(total_sales_agg[1] or 0)
 
     grand_stock_weight = float(stock_q.with_entities(func.sum(stock_subq.c.provision)).scalar() or 0)
+    shop_total, shop_missing = stock_q.with_entities(func.sum(stock_subq.c.inshop_weight),
+        func.count() - func.count(stock_subq.c.inshop_weight)).one()
+    grand_shop_weight = None if shop_missing else float(shop_total or 0)
 
     grand_turn_weight = compute_turn_ratio(grand_annual_sales_wt, grand_stock_weight)
 
@@ -399,7 +403,9 @@ def fetch_purchase_plan_composition_data(
 
     stock_group_rows = stock_q.with_entities(
         getattr(stock_subq.c, cur_level),
-        func.sum(stock_subq.c.provision)
+        func.sum(stock_subq.c.provision),
+        func.sum(stock_subq.c.inshop_weight),
+        func.count() - func.count(stock_subq.c.inshop_weight)
     ).group_by(getattr(stock_subq.c, cur_level)).all()
 
     combined_groups: Dict[str, Dict[str, Any]] = {}
@@ -412,6 +418,7 @@ def fetch_purchase_plan_composition_data(
             'sales_weight': totals[0],
             'annualised_sales_weight': ann_wt,
             'provision_weight': 0.0,
+            'inshop_weight': 0.0,
             'turn_na_b': is_na_b
         }
 
@@ -427,6 +434,7 @@ def fetch_purchase_plan_composition_data(
             }
         else:
             combined_groups[lbl]['provision_weight'] = pw
+        combined_groups[lbl]['inshop_weight'] = None if row[3] else float(row[2] or 0)
 
     rows: List[Dict[str, Any]] = []
     for lbl, data in combined_groups.items():
@@ -446,6 +454,8 @@ def fetch_purchase_plan_composition_data(
             'sales_composition': s_comp,
             'stock_composition': st_comp,
             'weight_turn': w_turn,
+            'inshop_weight': data['inshop_weight'],
+            'shop_weight_turn': None if is_na_b else compute_turn_ratio(ann_wt, data['inshop_weight']),
             'turn_na_b': is_na_b
         })
 
@@ -462,6 +472,8 @@ def fetch_purchase_plan_composition_data(
             'sales_composition': 100.0 if grand_sales_weight > 0 else 0.0,
             'stock_composition': 100.0 if grand_stock_weight > 0 else 0.0,
             'weight_turn': grand_turn_weight,
+            'inshop_weight': grand_shop_weight,
+            'shop_weight_turn': compute_turn_ratio(grand_annual_sales_wt, grand_shop_weight),
             'turn_na_b': grand_na_b
         },
         'stats': {

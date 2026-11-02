@@ -24,7 +24,7 @@ let purchasePlanZoom = 1.0;
 let purchasePlanSearchTimeout = null;
 let appliedPurchasePlanParams = new URLSearchParams();
 let latestPurchasePlanSalesDate = '';
-const purchasePlanSortKeys = ['label', 'sales_composition', 'stock_composition', 'weight_turn'];
+const purchasePlanSortKeys = ['label', 'sales_composition', 'stock_composition', 'weight_turn', 'shop_weight_turn'];
 const initialPurchasePlanParams = new URLSearchParams(window.location.search);
 let purchasePlanSortBy = purchasePlanSortKeys.includes(initialPurchasePlanParams.get('sort_by'))
     ? initialPurchasePlanParams.get('sort_by') : 'label';

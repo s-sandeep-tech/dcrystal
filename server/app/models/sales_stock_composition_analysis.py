@@ -58,6 +58,7 @@ class SalesStockCompositionAnalysisSnapshot(db.Model):
     provision_qty = db.Column(db.Integer, default=0)
     weight = db.Column(db.Numeric(15, 4), default=0)
     provision_weight = db.Column(db.Numeric(15, 4), default=0)
+    inshop_weight = db.Column(db.Numeric(15, 4), nullable=True)
     report_group = db.Column(db.String(100))
     invoice_type = db.Column(db.String(100))
     trans_type = db.Column(db.String(50), index=True)

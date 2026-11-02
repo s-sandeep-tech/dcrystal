@@ -431,6 +431,7 @@ class SummarySyncTests(unittest.TestCase):
                  'location': ' THRISSUR ROUND ', 'design_no': 'D-001',
                  'size': Decimal('22'), 'gross_weight': Decimal('-2.5'),
                  'purchase_board_rate': 5000} for i in range(30001)]
+        rows[0]['inshop_weight']=Decimal('12.3456')
         with patch.object(sync_tasks, 'composition_source_rows', return_value=iter_rows(rows)) as source, \
                 patch.object(sync_tasks, 'emit_combined_sync_update'), \
                 patch.object(sync_tasks, 'db') as database, \
@@ -446,6 +447,8 @@ class SummarySyncTests(unittest.TestCase):
         self.assertEqual(record['location_name'], 'THRISSUR ROUND')
         self.assertEqual(record['barcode'], 'D-001')
         self.assertEqual(record['gross_weight'], Decimal('-2.5'))
+        self.assertEqual(record['inshop_weight'], Decimal('12.3456'))
+        self.assertIsNone(batches[0].args[1][1]['inshop_weight'])
         database.session.commit.assert_called_once()
         database.session.rollback.assert_not_called()
 

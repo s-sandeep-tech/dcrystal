@@ -31,10 +31,11 @@
     <div class="flex-1 min-h-0 overflow-auto custom-scrollbar">
         <table id="purchase-plan-composition-table" class="w-full min-w-[750px] table-fixed border-collapse text-left">
             <colgroup>
-                <col class="w-[46%]">
-                <col class="w-[18%]">
-                <col class="w-[18%]">
-                <col class="w-[18%]">
+                <col class="w-[40%]">
+                <col class="w-[13%]">
+                <col class="w-[13%]">
+                <col class="w-[14%]">
+                <col class="w-[20%]">
             </colgroup>
             <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr class="text-[9px] uppercase text-gray-500 font-bold tracking-wider">
@@ -49,7 +50,7 @@
                                   title="Collapse All">keyboard_double_arrow_up</span>
                         </div>
                     </th>
-                    {% for key, label in [('sales_composition', 'Sales Composition %'), ('stock_composition', 'Stock Composition %'), ('weight_turn', 'Stock Turn in Weight (times)')] %}
+                    {% for key, label in [('sales_composition', 'Sales Composition %'), ('stock_composition', 'Stock Composition %'), ('weight_turn', 'Stock Turn in Weight (times)'), ('shop_weight_turn', 'Stock Turn in Weight (based on shopweight, times)')] %}
                     <th scope="col" aria-sort="{{ ('ascending' if sort_order == 'asc' else 'descending') if sort_by == key else 'none' }}"
                         class="px-3 py-1.5 text-right {{ 'border-r border-gray-200 dark:border-gray-700' if not loop.last else '' }}">{{ sort_button(key, label) }}</th>
                     {% endfor %}
@@ -81,6 +82,7 @@
                     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.sales_composition) }}</td>
                     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.stock_composition) }}</td>
                     <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if row.turn_na_b else ("{:,.2f}".format(row.weight_turn) if row.weight_turn is not none else 'N/A') }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{ 'NA-B' if row.turn_na_b else ("{:,.2f}".format(row.shop_weight_turn) if row.shop_weight_turn|default(none) is not none else 'N/A') }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -100,6 +102,7 @@
                     <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ format_pct(total.sales_composition) }}</td>
                     <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ format_pct(total.stock_composition) }}</td>
                     <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if total.turn_na_b else ("{:,.2f}".format(total.weight_turn) if total.weight_turn is not none else 'N/A') }}</td>
+                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white">{{ 'NA-B' if total.turn_na_b else ("{:,.2f}".format(total.shop_weight_turn) if total.shop_weight_turn|default(none) is not none else 'N/A') }}</td>
                 </tr>
             </tfoot>
             {% endif %}

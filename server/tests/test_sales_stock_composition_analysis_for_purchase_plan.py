@@ -275,12 +275,14 @@ class TemplateRenderingTests(unittest.TestCase):
             'sales_composition': 55.25,
             'stock_composition': 45.10,
             'weight_turn': 3.45,
+            'shop_weight_turn': 6.9,
             'turn_na_b': False,
         }]
         total = {
             'sales_composition': 100.0,
             'stock_composition': 100.0,
             'weight_turn': 3.45,
+            'shop_weight_turn': 6.9,
             'turn_na_b': False,
         }
         html = tmpl.render(rows=rows, total=total, stats={}, can_expand=True)
@@ -290,6 +292,8 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertIn('Sales Composition %', html)
         self.assertIn('Stock Composition %', html)
         self.assertIn('Stock Turn in Weight (times)', html)
+        self.assertIn('Stock Turn in Weight (based on shopweight, times)', html)
+        self.assertEqual(html.count('>6.90</td>'),2)
         self.assertNotIn('Stock Turn in Weight %', html)
 
         # Check removed columns are NOT present
@@ -306,13 +310,14 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertIn('Grand Total', html)
         self.assertIn('openPurchasePlanChart', html)
 
-    def test_branch_template_renders_four_columns_only(self):
+    def test_branch_template_renders_five_columns(self):
         tmpl = self.env.get_template('partials/_view_sales_stock_composition_analysis_for_purchase_plan_branch.html')
         rows = [{
             'label': 'CHAINS',
             'sales_composition': 20.0,
             'stock_composition': 15.0,
             'weight_turn': 2.1,
+            'shop_weight_turn': 4.2,
             'turn_na_b': False,
         }]
         html = tmpl.render(rows=rows, parent_path=['GOLD'], can_expand=True)
@@ -322,9 +327,10 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertIn('15.00%', html)
         self.assertIn('>2.10</td>', html)
         self.assertNotIn('2.10 times', html)
+        self.assertIn('>4.20</td>',html)
         self.assertNotIn('2.10%', html)
-        # Should have exactly 4 <td> elements
-        self.assertEqual(html.count('<td '), 4)
+        # Hierarchy, composition percentages, and both stock-turn columns.
+        self.assertEqual(html.count('<td '), 5)
         self.assertIn('openPurchasePlanChart', html)
 
     def test_main_template_contains_division_make_purity_filters(self):

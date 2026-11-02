@@ -5092,6 +5092,7 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
                     'provision_qty': to_int(row.get('provision_qty')) or 0,
                     'weight': to_decimal(row.get('weight')),
                     'provision_weight': to_decimal(row.get('provision_weight')),
+                    'inshop_weight': to_decimal(row['inshop_weight']) if row.get('inshop_weight') is not None else None,
                     'report_group': to_str(row.get('report_group')),
                     'invoice_type': to_str(row.get('invoice_type')),
                     'trans_type': to_str(row.get('trans_type')),
