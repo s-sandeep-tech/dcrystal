@@ -285,17 +285,18 @@ class TemplateRenderingTests(unittest.TestCase):
             'shop_weight_turn': 6.9,
             'turn_na_b': False,
         }
-        html = tmpl.render(rows=rows, total=total, stats={}, can_expand=True)
+        html = ' '.join(tmpl.render(rows=rows, total=total, stats={}, can_expand=True).split())
 
         # Check requested columns are present
         self.assertIn('Product Hierarchy', html)
+        self.assertIn('block mt-0.5 whitespace-normal text-[8px]',html)
         self.assertIn('Sales Composition %', html)
         self.assertIn('Stock Composition %', html)
         self.assertIn('Stock Turn in Weight (times)', html)
         self.assertIn('Stock Turn in Weight (based on shopweight, times)', html)
         self.assertIn('block text-[8px] font-normal normal-case',html)
-        self.assertIn('(based on shopweight, times)</span>',html)
-        self.assertIn('(based on provision weight, times)</span>',html)
+        self.assertIn('(based on shopweight, times)',html)
+        self.assertIn('(based on prov. weight, times)',html)
         self.assertIn('Annualised Sales Weight divided by Provision Weight (provision_weight)',html)
         self.assertIn('Annualised Sales Weight divided by Shop Weight (inshop_weight)',html)
         self.assertEqual(html.count('>6.90</td>'),2)

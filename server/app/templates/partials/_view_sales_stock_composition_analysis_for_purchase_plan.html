@@ -51,10 +51,10 @@
                         aria-sort="{{ ('ascending' if sort_order == 'asc' else 'descending') if sort_by == 'label' else 'none' }}"
                         class="px-3 py-1.5 border-r border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between gap-1">
-                            <span class="truncate"
+                            <span class="min-w-0 flex-1"
                                 title="Product Hierarchy (Section &gt; Classification &gt; Make &gt; Wide Range &gt; Collection &gt; Master Collection &gt; Purity)">
                                 {{ sort_button('label', 'Product Hierarchy') }} <span
-                                    class="text-[8px] font-normal normal-case text-gray-400 dark:text-gray-400 tracking-tight">(Section
+                                    class="block mt-0.5 whitespace-normal text-[8px] font-normal normal-case text-gray-400 dark:text-gray-400 tracking-normal">(Section
                                     &gt; Classification &gt; Make &gt; Wide Range &gt; Collection &gt; Master Collection
                                     &gt; Purity)</span>
                             </span>
