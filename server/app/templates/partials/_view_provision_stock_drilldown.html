@@ -127,8 +127,20 @@
         {{ "{:,.3f}".format(row.in_shop_wt|float) if row.in_shop_wt else '0.000' }}
         {% endif %}
     </td>
-    <td class="px-2.5 py-1 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.ordered_wt|float) if row.ordered_wt
-        else '0.000' }}</td>
+    <td class="px-2.5 py-1 text-right text-[11px] font-mono">
+        {% set ordered_display = "{:,.3f}".format(row.ordered_wt|float) if row.ordered_wt else '0.000' %}
+        {% if enable_ordered_details|default(false) and has_detail_ids and (level < 5 or row.range_weight is not none) and row.ordered_wt|float != 0 %}
+        <a href="#" data-ordered-detail data-level="{{ level }}"
+            data-section="{{ row.section or '' }}"
+            data-purity="{{ row.purity if row.purity is defined and row.purity is not none else '' }}"
+            data-type="{{ row.type or '' }}" data-wide-range="{{ row.wide_range or '' }}"
+            data-range-weight="{{ row.range_weight if row.range_weight is not none else '' }}"
+            data-section-ids="{{ row.section_ids or '' }}" data-purity-ids="{{ row.purity_ids or '' }}"
+            data-type-ids="{{ row.type_ids or '' }}" data-wide-range-ids="{{ row.wide_range_ids or '' }}"
+            class="font-semibold text-primary underline underline-offset-2"
+            title="View processed order details">{{ ordered_display }}</a>
+        {% else %}{{ ordered_display }}{% endif %}
+    </td>
     <td class="px-2.5 py-1 text-right text-[11px] font-mono">{{ "{:,.3f}".format(row.in_transit_wt|float) if
         row.in_transit_wt else '0.000' }}</td>
     {% if include_piece_variance|default(false) %}

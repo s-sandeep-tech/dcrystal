@@ -253,9 +253,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await fetch(url, { method: 'POST' });
+            const options = { method: 'POST' };
+            if (type === 'stock_drilldown_details') {
+                options.headers = { Authorization: `Bearer ${localStorage.getItem('access_token') || window.jwtToken}` };
+            }
+            const response = await fetch(url, options);
             const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Queueing failed');
+            if (!response.ok) throw new Error(data.message || data.msg || 'Queueing failed');
             syncStatus.textContent = data.message;
             return true;
         } catch (error) {
@@ -286,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncPendingAcceptanceBtn) syncPendingAcceptanceBtn.addEventListener('click', () => triggerSync(syncPendingAcceptanceBtn, window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, 'Pending Acceptance Sync', 'pending_acceptance'));
     if (syncRejectedWeightBtn) syncRejectedWeightBtn.addEventListener('click', () => triggerSync(syncRejectedWeightBtn, window.SETTINGS_CONFIG.syncRejectedWeightUrl, 'Rejected Weight Sync', 'rejected_weight'));
     if (syncProvisionStatusBtn) syncProvisionStatusBtn.addEventListener('click', () => triggerSync(syncProvisionStatusBtn, window.SETTINGS_CONFIG.syncProvisionStatusUrl, 'Provision & Stock Status Sync', 'provision_stock_status'));
-    if (syncSizeLevelNIPBarcodeBtn) syncSizeLevelNIPBarcodeBtn.addEventListener('click', () => triggerSync(syncSizeLevelNIPBarcodeBtn, window.SETTINGS_CONFIG.syncSizeLevelNIPBarcodeUrl, 'Size Level NIP Barcode Sync', 'size_level_nip_barcode'));
+    if (syncSizeLevelNIPBarcodeBtn) syncSizeLevelNIPBarcodeBtn.addEventListener('click', () => triggerSync(syncSizeLevelNIPBarcodeBtn, window.SETTINGS_CONFIG.syncStockDrilldownDetailsUrl, 'Stock Drill-down Details Sync', 'stock_drilldown_details'));
     if (syncHallmarkingDelayedBtn) syncHallmarkingDelayedBtn.addEventListener('click', () => triggerSync(syncHallmarkingDelayedBtn, window.SETTINGS_CONFIG.syncHallmarkingDelayedUrl, 'Hallmarking Delayed Sync', 'hallmarking_delayed'));
     if (syncQCDelayedBtn) syncQCDelayedBtn.addEventListener('click', () => triggerSync(syncQCDelayedBtn, window.SETTINGS_CONFIG.syncQCDelayedUrl, 'QC Pending Sync', 'qc_delayed'));
     if (syncOrderProcessingPendingBtn) syncOrderProcessingPendingBtn.addEventListener('click', () => triggerSync(syncOrderProcessingPendingBtn, window.SETTINGS_CONFIG.syncOrderProcessingPendingUrl, 'Barcode completed – HM issue pending Sync', 'order_processing_pending'));
@@ -391,7 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { url: window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, label: 'Pending Acceptance', type: 'pending_acceptance' },
                 { url: window.SETTINGS_CONFIG.syncRejectedWeightUrl, label: 'Rejected Weight', type: 'rejected_weight' },
                 { url: window.SETTINGS_CONFIG.syncProvisionStatusUrl, label: 'Provision & Stock Status', type: 'provision_stock_status' },
-                { url: window.SETTINGS_CONFIG.syncSizeLevelNIPBarcodeUrl, label: 'Size Level NIP Barcode', type: 'size_level_nip_barcode' },
+                { url: window.SETTINGS_CONFIG.syncStockDrilldownDetailsUrl, label: 'Stock Drill-down Details', type: 'stock_drilldown_details' },
                 { url: window.SETTINGS_CONFIG.syncHallmarkingDelayedUrl, label: 'Hallmarking Delayed', type: 'hallmarking_delayed' },
                 { url: window.SETTINGS_CONFIG.syncQCDelayedUrl, label: 'QC Pending', type: 'qc_delayed' },
                 { url: window.SETTINGS_CONFIG.syncOrderProcessingPendingUrl, label: 'Barcode completed – HM issue pending', type: 'order_processing_pending' },

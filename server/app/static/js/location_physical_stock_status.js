@@ -760,6 +760,7 @@ function setHierarchyDetailsPath(path, link) {
 }
 
 let activeInShopDetailParams = null;
+let activeStockDetailEndpoint = 'in-shop-details';
 let inShopDetailsRequestController = null;
 let inShopDetailsTimeout = null;
 
@@ -769,6 +770,10 @@ async function openInShopDetailsModal(link) {
     if (!modal) return;
 
     activeInShopDetailParams = buildHierarchyDetailParams(link);
+    const ordered = link.hasAttribute('data-ordered-detail');
+    activeStockDetailEndpoint = ordered ? 'ordered-details' : 'in-shop-details';
+    document.getElementById('inShopDetailsTitle').textContent = ordered
+        ? 'Processed Order Details' : 'In-shop Barcode Details';
     setHierarchyDetailsPath(path, link);
     modal.classList.remove('hidden');
     await loadInShopDetails();
@@ -790,22 +795,26 @@ async function loadInShopDetails(page) {
     inShopDetailsTimeout = requestTimeout;
 
     try {
-        const response = await fetch(`/api/location-physical-stock-status/in-shop-details?${activeInShopDetailParams}`, {
+        const response = await fetch(`/api/location-physical-stock-status/${activeStockDetailEndpoint}?${activeInShopDetailParams}`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
             signal: requestController.signal
         });
         const html = await response.text();
+        if (inShopDetailsRequestController !== requestController) return;
         content.innerHTML = html;
+        if (activeStockDetailEndpoint === 'ordered-details' && response.status === 503) return;
         if (!response.ok) throw new Error('Failed to load in-shop barcode details');
     } catch (error) {
         if (error.name === 'AbortError') {
             if (inShopDetailsRequestController === requestController) {
-                content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">The barcode details request timed out. Please retry.</div>';
+                content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">The detail request timed out. Please retry.</div>';
             }
             return;
         }
         console.error('In-shop detail error:', error);
-        content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">Unable to load barcode details.</div>';
+        if (inShopDetailsRequestController === requestController) {
+            content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">Unable to load stock details.</div>';
+        }
     } finally {
         window.clearTimeout(requestTimeout);
         if (inShopDetailsTimeout === requestTimeout) inShopDetailsTimeout = null;
@@ -1139,7 +1148,7 @@ document.addEventListener('click', (event) => {
         return;
     }
 
-    const detailLink = event.target.closest('[data-in-shop-detail]');
+    const detailLink = event.target.closest('[data-in-shop-detail], [data-ordered-detail]');
     if (detailLink) {
         event.preventDefault();
         openInShopDetailsModal(detailLink);

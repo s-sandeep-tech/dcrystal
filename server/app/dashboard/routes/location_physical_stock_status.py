@@ -11,7 +11,8 @@ from app.utils.cache_utils import generate_cache_key
 from sqlalchemy import func, text, cast, Integer
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from app.utils.decorators import require_perm
+from app.utils.decorators import require_perm, require_report_access, require_role
+from app.utils.stock_processed_order_sync import COMBINED_TASK, IDENTITY_FIELDS, TASK as PROCESSED_ORDER_TASK
 import logging
 import json
 
@@ -985,7 +986,8 @@ ORDER BY section, purity NULLS FIRST, type NULLS FIRST, wide_range NULLS FIRST, 
                                drill_section=drill_section,
                                include_purity_hierarchy=True,
                                include_piece_variance=True,
-                               enable_in_shop_details=True)
+                               enable_in_shop_details=True,
+                               enable_ordered_details=True)
 
     except Exception as e:
         logger.error(f"Error in get_location_physical_stock_status_drilldown: {str(e)}")
@@ -995,6 +997,36 @@ ORDER BY section, purity NULLS FIRST, type NULLS FIRST, wide_range NULLS FIRST, 
 @dashboard_bp.route('/api/location-physical-stock-status/in-shop-details')
 @jwt_required()
 def get_location_physical_stock_in_shop_details():
+    return _get_location_physical_stock_details()
+
+
+@dashboard_bp.route('/api/location-physical-stock-status/ordered-details')
+@require_report_access('/location-physical-stock-status')
+def get_location_physical_stock_ordered_details():
+    from app.models.auth import User
+    from app.utils.access_policy import effective_roles
+
+    actor = db.session.get(User, int(get_jwt_identity()))
+    return _get_location_physical_stock_details(
+        ordered=True, roles=effective_roles(actor), user_id=actor.user_id)
+
+
+@dashboard_bp.route('/api/sync/stock-processed-order-details', methods=['POST'])
+@require_role(['ADMIN', 'DATA_SYNC_USER'])
+def queue_stock_processed_order_details():
+    from app.utils.sync_manager import enqueue_sync_task
+    return jsonify(enqueue_sync_task(PROCESSED_ORDER_TASK, get_jwt_identity()))
+
+
+@dashboard_bp.route('/api/sync/stock-drilldown-details', methods=['POST'])
+@require_role(['ADMIN', 'DATA_SYNC_USER'])
+def queue_stock_drilldown_details():
+    from app.utils.sync_manager import enqueue_sync_task
+    result = enqueue_sync_task(COMBINED_TASK, get_jwt_identity())
+    return jsonify(result), 200 if result.get('status') == 'success' else 500
+
+
+def _get_location_physical_stock_details(ordered=False, roles=None, user_id=None):
     try:
         page = max(request.args.get('page', 1, type=int), 1)
         per_page = 100
@@ -1039,14 +1071,16 @@ def get_location_physical_stock_in_shop_details():
         if drill_level >= 5 and params['drill_range_weight'] is None:
             return '<div class="p-8 text-center text-red-500">A range weight is required.</div>', 400
 
-        roles = [role.upper() for role in session.get('roles', [])]
+        roles = [role.upper() for role in (roles if ordered else session.get('roles', []))]
         is_admin = 'ADMIN' in roles
         is_manager = any(role in roles for role in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
-        user_id = session.get('user_id')
+        user_id = user_id if ordered else session.get('user_id')
 
         apply_franchise_india_branch_param(params, roles)
 
         if not is_admin and not is_manager:
+            if ordered and not user_id and {'BUSINESS_HEAD', 'SHOWROOM_MANAGER'}.intersection(roles):
+                return '<div class="p-8 text-center">Branch access is unavailable.</div>', 403
             if 'BUSINESS_HEAD' in roles and user_id:
                 params['bh_emp_code'] = user_id
             elif 'SHOWROOM_MANAGER' in roles and user_id:
@@ -1066,7 +1100,7 @@ def get_location_physical_stock_in_shop_details():
             'wide_range_id', 'gender_id', 'size_id', 'screw_type_id',
         )
         stock_identity_columns = ',\n        '.join(
-            ('branch_id', *hierarchy_id_columns)
+            ('branch_id', *hierarchy_id_columns) + (('location', 'range_weight') if ordered else ())
         )
         identity_join = '\n'.join(
             f'AND p.{column} = b.{column}'
@@ -1077,7 +1111,7 @@ def get_location_physical_stock_in_shop_details():
             for name in ('location', 'division', 'classification', 'make', 'collection', 'section', 'prov_type', 'branch_type')
         )
 
-        query = text(f'''
+        matching_stock_sql = f'''
 WITH matching_stock AS MATERIALIZED (
     SELECT DISTINCT
         {stock_identity_columns}
@@ -1102,7 +1136,12 @@ WITH matching_stock AS MATERIALIZED (
           AND (:drill_level < 3 OR p.type_id = ANY(string_to_array(CAST(:drill_type_ids AS text), ',')::bigint[]))
           AND (:drill_level < 4 OR p.wide_range_id = ANY(string_to_array(CAST(:drill_wide_range_ids AS text), ',')::bigint[]))
           AND (:drill_level < 5 OR p.range_weight = CAST(:drill_range_weight AS numeric))
-),
+)
+'''
+        if ordered:
+            return _render_processed_order_details(matching_stock_sql, params, page, per_page)
+
+        query = text(matching_stock_sql + f''',
 matched_barcodes AS (
     SELECT b.*
     FROM matching_stock AS p
@@ -1138,6 +1177,10 @@ LIMIT :limit OFFSET :offset
             total_gross_wt=rows[0]['total_gross_wt'] if rows else 0,
         )
     except Exception as e:
+        if ordered:
+            db.session.rollback()
+            logger.exception('Error loading processed order details')
+            return '<div class="p-8 text-center">Processed order details unavailable. Check the snapshot sync in Settings.</div>', 503
         logger.exception('Error loading location physical in-shop details')
         return render_template(
             'partials/_view_location_physical_stock_in_shop_details.html',
@@ -1149,6 +1192,39 @@ LIMIT :limit OFFSET :offset
             total_gross_wt=0,
             error_message=str(e),
         ), 500
+
+
+def _render_processed_order_details(matching_stock_sql, params, page, per_page):
+    identity = ' AND '.join(f'p.{name} IS NOT DISTINCT FROM o.{name}' for name in IDENTITY_FIELDS)
+    query = text(matching_stock_sql + f''',
+unambiguous_locations AS (
+    SELECT UPPER(TRIM(location)) AS location_key
+    FROM provision_stock_raw_snapshot
+    WHERE location IS NOT NULL AND TRIM(location) <> ''
+    GROUP BY UPPER(TRIM(location))
+    HAVING COUNT(DISTINCT branch_id) = 1 AND COUNT(*) = COUNT(branch_id)
+)
+SELECT o.order_no, o.order_date, o.location, o.supplier, o.design_no,
+       o.quantity, o.gross_weight, o.process_status, o.current_status, o.date,
+       COUNT(*) OVER () AS total_records,
+       SUM(o.quantity) OVER () AS total_quantity,
+       SUM(o.gross_weight) OVER () AS total_gross_weight
+FROM stock_processed_order_details_snapshot o
+JOIN unambiguous_locations u ON u.location_key = UPPER(TRIM(o.location))
+WHERE EXISTS (
+    SELECT 1 FROM matching_stock p
+    WHERE p.branch_id IS NOT NULL AND p.location = o.location
+      AND p.range_weight IS NOT DISTINCT FROM o.range_weight
+      AND {identity}
+)
+ORDER BY o.order_date DESC NULLS LAST, o.order_no NULLS LAST, o.id
+LIMIT :limit OFFSET :offset
+''')
+    rows = db.session.execute(query, params).mappings().all()
+    totals = rows[0] if rows else {}
+    total_pages = max((totals.get('total_records', 0) + per_page - 1) // per_page, 1)
+    return render_template('partials/_view_location_physical_stock_ordered_details.html',
+                           rows=rows, totals=totals, page=page, total_pages=total_pages)
 
 
 @dashboard_bp.route('/api/location-physical-stock-status/provision-details')

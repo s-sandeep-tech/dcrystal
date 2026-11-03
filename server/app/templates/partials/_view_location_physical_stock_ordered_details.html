@@ -1,0 +1,44 @@
+{% macro number(value) -%}
+{{ '{:,.3f}'.format(value) if value is not none else '-' }}
+{%- endmacro %}
+<div class="flex flex-col h-full text-xs">
+    {% if rows %}
+    <div class="flex flex-wrap gap-x-4 gap-y-1 px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
+        <span>Records: <strong>{{ totals.total_records }}</strong></span>
+        <span>Quantity: <strong>{{ number(totals.total_quantity) }}</strong></span>
+        <span>Processed Order Gross Weight: <strong>{{ number(totals.total_gross_weight) }}</strong></span>
+        <span>Source date: <strong>{{ totals.date }}</strong></span>
+    </div>
+    <div class="flex-1 min-h-0 overflow-auto">
+        <table class="w-full min-w-[900px] text-left">
+            <thead class="sticky top-0 bg-gray-100 dark:bg-gray-800">
+                <tr>
+                    {% for title in ['Order No.', 'Order Date', 'Location', 'Supplier', 'Design No.', 'Quantity', 'Gross Weight', 'Process Status', 'Current Status'] %}
+                    <th scope="col" class="px-3 py-2 {{ 'text-right' if loop.index in [6, 7] }}">{{ title }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr class="border-b border-gray-100 dark:border-gray-800">
+                    {% for field in ['order_no', 'order_date', 'location', 'supplier', 'design_no', 'quantity', 'gross_weight', 'process_status', 'current_status'] %}
+                    <td class="px-3 py-2 {{ 'text-right font-mono' if loop.index in [6, 7] }}">
+                        {{ number(row[field]) if loop.index in [6, 7] else (row[field] or '-') }}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="flex-1 px-4 py-8 text-center text-gray-500">No processed orders match this selection.</p>
+    {% endif %}
+    {% if total_pages > 1 or page > 1 %}
+    <div class="flex items-center justify-end gap-3 px-4 py-2 border-t border-gray-200 dark:border-gray-700 shrink-0">
+        <button type="button" data-in-shop-page="{{ page - 1 }}" aria-label="Previous page" class="disabled:opacity-40" {% if page <= 1 %}disabled{% endif %}><span class="material-symbols-outlined">chevron_left</span></button>
+        <span>Page {{ page }}{% if rows %} of {{ total_pages }}{% endif %}</span>
+        <button type="button" data-in-shop-page="{{ page + 1 }}" aria-label="Next page" class="disabled:opacity-40" {% if page >= total_pages %}disabled{% endif %}><span class="material-symbols-outlined">chevron_right</span></button>
+    </div>
+    {% endif %}
+</div>

@@ -221,6 +221,12 @@ def process_sync_queue():
                         res = sync_pending_order_details_task()
                     elif task_type == 'active_order_details':
                         res = sync_active_order_details_task()
+                    elif task_type == 'stock_drilldown_details':
+                        from app.utils.stock_processed_order_sync import sync_stock_drilldown_details
+                        res = sync_stock_drilldown_details()
+                    elif task_type == 'stock_processed_order_details':
+                        from app.utils.stock_processed_order_sync import sync_stock_processed_order_details
+                        res = sync_stock_processed_order_details()
                     elif task_type == 'size_level_nip_barcode':
                         res = sync_size_level_nip_barcode_task()
                     elif task_type == 'collection_wise_average_delivery_days':
@@ -861,13 +867,13 @@ def setup_scheduler():
         replace_existing=True
     )
 
-    # Schedule "Size Level NIP Barcode Sync" every day at 11:30 AM IST
+    # Schedule both stock drill-down detail syncs every day at 11:30 AM IST.
     scheduler.add_job(
         func=enqueue_sync_task,
         trigger='cron',
         hour=11,
         minute=30,
-        args=['size_level_nip_barcode'],
+        args=['stock_drilldown_details'],
         id='daily_size_level_nip_barcode_sync',
         replace_existing=True
     )
