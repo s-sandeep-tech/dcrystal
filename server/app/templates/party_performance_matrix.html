@@ -104,6 +104,14 @@
         </div>
         <div id="matrix-filter-party"></div>
         <div id="matrix-filter-location"></div>
+        <label>Make
+            <select id="matrix-filter-make">
+                <option value="">All Makes</option>
+                {% for value in filter_options.makes %}
+                <option value="{{ value }}" {% if request.args.get('make', '')|trim == value %}selected{% endif %}>{{ value }}</option>
+                {% endfor %}
+            </select>
+        </label>
         <label>Order Type
             <select id="matrix-filter-order-type">
                 <option value="">All Order Types</option>
@@ -143,5 +151,5 @@
 <script id="party-matrix-party-options" type="application/json">{{ filter_options.parties|tojson }}</script>
 <script id="party-matrix-location-options" type="application/json">{{ filter_options.locations|tojson }}</script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/party_performance_matrix.js') }}"></script>
+<script src="{{ url_for('static', filename='js/party_performance_matrix.js', v='make-filter') }}"></script>
 {% endblock %}

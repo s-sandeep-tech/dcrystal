@@ -4283,7 +4283,7 @@ PARTY_PERFORMANCE_SYNC_SPECS = (
     {
         'view': 'vw_party_qc_pass_and_fail_info',
         'model': PartyQcPassFailSnapshot,
-        'required': ('party', 'qc_issue_pcs', 'qc_passed_pcs', 'qc_failed_pcs'),
+        'required': ('party', 'make', 'qc_issue_pcs', 'qc_passed_pcs', 'qc_failed_pcs'),
     },
 )
 

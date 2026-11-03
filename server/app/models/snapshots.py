@@ -3444,6 +3444,7 @@ class PartyQcPassFailSnapshot(db.Model):
     __tablename__ = 'party_qc_pass_fail_snapshot'
 
     id = db.Column(db.BigInteger, primary_key=True)
+    make = db.Column(db.Text)
     party = db.Column(db.String(250))
     location = db.Column(db.String(250))
     party_id = db.Column(db.Integer)

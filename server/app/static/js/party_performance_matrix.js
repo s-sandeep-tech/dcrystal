@@ -183,6 +183,7 @@
         const params = new URLSearchParams(window.location.search);
         const filters = {
             order_type: 'matrix-filter-order-type',
+            make: 'matrix-filter-make',
             sort_by: 'matrix-sort-by',
             sort_dir: 'matrix-sort-dir'
         };
@@ -212,6 +213,8 @@
         const sortDirection = document.getElementById('matrix-sort-dir');
         const search = document.getElementById('matrix-search');
         if (orderType) orderType.value = '';
+        const make = document.getElementById('matrix-filter-make');
+        if (make) make.value = '';
         if (sortBy) sortBy.value = 'order_wt';
         if (sortDirection) sortDirection.value = 'desc';
         if (search) search.value = '';

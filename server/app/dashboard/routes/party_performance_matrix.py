@@ -95,6 +95,9 @@ def apply_common_filters(query, model, party_column, filters):
     order_types = split_values(filters['order_type'])
     if order_types and hasattr(model, 'order_type'):
         query = query.filter(model.order_type.in_(order_types))
+    make = filters.get('make')
+    if make:
+        query = query.filter(func.trim(model.make) == make)
     locations = split_values(filters['location'])
     if locations:
         if hasattr(model, 'location'):
@@ -385,6 +388,7 @@ def get_matrix_report_context(args, include_page_options=True):
         'party': args.get('party', '').strip(),
         'order_type': args.get('order_type', '').strip(),
         'location': args.get('location', '').strip(),
+        'make': args.get('make', '').strip(),
     }
     sort_by = args.get('sort_by', 'order_wt').strip()
     sort_dir = args.get('sort_dir', 'desc').strip().lower()
@@ -457,6 +461,7 @@ def get_matrix_report_context(args, include_page_options=True):
             'parties': get_party_options(),
             'order_types': get_common_options('order_type'),
             'locations': get_common_options('location'),
+            'makes': get_common_options('make'),
         }
     return context
 
@@ -514,6 +519,7 @@ def party_performance_matrix():
             'parties': get_party_options(),
             'order_types': get_common_options('order_type'),
             'locations': get_common_options('location'),
+            'makes': get_common_options('make'),
         },
     )
 
