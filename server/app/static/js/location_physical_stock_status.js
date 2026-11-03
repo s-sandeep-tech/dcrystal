@@ -771,6 +771,7 @@ async function openInShopDetailsModal(link) {
 
     activeInShopDetailParams = buildHierarchyDetailParams(link);
     const ordered = link.hasAttribute('data-ordered-detail');
+    document.getElementById('inShopDetailsContainer').classList.toggle('is-ordered-detail', ordered);
     activeStockDetailEndpoint = ordered ? 'ordered-details' : 'in-shop-details';
     document.getElementById('inShopDetailsTitle').textContent = ordered
         ? 'Processed Order Details' : 'In-shop Barcode Details';

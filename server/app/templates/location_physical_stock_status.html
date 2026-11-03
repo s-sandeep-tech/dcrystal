@@ -223,6 +223,30 @@
 </div>
 
 <!-- In-shop barcode details modal -->
+<style>
+    #inShopDetailsContainer.is-ordered-detail:not(.inset-0) {
+        inset: 50% auto auto 50%;
+        transform: translate(-50%, -50%);
+        width: max-content;
+        min-width: min(26rem, calc(100vw - 2rem));
+        max-width: min(72rem, calc(100vw - 2rem));
+        max-height: min(80vh, calc(100dvh - 2rem));
+        transition: none;
+    }
+    #inShopDetailsContainer.is-ordered-detail #inShopDetailsBody,
+    #inShopDetailsContainer.is-ordered-detail #inShopDetailsContent {
+        display: flex;
+        flex-direction: column;
+    }
+    #inShopDetailsContainer.is-ordered-detail #inShopDetailsBody {
+        min-height: 3rem;
+    }
+    #inShopDetailsContainer.is-ordered-detail #inShopDetailsContent {
+        flex: 1 1 auto;
+        height: auto;
+        min-height: 0;
+    }
+</style>
 <div id="inShopDetailsModal" class="fixed inset-0 z-[110] hidden overflow-hidden" role="dialog" aria-modal="true"
     aria-labelledby="inShopDetailsTitle">
     <div class="absolute inset-0 bg-gray-900/70 backdrop-blur-sm" onclick="closeInShopDetailsModal()"></div>
@@ -432,5 +456,5 @@
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script src="{{ url_for('static', filename='js/header_filter.js') }}"></script>
-<script src="{{ url_for('static', filename='js/location_physical_stock_status.js', v='20261103-ordered-details') }}"></script>
+<script src="{{ url_for('static', filename='js/location_physical_stock_status.js', v='20261103-ordered-compact') }}"></script>
 {% endblock %}

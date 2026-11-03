@@ -1202,7 +1202,9 @@ SELECT o.order_no, o.order_date, o.location, o.supplier, o.design_no,
        o.quantity, o.gross_weight, o.process_status, o.current_status, o.date,
        COUNT(*) OVER () AS total_records,
        SUM(o.quantity) OVER () AS total_quantity,
-       SUM(o.gross_weight) OVER () AS total_gross_weight
+       SUM(o.gross_weight) OVER () AS total_gross_weight,
+       SUM(o.quantity) OVER supplier_group AS supplier_quantity,
+       SUM(o.gross_weight) OVER supplier_group AS supplier_gross_weight
 FROM stock_processed_order_details_snapshot o
 WHERE EXISTS (
     SELECT 1 FROM matching_stock p
@@ -1210,6 +1212,7 @@ WHERE EXISTS (
       AND p.range_weight IS NOT DISTINCT FROM o.range_weight
       AND {identity}
 )
+WINDOW supplier_group AS (PARTITION BY NULLIF(TRIM(o.supplier), ''))
 ORDER BY NULLIF(TRIM(o.supplier), '') NULLS LAST,
          o.order_date DESC NULLS LAST, o.order_no NULLS LAST, o.id
 LIMIT :limit OFFSET :offset
