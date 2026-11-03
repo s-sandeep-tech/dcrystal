@@ -1100,7 +1100,7 @@ def _get_location_physical_stock_details(ordered=False, roles=None, user_id=None
             'wide_range_id', 'gender_id', 'size_id', 'screw_type_id',
         )
         stock_identity_columns = ',\n        '.join(
-            ('branch_id', *hierarchy_id_columns) + (('location', 'range_weight') if ordered else ())
+            ('branch_id', *hierarchy_id_columns) + (('range_weight',) if ordered else ())
         )
         identity_join = '\n'.join(
             f'AND p.{column} = b.{column}'
@@ -1195,25 +1195,18 @@ LIMIT :limit OFFSET :offset
 
 
 def _render_processed_order_details(matching_stock_sql, params, page, per_page):
-    identity = ' AND '.join(f'p.{name} IS NOT DISTINCT FROM o.{name}' for name in IDENTITY_FIELDS)
-    query = text(matching_stock_sql + f''',
-unambiguous_locations AS (
-    SELECT UPPER(TRIM(location)) AS location_key
-    FROM provision_stock_raw_snapshot
-    WHERE location IS NOT NULL AND TRIM(location) <> ''
-    GROUP BY UPPER(TRIM(location))
-    HAVING COUNT(DISTINCT branch_id) = 1 AND COUNT(*) = COUNT(branch_id)
-)
+    identity = ' AND '.join(f'p.{name} IS NOT DISTINCT FROM o.{name}'
+                            for name in IDENTITY_FIELDS if name != 'section_id')
+    query = text(matching_stock_sql + f'''
 SELECT o.order_no, o.order_date, o.location, o.supplier, o.design_no,
        o.quantity, o.gross_weight, o.process_status, o.current_status, o.date,
        COUNT(*) OVER () AS total_records,
        SUM(o.quantity) OVER () AS total_quantity,
        SUM(o.gross_weight) OVER () AS total_gross_weight
 FROM stock_processed_order_details_snapshot o
-JOIN unambiguous_locations u ON u.location_key = UPPER(TRIM(o.location))
 WHERE EXISTS (
     SELECT 1 FROM matching_stock p
-    WHERE p.branch_id IS NOT NULL AND p.location = o.location
+    WHERE p.branch_id = o.branch_id AND p.section_id = o.section_id
       AND p.range_weight IS NOT DISTINCT FROM o.range_weight
       AND {identity}
 )

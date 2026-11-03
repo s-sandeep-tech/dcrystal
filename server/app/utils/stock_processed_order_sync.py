@@ -19,6 +19,7 @@ IDENTITY_FIELDS = (
 TABLE = Table(
     'stock_processed_order_details_snapshot', db.metadata,
     Column('id', Integer, primary_key=True),
+    Column('branch_id', Integer),
     *(Column(name, Integer) for name in IDENTITY_FIELDS),
     Column('group_category_id', Integer), Column('order_request_id', Integer),
     *(Column(name, Text) for name in ('location', 'order_no', 'supplier',
@@ -26,6 +27,7 @@ TABLE = Table(
     *(Column(name, Numeric) for name in ('range_weight', 'quantity', 'gross_weight')),
     Column('order_date', Date), Column('date', Date, nullable=False),
     Index('ix_processed_order_location_section', 'location', 'section_id'),
+    Index('ix_processed_order_branch_section', 'branch_id', 'section_id'),
 )
 SOURCE_COLUMNS = tuple(c.name for c in TABLE.columns if c.name != 'id')
 logger = logging.getLogger(__name__)

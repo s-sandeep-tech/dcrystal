@@ -27,7 +27,7 @@ class ProcessedOrderDetailsTests(unittest.TestCase):
         db.session.remove()
         self.ctx.pop()
 
-    def test_paged_totals_and_ambiguous_locations(self):
+    def test_paged_totals_use_branch_id_not_location_name(self):
         stock = [
             (1, 'Allowed', 1, 10),
             (2, 'Allowed', 1, 10),  # Multiple stock matches must not duplicate an order.
@@ -39,14 +39,14 @@ class ProcessedOrderDetailsTests(unittest.TestCase):
             db.session.add(Stock(id=key, location=location, branch_id=branch,
                                  section_id=4, range_weight=weight))
         rows = [
-            ('Allowed', 'A', 10, 4), ('Allowed', 'B', 10, 5),
-            ('Allowed', 'Wrong range', 20, 90), ('Denied', 'D', 10, 90),
-            ('Ambiguous', 'X', 10, 90),
+            (1, 'Renamed location', 'A', 10, 4), (1, 'Ambiguous', 'B', 10, 5),
+            (1, 'Allowed', 'Wrong range', 20, 90), (2, 'Allowed', 'D', 10, 90),
+            (None, 'Allowed', 'Missing branch', 10, 90),
         ]
         db.session.execute(sync.TABLE.insert(), [
-            dict(location=location, order_no=order, range_weight=weight, gross_weight=gross,
+            dict(branch_id=branch, location=location, order_no=order, range_weight=weight, gross_weight=gross,
                  quantity=1, section_id=4, date=date(2026, 11, 3))
-            for location, order, weight, gross in rows
+            for branch, location, order, weight, gross in rows
         ])
         db.session.commit()
         matching = 'WITH matching_stock AS (SELECT * FROM provision_stock_raw_snapshot WHERE branch_id = 1)'
