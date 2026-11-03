@@ -21,6 +21,17 @@
     </div>
     {% if rows %}
     <div class="flex-1 min-h-0 overflow-auto">
+        {% for supplier, orders in rows|groupby('supplier', default='', case_sensitive=true) %}
+        <details class="group border-b border-gray-200 dark:border-gray-700">
+            <summary class="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 bg-gray-50 px-4 py-2 hover:bg-gray-100 dark:bg-gray-900 dark:hover:bg-gray-800">
+                <span class="material-symbols-outlined text-base text-gray-500 group-open:rotate-90" aria-hidden="true">chevron_right</span>
+                <span class="font-semibold break-words">{{ supplier or 'Supplier not specified' }}</span>
+                <span class="ml-auto text-gray-600 dark:text-gray-300">
+                    Qty: <strong>{{ number(orders[0].supplier_quantity) }}</strong>
+                    &middot; Gross Wt: <strong>{{ number(orders[0].supplier_gross_weight) }}</strong>
+                </span>
+            </summary>
+        <div class="overflow-x-auto">
         <table class="w-full text-left">
             <thead class="sticky top-0 bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200">
                 <tr>
@@ -30,30 +41,23 @@
                 </tr>
             </thead>
             <tbody>
-                {% for row in rows %}
-                {% set supplier = (row.supplier or '')|trim %}
-                {% if loop.changed(supplier) %}
-                <tr class="border-y border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
-                    <th colspan="7" class="px-3 py-2 font-semibold">
-                        {{ supplier or 'Supplier not specified' }}
-                        <span class="ml-3 font-normal text-gray-600 dark:text-gray-300">
-                            Qty: <strong>{{ number(row.supplier_quantity) }}</strong>
-                            &middot; Gross Wt: <strong>{{ number(row.supplier_gross_weight) }}</strong>
-                        </span>
-                    </th>
-                </tr>
-                {% endif %}
+                {% for row in orders %}
                 <tr class="border-b border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800">
                     {% for field in ['order_no', 'order_date', 'location', 'design_no', 'quantity', 'gross_weight'] %}
                     <td class="whitespace-nowrap px-3 py-1.5 {{ 'text-right font-mono' if loop.index in [5, 6] }}">
                         {{ number(row[field]) if loop.index in [5, 6] else (row[field] or '-') }}
                     </td>
                     {% endfor %}
-                    <td class="whitespace-nowrap px-3 py-1.5">{{ row.process_status or '-' }} - {{ row.current_status or '-' }}</td>
+                    {% set process_status = (row.process_status or '')|trim %}
+                    {% set current_status = (row.current_status or '')|trim %}
+                    <td class="whitespace-nowrap px-3 py-1.5">{{ process_status or current_status or '-' }}{% if process_status and current_status and process_status != current_status %} - {{ current_status }}{% endif %}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        </div>
+        </details>
+        {% endfor %}
     </div>
     {% else %}
     <p class="flex-1 px-4 py-8 text-center text-gray-500">No processed orders match this selection.</p>

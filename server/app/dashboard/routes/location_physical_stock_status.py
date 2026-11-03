@@ -1198,7 +1198,8 @@ def _render_processed_order_details(matching_stock_sql, params, page, per_page):
     identity = ' AND '.join(f'p.{name} IS NOT DISTINCT FROM o.{name}'
                             for name in IDENTITY_FIELDS if name != 'section_id')
     query = text(matching_stock_sql + f'''
-SELECT o.order_no, o.order_date, o.location, o.supplier, o.design_no,
+SELECT o.order_no, o.order_date, o.location,
+       NULLIF(TRIM(o.supplier), '') AS supplier, o.design_no,
        o.quantity, o.gross_weight, o.process_status, o.current_status, o.date,
        COUNT(*) OVER () AS total_records,
        SUM(o.quantity) OVER () AS total_quantity,
