@@ -3336,6 +3336,7 @@ class PartyHallmarkPassFailSnapshot(db.Model):
     location = db.Column(db.String(250))
     party_id = db.Column(db.Integer)
     hallmarking_center = db.Column(db.String(150))
+    make = db.Column(db.Text)
     year = db.Column(db.Integer)
     month = db.Column(db.String(15))
     month_number = db.Column(db.SmallInteger)

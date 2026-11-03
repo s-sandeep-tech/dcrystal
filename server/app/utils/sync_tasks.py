@@ -4268,7 +4268,7 @@ PARTY_PERFORMANCE_SYNC_SPECS = (
     {
         'view': 'vw_party_hallmark_pass_and_fail_info',
         'model': PartyHallmarkPassFailSnapshot,
-        'required': ('party', 'hm_issue_pcs', 'hm_passed_pcs', 'hm_failed_pcs'),
+        'required': ('party', 'make', 'hm_issue_pcs', 'hm_passed_pcs', 'hm_failed_pcs'),
     },
     {
         'view': 'vw_party_ro_wise_delivery_info',
