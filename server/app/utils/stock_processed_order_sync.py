@@ -72,7 +72,8 @@ def sync_stock_processed_order_details():
             TABLE.create(db.session.connection(), checkfirst=True)
             conn = get_external_db_connection()
             conn.set_session(readonly=True, autocommit=False)
-            columns = ', '.join(f'"{name}"' for name in SOURCE_COLUMNS)
+            columns = ', '.join('"branch" AS "location"' if name == 'location' else f'"{name}"'
+                                for name in SOURCE_COLUMNS)
             loaded = 0
             with conn.cursor(name='processed_order_details_sync', cursor_factory=RealDictCursor) as cursor:
                 cursor.execute(f'SELECT {columns} FROM {SOURCE} WHERE date = (SELECT MAX(date) FROM {SOURCE})')

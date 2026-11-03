@@ -107,6 +107,10 @@ class ProcessedOrderDetailsTests(unittest.TestCase):
         def connection():
             conn = MagicMock()
             cursor = conn.cursor.return_value.__enter__.return_value
+            def check_source_query(sql):
+                self.assertIn('"branch" AS "location"', sql)
+                self.assertIn('"branch_id"', sql)
+            cursor.execute.side_effect = check_source_query
             cursor.fetchmany.side_effect = [
                 [dict(order_no='New', date=date(2026, 11, 3))], RuntimeError('Interrupted')
             ]
