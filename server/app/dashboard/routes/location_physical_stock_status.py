@@ -1180,7 +1180,7 @@ LIMIT :limit OFFSET :offset
         if ordered:
             db.session.rollback()
             logger.exception('Error loading processed order details')
-            return '<div class="p-8 text-center">Processed order details unavailable. Check the snapshot sync in Settings.</div>', 503
+            return '<div class="p-8 text-center">Unable to load processed order details. Please try again later.</div>', 503
         logger.exception('Error loading location physical in-shop details')
         return render_template(
             'partials/_view_location_physical_stock_in_shop_details.html',
