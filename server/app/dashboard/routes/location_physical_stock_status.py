@@ -1210,7 +1210,8 @@ WHERE EXISTS (
       AND p.range_weight IS NOT DISTINCT FROM o.range_weight
       AND {identity}
 )
-ORDER BY o.order_date DESC NULLS LAST, o.order_no NULLS LAST, o.id
+ORDER BY NULLIF(TRIM(o.supplier), '') NULLS LAST,
+         o.order_date DESC NULLS LAST, o.order_no NULLS LAST, o.id
 LIMIT :limit OFFSET :offset
 ''')
     rows = db.session.execute(query, params).mappings().all()
