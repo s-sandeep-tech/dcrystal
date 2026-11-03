@@ -1204,6 +1204,7 @@ SELECT o.order_no, o.order_date, o.location,
        COUNT(*) OVER () AS total_records,
        SUM(o.quantity) OVER () AS total_quantity,
        SUM(o.gross_weight) OVER () AS total_gross_weight,
+       COUNT(*) OVER supplier_group AS supplier_order_count,
        SUM(o.quantity) OVER supplier_group AS supplier_quantity,
        SUM(o.gross_weight) OVER supplier_group AS supplier_gross_weight
 FROM stock_processed_order_details_snapshot o

@@ -27,7 +27,8 @@
                 <span class="material-symbols-outlined text-base text-gray-500 group-open:rotate-90" aria-hidden="true">chevron_right</span>
                 <span class="font-semibold break-words">{{ supplier or 'Supplier not specified' }}</span>
                 <span class="ml-auto text-gray-600 dark:text-gray-300">
-                    Qty: <strong>{{ number(orders[0].supplier_quantity) }}</strong>
+                    Orders: <strong>{{ '{:,}'.format(orders[0].supplier_order_count) }}</strong>
+                    &middot; Qty: <strong>{{ number(orders[0].supplier_quantity) }}</strong>
                     &middot; Gross Wt: <strong>{{ number(orders[0].supplier_gross_weight) }}</strong>
                 </span>
             </summary>
