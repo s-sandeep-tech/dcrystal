@@ -68,7 +68,7 @@ def login():
 
     if user and auth_service.is_locked_out(user):
         auth_service.log_attempt(user_id, user_id=user.user_id, status='failure', failure_reason='locked_out')
-        return jsonify({"msg": "Account is temporarily locked. Please try again later."}), 423
+        return jsonify({"msg": "Account is temporarily locked. Please try again later (Apx. 1 Hour)."}), 423
 
     if user and not user.is_active:
         auth_service.log_attempt(user_id, user_id=user.user_id, status='failure', failure_reason='account_disabled')
