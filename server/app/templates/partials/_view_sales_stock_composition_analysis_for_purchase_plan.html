@@ -57,11 +57,15 @@
                                     {% for dimension in hierarchy %}
                                     {% set active = dimension == hierarchy_root %}
                                     {% if not loop.first %}<span class="text-gray-400" aria-hidden="true">&gt;</span>{% endif %}
+                                    {% if hierarchy_root == 'wide_range' and dimension == 'wide_range' %}
+                                    <span class="inline-flex min-w-0 flex-wrap items-center gap-x-1 rounded border border-gray-300 px-0.5 dark:border-gray-600">
+                                    {% endif %}
                                     <button type="button" aria-pressed="{{ 'true' if active else 'false' }}"
                                         onclick="setPurchasePlanHierarchy('{{ dimension }}')"
                                         class="rounded px-1 py-0.5 hover:bg-blue-50 dark:hover:bg-gray-700 {{ 'bg-blue-50 font-bold text-primary dark:bg-blue-900/30' if active else 'text-gray-600 dark:text-gray-300' }}">
                                         {{ dimension|replace('_', ' ')|title }}
                                     </button>
+                                    {% if hierarchy_root == 'wide_range' and loop.last %}</span>{% endif %}
                                     {% endfor %}
                                 </div>
                             </div>
