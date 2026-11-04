@@ -93,6 +93,13 @@ class PurchasePlanServiceTests(unittest.TestCase):
             )
 
             self.assertEqual(result['level'], 'classification')
+            alternate = fetch_purchase_plan_composition_data(
+                date(2026, 9, 30), {}, hierarchy_root='classification')
+            self.assertEqual(alternate['level'], 'classification')
+            branch = fetch_purchase_plan_composition_data(
+                date(2026, 9, 30), {}, path=['BRAND'], hierarchy_root='classification')
+            self.assertEqual(branch['level'], 'section')
+            self.assertEqual([row['label'] for row in branch['rows']], ['BANGLE'])
             # Check sales contributors
             self.assertIn('sales', result)
             self.assertEqual(result['sales']['items'][0]['label'], 'GENERIC')
@@ -285,11 +292,13 @@ class TemplateRenderingTests(unittest.TestCase):
             'shop_weight_turn': 6.9,
             'turn_na_b': False,
         }
-        html = ' '.join(tmpl.render(rows=rows, total=total, stats={}, can_expand=True).split())
+        html = ' '.join(tmpl.render(rows=rows, total=total, stats={}, can_expand=True,
+                                    hierarchy=['make', 'section']).split())
 
         # Check requested columns are present
         self.assertIn('Product Hierarchy', html)
-        self.assertIn('block mt-0.5 whitespace-normal text-[8px]',html)
+        self.assertIn('aria-pressed="true" onclick="setPurchasePlanHierarchy(\'make\')"', html)
+        self.assertIn('aria-pressed="false" onclick="setPurchasePlanHierarchy(\'section\')"', html)
         self.assertIn('Sales Composition %', html)
         self.assertIn('Stock Composition %', html)
         self.assertIn('Stock Turn in Weight (times)', html)

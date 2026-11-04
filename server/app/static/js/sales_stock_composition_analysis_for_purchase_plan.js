@@ -29,6 +29,7 @@ const initialPurchasePlanParams = new URLSearchParams(window.location.search);
 let purchasePlanSortBy = purchasePlanSortKeys.includes(initialPurchasePlanParams.get('sort_by'))
     ? initialPurchasePlanParams.get('sort_by') : 'label';
 let purchasePlanSortOrder = initialPurchasePlanParams.get('sort_order') === 'desc' ? 'desc' : 'asc';
+let purchasePlanHierarchyRoot = initialPurchasePlanParams.get('hierarchy_root') || 'section';
 
 let purchasePlanFilterValues = {
     date: '',
@@ -124,6 +125,7 @@ function buildPurchasePlanRequestParams() {
     if (purchasePlanFilterValues.date) params.set('date', purchasePlanFilterValues.date);
     params.set('sort_by', purchasePlanSortBy);
     params.set('sort_order', purchasePlanSortOrder);
+    params.set('hierarchy_root', purchasePlanHierarchyRoot);
 
     return params;
 }
@@ -434,6 +436,15 @@ function sortPurchasePlan(column) {
     loadPurchasePlanReportData(params);
 }
 
+function setPurchasePlanHierarchy(root) {
+    if (root === purchasePlanHierarchyRoot) return;
+    purchasePlanHierarchyRoot = root;
+    const params = new URLSearchParams(appliedPurchasePlanParams);
+    params.set('hierarchy_root', root);
+    params.delete('path');
+    loadPurchasePlanReportData(params);
+}
+
 function resetPurchasePlanFilters() {
     const dateSelect = document.getElementById('purchase-plan-filter-max-date');
     if (dateSelect) dateSelect.value = latestPurchasePlanSalesDate;
@@ -639,7 +650,7 @@ async function openPurchasePlanChart(button) {
     document.getElementById('purchase-plan-sales-values')?.replaceChildren();
     document.getElementById('purchase-plan-stock-values')?.replaceChildren();
 
-    const titleTarget = path.join(' / ') || 'All Sections';
+    const titleTarget = path.join(' / ') || 'All Products';
     document.getElementById('purchase-plan-sales-chart-title').textContent = `Top 10 Contributors: ${titleTarget}`;
     if (status) status.textContent = 'Loading sales & stock contributors...';
 

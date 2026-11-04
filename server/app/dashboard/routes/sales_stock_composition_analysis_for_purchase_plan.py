@@ -16,6 +16,7 @@ from app.services.sales_stock_composition_analysis_for_purchase_plan import (
     calculate_fy_factor,
     fetch_purchase_plan_composition_data,
     get_purchase_plan_options,
+    purchase_plan_hierarchy,
 )
 from app.utils.decorators import require_report_access, require_role, require_perm
 
@@ -35,6 +36,10 @@ def get_selected_sort():
     return (key if key in SORT_KEYS else 'label', 'desc' if order == 'desc' else 'asc')
 
 
+def get_selected_hierarchy():
+    return purchase_plan_hierarchy(request.args.get('hierarchy_root'))
+
+
 @dashboard_bp.route('/api/sales-stock-composition-analysis-for-purchase-plan/contributors')
 @jwt_required()
 @require_report_access(ROUTE_URL)
@@ -44,7 +49,8 @@ def sales_stock_composition_analysis_for_purchase_plan_contributors():
         if not isinstance(path, list) or len(path) > len(HIERARCHY) or not all(isinstance(v, str) for v in path):
             return jsonify(error='Invalid hierarchy path'), 400
         selections = {k: request.args.getlist(k) for k in FILTERS if request.args.getlist(k)}
-        return jsonify(fetch_purchase_plan_composition_data(get_selected_date(), selections, path, contributors=True))
+        return jsonify(fetch_purchase_plan_composition_data(get_selected_date(), selections, path, contributors=True,
+                                                             hierarchy_root=get_selected_hierarchy()[0]))
     except (ValueError, TypeError):
         return jsonify(error='Invalid chart filters'), 400
     except Exception:
@@ -111,8 +117,9 @@ def get_sales_stock_composition_analysis_for_purchase_plan_partial():
         path = json.loads(path_str) if path_str else []
 
         sort_by, sort_order = get_selected_sort()
+        hierarchy = get_selected_hierarchy()
         data = fetch_purchase_plan_composition_data(get_selected_date(), selections, path=path,
-                                                   sort_by=sort_by, sort_order=sort_order)
+                                                   sort_by=sort_by, sort_order=sort_order, hierarchy_root=hierarchy[0])
 
         return render_template(
             'partials/_view_sales_stock_composition_analysis_for_purchase_plan.html',
@@ -127,6 +134,7 @@ def get_sales_stock_composition_analysis_for_purchase_plan_partial():
             search=request.args.get('search', ''),
             sort_by=sort_by,
             sort_order=sort_order,
+            hierarchy=hierarchy,
         )
     except Exception as e:
         logger.exception("Error in sales_stock_composition_analysis_for_purchase_plan partial: %s", str(e))
@@ -158,7 +166,8 @@ def get_sales_stock_composition_analysis_for_purchase_plan_branch():
 
         sort_by, sort_order = get_selected_sort()
         data = fetch_purchase_plan_composition_data(get_selected_date(), selections, path=path,
-                                                   sort_by=sort_by, sort_order=sort_order)
+                                                   sort_by=sort_by, sort_order=sort_order,
+                                                   hierarchy_root=get_selected_hierarchy()[0])
 
         return render_template(
             'partials/_view_sales_stock_composition_analysis_for_purchase_plan_branch.html',

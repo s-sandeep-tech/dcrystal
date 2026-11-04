@@ -22,6 +22,12 @@ HIERARCHY: List[str] = [
     'purity',
 ]
 
+
+def purchase_plan_hierarchy(root='section'):
+    if root not in HIERARCHY:
+        root = HIERARCHY[0]
+    return [root, *(name for name in HIERARCHY if name != root)]
+
 FILTERS: List[str] = [
     'branch_id',
     'division',
@@ -163,7 +169,8 @@ def fetch_purchase_plan_composition_data(
     path: Optional[List[str]] = None,
     contributors: bool = False,
     sort_by: str = 'label',
-    sort_order: str = 'asc'
+    sort_order: str = 'asc',
+    hierarchy_root: str = 'section',
 ) -> Dict[str, Any]:
     """Calculate Sales & Stock Composition Analysis specifically for Purchase Plan.
 
@@ -175,6 +182,7 @@ def fetch_purchase_plan_composition_data(
     """
     if path is None:
         path = []
+    hierarchy = purchase_plan_hierarchy(hierarchy_root)
 
     selected_date = source_date
     effective_date = selected_date or db.session.query(func.max(Snapshot.date)).scalar()
@@ -200,11 +208,11 @@ def fetch_purchase_plan_composition_data(
 
     # Top contributors for modal pie chart
     if contributors:
-        for name, value in zip(HIERARCHY, path):
+        for name, value in zip(hierarchy, path):
             sales_q = sales_q.filter(dimension_expr(name) == value)
 
         depth = len(path)
-        level_name = HIERARCHY[depth] if depth < len(HIERARCHY) else 'design_no'
+        level_name = hierarchy[depth] if depth < len(hierarchy) else 'design_no'
         level_expr = dimension_expr(level_name)
         weight_sum = func.sum(func.coalesce(Snapshot.gross_weight, 0))
 
@@ -240,7 +248,7 @@ def fetch_purchase_plan_composition_data(
                 else:
                     stock_c_q = stock_c_q.filter(dimension_expr(name).in_(vals))
 
-        for name, value in zip(HIERARCHY, path):
+        for name, value in zip(hierarchy, path):
             stock_c_q = stock_c_q.filter(dimension_expr(name) == value)
 
         stock_weight_sum = func.sum(func.coalesce(Snapshot.provision_weight, 0))
@@ -391,13 +399,13 @@ def fetch_purchase_plan_composition_data(
     grand_turn_weight = compute_turn_ratio(grand_annual_sales_wt, grand_stock_weight)
 
     # Drilldown filtering
-    for name, value in zip(HIERARCHY, path):
+    for name, value in zip(hierarchy, path):
         sales_q = sales_q.filter(dimension_expr(name) == value)
         stock_q = stock_q.filter(getattr(stock_subq.c, name) == value)
 
     depth = len(path)
-    cur_level = HIERARCHY[depth] if depth < len(HIERARCHY) else HIERARCHY[-1]
-    can_expand = depth < (len(HIERARCHY) - 1)
+    cur_level = hierarchy[depth] if depth < len(hierarchy) else hierarchy[-1]
+    can_expand = depth < (len(hierarchy) - 1)
 
     sales_group_map = aggregate_sales_weights(sales_q, dimension_expr(cur_level))
 

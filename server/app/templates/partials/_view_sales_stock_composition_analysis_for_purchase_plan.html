@@ -51,13 +51,19 @@
                         aria-sort="{{ ('ascending' if sort_order == 'asc' else 'descending') if sort_by == 'label' else 'none' }}"
                         class="px-3 py-1.5 border-r border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between gap-1">
-                            <span class="min-w-0 flex-1"
-                                title="Product Hierarchy (Section &gt; Classification &gt; Make &gt; Wide Range &gt; Collection &gt; Master Collection &gt; Purity)">
-                                {{ sort_button('label', 'Product Hierarchy') }} <span
-                                    class="block mt-0.5 whitespace-normal text-[8px] font-normal normal-case text-gray-400 dark:text-gray-400 tracking-normal">(Section
-                                    &gt; Classification &gt; Make &gt; Wide Range &gt; Collection &gt; Master Collection
-                                    &gt; Purity)</span>
-                            </span>
+                            <div class="min-w-0 flex-1">
+                                {{ sort_button('label', 'Product Hierarchy') }}
+                                <div class="mt-0.5 flex flex-wrap items-center gap-x-1 text-[10px] font-medium normal-case tracking-normal" role="group" aria-label="Top-level product grouping">
+                                    {% for dimension in hierarchy %}
+                                    {% if not loop.first %}<span class="text-gray-400" aria-hidden="true">&gt;</span>{% endif %}
+                                    <button type="button" aria-pressed="{{ 'true' if loop.first else 'false' }}"
+                                        onclick="setPurchasePlanHierarchy('{{ dimension }}')"
+                                        class="rounded px-1 py-0.5 hover:bg-blue-50 dark:hover:bg-gray-700 {{ 'font-bold text-primary' if loop.first else 'text-gray-600 dark:text-gray-300' }}">
+                                        {{ dimension|replace('_', ' ')|title }}
+                                    </button>
+                                    {% endfor %}
+                                </div>
+                            </div>
                             <span
                                 class="material-symbols-outlined text-[15px] cursor-pointer hover:text-primary transition-colors select-none shrink-0"
                                 id="purchase-plan-collapse-all-btn" onclick="collapseAllPurchasePlanBranches()"
