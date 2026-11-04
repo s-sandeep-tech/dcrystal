@@ -53,7 +53,7 @@
                         <div class="flex items-center justify-between gap-1">
                             <div class="min-w-0 flex-1">
                                 {{ sort_button('label', 'Product Hierarchy') }}
-                                <div class="mt-0.5 flex flex-wrap items-center gap-x-1 text-[8px] font-medium normal-case tracking-normal" role="group" aria-label="Top-level product grouping">
+                                <div class="mt-0.5 flex flex-wrap items-center gap-x-1 text-[8.5px] font-medium normal-case tracking-normal" role="group" aria-label="Top-level product grouping">
                                     {% for dimension in hierarchy %}
                                     {% set active = dimension == hierarchy_root %}
                                     {% if not loop.first %}<span class="text-gray-400" aria-hidden="true">&gt;</span>{% endif %}
