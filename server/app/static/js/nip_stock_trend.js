@@ -6,6 +6,7 @@
         else window.addEventListener('load',resolve,{once:true});
     });
     let applied = new URLSearchParams(), chart = null, data = null, pending = null, mode = 'graph', tablePage = 1;
+    const defaultDivision = 'Gold';
     const headers = () => ({Authorization: `Bearer ${localStorage.getItem('access_token') || ''}`});
     const name = key => key.replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
     const number = value => value == null ? 'N/A' : Number(value).toLocaleString('en-IN', {
@@ -26,6 +27,14 @@
         const params = new URLSearchParams(applied);
         for (const [key,id] of [['metric','nip-metric'],['group_by','nip-group'],['interval','nip-interval'],['limiter','nip-limiter'],['order','nip-order'],['rank_by','nip-rank-by']]) params.set(key, el(id).value);
         return params;
+    }
+    function applyDefaultFilters() {
+        document.querySelectorAll('.nip-filter-division-checkbox').forEach(checkbox => {
+            checkbox.checked = checkbox.value.toLowerCase() === defaultDivision.toLowerCase();
+        });
+        controls.division?.updateTriggerText();
+        applied = collect();
+        if (!applied.has('division')) applied.set('division', defaultDivision);
     }
     function showViews() {
         el('nip-graph').hidden = mode === 'table'; el('nip-table').hidden = mode !== 'table';
@@ -311,7 +320,7 @@
             for(const [id,value] of [['nip-limiter','top'],['nip-rank-by','total'],['nip-order','desc'],
                 ['nip-interval','daily'],['nip-metric','gross_wt'],['nip-group','division']])el(id).value=value;
             el('nip-average').checked=false;
-            applied=new URLSearchParams();load();};
+            applyDefaultFilters();load();};
         el('nip-reset').onclick=clear;el('nip-refresh').onclick=load;
         ['nip-interval','nip-metric','nip-group','nip-limiter','nip-order','nip-rank-by'].forEach(id=>el(id).onchange=load);el('nip-average').onchange=draw;
         document.querySelectorAll('[data-view]').forEach(node=>node.onclick=()=>{mode=node.dataset.view;showViews();if(mode!=='table')draw();});
@@ -327,7 +336,12 @@
             catch(error){el('nip-status').textContent=error.message;}finally{button.disabled=false;}};
         try {
             const result=await responseJSON(await fetch('/api/nip-stock-trend-analysis/options',{headers:headers()}));
-            for(const [key,values] of Object.entries(result.options))controls[key]=new CustomMultiSelect({containerId:'nip-filter-'+key,label:key==='weight'?'Weight (g)':name(key),defaultText:'All '+name(key),options:values.map(value=>({value,label:value}))});
+            for(const [key,values] of Object.entries(result.options)) {
+                const choices = key === 'division' && !values.some(value => value.toLowerCase() === defaultDivision.toLowerCase())
+                    ? [...values, defaultDivision] : values;
+                controls[key]=new CustomMultiSelect({containerId:'nip-filter-'+key,label:key==='weight'?'Weight (g)':name(key),defaultText:'All '+name(key),options:choices.map(value=>({value,label:value}))});
+            }
+            applyDefaultFilters();
             await load();
         }catch(error){el('nip-status').textContent=error.message;el('nip-output').setAttribute('aria-busy','false');el('nip-loading-progress').hidden=true;}
     });
