@@ -98,8 +98,15 @@ class PurchasePlanServiceTests(unittest.TestCase):
             self.assertEqual(alternate['level'], 'classification')
             branch = fetch_purchase_plan_composition_data(
                 date(2026, 9, 30), {}, path=['BRAND'], hierarchy_root='classification')
-            self.assertEqual(branch['level'], 'section')
-            self.assertEqual([row['label'] for row in branch['rows']], ['BANGLE'])
+            self.assertEqual(branch['level'], 'make')
+            for path, level in [
+                ([], 'master_collection'),
+                (['MASTER'], 'collection'),
+                (['MASTER', 'COLLECTION'], 'purity'),
+            ]:
+                result_for_level = fetch_purchase_plan_composition_data(
+                    date(2026, 9, 30), {}, path=path, hierarchy_root='collection')
+                self.assertEqual(result_for_level['level'], level)
             # Check sales contributors
             self.assertIn('sales', result)
             self.assertEqual(result['sales']['items'][0]['label'], 'GENERIC')
