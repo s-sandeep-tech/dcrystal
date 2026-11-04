@@ -1,13 +1,22 @@
 from io import BytesIO
 from datetime import date
-from flask import jsonify, render_template, request, send_file
+from flask import jsonify, render_template, request, send_file, session
+from sqlalchemy import func
 from app.dashboard import dashboard_bp
 from app.extensions import db
 from app.utils.decorators import require_report_access, require_role, require_perm
 from app.services.nip_stock_trend import DIMENSIONS, FILTER_FIELDS, scoped_query, trend_data
+from app.services.nip_stock_trend_cache import cached_payload
 from app.models.nip_stock_trend import NIPStockTrendSnapshot as S
 
 ROUTE = '/nip-stock-trend-analysis'
+
+
+def _report_payload(kind, build):
+    roles = {str(role).upper() for role in session.get('roles', [])}
+    if roles.intersection({'BUSINESS_HEAD', 'SHOWROOM_MANAGER'}):
+        return build()
+    return cached_payload(kind, request.args, build)
 
 
 @dashboard_bp.route(ROUTE)
@@ -20,7 +29,7 @@ def nip_stock_trend_page():
 @dashboard_bp.route('/api/nip-stock-trend-analysis/options')
 @require_report_access(ROUTE)
 def nip_stock_trend_options():
-    try:
+    def build():
         query = scoped_query()
         options = {}
         for name in FILTER_FIELDS:
@@ -30,10 +39,12 @@ def nip_stock_trend_options():
                 values = values.filter(column != '')
             options[name] = [format(row[0], 'f') if name == 'weight' else row[0]
                              for row in values.distinct().order_by(column)]
-        from sqlalchemy import func
         first, last = query.with_entities(func.min(S.date), func.max(S.date)).one()
-        return jsonify(options=options, first_date=first.isoformat() if first else None,
-                       last_date=last.isoformat() if last else None)
+        return dict(options=options, first_date=first.isoformat() if first else None,
+                    last_date=last.isoformat() if last else None)
+
+    try:
+        return jsonify(_report_payload('options', build))
     except Exception:
         db.session.rollback()
         return jsonify(error='NIP snapshot unavailable. Run NIP Stock Trend Analysis Sync in Settings.'), 503
@@ -43,7 +54,7 @@ def nip_stock_trend_options():
 @require_report_access(ROUTE)
 def nip_stock_trend_data():
     try:
-        return jsonify(trend_data(request.args))
+        return jsonify(_report_payload('data', lambda: trend_data(request.args)))
     except ValueError as error:
         return jsonify(error=str(error)), 400
     except Exception:

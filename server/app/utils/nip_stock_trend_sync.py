@@ -7,6 +7,7 @@ from psycopg2.extras import RealDictCursor
 from sqlalchemy import text, func, Table, Column, MetaData, Numeric, UniqueConstraint, select, or_
 from app.extensions import db
 from app.models.nip_stock_trend import NIPStockTrendSnapshot as S, SOURCE_COLUMNS
+from app.services.nip_stock_trend_cache import clear_snapshot_cache, snapshot_version
 
 SOURCE = 'ext_view.vw_weight_level_excess_nip_barcode_data'
 BATCH_SIZE = 40000
@@ -125,6 +126,7 @@ def _sync_nip_stock_trend_attempt():
         logger.info('NIP staging validated; publishing %s rows atomically', loaded)
         emit('processing', 'Publishing validated NIP history...', 97)
         # Only now modify live data. Historical dates absent from the source remain.
+        previous_version = snapshot_version()
         source_dates = select(c.date).distinct()
         db.session.query(S).filter(S.date.in_(source_dates)).delete(synchronize_session=False)
         publish_columns = (*SOURCE_COLUMNS, 'synced_at')
@@ -134,6 +136,7 @@ def _sync_nip_stock_trend_attempt():
         stage = None
         db.session.commit()
         committed = True
+        clear_snapshot_cache(previous_version)
         emit('success', f'NIP stock history synced: {loaded:,} rows', 100)
         return {'status': 'success', 'count': loaded}
     except Exception as error:

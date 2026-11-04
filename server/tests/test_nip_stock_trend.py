@@ -64,6 +64,22 @@ class StockTrendDataTests(unittest.TestCase):
     def tearDown(self):
         db.session.remove();self.ctx.pop()
 
+    def test_redis_cache_reuses_data_and_invalidates_same_date_publish(self):
+        cache = {}
+        with patch('app.services.nip_stock_trend_cache.redis_client') as redis:
+            redis.get.side_effect = cache.get
+            redis.setex.side_effect = lambda key, ttl, value: cache.update({key: value})
+            client = self.app.test_client()
+            first = client.get('/api/data').get_json()
+            self.assertEqual(client.get('/api/data').get_json(), first)
+            self.assertEqual(redis.setex.call_count, 1)
+            db.session.add(S(id=5, uid='5', date=date(2026, 10, 2), branch_id=20,
+                             division='Gold', gross_wt=1000, pieces=1, is_nip=True))
+            db.session.commit()
+            refreshed = client.get('/api/data').get_json()
+            self.assertEqual(refreshed['stats']['total_stock'], first['stats']['total_stock'] + 1)
+            self.assertEqual(redis.setex.call_count, 2)
+
     def test_metric_conversion_and_location_multi_select(self):
         with self.app.test_request_context('/?location=ERNAKULAM'):
             session['roles']=['ADMIN']
