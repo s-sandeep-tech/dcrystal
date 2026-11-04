@@ -121,9 +121,19 @@
     <!-- Info Strip -->
     <div
         class="px-3 py-1.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
-        <div class="flex items-center gap-4 text-[10px] text-gray-500">
-            <span class="material-symbols-outlined text-[14px]">info</span>
-            <span>Sales and provision totals for the selected filters.</span>
+        <div class="text-[10px] text-gray-500" role="status">
+            <div id="purchase-plan-info-loading">
+                <span class="inline-flex items-center gap-2">
+                    <span class="size-3 shrink-0 rounded-full border-2 border-blue-200 border-t-blue-600 motion-safe:animate-spin" aria-hidden="true"></span>
+                    Loading...
+                </span>
+            </div>
+            <div id="purchase-plan-info-summary" hidden>
+                <span class="inline-flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[14px]" aria-hidden="true">info</span>
+                    Sales and provision totals for the selected filters.
+                </span>
+            </div>
         </div>
 
         <div class="flex items-center gap-4 text-[10px] text-gray-500">
@@ -395,5 +405,5 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script
-    src="{{ url_for('static', filename='js/sales_stock_composition_analysis_for_purchase_plan.js', v='20261104-hierarchy-root') }}"></script>
+    src="{{ url_for('static', filename='js/sales_stock_composition_analysis_for_purchase_plan.js', v='20261104-loading-status') }}"></script>
 {% endblock %}

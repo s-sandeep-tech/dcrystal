@@ -244,16 +244,25 @@ async function initPurchasePlanFilters() {
     }
 }
 
+let purchasePlanPendingLoads = 0;
+
+function updatePurchasePlanLoading(change) {
+    purchasePlanPendingLoads += change;
+    const loading = purchasePlanPendingLoads > 0;
+    document.getElementById('purchase-plan-info-loading').hidden = !loading;
+    document.getElementById('purchase-plan-info-summary').hidden = loading;
+    document.getElementById('purchase-plan-report-progress')?.classList.toggle('hidden', !loading);
+}
+
 async function loadPurchasePlanReportData(requestParams = null) {
     const container = document.getElementById('view-sales-stock-composition-analysis-for-purchase-plan');
     const tableArea = document.getElementById('purchase-plan-table-area');
-    const progressBar = document.getElementById('purchase-plan-report-progress');
 
     if (!container) return;
 
     resetPurchasePlanTopStats();
     if (tableArea) tableArea.classList.add('opacity-50', 'pointer-events-none');
-    if (progressBar) progressBar.classList.remove('hidden');
+    updatePurchasePlanLoading(1);
 
     if (!container.querySelector('table')) {
         container.innerHTML = `
@@ -298,7 +307,7 @@ async function loadPurchasePlanReportData(requestParams = null) {
         resetPurchasePlanTopStats();
     } finally {
         if (tableArea) tableArea.classList.remove('opacity-50', 'pointer-events-none');
-        if (progressBar) progressBar.classList.add('hidden');
+        updatePurchasePlanLoading(-1);
     }
 }
 
@@ -391,8 +400,7 @@ async function togglePurchasePlanBranch(rowElem, path) {
     }
 
     if (arrow) arrow.textContent = '⏳';
-    const progressBar = document.getElementById('purchase-plan-report-progress');
-    if (progressBar) progressBar.classList.remove('hidden');
+    updatePurchasePlanLoading(1);
 
     try {
         const params = new URLSearchParams(appliedPurchasePlanParams);
@@ -414,7 +422,7 @@ async function togglePurchasePlanBranch(rowElem, path) {
         console.error('Failed to load child purchase plan rows:', err);
         if (arrow) arrow.textContent = '▶';
     } finally {
-        if (progressBar) progressBar.classList.add('hidden');
+        updatePurchasePlanLoading(-1);
     }
 }
 
