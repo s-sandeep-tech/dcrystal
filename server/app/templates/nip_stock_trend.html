@@ -85,8 +85,9 @@
             title="Linear trend over reporting dates; requires at least two dated balances"><input id="nip-average"
                 type="checkbox">Trendline</label>
     </div>
-    <p id="nip-status" role="status"
-        class="px-4 py-2 text-xs text-gray-500 border-b border-gray-200 dark:border-gray-800">Loading stock history...
+    <p class="flex items-center gap-2 px-4 py-2 text-xs text-gray-500 border-b border-gray-200 dark:border-gray-800">
+        <progress id="nip-loading-progress" aria-hidden="true" class="h-1.5 w-12 shrink-0 accent-blue-600"></progress>
+        <span id="nip-status" role="status">Loading stock history...</span>
     </p>
     <div id="nip-output" aria-busy="true" class="flex-1 min-h-0 overflow-auto">
         <section id="nip-graph" class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
@@ -136,5 +137,5 @@
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261030-weight-filter') }}"></script>
+<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261104-loading-progress') }}"></script>
 {% endblock %}

@@ -287,6 +287,7 @@
         await pageLoaded;
         pending?.abort(); const controller=new AbortController();pending=controller;
         el('nip-output').setAttribute('aria-busy','true');
+        el('nip-loading-progress').hidden=false;
         el('nip-status').textContent='Loading stock history...';
         try {
             const result=await responseJSON(await fetch('/api/nip-stock-trend-analysis/data?'+requestParams(), {headers:headers(),signal:controller.signal}));
@@ -297,7 +298,7 @@
             document.querySelectorAll('[data-progress]').forEach(node=>{
                 node.firstElementChild.style.width='0%';delete node.dataset.direction;node.title='N/A';node.setAttribute('aria-label','Unavailable');
             });}}
-        finally{if(pending===controller){el('nip-output').setAttribute('aria-busy','false');pending=null;}}
+        finally{if(pending===controller){el('nip-output').setAttribute('aria-busy','false');el('nip-loading-progress').hidden=true;pending=null;}}
     }
     async function download(response,filename) {
         if(!response.ok)throw new Error((await response.json()).error || 'Export permission required');
@@ -328,6 +329,6 @@
             const result=await responseJSON(await fetch('/api/nip-stock-trend-analysis/options',{headers:headers()}));
             for(const [key,values] of Object.entries(result.options))controls[key]=new CustomMultiSelect({containerId:'nip-filter-'+key,label:key==='weight'?'Weight (g)':name(key),defaultText:'All '+name(key),options:values.map(value=>({value,label:value}))});
             await load();
-        }catch(error){el('nip-status').textContent=error.message;el('nip-output').setAttribute('aria-busy','false');}
+        }catch(error){el('nip-status').textContent=error.message;el('nip-output').setAttribute('aria-busy','false');el('nip-loading-progress').hidden=true;}
     });
 })();
