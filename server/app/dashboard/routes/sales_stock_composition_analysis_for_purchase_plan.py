@@ -134,7 +134,8 @@ def get_sales_stock_composition_analysis_for_purchase_plan_partial():
             search=request.args.get('search', ''),
             sort_by=sort_by,
             sort_order=sort_order,
-            hierarchy=hierarchy,
+            hierarchy=HIERARCHY,
+            hierarchy_root=hierarchy[0],
         )
     except Exception as e:
         logger.exception("Error in sales_stock_composition_analysis_for_purchase_plan partial: %s", str(e))

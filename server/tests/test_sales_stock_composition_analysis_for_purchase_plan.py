@@ -293,12 +293,13 @@ class TemplateRenderingTests(unittest.TestCase):
             'turn_na_b': False,
         }
         html = ' '.join(tmpl.render(rows=rows, total=total, stats={}, can_expand=True,
-                                    hierarchy=['make', 'section']).split())
+                                    hierarchy=['section', 'make'], hierarchy_root='make').split())
 
         # Check requested columns are present
         self.assertIn('Product Hierarchy', html)
         self.assertIn('aria-pressed="true" onclick="setPurchasePlanHierarchy(\'make\')"', html)
         self.assertIn('aria-pressed="false" onclick="setPurchasePlanHierarchy(\'section\')"', html)
+        self.assertLess(html.index("setPurchasePlanHierarchy('section')"), html.index("setPurchasePlanHierarchy('make')"))
         self.assertIn('Sales Composition %', html)
         self.assertIn('Stock Composition %', html)
         self.assertIn('Stock Turn in Weight (times)', html)
