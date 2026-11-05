@@ -119,7 +119,22 @@ def query(cur, sql, params):
 
 def totals(cur, filters):
     where, params = where_clause(filters)
-    return query(cur, f'SELECT {aggregates()} FROM {SOURCE} WHERE {where}', params)[0]
+    prior_start, prior_end = previous_year(filters['start']), previous_year(filters['end'])
+    prior_where, prior_params = where_clause(filters, prior_start, prior_end)
+    rows = query(cur, f'''SELECT 'current' AS period, {aggregates()} FROM {SOURCE} WHERE {where}
+        UNION ALL
+        SELECT 'prior' AS period, {aggregates()} FROM {SOURCE} WHERE {prior_where}''', params + prior_params)
+    periods = {row['period']: row for row in rows}
+    current, prior = periods['current'], periods['prior']
+    current['prior_period'] = {'start': prior_start.isoformat(), 'end': prior_end.isoformat()}
+    current['prior_totals'] = {key: prior[key] if prior['row_count'] else None for key in METRICS}
+    # Absolute base preserves the direction of change for signed returns/negative totals.
+    current['yoy'] = {
+        key: (current[key] - prior[key]) / abs(prior[key]) * 100
+        if current['row_count'] and prior['row_count'] and prior[key] != 0 else None
+        for key in METRICS
+    }
+    return current
 
 
 def breakdown(cur, filters, dimension):

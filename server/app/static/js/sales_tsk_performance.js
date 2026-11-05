@@ -13,6 +13,8 @@
     const fields = [...form.querySelectorAll('select[name]')];
     let applied = new URLSearchParams(location.search);
     let exportController;
+    let kpiTrend = null;
+    let kpiTrendStatus = 'Loading monthly trend…';
     const headers = () => {
         const token = localStorage.getItem('access_token');
         return { 'X-Requested-With': 'XMLHttpRequest', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
@@ -115,12 +117,70 @@
         const chart = new Chart(canvas, config);
         charts.set(segment, chart); themeChart(chart);
     }
+    function updateKpiSparklines() {
+        const svgNS = 'http://www.w3.org/2000/svg';
+        for (const slot of page.querySelectorAll('.sales-kpi-sparkline')) {
+            slot.replaceChildren();
+            if (!kpiTrend || !kpiTrend.length || !kpiTrend.some(row => row.row_count)) {
+                slot.append(element('span', kpiTrend ? 'No monthly transactions' : kpiTrendStatus, 'sales-sparkline-caption'));
+                continue;
+            }
+            const values = kpiTrend.map(row => Number(row[slot.dataset.metric]));
+            if (!values.every(Number.isFinite)) {
+                slot.append(element('span', 'Monthly trend unavailable', 'sales-sparkline-caption'));
+                continue;
+            }
+            const low = Math.min(...values), high = Math.max(...values);
+            const points = values.map((value, i) => ({
+                x: values.length === 1 ? 120 : 8 + i * 224 / (values.length - 1),
+                y: high === low ? 30 : 52 - (value - low) / (high - low) * 44
+            }));
+            const svg = document.createElementNS(svgNS, 'svg');
+            svg.setAttribute('viewBox', '0 0 240 60');
+            svg.setAttribute('role', 'img');
+            svg.setAttribute('aria-label', `${slot.dataset.label}: ${kpiTrend.map((row, i) => `${monthLabel(row.month)} ${number(values[i])}`).join('; ')}`);
+            const line = document.createElementNS(svgNS, 'polyline');
+            line.setAttribute('points', points.map(point => `${point.x},${point.y}`).join(' '));
+            line.setAttribute('fill', 'none'); line.setAttribute('stroke', 'currentColor');
+            line.setAttribute('stroke-width', '3'); line.setAttribute('stroke-linecap', 'round');
+            line.setAttribute('stroke-linejoin', 'round');
+            svg.append(line);
+            points.forEach((point, i) => {
+                const dot = document.createElementNS(svgNS, 'circle');
+                dot.setAttribute('cx', point.x); dot.setAttribute('cy', point.y);
+                dot.setAttribute('r', i === points.length - 1 ? '4' : '6');
+                dot.setAttribute('fill', i === points.length - 1 ? 'currentColor' : 'transparent');
+                const title = document.createElementNS(svgNS, 'title');
+                title.textContent = `${monthLabel(kpiTrend[i].month)}: ${number(values[i])}`;
+                dot.append(title); svg.append(dot);
+            });
+            slot.append(svg, element('span', 'Monthly trend', 'sales-sparkline-caption'));
+        }
+    }
     function render(segment, data, container) {
         if (segment === 'kpis') {
             if (!data.row_count) { container.append(element('p', 'No matching transactions.', 'sales-note')); return; }
             for (const column of metricColumns) {
-                const card = element('article', null, 'sales-kpi'); card.append(element('small', column.label), element('strong', number(data[column.key]))); container.append(card);
+                const card = element('article', null, 'sales-kpi');
+                const sparkline = element('div', null, 'sales-kpi-sparkline');
+                sparkline.dataset.metric = column.key; sparkline.dataset.label = column.label;
+                const valueRow = element('div', null, 'sales-kpi-value');
+                const change = data.yoy?.[column.key];
+                const available = typeof change === 'number' && Number.isFinite(change);
+                const rounded = available ? Number(change.toFixed(1)) : null;
+                const badge = element('span', available ? `${rounded > 0 ? '+' : ''}${rounded.toFixed(1)}% YoY` : 'YoY —',
+                    `sales-kpi-change ${available && rounded !== 0 ? (rounded > 0 ? 'is-up' : 'is-down') : 'is-neutral'}`);
+                const period = data.prior_period;
+                const comparison = period ? `${period.start} to ${period.end}` : 'the same period last year';
+                badge.title = available
+                    ? `Compared with ${number(data.prior_totals?.[column.key])} for ${comparison}. Change = (current − prior) / |prior| × 100.`
+                    : `No percentage comparison for ${comparison}: the prior value is zero or data is unavailable.`;
+                badge.setAttribute('aria-label', `${column.label}: ${available ? `${rounded}% change` : 'comparison unavailable'} versus ${comparison}`);
+                valueRow.append(element('strong', number(data[column.key])), badge);
+                card.append(element('small', column.label), valueRow, sparkline);
+                container.append(card);
             }
+            updateKpiSparklines();
             return;
         }
         if (!data.length || (['trend', 'ledger'].includes(segment) && !data.some(r => r.row_count))) {
@@ -154,15 +214,22 @@
         const panel = page.querySelector(`[data-segment="${segment}"]`);
         const status = panel.querySelector('.sales-status'); const content = panel.querySelector('.sales-content');
         panel.setAttribute('aria-busy', 'true'); status.textContent = 'Loading…';
+        if (segment === 'trend') {
+            kpiTrend = null; kpiTrendStatus = 'Loading monthly trend…'; updateKpiSparklines();
+        }
         try {
             const payload = await (await request(segment, params, controller.signal)).json();
             if (controller.signal.aborted) return;
             charts.get(segment)?.destroy(); charts.delete(segment); content.replaceChildren();
+            if (segment === 'trend') { kpiTrend = payload.data; updateKpiSparklines(); }
             render(segment, payload.data, content); status.textContent = '';
             panel.querySelector('.sales-fetched')?.remove();
             panel.append(element('p', `Fetched ${new Date(payload.fetched_at).toLocaleTimeString('en-IN')}`, 'sales-fetched'));
         } catch (error) {
             if (error.name !== 'AbortError') {
+                if (segment === 'trend') {
+                    kpiTrend = null; kpiTrendStatus = 'Trend unavailable · retry monthly trend'; updateKpiSparklines();
+                }
                 content.replaceChildren(); panel.querySelector('.sales-fetched')?.remove();
                 retry(status, error.message, () => load(segment, applied));
             }

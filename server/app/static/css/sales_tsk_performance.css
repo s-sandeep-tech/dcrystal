@@ -41,3 +41,17 @@
 @media (max-width: 680px) {
     #sales-sidebar { position: fixed; top: 58px; bottom: 0; right: 0; z-index: 40; --party-matrix-sidebar-width: 256px; box-shadow: -4px 0 16px #0002; }
 }
+
+.sales-kpi-sparkline { margin-top: 16px; min-height: 80px; color: #10b981; }
+.sales-kpi-sparkline svg { display: block; width: 100%; height: 60px; }
+.sales-sparkline-caption { display: block; margin-top: 4px; color: var(--sales-muted); font-size: 10px; }
+.dark .sales-kpi-sparkline { color: #34d399; }
+
+.sales-kpi-value { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 9px; margin-top: 8px; }
+.sales-kpi-value strong { margin-top: 0; min-width: 0; }
+.sales-kpi-change { display: inline-block; padding: 3px 6px; border-radius: 5px; font-size: 10px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sales-kpi-change.is-up { color: #047857; background: #10b9811a; }
+.sales-kpi-change.is-down { color: #b91c1c; background: #ef44441a; }
+.sales-kpi-change.is-neutral { color: var(--sales-muted); background: #94a3b81a; }
+.dark .sales-kpi-change.is-up { color: #6ee7b7; }
+.dark .sales-kpi-change.is-down { color: #fca5a5; }

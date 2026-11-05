@@ -15,7 +15,8 @@ This report queries `ext_view.vw_item_wise_tsk_details_data` on the external Pos
 - Net weight and TSK: sums of `net_weight` and `total_tsk` as supplied by the view. Return-sign normalization is applied only to turnover. These are labeled source totals.
 - Section breakdown: grouped by `section_id`, labeled with `section`; missing section IDs remain in an Unspecified group. A signed bar chart replaces the donut when contributions contain negatives.
 - Branch leaderboard: top ten branches by net turnover, with shares calculated against all matching branches.
-- YoY: matching prior-year dates (February 29 clamps to February 28); unavailable for missing/non-positive prior bases or months with no current rows.
+- KPI YoY: each statistic compares the full selected period with the same dates last year, using identical filters and `(current - prior) / abs(prior) * 100`. Zero/missing prior bases show an unavailable badge. For signed returns, a less-negative total is a positive change.
+- Monthly ledger YoY: matching prior-year dates (February 29 clamps to February 28); unavailable for missing/non-positive prior bases or months with no current rows.
 - Missing months: zero totals. Prior history is never invented. Partial date ranges compare equivalent partial ranges.
 
 Currency and weight units are not inferred. Margin, average ticket, targets, VIP conversion, and sell-through are not derived from this view.

@@ -128,6 +128,29 @@ class PostgreSQLTests(unittest.TestCase):
         filters = report.parse_filters(MultiDict(dict(start='2026-01-01', end='2026-01-01')))
         self.assertEqual(report.totals(self.cur, filters)['row_count'], 0)  # trans_date takes precedence.
 
+    def test_kpi_year_over_year_and_filtered_baseline(self):
+        totals = report.totals(self.cur, self.filters)
+        self.assertEqual(totals['yoy']['net_turnover'], Decimal(100))
+        self.assertEqual(totals['yoy']['net_weight'], Decimal(100))
+        self.assertAlmostEqual(totals['yoy']['total_tsk'], Decimal(400) / 3)
+        self.assertIsNone(totals['yoy']['return_turnover'])  # Zero prior returns.
+        self.assertEqual(totals['prior_period'], {'start': '2025-01-01', 'end': '2025-01-31'})
+        self.filters['selections'] = {'branch_id': ['2']}
+        totals = report.totals(self.cur, self.filters)
+        self.assertTrue(all(value is None for value in totals['yoy'].values()))
+        self.filters['selections'] = {}
+        self.filters['start'] = date(2026, 1, 2)  # Prior Jan 1 must not be included.
+        self.assertIsNone(report.totals(self.cur, self.filters)['yoy']['net_turnover'])
+
+    def test_kpi_negative_baseline_and_unchanged_values(self):
+        self.cur.execute("INSERT INTO sales_tsk_fixture(date, trans_type, turn_over, net_weight, total_tsk) VALUES ('2025-01-03', 'SR', -40, 7, 4)")
+        totals = report.totals(self.cur, self.filters)
+        self.assertEqual(totals['yoy']['return_turnover'], Decimal(50))
+        self.assertEqual(totals['yoy']['net_weight'], Decimal(0))
+        self.assertEqual(totals['yoy']['total_tsk'], Decimal(0))
+        self.cur.execute("UPDATE sales_tsk_fixture SET turn_over=-10 WHERE trans_type='SR' AND date='2025-01-03'")
+        self.assertEqual(report.totals(self.cur, self.filters)['yoy']['return_turnover'], Decimal(-100))
+
     def test_return_sign_validation(self):
         self.cur.execute("UPDATE sales_tsk_fixture SET turn_over=20 WHERE trans_type='SR'")
         with self.assertRaises(report.SourceDataError): report.totals(self.cur, self.filters)
