@@ -2,7 +2,7 @@
 
 Route: `/sales-tsk-performance`. Listed in the Sales & Stock report menu.
 
-This report queries `ext_view.vw_item_wise_tsk_details_data` on the external PostgreSQL connection. It has no snapshot model, sync job, or item-level endpoint. Each page segment and the filter options load independently through `/api/sales-tsk-performance/<segment>`. CSV exports contain monthly summaries only.
+This report queries `ext_view.vw_item_wise_tsk_details_data` on the external PostgreSQL connection. It has no snapshot model, sync job, or item-level endpoint. Each page segment and the filter options load independently through `/api/sales-tsk-performance/<segment>`. The CSV download button has been removed from the report UI; the existing protected export endpoint still contains monthly summaries only.
 
 ## Definitions
 

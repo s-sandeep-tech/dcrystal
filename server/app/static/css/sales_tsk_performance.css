@@ -11,8 +11,8 @@
 #sales-tsk-page h2 { color: var(--sales-text); }
 .sales-canvas { height: 290px; position: relative; }
 .sales-chart-key { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; font-size: 11px; }
-.sales-status, #sales-options-status, #sales-export-status { color: var(--sales-muted, #64748b); font-size: 12px; padding: 10px; }
-.sales-status:empty, #sales-export-status:empty, #sales-options-status:empty { display: none; }
+.sales-status, #sales-options-status { color: var(--sales-muted, #64748b); font-size: 12px; padding: 10px; }
+.sales-status:empty, #sales-options-status:empty { display: none; }
 .sales-segment[aria-busy="true"] .sales-content { display: none; }
 .sales-button, .sales-retry { border: 1px solid var(--sales-border, #dfe5ec); border-radius: 6px; padding: 7px 12px; font-size: 11px; background: var(--sales-panel, #fff); color: var(--sales-text, #172033); cursor: pointer; }
 .sales-retry { margin-left: 8px; }
@@ -148,3 +148,18 @@
 .sales-ledger-note { margin: 12px 16px; }
 .dark .sales-mom-badge.is-up, .dark .sales-ledger-pill { color: #6ee7b7; }
 .dark .sales-mom-badge.is-down { color: #fca5a5; }
+
+#sales-tsk-page [data-segment="branches"] { border-radius: 12px; border-top: 2px solid #137fec55; overflow: hidden; }
+[data-segment="branches"] > .party-matrix-panel-heading { border-bottom: 1px solid var(--sales-border); }
+.sales-branch-summary .sales-ledger-pill { color: #137fec; background: #137fec10; }
+[data-segment="branches"] .sales-table th { font-size: 10px; padding: 13px 12px; }
+[data-segment="branches"] .sales-table td { padding: 14px 12px; }
+[data-segment="branches"] .sales-table th:nth-child(2), [data-segment="branches"] .sales-table td:nth-child(2) { text-align: left; }
+[data-segment="branches"] .sales-table td:nth-child(2) { font-weight: 600; }
+[data-segment="branches"] .sales-table tbody tr:hover { background: #137fec08; }
+.sales-branch-leader { background: #137fec06; }
+.sales-rank-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; padding: 0 5px; border-radius: 8px; color: var(--sales-muted); background: #94a3b812; font-weight: 700; font-size: 10px; }
+.sales-rank-badge.is-top { color: #137fec; background: #137fec12; }
+[data-segment="branches"] .sales-ledger-share { min-width: 180px; }
+[data-segment="branches"] tfoot { background: color-mix(in srgb, #137fec 5%, var(--sales-panel)); border-top: 2px solid var(--sales-border); }
+.dark .sales-rank-badge.is-top, .dark .sales-branch-summary .sales-ledger-pill { color: #60a5fa; }

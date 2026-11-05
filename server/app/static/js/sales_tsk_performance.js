@@ -15,7 +15,6 @@
     const monthLabel = value => new Date(`${value}T12:00:00`).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
     const fields = [...form.querySelectorAll('select[name]')];
     let applied = new URLSearchParams(location.search);
-    let exportController;
     let kpiTrend = null;
     let kpiTrendStatus = 'Loading monthly trend…';
     const headers = () => {
@@ -79,10 +78,11 @@
         const renderRow = row => {
             const line = document.createElement('tr');
             if (row.is_peak) line.classList.add('sales-ledger-peak');
+            if (row.rank === 1) line.classList.add('sales-branch-leader');
             columns.forEach(c => {
                 const value = row[c.key];
                 const td = element('td', c.format ? c.format(value) : value ?? '—');
-                if (c.key === 'period_share') {
+                if (c.key === 'period_share' || c.progress) {
                     td.className = 'sales-ledger-share';
                     if (value != null) {
                         const label = element('span', percent(value));
@@ -91,7 +91,7 @@
                         fill.style.width = `${Math.max(0, Math.min(100, value))}%`;
                         track.setAttribute('aria-hidden', 'true'); track.append(fill);
                         td.replaceChildren(label, track);
-                        td.title = `${percent(value)} of selected-period net turnover. This is contribution, not target attainment.`;
+                        td.title = `${percent(value)} of selected-period net turnover${c.progress ? ' across all matching branches' : ''}. This is contribution, not target attainment.`;
                     }
                 }
                 if (c.key === 'mom') {
@@ -102,6 +102,10 @@
                 if (c.key === 'month' && (row.is_partial || row.is_peak)) {
                     td.append(element('span', row.is_partial ? 'Partial' : 'Peak', 'sales-ledger-month-tag'));
                 }
+                if (c.key === 'rank' && value != null) {
+                    td.replaceChildren(element('span', String(value), `sales-rank-badge ${value <= 3 ? 'is-top' : ''}`));
+                }
+                if (c.key === 'net_weight' && value != null) td.title = `${number(value)} kg`;
                 if (c.swatch) { const dot = element('span', null, 'sales-section-dot'); dot.style.backgroundColor = row.chart_color; td.prepend(dot); }
                 if (amountKeys.has(c.key) && value != null) { td.title = number(value); td.setAttribute('aria-label', `${c.label}: ${number(value)}`); }
                 if (c.key === 'yoy' && value != null) td.className = value >= 0 ? 'sales-positive' : 'sales-negative';
@@ -283,7 +287,18 @@
             }
             table(container, [{ key: 'label', label: 'Section', swatch: true }, metricColumns[2], { key: 'share', label: 'Share', format: percent }, metricColumns[4]], data.map((row, i) => ({ ...row, chart_color: palette[Math.min(i, 8)] })));
         } else if (segment === 'branches') {
-            table(container, [{ key: 'rank', label: 'Rank' }, { key: 'label', label: 'Location' }, metricColumns[2], metricColumns[3], metricColumns[4], { key: 'share', label: 'Share', format: percent }], data.slice(0, 10).map((r, i) => ({ ...r, rank: i + 1 })));
+            const shown = data.slice(0, 10).map((row, i) => ({ ...row, rank: i + 1 }));
+            const allTurnover = data.reduce((sum, row) => sum + row.net_turnover, 0);
+            const summary = element('div', null, 'sales-ledger-summary sales-branch-summary');
+            summary.append(element('span', `Top ${shown.length} of ${data.length} branches`, 'sales-ledger-pill'));
+            summary.append(element('span', `Leading branch: ${shown[0].label}`));
+            const total = element('strong', `All branches: ${crores(allTurnover)}`); total.title = number(allTurnover); summary.append(total); container.append(summary);
+            const footer = { rank: null, label: `Top ${shown.length} total` };
+            for (const key of ['net_turnover', 'net_weight', 'total_tsk']) footer[key] = shown.reduce((sum, row) => sum + row[key], 0);
+            footer.share = allTurnover > 0 ? footer.net_turnover / allTurnover * 100 : null;
+            table(container, [{ key: 'rank', label: 'Rank' }, { key: 'label', label: 'Branch / location' }, metricColumns[2], metricColumns[3], metricColumns[4],
+                { key: 'share', label: 'Contribution', format: percent, progress: true }], shown, footer);
+            container.append(element('p', 'Contribution is the share of net turnover across all matching branches, including those outside the top 10. Bars show contribution, not target achievement. Shares are unavailable when the overall total is zero or negative.', 'sales-chart-note sales-ledger-note'));
         } else if (segment === 'ledger') {
             const footer = { month: 'Period total', leading_branch: null, mom: null };
             metricColumns.forEach(c => { footer[c.key] = data.reduce((sum, row) => sum + row[c.key], 0); });
@@ -329,7 +344,6 @@
         }
     }
     function reload() {
-        exportController?.abort(); document.getElementById('sales-export-status').textContent = '';
         const params = new URLSearchParams(applied);
         document.getElementById('sales-period').textContent = `${params.get('start')} to ${params.get('end')} · Live external data`;
         history.replaceState({}, '', `${location.pathname}?${params}`);
@@ -351,15 +365,5 @@
     document.getElementById('sales-filter-toggle').addEventListener('click', () => toggleFilters(document.getElementById('sales-sidebar').classList.contains('is-collapsed')));
     document.getElementById('sales-filter-close').addEventListener('click', () => toggleFilters(false));
     if (matchMedia('(max-width: 680px)').matches) toggleFilters(false);
-    document.getElementById('sales-export').addEventListener('click', async event => {
-        const button = event.currentTarget; const status = document.getElementById('sales-export-status');
-        const controller = new AbortController(); exportController = controller; button.disabled = true; status.textContent = 'Preparing CSV…';
-        try {
-            const response = await request('export', new URLSearchParams(applied), controller.signal);
-            const blob = await response.blob(); if (controller.signal.aborted) return;
-            const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'sales-tsk-monthly-ledger.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); status.textContent = '';
-        } catch (error) { if (error.name !== 'AbortError') status.textContent = error.message; }
-        finally { button.disabled = false; }
-    });
     restoreDates(); fields.forEach(select => setOptions(select, [], applied.getAll(select.name))); reload();
 })();
