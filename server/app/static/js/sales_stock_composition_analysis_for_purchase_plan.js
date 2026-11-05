@@ -17,6 +17,14 @@ function resetPurchasePlanTopStats() {
     });
     const factorLabel = document.getElementById('purchase-plan-fy-factor-label');
     if (factorLabel) factorLabel.textContent = 'Loading factor...';
+    updatePurchasePlanTurnLabels(false);
+}
+
+function updatePurchasePlanTurnLabels(includesProjection) {
+    ['stat-turn-weight-label', 'stat-shop-turn-weight-label'].forEach(id => {
+        const label = document.getElementById(id);
+        if (label) label.textContent = includesProjection ? 'Projected FY Stock Turn' : 'Stock Turn';
+    });
 }
 
 let purchasePlanSearch = '';
@@ -339,13 +347,14 @@ function updatePurchasePlanTopStats(stats) {
             ? (Number(stats.inshop_weight) / 1000).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })
             : 'N/A';
     }
+    updatePurchasePlanTurnLabels(stats.includes_projection);
     if (turnWeightEl) {
-        turnWeightEl.textContent = stats.turn_na_b ? 'NA-B' : stats.turn_weight != null
+        turnWeightEl.textContent = stats.turn_weight != null
             ? Number(stats.turn_weight).toFixed(2)
             : (stats.turn_weight === null ? 'N/A' : '-');
     }
     if (shopTurnWeightEl) {
-        shopTurnWeightEl.textContent = stats.turn_na_b ? 'NA-B' : stats.shop_weight_turn != null
+        shopTurnWeightEl.textContent = stats.shop_weight_turn != null
             ? Number(stats.shop_weight_turn).toFixed(2) : 'N/A';
     }
     if (factorLabel && stats.location_factors) {
@@ -356,7 +365,8 @@ function updatePurchasePlanTopStats(stats) {
             factorLabel.textContent = 'No dated locations';
         } else if (stats.factor != null) {
             const item = factors[0];
-            factorLabel.textContent = `${item.fy_label} · As on ${item.date} · ${item.inclusive_fy_days}/${item.inclusive_elapsed_days} = ${Number(item.factor).toFixed(4)}`;
+            const basis = item.includes_projection ? ` · From ${item.first_sales_date}` : '';
+            factorLabel.textContent = `${item.fy_label}${basis} · As on ${item.date} · ${item.projected_days}/${item.inclusive_elapsed_days} = ${Number(item.factor).toFixed(4)}`;
         } else {
             const dates = factors.map(item => item.date).sort();
             factorLabel.textContent = `Location-wise factors · ${factors.length} locations · ${dates[0]} to ${dates[dates.length - 1]}`;

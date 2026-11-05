@@ -7,7 +7,7 @@ from app.services.sales_stock_composition_analysis_for_purchase_plan import fetc
 
 
 class ShopWeightTurnTests(unittest.TestCase):
-    def test_location_factors_denominators_null_zero_cutoff_and_na_b(self):
+    def test_location_factors_denominators_null_zero_cutoff_and_projection(self):
         app=Flask(__name__)
         app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///:memory:'
         db.init_app(app)
@@ -40,9 +40,17 @@ class ShopWeightTurnTests(unittest.TestCase):
             self.assertIsNone(zero['rows'][0]['shop_weight_turn'])
             second.inshop_weight=50;second.min_trans_date=date(2026,5,1);db.session.commit()
             late=calculate(None,{'branch_id':['2']})
-            self.assertTrue(late['rows'][0]['turn_na_b'])
-            self.assertIsNone(late['rows'][0]['shop_weight_turn'])
-            self.assertIsNone(late['total']['shop_weight_turn'])
+            projected = 200 * 335 / 154
+            self.assertTrue(late['rows'][0]['includes_projection'])
+            self.assertAlmostEqual(late['rows'][0]['shop_weight_turn'], projected / 50)
+            self.assertAlmostEqual(late['total']['weight_turn'], projected / 20)
+            self.assertEqual(late['stats']['location_factors'][0]['projected_days'], 335)
+            mixed = calculate(None, {})
+            by_section = {row['label']: row for row in mixed['rows']}
+            self.assertFalse(by_section['CHAIN']['includes_projection'])
+            self.assertAlmostEqual(by_section['CHAIN']['shop_weight_turn'], 100 * 365 / 183 / 25)
+            self.assertTrue(mixed['stats']['includes_projection'])
+            self.assertAlmostEqual(mixed['stats']['shop_weight_turn'], (100 * 365 / 183 + projected) / 75)
             db.session.remove()
 
 

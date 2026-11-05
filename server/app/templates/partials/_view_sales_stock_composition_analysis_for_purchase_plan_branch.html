@@ -1,3 +1,4 @@
+{% from 'partials/_purchase_plan_stock_turn.html' import stock_turn %}
 {% macro format_pct(value) -%}
 {{ "{:,.2f}%".format(value) if value is not none else 'N/A' }}
 {%- endmacro %}
@@ -28,7 +29,7 @@
     </td>
     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.sales_composition) }}</td>
     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.stock_composition) }}</td>
-    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700" title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if row.turn_na_b else ("{:,.2f}".format(row.weight_turn) if row.weight_turn is not none else 'N/A') }}</td>
-    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{ 'NA-B' if row.turn_na_b else ("{:,.2f}".format(row.shop_weight_turn) if row.shop_weight_turn|default(none) is not none else 'N/A') }}</td>
+    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{ stock_turn(row.weight_turn, row.includes_projection) }}</td>
+    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{ stock_turn(row.shop_weight_turn|default(none), row.includes_projection) }}</td>
 </tr>
 {% endfor %}

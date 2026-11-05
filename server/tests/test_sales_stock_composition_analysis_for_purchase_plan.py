@@ -290,14 +290,14 @@ class TemplateRenderingTests(unittest.TestCase):
             'stock_composition': 45.10,
             'weight_turn': 3.45,
             'shop_weight_turn': 6.9,
-            'turn_na_b': False,
+            'includes_projection': False,
         }]
         total = {
             'sales_composition': 100.0,
             'stock_composition': 100.0,
             'weight_turn': 3.45,
             'shop_weight_turn': 6.9,
-            'turn_na_b': False,
+            'includes_projection': False,
         }
         html = ' '.join(tmpl.render(rows=rows, total=total, stats={}, can_expand=True,
                                     hierarchy=['section', 'make'], hierarchy_root='make').split())
@@ -341,7 +341,7 @@ class TemplateRenderingTests(unittest.TestCase):
             'stock_composition': 15.0,
             'weight_turn': 2.1,
             'shop_weight_turn': 4.2,
-            'turn_na_b': False,
+            'includes_projection': False,
         }]
         html = tmpl.render(rows=rows, parent_path=['GOLD'], can_expand=True)
 
@@ -355,6 +355,10 @@ class TemplateRenderingTests(unittest.TestCase):
         # Hierarchy, composition percentages, and both stock-turn columns.
         self.assertEqual(html.count('<td '), 5)
         self.assertIn('openPurchasePlanChart', html)
+        rows[0]['includes_projection'] = True
+        projected = tmpl.render(rows=rows, parent_path=['GOLD'], can_expand=True)
+        self.assertEqual(projected.count('>Projected FY</span>'), 2)
+        self.assertNotIn('NA-B', projected)
 
     def test_main_template_contains_division_make_purity_filters(self):
         with open(Path(__file__).resolve().parents[1] / 'app/templates/sales_stock_composition_analysis_for_purchase_plan.html') as f:
@@ -364,7 +368,7 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertLess(content.index('id="stat-provision-weight"'),content.index('id="stat-shop-weight"'))
         self.assertLess(content.index('id="stat-shop-weight"'),content.index('id="stat-turn-weight"'))
         self.assertLess(content.index('id="stat-turn-weight"'),content.index('id="stat-shop-turn-weight"'))
-        self.assertIn('Stock Turn (Shop Wt, times)',content)
+        self.assertIn('id="stat-shop-turn-weight-label">Stock Turn</span> (Shop Wt, times)',content)
         self.assertIn('All Divisions', content)
         self.assertIn('id="purchase-plan-filter-make-container"', content)
         self.assertIn('id="purchase-plan-filter-purity-container"', content)

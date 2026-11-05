@@ -1,3 +1,4 @@
+{% from 'partials/_purchase_plan_stock_turn.html' import stock_turn %}
 {% set sort_by = sort_by|default('label') %}
 {% set sort_order = sort_order|default('asc') %}
 
@@ -88,7 +89,8 @@
                             Expressed in times.' if key == 'weight_turn' else 'Annualised Sales Weight divided by Shop
                             Weight (inshop_weight). Expressed in times.' %}
                             <span class="material-symbols-outlined text-[12px] shrink-0 cursor-help" role="img"
-                                tabindex="0" title="{{ tip }}" aria-label="{{ tip }}">info</span>
+                                tabindex="0" title="{{ tip }} New shops use sales projected from first recorded sale to FY end."
+                                aria-label="{{ tip }} New shops use sales projected from first recorded sale to FY end.">info</span>
                             {% endif %}
                         </div>
                     </th>
@@ -126,13 +128,10 @@
                         format_pct(row.sales_composition) }}</td>
                     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{
                         format_pct(row.stock_composition) }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700"
-                        title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if
-                        row.turn_na_b else ("{:,.2f}".format(row.weight_turn) if row.weight_turn is not none else 'N/A')
-                        }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{ 'NA-B'
-                        if row.turn_na_b else ("{:,.2f}".format(row.shop_weight_turn) if
-                        row.shop_weight_turn|default(none) is not none else 'N/A') }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{
+                        stock_turn(row.weight_turn, row.includes_projection) }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{
+                        stock_turn(row.shop_weight_turn|default(none), row.includes_projection) }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -158,13 +157,10 @@
                     <td
                         class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
                         {{ format_pct(total.stock_composition) }}</td>
-                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white"
-                        title="NA-B: location first sales date is after the financial-year start">{{ 'NA-B' if
-                        total.turn_na_b else ("{:,.2f}".format(total.weight_turn) if total.weight_turn is not none else
-                        'N/A') }}</td>
-                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white">{{ 'NA-B' if
-                        total.turn_na_b else ("{:,.2f}".format(total.shop_weight_turn) if
-                        total.shop_weight_turn|default(none) is not none else 'N/A') }}</td>
+                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white">{{
+                        stock_turn(total.weight_turn, total.includes_projection) }}</td>
+                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white">{{
+                        stock_turn(total.shop_weight_turn|default(none), total.includes_projection) }}</td>
                 </tr>
             </tfoot>
             {% endif %}

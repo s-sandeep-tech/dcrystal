@@ -310,25 +310,30 @@ def fetch_purchase_plan_composition_data(
 
     location_factors: List[Dict[str, Any]] = []
     factors_by_loc: Dict[str, float] = {}
-    late_locations = set()
+    projected_locations = set()
 
     for loc_key, loc_date, first_sales_date in location_dates_q.all():
         if loc_date is None:
             continue
         loc_fac, l_days, l_elapsed, l_label = calculate_fy_factor(loc_date)
         loc_fy_start = date(loc_date.year if loc_date.month >= 4 else loc_date.year - 1, 4, 1)
-        if first_sales_date and first_sales_date > loc_fy_start:
-            late_locations.add(loc_key)
+        projected_days = l_days
+        if first_sales_date and loc_fy_start < first_sales_date <= loc_date:
+            projected_locations.add(loc_key)
+            projected_days -= (first_sales_date - loc_fy_start).days
+            l_elapsed = (loc_date - first_sales_date).days + 1
+            loc_fac = projected_days / l_elapsed
 
         factors_by_loc[loc_key] = loc_fac
         location_factors.append({
             'location_key': loc_key,
             'date': loc_date.isoformat(),
             'first_sales_date': first_sales_date.isoformat() if first_sales_date else None,
-            'turn_na_b': loc_key in late_locations,
+            'includes_projection': loc_key in projected_locations,
             'factor': loc_fac,
             'fy_label': l_label,
             'inclusive_fy_days': l_days,
+            'projected_days': projected_days,
             'inclusive_elapsed_days': l_elapsed
         })
 
@@ -343,9 +348,9 @@ def fetch_purchase_plan_composition_data(
         for res in results:
             grp_lbl = None if group_dim is None else res[0]
             loc_k, wt = res[-2:]
-            # [sales_weight, annualised_sales_weight, missing_factor_count, late_location_count]
+            # [sales_weight, adjusted_sales_weight, missing_factor_count, projected_location_count]
             t = aggregates.setdefault(grp_lbl, [0.0, 0.0, 0.0, 0.0])
-            if loc_k in late_locations:
+            if loc_k in projected_locations:
                 t[3] += 1
             f = factors_by_loc.get(loc_k)
             t[0] += float(wt or 0)
@@ -390,8 +395,8 @@ def fetch_purchase_plan_composition_data(
     # Overall totals
     total_sales_agg = aggregate_sales_weights(sales_q).get(None, [0.0, 0.0, 0.0, 0.0])
     grand_sales_weight = float(total_sales_agg[0] or 0)
-    grand_na_b = bool(total_sales_agg[3])
-    grand_annual_sales_wt = None if (total_sales_agg[2] or grand_na_b) else float(total_sales_agg[1] or 0)
+    grand_includes_projection = bool(total_sales_agg[3])
+    grand_annual_sales_wt = None if total_sales_agg[2] else float(total_sales_agg[1] or 0)
 
     grand_stock_weight = float(stock_q.with_entities(func.sum(stock_subq.c.provision)).scalar() or 0)
     shop_total, shop_missing = stock_q.with_entities(func.sum(stock_subq.c.inshop_weight),
@@ -422,14 +427,13 @@ def fetch_purchase_plan_composition_data(
 
     for lbl, totals in sales_group_map.items():
         clean_lbl = lbl or '(Unspecified)'
-        is_na_b = bool(totals[3])
-        ann_wt = None if (totals[2] or is_na_b) else totals[1]
+        ann_wt = None if totals[2] else totals[1]
         combined_groups[clean_lbl] = {
             'sales_weight': totals[0],
             'annualised_sales_weight': ann_wt,
             'provision_weight': 0.0,
             'inshop_weight': 0.0,
-            'turn_na_b': is_na_b
+            'includes_projection': bool(totals[3])
         }
 
     for row in stock_group_rows:
@@ -440,7 +444,7 @@ def fetch_purchase_plan_composition_data(
                 'sales_weight': 0.0,
                 'annualised_sales_weight': 0.0,
                 'provision_weight': pw,
-                'turn_na_b': False
+                'includes_projection': False
             }
         else:
             combined_groups[lbl]['provision_weight'] = pw
@@ -451,11 +455,10 @@ def fetch_purchase_plan_composition_data(
         sw = data['sales_weight']
         pw = data['provision_weight']
         ann_wt = data['annualised_sales_weight']
-        is_na_b = data['turn_na_b']
 
         s_comp = compute_ratio(sw, grand_sales_weight)
         st_comp = compute_ratio(pw, grand_stock_weight)
-        w_turn = None if is_na_b else compute_turn_ratio(ann_wt, pw)
+        w_turn = compute_turn_ratio(ann_wt, pw)
 
         rows.append({
             'label': lbl,
@@ -465,14 +468,14 @@ def fetch_purchase_plan_composition_data(
             'stock_composition': st_comp,
             'weight_turn': w_turn,
             'inshop_weight': data['inshop_weight'],
-            'shop_weight_turn': None if is_na_b else compute_turn_ratio(ann_wt, data['inshop_weight']),
-            'turn_na_b': is_na_b
+            'shop_weight_turn': compute_turn_ratio(ann_wt, data['inshop_weight']),
+            'includes_projection': data['includes_projection']
         })
 
     sorted_rows = sort_purchase_plan_rows(rows, sort_by=sort_by, sort_order=sort_order)
 
-    unique_dates = {i['date'] for i in location_factors}
-    effective_factor = location_factors[0]['factor'] if len(unique_dates) == 1 else None
+    factor_periods = {(i['date'], i['projected_days'], i['inclusive_elapsed_days']) for i in location_factors}
+    effective_factor = location_factors[0]['factor'] if len(factor_periods) == 1 else None
 
     return {
         'rows': sorted_rows,
@@ -484,7 +487,7 @@ def fetch_purchase_plan_composition_data(
             'weight_turn': grand_turn_weight,
             'inshop_weight': grand_shop_weight,
             'shop_weight_turn': compute_turn_ratio(grand_annual_sales_wt, grand_shop_weight),
-            'turn_na_b': grand_na_b
+            'includes_projection': grand_includes_projection
         },
         'stats': {
             'sales_weight': grand_sales_weight,
@@ -492,7 +495,7 @@ def fetch_purchase_plan_composition_data(
             'inshop_weight': grand_shop_weight,
             'turn_weight': grand_turn_weight,
             'shop_weight_turn': compute_turn_ratio(grand_annual_sales_wt, grand_shop_weight),
-            'turn_na_b': grand_na_b,
+            'includes_projection': grand_includes_projection,
             'factor': effective_factor,
             'cutoff_date': effective_date.isoformat() if effective_date else None,
             'fy_label': fy_label,
