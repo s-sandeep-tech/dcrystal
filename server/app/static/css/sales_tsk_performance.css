@@ -99,29 +99,29 @@
 .sales-chart-grid { align-items: start; gap: 16px; }
 #sales-tsk-page .sales-chart-grid > .party-matrix-chart-panel { border-radius: 12px; overflow: hidden; border-top: 2px solid #137fec55; box-shadow: 0 2px 6px #0f172a04; padding: 0; }
 #sales-tsk-page .sales-chart-grid > [data-segment="sections"] { border-top-color: #8b5cf655; }
-.sales-chart-grid .party-matrix-panel-heading { display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 18px; border-bottom: 1px solid var(--sales-border); }
+.sales-chart-grid .party-matrix-panel-heading { display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--sales-border); }
 #sales-tsk-page .sales-chart-grid h2 { font-size: 13px; font-weight: 700; }
 .sales-chart-icon { color: #137fec; background: #137fec12; border-radius: 9px; padding: 8px; font-size: 20px; }
 [data-segment="sections"] .sales-chart-icon { color: #8b5cf6; background: #8b5cf612; }
 .sales-chart-grid .sales-content { padding: 0 16px 12px; }
-.sales-chart-summary { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; padding: 18px 0; }
+.sales-chart-summary { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; padding: 12px 0; }
 .sales-chart-summary small { display: block; color: var(--sales-muted); font-size: 10px; margin-bottom: 5px; }
 .sales-chart-summary strong { display: block; color: var(--sales-text); font-size: clamp(14px, 1.5vw, 21px); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .sales-chart-summary > div:last-child { text-align: right; }
 .sales-chart-summary > div:last-child strong { font-size: 13px; padding-top: 5px; }
-.sales-chart-grid [data-segment="trend"] .sales-canvas { height: 320px; }
-.sales-chart-grid [data-segment="sections"] .sales-canvas { height: 250px; margin: 0 auto 16px; max-width: 340px; }
+.sales-chart-grid [data-segment="trend"] .sales-canvas { height: 220px; }
+.sales-chart-grid [data-segment="sections"] .sales-canvas { height: 180px; margin: 0 auto 10px; max-width: 340px; }
 .sales-chart-note { color: var(--sales-muted); font-size: 10px; line-height: 1.6; margin: 12px 0; }
 .sales-chart-details { border-top: 1px solid var(--sales-border); font-size: 11px; }
 .sales-chart-details summary { padding: 12px 0 4px; color: var(--sales-muted); cursor: pointer; }
-.sales-section-summary { display: flex; justify-content: space-between; padding: 16px 0 8px; color: var(--sales-muted); font-size: 10px; }
+.sales-section-summary { display: flex; justify-content: space-between; padding: 10px 0 6px; color: var(--sales-muted); font-size: 10px; }
 .sales-section-summary span:first-child { background: #8b5cf612; color: #8b5cf6; padding: 3px 7px; border-radius: 5px; font-weight: 600; }
 .sales-donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
 .sales-donut-center small { color: var(--sales-muted); font-size: 9px; letter-spacing: .08em; margin-bottom: 7px; }
 .sales-donut-center strong { color: var(--sales-text); font-size: clamp(15px, 1.6vw, 23px); letter-spacing: -.035em; max-width: 65%; text-align: center; pointer-events: auto; }
 .sales-section-dot { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; }
 .sales-chart-grid .sales-table th { font-size: 9px; font-weight: 600; }
-.sales-chart-grid .sales-table td { padding: 12px 8px; }
+.sales-chart-grid .sales-table td { padding: 8px; }
 .dark .sales-chart-icon { color: #60a5fa; }
 .dark [data-segment="sections"] .sales-chart-icon, .dark .sales-section-summary span:first-child { color: #a78bfa; }
 @media (max-width: 640px) { .sales-chart-summary { gap: 8px; } .sales-chart-grid .sales-content { padding: 0 10px 10px; } }
@@ -202,6 +202,9 @@
 .sales-chart-grid { align-items: stretch; }
 #sales-tsk-page .sales-chart-grid > .party-matrix-chart-panel { display: flex; flex-direction: column; }
 .sales-chart-grid .sales-content { display: flex; flex-direction: column; flex: 1; }
-.sales-chart-grid [data-segment="trend"] .sales-canvas { flex: 1; min-height: 320px; }
+.sales-chart-grid [data-segment="trend"] .sales-canvas { flex: 1; min-height: 220px; }
 .sales-chart-grid [data-segment="sections"] .sales-canvas { width: 100%; flex-shrink: 0; }
 .sales-chart-grid .sales-fetched { margin-top: auto; }
+
+.sales-chart-grid [data-segment="sections"] .sales-table-wrap { max-height: 170px; flex-shrink: 0; }
+.sales-chart-grid .sales-donut-center strong { font-size: clamp(13px, 1.1vw, 18px); max-width: 120px; }
