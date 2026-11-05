@@ -14,6 +14,7 @@ import time
 logger = logging.getLogger(__name__)
 
 SALES_COMPARISON_DATE = date(2025, 10, 18)
+AKT_REPORT_CACHE_TTL_SECONDS = 50 * 60
 
 
 def selected_divisions(args):
@@ -530,10 +531,10 @@ def get_akt_transaction_data():
                 "filter_options": unique_vals
             }
 
-            # Cache the result for 15 minutes (900 seconds)
+            # Cache the result for 50 minutes; refresh signals invalidate all filter variants.
             if redis_client:
                 try:
-                    redis_client.setex(cache_key, 900, json.dumps(result))
+                    redis_client.setex(cache_key, AKT_REPORT_CACHE_TTL_SECONDS, json.dumps(result))
                 except Exception as cache_err:
                     logger.error(f"Failed to cache data for {cache_key}: {str(cache_err)}")
 

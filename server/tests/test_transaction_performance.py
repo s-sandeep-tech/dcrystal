@@ -107,6 +107,7 @@ class TransactionPerformanceTests(unittest.TestCase):
             self.assertEqual(len(data['efficiency_2025']), prior_count)
             keys.append(mock_redis.get.call_args.args[0])
         self.assertEqual(len(set(keys)), len(cases))
+        self.assertEqual(mock_redis.setex.call_args.args[1], 3000)
 
     def test_sales_growth_common_hour_and_unavailable_baseline(self):
         from sqlalchemy import func
