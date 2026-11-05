@@ -1,48 +1,86 @@
-<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-    <div
-        class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 border-l-4 border-l-primary transition-all hover:shadow-md">
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Per Min Billing</p>
-        <div class="flex items-baseline gap-2">
-            <h3 id="kpi-per-min" class="text-xl font-extrabold text-primary">0.00</h3>
-            <span class="text-[10px] text-emerald-500 font-bold">Primary</span>
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 mb-8">
+    <!-- 1. Per Min Billing -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-xs border border-gray-100 dark:border-gray-700/60 hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800/40 transition-all duration-200 flex flex-col justify-between group">
+        <div class="flex items-center justify-between gap-2 mb-2">
+            <p class="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider truncate">Per Min Billing</p>
+            <span class="size-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <span class="material-symbols-outlined text-[18px]">speed</span>
+            </span>
         </div>
-        <p class="text-[9px] text-gray-500 mt-1">Efficiency Target</p>
+        <div class="flex items-baseline gap-2">
+            <h3 id="kpi-per-min" class="text-xl lg:text-2xl font-black text-primary tracking-tight">0.00</h3>
+            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">Primary</span>
+        </div>
+        <p class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-1">Efficiency Target</p>
     </div>
 
-    <div
-        class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-md">
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Last Hour Bill Count</p>
-        <h3 id="kpi-hourly" class="text-xl font-extrabold text-gray-800 dark:text-white">0</h3>
-        <p class="text-[9px] text-gray-500 mt-1">Secondary KPI</p>
+    <!-- 2. Last Hour Bill Count -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-xs border border-gray-100 dark:border-gray-700/60 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-800/40 transition-all duration-200 flex flex-col justify-between group">
+        <div class="flex items-center justify-between gap-2 mb-2">
+            <p class="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider truncate">Last Hour Bills</p>
+            <span class="size-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <span class="material-symbols-outlined text-[18px]">hourglass_top</span>
+            </span>
+        </div>
+        <div class="flex items-baseline gap-2">
+            <h3 id="kpi-hourly" class="text-xl lg:text-2xl font-black text-gray-900 dark:text-white tracking-tight">0</h3>
+        </div>
+        <p class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-1">Secondary KPI</p>
     </div>
 
-    <div
-        class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-md">
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Sales</p>
-        <h3 id="kpi-sales" class="text-xl font-extrabold text-gray-800 dark:text-white">₹0</h3>
-        <p class="text-[9px] text-gray-500 mt-1">InvoiceAmt</p>
+    <!-- 3. Total Sales -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-xs border border-gray-100 dark:border-gray-700/60 hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-800/40 transition-all duration-200 flex flex-col justify-between group">
+        <div class="flex items-center justify-between gap-2 mb-2">
+            <p class="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider truncate">Total Sales</p>
+            <span class="size-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <span class="material-symbols-outlined text-[18px]">currency_rupee</span>
+            </span>
+        </div>
+        <div class="flex items-baseline gap-2">
+            <h3 id="kpi-sales" class="text-xl lg:text-2xl font-black text-gray-900 dark:text-white tracking-tight">₹0</h3>
+        </div>
+        <p class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-1">InvoiceAmt</p>
     </div>
 
-    <div
-        class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-md">
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Bill Count</p>
-        <h3 id="kpi-bills" class="text-xl font-extrabold text-gray-800 dark:text-white">0</h3>
-        <p class="text-[9px] text-gray-500 mt-1">Cumulative</p>
+    <!-- 4. Total Bill Count -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-xs border border-gray-100 dark:border-gray-700/60 hover:shadow-md hover:border-purple-200 dark:hover:border-purple-800/40 transition-all duration-200 flex flex-col justify-between group">
+        <div class="flex items-center justify-between gap-2 mb-2">
+            <p class="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider truncate">Total Bill Count</p>
+            <span class="size-8 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <span class="material-symbols-outlined text-[18px]">receipt_long</span>
+            </span>
+        </div>
+        <div class="flex items-baseline gap-2">
+            <h3 id="kpi-bills" class="text-xl lg:text-2xl font-black text-gray-900 dark:text-white tracking-tight">0</h3>
+        </div>
+        <p class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-1">Cumulative Bills</p>
     </div>
 
-    <div
-        class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-md">
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Avg Bill Value</p>
-        <h3 id="kpi-avg-bill" class="text-xl font-extrabold text-gray-800 dark:text-white">₹0</h3>
-        <p class="text-[9px] text-gray-500 mt-1">Sales/Bills</p>
+    <!-- 5. Avg Bill Value -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-xs border border-gray-100 dark:border-gray-700/60 hover:shadow-md hover:border-amber-200 dark:hover:border-amber-800/40 transition-all duration-200 flex flex-col justify-between group">
+        <div class="flex items-center justify-between gap-2 mb-2">
+            <p class="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider truncate">Avg Bill Value</p>
+            <span class="size-8 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <span class="material-symbols-outlined text-[18px]">trending_up</span>
+            </span>
+        </div>
+        <div class="flex items-baseline gap-2">
+            <h3 id="kpi-avg-bill" class="text-xl lg:text-2xl font-black text-gray-900 dark:text-white tracking-tight">₹0</h3>
+        </div>
+        <p class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-1">Sales / Bills</p>
     </div>
 
-    <!-- Total Profit card hidden (Data unavailable) -->
-
-    <div
-        class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-md">
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Net Wt (Kg)</p>
-        <h3 id="kpi-weight" class="text-xl font-extrabold text-gray-800 dark:text-white">0.00 kg</h3>
-        <p class="text-[9px] text-gray-500 mt-1">Kilograms</p>
+    <!-- 6. Total Net Wt (Kg) -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-xs border border-gray-100 dark:border-gray-700/60 hover:shadow-md hover:border-cyan-200 dark:hover:border-cyan-800/40 transition-all duration-200 flex flex-col justify-between group">
+        <div class="flex items-center justify-between gap-2 mb-2">
+            <p class="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider truncate">Total Net Wt (Kg)</p>
+            <span class="size-8 rounded-lg bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <span class="material-symbols-outlined text-[18px]">scale</span>
+            </span>
+        </div>
+        <div class="flex items-baseline gap-2">
+            <h3 id="kpi-weight" class="text-xl lg:text-2xl font-black text-gray-900 dark:text-white tracking-tight">0.00 kg</h3>
+        </div>
+        <p class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-1">Kilograms</p>
     </div>
 </div>
