@@ -44,16 +44,17 @@
 <aside id="sales-sidebar" class="party-matrix-sidebar">
     <form id="sales-filters" class="sales-filter-form" data-default-start="{{ start }}" data-default-end="{{ end }}">
         <div class="party-matrix-sidebar-body">
-            <div class="party-matrix-filter-title"><h2><span class="material-symbols-outlined">filter_alt</span> Filters</h2><button id="sales-filter-close" class="party-matrix-filter-reset" type="button" aria-label="Close filters">Close</button><button class="party-matrix-filter-reset" type="reset">Reset</button></div>
-            <label>From <input type="date" name="start" required value="{{ start }}"></label>
-            <label>To <input type="date" name="end" required value="{{ end }}"></label>
-            <p class="sales-note">Defaults to April–March financial year to date. Up to 12 calendar months. Hold Ctrl / ⌘ to select multiple values.</p>
+            <div class="party-matrix-filter-title"><h2><span class="material-symbols-outlined">filter_alt</span> Filters</h2><button id="sales-filter-close" class="party-matrix-filter-reset" type="button" aria-label="Close filters">Close</button></div>
+            <div class="sales-date-fields"><label>From <input type="date" name="start" required value="{{ start }}"></label>
+            <label>To <input type="date" name="end" required value="{{ end }}"></label></div>
+            <p class="sales-note">Financial year to date · up to 12 months</p>
             <div id="sales-options-status" role="status">Loading filters…</div>
             {% for key, field in filter_fields.items() %}
-            <label>{{ field[0] }}<select name="{{ key }}" multiple size="3" aria-label="{{ field[0] }}"><option disabled>Loading…</option></select></label>
+            {% if key == 'branch_id' %}<h3 class="sales-filter-group">Location</h3>{% elif key == 'make_id' %}<h3 class="sales-filter-group">Product</h3>{% elif key == 'invoice_type' %}<h3 class="sales-filter-group">Transaction</h3>{% endif %}
+            <div class="sales-filter-field"><span class="sales-filter-label" id="filter-label-{{ key }}">{{ field[0] }}</span><select name="{{ key }}" multiple aria-label="{{ field[0] }}" hidden><option disabled>Loading…</option></select></div>
             {% endfor %}
         </div>
-        <div class="party-matrix-sidebar-footer"><button type="submit"><span class="material-symbols-outlined">search_check</span> Apply Filters</button></div>
+        <div class="party-matrix-sidebar-footer sales-filter-actions"><button type="reset" class="sales-filter-reset">Reset</button><button type="submit"><span class="material-symbols-outlined">search_check</span> Apply Filters</button></div>
     </form>
 </aside>
 {% endblock %}

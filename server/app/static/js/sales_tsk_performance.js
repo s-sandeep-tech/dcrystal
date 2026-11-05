@@ -14,6 +14,7 @@
     const percent = value => value == null ? '—' : `${Number(value).toFixed(1)}%`;
     const monthLabel = value => new Date(`${value}T12:00:00`).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
     const fields = [...form.querySelectorAll('select[name]')];
+    const filterDropdowns = new Map();
     let applied = new URLSearchParams(location.search);
     let kpiTrend = null;
     let kpiTrendStatus = 'Loading monthly trend…';
@@ -38,7 +39,57 @@
         const known = new Set(options.map(o => o.value));
         const all = [...options, ...selected.filter(v => !known.has(v)).map(v => ({ value: v, label: v }))];
         for (const item of all) select.add(new Option(item.label, item.value, false, selected.includes(item.value)));
+        filterDropdowns.get(select)?.refresh();
     }
+    function buildFilterDropdown(select) {
+        const label = select.getAttribute('aria-label');
+        const allText = `All ${label === 'Purity' ? 'purities' : label.toLowerCase() + 's'}`;
+        const details = element('details', null, 'sales-multiselect');
+        const summary = element('summary'); summary.setAttribute('aria-labelledby', `filter-label-${select.name} filter-value-${select.name}`);
+        const value = element('span', allText); value.id = `filter-value-${select.name}`;
+        const icon = element('span', 'expand_more', 'material-symbols-outlined'); icon.setAttribute('aria-hidden', 'true');
+        summary.append(value, icon);
+        const panel = element('div', null, 'sales-multiselect-panel');
+        const search = element('input'); search.type = 'search'; search.placeholder = `Search ${label.toLowerCase()}…`; search.setAttribute('aria-label', `Search ${label.toLowerCase()}`);
+        const tools = element('div', null, 'sales-multiselect-tools');
+        const count = element('span'); count.setAttribute('aria-live', 'polite');
+        const clear = element('button', 'Clear'); clear.type = 'button'; clear.setAttribute('aria-label', `Clear ${label.toLowerCase()}`); tools.append(count, clear);
+        const list = element('div', null, 'sales-multiselect-options'); list.setAttribute('role', 'group'); list.setAttribute('aria-label', `${label} options`);
+        panel.append(search, tools, list); details.append(summary, panel); select.after(details);
+        function updateSummary() {
+            const chosen = [...select.selectedOptions];
+            value.textContent = chosen.length === 0 ? allText : chosen.length === 1 ? chosen[0].text : `${chosen.length} selected`;
+            summary.title = chosen.map(option => option.text).join(', ') || allText;
+            details.classList.toggle('has-selection', chosen.length > 0); clear.disabled = !chosen.length;
+        }
+        function refresh() {
+            updateSummary(); list.replaceChildren();
+            const query = search.value.trim().toLocaleLowerCase();
+            const matches = [...select.options].filter(option => !option.disabled && option.text.toLocaleLowerCase().includes(query));
+            count.textContent = `${matches.length} options · ${select.selectedOptions.length} selected`;
+            if (!matches.length) list.append(element('p', 'No matching options', 'sales-multiselect-empty'));
+            for (const option of matches) {
+                const row = element('label'); const checkbox = element('input'); checkbox.type = 'checkbox'; checkbox.checked = option.selected;
+                checkbox.addEventListener('change', () => { option.selected = checkbox.checked; updateSummary(); count.textContent = `${matches.length} options · ${select.selectedOptions.length} selected`; });
+                row.append(checkbox, element('span', option.text)); list.append(row);
+            }
+        }
+        details.addEventListener('toggle', () => {
+            if (details.open) {
+                filterDropdowns.forEach(dropdown => { if (dropdown.details !== details) dropdown.details.open = false; });
+                search.focus();
+            }
+        });
+        search.addEventListener('input', refresh);
+        search.addEventListener('keydown', event => { if (event.key === 'Enter') event.preventDefault(); });
+        details.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); details.open = false; summary.focus(); } });
+        clear.addEventListener('click', () => { [...select.options].forEach(option => { option.selected = false; }); refresh(); });
+        filterDropdowns.set(select, { details, refresh, reset() { search.value = ''; details.open = false; refresh(); } });
+        refresh();
+    }
+    document.addEventListener('click', event => filterDropdowns.forEach(dropdown => {
+        if (!dropdown.details.contains(event.target)) dropdown.details.open = false;
+    }));
     function retry(status, message, fn) {
         status.replaceChildren(element('span', message));
         const button = element('button', 'Retry', 'sales-retry');
@@ -350,20 +401,22 @@
         segments.forEach(segment => load(segment, params)); loadOptions(params);
     }
     form.addEventListener('submit', event => {
-        event.preventDefault(); applied = new URLSearchParams(new FormData(form)); reload();
+        event.preventDefault(); applied = new URLSearchParams(new FormData(form)); filterDropdowns.forEach(dropdown => { dropdown.details.open = false; }); reload();
     });
     form.addEventListener('reset', event => {
-        event.preventDefault(); applied = new URLSearchParams(); restoreDates(); fields.forEach(select => [...select.options].forEach(o => { o.selected = false; })); reload();
+        event.preventDefault(); applied = new URLSearchParams(); restoreDates(); fields.forEach(select => [...select.options].forEach(o => { o.selected = false; })); filterDropdowns.forEach(dropdown => dropdown.reset()); reload();
     });
     document.getElementById('sales-refresh').addEventListener('click', reload);
     function toggleFilters(open) {
         const sidebar = document.getElementById('sales-sidebar');
         sidebar.classList.toggle('is-collapsed', !open);
         sidebar.inert = !open;
+        if (!open) filterDropdowns.forEach(dropdown => { dropdown.details.open = false; });
         document.getElementById('sales-filter-toggle').setAttribute('aria-expanded', String(open));
     }
     document.getElementById('sales-filter-toggle').addEventListener('click', () => toggleFilters(document.getElementById('sales-sidebar').classList.contains('is-collapsed')));
     document.getElementById('sales-filter-close').addEventListener('click', () => toggleFilters(false));
     if (matchMedia('(max-width: 680px)').matches) toggleFilters(false);
+    fields.forEach(buildFilterDropdown);
     restoreDates(); fields.forEach(select => setOptions(select, [], applied.getAll(select.name))); reload();
 })();

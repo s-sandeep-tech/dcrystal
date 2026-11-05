@@ -163,3 +163,45 @@
 [data-segment="branches"] .sales-ledger-share { min-width: 180px; }
 [data-segment="branches"] tfoot { background: color-mix(in srgb, #137fec 5%, var(--sales-panel)); border-top: 2px solid var(--sales-border); }
 .dark .sales-rank-badge.is-top, .dark .sales-branch-summary .sales-ledger-pill { color: #60a5fa; }
+/* Compact filters keep form actions visible while the fields scroll. */
+#sales-sidebar { --party-matrix-sidebar-width: 260px; }
+#sales-sidebar .party-matrix-sidebar-body { padding: 14px 12px; }
+#sales-sidebar .party-matrix-filter-title { margin-bottom: 14px; }
+.sales-date-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sales-date-fields label, .sales-filter-label { display: block; font-size: 10px; font-weight: 600; color: #64748b; }
+#sales-sidebar .sales-date-fields input { min-width: 0; width: 100%; padding: 7px 4px; font-size: 10px; }
+.sales-filter-group { margin: 16px 0 9px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 9px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .09em; }
+.sales-filter-field { margin-bottom: 10px; }
+.sales-filter-label { margin-bottom: 4px; }
+.sales-multiselect { border: 1px solid #d8e0e9; border-radius: 8px; background: #fff; }
+.sales-multiselect summary { display: flex; justify-content: space-between; align-items: center; gap: 6px; cursor: pointer; list-style: none; padding: 8px 9px; min-height: 35px; font-size: 11px; color: #64748b; }
+.sales-multiselect summary::-webkit-details-marker { display: none; }
+.sales-multiselect summary > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sales-multiselect summary .material-symbols-outlined { font-size: 17px; flex-shrink: 0; }
+.sales-multiselect[open] summary .material-symbols-outlined { transform: rotate(180deg); }
+.sales-multiselect.has-selection { border-color: #137fec66; }
+.sales-multiselect.has-selection summary { color: #137fec; background: #137fec08; border-radius: 8px; font-weight: 600; }
+.sales-multiselect-panel { border-top: 1px solid #e2e8f0; padding: 8px; }
+#sales-sidebar .sales-multiselect-panel input[type="search"] { margin: 0; padding: 7px; font-size: 11px; }
+.sales-multiselect-tools { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 8px 0; font-size: 9px; color: #64748b; }
+.sales-multiselect-tools button { color: #137fec; font-weight: 600; }
+.sales-multiselect-tools button:disabled { opacity: .4; }
+.sales-multiselect-options { max-height: 176px; overflow-y: auto; }
+.sales-multiselect-options label { display: flex; align-items: center; gap: 7px; padding: 7px 3px; font-size: 11px; color: #334155; cursor: pointer; }
+#sales-sidebar .sales-multiselect-options input[type="checkbox"] { flex-shrink: 0; width: 13px; height: 13px; margin: 0; padding: 0; accent-color: #137fec; }
+.sales-multiselect-empty { font-size: 10px; padding: 8px 0; color: #64748b; }
+#sales-sidebar .sales-filter-actions { display: grid; grid-template-columns: 68px 1fr; gap: 8px; padding: 12px; flex-shrink: 0; background: #fff; border-top: 1px solid #dfe5ec; }
+#sales-sidebar .sales-filter-reset { background: #f8fafc; color: #64748b; border: 1px solid #d8e0e9; }
+.sales-multiselect summary:focus-visible, .sales-multiselect button:focus-visible { outline: 2px solid #137fec; outline-offset: 2px; }
+.dark .sales-multiselect, .dark #sales-sidebar .sales-filter-actions { background: #1e293b; border-color: #334155; }
+.dark .sales-filter-label, .dark .sales-date-fields label, .dark .sales-multiselect summary, .dark .sales-multiselect-options label { color: #cbd5e1; }
+.dark .sales-filter-group, .dark .sales-multiselect-panel { border-color: #334155; }
+.dark #sales-sidebar .sales-filter-reset { background: #0f172a; border-color: #334155; color: #cbd5e1; }
+.dark .sales-multiselect.has-selection summary { color: #60a5fa; }
+/* Stretch sibling charts to one shared row height. */
+.sales-chart-grid { align-items: stretch; }
+#sales-tsk-page .sales-chart-grid > .party-matrix-chart-panel { display: flex; flex-direction: column; }
+.sales-chart-grid .sales-content { display: flex; flex-direction: column; flex: 1; }
+.sales-chart-grid [data-segment="trend"] .sales-canvas { flex: 1; min-height: 320px; }
+.sales-chart-grid [data-segment="sections"] .sales-canvas { width: 100%; flex-shrink: 0; }
+.sales-chart-grid .sales-fetched { margin-top: auto; }
