@@ -472,19 +472,34 @@ function updateKPIs(kpis) {
     growthEl.classList.add(...(rounded > 0 ? ['text-emerald-600', 'dark:text-emerald-400'] : rounded < 0 ? ['text-red-600', 'dark:text-red-400'] : ['text-gray-900', 'dark:text-white']));
     const comparison = kpis.sales_growth_comparison_date?.split('-').reverse().join('/') || '18/10/2025';
     const cutoff = kpis.sales_growth_cutoff;
-    document.getElementById('kpi-sales-growth-detail').textContent = `vs ${comparison}${cutoff ? ` · ${cutoff}` : ''}`;
+    const comparisonYear = kpis.sales_growth_comparison_date?.slice(0, 4) || '2025';
+    document.getElementById('kpi-sales-growth-detail').textContent = comparisonYear;
     const fullSalesValue = value => Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 });
     const detail = available
         ? `Current sales: ${fullSalesValue(kpis.sales_growth_current)}; ${comparison} sales: ${fullSalesValue(kpis.sales_growth_previous)}; through ${cutoff}. (Current − comparison) ÷ comparison × 100.`
         : `Comparison with ${comparison} unavailable: ${kpis.sales_growth_status === 'nonpositive_baseline' ? 'comparison sales are zero or negative' : 'matching sales data is missing'}.`;
     growthEl.title = detail;
     document.getElementById('kpi-sales-growth-detail').title = detail;
+    const salesBadge = document.getElementById('kpi-sales-growth-badge');
+    salesBadge.replaceChildren();
+    salesBadge.className = 'inline-flex items-center gap-0.5 shrink-0 rounded-md px-1.5 py-1 text-[9px] font-bold ' +
+        (rounded > 0 ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30' : rounded < 0 ? 'text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-900/30' : 'text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400');
+    if (available && rounded !== 0) {
+        const arrow = document.createElement('span');
+        arrow.className = 'material-symbols-outlined text-[12px]';
+        arrow.textContent = rounded > 0 ? 'arrow_upward' : 'arrow_downward';
+        arrow.setAttribute('aria-hidden', 'true'); salesBadge.append(arrow);
+    }
+    salesBadge.append(document.createTextNode(available ? `${rounded > 0 ? '+' : ''}${rounded.toFixed(1)}%` : 'N/A'));
+    salesBadge.title = detail;
+    salesBadge.setAttribute('aria-label', available ? `Sales change versus ${comparisonYear}: ${rounded > 0 ? '+' : ''}${rounded.toFixed(1)} percent` : `Sales comparison with ${comparisonYear} unavailable`);
+
     document.getElementById('kpi-hourly').innerText = kpis.total_hourly.toLocaleString();
     document.getElementById('kpi-sales').innerText = formatCurrency(kpis.total_sales);
     const previousSales = kpis.sales_growth_previous;
     const hasPreviousSales = typeof previousSales === 'number' && Number.isFinite(previousSales) && Boolean(cutoff);
     const previousSalesEl = document.getElementById('kpi-sales-previous');
-    previousSalesEl.textContent = `LY: ${hasPreviousSales ? formatCurrency(previousSales) : 'N/A'} · ${comparison.replace('/2025', '/25')}`;
+    previousSalesEl.textContent = `${comparisonYear}: ${hasPreviousSales ? formatCurrency(previousSales) : 'N/A'}`;
     previousSalesEl.title = hasPreviousSales
         ? `Last-year invoice sales: ${fullSalesValue(previousSales)} on ${comparison}, through ${cutoff}, using the same selected filters as Sales Growth YoY.`
         : `Last-year sales for ${comparison} are unavailable at a matching reporting hour.`;
