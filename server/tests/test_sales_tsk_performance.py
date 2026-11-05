@@ -164,6 +164,28 @@ class PostgreSQLTests(unittest.TestCase):
         self.cur.execute("UPDATE sales_tsk_fixture SET turn_over=-1000 WHERE trans_type='SR'")
         self.assertTrue(all(row['period_share'] is None for row in report.monthly(self.cur, filters)))
 
+    def test_ledger_return_rate_tsk_and_cumulative(self):
+        filters = report.parse_filters(MultiDict(dict(start='2026-01-01', end='2026-03-31')))
+        rows = report.monthly(self.cur, filters)
+        self.assertEqual(rows[0]['return_rate'], Decimal('12.5'))
+        self.assertEqual(rows[0]['tsk_pct'], Decimal(5))
+        self.assertEqual(rows[1]['return_rate'], Decimal(0))
+        self.assertEqual([r['cumulative_turnover'] for r in rows], [140, 340, 340])
+        self.assertIsNone(rows[2]['return_rate'])
+        self.assertIsNone(rows[2]['tsk_pct'])
+        filters['selections'] = {'branch_id': ['1']}
+        filtered = report.monthly(self.cur, filters)
+        self.assertEqual(filtered[0]['return_rate'], Decimal(20))
+        self.assertEqual([r['cumulative_turnover'] for r in filtered], [80, 80, 80])
+        filters['selections'] = {'trans_type': ['SR']}
+        returns = report.monthly(self.cur, filters)
+        self.assertIsNone(returns[0]['return_rate'])
+        self.assertIsNone(returns[0]['tsk_pct'])
+        self.assertEqual(returns[0]['cumulative_turnover'], Decimal(-20))
+        filters['selections'] = {}
+        filters['start'] = date(2026, 2, 1)
+        self.assertEqual(report.monthly(self.cur, filters)[0]['cumulative_turnover'], Decimal(200))
+
     def test_kpi_negative_baseline_and_unchanged_values(self):
         self.cur.execute("INSERT INTO sales_tsk_fixture(date, trans_type, turn_over, net_weight, total_tsk) VALUES ('2025-01-03', 'SR', -40, 7, 4)")
         totals = report.totals(self.cur, self.filters)

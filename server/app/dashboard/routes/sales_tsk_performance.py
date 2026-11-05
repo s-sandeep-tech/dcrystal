@@ -44,9 +44,9 @@ def sales_tsk_performance_segment(segment):
         if segment == 'export':
             output = io.StringIO()
             writer = csv.writer(output)
-            keys = ['month', *report.METRICS, 'period_share', 'mom', 'is_partial', 'leading_branch']
+            keys = ['month', *report.METRICS, 'return_rate', 'tsk_pct', 'cumulative_turnover', 'period_share', 'mom', 'is_partial', 'leading_branch']
             writer.writerow(['Month', 'Invoice turnover', 'Returns (signed)', 'Net turnover',
-                             'Net weight (kg, source total)', 'TSK (source total)', 'Period share %', 'MoM net turnover %', 'Partial month', 'Leading branch'])
+                             'Net weight (kg, source total)', 'TSK (source total)', 'Return rate %', 'TSK % (total_tsk)', 'Cumulative turnover', 'Period share %', 'MoM net turnover %', 'Partial month', 'Leading branch'])
             for row in data:
                 values = [row.get(key) for key in keys]
                 # Protect spreadsheet consumers from formula-like source labels.

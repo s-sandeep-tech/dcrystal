@@ -10,7 +10,7 @@
     const number = value => value == null ? '—' : nf.format(value);
     const crores = value => value == null ? '—' : `${(Number(value) / 10000000).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Cr`;
     const axisCrores = value => `${(Number(value) / 10000000).toLocaleString('en-IN', { maximumFractionDigits: Math.abs(Number(value)) < 100000 ? 6 : 2 })} Cr`;
-    const amountKeys = new Set(['invoice_turnover', 'return_turnover', 'net_turnover', 'total_tsk', 'prior_turnover']);
+    const amountKeys = new Set(['invoice_turnover', 'return_turnover', 'net_turnover', 'total_tsk', 'prior_turnover', 'cumulative_turnover']);
     const percent = value => value == null ? '—' : `${Number(value).toFixed(1)}%`;
     const monthLabel = value => new Date(`${value}T12:00:00`).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
     const fields = [...form.querySelectorAll('select[name]')];
@@ -145,6 +145,8 @@
                         td.title = `${percent(value)} of selected-period net turnover${c.progress ? ' across all matching branches' : ''}. This is contribution, not target attainment.`;
                     }
                 }
+                if (c.key === 'return_rate') td.title = 'Absolute return turnover ÷ invoice turnover × 100. Unavailable when invoice turnover is zero or negative.';
+                if (c.key === 'tsk_pct') td.title = 'Total TSK (total_tsk) ÷ net turnover × 100. Unavailable when net turnover is zero or negative.';
                 if (c.key === 'mom') {
                     td.replaceChildren(element('span', value == null ? '—' : `${value > 0 ? '+' : ''}${percent(value)}`,
                         `sales-mom-badge ${value == null || value === 0 ? 'is-neutral' : value > 0 ? 'is-up' : 'is-down'}`));
@@ -354,15 +356,21 @@
             const footer = { month: 'Period total', leading_branch: null, mom: null };
             metricColumns.forEach(c => { footer[c.key] = data.reduce((sum, row) => sum + row[c.key], 0); });
             footer.period_share = footer.net_turnover > 0 ? 100 : null;
+            footer.return_rate = footer.invoice_turnover > 0 ? Math.abs(footer.return_turnover) / footer.invoice_turnover * 100 : null;
+            footer.tsk_pct = footer.net_turnover > 0 ? footer.total_tsk / footer.net_turnover * 100 : null;
+            footer.cumulative_turnover = footer.net_turnover;
             const peak = data.filter(row => row.row_count).reduce((best, row) => !best || row.net_turnover > best.net_turnover ? row : best, null);
             const summary = element('div', null, 'sales-ledger-summary');
             summary.append(element('span', `${data.length} monthly periods`, 'sales-ledger-pill'));
             if (peak) summary.append(element('span', `Highest turnover: ${monthLabel(peak.month)} · ${crores(peak.net_turnover)}`));
             const total = element('strong', `Period net turnover: ${crores(footer.net_turnover)}`); total.title = number(footer.net_turnover); summary.append(total); container.append(summary);
             table(container, [{ key: 'month', label: 'Month', format: v => v === 'Period total' ? v : monthLabel(v) }, ...metricColumns,
+                { key: 'return_rate', label: 'Return rate %', format: percent },
+                { key: 'tsk_pct', label: 'TSK %', format: percent },
+                { key: 'cumulative_turnover', label: 'Cumulative turnover', format: crores },
                 { key: 'period_share', label: 'Period share', format: percent }, { key: 'mom', label: 'MoM change', format: percent },
                 { key: 'leading_branch', label: 'Leading branch' }], data.map(row => ({ ...row, is_peak: row === peak })), footer);
-            container.append(element('p', 'Bars show each month’s share of period net turnover, not progress against a target. MoM compares complete consecutive months; partial months are labeled and excluded from comparison. Shares are unavailable when period net turnover is zero or negative.', 'sales-chart-note sales-ledger-note'));
+            container.append(element('p', 'Cumulative turnover starts at the selected period’s first month. Return rate uses invoice turnover; TSK % uses total_tsk ÷ net turnover. Period percentages use overall totals, not averaged monthly rates. Bars show monthly contribution, not target attainment. MoM compares complete consecutive months; partial months are labeled and excluded from comparison. Shares are unavailable when period net turnover is zero or negative.', 'sales-chart-note sales-ledger-note'));
         }
     }
     async function load(segment, params) {

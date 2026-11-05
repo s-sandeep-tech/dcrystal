@@ -175,10 +175,15 @@ def monthly(cur, filters):
         result.append(row)
         month = date(month.year + (month.month == 12), month.month % 12 + 1, 1)
     period_total = sum((row['net_turnover'] for row in result), Decimal(0))
+    cumulative_turnover = Decimal(0)
     for index, row in enumerate(result):
         month_date = date.fromisoformat(row['month'])
         month_end = month_date.replace(day=calendar.monthrange(month_date.year, month_date.month)[1])
         row['is_partial'] = filters['start'] > month_date or filters['end'] < month_end
+        cumulative_turnover += row['net_turnover']
+        row['cumulative_turnover'] = cumulative_turnover
+        row['return_rate'] = abs(row['return_turnover']) / row['invoice_turnover'] * 100 if row['invoice_turnover'] > 0 else None
+        row['tsk_pct'] = row['total_tsk'] / row['net_turnover'] * 100 if row['net_turnover'] > 0 else None
         row['period_share'] = row['net_turnover'] / period_total * 100 if period_total > 0 else None
         previous = result[index - 1] if index else None
         row['mom'] = ((row['net_turnover'] - previous['net_turnover']) / abs(previous['net_turnover']) * 100
