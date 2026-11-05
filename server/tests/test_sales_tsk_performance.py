@@ -1,6 +1,6 @@
 import os
 import unittest
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -12,6 +12,14 @@ from app.dashboard.routes import sales_tsk_performance as routes
 
 
 class FilterTests(unittest.TestCase):
+    def test_default_financial_year(self):
+        for today, expected in [(datetime(2026, 11, 5), date(2026, 4, 1)),
+                                (datetime(2027, 3, 31), date(2026, 4, 1)),
+                                (datetime(2027, 4, 1), date(2027, 4, 1))]:
+            with patch.object(report, 'datetime') as clock:
+                clock.now.return_value = today
+                self.assertEqual(report.defaults(), (expected, today.date()))
+
     def test_bounds_and_leap_year(self):
         with self.assertRaises(ValueError):
             report.parse_filters(MultiDict(dict(start='2026-02-01', end='2026-01-01')))

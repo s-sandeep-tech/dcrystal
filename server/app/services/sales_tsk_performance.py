@@ -38,9 +38,8 @@ def previous_year(day):
 
 def defaults():
     today = datetime.now(ZoneInfo('Asia/Kolkata')).date()
-    end = today.replace(day=1) - timedelta(days=1)
-    start = date(end.year if end.month == 12 else end.year - 1, end.month % 12 + 1, 1)
-    return start, end
+    start = date(today.year if today.month >= 4 else today.year - 1, 4, 1)
+    return start, today
 
 
 def parse_filters(args):

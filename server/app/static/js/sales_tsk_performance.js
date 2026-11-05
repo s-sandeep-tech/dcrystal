@@ -9,6 +9,7 @@
     const nf = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 });
     const number = value => value == null ? '—' : nf.format(value);
     const crores = value => value == null ? '—' : `${(Number(value) / 10000000).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Cr`;
+    const axisCrores = value => `${(Number(value) / 10000000).toLocaleString('en-IN', { maximumFractionDigits: Math.abs(Number(value)) < 100000 ? 6 : 2 })} Cr`;
     const amountKeys = new Set(['invoice_turnover', 'return_turnover', 'net_turnover', 'total_tsk', 'prior_turnover']);
     const percent = value => value == null ? '—' : `${Number(value).toFixed(1)}%`;
     const monthLabel = value => new Date(`${value}T12:00:00`).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
@@ -80,6 +81,7 @@
             columns.forEach(c => {
                 const value = row[c.key];
                 const td = element('td', c.format ? c.format(value) : value ?? '—');
+                if (c.swatch) { const dot = element('span', null, 'sales-section-dot'); dot.style.backgroundColor = row.chart_color; td.prepend(dot); }
                 if (amountKeys.has(c.key) && value != null) { td.title = number(value); td.setAttribute('aria-label', `${c.label}: ${number(value)}`); }
                 if (c.key === 'yoy' && value != null) td.className = value >= 0 ? 'sales-positive' : 'sales-negative';
                 line.append(td);
@@ -115,8 +117,8 @@
         canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', segment === 'trend' ? 'Monthly turnover and TSK chart' : 'Section turnover contribution chart');
         wrap.append(canvas); container.append(wrap);
         const style = getComputedStyle(page);
-        config.options = { responsive: true, maintainAspectRatio: false, ...config.options,
-            plugins: { ...config.options?.plugins, tooltip: { callbacks: { label: context => `${context.dataset.label}: ${crores(context.raw)} (${number(context.raw)})` } }, legend: { labels: { color: style.getPropertyValue('--sales-text').trim(), boxWidth: 10 } } } };
+        config.options = { responsive: true, maintainAspectRatio: false, layout: { padding: 8 }, ...config.options,
+            plugins: { ...config.options?.plugins, tooltip: { callbacks: { label: context => `${context.dataset.label}: ${crores(context.raw)} (${number(context.raw)})` } }, legend: { display: segment !== 'sections', position: 'bottom', labels: { usePointStyle: true, padding: 18, color: style.getPropertyValue('--sales-text').trim(), boxWidth: 10 } } } };
         const chart = new Chart(canvas, config);
         charts.set(segment, chart); themeChart(chart);
     }
@@ -223,19 +225,42 @@
             container.append(element('p', 'No matching transactions for these filters.', 'sales-note')); return;
         }
         if (segment === 'trend') {
-            drawChart(segment, container, { type: 'bar', data: { labels: data.map(r => monthLabel(r.month)), datasets: [
-                { label: 'Net turnover', data: data.map(r => r.net_turnover), backgroundColor: '#137fec', yAxisID: 'y' },
-                { label: 'Prior-year turnover', type: 'line', data: data.map(r => r.prior_turnover), borderColor: '#94a3b8', borderDash: [5, 4], yAxisID: 'y' },
-                { label: 'TSK · source total', type: 'line', data: data.map(r => r.total_tsk), borderColor: '#10b981', yAxisID: 'tsk' }
-            ] }, options: { scales: { y: { beginAtZero: true, ticks: { callback: crores }, title: { display: true, text: 'Turnover (Cr)' } }, tsk: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, ticks: { callback: crores }, title: { display: true, text: 'TSK (Cr)' } } } } });
-            const details = element('details'); details.append(element('summary', 'View trend values'));
-            table(details, [{ key: 'month', label: 'Month', format: monthLabel }, metricColumns[2], metricColumns[4], { key: 'prior_turnover', label: 'Prior-year turnover', format: crores }], data); container.append(details);
+            const hasPrior = data.some(row => row.prior_turnover != null);
+            const summary = element('div', null, 'sales-chart-summary');
+            const totals = { net_turnover: data.reduce((sum, row) => sum + row.net_turnover, 0), total_tsk: data.reduce((sum, row) => sum + row.total_tsk, 0) };
+            for (const [key, label] of [['net_turnover', 'Net turnover'], ['total_tsk', 'Total TSK']]) {
+                const item = element('div'); const value = element('strong', crores(totals[key])); value.title = number(totals[key]);
+                item.append(element('small', label), value); summary.append(item);
+            }
+            const period = element('div'); period.append(element('small', 'Monthly view'), element('strong', `${data.length} months`)); summary.append(period); container.append(summary);
+            const datasets = [
+                { label: 'Net turnover', data: data.map(r => r.net_turnover), backgroundColor: '#137fec', borderRadius: 5, maxBarThickness: 30, yAxisID: 'y' },
+                { label: 'TSK · source total', type: 'line', data: data.map(r => r.total_tsk), borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', borderWidth: 2.5, pointRadius: 3, pointHoverRadius: 5, yAxisID: 'tsk' }
+            ];
+            if (hasPrior) datasets.push({ label: 'Prior-year turnover', type: 'line', data: data.map(r => r.prior_turnover), borderColor: '#94a3b8', borderDash: [5, 4], pointRadius: 2, yAxisID: 'y' });
+            drawChart(segment, container, { type: 'bar', data: { labels: data.map(r => monthLabel(r.month)), datasets }, options: { interaction: { mode: 'index', intersect: false }, scales: {
+                x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } },
+                y: { beginAtZero: true, ticks: { callback: axisCrores, maxTicksLimit: 6 }, border: { display: false }, title: { display: true, text: 'Turnover (Cr)' } },
+                tsk: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, border: { display: false }, ticks: { callback: axisCrores, maxTicksLimit: 6 }, title: { display: true, text: 'TSK (Cr)' } }
+            } } });
+            container.append(element('p', `Each point represents one month; boundary months may be partial.${hasPrior ? '' : ' Prior-year comparison is unavailable for this selection.'}`, 'sales-chart-note'));
+            const details = element('details', null, 'sales-chart-details'); details.append(element('summary', 'View monthly values'));
+            const columns = [{ key: 'month', label: 'Month', format: monthLabel }, metricColumns[2], metricColumns[4]];
+            if (hasPrior) columns.push({ key: 'prior_turnover', label: 'Prior-year turnover', format: crores });
+            table(details, columns, data); container.append(details);
         } else if (segment === 'sections') {
             const positive = data.every(r => r.net_turnover >= 0) && data.some(r => r.net_turnover > 0);
+            const palette = ['#137fec', '#059669', '#8b5cf6', '#0891b2', '#d97706', '#f43f5e', '#64748b', '#84cc16', '#cbd5e1'];
             const top = data.slice(0, 8);
             const chartRows = data.length > 8 ? [...top, { label: 'Other sections', net_turnover: data.slice(8).reduce((a, r) => a + r.net_turnover, 0) }] : top;
-            drawChart(segment, container, { type: positive ? 'doughnut' : 'bar', data: { labels: chartRows.map(r => r.label), datasets: [{ label: 'Net turnover', data: chartRows.map(r => r.net_turnover), backgroundColor: ['#137fec', '#10b981', '#f59e0b', '#7c3aed', '#06b6d4', '#f43f5e', '#64748b', '#84cc16', '#cbd5e1'] }] }, options: positive ? { cutout: '68%' } : { indexAxis: 'y', scales: { x: { ticks: { callback: crores }, title: { display: true, text: 'Net turnover (Cr)' } } } } });
-            table(container, [{ key: 'label', label: 'Section' }, metricColumns[2], { key: 'share', label: 'Share', format: percent }, metricColumns[4]], data);
+            const total = data.reduce((sum, row) => sum + row.net_turnover, 0);
+            const summary = element('div', null, 'sales-section-summary'); summary.append(element('span', `${data.length} sections`), element('span', 'Net turnover share')); container.append(summary);
+            drawChart(segment, container, { type: positive ? 'doughnut' : 'bar', data: { labels: chartRows.map(r => r.label), datasets: [{ label: 'Net turnover', data: chartRows.map(r => r.net_turnover), backgroundColor: palette, borderWidth: 0, spacing: 3, hoverOffset: 5, borderRadius: 3 }] }, options: positive ? { cutout: '76%' } : { indexAxis: 'y', scales: { x: { ticks: { callback: axisCrores }, title: { display: true, text: 'Net turnover (Cr)' } } } } });
+            if (positive && container.querySelector('.sales-canvas')) {
+                const center = element('div', null, 'sales-donut-center'); const value = element('strong', crores(total)); value.title = number(total);
+                center.append(element('small', 'NET TURNOVER'), value); container.querySelector('.sales-canvas').append(center);
+            }
+            table(container, [{ key: 'label', label: 'Section', swatch: true }, metricColumns[2], { key: 'share', label: 'Share', format: percent }, metricColumns[4]], data.map((row, i) => ({ ...row, chart_color: palette[Math.min(i, 8)] })));
         } else if (segment === 'branches') {
             table(container, [{ key: 'rank', label: 'Rank' }, { key: 'label', label: 'Location' }, metricColumns[2], metricColumns[3], metricColumns[4], { key: 'share', label: 'Share', format: percent }], data.slice(0, 10).map((r, i) => ({ ...r, rank: i + 1 })));
         } else if (segment === 'ledger') {

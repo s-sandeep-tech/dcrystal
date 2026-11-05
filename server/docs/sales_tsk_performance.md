@@ -6,7 +6,7 @@ This report queries `ext_view.vw_item_wise_tsk_details_data` on the external Pos
 
 ## Definitions
 
-- Default range: the last twelve complete calendar months, using Asia/Kolkata. Custom ranges cover at most twelve calendar months.
+- Default range: the current April–March financial year to date, using Asia/Kolkata. The current month may be partial. Custom ranges cover at most twelve calendar months.
 - Sales date: `COALESCE(trans_date::date, date)`; inclusive start and end dates.
 - Included transactions: `INVOICE` and `SR`, optionally narrowed by the transaction-type filter.
 - Invoice turnover: sum of invoice `turn_over`.
@@ -17,7 +17,7 @@ This report queries `ext_view.vw_item_wise_tsk_details_data` on the external Pos
 - Branch leaderboard: top ten branches by net turnover, with shares calculated against all matching branches.
 - KPI YoY: each statistic compares the full selected period with the same dates last year, using identical filters and `(current - prior) / abs(prior) * 100`. Zero/missing prior bases show an unavailable badge. For signed returns, a less-negative total is a positive change.
 - Monthly ledger YoY: matching prior-year dates (February 29 clamps to February 28); unavailable for missing/non-positive prior bases or months with no current rows.
-- Missing months: zero totals. Prior history is never invented. Partial date ranges compare equivalent partial ranges.
+- Missing months: zero totals. Prior history is never invented. The monthly chart hides the prior-year series when the selection has no prior-year records; card sparklines always represent monthly totals. Partial date ranges compare equivalent partial ranges.
 
 Source weight is converted from grams to kg by dividing by 1,000 across every segment and CSV; YoY percentages are unchanged by unit conversion. Turnover and TSK amounts in KPI cards, chart axes, and all tables display in crores (1 Cr = 10,000,000), with full values on hover. CSV retains full monetary amounts and kg weight for analysis. Currency is not inferred. Margin, average ticket, targets, VIP conversion, and sell-through are not derived from this view.
 
