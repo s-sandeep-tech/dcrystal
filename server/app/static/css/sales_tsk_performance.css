@@ -125,3 +125,26 @@
 .dark .sales-chart-icon { color: #60a5fa; }
 .dark [data-segment="sections"] .sales-chart-icon, .dark .sales-section-summary span:first-child { color: #a78bfa; }
 @media (max-width: 640px) { .sales-chart-summary { gap: 8px; } .sales-chart-grid .sales-content { padding: 0 10px 10px; } }
+#sales-tsk-page [data-segment="ledger"] { border-radius: 12px; border-top: 2px solid #05966955; overflow: hidden; }
+[data-segment="ledger"] > .party-matrix-panel-heading { border-bottom: 1px solid var(--sales-border); }
+.sales-ledger-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 18px; padding: 14px 16px; color: var(--sales-muted); font-size: 11px; }
+.sales-ledger-summary strong { margin-left: auto; color: var(--sales-text); font-size: 12px; }
+.sales-ledger-pill { padding: 4px 8px; border-radius: 5px; background: #05966912; color: #059669; font-weight: 600; }
+[data-segment="ledger"] .sales-table th { font-size: 10px; background: var(--sales-panel); padding: 13px 12px; }
+[data-segment="ledger"] .sales-table td { padding: 14px 12px; }
+[data-segment="ledger"] .sales-table td:first-child { font-weight: 600; }
+[data-segment="ledger"] .sales-table tbody tr:hover { background: #137fec08; }
+.sales-ledger-peak { background: #05966909; }
+.sales-ledger-month-tag { display: inline-block; margin-left: 7px; padding: 2px 5px; font-size: 8px; border-radius: 4px; background: #94a3b81a; color: var(--sales-muted); }
+.sales-ledger-share { min-width: 140px; }
+.sales-ledger-share > span { display: block; margin-bottom: 5px; font-size: 10px; font-weight: 600; }
+.sales-share-track { width: 100%; height: 5px; border-radius: 5px; background: #94a3b826; overflow: hidden; }
+.sales-share-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #137fec, #10b981); }
+.sales-mom-badge { display: inline-block; font-size: 10px; font-weight: 600; border-radius: 5px; padding: 4px 6px; }
+.sales-mom-badge.is-up { background: #10b98115; color: #047857; }
+.sales-mom-badge.is-down { background: #ef444415; color: #b91c1c; }
+.sales-mom-badge.is-neutral { color: var(--sales-muted); }
+[data-segment="ledger"] tfoot { background: color-mix(in srgb, #137fec 5%, var(--sales-panel)); border-top: 2px solid var(--sales-border); }
+.sales-ledger-note { margin: 12px 16px; }
+.dark .sales-mom-badge.is-up, .dark .sales-ledger-pill { color: #6ee7b7; }
+.dark .sales-mom-badge.is-down { color: #fca5a5; }

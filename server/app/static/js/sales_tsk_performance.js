@@ -78,9 +78,30 @@
         head.append(tr); tbl.append(head);
         const renderRow = row => {
             const line = document.createElement('tr');
+            if (row.is_peak) line.classList.add('sales-ledger-peak');
             columns.forEach(c => {
                 const value = row[c.key];
                 const td = element('td', c.format ? c.format(value) : value ?? '—');
+                if (c.key === 'period_share') {
+                    td.className = 'sales-ledger-share';
+                    if (value != null) {
+                        const label = element('span', percent(value));
+                        const track = element('div', null, 'sales-share-track');
+                        const fill = element('div', null, 'sales-share-fill');
+                        fill.style.width = `${Math.max(0, Math.min(100, value))}%`;
+                        track.setAttribute('aria-hidden', 'true'); track.append(fill);
+                        td.replaceChildren(label, track);
+                        td.title = `${percent(value)} of selected-period net turnover. This is contribution, not target attainment.`;
+                    }
+                }
+                if (c.key === 'mom') {
+                    td.replaceChildren(element('span', value == null ? '—' : `${value > 0 ? '+' : ''}${percent(value)}`,
+                        `sales-mom-badge ${value == null || value === 0 ? 'is-neutral' : value > 0 ? 'is-up' : 'is-down'}`));
+                    td.title = value == null ? 'Comparison requires two complete, consecutive months with transactions and a nonzero prior total.' : 'Net turnover change versus the previous complete month.';
+                }
+                if (c.key === 'month' && (row.is_partial || row.is_peak)) {
+                    td.append(element('span', row.is_partial ? 'Partial' : 'Peak', 'sales-ledger-month-tag'));
+                }
                 if (c.swatch) { const dot = element('span', null, 'sales-section-dot'); dot.style.backgroundColor = row.chart_color; td.prepend(dot); }
                 if (amountKeys.has(c.key) && value != null) { td.title = number(value); td.setAttribute('aria-label', `${c.label}: ${number(value)}`); }
                 if (c.key === 'yoy' && value != null) td.className = value >= 0 ? 'sales-positive' : 'sales-negative';
@@ -264,9 +285,18 @@
         } else if (segment === 'branches') {
             table(container, [{ key: 'rank', label: 'Rank' }, { key: 'label', label: 'Location' }, metricColumns[2], metricColumns[3], metricColumns[4], { key: 'share', label: 'Share', format: percent }], data.slice(0, 10).map((r, i) => ({ ...r, rank: i + 1 })));
         } else if (segment === 'ledger') {
-            const footer = { month: 'Period total', leading_branch: null, yoy: null };
+            const footer = { month: 'Period total', leading_branch: null, mom: null };
             metricColumns.forEach(c => { footer[c.key] = data.reduce((sum, row) => sum + row[c.key], 0); });
-            table(container, [{ key: 'month', label: 'Month', format: v => v === 'Period total' ? v : monthLabel(v) }, ...metricColumns, { key: 'leading_branch', label: 'Leading branch' }, { key: 'yoy', label: 'YoY', format: percent }], data, footer);
+            footer.period_share = footer.net_turnover > 0 ? 100 : null;
+            const peak = data.filter(row => row.row_count).reduce((best, row) => !best || row.net_turnover > best.net_turnover ? row : best, null);
+            const summary = element('div', null, 'sales-ledger-summary');
+            summary.append(element('span', `${data.length} monthly periods`, 'sales-ledger-pill'));
+            if (peak) summary.append(element('span', `Highest turnover: ${monthLabel(peak.month)} · ${crores(peak.net_turnover)}`));
+            const total = element('strong', `Period net turnover: ${crores(footer.net_turnover)}`); total.title = number(footer.net_turnover); summary.append(total); container.append(summary);
+            table(container, [{ key: 'month', label: 'Month', format: v => v === 'Period total' ? v : monthLabel(v) }, ...metricColumns,
+                { key: 'period_share', label: 'Period share', format: percent }, { key: 'mom', label: 'MoM change', format: percent },
+                { key: 'leading_branch', label: 'Leading branch' }], data.map(row => ({ ...row, is_peak: row === peak })), footer);
+            container.append(element('p', 'Bars show each month’s share of period net turnover, not progress against a target. MoM compares complete consecutive months; partial months are labeled and excluded from comparison. Shares are unavailable when period net turnover is zero or negative.', 'sales-chart-note sales-ledger-note'));
         }
     }
     async function load(segment, params) {

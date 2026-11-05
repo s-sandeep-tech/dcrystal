@@ -150,6 +150,20 @@ class PostgreSQLTests(unittest.TestCase):
         self.filters['start'] = date(2026, 1, 2)  # Prior Jan 1 must not be included.
         self.assertIsNone(report.totals(self.cur, self.filters)['yoy']['net_turnover'])
 
+    def test_ledger_contribution_and_complete_month_movement(self):
+        filters = report.parse_filters(MultiDict(dict(start='2026-01-01', end='2026-03-31')))
+        rows = report.monthly(self.cur, filters)
+        self.assertAlmostEqual(sum(row['period_share'] for row in rows), Decimal(100))
+        self.assertIsNone(rows[0]['mom'])
+        self.assertAlmostEqual(rows[1]['mom'], Decimal(60) / Decimal(140) * 100)
+        self.assertIsNone(rows[2]['mom'])  # No transactions, not a real decline.
+        filters['end'] = date(2026, 2, 5)
+        rows = report.monthly(self.cur, filters)
+        self.assertTrue(rows[1]['is_partial'])
+        self.assertIsNone(rows[1]['mom'])
+        self.cur.execute("UPDATE sales_tsk_fixture SET turn_over=-1000 WHERE trans_type='SR'")
+        self.assertTrue(all(row['period_share'] is None for row in report.monthly(self.cur, filters)))
+
     def test_kpi_negative_baseline_and_unchanged_values(self):
         self.cur.execute("INSERT INTO sales_tsk_fixture(date, trans_type, turn_over, net_weight, total_tsk) VALUES ('2025-01-03', 'SR', -40, 7, 4)")
         totals = report.totals(self.cur, self.filters)

@@ -174,6 +174,16 @@ def monthly(cur, filters):
         row['leading_branch'] = (leader['location_name'] or str(leader['branch_id'] or 'Unspecified')) if leader else None
         result.append(row)
         month = date(month.year + (month.month == 12), month.month % 12 + 1, 1)
+    period_total = sum((row['net_turnover'] for row in result), Decimal(0))
+    for index, row in enumerate(result):
+        month_date = date.fromisoformat(row['month'])
+        month_end = month_date.replace(day=calendar.monthrange(month_date.year, month_date.month)[1])
+        row['is_partial'] = filters['start'] > month_date or filters['end'] < month_end
+        row['period_share'] = row['net_turnover'] / period_total * 100 if period_total > 0 else None
+        previous = result[index - 1] if index else None
+        row['mom'] = ((row['net_turnover'] - previous['net_turnover']) / abs(previous['net_turnover']) * 100
+                      if previous and row['row_count'] and previous['row_count'] and previous['net_turnover'] != 0
+                      and not row['is_partial'] and not previous['is_partial'] else None)
     return result
 
 
