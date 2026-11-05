@@ -4434,8 +4434,6 @@ def _sync_party_performance_specs_once(
     attempt=1,
     max_attempts=1,
 ):
-    conn = None
-
     def emit(status, message, progress):
         emit_combined_sync_update(
             status, message, progress, task_type, progress_range, is_subtask
@@ -4445,15 +4443,9 @@ def _sync_party_performance_specs_once(
         emit(
             'processing',
             f'Starting Party Performance Matrix Sync '
-            f'(Attempt {attempt}/{max_attempts})...',
+            f'({max_attempts} attempts per source)...',
             5,
         )
-        conn = get_external_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute('SET statement_timeout = 0')
-        # Some source functions reference Crystal tables without schema qualifiers.
-        cur.execute('SET search_path TO crystal, ext_view, public')
-
         prepared = []
         total_specs = len(specs)
         for index, spec in enumerate(specs, start=1):
@@ -4461,12 +4453,42 @@ def _sync_party_performance_specs_once(
             progress = 5 + int(index / total_specs * 45)
             emit('processing', f'Fetching ext_view.{view_name} ({index}/{total_specs})...', progress)
             started_at = time.time()
-            try:
-                mapped_rows = _fetch_party_performance_source(cur, spec)
-            except Exception as source_error:
-                raise RuntimeError(
-                    f'Failed fetching ext_view.{view_name}: {source_error}'
-                ) from source_error
+            for source_attempt in range(1, max_attempts + 1):
+                conn = None
+                source_error = None
+                try:
+                    conn = get_external_db_connection()
+                    conn.set_session(readonly=True, autocommit=True)
+                    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                        cur.execute('SET statement_timeout = 0')
+                        # Some source functions use unqualified Crystal table names.
+                        cur.execute('SET search_path TO crystal, ext_view, public')
+                        mapped_rows = _fetch_party_performance_source(cur, spec)
+                except Exception as error:
+                    source_error = error
+                finally:
+                    if conn:
+                        try:
+                            conn.close()
+                        except Exception:
+                            logger.warning('Failed closing Party Performance source connection', exc_info=True)
+                if source_error is None:
+                    break
+                logger.warning(
+                    'Party Performance segment %s/%s ext_view.%s attempt %s/%s failed: %s',
+                    index, total_specs, view_name, source_attempt, max_attempts, source_error,
+                )
+                if source_attempt == max_attempts:
+                    raise RuntimeError(
+                        f'Failed fetching ext_view.{view_name} after {max_attempts} attempts: {source_error}'
+                    ) from source_error
+                emit('processing',
+                     f'ext_view.{view_name} ({index}/{total_specs}) failed. '
+                     f'Retrying this segment in 5 seconds '
+                     f'(attempt {source_attempt + 1}/{max_attempts}); '
+                     f'{len(prepared)} completed segments retained.',
+                     progress)
+                time.sleep(5)
             logger.info(
                 'Party performance source ext_view.%s returned %s rows in %.2f seconds',
                 view_name,
@@ -4505,15 +4527,10 @@ def _sync_party_performance_specs_once(
         db.session.rollback()
         error_message = str(error)
         logger.exception(
-            'Party Performance Matrix Sync failed on attempt %s/%s: %s',
-            attempt,
-            max_attempts,
+            'Party Performance Matrix Sync failed; local snapshot changes rolled back: %s',
             error_message,
         )
         return {'status': 'error', 'message': error_message}
-    finally:
-        if conn:
-            conn.close()
 
 
 def _sync_party_performance_specs(
@@ -4522,46 +4539,15 @@ def _sync_party_performance_specs(
     progress_range=(0, 100),
     is_subtask=False,
 ):
-    max_attempts = 3
-    last_result = None
-
-    for attempt in range(1, max_attempts + 1):
-        last_result = _sync_party_performance_specs_once(
-            specs,
-            task_type,
-            progress_range,
-            is_subtask,
-            attempt,
-            max_attempts,
-        )
-        if last_result.get('status') == 'success':
-            return last_result
-
-        if attempt < max_attempts:
-            emit_combined_sync_update(
-                'processing',
-                f'Party Performance Matrix Sync attempt {attempt}/{max_attempts} '
-                f'failed. Retrying in 5 seconds...',
-                0,
-                task_type,
-                progress_range,
-                is_subtask,
-            )
-            time.sleep(5)
-
-    error_message = (last_result or {}).get('message', 'Unknown synchronization error')
-    emit_combined_sync_update(
-        'error',
-        f'Sync failed after {max_attempts} attempts: {error_message}',
-        0,
-        task_type,
-        progress_range,
-        is_subtask,
+    result = _sync_party_performance_specs_once(
+        specs, task_type, progress_range, is_subtask, max_attempts=3,
     )
-    return {
-        'status': 'error',
-        'message': f'Sync failed after {max_attempts} attempts: {error_message}',
-    }
+    if result.get('status') != 'success':
+        emit_combined_sync_update(
+            'error', result.get('message', 'Unknown synchronization error'), 0,
+            task_type, progress_range, is_subtask,
+        )
+    return result
 
 
 def sync_party_design_average_delivery_days_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
