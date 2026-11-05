@@ -101,7 +101,7 @@
             title="Annualised Sales Weight divided by Provision Weight">
             <div class="flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-[13px] text-amber-600">autorenew</span>
-                <p class="text-[9px] text-gray-500 font-bold uppercase"><span id="stat-turn-weight-label">Stock Turn</span> (Prov Wt, times)</p>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Stock Turn (Prov Wt, times)</p>
             </div>
             <div class="flex flex-col mt-1">
                 <p id="stat-turn-weight" class="text-base font-bold text-amber-600">-</p>
@@ -110,7 +110,7 @@
         <div class="p-2 text-center" title="Annualised Sales Weight divided by Shop Weight (inshop_weight)">
             <div class="flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-[13px] text-violet-600">autorenew</span>
-                <p class="text-[9px] text-gray-500 font-bold uppercase"><span id="stat-shop-turn-weight-label">Stock Turn</span> (Shop Wt, times)</p>
+                <p class="text-[9px] text-gray-500 font-bold uppercase">Stock Turn (Shop Wt, times)</p>
             </div>
             <div class="flex flex-col mt-1">
                 <p id="stat-shop-turn-weight" class="text-base font-bold text-violet-600">-</p>
@@ -405,5 +405,5 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script
-    src="{{ url_for('static', filename='js/sales_stock_composition_analysis_for_purchase_plan.js', v='20261105-projected-fy') }}"></script>
+    src="{{ url_for('static', filename='js/sales_stock_composition_analysis_for_purchase_plan.js', v='20261105-projection-color') }}"></script>
 {% endblock %}

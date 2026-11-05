@@ -357,7 +357,8 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertIn('openPurchasePlanChart', html)
         rows[0]['includes_projection'] = True
         projected = tmpl.render(rows=rows, parent_path=['GOLD'], can_expand=True)
-        self.assertEqual(projected.count('>Projected FY</span>'), 2)
+        self.assertEqual(projected.count('text-red-600 dark:text-red-300'), 2)
+        self.assertNotIn('>Projected FY</span>', projected)
         self.assertNotIn('NA-B', projected)
 
     def test_main_template_contains_division_make_purity_filters(self):
@@ -368,7 +369,7 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertLess(content.index('id="stat-provision-weight"'),content.index('id="stat-shop-weight"'))
         self.assertLess(content.index('id="stat-shop-weight"'),content.index('id="stat-turn-weight"'))
         self.assertLess(content.index('id="stat-turn-weight"'),content.index('id="stat-shop-turn-weight"'))
-        self.assertIn('id="stat-shop-turn-weight-label">Stock Turn</span> (Shop Wt, times)',content)
+        self.assertIn('Stock Turn (Shop Wt, times)',content)
         self.assertIn('All Divisions', content)
         self.assertIn('id="purchase-plan-filter-make-container"', content)
         self.assertIn('id="purchase-plan-filter-purity-container"', content)

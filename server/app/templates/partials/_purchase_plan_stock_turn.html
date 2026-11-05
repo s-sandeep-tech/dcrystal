@@ -1,7 +1,7 @@
 {% macro stock_turn(value, includes_projection) -%}
+{%- if value is not none and includes_projection -%}
+<span class="text-red-600 dark:text-red-300" title="Includes sales projected from the first recorded sale through FY end for new shops.">{{ '{:,.2f}'.format(value) }}</span>
+{%- else -%}
 {{ '{:,.2f}'.format(value) if value is not none else 'N/A' }}
-{%- if value is not none and includes_projection %}
-<span class="block text-[8px] font-sans text-gray-500 dark:text-gray-400"
-    title="Includes sales projected from the first recorded sale through FY end for new shops.">Projected FY</span>
-{%- endif %}
+{%- endif -%}
 {%- endmacro %}

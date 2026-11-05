@@ -17,14 +17,20 @@ function resetPurchasePlanTopStats() {
     });
     const factorLabel = document.getElementById('purchase-plan-fy-factor-label');
     if (factorLabel) factorLabel.textContent = 'Loading factor...';
-    updatePurchasePlanTurnLabels(false);
+    stylePurchasePlanTurn(document.getElementById('stat-turn-weight'), false, 'text-amber-600');
+    stylePurchasePlanTurn(document.getElementById('stat-shop-turn-weight'), false, 'text-violet-600');
 }
 
-function updatePurchasePlanTurnLabels(includesProjection) {
-    ['stat-turn-weight-label', 'stat-shop-turn-weight-label'].forEach(id => {
-        const label = document.getElementById(id);
-        if (label) label.textContent = includesProjection ? 'Projected FY Stock Turn' : 'Stock Turn';
-    });
+function stylePurchasePlanTurn(element, includesProjection, defaultColor) {
+    if (!element) return;
+    element.classList.toggle(defaultColor, !includesProjection);
+    element.classList.toggle('text-red-600', includesProjection);
+    element.classList.toggle('dark:text-red-300', includesProjection);
+    if (includesProjection) {
+        element.title = 'Includes sales projected from the first recorded sale through FY end for new shops.';
+    } else {
+        element.removeAttribute('title');
+    }
 }
 
 let purchasePlanSearch = '';
@@ -347,7 +353,8 @@ function updatePurchasePlanTopStats(stats) {
             ? (Number(stats.inshop_weight) / 1000).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })
             : 'N/A';
     }
-    updatePurchasePlanTurnLabels(stats.includes_projection);
+    stylePurchasePlanTurn(turnWeightEl, Boolean(stats.includes_projection && stats.turn_weight != null), 'text-amber-600');
+    stylePurchasePlanTurn(shopTurnWeightEl, Boolean(stats.includes_projection && stats.shop_weight_turn != null), 'text-violet-600');
     if (turnWeightEl) {
         turnWeightEl.textContent = stats.turn_weight != null
             ? Number(stats.turn_weight).toFixed(2)
