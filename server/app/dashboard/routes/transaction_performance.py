@@ -5,7 +5,7 @@ from app.models import Notification
 from app.extensions import db, socketio, redis_client
 from app.utils.decorators import require_perm
 from sqlalchemy import func, cast, Numeric, case
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 import logging
 import json
@@ -29,7 +29,7 @@ def sales_growth_comparison(current_filters, comparison_filters):
               'sales_growth_previous': None, 'sales_growth_cutoff': None,
               'sales_growth_comparison_date': SALES_COMPARISON_DATE.isoformat(),
               'sales_growth_status': 'missing_data'}
-    for metric in ('bills', 'weight'):
+    for metric in ('bills', 'weight', 'avg_bill', 'hourly'):
         result.update({f'{metric}_growth_yoy': None, f'{metric}_growth_current': None, f'{metric}_growth_previous': None})
     valid = model.invoiceamt.isnot(None)
     current_hour = db.session.query(func.max(model.billtime)).filter(*current_filters, valid).scalar()
@@ -58,6 +58,32 @@ def sales_growth_comparison(current_filters, comparison_filters):
             if metric == 'sales': result['sales_growth_status'] = 'available'
         elif metric == 'sales' and previous is not None and previous <= 0:
             result['sales_growth_status'] = 'nonpositive_baseline'
+    current_avg = (current_totals.sales / current_totals.bills
+                   if current_totals.sales is not None and current_totals.bills is not None and current_totals.bills > 0 else None)
+    previous_avg = (previous_totals.sales / previous_totals.bills
+                    if previous_totals.sales is not None and previous_totals.bills is not None and previous_totals.bills > 0 else None)
+    result['avg_bill_growth_current'] = float(current_avg) if current_avg is not None else None
+    result['avg_bill_growth_previous'] = float(previous_avg) if previous_avg is not None else None
+    if current_avg is not None and previous_avg is not None and previous_avg > 0:
+        result['avg_bill_growth_yoy'] = float((current_avg - previous_avg) / previous_avg * 100)
+    # Require two consecutive snapshots; a missing hour is not zero activity.
+    if cutoff.hour > 0:
+        start_hour = (datetime.combine(SALES_COMPARISON_DATE, cutoff) - timedelta(hours=1)).time()
+        result['hourly_comparison_start'] = start_hour.strftime('%H:%M')
+        def hourly_bills(conditions):
+            groups = db.session.query(
+                func.max(case((model.billtime == start_hour, model.billcount))).label('before'),
+                func.max(case((model.billtime == cutoff, model.billcount))).label('after')
+            ).filter(*conditions, model.billtime.in_([start_hour, cutoff])).group_by(
+                model.location, model.divisionname, model.state).all()
+            if not groups or any(row.before is None or row.after is None for row in groups):
+                return None
+            return sum(max(0, row.after - row.before) for row in groups)
+        current_hourly, previous_hourly = hourly_bills(current_filters), hourly_bills(comparison_filters)
+        result['hourly_growth_current'] = current_hourly
+        result['hourly_growth_previous'] = previous_hourly
+        if current_hourly is not None and previous_hourly is not None and previous_hourly > 0:
+            result['hourly_growth_yoy'] = (current_hourly - previous_hourly) / previous_hourly * 100
     return result
 
 
@@ -132,7 +158,7 @@ def get_akt_transaction_data():
             val = json.dumps(divisions) if param == 'division' else request.args.get(param, '')
             cache_key_parts.append(f"{param}={val}")
         
-        cache_key = f"akt_perf_cache_v5:{':'.join(cache_key_parts)}"
+        cache_key = f"akt_perf_cache_v7:{':'.join(cache_key_parts)}"
         lock_key = f"lock:{cache_key}"
         bypass_cache = request.args.get('bypass_cache', 'false').lower() == 'true'
 

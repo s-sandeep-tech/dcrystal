@@ -519,17 +519,17 @@ function updateKPIs(kpis) {
         ? kpis.total_net_weight_kg
         : (kpis.total_net_weight !== undefined ? kpis.total_net_weight : 0);
     document.getElementById('kpi-weight').innerText = `${netWeightKg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`;
-    for (const [metric, label] of [['bills', 'Bill count'], ['weight', 'Net weight']]) {
+    for (const [metric, label, domMetric = metric] of [['bills', 'Bill count'], ['weight', 'Net weight'], ['avg_bill', 'Average bill value', 'avg-bill'], ['hourly', 'Last hour bills']]) {
         const previous = kpis[`${metric}_growth_previous`];
         const current = kpis[`${metric}_growth_current`];
         const change = kpis[`${metric}_growth_yoy`];
         const hasPrevious = typeof previous === 'number' && Number.isFinite(previous) && Boolean(cutoff);
-        const formatValue = value => Number(value).toLocaleString('en-IN', { maximumFractionDigits: metric === 'weight' ? 3 : 0 }) + (metric === 'weight' ? ' kg' : '');
-        const comparisonDetail = `${label}: current ${current == null ? 'unavailable' : formatValue(current)}; ${comparison} ${hasPrevious ? formatValue(previous) : 'unavailable'}${cutoff ? `; through ${cutoff}` : ''}. Same selected filters and reporting hour. Percentage requires a positive comparison value.`;
-        const previousEl = document.getElementById(`kpi-${metric}-previous`);
-        previousEl.textContent = `${comparisonYear}: ${hasPrevious ? formatValue(previous) : 'N/A'}`;
+        const formatValue = value => (metric === 'avg_bill' ? '₹' : '') + Number(value).toLocaleString('en-IN', { maximumFractionDigits: metric === 'weight' ? 3 : metric === 'avg_bill' ? 2 : 0 }) + (metric === 'weight' ? ' kg' : '');
+        const comparisonDetail = `${label}: current ${current == null ? 'unavailable' : formatValue(current)}; ${comparison} ${hasPrevious ? formatValue(previous) : 'unavailable'}${cutoff ? `; through ${cutoff}` : ''}. Same selected filters and reporting hour.${metric === 'avg_bill' ? ' Average bill value = invoice sales ÷ bill count.' : ''}${metric === 'hourly' ? ` Hour: ${kpis.hourly_comparison_start || 'unavailable'}–${cutoff || 'unavailable'}. Two consecutive hourly snapshots are required for every included branch/division.` : ''} Percentage requires a positive comparison value.`;
+        const previousEl = document.getElementById(`kpi-${domMetric}-previous`);
+        previousEl.textContent = `${comparisonYear}: ${hasPrevious ? (metric === 'avg_bill' ? formatCurrency(previous) : formatValue(previous)) : 'N/A'}`;
         previousEl.title = comparisonDetail;
-        updateComparisonBadge(`kpi-${metric}-growth-badge`, change, comparisonDetail, comparisonYear, label);
+        updateComparisonBadge(`kpi-${domMetric}-growth-badge`, change, comparisonDetail, comparisonYear, label);
     }
 
 }
