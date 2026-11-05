@@ -29,6 +29,8 @@ def sales_growth_comparison(current_filters, comparison_filters):
               'sales_growth_previous': None, 'sales_growth_cutoff': None,
               'sales_growth_comparison_date': SALES_COMPARISON_DATE.isoformat(),
               'sales_growth_status': 'missing_data'}
+    for metric in ('bills', 'weight'):
+        result.update({f'{metric}_growth_yoy': None, f'{metric}_growth_current': None, f'{metric}_growth_previous': None})
     valid = model.invoiceamt.isnot(None)
     current_hour = db.session.query(func.max(model.billtime)).filter(*current_filters, valid).scalar()
     prior_hour = db.session.query(func.max(model.billtime)).filter(*comparison_filters, valid).scalar()
@@ -37,18 +39,25 @@ def sales_growth_comparison(current_filters, comparison_filters):
     cutoff = min(current_hour, prior_hour)
     result['sales_growth_cutoff'] = cutoff.strftime('%H:%M')
     def cumulative(conditions):
-        grouped = db.session.query(func.max(model.invoiceamt).label('sales')).filter(
-            *conditions, valid, model.billtime <= cutoff
+        grouped = db.session.query(func.max(model.invoiceamt).label('sales'),
+                                   func.max(model.billcount).label('bills'),
+                                   func.max(model.netweight).label('weight')).filter(
+            *conditions, model.billtime <= cutoff
         ).group_by(model.location, model.divisionname, model.state).subquery()
-        return db.session.query(func.sum(grouped.c.sales)).scalar()
-    current, previous = cumulative(current_filters), cumulative(comparison_filters)
-    result['sales_growth_current'] = float(current) if current is not None else None
-    result['sales_growth_previous'] = float(previous) if previous is not None else None
-    if current is not None and previous is not None and previous > 0:
-        result['sales_growth_yoy'] = float((current - previous) / previous * 100)
-        result['sales_growth_status'] = 'available'
-    elif previous is not None and previous <= 0:
-        result['sales_growth_status'] = 'nonpositive_baseline'
+        return db.session.query(func.sum(grouped.c.sales).label('sales'),
+                                func.sum(grouped.c.bills).label('bills'),
+                                func.sum(grouped.c.weight).label('weight')).first()
+    current_totals, previous_totals = cumulative(current_filters), cumulative(comparison_filters)
+    for metric in ('sales', 'bills', 'weight'):
+        current, previous = getattr(current_totals, metric), getattr(previous_totals, metric)
+        divisor = 1000 if metric == 'weight' else 1
+        result[f'{metric}_growth_current'] = float(current / divisor) if current is not None else None
+        result[f'{metric}_growth_previous'] = float(previous / divisor) if previous is not None else None
+        if current is not None and previous is not None and previous > 0:
+            result[f'{metric}_growth_yoy'] = float((current - previous) / previous * 100)
+            if metric == 'sales': result['sales_growth_status'] = 'available'
+        elif metric == 'sales' and previous is not None and previous <= 0:
+            result['sales_growth_status'] = 'nonpositive_baseline'
     return result
 
 
@@ -123,7 +132,7 @@ def get_akt_transaction_data():
             val = json.dumps(divisions) if param == 'division' else request.args.get(param, '')
             cache_key_parts.append(f"{param}={val}")
         
-        cache_key = f"akt_perf_cache_v4:{':'.join(cache_key_parts)}"
+        cache_key = f"akt_perf_cache_v5:{':'.join(cache_key_parts)}"
         lock_key = f"lock:{cache_key}"
         bypass_cache = request.args.get('bypass_cache', 'false').lower() == 'true'
 

@@ -113,7 +113,7 @@ class TransactionPerformanceTests(unittest.TestCase):
         for day, hour, amount in [(datetime(2026,11,5,10),10,100), (datetime(2026,11,5,11),11,150),
                                   (datetime(2025,10,18,10),10,100), (datetime(2025,10,18,12),12,900)]:
             db.session.add(model(date=day,timepartt=hour,billtime=time(hour),country_actual='INDIA',
-                                 location='Store A',divisionname='GOLD',invoiceamt=amount))
+                                 location='Store A',divisionname='GOLD',invoiceamt=amount,billcount=int(amount/10),netweight=amount*2))
         db.session.commit()
         common = [model.country_actual=='INDIA',model.location=='Store A',model.divisionname.in_(['GOLD','DIAMOND'])]
         current = common + [func.date(model.date)==date(2026,11,5)]
@@ -121,14 +121,22 @@ class TransactionPerformanceTests(unittest.TestCase):
         result = sales_growth_comparison(current,previous)
         self.assertEqual(result['sales_growth_cutoff'],'11:00')
         self.assertEqual(result['sales_growth_yoy'],50)
+        self.assertEqual(result['bills_growth_yoy'],50)
+        self.assertEqual(result['weight_growth_yoy'],50)
+        self.assertEqual(result['bills_growth_previous'],10)
+        self.assertEqual(result['weight_growth_previous'],0.2)
         self.assertEqual(result['sales_growth_previous'],100)  # Excludes later historical sales.
         self.assertEqual(result['sales_growth_comparison_date'],'2025-10-18')
-        db.session.query(model).filter(*current).update({model.invoiceamt:0}, synchronize_session=False)
+        db.session.query(model).filter(*current).update({model.invoiceamt:0,model.billcount:0,model.netweight:0}, synchronize_session=False)
         db.session.commit()
         self.assertEqual(sales_growth_comparison(current,previous)['sales_growth_yoy'],-100)
-        db.session.query(model).filter(*previous).update({model.invoiceamt:0}, synchronize_session=False)
+        self.assertEqual(sales_growth_comparison(current,previous)['bills_growth_yoy'],-100)
+        self.assertEqual(sales_growth_comparison(current,previous)['weight_growth_yoy'],-100)
+        db.session.query(model).filter(*previous).update({model.invoiceamt:0,model.billcount:0,model.netweight:0}, synchronize_session=False)
         db.session.commit()
         self.assertIsNone(sales_growth_comparison(current,previous)['sales_growth_yoy'])
+        self.assertIsNone(sales_growth_comparison(current,previous)['bills_growth_yoy'])
+        self.assertIsNone(sales_growth_comparison(current,previous)['weight_growth_yoy'])
         db.session.query(model).filter(*previous).delete(synchronize_session=False)
         db.session.commit()
         self.assertEqual(sales_growth_comparison(current,previous)['sales_growth_status'],'missing_data')
@@ -228,6 +236,10 @@ class TransactionPerformanceTests(unittest.TestCase):
         self.assertEqual(data['status'], 'success')
         self.assertEqual(data['kpis']['total_bills'], 25)
         self.assertEqual(data['kpis']['sales_growth_yoy'], 25)
+        self.assertEqual(data['kpis']['bills_growth_yoy'], 25)
+        self.assertAlmostEqual(data['kpis']['weight_growth_yoy'], 100 * (45-35)/35)
+        self.assertEqual(data['kpis']['bills_growth_previous'], 8)
+        self.assertEqual(data['kpis']['weight_growth_previous'], 0.035)
         self.assertEqual(data['kpis']['sales_growth_cutoff'], '10:00')
         self.assertAlmostEqual(data['kpis']['total_net_weight'], 0.11, places=3)
         self.assertAlmostEqual(data['kpis']['total_net_weight_kg'], 0.11, places=3)

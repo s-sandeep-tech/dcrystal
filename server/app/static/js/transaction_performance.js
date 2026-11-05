@@ -462,6 +462,25 @@ async function loadDashboardData(triggerId = null, bypassCache = false, isSilent
     }
 }
 
+function updateComparisonBadge(id, change, detail, comparisonYear, label) {
+    const salesBadge = document.getElementById(id);
+    const available = typeof change === 'number' && Number.isFinite(change);
+    const rounded = available ? Number(change.toFixed(1)) : null;
+    salesBadge.replaceChildren();
+    salesBadge.className = 'inline-flex items-center gap-0.5 shrink-0 rounded-md px-1.5 py-1 text-[9px] font-bold ' +
+        (rounded > 0 ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30' : rounded < 0 ? 'text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-900/30' : 'text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400');
+    if (available && rounded !== 0) {
+        const arrow = document.createElement('span');
+        arrow.className = 'material-symbols-outlined text-[12px]';
+        arrow.textContent = rounded > 0 ? 'arrow_upward' : 'arrow_downward';
+        arrow.setAttribute('aria-hidden', 'true'); salesBadge.append(arrow);
+    }
+    salesBadge.append(document.createTextNode(available ? `${rounded > 0 ? '+' : ''}${rounded.toFixed(1)}%` : 'N/A'));
+    salesBadge.title = detail;
+    salesBadge.setAttribute('aria-label', available ? `${label} change versus ${comparisonYear}: ${rounded > 0 ? '+' : ''}${rounded.toFixed(1)} percent` : `${label} comparison with ${comparisonYear} unavailable`);
+
+}
+
 function updateKPIs(kpis) {
     const growthEl = document.getElementById('kpi-sales-growth');
     const growth = kpis.sales_growth_yoy;
@@ -480,19 +499,7 @@ function updateKPIs(kpis) {
         : `Comparison with ${comparison} unavailable: ${kpis.sales_growth_status === 'nonpositive_baseline' ? 'comparison sales are zero or negative' : 'matching sales data is missing'}.`;
     growthEl.title = detail;
     document.getElementById('kpi-sales-growth-detail').title = detail;
-    const salesBadge = document.getElementById('kpi-sales-growth-badge');
-    salesBadge.replaceChildren();
-    salesBadge.className = 'inline-flex items-center gap-0.5 shrink-0 rounded-md px-1.5 py-1 text-[9px] font-bold ' +
-        (rounded > 0 ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30' : rounded < 0 ? 'text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-900/30' : 'text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400');
-    if (available && rounded !== 0) {
-        const arrow = document.createElement('span');
-        arrow.className = 'material-symbols-outlined text-[12px]';
-        arrow.textContent = rounded > 0 ? 'arrow_upward' : 'arrow_downward';
-        arrow.setAttribute('aria-hidden', 'true'); salesBadge.append(arrow);
-    }
-    salesBadge.append(document.createTextNode(available ? `${rounded > 0 ? '+' : ''}${rounded.toFixed(1)}%` : 'N/A'));
-    salesBadge.title = detail;
-    salesBadge.setAttribute('aria-label', available ? `Sales change versus ${comparisonYear}: ${rounded > 0 ? '+' : ''}${rounded.toFixed(1)} percent` : `Sales comparison with ${comparisonYear} unavailable`);
+    updateComparisonBadge('kpi-sales-growth-badge', growth, detail, comparisonYear, 'Sales');
 
     document.getElementById('kpi-hourly').innerText = kpis.total_hourly.toLocaleString();
     document.getElementById('kpi-sales').innerText = formatCurrency(kpis.total_sales);
@@ -512,6 +519,19 @@ function updateKPIs(kpis) {
         ? kpis.total_net_weight_kg
         : (kpis.total_net_weight !== undefined ? kpis.total_net_weight : 0);
     document.getElementById('kpi-weight').innerText = `${netWeightKg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`;
+    for (const [metric, label] of [['bills', 'Bill count'], ['weight', 'Net weight']]) {
+        const previous = kpis[`${metric}_growth_previous`];
+        const current = kpis[`${metric}_growth_current`];
+        const change = kpis[`${metric}_growth_yoy`];
+        const hasPrevious = typeof previous === 'number' && Number.isFinite(previous) && Boolean(cutoff);
+        const formatValue = value => Number(value).toLocaleString('en-IN', { maximumFractionDigits: metric === 'weight' ? 3 : 0 }) + (metric === 'weight' ? ' kg' : '');
+        const comparisonDetail = `${label}: current ${current == null ? 'unavailable' : formatValue(current)}; ${comparison} ${hasPrevious ? formatValue(previous) : 'unavailable'}${cutoff ? `; through ${cutoff}` : ''}. Same selected filters and reporting hour. Percentage requires a positive comparison value.`;
+        const previousEl = document.getElementById(`kpi-${metric}-previous`);
+        previousEl.textContent = `${comparisonYear}: ${hasPrevious ? formatValue(previous) : 'N/A'}`;
+        previousEl.title = comparisonDetail;
+        updateComparisonBadge(`kpi-${metric}-growth-badge`, change, comparisonDetail, comparisonYear, label);
+    }
+
 }
 
 function updateDashboardCharts(data) {
