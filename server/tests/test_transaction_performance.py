@@ -2,16 +2,17 @@ import unittest
 from unittest.mock import patch, MagicMock
 from datetime import datetime, date, time
 from flask import Flask
-from sqlalchemy import func
+from sqlalchemy import func, event
 from flask_jwt_extended import JWTManager, create_access_token
 
+from app.utils.report_cache_lock import PUBLISH
 from app.extensions import db
 from app.models.auth import User
 from app.models.core import Notification
 from app.models.rbac import Role, Permission, UserRole, RolePermission, Menu, RoleMenu
 from app.models.akt_report import AKTTransactionPerformance
 from app.dashboard import dashboard_bp
-from app.dashboard.routes.transaction_performance import trigger_akt_sync, get_akt_transaction_data, sales_growth_comparison, SALES_COMPARISON_DATE
+from app.dashboard.routes.transaction_performance import trigger_akt_sync, get_akt_transaction_data, sales_growth_comparison, SALES_COMPARISON_DATE, AKT_CACHE_GENERATION_KEY
 
 
 class TransactionPerformanceTests(unittest.TestCase):
@@ -66,6 +67,8 @@ class TransactionPerformanceTests(unittest.TestCase):
         response = self.client.post('/api/akt/trigger-sync', json={'message': 'Data refreshed'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()['status'], 'success')
+        mock_redis.incr.assert_called_once_with(AKT_CACHE_GENERATION_KEY)
+        mock_redis.delete.assert_called_once_with(b'akt_perf_cache:1')
         mock_redis.publish.assert_called_once()
         mock_socketio.emit.assert_called_once_with('aktPerformanceRefresh', {
             'action': 'refresh',
@@ -79,8 +82,9 @@ class TransactionPerformanceTests(unittest.TestCase):
         mock_redis.keys.side_effect = Exception("Redis connection refused")
         mock_redis.publish.side_effect = Exception("Redis connection refused")
         response = self.client.post('/api/akt/trigger-sync', json={'message': 'Data refreshed'})
-        self.assertEqual(response.status_code, 200)
-        mock_socketio.emit.assert_called_once()
+        self.assertEqual(response.status_code, 503)
+        mock_socketio.emit.assert_not_called()
+        mock_redis.publish.assert_not_called()
 
     @patch('app.dashboard.routes.transaction_performance.redis_client')
     def test_division_defaults_multiple_and_all(self, mock_redis):
@@ -107,10 +111,10 @@ class TransactionPerformanceTests(unittest.TestCase):
             self.assertEqual(len(data['efficiency_2025']), prior_count)
             keys.append(mock_redis.get.call_args.args[0])
         self.assertEqual(len(set(keys)), len(cases))
-        self.assertEqual(mock_redis.setex.call_args.args[1], 3000)
+        self.assertEqual(next(call.args[-1] for call in mock_redis.eval.call_args_list if call.args[0] == PUBLISH), 3000)
 
     def test_sales_growth_common_hour_and_unavailable_baseline(self):
-        from sqlalchemy import func
+        from sqlalchemy import func, event
         model = AKTTransactionPerformance
         for day, hour, amount in [(datetime(2026,11,5,10),10,100), (datetime(2026,11,5,11),11,150),
                                   (datetime(2025,10,18,10),10,100), (datetime(2025,10,18,12),12,900)]:
@@ -183,6 +187,62 @@ class TransactionPerformanceTests(unittest.TestCase):
         db.session.commit()
         self.assertIsNone(sales_growth_comparison(filters,prior)['hourly_growth_previous'])
 
+    @patch('app.dashboard.routes.transaction_performance.redis_client')
+    def test_inflight_report_cannot_restore_stale_generation(self, cache):
+        import json
+        state = {AKT_CACHE_GENERATION_KEY: b'0'}
+        advanced = False
+        cache.get.side_effect = lambda key: state.get(key)
+        cache.exists.return_value = False
+        def acquire(*args, **kwargs):
+            nonlocal advanced
+            if not advanced:
+                state[AKT_CACHE_GENERATION_KEY] = b'1'  # Completion signal during first query.
+                advanced = True
+            return True
+        cache.set.side_effect = acquire
+        def publish(script, count, *args):
+            if script == PUBLISH:
+                state[args[1]] = args[3]
+            return 1
+        cache.eval.side_effect = publish
+        url='/api/akt/transaction-data?date=2026-11-05&country=India'
+        first = self.client.get(url,headers=self.auth_headers()).get_json()
+        self.assertFalse(first['cached'])
+        self.assertTrue(any(key.startswith('akt_perf_cache_v8:g0:') for key in state))
+        second = self.client.get(url,headers=self.auth_headers()).get_json()
+        self.assertFalse(second['cached'])  # Old generation must not be served.
+        third = self.client.get(url,headers=self.auth_headers()).get_json()
+        self.assertTrue(third['cached'])
+        self.assertEqual(next(call.args[-1] for call in cache.eval.call_args_list if call.args[0] == PUBLISH),3000)
+
+    @patch('app.dashboard.routes.transaction_performance.redis_client')
+    def test_busy_filter_does_not_query_source(self, cache):
+        cache.get.return_value = None
+        cache.set.return_value = False
+        queries = []
+        def capture(*args): queries.append(args)
+        engine = db.engines['akt_db']
+        event.listen(engine, 'before_cursor_execute', capture)
+        try:
+            with patch('app.dashboard.routes.transaction_performance.AKT_CACHE_WAIT_SECONDS', 0):
+                response = self.client.get('/api/akt/transaction-data?date=2026-11-05', headers=self.auth_headers())
+            self.assertEqual(response.status_code, 202)
+            self.assertEqual(response.headers['Retry-After'], '2')
+            self.assertEqual(queries, [])
+        finally:
+            event.remove(engine, 'before_cursor_execute', capture)
+
+    @patch('app.dashboard.routes.transaction_performance.redis_client')
+    def test_completed_report_is_rechecked_after_lock_acquisition(self, cache):
+        import json
+        cache.get.side_effect = [None, None, json.dumps({'status':'success','cached':False})]
+        cache.set.return_value = True
+        response = self.client.get('/api/akt/transaction-data', headers=self.auth_headers())
+        self.assertEqual(response.status_code,200)
+        self.assertTrue(response.get_json()['cached'])
+        self.assertFalse(any(call.args[0] == PUBLISH for call in cache.eval.call_args_list))
+
     def test_get_akt_transaction_data_requires_auth(self):
         response = self.client.get('/api/akt/transaction-data')
         self.assertEqual(response.status_code, 401)
@@ -195,9 +255,9 @@ class TransactionPerformanceTests(unittest.TestCase):
         mock_redis.setex.side_effect = Exception("Redis connection timeout")
 
         response = self.client.get('/api/akt/transaction-data?country=India', headers=self.auth_headers())
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 503)
         json_data = response.get_json()
-        self.assertEqual(json_data['status'], 'success')
+        self.assertEqual(json_data['status'], 'error')
 
     @patch('app.dashboard.routes.transaction_performance.redis_client')
     def test_case_insensitive_country_and_hourly_revenue_delta(self, mock_redis):

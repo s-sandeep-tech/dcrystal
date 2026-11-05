@@ -395,7 +395,7 @@ function formatCurrency(val) {
     return '₹' + formatCompactNumber(val);
 }
 
-async function loadDashboardData(triggerId = null, bypassCache = false, isSilent = false) {
+async function loadDashboardData(triggerId = null, bypassCache = false, isSilent = false, cacheWaitAttempt = 0) {
     const params = new URLSearchParams();
     const filterIds = ['date', 'country', 'region', 'state', 'location', 'division', 'subledger'];
     filterIds.forEach(id => {
@@ -432,6 +432,14 @@ async function loadDashboardData(triggerId = null, bypassCache = false, isSilent
         const response = await fetch(`/api/akt/transaction-data?${params.toString()}`, { headers });
         const data = await response.json();
 
+        if (response.status === 202 && data.status === 'processing') {
+            if (cacheWaitAttempt < 30) {
+                const waitSeconds = Math.min(5, Math.max(1, Number(response.headers.get('Retry-After')) || 2));
+                await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
+                return await loadDashboardData(triggerId, false, isSilent, cacheWaitAttempt + 1);
+            }
+            throw new Error('Report preparation is taking longer than expected. Please refresh again.');
+        }
         if (response.ok && data.status === 'success') {
             updateKPIs(data.kpis);
             updateDashboardCharts(data);

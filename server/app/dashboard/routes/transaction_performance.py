@@ -4,6 +4,7 @@ from app.models.akt_report import AKTTransactionPerformance
 from app.models import Notification
 from app.extensions import db, socketio, redis_client
 from app.utils.decorators import require_perm
+from app.utils.report_cache_lock import ReportCacheLock
 from sqlalchemy import func, cast, Numeric, case
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -15,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 SALES_COMPARISON_DATE = date(2025, 10, 18)
 AKT_REPORT_CACHE_TTL_SECONDS = 50 * 60
+AKT_CACHE_GENERATION_KEY = 'akt_report_cache_generation'
+AKT_CACHE_WAIT_SECONDS = 2
 
 
 def selected_divisions(args):
@@ -115,15 +118,18 @@ def trigger_akt_sync():
             "timestamp": datetime.now().isoformat(),
             "message": custom_message
         }
-        # Proactively clear AKT cache keys to prevent thundering herd stale reads
+        # Advance the generation first: in-flight readers can only repopulate old keys.
         try:
-            if redis_client:
-                keys = redis_client.keys('akt_perf_cache*')
-                if keys:
-                    redis_client.delete(*keys)
-                    logger.info(f"Cleared {len(keys)} AKT cache keys during sync trigger")
-        except Exception as cache_err:
-            logger.error(f"Error clearing cache during sync: {str(cache_err)}")
+            if redis_client is None:
+                raise RuntimeError('Report cache is unavailable')
+            redis_client.incr(AKT_CACHE_GENERATION_KEY)
+            keys = redis_client.keys('akt_perf_cache*')
+            if keys:
+                redis_client.delete(*keys)
+                logger.info(f"Cleared {len(keys)} AKT cache keys after data-load completion")
+        except Exception:
+            logger.exception('AKT cache invalidation failed')
+            return jsonify(status='error', message='Cache invalidation failed. Retry this completion callback.'), 503
 
         # Publish to the dedicated AKT channel
         try:
@@ -159,38 +165,54 @@ def get_akt_transaction_data():
             val = json.dumps(divisions) if param == 'division' else request.args.get(param, '')
             cache_key_parts.append(f"{param}={val}")
         
-        cache_key = f"akt_perf_cache_v7:{':'.join(cache_key_parts)}"
+        cache_generation = None
+        if redis_client is not None:
+            try:
+                cache_generation = int(redis_client.get(AKT_CACHE_GENERATION_KEY) or 0)
+            except Exception:
+                logger.warning('Cache generation unavailable; refusing uncoordinated report calculation')
+        cache_key = f"akt_perf_cache_v8:g{cache_generation}:{':'.join(cache_key_parts)}"
         lock_key = f"lock:{cache_key}"
         bypass_cache = request.args.get('bypass_cache', 'false').lower() == 'true'
 
-        lock_acquired = False
-        if not bypass_cache and redis_client:
-            try:
-                for attempt in range(2): # Quick check if locked or cached
-                    cached_data = redis_client.get(cache_key)
-                    if cached_data:
-                        data = json.loads(cached_data)
-                        data['cached'] = True
-                        return jsonify(data), 200, {'Content-Type': 'application/json'}
-                    
-                    if redis_client.exists(lock_key):
-                        time.sleep(0.5)
-                        continue
-                    else:
-                        break
+        lease = None
+        try:
+            # Without a coordination service, fail closed rather than stampede the DB.
+            if redis_client is None or cache_generation is None:
+                return jsonify(status='error', message='Report cache is temporarily unavailable. Please retry.'), 503
+            lease = ReportCacheLock(redis_client, lock_key)
+            deadline = time.monotonic() + AKT_CACHE_WAIT_SECONDS
+            waited = False
+            while True:
+                cached_data = redis_client.get(cache_key)
+                if cached_data and (not bypass_cache or waited):
+                    data = json.loads(cached_data)
+                    data['cached'] = True
+                    return jsonify(data)
+                if lease.acquire():
+                    # A previous owner may have published between GET and acquisition.
+                    if not bypass_cache or waited:
+                        cached_data = redis_client.get(cache_key)
+                        if cached_data:
+                            lease.release()
+                            lease = None
+                            data = json.loads(cached_data)
+                            data['cached'] = True
+                            return jsonify(data)
+                    break
+                waited = True
+                if time.monotonic() >= deadline:
+                    return jsonify(status='processing', message='This report is being prepared. Retrying shortly.'), 202, {'Retry-After': '2'}
+                time.sleep(0.1)
+        except Exception:
+            if lease is not None:
+                try:
+                    lease.release()
+                except Exception:
+                    pass
+            logger.exception('AKT report cache coordination failed')
+            return jsonify(status='error', message='Report cache is temporarily unavailable. Please retry.'), 503
 
-                lock_acquired = bool(redis_client.set(lock_key, "1", nx=True, ex=30))
-                if not lock_acquired:
-                    time.sleep(0.5)
-                    cached_data = redis_client.get(cache_key)
-                    if cached_data:
-                        data = json.loads(cached_data)
-                        data['cached'] = True
-                        return jsonify(data), 200, {'Content-Type': 'application/json'}
-            except Exception as cache_err:
-                logger.warning(f"Redis cache check failed, proceeding to query DB directly: {cache_err}")
-                lock_acquired = False
-        
         try:
             # Applying all global filters
             filters = []
@@ -531,21 +553,19 @@ def get_akt_transaction_data():
                 "filter_options": unique_vals
             }
 
-            # Cache the result for 50 minutes; refresh signals invalidate all filter variants.
-            if redis_client:
-                try:
-                    redis_client.setex(cache_key, AKT_REPORT_CACHE_TTL_SECONDS, json.dumps(result))
-                except Exception as cache_err:
-                    logger.error(f"Failed to cache data for {cache_key}: {str(cache_err)}")
-
+            # Only the lease owner can atomically publish and release this filter key.
+            try:
+                lease.publish(cache_key, json.dumps(result), AKT_REPORT_CACHE_TTL_SECONDS)
+            except Exception:
+                logger.exception('AKT report cache publish failed')
+                return jsonify(status='error', message='Report cache changed during loading. Please retry.'), 503
             return jsonify(result)
         finally:
-            # Release the lock if we held it
-            if lock_acquired and redis_client:
+            if lease is not None:
                 try:
-                    redis_client.delete(lock_key)
-                except Exception as del_err:
-                    logger.warning(f"Error releasing Redis lock {lock_key}: {del_err}")
+                    lease.release()
+                except Exception:
+                    logger.warning('Could not release AKT report lease; it will expire', exc_info=True)
     except Exception as e:
         logger.exception("Final exception in AKT Data API")
         return jsonify({
