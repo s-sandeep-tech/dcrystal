@@ -5,7 +5,7 @@ from sqlalchemy import func
 from app.dashboard import dashboard_bp
 from app.extensions import db
 from app.utils.decorators import require_report_access, require_role, require_perm
-from app.services.nip_stock_trend import DIMENSIONS, FILTER_FIELDS, scoped_query, trend_data
+from app.services.nip_stock_trend import DIMENSIONS, FILTER_FIELDS, GROUP_LIMIT, scoped_query, trend_data
 from app.services.nip_stock_trend_cache import cached_payload
 from app.models.nip_stock_trend import NIPStockTrendSnapshot as S
 
@@ -23,7 +23,7 @@ def _report_payload(kind, build):
 @require_report_access(ROUTE)
 def nip_stock_trend_page():
     return render_template('nip_stock_trend.html', dimensions=DIMENSIONS, filter_fields=FILTER_FIELDS,
-                           unread_count=0, sync_time='')
+                           group_limit=GROUP_LIMIT, unread_count=0, sync_time='')
 
 
 @dashboard_bp.route('/api/nip-stock-trend-analysis/options')

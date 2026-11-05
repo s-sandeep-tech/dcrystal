@@ -12,6 +12,7 @@ DIMENSIONS = ('location', 'division', 'group_name', 'purity', 'classification',
               'section', 'sub_section', 'type', 'gender', 'wide_range', 'branch_type')
 FILTER_FIELDS = DIMENSIONS + ('prov_type', 'weight')
 INTERVALS = ('daily', 'weekly', 'monthly', 'quarterly', 'yearly')
+GROUP_LIMIT = 5
 
 
 def scoped_query():
@@ -141,12 +142,12 @@ def trend_data(args):
     ranked = sorted((i for i, series in enumerate(ranking) if series['values'] and series['values'][-1] is not None),
                     key=lambda i: -ranking[i]['values'][-1])
     if limiter == 'top':
-        selected = ranked[:16]
+        selected = ranked[:GROUP_LIMIT]
     elif limiter == 'bottom':
-        selected = ranked[-16:]
+        selected = ranked[-GROUP_LIMIT:]
     elif limiter == 'middle':
-        start = max(0, (len(ranked) - 16) // 2)
-        selected = ranked[start:start + 16]
+        start = max(0, (len(ranked) - GROUP_LIMIT) // 2)
+        selected = ranked[start:start + GROUP_LIMIT]
     else:
         selected = list(range(len(totals)))
     # Stable alphabetical ties and unknown closing balances last in either direction.

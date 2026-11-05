@@ -68,9 +68,9 @@
                     %}selected{% endif %}>{{ v|replace('_',' ')|title }}</option>{% endfor %}</select></label>
         <label>Show<select id="nip-limiter" title="Ranked by the selected stock type on the latest reporting date">
                 <option value="all">All Groups</option>
-                <option value="top" selected>Top 16</option>
-                <option value="middle">Middle 16</option>
-                <option value="bottom">Bottom 16</option>
+                <option value="top" selected>Top {{ group_limit }}</option>
+                <option value="middle">Middle {{ group_limit }}</option>
+                <option value="bottom">Bottom {{ group_limit }}</option>
             </select></label>
         <label>Rank By<select id="nip-rank-by">
                 <option value="total">Total Stock</option>

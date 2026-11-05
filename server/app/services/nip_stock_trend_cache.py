@@ -13,7 +13,7 @@ from app.models.nip_stock_trend import NIPStockTrendSnapshot as S
 logger = logging.getLogger(__name__)
 redis_client = Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True,
                      socket_connect_timeout=0.5, socket_timeout=0.5)
-PREFIX = 'nip-stock-trend:v1'
+PREFIX = 'nip-stock-trend:v2'
 TTL_SECONDS = 1800
 
 
