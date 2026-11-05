@@ -277,7 +277,7 @@ def sync_owner_wise_data_task(task_type_override=None, progress_range=(0, 100), 
         db.session.rollback()
         error_msg = str(e)
         logger.error(f"OwnerWise Sync error: {error_msg}")
-        emit('error', f'Sync failed: {error_msg}', 0)
+        emit('processing' if is_subtask else 'error', f'Sync failed: {error_msg}', 0)
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
@@ -363,7 +363,7 @@ def sync_pending_order_details_task(task_type_override=None, progress_range=(0, 
         db.session.rollback()
         error_msg = str(e)
         logger.error(f"Pending Order Details sync failed: {error_msg}")
-        emit('error', f'Sync failed: {error_msg}', 0)
+        emit('processing' if is_subtask else 'error', f'Sync failed: {error_msg}', 0)
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
@@ -443,7 +443,7 @@ def sync_active_order_details_task(task_type_override=None, progress_range=(0, 1
         db.session.rollback()
         error_msg = str(e)
         logger.error(f"Active Orders sync failed: {error_msg}")
-        emit('error', f'Sync failed: {error_msg}', 0)
+        emit('processing' if is_subtask else 'error', f'Sync failed: {error_msg}', 0)
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
@@ -1745,7 +1745,7 @@ FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS
         db.session.rollback()
         error_msg = str(e)
         logger.error(f"ShowroomWiseOrderSummary Sync error: {error_msg}")
-        emit('error', f'Sync failed: {error_msg}', 0)
+        emit('processing' if is_subtask else 'error', f'Sync failed: {error_msg}', 0)
         return {"status": "error", "message": error_msg}
     finally:
         if conn: conn.close()
@@ -1757,37 +1757,46 @@ def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
     result_showroom: Dict[str, Any] = {}
     result_pending: Dict[str, Any] = {}
     result_active: Dict[str, Any] = {}
+
+    def run_segment(label, task, progress_range):
+        for attempt in range(1, 4):
+            try:
+                result = task(task_type_override=TASK_TYPE,
+                              progress_range=progress_range, is_subtask=True)
+                if isinstance(result, dict) and result.get('status') == 'success':
+                    return result
+                error = result.get('message', 'Unsuccessful segment result') if isinstance(result, dict) else 'No segment result'
+            except Exception as exc:
+                db.session.rollback()
+                error = str(exc)
+            logger.warning('Combined sync segment %s attempt %s/3 failed: %s', label, attempt, error)
+            if attempt == 3:
+                raise RuntimeError(f'{label} failed after 3 attempts: {error}')
+            emit_sync_update(
+                'processing', f'{label} failed. Retrying this segment in 5 seconds '
+                f'(attempt {attempt + 1}/3); completed segments will not restart.',
+                progress_range[0], TASK_TYPE,
+            )
+            time.sleep(5)
     
     try:
         emit_sync_update('processing', 'Starting combined Owner, Showroom, Pending Order Details & Active Orders Sync...', 2, TASK_TYPE)
 
         # ── Step 1: Pending Order Details ─────────────────────────────────
         emit_sync_update('processing', '[1/4] Syncing Pending Order Details...', 5, TASK_TYPE)
-        result_pending = sync_pending_order_details_task(task_type_override=TASK_TYPE, progress_range=(5, 25), is_subtask=True)
-        if not result_pending or result_pending.get('status') == 'error':
-            error_msg = result_pending.get('message') if result_pending else "Unknown error (result is None)"
-            raise Exception(f"Pending Order Details sync failed: {error_msg}")
+        result_pending = run_segment('Pending Order Details', sync_pending_order_details_task, (5, 25))
 
         # ── Step 2: Active Orders ─────────────────────────────────────────
         emit_sync_update('processing', '[2/4] Syncing Active Orders...', 25, TASK_TYPE)
-        result_active = sync_active_order_details_task(task_type_override=TASK_TYPE, progress_range=(25, 45), is_subtask=True)
-        if not result_active or result_active.get('status') == 'error':
-            error_msg = result_active.get('message') if result_active else "Unknown error (result is None)"
-            raise Exception(f"Active Orders sync failed: {error_msg}")
+        result_active = run_segment('Active Orders', sync_active_order_details_task, (25, 45))
 
         # ── Step 3: Owner Wise ────────────────────────────────────────────
         emit_sync_update('processing', '[3/4] Syncing Owner Wise Order Summary...', 45, TASK_TYPE)
-        result_owner = sync_owner_wise_data_task(task_type_override=TASK_TYPE, progress_range=(45, 70), is_subtask=True)
-        if not result_owner or result_owner.get('status') == 'error':
-            error_msg = result_owner.get('message') if result_owner else "Unknown error (result is None)"
-            raise Exception(f"Owner Wise sync failed: {error_msg}")
+        result_owner = run_segment('Owner Wise Order Summary', sync_owner_wise_data_task, (45, 70))
 
         # ── Step 4: Showroom Wise ─────────────────────────────────────────
         emit_sync_update('processing', '[4/4] Syncing Showroom Wise Order Summary...', 70, TASK_TYPE)
-        result_showroom = sync_showroom_wise_order_summary_task(task_type_override=TASK_TYPE, progress_range=(70, 95), is_subtask=True)
-        if not result_showroom or result_showroom.get('status') == 'error':
-            error_msg = result_showroom.get('message') if result_showroom else "Unknown error (result is None)"
-            raise Exception(f"Showroom Wise sync failed: {error_msg}")
+        result_showroom = run_segment('Showroom Wise Order Summary', sync_showroom_wise_order_summary_task, (70, 95))
 
         # ── Step 5: Clear Cache ───────────────────────────────────────────
         emit_sync_update('processing', 'Clearing application cache...', 95, TASK_TYPE)
