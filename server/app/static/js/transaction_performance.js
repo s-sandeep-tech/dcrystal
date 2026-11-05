@@ -1,3 +1,77 @@
+const statAnimations = new WeakMap();
+const chartSnapshots = new WeakMap();
+let activeReportController;
+let latestReportRequest = 0;
+
+function animateStatValue(node, target, format, unavailable = 'N/A') {
+    if (!node) return;
+    const valid = typeof target === 'number' && Number.isFinite(target);
+    const old = statAnimations.get(node);
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (valid && old?.target === target && old.frame && !reduced) return;
+    if (old?.frame) cancelAnimationFrame(old.frame);
+    if (!valid) {
+        if (node.textContent !== unavailable) node.textContent = unavailable;
+        statAnimations.set(node, { current: null, target: null });
+        return;
+    }
+    const finalText = format(target);
+    const from = old?.current ?? (node.textContent.includes('N/A') ? target : 0);
+    const state = { current: from, target, frame: null };
+    statAnimations.set(node, state);
+    if (reduced || from === target) {
+        if (node.textContent !== finalText) node.textContent = finalText;
+        state.current = target;
+        return;
+    }
+    const start = performance.now();
+    function step(now) {
+        const progress = Math.max(0, Math.min(1, (now - start) / 700));
+        state.current = from + (target - from) * (1 - Math.pow(1 - progress, 3));
+        const done = progress === 1 || matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const text = done ? finalText : format(state.current);
+        if (node.textContent !== text) node.textContent = text;
+        if (done) { state.current = target; state.frame = null; }
+        else state.frame = requestAnimationFrame(step);
+    }
+    state.frame = requestAnimationFrame(step);
+}
+
+function refreshDashboardChart(chart) {
+    const signature = JSON.stringify(chart.data);
+    if (chartSnapshots.get(chart) === signature) return;
+    chart.options.animation = { duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 650, easing: 'easeOutCubic' };
+    chart.update();
+    // Chart.js may assign default dataset colors during update.
+    chartSnapshots.set(chart, JSON.stringify(chart.data));
+}
+
+function reportRefreshMessage(message) {
+    let banner = document.getElementById('akt-refresh-message');
+    if (!banner) {
+        banner = document.createElement('div'); banner.id = 'akt-refresh-message';
+        banner.className = 'hidden items-center justify-between gap-3 mb-3 px-3 py-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 text-xs';
+        banner.setAttribute('role', 'status');
+        banner.append(document.createElement('span'));
+        const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = 'Retry now';
+        retry.className = 'font-semibold underline whitespace-nowrap';
+        retry.addEventListener('click', () => loadDashboardData(null, false, true)); banner.append(retry);
+        const main = document.getElementById('akt-main') || document.body;
+        main.insertBefore(banner, main.children[1] || null);
+    }
+    banner.firstElementChild.textContent = message || '';
+    banner.classList.toggle('hidden', !message); banner.classList.toggle('flex', Boolean(message));
+}
+
+function waitForReportRetry(ms, signal) {
+    return new Promise((resolve, reject) => {
+        if (signal.aborted) return reject(new DOMException('Cancelled', 'AbortError'));
+        const cancel = () => { clearTimeout(timer); reject(new DOMException('Cancelled', 'AbortError')); };
+        const timer = setTimeout(() => { signal.removeEventListener('abort', cancel); resolve(); }, ms);
+        signal.addEventListener('abort', cancel, { once: true });
+    });
+}
+
 let charts = {};
 let filtersInitialized = false;
 let divisionMultiSelect;
@@ -53,6 +127,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Real-time Sync Listener (Dedicated AKT Relay)
     if (window.socket) {
+        // Socket.IO emits connect for initial connection and each reconnection.
+        // The page already performs its initial load, so only reload after reconnects.
+        let hasConnected = Boolean(window.socket.connected);
+        window.socket.on('disconnect', () => { hasConnected = true; });
+        window.socket.on('connect', () => {
+            const reconnecting = hasConnected;
+            hasConnected = true;
+            if (reconnecting) loadDashboardData(null, false, true);
+        });
         window.socket.on('aktPerformanceRefresh', (data) => {
             console.log('Real-time AKT sync triggered:', data);
 
@@ -395,7 +478,10 @@ function formatCurrency(val) {
     return '₹' + formatCompactNumber(val);
 }
 
-async function loadDashboardData(triggerId = null, bypassCache = false, isSilent = false, cacheWaitAttempt = 0) {
+async function loadDashboardData(triggerId = null, bypassCache = false, isSilent = false) {
+    const requestId = ++latestReportRequest;
+    activeReportController?.abort();
+    const controller = new AbortController(); activeReportController = controller;
     const params = new URLSearchParams();
     const filterIds = ['date', 'country', 'region', 'state', 'location', 'division', 'subledger'];
     filterIds.forEach(id => {
@@ -419,55 +505,57 @@ async function loadDashboardData(triggerId = null, bypassCache = false, isSilent
     }
 
     const loader = document.getElementById('loading-overlay');
-    // Only show loader if not a silent refresh
     if (loader && !isSilent) loader.classList.remove('hidden');
-
+    reportRefreshMessage(null);
+    let failures = 0, cacheWaits = 0;
     try {
-        const token = localStorage.getItem('access_token');
-        const headers = {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        };
-
-        const response = await fetch(`/api/akt/transaction-data?${params.toString()}`, { headers });
-        const data = await response.json();
-
-        if (response.status === 202 && data.status === 'processing') {
-            if (cacheWaitAttempt < 30) {
-                const waitSeconds = Math.min(5, Math.max(1, Number(response.headers.get('Retry-After')) || 2));
-                await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
-                return await loadDashboardData(triggerId, false, isSilent, cacheWaitAttempt + 1);
-            }
-            throw new Error('Report preparation is taking longer than expected. Please refresh again.');
-        }
-        if (response.ok && data.status === 'success') {
-            updateReportStatus(data);
-            updateKPIs(data.kpis);
-            updateDashboardCharts(data);
-            if (data.filter_options) {
-                populateFilters(data.filter_options, triggerId);
-                filtersInitialized = true;
-            }
-        } else {
-            const errorMsg = data.message || data.msg || `Server error (${response.status})`;
-            console.error('API Error:', errorMsg);
-            if (!isSilent) {
-                if (window.showToast) {
-                    window.showToast('Error Loading Data', errorMsg, 'error');
-                } else {
-                    alert('Error loading dashboard data: ' + errorMsg);
+        while (!controller.signal.aborted) {
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`/api/akt/transaction-data?${params.toString()}`, {
+                    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                    signal: controller.signal
+                });
+                const data = await response.json();
+                if (requestId !== latestReportRequest) return;
+                if (response.status === 202 && data.status === 'processing') {
+                    if (++cacheWaits > 30) throw new Error('Report preparation is taking longer than expected.');
+                    const seconds = Math.min(5, Math.max(1, Number(response.headers.get('Retry-After')) || 2));
+                    await waitForReportRetry(seconds * 1000, controller.signal);
+                    params.delete('bypass_cache'); continue;
                 }
+                if (!response.ok || data.status !== 'success') {
+                    const error = new Error(data.message || data.msg || `Unable to refresh (${response.status}).`);
+                    error.retryable = response.status >= 500 || response.status === 429;
+                    throw error;
+                }
+                if (!data.kpis) throw new Error('The report response was incomplete.');
+                updateKPIs(data.kpis);
+                updateDashboardCharts(data);
+                updateReportStatus(data);
+                if (data.filter_options) {
+                    if (!isSilent) populateFilters(data.filter_options, triggerId);
+                    filtersInitialized = true;
+                }
+                reportRefreshMessage(null);
+                return;
+            } catch (error) {
+                if (controller.signal.aborted || requestId !== latestReportRequest) return;
+                if (loader) loader.classList.add('hidden');
+                if (error.retryable === false || ++failures > 3) {
+                    reportRefreshMessage(`Could not refresh the report. Displayed values have been kept. ${error.message}`);
+                    return;
+                }
+                const delay = 2000 * Math.pow(2, failures - 1);
+                reportRefreshMessage(`Refresh failed; keeping displayed values. Retrying in ${delay / 1000}s…`);
+                await waitForReportRetry(delay, controller.signal);
+                params.delete('bypass_cache');
             }
         }
     } catch (error) {
-        console.error('Fetch Error:', error);
-        if (!isSilent) {
-            if (window.showToast) {
-                window.showToast('Network Error', error.message, 'error');
-            }
-        }
+        if (!controller.signal.aborted && requestId === latestReportRequest) reportRefreshMessage(`Could not refresh. ${error.message}`);
     } finally {
-        if (loader) loader.classList.add('hidden');
+        if (requestId === latestReportRequest && loader) loader.classList.add('hidden');
     }
 }
 
@@ -495,16 +583,23 @@ function updateComparisonBadge(id, change, detail, comparisonYear, label) {
     const salesBadge = document.getElementById(id);
     const available = typeof change === 'number' && Number.isFinite(change);
     const rounded = available ? Number(change.toFixed(1)) : null;
-    salesBadge.replaceChildren();
+    let numberLabel = salesBadge.querySelector('[data-growth-number]');
+    if (!numberLabel) {
+        salesBadge.replaceChildren(); numberLabel = document.createElement('span');
+        numberLabel.dataset.growthNumber = ''; salesBadge.append(numberLabel);
+    }
+    const existingArrow = salesBadge.querySelector('.material-symbols-outlined');
+    const desiredArrow = available && rounded !== 0 ? (rounded > 0 ? 'arrow_upward' : 'arrow_downward') : null;
+    if (existingArrow && existingArrow.textContent !== desiredArrow) existingArrow.remove();
     salesBadge.className = 'inline-flex items-center gap-0.5 shrink-0 rounded-md px-1.5 py-1 text-[9px] font-bold ' +
         (rounded > 0 ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30' : rounded < 0 ? 'text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-900/30' : 'text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400');
-    if (available && rounded !== 0) {
+    if (desiredArrow && !salesBadge.querySelector('.material-symbols-outlined')) {
         const arrow = document.createElement('span');
         arrow.className = 'material-symbols-outlined text-[12px]';
-        arrow.textContent = rounded > 0 ? 'arrow_upward' : 'arrow_downward';
-        arrow.setAttribute('aria-hidden', 'true'); salesBadge.append(arrow);
+        arrow.textContent = desiredArrow;
+        arrow.setAttribute('aria-hidden', 'true'); salesBadge.prepend(arrow);
     }
-    salesBadge.append(document.createTextNode(available ? `${rounded > 0 ? '+' : ''}${rounded.toFixed(1)}%` : 'N/A'));
+    animateStatValue(numberLabel, available ? rounded : null, value => `${value > 0 ? '+' : ''}${Number(value.toFixed(1)).toFixed(1)}%`);
     salesBadge.title = detail;
     salesBadge.setAttribute('aria-label', available ? `${label} change versus ${comparisonYear}: ${rounded > 0 ? '+' : ''}${rounded.toFixed(1)} percent` : `${label} comparison with ${comparisonYear} unavailable`);
 
@@ -515,7 +610,7 @@ function updateKPIs(kpis) {
     const growth = kpis.sales_growth_yoy;
     const available = typeof growth === 'number' && Number.isFinite(growth);
     const rounded = available ? Number(growth.toFixed(1)) : null;
-    growthEl.innerText = available ? `${rounded > 0 ? '+' : ''}${rounded.toFixed(1)}%` : 'N/A';
+    animateStatValue(growthEl, available ? rounded : null, value => `${value > 0 ? '+' : ''}${Number(value.toFixed(1)).toFixed(1)}%`);
     growthEl.classList.remove('text-gray-900', 'dark:text-white', 'text-emerald-600', 'dark:text-emerald-400', 'text-red-600', 'dark:text-red-400');
     growthEl.classList.add(...(rounded > 0 ? ['text-emerald-600', 'dark:text-emerald-400'] : rounded < 0 ? ['text-red-600', 'dark:text-red-400'] : ['text-gray-900', 'dark:text-white']));
     const comparison = kpis.sales_growth_comparison_date?.split('-').reverse().join('/') || '18/10/2025';
@@ -530,24 +625,24 @@ function updateKPIs(kpis) {
     document.getElementById('kpi-sales-growth-detail').title = detail;
     updateComparisonBadge('kpi-sales-growth-badge', growth, detail, comparisonYear, 'Sales');
 
-    document.getElementById('kpi-hourly').innerText = kpis.total_hourly.toLocaleString();
-    document.getElementById('kpi-sales').innerText = formatCurrency(kpis.total_sales);
+    animateStatValue(document.getElementById('kpi-hourly'), kpis.total_hourly, value => Math.round(value).toLocaleString());
+    animateStatValue(document.getElementById('kpi-sales'), kpis.total_sales, formatCurrency);
     const previousSales = kpis.sales_growth_previous;
     const hasPreviousSales = typeof previousSales === 'number' && Number.isFinite(previousSales) && Boolean(cutoff);
     const previousSalesEl = document.getElementById('kpi-sales-previous');
-    previousSalesEl.textContent = `${comparisonYear}: ${hasPreviousSales ? formatCurrency(previousSales) : 'N/A'}`;
+    animateStatValue(previousSalesEl, hasPreviousSales ? previousSales : null, value => `${comparisonYear}: ${formatCurrency(value)}`, `${comparisonYear}: N/A`);
     previousSalesEl.title = hasPreviousSales
         ? `Last-year invoice sales: ${fullSalesValue(previousSales)} on ${comparison}, through ${cutoff}, using the same selected filters as Sales Growth YoY.`
         : `Last-year sales for ${comparison} are unavailable at a matching reporting hour.`;
-    document.getElementById('kpi-bills').innerText = kpis.total_bills.toLocaleString();
-    document.getElementById('kpi-avg-bill').innerText = formatCurrency(kpis.avg_bill_value);
+    animateStatValue(document.getElementById('kpi-bills'), kpis.total_bills, value => Math.round(value).toLocaleString());
+    animateStatValue(document.getElementById('kpi-avg-bill'), kpis.avg_bill_value, formatCurrency);
     const profitEl = document.getElementById('kpi-profit');
-    if (profitEl) profitEl.innerText = formatCurrency(kpis.total_profit);
+    if (profitEl) animateStatValue(profitEl, kpis.total_profit, formatCurrency);
     
     const netWeightKg = (kpis.total_net_weight_kg !== undefined)
         ? kpis.total_net_weight_kg
         : (kpis.total_net_weight !== undefined ? kpis.total_net_weight : 0);
-    document.getElementById('kpi-weight').innerText = `${netWeightKg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`;
+    animateStatValue(document.getElementById('kpi-weight'), netWeightKg, value => `${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`);
     for (const [metric, label, domMetric = metric] of [['bills', 'Bill count'], ['weight', 'Net weight'], ['avg_bill', 'Average bill value', 'avg-bill'], ['hourly', 'Last hour bills']]) {
         const previous = kpis[`${metric}_growth_previous`];
         const current = kpis[`${metric}_growth_current`];
@@ -556,7 +651,7 @@ function updateKPIs(kpis) {
         const formatValue = value => (metric === 'avg_bill' ? '₹' : '') + Number(value).toLocaleString('en-IN', { maximumFractionDigits: metric === 'weight' ? 3 : metric === 'avg_bill' ? 2 : 0 }) + (metric === 'weight' ? ' kg' : '');
         const comparisonDetail = `${label}: current ${current == null ? 'unavailable' : formatValue(current)}; ${comparison} ${hasPrevious ? formatValue(previous) : 'unavailable'}${cutoff ? `; through ${cutoff}` : ''}. Same selected filters and reporting hour.${metric === 'avg_bill' ? ' Average bill value = invoice sales ÷ bill count.' : ''}${metric === 'hourly' ? ` Hour: ${kpis.hourly_comparison_start || 'unavailable'}–${cutoff || 'unavailable'}. Two consecutive hourly snapshots are required for every included branch/division.` : ''} Percentage requires a positive comparison value.`;
         const previousEl = document.getElementById(`kpi-${domMetric}-previous`);
-        previousEl.textContent = `${comparisonYear}: ${hasPrevious ? (metric === 'avg_bill' ? formatCurrency(previous) : formatValue(previous)) : 'N/A'}`;
+        animateStatValue(previousEl, hasPrevious ? previous : null, value => `${comparisonYear}: ${metric === 'avg_bill' ? formatCurrency(value) : formatValue(value)}`, `${comparisonYear}: N/A`);
         previousEl.title = comparisonDetail;
         updateComparisonBadge(`kpi-${domMetric}-growth-badge`, change, comparisonDetail, comparisonYear, label);
     }
@@ -577,7 +672,7 @@ function updateDashboardCharts(data) {
     }
     charts.perMin.data.datasets[1].data = data.efficiency.map(d => cum_2025_map[d.time] || 0);
     
-    charts.perMin.update();
+    refreshDashboardChart(charts.perMin);
 
     charts.hourly.data.labels = data.efficiency.map(d => d.time);
     charts.hourly.data.datasets[0].data = data.efficiency.map(d => d.sum_hourly);
@@ -591,43 +686,43 @@ function updateDashboardCharts(data) {
     }
     charts.hourly.data.datasets[1].data = data.efficiency.map(d => efficiency_2025_map[d.time] || 0);
     
-    charts.hourly.update();
+    refreshDashboardChart(charts.hourly);
 
     // Top Locations for Per Minute Efficiency
     const topPerMinLoc = [...data.location_performance].sort((a, b) => b.avg_per_min - a.avg_per_min).slice(0, 10);
     charts.perMinLoc.data.labels = topPerMinLoc.map(d => d.location);
     charts.perMinLoc.data.datasets[0].data = topPerMinLoc.map(d => d.avg_per_min);
-    charts.perMinLoc.update();
+    refreshDashboardChart(charts.perMinLoc);
 
     // Top Locations for Hourly Bill Count
     const topHourlyLoc = [...data.location_performance].sort((a, b) => b.sum_hourly - a.sum_hourly).slice(0, 10);
     charts.hourlyLoc.data.labels = topHourlyLoc.map(d => d.location);
     charts.hourlyLoc.data.datasets[0].data = topHourlyLoc.map(d => d.sum_hourly);
-    charts.hourlyLoc.update();
+    refreshDashboardChart(charts.hourlyLoc);
 
     // Section 2
     charts.scatter.data.datasets[0].data = data.efficiency.map(d => ({ x: d.sum_hourly, y: d.sum_revenue }));
-    charts.scatter.update();
+    refreshDashboardChart(charts.scatter);
 
     charts.revenueHour.data.labels = data.efficiency.map(d => d.time);
     charts.revenueHour.data.datasets[0].data = data.efficiency.map(d => d.sum_revenue);
-    charts.revenueHour.update();
+    refreshDashboardChart(charts.revenueHour);
 
     charts.daily.data.labels = data.trends.map(d => d.hour + ":00");
     charts.daily.data.datasets[0].data = data.trends.map(d => d.sum_revenue);
     charts.daily.data.datasets[1].data = data.trends.map(d => d.sum_turnover);
-    charts.daily.update();
+    refreshDashboardChart(charts.daily);
 
     // Section 3
     // Top Locations for Sales Revenue
     const topSalesLoc = [...data.location_performance].sort((a, b) => b.sum_revenue - a.sum_revenue).slice(0, 10);
     charts.salesLoc.data.labels = topSalesLoc.map(d => d.location);
     charts.salesLoc.data.datasets[0].data = topSalesLoc.map(d => d.sum_revenue / 100000);
-    charts.salesLoc.update();
+    refreshDashboardChart(charts.salesLoc);
 
     charts.salesState.data.labels = data.state_performance.map(d => d.state);
     charts.salesState.data.datasets[0].data = data.state_performance.map(d => d.value);
-    charts.salesState.update();
+    refreshDashboardChart(charts.salesState);
 
     const divisionLabels = data.division_sales.map(d => d.division);
     const divColors = ['#137fec', '#2dd4bf', '#6366f1', '#feb101', '#ec4899', '#8b5cf6'];
@@ -643,18 +738,18 @@ function updateDashboardCharts(data) {
     charts.salesDivision.data.labels = divisionLabels;
     charts.salesDivision.data.datasets[0].data = data.division_sales.map(d => d.value / 10000000);
     charts.salesDivision.data.datasets[0].backgroundColor = mappedColors;
-    charts.salesDivision.update();
+    refreshDashboardChart(charts.salesDivision);
 
     // Top Locations for Avg Bill Value
     const topAvgBillLoc = [...data.location_performance].sort((a, b) => b.avg_bill_value - a.avg_bill_value).slice(0, 10);
     charts.avgBillLoc.data.labels = topAvgBillLoc.map(d => d.location);
     charts.avgBillLoc.data.datasets[0].data = topAvgBillLoc.map(d => d.avg_bill_value);
-    charts.avgBillLoc.update();
+    refreshDashboardChart(charts.avgBillLoc);
 
     // Section 4
     charts.composition.data.labels = Object.keys(data.composition);
     charts.composition.data.datasets[0].data = Object.values(data.composition);
-    charts.composition.update();
+    refreshDashboardChart(charts.composition);
 
     // Note: Profit charts hidden as per request (Data unavailable)
 
@@ -664,10 +759,10 @@ function updateDashboardCharts(data) {
     charts.weightComp.data.datasets[1].data = [data.weight_analysis.net / 1000];
     charts.weightComp.data.datasets[2].data = [data.weight_analysis_2025.gross / 1000];
     charts.weightComp.data.datasets[3].data = [data.weight_analysis_2025.net / 1000];
-    charts.weightComp.update();
+    refreshDashboardChart(charts.weightComp);
 
     charts.stoneAnalysis.data.datasets[0].data = [data.weight_analysis.diamond, data.weight_analysis.stone];
-    charts.stoneAnalysis.update();
+    refreshDashboardChart(charts.stoneAnalysis);
 
     // Heatmap (Bubble chart simulation)
     const uniqueDates = [...new Set(data.heatmap.map(h => h.date))].sort();
@@ -679,7 +774,7 @@ function updateDashboardCharts(data) {
             v: h.value,
             r: Math.max(3, Math.min(Math.sqrt(h.value) * 2, 16))
         }));
-        charts.heatmap.update();
+        refreshDashboardChart(charts.heatmap);
     }
 }
 
