@@ -1,7 +1,8 @@
 """Unit tests for Sales & Stock Composition Analysis for Purchase Plan."""
 import unittest
 from unittest.mock import patch, MagicMock
-from datetime import date
+from datetime import date, datetime
+from redis.exceptions import ConnectionError as RedisConnectionError
 from decimal import Decimal
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
@@ -224,6 +225,36 @@ class PurchasePlanSecurityAndRouteTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(calculate.call_args.kwargs['sort_by'], 'weight_turn')
                 self.assertEqual(calculate.call_args.kwargs['sort_order'], 'desc')
+
+    def test_main_report_cache_ttl_filters_refresh_and_redis_outage(self):
+        self.role.menus.append(Menu(title='Purchase Plan',
+                                    url='/sales-stock-composition-analysis-for-purchase-plan'))
+        snapshot = Snapshot(id=1, date=date(2026, 10, 1), branch_id=1, division='Gold',
+                            section='CHAIN', gross_weight=100, synced_at=datetime(2026, 10, 1))
+        db.session.add(snapshot)
+        db.session.commit()
+        endpoint = '/partial/sales-stock-composition-analysis-for-purchase-plan'
+        entries = {}
+        with patch('app.services.purchase_plan_cache.redis_client') as redis, patch(
+            'app.dashboard.routes.sales_stock_composition_analysis_for_purchase_plan.render_template',
+            side_effect=lambda _, **ctx: str(ctx['stats']['sales_weight']),
+        ):
+            redis.get.side_effect = entries.get
+            redis.setex.side_effect = lambda key, ttl, value: entries.update({key: value})
+            self.assertEqual(self.client.get(endpoint + '?division=Gold', headers=self.headers()).text, '100.0')
+            self.assertEqual(self.client.get(endpoint + '?division=Gold', headers=self.headers()).text, '100.0')
+            self.assertEqual(redis.setex.call_count, 1)
+            self.assertEqual(redis.setex.call_args.args[1], 10800)
+            self.assertEqual(self.client.get(endpoint + '?division=Silver', headers=self.headers()).text, '0.0')
+
+            snapshot.gross_weight = 200
+            snapshot.synced_at = datetime(2026, 10, 1, 1)
+            db.session.commit()
+            self.assertEqual(self.client.get(endpoint + '?division=Gold', headers=self.headers()).text, '200.0')
+            self.assertEqual(redis.setex.call_count, 3)
+
+            redis.get.side_effect = RedisConnectionError('offline')
+            self.assertEqual(self.client.get(endpoint + '?division=Gold', headers=self.headers()).text, '200.0')
 
     def test_division_make_purity_filters_passed_to_service(self):
         self.role.menus.append(Menu(title='Purchase Plan',

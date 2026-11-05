@@ -9,6 +9,7 @@ from app.dashboard import dashboard_bp
 from app.extensions import db
 from app.models.sales_stock_composition_analysis import SalesStockCompositionAnalysisSnapshot as Snapshot
 from app.models.core import Notification
+from app.services.purchase_plan_cache import cached_purchase_plan_data
 from app.services.sales_stock_composition_analysis_for_purchase_plan import (
     HIERARCHY,
     FILTERS,
@@ -120,8 +121,13 @@ def get_sales_stock_composition_analysis_for_purchase_plan_partial():
 
         sort_by, sort_order = get_selected_sort()
         hierarchy_root = get_selected_hierarchy_root()
-        data = fetch_purchase_plan_composition_data(get_selected_date(), selections, path=path,
-                                                   sort_by=sort_by, sort_order=sort_order, hierarchy_root=hierarchy_root)
+        selected_date = get_selected_date()
+        data = cached_purchase_plan_data(
+            selected_date, selections, path, sort_by, sort_order, hierarchy_root,
+            lambda: fetch_purchase_plan_composition_data(
+                selected_date, selections, path=path, sort_by=sort_by,
+                sort_order=sort_order, hierarchy_root=hierarchy_root),
+        )
 
         return render_template(
             'partials/_view_sales_stock_composition_analysis_for_purchase_plan.html',
