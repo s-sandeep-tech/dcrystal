@@ -105,7 +105,7 @@ class PostgreSQLTests(unittest.TestCase):
     def test_reconciliation_section_ids_and_prior_year(self):
         totals = report.totals(self.cur, self.filters)
         self.assertEqual(totals['net_turnover'], Decimal(140))
-        self.assertEqual(totals['net_weight'], Decimal(14))
+        self.assertEqual(totals['net_weight'], Decimal('0.014'))
         self.assertEqual(totals['total_tsk'], Decimal(7))
         sections = report.breakdown(self.cur, self.filters, 'sections')
         self.assertEqual(len(sections), 2)  # Same name, distinct section IDs.

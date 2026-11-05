@@ -12,14 +12,14 @@ This report queries `ext_view.vw_item_wise_tsk_details_data` on the external Pos
 - Invoice turnover: sum of invoice `turn_over`.
 - Returns: signed return turnover, using the existing `SALES_PREDICTION_RETURN_SIGN` setting (`signed` by default, or `positive` to subtract positive source returns).
 - Net turnover: invoice turnover plus signed returns. Missing turnover or inconsistent return signs produce an explicit segment error.
-- Net weight and TSK: sums of `net_weight` and `total_tsk` as supplied by the view. Return-sign normalization is applied only to turnover. These are labeled source totals.
+- Net weight: sum of source `net_weight` in grams divided by 1,000, displayed/exported in kg. TSK: sum of `total_tsk` as supplied by the view. Return-sign normalization is applied only to turnover. These are labeled source totals.
 - Section breakdown: grouped by `section_id`, labeled with `section`; missing section IDs remain in an Unspecified group. A signed bar chart replaces the donut when contributions contain negatives.
 - Branch leaderboard: top ten branches by net turnover, with shares calculated against all matching branches.
 - KPI YoY: each statistic compares the full selected period with the same dates last year, using identical filters and `(current - prior) / abs(prior) * 100`. Zero/missing prior bases show an unavailable badge. For signed returns, a less-negative total is a positive change.
 - Monthly ledger YoY: matching prior-year dates (February 29 clamps to February 28); unavailable for missing/non-positive prior bases or months with no current rows.
 - Missing months: zero totals. Prior history is never invented. Partial date ranges compare equivalent partial ranges.
 
-Currency and weight units are not inferred. Margin, average ticket, targets, VIP conversion, and sell-through are not derived from this view.
+Source weight is converted from grams to kg by dividing by 1,000 across every segment and CSV; YoY percentages are unchanged by unit conversion. Turnover and TSK amounts in KPI cards, chart axes, and all tables display in crores (1 Cr = 10,000,000), with full values on hover. CSV retains full monetary amounts and kg weight for analysis. Currency is not inferred. Margin, average ticket, targets, VIP conversion, and sell-through are not derived from this view.
 
 ## Access and operation
 

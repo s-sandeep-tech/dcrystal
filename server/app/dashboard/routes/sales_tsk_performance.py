@@ -46,7 +46,7 @@ def sales_tsk_performance_segment(segment):
             writer = csv.writer(output)
             keys = ['month', *report.METRICS, 'prior_turnover', 'yoy', 'leading_branch']
             writer.writerow(['Month', 'Invoice turnover', 'Returns (signed)', 'Net turnover',
-                             'Net weight (source total)', 'TSK (source total)', 'Prior-year turnover', 'YoY %', 'Leading branch'])
+                             'Net weight (kg, source total)', 'TSK (source total)', 'Prior-year turnover', 'YoY %', 'Leading branch'])
             for row in data:
                 values = [row.get(key) for key in keys]
                 # Protect spreadsheet consumers from formula-like source labels.

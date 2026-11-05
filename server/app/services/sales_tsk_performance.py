@@ -99,7 +99,7 @@ def aggregates():
     returns = f"COALESCE(SUM(turn_over) FILTER (WHERE trans_type = 'SR'), 0) * {multiplier}"
     return f'''{invoice} AS invoice_turnover, {returns} AS return_turnover,
         {invoice} + {returns} AS net_turnover,
-        COALESCE(SUM(net_weight), 0) AS net_weight,
+        COALESCE(SUM(net_weight), 0) / 1000.0 AS net_weight,
         COALESCE(SUM(total_tsk), 0) AS total_tsk,
         COUNT(*) AS row_count,
         COUNT(*) FILTER (WHERE turn_over IS NULL OR (trans_type = 'SR' AND turn_over {invalid})) AS invalid_rows,

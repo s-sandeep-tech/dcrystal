@@ -8,6 +8,8 @@
     const charts = new Map();
     const nf = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 });
     const number = value => value == null ? '—' : nf.format(value);
+    const crores = value => value == null ? '—' : `${(Number(value) / 10000000).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Cr`;
+    const amountKeys = new Set(['invoice_turnover', 'return_turnover', 'net_turnover', 'total_tsk', 'prior_turnover']);
     const percent = value => value == null ? '—' : `${Number(value).toFixed(1)}%`;
     const monthLabel = value => new Date(`${value}T12:00:00`).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
     const fields = [...form.querySelectorAll('select[name]')];
@@ -78,6 +80,7 @@
             columns.forEach(c => {
                 const value = row[c.key];
                 const td = element('td', c.format ? c.format(value) : value ?? '—');
+                if (amountKeys.has(c.key) && value != null) { td.title = number(value); td.setAttribute('aria-label', `${c.label}: ${number(value)}`); }
                 if (c.key === 'yoy' && value != null) td.className = value >= 0 ? 'sales-positive' : 'sales-negative';
                 line.append(td);
             }); return line;
@@ -87,11 +90,11 @@
         wrap.append(tbl); container.append(wrap);
     }
     const metricColumns = [
-        { key: 'invoice_turnover', label: 'Invoice turnover', format: number },
-        { key: 'return_turnover', label: 'Returns (signed)', format: number },
-        { key: 'net_turnover', label: 'Net turnover', format: number },
-        { key: 'net_weight', label: 'Net weight · source total', format: number },
-        { key: 'total_tsk', label: 'TSK · source total', format: number }
+        { key: 'invoice_turnover', label: 'Invoice turnover', format: crores },
+        { key: 'return_turnover', label: 'Returns (signed)', format: crores },
+        { key: 'net_turnover', label: 'Net turnover', format: crores },
+        { key: 'net_weight', label: 'Net weight (kg)', format: number },
+        { key: 'total_tsk', label: 'TSK · source total', format: crores }
     ];
     function themeChart(chart) {
         const style = getComputedStyle(page);
@@ -113,7 +116,7 @@
         wrap.append(canvas); container.append(wrap);
         const style = getComputedStyle(page);
         config.options = { responsive: true, maintainAspectRatio: false, ...config.options,
-            plugins: { ...config.options?.plugins, legend: { labels: { color: style.getPropertyValue('--sales-text').trim(), boxWidth: 10 } } } };
+            plugins: { ...config.options?.plugins, tooltip: { callbacks: { label: context => `${context.dataset.label}: ${crores(context.raw)} (${number(context.raw)})` } }, legend: { labels: { color: style.getPropertyValue('--sales-text').trim(), boxWidth: 10 } } } };
         const chart = new Chart(canvas, config);
         charts.set(segment, chart); themeChart(chart);
     }
@@ -151,7 +154,7 @@
                 dot.setAttribute('r', i === points.length - 1 ? '4' : '6');
                 dot.setAttribute('fill', i === points.length - 1 ? 'currentColor' : 'transparent');
                 const title = document.createElementNS(svgNS, 'title');
-                title.textContent = `${monthLabel(kpiTrend[i].month)}: ${number(values[i])}`;
+                title.textContent = `${monthLabel(kpiTrend[i].month)}: ${number(values[i])}${slot.dataset.metric === 'net_weight' ? ' kg' : ''}`;
                 dot.append(title); svg.append(dot);
             });
             slot.append(svg, element('span', 'Monthly trend', 'sales-sparkline-caption'));
@@ -176,7 +179,14 @@
                     ? `Compared with ${number(data.prior_totals?.[column.key])} for ${comparison}. Change = (current − prior) / |prior| × 100.`
                     : `No percentage comparison for ${comparison}: the prior value is zero or data is unavailable.`;
                 badge.setAttribute('aria-label', `${column.label}: ${available ? `${rounded}% change` : 'comparison unavailable'} versus ${comparison}`);
-                valueRow.append(element('strong', number(data[column.key])), badge);
+                const isAmount = column.key !== 'net_weight';
+                const amount = element('strong', isAmount && data[column.key] != null
+                    ? crores(data[column.key])
+                    : number(data[column.key]));
+                amount.title = `${number(data[column.key])}${isAmount ? '' : ' kg'}`;
+                amount.setAttribute('aria-label', `${column.label}: ${amount.title}`);
+                if (isAmount) valueRow.classList.add('sales-kpi-value-crores');
+                valueRow.append(amount, badge);
                 card.append(element('small', column.label), valueRow, sparkline);
                 container.append(card);
             }
@@ -191,14 +201,14 @@
                 { label: 'Net turnover', data: data.map(r => r.net_turnover), backgroundColor: '#137fec', yAxisID: 'y' },
                 { label: 'Prior-year turnover', type: 'line', data: data.map(r => r.prior_turnover), borderColor: '#94a3b8', borderDash: [5, 4], yAxisID: 'y' },
                 { label: 'TSK · source total', type: 'line', data: data.map(r => r.total_tsk), borderColor: '#10b981', yAxisID: 'tsk' }
-            ] }, options: { scales: { y: { beginAtZero: true, title: { display: true, text: 'Turnover' } }, tsk: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'TSK' } } } } });
+            ] }, options: { scales: { y: { beginAtZero: true, ticks: { callback: crores }, title: { display: true, text: 'Turnover (Cr)' } }, tsk: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, ticks: { callback: crores }, title: { display: true, text: 'TSK (Cr)' } } } } });
             const details = element('details'); details.append(element('summary', 'View trend values'));
-            table(details, [{ key: 'month', label: 'Month', format: monthLabel }, metricColumns[2], metricColumns[4], { key: 'prior_turnover', label: 'Prior-year turnover', format: number }], data); container.append(details);
+            table(details, [{ key: 'month', label: 'Month', format: monthLabel }, metricColumns[2], metricColumns[4], { key: 'prior_turnover', label: 'Prior-year turnover', format: crores }], data); container.append(details);
         } else if (segment === 'sections') {
             const positive = data.every(r => r.net_turnover >= 0) && data.some(r => r.net_turnover > 0);
             const top = data.slice(0, 8);
             const chartRows = data.length > 8 ? [...top, { label: 'Other sections', net_turnover: data.slice(8).reduce((a, r) => a + r.net_turnover, 0) }] : top;
-            drawChart(segment, container, { type: positive ? 'doughnut' : 'bar', data: { labels: chartRows.map(r => r.label), datasets: [{ label: 'Net turnover', data: chartRows.map(r => r.net_turnover), backgroundColor: ['#137fec', '#10b981', '#f59e0b', '#7c3aed', '#06b6d4', '#f43f5e', '#64748b', '#84cc16', '#cbd5e1'] }] }, options: positive ? { cutout: '68%' } : { indexAxis: 'y' } });
+            drawChart(segment, container, { type: positive ? 'doughnut' : 'bar', data: { labels: chartRows.map(r => r.label), datasets: [{ label: 'Net turnover', data: chartRows.map(r => r.net_turnover), backgroundColor: ['#137fec', '#10b981', '#f59e0b', '#7c3aed', '#06b6d4', '#f43f5e', '#64748b', '#84cc16', '#cbd5e1'] }] }, options: positive ? { cutout: '68%' } : { indexAxis: 'y', scales: { x: { ticks: { callback: crores }, title: { display: true, text: 'Net turnover (Cr)' } } } } });
             table(container, [{ key: 'label', label: 'Section' }, metricColumns[2], { key: 'share', label: 'Share', format: percent }, metricColumns[4]], data);
         } else if (segment === 'branches') {
             table(container, [{ key: 'rank', label: 'Rank' }, { key: 'label', label: 'Location' }, metricColumns[2], metricColumns[3], metricColumns[4], { key: 'share', label: 'Share', format: percent }], data.slice(0, 10).map((r, i) => ({ ...r, rank: i + 1 })));

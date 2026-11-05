@@ -55,3 +55,9 @@
 .sales-kpi-change.is-neutral { color: var(--sales-muted); background: #94a3b81a; }
 .dark .sales-kpi-change.is-up { color: #6ee7b7; }
 .dark .sales-kpi-change.is-down { color: #fca5a5; }
+
+.sales-kpi-value-crores { flex-wrap: nowrap; gap: 6px; }
+.sales-kpi { container-type: inline-size; }
+.sales-kpi-value-crores strong { white-space: nowrap; font-size: clamp(12px, 7cqi, 22px); }
+.sales-kpi-value-crores .sales-kpi-change { flex-shrink: 0; }
+@media (max-width: 640px) { .sales-kpis > .sales-content { grid-template-columns: 1fr; } }
