@@ -81,6 +81,32 @@ class TransactionPerformanceTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         mock_socketio.emit.assert_called_once()
 
+    @patch('app.dashboard.routes.transaction_performance.redis_client')
+    def test_division_defaults_multiple_and_all(self, mock_redis):
+        mock_redis.get.return_value = None
+        mock_redis.exists.return_value = False
+        mock_redis.set.return_value = True
+        for index, division in enumerate(['GOLD', 'Diamond', 'SILVER']):
+            for year, month, day, hour in [(2026, 11, 5, index + 10), (2025, 10, 18, index + 20)]:
+                db.session.add(AKTTransactionPerformance(timepartt=hour, billtime=time(hour, 0),
+                    country_actual='INDIA', date=datetime(year, month, day, hour), divisionname=division,
+                    location='Store A', billcount=1, invoiceamt=100, turnover=90, perminutebillcount='1', hourlybillcount=1))
+        db.session.commit()
+        base='/api/akt/transaction-data?date=2026-11-05&country=India'
+        cases=[('', {'GOLD', 'Diamond'}, 2),
+               ('&division=gold&division=SILVER', {'GOLD', 'SILVER'}, 2),
+               ('&division=diamond', {'Diamond'}, 1),
+               ('&division=', {'GOLD', 'Diamond', 'SILVER'}, 3)]
+        keys=[]
+        for query, expected, prior_count in cases:
+            response=self.client.get(base+query, headers=self.auth_headers())
+            self.assertEqual(response.status_code, 200)
+            data=response.get_json()
+            self.assertEqual({row['division'] for row in data['division_sales']}, expected)
+            self.assertEqual(len(data['efficiency_2025']), prior_count)
+            keys.append(mock_redis.get.call_args.args[0])
+        self.assertEqual(len(set(keys)), len(cases))
+
     def test_get_akt_transaction_data_requires_auth(self):
         response = self.client.get('/api/akt/transaction-data')
         self.assertEqual(response.status_code, 401)

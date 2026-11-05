@@ -13,6 +13,13 @@ import time
 
 logger = logging.getLogger(__name__)
 
+
+def selected_divisions(args):
+    # An absent filter uses report defaults; an explicit empty value means all.
+    values = args.getlist('division') if 'division' in args else ['Gold', 'Diamond']
+    return sorted({value.strip().upper() for item in values for value in item.split(',') if value.strip()})
+
+
 @dashboard_bp.route('/transaction-performance')
 @require_perm('dashboard.view')
 def transaction_performance():
@@ -78,12 +85,13 @@ def get_akt_transaction_data():
         def coal(col, default=0): return func.coalesce(col, default)
 
         # 0. Caching Logic
+        divisions = selected_divisions(request.args)
         cache_key_parts = []
         for param in ['date', 'country', 'region', 'state', 'location', 'division', 'subledger']:
-            val = request.args.get(param, '')
+            val = json.dumps(divisions) if param == 'division' else request.args.get(param, '')
             cache_key_parts.append(f"{param}={val}")
         
-        cache_key = f"akt_perf_cache_v2:{':'.join(cache_key_parts)}"
+        cache_key = f"akt_perf_cache_v3:{':'.join(cache_key_parts)}"
         lock_key = f"lock:{cache_key}"
         bypass_cache = request.args.get('bypass_cache', 'false').lower() == 'true'
 
@@ -130,6 +138,10 @@ def get_akt_transaction_data():
             }
 
             for param, field in filter_configs.items():
+                if param == 'division':
+                    if divisions:
+                        filters.append(func.upper(func.trim(field)).in_(divisions))
+                    continue
                 val = request.args.get(param)
                 if val:
                     if param == 'country':
@@ -225,6 +237,9 @@ def get_akt_transaction_data():
             for param, field in filter_configs.items():
                 if param == 'date':
                     filters_2025.append(field == '2025-10-18')
+                elif param == 'division':
+                    if divisions:
+                        filters_2025.append(func.upper(func.trim(field)).in_(divisions))
                 else:
                     val = request.args.get(param)
                     if val:

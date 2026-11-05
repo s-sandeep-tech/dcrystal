@@ -34,9 +34,11 @@
 
     <div class="flex flex-col gap-1">
         <label class="text-[9px] font-bold text-gray-400 uppercase ml-1">Division</label>
-        <select id="filter-division" class="bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 rounded-lg text-xs p-2 min-w-[120px]">
-            <option value="">All Divisions</option>
+        <select id="filter-division" multiple hidden>
+            <option value="Gold" selected>Gold</option>
+            <option value="Diamond" selected>Diamond</option>
         </select>
+        <div id="akt-division-multi" class="min-w-[160px]"></div>
     </div>
 
     <div class="flex flex-col gap-1">

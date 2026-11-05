@@ -1,5 +1,21 @@
 let charts = {};
 let filtersInitialized = false;
+let divisionMultiSelect;
+
+function updateDivisionOptions(options, selected) {
+    const select = document.getElementById('filter-division');
+    const normalized = new Set(selected.map(value => value.toUpperCase()));
+    const available = [...new Set(options.filter(Boolean))];
+    // Keep explicit selections when cascading options temporarily have no matches.
+    selected.forEach(value => { if (!available.some(item => item.toUpperCase() === value.toUpperCase())) available.push(value); });
+    select.replaceChildren();
+    available.forEach(value => select.add(new Option(value, value, false, normalized.has(value.toUpperCase()))));
+    if (divisionMultiSelect) {
+        divisionMultiSelect.populateOptions(available);
+        document.querySelectorAll('.akt-division-multi-checkbox').forEach(checkbox => { checkbox.checked = normalized.has(checkbox.value.toUpperCase()); });
+        divisionMultiSelect.updateTriggerText();
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     // Set default date to today
@@ -9,6 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
         dateInput.value = today;
     }
 
+    divisionMultiSelect = new CustomMultiSelect({
+        containerId: 'akt-division-multi', defaultText: 'All Divisions', options: ['Gold', 'Diamond'],
+        onChange: values => {
+            const select = document.getElementById('filter-division');
+            [...select.options].forEach(option => { option.selected = values.includes(option.value); });
+            loadDashboardData('filter-division');
+        }
+    });
+    updateDivisionOptions(['Gold', 'Diamond'], ['Gold', 'Diamond']);
     initCharts();
 
     // Set default country if specified
@@ -56,11 +81,13 @@ function resetFilters() {
     }
 
     // 3. Reset All others to empty
-    const otherFilters = ['region', 'state', 'location', 'division', 'subledger'];
+    const otherFilters = ['region', 'state', 'location', 'subledger'];
     otherFilters.forEach(f => {
         const el = document.getElementById(`filter-${f}`);
         if (el) el.value = '';
     });
+
+    updateDivisionOptions([...document.getElementById('filter-division').options].map(option => option.value), ['Gold', 'Diamond']);
 
     // 4. Reset initialization flag to allow full re-population of cascading filters
     filtersInitialized = false;
@@ -373,6 +400,12 @@ async function loadDashboardData(triggerId = null, bypassCache = false, isSilent
     const filterIds = ['date', 'country', 'region', 'state', 'location', 'division', 'subledger'];
     filterIds.forEach(id => {
         const el = document.getElementById(`filter-${id}`);
+        if (id === 'division') {
+            const values = el ? [...el.selectedOptions].map(option => option.value) : ['Gold', 'Diamond'];
+            if (values.length) values.forEach(value => params.append('division', value));
+            else params.append('division', '');
+            return;
+        }
         const val = el ? el.value : '';
         if (val) params.append(id, val);
     });
@@ -586,6 +619,10 @@ function populateFilters(options, triggerId = null) {
         const select = document.getElementById(id);
         const dataKey = id;
         
+        if (id === 'filter-division' && select && mappings[dataKey]) {
+            updateDivisionOptions(mappings[dataKey], [...select.selectedOptions].map(option => option.value));
+            continue;
+        }
         if (select && mappings[dataKey]) {
             const isCountry = (id === 'filter-country');
 
