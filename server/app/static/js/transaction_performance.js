@@ -441,6 +441,7 @@ async function loadDashboardData(triggerId = null, bypassCache = false, isSilent
             throw new Error('Report preparation is taking longer than expected. Please refresh again.');
         }
         if (response.ok && data.status === 'success') {
+            updateReportStatus(data);
             updateKPIs(data.kpis);
             updateDashboardCharts(data);
             if (data.filter_options) {
@@ -468,6 +469,26 @@ async function loadDashboardData(triggerId = null, bypassCache = false, isSilent
     } finally {
         if (loader) loader.classList.add('hidden');
     }
+}
+
+function updateReportStatus(data) {
+    const sync = document.getElementById('akt-last-sync');
+    const source = document.getElementById('akt-data-source');
+    if (!sync || !source) return;
+    const date = data.last_successful_sync_at ? new Date(data.last_successful_sync_at) : null;
+    const recorded = date && !Number.isNaN(date.getTime());
+    sync.textContent = recorded ? new Intl.DateTimeFormat('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit',
+        timeZone: 'Asia/Kolkata'
+    }).format(date) + ' IST' : 'Not recorded';
+    sync.title = recorded ? `Successful ADF completion notification: ${data.last_successful_sync_at}` : 'No successful data-load completion notification has been recorded for this report version.';
+    const cached = data.cached === true;
+    document.getElementById('akt-data-source-text').textContent = cached ? 'From cache' : 'Fresh from database';
+    document.getElementById('akt-data-source-icon').textContent = cached ? 'cached' : 'database';
+    source.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-semibold ' +
+        (cached ? 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800/40' :
+            'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800/40');
+    source.title = cached ? 'This filter combination was served from the 50-minute report cache.' : 'This response was calculated from the database and cached for this filter combination.';
 }
 
 function updateComparisonBadge(id, change, detail, comparisonYear, label) {

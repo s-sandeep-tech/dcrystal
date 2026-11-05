@@ -17,7 +17,24 @@ logger = logging.getLogger(__name__)
 SALES_COMPARISON_DATE = date(2025, 10, 18)
 AKT_REPORT_CACHE_TTL_SECONDS = 50 * 60
 AKT_CACHE_GENERATION_KEY = 'akt_report_cache_generation'
+AKT_SYNC_METADATA_KEY = 'akt_report_last_successful_sync'
 AKT_CACHE_WAIT_SECONDS = 2
+
+
+def akt_report_response(data, cached, generation):
+    """Attach current delivery metadata without changing the cached report payload."""
+    sync_at = None
+    try:
+        metadata = json.loads(redis_client.get(AKT_SYNC_METADATA_KEY) or 'null')
+        if isinstance(metadata, dict) and metadata.get('generation') == generation:
+            sync_at = metadata.get('completed_at')
+    except Exception:
+        logger.warning('AKT last-sync metadata unavailable')
+    data['cached'] = cached
+    data['last_successful_sync_at'] = sync_at
+    response = jsonify(data)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 def selected_divisions(args):
@@ -122,11 +139,13 @@ def trigger_akt_sync():
         try:
             if redis_client is None:
                 raise RuntimeError('Report cache is unavailable')
-            redis_client.incr(AKT_CACHE_GENERATION_KEY)
+            generation = int(redis_client.incr(AKT_CACHE_GENERATION_KEY))
             keys = redis_client.keys('akt_perf_cache*')
             if keys:
                 redis_client.delete(*keys)
                 logger.info(f"Cleared {len(keys)} AKT cache keys after data-load completion")
+            payload['timestamp'] = datetime.now(ZoneInfo('Asia/Kolkata')).isoformat()
+            redis_client.set(AKT_SYNC_METADATA_KEY, json.dumps({'generation': generation, 'completed_at': payload['timestamp']}))
         except Exception:
             logger.exception('AKT cache invalidation failed')
             return jsonify(status='error', message='Cache invalidation failed. Retry this completion callback.'), 503
@@ -187,8 +206,7 @@ def get_akt_transaction_data():
                 cached_data = redis_client.get(cache_key)
                 if cached_data and (not bypass_cache or waited):
                     data = json.loads(cached_data)
-                    data['cached'] = True
-                    return jsonify(data)
+                    return akt_report_response(data, True, cache_generation)
                 if lease.acquire():
                     # A previous owner may have published between GET and acquisition.
                     if not bypass_cache or waited:
@@ -197,8 +215,7 @@ def get_akt_transaction_data():
                             lease.release()
                             lease = None
                             data = json.loads(cached_data)
-                            data['cached'] = True
-                            return jsonify(data)
+                            return akt_report_response(data, True, cache_generation)
                     break
                 waited = True
                 if time.monotonic() >= deadline:
@@ -559,7 +576,7 @@ def get_akt_transaction_data():
             except Exception:
                 logger.exception('AKT report cache publish failed')
                 return jsonify(status='error', message='Report cache changed during loading. Please retry.'), 503
-            return jsonify(result)
+            return akt_report_response(result, False, cache_generation)
         finally:
             if lease is not None:
                 try:

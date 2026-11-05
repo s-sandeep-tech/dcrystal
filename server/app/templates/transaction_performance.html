@@ -43,10 +43,15 @@
             <p class="text-xs text-gray-400 mt-1 font-medium tracking-wide">Jewellery Retail Operational Efficiency & Value Analytics</p>
         </div>
         
-        <div class="flex items-center gap-3">
-            <div id="sync-status" class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm">
-                <span class="size-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Live Connection: AKT Azure DB</span>
+        <div id="sync-status" class="flex flex-wrap items-center gap-2 text-[10px]" aria-live="polite">
+            <div class="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm">
+                <span class="material-symbols-outlined text-[14px] text-gray-400" aria-hidden="true">schedule</span>
+                <span class="text-gray-400">Last sync</span>
+                <span id="akt-last-sync" class="font-semibold text-gray-600 dark:text-gray-300">Not recorded</span>
+            </div>
+            <div id="akt-data-source" class="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg border border-gray-100 dark:border-gray-700 font-semibold">
+                <span id="akt-data-source-icon" class="material-symbols-outlined text-[14px]" aria-hidden="true">hourglass_empty</span>
+                <span id="akt-data-source-text">Loading…</span>
             </div>
         </div>
     </div>
@@ -117,5 +122,5 @@
 
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/transaction_performance.js', v='20261105-cache-lock-polling') }}"></script>
+<script src="{{ url_for('static', filename='js/transaction_performance.js', v='20261105-sync-cache-status') }}"></script>
 {% endblock %}

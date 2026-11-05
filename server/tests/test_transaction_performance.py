@@ -12,7 +12,7 @@ from app.models.core import Notification
 from app.models.rbac import Role, Permission, UserRole, RolePermission, Menu, RoleMenu
 from app.models.akt_report import AKTTransactionPerformance
 from app.dashboard import dashboard_bp
-from app.dashboard.routes.transaction_performance import trigger_akt_sync, get_akt_transaction_data, sales_growth_comparison, SALES_COMPARISON_DATE, AKT_CACHE_GENERATION_KEY
+from app.dashboard.routes.transaction_performance import trigger_akt_sync, get_akt_transaction_data, sales_growth_comparison, SALES_COMPARISON_DATE, AKT_CACHE_GENERATION_KEY, AKT_SYNC_METADATA_KEY, akt_report_response
 
 
 class TransactionPerformanceTests(unittest.TestCase):
@@ -69,6 +69,11 @@ class TransactionPerformanceTests(unittest.TestCase):
         self.assertEqual(response.get_json()['status'], 'success')
         mock_redis.incr.assert_called_once_with(AKT_CACHE_GENERATION_KEY)
         mock_redis.delete.assert_called_once_with(b'akt_perf_cache:1')
+        mock_redis.set.assert_called_once()
+        import json
+        sync_record = json.loads(mock_redis.set.call_args.args[1])
+        self.assertEqual(mock_redis.set.call_args.args[0], AKT_SYNC_METADATA_KEY)
+        self.assertTrue(sync_record['completed_at'].endswith('+05:30'))
         mock_redis.publish.assert_called_once()
         mock_socketio.emit.assert_called_once_with('aktPerformanceRefresh', {
             'action': 'refresh',
@@ -109,7 +114,7 @@ class TransactionPerformanceTests(unittest.TestCase):
             data=response.get_json()
             self.assertEqual({row['division'] for row in data['division_sales']}, expected)
             self.assertEqual(len(data['efficiency_2025']), prior_count)
-            keys.append(mock_redis.get.call_args.args[0])
+            keys.append(next(call.args[0] for call in reversed(mock_redis.get.call_args_list) if call.args[0].startswith('akt_perf_cache')))
         self.assertEqual(len(set(keys)), len(cases))
         self.assertEqual(next(call.args[-1] for call in mock_redis.eval.call_args_list if call.args[0] == PUBLISH), 3000)
 
@@ -236,12 +241,36 @@ class TransactionPerformanceTests(unittest.TestCase):
     @patch('app.dashboard.routes.transaction_performance.redis_client')
     def test_completed_report_is_rechecked_after_lock_acquisition(self, cache):
         import json
-        cache.get.side_effect = [None, None, json.dumps({'status':'success','cached':False})]
+        cache.get.side_effect = [None, None, json.dumps({'status':'success','cached':False}), None]
         cache.set.return_value = True
         response = self.client.get('/api/akt/transaction-data', headers=self.auth_headers())
         self.assertEqual(response.status_code,200)
         self.assertTrue(response.get_json()['cached'])
         self.assertFalse(any(call.args[0] == PUBLISH for call in cache.eval.call_args_list))
+
+    @patch('app.dashboard.routes.transaction_performance.redis_client')
+    def test_sync_metadata_and_cache_source(self, cache):
+        import json
+        stamp = '2026-11-05T12:30:00+05:30'
+        cache.get.return_value = json.dumps({'generation':7,'completed_at':stamp})
+        for cached in (False,True):
+            response = akt_report_response({'status':'success'}, cached, 7)
+            self.assertEqual(response.get_json()['last_successful_sync_at'],stamp)
+            self.assertEqual(response.get_json()['cached'],cached)
+            self.assertEqual(response.headers['Cache-Control'],'no-store')
+        self.assertIsNone(akt_report_response({},True,8).get_json()['last_successful_sync_at'])
+        cache.get.return_value = None
+        self.assertIsNone(akt_report_response({},False,7).get_json()['last_successful_sync_at'])
+
+    @patch('app.dashboard.routes.transaction_performance.redis_client')
+    @patch('app.dashboard.routes.transaction_performance.socketio')
+    def test_failed_metadata_record_does_not_report_sync_success(self, socket, cache):
+        cache.keys.return_value = []
+        cache.set.side_effect = RuntimeError('Redis write failed')
+        response = self.client.post('/api/akt/trigger-sync')
+        self.assertEqual(response.status_code,503)
+        socket.emit.assert_not_called()
+        cache.publish.assert_not_called()
 
     def test_get_akt_transaction_data_requires_auth(self):
         response = self.client.get('/api/akt/transaction-data')
