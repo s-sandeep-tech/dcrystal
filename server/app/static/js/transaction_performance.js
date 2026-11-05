@@ -438,7 +438,10 @@ function updateKPIs(kpis) {
     const profitEl = document.getElementById('kpi-profit');
     if (profitEl) profitEl.innerText = formatCurrency(kpis.total_profit);
     
-    document.getElementById('kpi-weight').innerText = kpis.total_net_weight.toFixed(2);
+    const netWeightKg = (kpis.total_net_weight_kg !== undefined)
+        ? kpis.total_net_weight_kg
+        : (kpis.total_net_weight !== undefined ? kpis.total_net_weight : 0);
+    document.getElementById('kpi-weight').innerText = `${netWeightKg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`;
 }
 
 function updateDashboardCharts(data) {

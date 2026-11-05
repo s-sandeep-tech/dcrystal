@@ -175,6 +175,9 @@ class TransactionPerformanceTests(unittest.TestCase):
         data = response.get_json()
         self.assertEqual(data['status'], 'success')
         self.assertEqual(data['kpis']['total_bills'], 25)
+        self.assertAlmostEqual(data['kpis']['total_net_weight'], 0.11, places=3)
+        self.assertAlmostEqual(data['kpis']['total_net_weight_kg'], 0.11, places=3)
+        self.assertEqual(data['kpis']['total_net_weight_grams'], 110.0)
 
         # Hourly delta check for revenue:
         # Hour 10: cum_rev = 100,000, delta = 100,000

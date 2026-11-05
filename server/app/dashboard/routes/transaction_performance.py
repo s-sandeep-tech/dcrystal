@@ -43,7 +43,7 @@ def trigger_akt_sync():
         # Proactively clear AKT cache keys to prevent thundering herd stale reads
         try:
             if redis_client:
-                keys = redis_client.keys('akt_perf_cache:*')
+                keys = redis_client.keys('akt_perf_cache*')
                 if keys:
                     redis_client.delete(*keys)
                     logger.info(f"Cleared {len(keys)} AKT cache keys during sync trigger")
@@ -83,7 +83,7 @@ def get_akt_transaction_data():
             val = request.args.get(param, '')
             cache_key_parts.append(f"{param}={val}")
         
-        cache_key = f"akt_perf_cache:{':'.join(cache_key_parts)}"
+        cache_key = f"akt_perf_cache_v2:{':'.join(cache_key_parts)}"
         lock_key = f"lock:{cache_key}"
         bypass_cache = request.args.get('bypass_cache', 'false').lower() == 'true'
 
@@ -393,6 +393,7 @@ def get_akt_transaction_data():
             }
 
             # Safety Fallbacks for KPIs
+            net_wt_grams = float(kpi_data.total_net_weight) if kpi_data and kpi_data.total_net_weight else 0.0
             kpi_res = {
                 "avg_per_min": float(kpi_data.avg_per_min) if kpi_data and kpi_data.avg_per_min else 0,
                 "total_hourly": efficiency_data[-1]["sum_hourly"] if efficiency_data else 0,
@@ -400,7 +401,9 @@ def get_akt_transaction_data():
                 "total_bills": int(total_bills),
                 "avg_bill_value": 0,
                 "total_profit": float(kpi_data.total_profit) if kpi_data and kpi_data.total_profit else 0,
-                "total_net_weight": float(kpi_data.total_net_weight) if kpi_data and kpi_data.total_net_weight else 0
+                "total_net_weight": round(net_wt_grams / 1000.0, 3),
+                "total_net_weight_kg": round(net_wt_grams / 1000.0, 3),
+                "total_net_weight_grams": net_wt_grams
             }
             if kpi_res["total_bills"] > 0:
                 kpi_res["avg_bill_value"] = kpi_res["total_sales"] / kpi_res["total_bills"]
