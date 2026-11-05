@@ -463,9 +463,31 @@ async function loadDashboardData(triggerId = null, bypassCache = false, isSilent
 }
 
 function updateKPIs(kpis) {
-    document.getElementById('kpi-per-min').innerText = kpis.avg_per_min.toFixed(2);
+    const growthEl = document.getElementById('kpi-sales-growth');
+    const growth = kpis.sales_growth_yoy;
+    const available = typeof growth === 'number' && Number.isFinite(growth);
+    const rounded = available ? Number(growth.toFixed(1)) : null;
+    growthEl.innerText = available ? `${rounded > 0 ? '+' : ''}${rounded.toFixed(1)}%` : 'N/A';
+    growthEl.classList.remove('text-gray-900', 'dark:text-white', 'text-emerald-600', 'dark:text-emerald-400', 'text-red-600', 'dark:text-red-400');
+    growthEl.classList.add(...(rounded > 0 ? ['text-emerald-600', 'dark:text-emerald-400'] : rounded < 0 ? ['text-red-600', 'dark:text-red-400'] : ['text-gray-900', 'dark:text-white']));
+    const comparison = kpis.sales_growth_comparison_date?.split('-').reverse().join('/') || '18/10/2025';
+    const cutoff = kpis.sales_growth_cutoff;
+    document.getElementById('kpi-sales-growth-detail').textContent = `vs ${comparison}${cutoff ? ` · ${cutoff}` : ''}`;
+    const fullSalesValue = value => Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    const detail = available
+        ? `Current sales: ${fullSalesValue(kpis.sales_growth_current)}; ${comparison} sales: ${fullSalesValue(kpis.sales_growth_previous)}; through ${cutoff}. (Current − comparison) ÷ comparison × 100.`
+        : `Comparison with ${comparison} unavailable: ${kpis.sales_growth_status === 'nonpositive_baseline' ? 'comparison sales are zero or negative' : 'matching sales data is missing'}.`;
+    growthEl.title = detail;
+    document.getElementById('kpi-sales-growth-detail').title = detail;
     document.getElementById('kpi-hourly').innerText = kpis.total_hourly.toLocaleString();
     document.getElementById('kpi-sales').innerText = formatCurrency(kpis.total_sales);
+    const previousSales = kpis.sales_growth_previous;
+    const hasPreviousSales = typeof previousSales === 'number' && Number.isFinite(previousSales) && Boolean(cutoff);
+    const previousSalesEl = document.getElementById('kpi-sales-previous');
+    previousSalesEl.textContent = `LY: ${hasPreviousSales ? formatCurrency(previousSales) : 'N/A'} · ${comparison.replace('/2025', '/25')}`;
+    previousSalesEl.title = hasPreviousSales
+        ? `Last-year invoice sales: ${fullSalesValue(previousSales)} on ${comparison}, through ${cutoff}, using the same selected filters as Sales Growth YoY.`
+        : `Last-year sales for ${comparison} are unavailable at a matching reporting hour.`;
     document.getElementById('kpi-bills').innerText = kpis.total_bills.toLocaleString();
     document.getElementById('kpi-avg-bill').innerText = formatCurrency(kpis.avg_bill_value);
     const profitEl = document.getElementById('kpi-profit');

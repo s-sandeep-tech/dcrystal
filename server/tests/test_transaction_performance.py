@@ -10,7 +10,7 @@ from app.models.core import Notification
 from app.models.rbac import Role, Permission, UserRole, RolePermission, Menu, RoleMenu
 from app.models.akt_report import AKTTransactionPerformance
 from app.dashboard import dashboard_bp
-from app.dashboard.routes.transaction_performance import trigger_akt_sync, get_akt_transaction_data
+from app.dashboard.routes.transaction_performance import trigger_akt_sync, get_akt_transaction_data, sales_growth_comparison, SALES_COMPARISON_DATE
 
 
 class TransactionPerformanceTests(unittest.TestCase):
@@ -107,6 +107,32 @@ class TransactionPerformanceTests(unittest.TestCase):
             keys.append(mock_redis.get.call_args.args[0])
         self.assertEqual(len(set(keys)), len(cases))
 
+    def test_sales_growth_common_hour_and_unavailable_baseline(self):
+        from sqlalchemy import func
+        model = AKTTransactionPerformance
+        for day, hour, amount in [(datetime(2026,11,5,10),10,100), (datetime(2026,11,5,11),11,150),
+                                  (datetime(2025,10,18,10),10,100), (datetime(2025,10,18,12),12,900)]:
+            db.session.add(model(date=day,timepartt=hour,billtime=time(hour),country_actual='INDIA',
+                                 location='Store A',divisionname='GOLD',invoiceamt=amount))
+        db.session.commit()
+        common = [model.country_actual=='INDIA',model.location=='Store A',model.divisionname.in_(['GOLD','DIAMOND'])]
+        current = common + [func.date(model.date)==date(2026,11,5)]
+        previous = common + [func.date(model.date)==SALES_COMPARISON_DATE]
+        result = sales_growth_comparison(current,previous)
+        self.assertEqual(result['sales_growth_cutoff'],'11:00')
+        self.assertEqual(result['sales_growth_yoy'],50)
+        self.assertEqual(result['sales_growth_previous'],100)  # Excludes later historical sales.
+        self.assertEqual(result['sales_growth_comparison_date'],'2025-10-18')
+        db.session.query(model).filter(*current).update({model.invoiceamt:0}, synchronize_session=False)
+        db.session.commit()
+        self.assertEqual(sales_growth_comparison(current,previous)['sales_growth_yoy'],-100)
+        db.session.query(model).filter(*previous).update({model.invoiceamt:0}, synchronize_session=False)
+        db.session.commit()
+        self.assertIsNone(sales_growth_comparison(current,previous)['sales_growth_yoy'])
+        db.session.query(model).filter(*previous).delete(synchronize_session=False)
+        db.session.commit()
+        self.assertEqual(sales_growth_comparison(current,previous)['sales_growth_status'],'missing_data')
+
     def test_get_akt_transaction_data_requires_auth(self):
         response = self.client.get('/api/akt/transaction-data')
         self.assertEqual(response.status_code, 401)
@@ -201,6 +227,8 @@ class TransactionPerformanceTests(unittest.TestCase):
         data = response.get_json()
         self.assertEqual(data['status'], 'success')
         self.assertEqual(data['kpis']['total_bills'], 25)
+        self.assertEqual(data['kpis']['sales_growth_yoy'], 25)
+        self.assertEqual(data['kpis']['sales_growth_cutoff'], '10:00')
         self.assertAlmostEqual(data['kpis']['total_net_weight'], 0.11, places=3)
         self.assertAlmostEqual(data['kpis']['total_net_weight_kg'], 0.11, places=3)
         self.assertEqual(data['kpis']['total_net_weight_grams'], 110.0)

@@ -5,7 +5,7 @@ from app.models import Notification
 from app.extensions import db, socketio, redis_client
 from app.utils.decorators import require_perm
 from sqlalchemy import func, cast, Numeric, case
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 import logging
 import json
@@ -13,11 +13,43 @@ import time
 
 logger = logging.getLogger(__name__)
 
+SALES_COMPARISON_DATE = date(2025, 10, 18)
+
 
 def selected_divisions(args):
     # An absent filter uses report defaults; an explicit empty value means all.
     values = args.getlist('division') if 'division' in args else ['Gold', 'Diamond']
     return sorted({value.strip().upper() for item in values for value in item.split(',') if value.strip()})
+
+
+def sales_growth_comparison(current_filters, comparison_filters):
+    """Compare cumulative invoice sales through the latest common reporting hour."""
+    model = AKTTransactionPerformance
+    result = {'sales_growth_yoy': None, 'sales_growth_current': None,
+              'sales_growth_previous': None, 'sales_growth_cutoff': None,
+              'sales_growth_comparison_date': SALES_COMPARISON_DATE.isoformat(),
+              'sales_growth_status': 'missing_data'}
+    valid = model.invoiceamt.isnot(None)
+    current_hour = db.session.query(func.max(model.billtime)).filter(*current_filters, valid).scalar()
+    prior_hour = db.session.query(func.max(model.billtime)).filter(*comparison_filters, valid).scalar()
+    if current_hour is None or prior_hour is None:
+        return result
+    cutoff = min(current_hour, prior_hour)
+    result['sales_growth_cutoff'] = cutoff.strftime('%H:%M')
+    def cumulative(conditions):
+        grouped = db.session.query(func.max(model.invoiceamt).label('sales')).filter(
+            *conditions, valid, model.billtime <= cutoff
+        ).group_by(model.location, model.divisionname, model.state).subquery()
+        return db.session.query(func.sum(grouped.c.sales)).scalar()
+    current, previous = cumulative(current_filters), cumulative(comparison_filters)
+    result['sales_growth_current'] = float(current) if current is not None else None
+    result['sales_growth_previous'] = float(previous) if previous is not None else None
+    if current is not None and previous is not None and previous > 0:
+        result['sales_growth_yoy'] = float((current - previous) / previous * 100)
+        result['sales_growth_status'] = 'available'
+    elif previous is not None and previous <= 0:
+        result['sales_growth_status'] = 'nonpositive_baseline'
+    return result
 
 
 @dashboard_bp.route('/transaction-performance')
@@ -91,7 +123,7 @@ def get_akt_transaction_data():
             val = json.dumps(divisions) if param == 'division' else request.args.get(param, '')
             cache_key_parts.append(f"{param}={val}")
         
-        cache_key = f"akt_perf_cache_v3:{':'.join(cache_key_parts)}"
+        cache_key = f"akt_perf_cache_v4:{':'.join(cache_key_parts)}"
         lock_key = f"lock:{cache_key}"
         bypass_cache = request.args.get('bypass_cache', 'false').lower() == 'true'
 
@@ -236,7 +268,7 @@ def get_akt_transaction_data():
             filters_2025 = []
             for param, field in filter_configs.items():
                 if param == 'date':
-                    filters_2025.append(field == '2025-10-18')
+                    filters_2025.append(field == SALES_COMPARISON_DATE)
                 elif param == 'division':
                     if divisions:
                         filters_2025.append(func.upper(func.trim(field)).in_(divisions))
@@ -420,6 +452,10 @@ def get_akt_transaction_data():
                 "total_net_weight_kg": round(net_wt_grams / 1000.0, 3),
                 "total_net_weight_grams": net_wt_grams
             }
+            growth_filters = list(filters)
+            if not request.args.get('date'):
+                growth_filters.append(func.date(AKTTransactionPerformance.date) == datetime.now(ZoneInfo('Asia/Kolkata')).date())
+            kpi_res.update(sales_growth_comparison(growth_filters, filters_2025))
             if kpi_res["total_bills"] > 0:
                 kpi_res["avg_bill_value"] = kpi_res["total_sales"] / kpi_res["total_bills"]
 
