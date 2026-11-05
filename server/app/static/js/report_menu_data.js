@@ -297,6 +297,14 @@ window.REPORT_MENU_DATA = [
         accent: "emerald",
         reports: [
             {
+                id: "sales-tsk-performance",
+                title: "Sales & TSK Performance",
+                href: "/sales-tsk-performance",
+                icon: "monitoring",
+                description: "Live sales and TSK trends, section contribution, branch rankings, and monthly ledger.",
+                tags: ["sales", "tsk", "section", "turnover", "live"]
+            },
+            {
                 id: "sales-turnover-forecast",
                 title: "Sales Turnover Forecast",
                 href: "/sales-turnover-forecast",

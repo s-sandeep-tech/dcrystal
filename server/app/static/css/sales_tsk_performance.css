@@ -1,0 +1,43 @@
+#sales-tsk-page { min-width: 0; --sales-panel: #fff; --sales-text: #172033; --sales-muted: #64748b; --sales-border: #dfe5ec; color: var(--sales-text); }
+.sales-note { margin: 12px 18px; color: var(--sales-muted, #64748b); font-size: 11px; line-height: 1.6; }
+.sales-kpis { margin: 16px 18px; }
+.sales-kpis > .sales-content { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.sales-kpi { padding: 18px 14px; background: var(--sales-panel); border: 1px solid var(--sales-border); border-radius: 10px; min-width: 0; }
+.sales-kpi small { color: var(--sales-muted); font-size: 10px; }
+.sales-kpi strong { display: block; margin-top: 8px; font-size: clamp(15px, 1.5vw, 25px); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.sales-chart-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 16px; margin: 16px 18px; }
+#sales-tsk-page .party-matrix-chart-panel, #sales-tsk-page .party-matrix-table-panel { background: var(--sales-panel); border-color: var(--sales-border); min-width: 0; }
+#sales-tsk-page .party-matrix-table-panel { margin: 16px 18px; }
+#sales-tsk-page h2 { color: var(--sales-text); }
+.sales-canvas { height: 290px; position: relative; }
+.sales-chart-key { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; font-size: 11px; }
+.sales-status, #sales-options-status, #sales-export-status { color: var(--sales-muted, #64748b); font-size: 12px; padding: 10px; }
+.sales-status:empty, #sales-export-status:empty, #sales-options-status:empty { display: none; }
+.sales-segment[aria-busy="true"] .sales-content { display: none; }
+.sales-button, .sales-retry { border: 1px solid var(--sales-border, #dfe5ec); border-radius: 6px; padding: 7px 12px; font-size: 11px; background: var(--sales-panel, #fff); color: var(--sales-text, #172033); cursor: pointer; }
+.sales-retry { margin-left: 8px; }
+.sales-table-wrap { overflow: auto; max-height: 460px; }
+.sales-table { width: 100%; border-collapse: collapse; font-size: 11px; font-variant-numeric: tabular-nums; }
+.sales-table th { text-align: right; color: var(--sales-muted); background: var(--sales-panel); position: sticky; top: 0; }
+.sales-table td, .sales-table th { padding: 11px 12px; border-bottom: 1px solid var(--sales-border); text-align: right; white-space: nowrap; }
+.sales-table td:first-child, .sales-table th:first-child { text-align: left; }
+.sales-table tfoot { font-weight: 700; }
+.sales-positive { color: #059669; } .sales-negative { color: #dc2626; }
+.sales-fetched { font-size: 10px; color: var(--sales-muted); text-align: right; margin: 8px 0 0; }
+.sales-filter-form { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+#sales-sidebar .party-matrix-sidebar-body { flex: 1; overflow-y: auto; }
+#sales-sidebar input { width: 100%; border: 1px solid #d8e0e9; border-radius: 6px; padding: 8px; margin-top: 5px; background: transparent; }
+#sales-sidebar select[multiple] { height: 70px; padding: 4px; }
+#sales-sidebar .sales-note { margin: 12px 0; }
+.dark #sales-tsk-page { --sales-panel: #1e293b; --sales-text: #e2e8f0; --sales-muted: #94a3b8; --sales-border: #334155; }
+.dark #sales-tsk-page .party-matrix-header, .dark #sales-sidebar { background: #1e293b; color: #e2e8f0; border-color: #334155; }
+.dark #sales-sidebar select, .dark #sales-sidebar input { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+.dark #sales-sidebar h2 { color: #e2e8f0; }
+@media (max-width: 1100px) { .sales-kpis > .sales-content { grid-template-columns: repeat(3, minmax(0, 1fr)); } .sales-chart-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .sales-kpis > .sales-content { grid-template-columns: repeat(2, minmax(0, 1fr)); } #sales-tsk-page .party-matrix-header { flex-wrap: wrap; } .sales-chart-grid, .sales-kpis { margin: 12px; } }
+
+#sales-tsk-page .party-matrix-table-panel > .party-matrix-panel-heading { padding: 14px 12px; display: flex; justify-content: space-between; gap: 12px; }
+#sales-tsk-page .sales-fetched { padding: 0 12px; }
+@media (max-width: 680px) {
+    #sales-sidebar { position: fixed; top: 58px; bottom: 0; right: 0; z-index: 40; --party-matrix-sidebar-width: 256px; box-shadow: -4px 0 16px #0002; }
+}

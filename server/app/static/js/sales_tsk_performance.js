@@ -1,0 +1,207 @@
+(() => {
+    'use strict';
+    const form = document.getElementById('sales-filters');
+    const page = document.getElementById('sales-tsk-page');
+    if (!form || !page) return;
+    const segments = ['kpis', 'trend', 'sections', 'branches', 'ledger'];
+    const controllers = new Map();
+    const charts = new Map();
+    const nf = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 });
+    const number = value => value == null ? '—' : nf.format(value);
+    const percent = value => value == null ? '—' : `${Number(value).toFixed(1)}%`;
+    const monthLabel = value => new Date(`${value}T12:00:00`).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+    const fields = [...form.querySelectorAll('select[name]')];
+    let applied = new URLSearchParams(location.search);
+    let exportController;
+    const headers = () => {
+        const token = localStorage.getItem('access_token');
+        return { 'X-Requested-With': 'XMLHttpRequest', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    };
+    function element(tag, text, className) {
+        const el = document.createElement(tag);
+        if (text != null) el.textContent = text;
+        if (className) el.className = className;
+        return el;
+    }
+    function restoreDates() {
+        for (const key of ['start', 'end']) {
+            if (!applied.get(key)) applied.set(key, form.dataset[key === 'start' ? 'defaultStart' : 'defaultEnd']);
+            form.elements[key].value = applied.get(key);
+        }
+    }
+    function setOptions(select, options, selected) {
+        select.replaceChildren();
+        const known = new Set(options.map(o => o.value));
+        const all = [...options, ...selected.filter(v => !known.has(v)).map(v => ({ value: v, label: v }))];
+        for (const item of all) select.add(new Option(item.label, item.value, false, selected.includes(item.value)));
+    }
+    function retry(status, message, fn) {
+        status.replaceChildren(element('span', message));
+        const button = element('button', 'Retry', 'sales-retry');
+        button.type = 'button'; button.addEventListener('click', fn); status.append(button);
+    }
+    async function request(segment, params, signal) {
+        const response = await fetch(`/api/sales-tsk-performance/${segment}?${params}`, { headers: headers(), signal, cache: 'no-store' });
+        if (!response.ok) {
+            const body = await response.json().catch(() => ({}));
+            throw new Error(body.message || body.msg || `Unable to load report (${response.status}).`);
+        }
+        return response;
+    }
+    async function loadOptions(params) {
+        controllers.get('options')?.abort();
+        const controller = new AbortController(); controllers.set('options', controller);
+        const status = document.getElementById('sales-options-status'); status.textContent = 'Loading filters…';
+        try {
+            const { data } = await (await request('options', params, controller.signal)).json();
+            if (controller.signal.aborted) return;
+            for (const select of fields) {
+                // Preserve edits made while option lists were loading.
+                const selected = [...select.selectedOptions].map(o => o.value);
+                setOptions(select, data[select.name] || [], selected);
+            }
+            status.textContent = '';
+        } catch (error) {
+            if (error.name !== 'AbortError') retry(status, error.message, () => loadOptions(applied));
+        }
+    }
+    function table(container, columns, rows, footer) {
+        const wrap = element('div', null, 'sales-table-wrap');
+        const tbl = element('table', null, 'sales-table');
+        const head = document.createElement('thead'); const tr = document.createElement('tr');
+        columns.forEach(c => { const th = element('th', c.label); th.scope = 'col'; tr.append(th); });
+        head.append(tr); tbl.append(head);
+        const renderRow = row => {
+            const line = document.createElement('tr');
+            columns.forEach(c => {
+                const value = row[c.key];
+                const td = element('td', c.format ? c.format(value) : value ?? '—');
+                if (c.key === 'yoy' && value != null) td.className = value >= 0 ? 'sales-positive' : 'sales-negative';
+                line.append(td);
+            }); return line;
+        };
+        const body = document.createElement('tbody'); rows.forEach(r => body.append(renderRow(r))); tbl.append(body);
+        if (footer) { const foot = document.createElement('tfoot'); foot.append(renderRow(footer)); tbl.append(foot); }
+        wrap.append(tbl); container.append(wrap);
+    }
+    const metricColumns = [
+        { key: 'invoice_turnover', label: 'Invoice turnover', format: number },
+        { key: 'return_turnover', label: 'Returns (signed)', format: number },
+        { key: 'net_turnover', label: 'Net turnover', format: number },
+        { key: 'net_weight', label: 'Net weight · source total', format: number },
+        { key: 'total_tsk', label: 'TSK · source total', format: number }
+    ];
+    function themeChart(chart) {
+        const style = getComputedStyle(page);
+        const text = style.getPropertyValue('--sales-text').trim();
+        const grid = style.getPropertyValue('--sales-border').trim();
+        chart.options.plugins.legend.labels.color = text;
+        for (const scale of Object.values(chart.options.scales || {})) {
+            scale.ticks.color = text;
+            scale.grid.color = grid;
+            scale.title.color = text;
+        }
+        chart.update('none');
+    }
+    new MutationObserver(() => charts.forEach(themeChart)).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    function drawChart(segment, container, config) {
+        if (typeof Chart === 'undefined') { container.append(element('p', 'Chart library unavailable. Values are shown below.', 'sales-note')); return; }
+        const wrap = element('div', null, 'sales-canvas'); const canvas = document.createElement('canvas');
+        canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', segment === 'trend' ? 'Monthly turnover and TSK chart' : 'Section turnover contribution chart');
+        wrap.append(canvas); container.append(wrap);
+        const style = getComputedStyle(page);
+        config.options = { responsive: true, maintainAspectRatio: false, ...config.options,
+            plugins: { ...config.options?.plugins, legend: { labels: { color: style.getPropertyValue('--sales-text').trim(), boxWidth: 10 } } } };
+        const chart = new Chart(canvas, config);
+        charts.set(segment, chart); themeChart(chart);
+    }
+    function render(segment, data, container) {
+        if (segment === 'kpis') {
+            if (!data.row_count) { container.append(element('p', 'No matching transactions.', 'sales-note')); return; }
+            for (const column of metricColumns) {
+                const card = element('article', null, 'sales-kpi'); card.append(element('small', column.label), element('strong', number(data[column.key]))); container.append(card);
+            }
+            return;
+        }
+        if (!data.length || (['trend', 'ledger'].includes(segment) && !data.some(r => r.row_count))) {
+            container.append(element('p', 'No matching transactions for these filters.', 'sales-note')); return;
+        }
+        if (segment === 'trend') {
+            drawChart(segment, container, { type: 'bar', data: { labels: data.map(r => monthLabel(r.month)), datasets: [
+                { label: 'Net turnover', data: data.map(r => r.net_turnover), backgroundColor: '#137fec', yAxisID: 'y' },
+                { label: 'Prior-year turnover', type: 'line', data: data.map(r => r.prior_turnover), borderColor: '#94a3b8', borderDash: [5, 4], yAxisID: 'y' },
+                { label: 'TSK · source total', type: 'line', data: data.map(r => r.total_tsk), borderColor: '#10b981', yAxisID: 'tsk' }
+            ] }, options: { scales: { y: { beginAtZero: true, title: { display: true, text: 'Turnover' } }, tsk: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'TSK' } } } } });
+            const details = element('details'); details.append(element('summary', 'View trend values'));
+            table(details, [{ key: 'month', label: 'Month', format: monthLabel }, metricColumns[2], metricColumns[4], { key: 'prior_turnover', label: 'Prior-year turnover', format: number }], data); container.append(details);
+        } else if (segment === 'sections') {
+            const positive = data.every(r => r.net_turnover >= 0) && data.some(r => r.net_turnover > 0);
+            const top = data.slice(0, 8);
+            const chartRows = data.length > 8 ? [...top, { label: 'Other sections', net_turnover: data.slice(8).reduce((a, r) => a + r.net_turnover, 0) }] : top;
+            drawChart(segment, container, { type: positive ? 'doughnut' : 'bar', data: { labels: chartRows.map(r => r.label), datasets: [{ label: 'Net turnover', data: chartRows.map(r => r.net_turnover), backgroundColor: ['#137fec', '#10b981', '#f59e0b', '#7c3aed', '#06b6d4', '#f43f5e', '#64748b', '#84cc16', '#cbd5e1'] }] }, options: positive ? { cutout: '68%' } : { indexAxis: 'y' } });
+            table(container, [{ key: 'label', label: 'Section' }, metricColumns[2], { key: 'share', label: 'Share', format: percent }, metricColumns[4]], data);
+        } else if (segment === 'branches') {
+            table(container, [{ key: 'rank', label: 'Rank' }, { key: 'label', label: 'Location' }, metricColumns[2], metricColumns[3], metricColumns[4], { key: 'share', label: 'Share', format: percent }], data.slice(0, 10).map((r, i) => ({ ...r, rank: i + 1 })));
+        } else if (segment === 'ledger') {
+            const footer = { month: 'Period total', leading_branch: null, yoy: null };
+            metricColumns.forEach(c => { footer[c.key] = data.reduce((sum, row) => sum + row[c.key], 0); });
+            table(container, [{ key: 'month', label: 'Month', format: v => v === 'Period total' ? v : monthLabel(v) }, ...metricColumns, { key: 'leading_branch', label: 'Leading branch' }, { key: 'yoy', label: 'YoY', format: percent }], data, footer);
+        }
+    }
+    async function load(segment, params) {
+        controllers.get(segment)?.abort();
+        const controller = new AbortController(); controllers.set(segment, controller);
+        const panel = page.querySelector(`[data-segment="${segment}"]`);
+        const status = panel.querySelector('.sales-status'); const content = panel.querySelector('.sales-content');
+        panel.setAttribute('aria-busy', 'true'); status.textContent = 'Loading…';
+        try {
+            const payload = await (await request(segment, params, controller.signal)).json();
+            if (controller.signal.aborted) return;
+            charts.get(segment)?.destroy(); charts.delete(segment); content.replaceChildren();
+            render(segment, payload.data, content); status.textContent = '';
+            panel.querySelector('.sales-fetched')?.remove();
+            panel.append(element('p', `Fetched ${new Date(payload.fetched_at).toLocaleTimeString('en-IN')}`, 'sales-fetched'));
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                content.replaceChildren(); panel.querySelector('.sales-fetched')?.remove();
+                retry(status, error.message, () => load(segment, applied));
+            }
+        } finally {
+            if (!controller.signal.aborted) panel.removeAttribute('aria-busy');
+        }
+    }
+    function reload() {
+        exportController?.abort(); document.getElementById('sales-export-status').textContent = '';
+        const params = new URLSearchParams(applied);
+        document.getElementById('sales-period').textContent = `${params.get('start')} to ${params.get('end')} · Live external data`;
+        history.replaceState({}, '', `${location.pathname}?${params}`);
+        segments.forEach(segment => load(segment, params)); loadOptions(params);
+    }
+    form.addEventListener('submit', event => {
+        event.preventDefault(); applied = new URLSearchParams(new FormData(form)); reload();
+    });
+    form.addEventListener('reset', event => {
+        event.preventDefault(); applied = new URLSearchParams(); restoreDates(); fields.forEach(select => [...select.options].forEach(o => { o.selected = false; })); reload();
+    });
+    document.getElementById('sales-refresh').addEventListener('click', reload);
+    function toggleFilters(open) {
+        const sidebar = document.getElementById('sales-sidebar');
+        sidebar.classList.toggle('is-collapsed', !open);
+        sidebar.inert = !open;
+        document.getElementById('sales-filter-toggle').setAttribute('aria-expanded', String(open));
+    }
+    document.getElementById('sales-filter-toggle').addEventListener('click', () => toggleFilters(document.getElementById('sales-sidebar').classList.contains('is-collapsed')));
+    document.getElementById('sales-filter-close').addEventListener('click', () => toggleFilters(false));
+    if (matchMedia('(max-width: 680px)').matches) toggleFilters(false);
+    document.getElementById('sales-export').addEventListener('click', async event => {
+        const button = event.currentTarget; const status = document.getElementById('sales-export-status');
+        const controller = new AbortController(); exportController = controller; button.disabled = true; status.textContent = 'Preparing CSV…';
+        try {
+            const response = await request('export', new URLSearchParams(applied), controller.signal);
+            const blob = await response.blob(); if (controller.signal.aborted) return;
+            const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'sales-tsk-monthly-ledger.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); status.textContent = '';
+        } catch (error) { if (error.name !== 'AbortError') status.textContent = error.message; }
+        finally { button.disabled = false; }
+    });
+    restoreDates(); fields.forEach(select => setOptions(select, [], applied.getAll(select.name))); reload();
+})();

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Sales & TSK Performance{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/party_performance_matrix.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_tsk_performance.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+{% block content %}
+<main id="sales-tsk-page" class="party-matrix-page flex-1 overflow-y-auto bg-[#f5f7fa] dark:bg-background-dark">
+    <header class="party-matrix-header">
+        <div>
+            <div class="party-matrix-title-row"><span class="material-symbols-outlined">monitoring</span><h1>Sales &amp; TSK Performance</h1><span class="party-matrix-version">Live data</span></div>
+            <p id="sales-period">Monthly sales, section contribution, and location performance.</p>
+        </div>
+        <div class="party-matrix-header-actions">
+            <button id="sales-refresh" class="sales-button" type="button">Refresh</button>
+            <button id="sales-filter-toggle" class="party-matrix-filter-open" type="button" aria-controls="sales-sidebar" aria-expanded="true" aria-label="Toggle filters"><span class="material-symbols-outlined">filter_alt</span></button>
+        </div>
+    </header>
+    <p class="sales-note">Invoice and sales-return transactions only. Net turnover includes returns. Weight and TSK use the totals supplied by the source.</p>
+    <section id="sales-kpis" class="sales-segment sales-kpis" data-segment="kpis" aria-label="Sales summary"><div class="sales-status" role="status">Loading summary…</div><div class="sales-content"></div></section>
+    <div class="sales-chart-grid">
+        <section class="party-matrix-chart-panel sales-segment" data-segment="trend">
+            <div class="party-matrix-panel-heading"><div><h2>Monthly Sales &amp; TSK Trend</h2><p>Selected period and matching prior-year dates</p></div></div>
+            <div class="sales-status" role="status">Loading trend…</div><div class="sales-content"></div>
+        </section>
+        <section class="party-matrix-chart-panel sales-segment" data-segment="sections">
+            <div class="party-matrix-panel-heading"><div><h2>Section Breakdown</h2><p>Net turnover contribution, grouped by section</p></div></div>
+            <div class="sales-status" role="status">Loading sections…</div><div class="sales-content"></div>
+        </section>
+    </div>
+    <section class="party-matrix-table-panel sales-segment" data-segment="branches">
+        <div class="party-matrix-panel-heading"><div><h2>Branch Leaderboard</h2><p>Top 10 locations ranked by net turnover</p></div></div>
+        <div class="sales-status" role="status">Loading branches…</div><div class="sales-content"></div>
+    </section>
+    <section class="party-matrix-table-panel sales-segment" data-segment="ledger">
+        <div class="party-matrix-panel-heading"><div><h2>Monthly Sales &amp; TSK Ledger</h2><p>Monthly totals, leading branch, and year-over-year change</p></div><button id="sales-export" class="sales-button" type="button">Download CSV</button></div>
+        <div id="sales-export-status" role="status"></div>
+        <div class="sales-status" role="status">Loading ledger…</div><div class="sales-content"></div>
+    </section>
+    <p class="sales-note">Months without matching transactions show zero totals. YoY is unavailable when the prior-year base is missing or non-positive. Segments are fetched independently; live data may change between requests.</p>
+</main>
+{% endblock %}
+{% block sidebar %}
+<aside id="sales-sidebar" class="party-matrix-sidebar">
+    <form id="sales-filters" class="sales-filter-form" data-default-start="{{ start }}" data-default-end="{{ end }}">
+        <div class="party-matrix-sidebar-body">
+            <div class="party-matrix-filter-title"><h2><span class="material-symbols-outlined">filter_alt</span> Filters</h2><button id="sales-filter-close" class="party-matrix-filter-reset" type="button" aria-label="Close filters">Close</button><button class="party-matrix-filter-reset" type="reset">Reset</button></div>
+            <label>From <input type="date" name="start" required value="{{ start }}"></label>
+            <label>To <input type="date" name="end" required value="{{ end }}"></label>
+            <p class="sales-note">Up to 12 calendar months. Hold Ctrl / ⌘ to select multiple values.</p>
+            <div id="sales-options-status" role="status">Loading filters…</div>
+            {% for key, field in filter_fields.items() %}
+            <label>{{ field[0] }}<select name="{{ key }}" multiple size="3" aria-label="{{ field[0] }}"><option disabled>Loading…</option></select></label>
+            {% endfor %}
+        </div>
+        <div class="party-matrix-sidebar-footer"><button type="submit"><span class="material-symbols-outlined">search_check</span> Apply Filters</button></div>
+    </form>
+</aside>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/sales_tsk_performance.js') }}"></script>
+{% endblock %}
