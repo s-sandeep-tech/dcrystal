@@ -142,10 +142,27 @@
             svg.setAttribute('viewBox', '0 0 240 60');
             svg.setAttribute('role', 'img');
             svg.setAttribute('aria-label', `${slot.dataset.label}: ${kpiTrend.map((row, i) => `${monthLabel(row.month)} ${number(values[i])}`).join('; ')}`);
+            const defs = document.createElementNS(svgNS, 'defs');
+            const gradient = document.createElementNS(svgNS, 'linearGradient');
+            const gradientId = `sales-spark-fill-${slot.dataset.metric}`;
+            gradient.setAttribute('id', gradientId);
+            gradient.setAttribute('x1', '0'); gradient.setAttribute('y1', '0');
+            gradient.setAttribute('x2', '0'); gradient.setAttribute('y2', '1');
+            for (const [offset, opacity] of [['0%', '0.20'], ['100%', '0.01']]) {
+                const stop = document.createElementNS(svgNS, 'stop');
+                stop.setAttribute('offset', offset); stop.setAttribute('stop-color', 'currentColor');
+                stop.setAttribute('stop-opacity', opacity); gradient.append(stop);
+            }
+            defs.append(gradient); svg.append(defs);
+            if (points.length > 1) {
+                const area = document.createElementNS(svgNS, 'polygon');
+                area.setAttribute('points', `${points[0].x},60 ${points.map(point => `${point.x},${point.y}`).join(' ')} ${points[points.length - 1].x},60`);
+                area.setAttribute('fill', `url(#${gradientId})`); svg.append(area);
+            }
             const line = document.createElementNS(svgNS, 'polyline');
             line.setAttribute('points', points.map(point => `${point.x},${point.y}`).join(' '));
             line.setAttribute('fill', 'none'); line.setAttribute('stroke', 'currentColor');
-            line.setAttribute('stroke-width', '3'); line.setAttribute('stroke-linecap', 'round');
+            line.setAttribute('stroke-width', '2.5'); line.setAttribute('stroke-linecap', 'round');
             line.setAttribute('stroke-linejoin', 'round');
             svg.append(line);
             points.forEach((point, i) => {
@@ -157,7 +174,10 @@
                 title.textContent = `${monthLabel(kpiTrend[i].month)}: ${number(values[i])}${slot.dataset.metric === 'net_weight' ? ' kg' : ''}`;
                 dot.append(title); svg.append(dot);
             });
-            slot.append(svg, element('span', 'Monthly trend', 'sales-sparkline-caption'));
+            const caption = element('div', null, 'sales-sparkline-caption');
+            const shortMonth = value => new Date(`${value}T12:00:00`).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+            caption.append(element('span', 'Monthly trend'), element('span', `${shortMonth(kpiTrend[0].month)} – ${shortMonth(kpiTrend[kpiTrend.length - 1].month)}`, 'sales-sparkline-period'));
+            slot.append(svg, caption);
         }
     }
     function render(segment, data, container) {
@@ -165,6 +185,12 @@
             if (!data.row_count) { container.append(element('p', 'No matching transactions.', 'sales-note')); return; }
             for (const column of metricColumns) {
                 const card = element('article', null, 'sales-kpi');
+                card.dataset.metric = column.key;
+                const icons = { invoice_turnover: 'receipt_long', return_turnover: 'undo', net_turnover: 'account_balance_wallet', net_weight: 'scale', total_tsk: 'diamond' };
+                const heading = element('div', null, 'sales-kpi-heading');
+                const icon = element('span', icons[column.key], 'material-symbols-outlined sales-kpi-icon');
+                icon.setAttribute('aria-hidden', 'true');
+                heading.append(element('small', column.label), icon);
                 const sparkline = element('div', null, 'sales-kpi-sparkline');
                 sparkline.dataset.metric = column.key; sparkline.dataset.label = column.label;
                 const valueRow = element('div', null, 'sales-kpi-value');
@@ -187,7 +213,7 @@
                 amount.setAttribute('aria-label', `${column.label}: ${amount.title}`);
                 if (isAmount) valueRow.classList.add('sales-kpi-value-crores');
                 valueRow.append(amount, badge);
-                card.append(element('small', column.label), valueRow, sparkline);
+                card.append(heading, valueRow, sparkline);
                 container.append(card);
             }
             updateKpiSparklines();
