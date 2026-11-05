@@ -42,17 +42,29 @@ def trigger_akt_sync():
         }
         # Proactively clear AKT cache keys to prevent thundering herd stale reads
         try:
-            keys = redis_client.keys('akt_perf_cache:*')
-            if keys:
-                redis_client.delete(*keys)
-                logger.info(f"Cleared {len(keys)} AKT cache keys during sync trigger")
+            if redis_client:
+                keys = redis_client.keys('akt_perf_cache:*')
+                if keys:
+                    redis_client.delete(*keys)
+                    logger.info(f"Cleared {len(keys)} AKT cache keys during sync trigger")
         except Exception as cache_err:
             logger.error(f"Error clearing cache during sync: {str(cache_err)}")
 
         # Publish to the dedicated AKT channel
-        redis_client.publish('akt_performance_updates', json.dumps(payload))
+        try:
+            if redis_client:
+                redis_client.publish('akt_performance_updates', json.dumps(payload))
+        except Exception as pub_err:
+            logger.warning(f"Error publishing to Redis channel akt_performance_updates: {str(pub_err)}")
+
+        # Also emit directly via SocketIO to connected web clients
+        try:
+            socketio.emit('aktPerformanceRefresh', payload)
+            logger.info("Emitted aktPerformanceRefresh event via SocketIO")
+        except Exception as ws_err:
+            logger.warning(f"Error emitting SocketIO event: {str(ws_err)}")
         
-        return jsonify({"status": "success", "message": f"AKT sync signal ('{custom_message}') published to Redis"}), 200
+        return jsonify({"status": "success", "message": f"AKT sync signal ('{custom_message}') published and broadcast"}), 200
     except Exception as e:
         logger.error(f"Error publishing AKT sync signal: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -75,36 +87,33 @@ def get_akt_transaction_data():
         lock_key = f"lock:{cache_key}"
         bypass_cache = request.args.get('bypass_cache', 'false').lower() == 'true'
 
-        if not bypass_cache:
-            for attempt in range(3): # Try a few times if locked
-                cached_data = redis_client.get(cache_key)
-                if cached_data:
-                    # Parse and add a 'cached' flag before returning
-                    data = json.loads(cached_data)
-                    data['cached'] = True
-                    return jsonify(data), 200, {'Content-Type': 'application/json'}
-                
-                # Check if another process is currently fetching this data
-                if redis_client.exists(lock_key):
-                    time.sleep(1.0) # Wait for the other process to finish
-                    continue
-                else:
-                    break
-        
-        # Acquire lock to prevent multiple simultaneous DB fetches for the same filters
         lock_acquired = False
-        if not bypass_cache:
-            # Set lock with 30s expiry as fail-safe
-            lock_acquired = redis_client.set(lock_key, "1", nx=True, ex=30)
-            if not lock_acquired:
-                # If we couldn't get the lock, wait and try one last time for cache
-                time.sleep(1.5)
-                cached_data = redis_client.get(cache_key)
-                if cached_data:
-                    data = json.loads(cached_data)
-                    data['cached'] = True
-                    return jsonify(data), 200, {'Content-Type': 'application/json'}
-                # If still no cache and no lock, we proceed to fetch anyway to avoid hanging
+        if not bypass_cache and redis_client:
+            try:
+                for attempt in range(2): # Quick check if locked or cached
+                    cached_data = redis_client.get(cache_key)
+                    if cached_data:
+                        data = json.loads(cached_data)
+                        data['cached'] = True
+                        return jsonify(data), 200, {'Content-Type': 'application/json'}
+                    
+                    if redis_client.exists(lock_key):
+                        time.sleep(0.5)
+                        continue
+                    else:
+                        break
+
+                lock_acquired = bool(redis_client.set(lock_key, "1", nx=True, ex=30))
+                if not lock_acquired:
+                    time.sleep(0.5)
+                    cached_data = redis_client.get(cache_key)
+                    if cached_data:
+                        data = json.loads(cached_data)
+                        data['cached'] = True
+                        return jsonify(data), 200, {'Content-Type': 'application/json'}
+            except Exception as cache_err:
+                logger.warning(f"Redis cache check failed, proceeding to query DB directly: {cache_err}")
+                lock_acquired = False
         
         try:
             # Applying all global filters
@@ -123,7 +132,10 @@ def get_akt_transaction_data():
             for param, field in filter_configs.items():
                 val = request.args.get(param)
                 if val:
-                    filters.append(field == val)
+                    if param == 'country':
+                        filters.append(func.upper(field) == val.upper())
+                    else:
+                        filters.append(field == val)
             
             # Per user request: Only consider hourly snapshots (Minute = 0)
             from sqlalchemy import extract
@@ -191,27 +203,35 @@ def get_akt_transaction_data():
 
             efficiency_data = []
             prev_bills = 0
+            prev_rev = 0.0
             for row in efficiency_raw:
                 curr_bills = float(row.cum_bills or 0)
+                curr_rev = float(row.cum_rev or 0)
                 hourly_delta = max(0, curr_bills - prev_bills)
+                hourly_rev_delta = max(0.0, curr_rev - prev_rev)
                 efficiency_data.append({
                     "time": str(row.timepartt),
                     "avg_per_min": float(row.avg_per_min or 0),
                     "sum_hourly": int(hourly_delta),
-                    "sum_revenue": float(row.cum_rev or 0),
+                    "sum_revenue": float(hourly_rev_delta),
+                    "cum_revenue": float(curr_rev),
                     "cum_bills": int(row.cum_bills or 0)
                 })
                 prev_bills = curr_bills
+                prev_rev = curr_rev
 
-            # 2.1. 2025 Comparison Data (Specifically for Hourly Billing Count)
+            # 2.1. 2025 Comparison Data (Specifically for Hourly Billing Count, Dhanteras: 18.10.2025)
             filters_2025 = []
             for param, field in filter_configs.items():
                 if param == 'date':
-                    filters_2025.append(field == '2025-04-30')
+                    filters_2025.append(field == '2025-10-18')
                 else:
                     val = request.args.get(param)
                     if val:
-                        filters_2025.append(field == val)
+                        if param == 'country':
+                            filters_2025.append(func.upper(field) == val.upper())
+                        else:
+                            filters_2025.append(field == val)
             
             # Add minute constraint to 2025 as well
             filters_2025.append(extract('minute', AKTTransactionPerformance.billtime) == 0)
@@ -281,16 +301,26 @@ def get_akt_transaction_data():
 
             trend_data = []
             prev_trend_bills = 0
+            prev_trend_rev = 0.0
+            prev_trend_turnover = 0.0
             for row in trend_raw:
                 curr_bills = float(row.cum_bills or 0)
+                curr_rev = float(row.cum_rev or 0)
+                curr_turnover = float(row.cum_turnover or 0)
                 delta = max(0, curr_bills - prev_trend_bills)
+                delta_rev = max(0.0, curr_rev - prev_trend_rev)
+                delta_turnover = max(0.0, curr_turnover - prev_trend_turnover)
                 trend_data.append({
                     "hour": row.hour,
                     "sum_hourly": int(delta),
-                    "sum_revenue": float(row.cum_rev or 0),
-                    "sum_turnover": float(row.cum_turnover or 0)
+                    "sum_revenue": float(delta_rev),
+                    "cum_revenue": float(curr_rev),
+                    "sum_turnover": float(delta_turnover),
+                    "cum_turnover": float(curr_turnover)
                 })
                 prev_trend_bills = curr_bills
+                prev_trend_rev = curr_rev
+                prev_trend_turnover = curr_turnover
 
             # 6. Division Data
             division_data = db.session.query(
@@ -348,7 +378,7 @@ def get_akt_transaction_data():
 
             # Hierarchy filters
             f_country = []
-            f_region = [AKTTransactionPerformance.country_actual == country_val] if country_val else []
+            f_region = [func.upper(AKTTransactionPerformance.country_actual) == country_val.upper()] if country_val else []
             f_state = f_region + ([AKTTransactionPerformance.region == region_val] if region_val else [])
             f_loc = f_state + ([AKTTransactionPerformance.state == state_val] if state_val else [])
             f_div = f_loc + ([AKTTransactionPerformance.location == location_val] if location_val else [])
@@ -412,16 +442,20 @@ def get_akt_transaction_data():
             }
 
             # Cache the result for 15 minutes (900 seconds)
-            try:
-                redis_client.setex(cache_key, 900, json.dumps(result))
-            except Exception as cache_err:
-                logger.error(f"Failed to cache data for {cache_key}: {str(cache_err)}")
+            if redis_client:
+                try:
+                    redis_client.setex(cache_key, 900, json.dumps(result))
+                except Exception as cache_err:
+                    logger.error(f"Failed to cache data for {cache_key}: {str(cache_err)}")
 
             return jsonify(result)
         finally:
             # Release the lock if we held it
-            if lock_acquired:
-                redis_client.delete(lock_key)
+            if lock_acquired and redis_client:
+                try:
+                    redis_client.delete(lock_key)
+                except Exception as del_err:
+                    logger.warning(f"Error releasing Redis lock {lock_key}: {del_err}")
     except Exception as e:
         logger.exception("Final exception in AKT Data API")
         return jsonify({

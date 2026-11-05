@@ -267,23 +267,56 @@ function initCharts() {
         options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: false } } }
     });
 
-    // Heatmap (Simulated with small cells using Chart.js)
+    // Heatmap (Simulated with bubble coordinates using Chart.js)
     charts.heatmap = new Chart(document.getElementById('chart-billing-heatmap').getContext('2d'), {
-        type: 'matrix', // This requires chartjs-chart-matrix which might not be there. Fallback to bubble or simple grid.
         type: 'bubble',
         data: {
             datasets: [{
-                label: 'Bill Count', data: [], backgroundColor: (ctx) => {
+                label: 'Bill Count',
+                data: [],
+                backgroundColor: (ctx) => {
                     const v = ctx.raw ? ctx.raw.v : 0;
-                    const alpha = Math.min(v / 50, 1);
+                    const alpha = Math.min(Math.max(v / 50, 0.25), 1);
                     return `rgba(19, 127, 236, ${alpha})`;
-                }, borderRadius: 0
+                },
+                borderColor: '#137fec',
+                borderWidth: 1
             }]
         },
         options: {
-            ...chartDefaults, scales: {
-                x: { title: { display: true, text: 'Hour (0-23)' } },
-                y: { title: { display: true, text: 'Date' }, type: 'category' }
+            ...chartDefaults,
+            scales: {
+                x: {
+                    title: { display: true, text: 'Hour (0-23)' },
+                    min: 0,
+                    max: 23,
+                    ticks: {
+                        stepSize: 1,
+                        precision: 0,
+                        font: { size: 9 },
+                        color: '#94a3b8'
+                    }
+                },
+                y: {
+                    title: { display: true, text: 'Date' },
+                    type: 'category',
+                    labels: [],
+                    ticks: {
+                        font: { size: 9 },
+                        color: '#94a3b8'
+                    }
+                }
+            },
+            plugins: {
+                ...chartDefaults.plugins,
+                tooltip: {
+                    callbacks: {
+                        label: function (ctx) {
+                            const raw = ctx.raw || {};
+                            return `Date: ${raw.y} | Time: ${raw.x}:00 | Bills: ${raw.v}`;
+                        }
+                    }
+                }
             }
         }
     });
@@ -339,7 +372,8 @@ async function loadDashboardData(triggerId = null, bypassCache = false, isSilent
     const params = new URLSearchParams();
     const filterIds = ['date', 'country', 'region', 'state', 'location', 'division', 'subledger'];
     filterIds.forEach(id => {
-        const val = document.getElementById(`filter-${id}`).value;
+        const el = document.getElementById(`filter-${id}`);
+        const val = el ? el.value : '';
         if (val) params.append(id, val);
     });
 
@@ -356,10 +390,16 @@ async function loadDashboardData(triggerId = null, bypassCache = false, isSilent
     if (loader && !isSilent) loader.classList.remove('hidden');
 
     try {
-        const response = await fetch(`/api/akt/transaction-data?${params.toString()}`);
+        const token = localStorage.getItem('access_token');
+        const headers = {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        };
+
+        const response = await fetch(`/api/akt/transaction-data?${params.toString()}`, { headers });
         const data = await response.json();
 
-        if (data.status === 'success') {
+        if (response.ok && data.status === 'success') {
             updateKPIs(data.kpis);
             updateDashboardCharts(data);
             if (data.filter_options) {
@@ -367,12 +407,23 @@ async function loadDashboardData(triggerId = null, bypassCache = false, isSilent
                 filtersInitialized = true;
             }
         } else {
-            console.error('API Error:', data.message);
-            // Only alert if not silent, or maybe just log for silent
-            if (!isSilent) alert('Error loading dashboard data: ' + data.message);
+            const errorMsg = data.message || data.msg || `Server error (${response.status})`;
+            console.error('API Error:', errorMsg);
+            if (!isSilent) {
+                if (window.showToast) {
+                    window.showToast('Error Loading Data', errorMsg, 'error');
+                } else {
+                    alert('Error loading dashboard data: ' + errorMsg);
+                }
+            }
         }
     } catch (error) {
         console.error('Fetch Error:', error);
+        if (!isSilent) {
+            if (window.showToast) {
+                window.showToast('Network Error', error.message, 'error');
+            }
+        }
     } finally {
         if (loader) loader.classList.add('hidden');
     }
@@ -497,8 +548,17 @@ function updateDashboardCharts(data) {
     charts.stoneAnalysis.update();
 
     // Heatmap (Bubble chart simulation)
-    charts.heatmap.data.datasets[0].data = data.heatmap.map(h => ({ x: h.hour, y: h.date, v: h.value, r: Math.min(h.value / 2, 8) }));
-    charts.heatmap.update();
+    const uniqueDates = [...new Set(data.heatmap.map(h => h.date))].sort();
+    if (charts.heatmap) {
+        charts.heatmap.options.scales.y.labels = uniqueDates;
+        charts.heatmap.data.datasets[0].data = data.heatmap.map(h => ({
+            x: Number(h.hour),
+            y: h.date,
+            v: h.value,
+            r: Math.max(3, Math.min(Math.sqrt(h.value) * 2, 16))
+        }));
+        charts.heatmap.update();
+    }
 }
 
 function populateFilters(options, triggerId = null) {
@@ -518,18 +578,15 @@ function populateFilters(options, triggerId = null) {
         startIndex = hierarchy.indexOf(triggerId) + 1;
     }
 
-    let reloadRequired = false;
-
     for (let i = startIndex; i < hierarchy.length; i++) {
         const id = hierarchy[i];
         const select = document.getElementById(id);
         const dataKey = id;
         
         if (select && mappings[dataKey]) {
-            const initialValue = select.value;
             const isCountry = (id === 'filter-country');
 
-            // Save the current value to try and restore it later if it's still valid
+            // Save current value
             const currentValue = select.value;
 
             // Clear existing options, but keep or re-add the "All" version for sub-filters
@@ -537,7 +594,6 @@ function populateFilters(options, triggerId = null) {
             if (!isCountry) {
                 const allOpt = document.createElement('option');
                 allOpt.value = '';
-                // e.g. "All Regions"
                 const label = id.replace('filter-', '').charAt(0).toUpperCase() + id.replace('filter-', '').slice(1);
                 allOpt.innerText = `All ${label}s`;
                 select.appendChild(allOpt);
@@ -550,26 +606,23 @@ function populateFilters(options, triggerId = null) {
                 opt.value = val;
                 opt.innerText = val;
                 
-                // Case correction for India on initial load
-                if (isCountry && val.toLowerCase() === 'india') {
-                    if (!triggerId) { // only auto-select on very first load if nothing selected
-                        opt.selected = true;
-                        if (val !== initialValue) reloadRequired = true;
-                    }
+                // Select India if on country and no existing selection
+                if (isCountry && val.toLowerCase() === 'india' && (!currentValue || currentValue.toLowerCase() === 'india')) {
+                    opt.selected = true;
                 }
                 
                 select.appendChild(opt);
             });
 
-            // Try to restore previous selection if it's still valid in the new list
-            if (currentValue && Array.from(select.options).some(o => o.value === currentValue)) {
-                select.value = currentValue;
+            // Try to restore previous selection if it's still valid in the new list (case-insensitive for country)
+            if (currentValue) {
+                const matched = Array.from(select.options).find(o => 
+                    isCountry ? o.value.toLowerCase() === currentValue.toLowerCase() : o.value === currentValue
+                );
+                if (matched) {
+                    select.value = matched.value;
+                }
             }
         }
-    }
-
-    if (reloadRequired) {
-        console.log('Corrected country case detected, reloading data...');
-        loadDashboardData();
     }
 }

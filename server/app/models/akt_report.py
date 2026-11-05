@@ -14,13 +14,13 @@ class AKTTransactionPerformance(db.Model):
 
     # Exact Schema Alignment as per PostgreSQL definition
     year = db.Column(db.Integer)
-    date = db.Column(db.DateTime)  # timestamp without time zone
+    date = db.Column(db.DateTime, primary_key=True)  # timestamp without time zone
     country = db.Column(db.String(255))
     subledger = db.Column(db.String(255))
     region = db.Column(db.String(255))
     state = db.Column(db.String(255))
-    location = db.Column(db.String(255))
-    divisionname = db.Column(db.String(255))
+    location = db.Column(db.String(255), primary_key=True)
+    divisionname = db.Column(db.String(255), primary_key=True)
     timepartt = db.Column(db.Integer, primary_key=True)
     billcount = db.Column(db.Integer)
     grossweight = db.Column(db.Numeric)
