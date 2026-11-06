@@ -188,6 +188,7 @@ class TransactionPerformanceTests(unittest.TestCase):
         db.session.query(model).filter(*prior).update({model.billcount:0},synchronize_session=False)
         db.session.commit()
         self.assertIsNone(sales_growth_comparison(filters,prior)['hourly_growth_yoy'])
+        db.session.add(model(date=datetime(2025,10,18,8),timepartt=8,billtime=time(8),country_actual='INDIA',location='Store A',divisionname='GOLD',invoiceamt=0,billcount=0))
         db.session.query(model).filter(*prior,model.billtime==time(9)).delete(synchronize_session=False)
         db.session.commit()
         self.assertIsNone(sales_growth_comparison(filters,prior)['hourly_growth_previous'])
@@ -214,7 +215,7 @@ class TransactionPerformanceTests(unittest.TestCase):
         url='/api/akt/transaction-data?date=2026-11-05&country=India'
         first = self.client.get(url,headers=self.auth_headers()).get_json()
         self.assertFalse(first['cached'])
-        self.assertTrue(any(key.startswith('akt_perf_cache_v9:g0:') for key in state))
+        self.assertTrue(any(key.startswith('akt_perf_cache_v10:g0:') for key in state))
         second = self.client.get(url,headers=self.auth_headers()).get_json()
         self.assertFalse(second['cached'])  # Old generation must not be served.
         third = self.client.get(url,headers=self.auth_headers()).get_json()
@@ -291,6 +292,40 @@ class TransactionPerformanceTests(unittest.TestCase):
         self.assertEqual(data['kpis']['hourly_growth_current'],5)
         self.assertEqual(data['kpis']['hourly_growth_yoy'],25)
         self.assertEqual(data['kpis']['sales_growth_yoy'],25)
+
+    @patch('app.dashboard.routes.transaction_performance.redis_client')
+    def test_first_reported_hour_comparison_85_to_282(self, cache):
+        cache.get.return_value = None
+        cache.set.return_value = True
+        model = AKTTransactionPerformance
+        for day, count in [(date(2026,11,6),282),(SALES_COMPARISON_DATE,85)]:
+            db.session.add(model(date=datetime.combine(day,time(9)),timepartt=9,billtime=time(9,37),
+                country_actual='INDIA',location='Store A',divisionname='GOLD',invoiceamt=count*100,
+                billcount=count,perminutebillcount='1',netweight=count*10))
+        db.session.commit()
+        response=self.client.get('/api/akt/transaction-data?date=2026-11-06&country=India',headers=self.auth_headers())
+        self.assertEqual(response.status_code,200)
+        result=response.get_json()['kpis']
+        self.assertEqual(result['hourly_growth_previous'],85)
+        self.assertEqual(result['hourly_growth_current'],282)
+        self.assertAlmostEqual(result['hourly_growth_yoy'],(282-85)/85*100)
+
+    @patch('app.dashboard.routes.transaction_performance.redis_client')
+    def test_new_branch_at_later_hour_does_not_invalidate_total(self, cache):
+        cache.get.return_value = None
+        cache.set.return_value = True
+        model=AKTTransactionPerformance
+        for day, before, after, newcomer in [(date(2026,11,6),5,10,3),(SALES_COMPARISON_DATE,4,8,2)]:
+            for hour, location, count in [(9,'A',before),(10,'A',after),(10,'B',newcomer)]:
+                db.session.add(model(date=datetime.combine(day,time(hour)),timepartt=hour,billtime=time(hour),
+                    country_actual='INDIA',location=location,divisionname='GOLD',invoiceamt=count*100,
+                    billcount=count,perminutebillcount='1'))
+        db.session.commit()
+        response=self.client.get('/api/akt/transaction-data?date=2026-11-06&country=India',headers=self.auth_headers())
+        self.assertEqual(response.status_code,200)
+        result=response.get_json()['kpis']
+        self.assertEqual(result['hourly_growth_current'],8)
+        self.assertEqual(result['hourly_growth_previous'],6)
 
     def test_get_akt_transaction_data_requires_auth(self):
         response = self.client.get('/api/akt/transaction-data')

@@ -87,24 +87,38 @@ def sales_growth_comparison(current_filters, comparison_filters):
     result['avg_bill_growth_previous'] = float(previous_avg) if previous_avg is not None else None
     if current_avg is not None and previous_avg is not None and previous_avg > 0:
         result['avg_bill_growth_yoy'] = float((current_avg - previous_avg) / previous_avg * 100)
-    # Require two consecutive snapshots; a missing hour is not zero activity.
-    if cutoff > 0:
-        start_hour = cutoff - 1
-        result['hourly_comparison_start'] = f'{start_hour:02d}:00'
-        def hourly_bills(conditions):
-            groups = db.session.query(
-                func.max(case((model.timepartt == start_hour, model.billcount))).label('before'),
-                func.max(case((model.timepartt == cutoff, model.billcount))).label('after')
-            ).filter(*conditions, model.timepartt.in_([start_hour, cutoff])).group_by(
-                model.location, model.divisionname, model.state).all()
-            if not groups or any(row.before is None or row.after is None for row in groups):
-                return None
-            return sum(max(0, row.after - row.before) for row in groups)
-        current_hourly, previous_hourly = hourly_bills(current_filters), hourly_bills(comparison_filters)
-        result['hourly_growth_current'] = current_hourly
-        result['hourly_growth_previous'] = previous_hourly
-        if current_hourly is not None and previous_hourly is not None and previous_hourly > 0:
-            result['hourly_growth_yoy'] = (current_hourly - previous_hourly) / previous_hourly * 100
+    # Match the existing hourly chart: difference of cumulative hour totals.
+    # Its first recorded hour uses an opening baseline of zero.
+    start_hour = cutoff - 1
+    result['hourly_comparison_start'] = f'{max(0, start_hour):02d}:00'
+    def hourly_bills(conditions):
+        snapshots = db.session.query(
+            model.timepartt.label('hour'), func.max(model.billcount).label('bills')
+        ).filter(*conditions, model.timepartt <= cutoff).group_by(
+            model.timepartt, model.location, model.divisionname, model.state).subquery()
+        hours = db.session.query(snapshots.c.hour,
+            func.sum(snapshots.c.bills).label('bills'),
+            func.count().label('groups'), func.count(snapshots.c.bills).label('valid_groups')
+        ).group_by(snapshots.c.hour).all()
+        totals = {row.hour: row for row in hours}
+        current = totals.get(cutoff)
+        if current is None or current.valid_groups != current.groups:
+            return None
+        previous = totals.get(start_hour)
+        if previous is None:
+            if min(totals) != cutoff:
+                return None  # A gap inside the day is not an opening baseline.
+            previous_bills = 0
+        elif previous.valid_groups != previous.groups:
+            return None
+        else:
+            previous_bills = previous.bills
+        return max(0, current.bills - previous_bills)
+    current_hourly, previous_hourly = hourly_bills(current_filters), hourly_bills(comparison_filters)
+    result['hourly_growth_current'] = current_hourly
+    result['hourly_growth_previous'] = previous_hourly
+    if current_hourly is not None and previous_hourly is not None and previous_hourly > 0:
+        result['hourly_growth_yoy'] = (current_hourly - previous_hourly) / previous_hourly * 100
     return result
 
 
@@ -190,7 +204,7 @@ def get_akt_transaction_data():
                 cache_generation = int(redis_client.get(AKT_CACHE_GENERATION_KEY) or 0)
             except Exception:
                 logger.warning('Cache generation unavailable; refusing uncoordinated report calculation')
-        cache_key = f"akt_perf_cache_v9:g{cache_generation}:{':'.join(cache_key_parts)}"
+        cache_key = f"akt_perf_cache_v10:g{cache_generation}:{':'.join(cache_key_parts)}"
         lock_key = f"lock:{cache_key}"
         bypass_cache = request.args.get('bypass_cache', 'false').lower() == 'true'
 
