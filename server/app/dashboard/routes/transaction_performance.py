@@ -6,7 +6,7 @@ from app.extensions import db, socketio, redis_client
 from app.utils.decorators import require_perm
 from app.utils.report_cache_lock import ReportCacheLock
 from sqlalchemy import func, cast, Numeric, case
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 import logging
 import json
@@ -53,17 +53,17 @@ def sales_growth_comparison(current_filters, comparison_filters):
     for metric in ('bills', 'weight', 'avg_bill', 'hourly'):
         result.update({f'{metric}_growth_yoy': None, f'{metric}_growth_current': None, f'{metric}_growth_previous': None})
     valid = model.invoiceamt.isnot(None)
-    current_hour = db.session.query(func.max(model.billtime)).filter(*current_filters, valid).scalar()
-    prior_hour = db.session.query(func.max(model.billtime)).filter(*comparison_filters, valid).scalar()
+    current_hour = db.session.query(func.max(model.timepartt)).filter(*current_filters, valid).scalar()
+    prior_hour = db.session.query(func.max(model.timepartt)).filter(*comparison_filters, valid).scalar()
     if current_hour is None or prior_hour is None:
         return result
     cutoff = min(current_hour, prior_hour)
-    result['sales_growth_cutoff'] = cutoff.strftime('%H:%M')
+    result['sales_growth_cutoff'] = f'{cutoff:02d}:00'
     def cumulative(conditions):
         grouped = db.session.query(func.max(model.invoiceamt).label('sales'),
                                    func.max(model.billcount).label('bills'),
                                    func.max(model.netweight).label('weight')).filter(
-            *conditions, model.billtime <= cutoff
+            *conditions, model.timepartt <= cutoff
         ).group_by(model.location, model.divisionname, model.state).subquery()
         return db.session.query(func.sum(grouped.c.sales).label('sales'),
                                 func.sum(grouped.c.bills).label('bills'),
@@ -88,14 +88,14 @@ def sales_growth_comparison(current_filters, comparison_filters):
     if current_avg is not None and previous_avg is not None and previous_avg > 0:
         result['avg_bill_growth_yoy'] = float((current_avg - previous_avg) / previous_avg * 100)
     # Require two consecutive snapshots; a missing hour is not zero activity.
-    if cutoff.hour > 0:
-        start_hour = (datetime.combine(SALES_COMPARISON_DATE, cutoff) - timedelta(hours=1)).time()
-        result['hourly_comparison_start'] = start_hour.strftime('%H:%M')
+    if cutoff > 0:
+        start_hour = cutoff - 1
+        result['hourly_comparison_start'] = f'{start_hour:02d}:00'
         def hourly_bills(conditions):
             groups = db.session.query(
-                func.max(case((model.billtime == start_hour, model.billcount))).label('before'),
-                func.max(case((model.billtime == cutoff, model.billcount))).label('after')
-            ).filter(*conditions, model.billtime.in_([start_hour, cutoff])).group_by(
+                func.max(case((model.timepartt == start_hour, model.billcount))).label('before'),
+                func.max(case((model.timepartt == cutoff, model.billcount))).label('after')
+            ).filter(*conditions, model.timepartt.in_([start_hour, cutoff])).group_by(
                 model.location, model.divisionname, model.state).all()
             if not groups or any(row.before is None or row.after is None for row in groups):
                 return None
@@ -190,7 +190,7 @@ def get_akt_transaction_data():
                 cache_generation = int(redis_client.get(AKT_CACHE_GENERATION_KEY) or 0)
             except Exception:
                 logger.warning('Cache generation unavailable; refusing uncoordinated report calculation')
-        cache_key = f"akt_perf_cache_v8:g{cache_generation}:{':'.join(cache_key_parts)}"
+        cache_key = f"akt_perf_cache_v9:g{cache_generation}:{':'.join(cache_key_parts)}"
         lock_key = f"lock:{cache_key}"
         bypass_cache = request.args.get('bypass_cache', 'false').lower() == 'true'
 
@@ -256,9 +256,9 @@ def get_akt_transaction_data():
                     else:
                         filters.append(field == val)
             
-            # Per user request: Only consider hourly snapshots (Minute = 0)
+            # Per user request: Use the timepartt reporting-hour bucket
             from sqlalchemy import extract
-            filters.append(extract('minute', AKTTransactionPerformance.billtime) == 0)
+            filters.append(AKTTransactionPerformance.timepartt.isnot(None))
 
             # 1. Master Snapshot: Latest values per Location/Division
             # This is the "Gold Source" for all cumulative metrics (KPIs, State, Division, Composition)
@@ -355,8 +355,8 @@ def get_akt_transaction_data():
                         else:
                             filters_2025.append(field == val)
             
-            # Add minute constraint to 2025 as well
-            filters_2025.append(extract('minute', AKTTransactionPerformance.billtime) == 0)
+            # Use the same reporting-hour rule for 2025
+            filters_2025.append(AKTTransactionPerformance.timepartt.isnot(None))
 
             eff_sub_2025 = db.session.query(
                 AKTTransactionPerformance.timepartt,

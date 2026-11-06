@@ -214,7 +214,7 @@ class TransactionPerformanceTests(unittest.TestCase):
         url='/api/akt/transaction-data?date=2026-11-05&country=India'
         first = self.client.get(url,headers=self.auth_headers()).get_json()
         self.assertFalse(first['cached'])
-        self.assertTrue(any(key.startswith('akt_perf_cache_v8:g0:') for key in state))
+        self.assertTrue(any(key.startswith('akt_perf_cache_v9:g0:') for key in state))
         second = self.client.get(url,headers=self.auth_headers()).get_json()
         self.assertFalse(second['cached'])  # Old generation must not be served.
         third = self.client.get(url,headers=self.auth_headers()).get_json()
@@ -271,6 +271,26 @@ class TransactionPerformanceTests(unittest.TestCase):
         self.assertEqual(response.status_code,503)
         socket.emit.assert_not_called()
         cache.publish.assert_not_called()
+
+    @patch('app.dashboard.routes.transaction_performance.redis_client')
+    def test_timepartt_drives_comparison_despite_billtime_minutes(self, cache):
+        cache.get.return_value = None
+        cache.set.return_value = True
+        model = AKTTransactionPerformance
+        for day, counts in [(date(2026,11,5),(5,10)),(SALES_COMPARISON_DATE,(4,8))]:
+            for hour,count in zip((9,10), counts):
+                db.session.add(model(date=datetime.combine(day,time(hour)),timepartt=hour,
+                    billtime=time(hour,37),country_actual='INDIA',location='Store A',divisionname='GOLD',
+                    invoiceamt=count*100,billcount=count,perminutebillcount='1',netweight=count*10))
+        db.session.commit()
+        response=self.client.get('/api/akt/transaction-data?date=2026-11-05&country=India&division=Gold',headers=self.auth_headers())
+        self.assertEqual(response.status_code,200)
+        data=response.get_json()
+        self.assertEqual(data['kpis']['sales_growth_cutoff'],'10:00')
+        self.assertEqual(data['kpis']['hourly_growth_previous'],4)
+        self.assertEqual(data['kpis']['hourly_growth_current'],5)
+        self.assertEqual(data['kpis']['hourly_growth_yoy'],25)
+        self.assertEqual(data['kpis']['sales_growth_yoy'],25)
 
     def test_get_akt_transaction_data_requires_auth(self):
         response = self.client.get('/api/akt/transaction-data')
