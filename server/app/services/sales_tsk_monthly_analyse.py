@@ -67,21 +67,19 @@ def build_matrix(records, filters):
 
 def matrix(cur, filters):
     _, key, label = GROUPS[filters['group_by']]
-    # Inspect metadata only. Never mistake transaction row counts for piece quantities.
+    # Count each null barcode independently, equivalent to a unique fallback per row.
     cur.execute(f'SELECT * FROM {source.SOURCE} LIMIT 0')
     columns = {column.name for column in cur.description}
-    pieces = next((name for name in ('pieces', 'pcs') if name in columns), None)
-    if key not in columns or label not in columns or pieces is None:
-        raise source.SourceDataError('The source must provide the selected grouping ID/label and a pieces or pcs quantity field.')
+    missing = [name for name in (key, label, 'barcode') if name not in columns]
+    if missing:
+        raise source.SourceDataError('Source columns missing: ' + ', '.join(missing) + '.')
     where, params = source.where_clause(filters)
     records = source.query(cur, f'''SELECT "{key}"::text AS id,
         COALESCE(MAX(NULLIF(TRIM("{label}"::text), '')), "{key}"::text, 'Unspecified') AS label,
         date_trunc('month', {source.SALES_DATE})::date AS month,
-        {source.aggregates()}, COALESCE(SUM("{pieces}"), 0) AS pieces,
-        COUNT(*) FILTER (WHERE "{pieces}" IS NULL) AS missing_pieces
+        {source.aggregates()},
+        COUNT(DISTINCT barcode) + COUNT(*) FILTER (WHERE barcode IS NULL) AS pieces
         FROM {source.SOURCE} WHERE {where} GROUP BY "{key}", 3''', params)
-    if any(r['missing_pieces'] for r in records):
-        raise source.SourceDataError('Piece quantities are missing in the source for this selection.')
     return build_matrix(records, filters)
 
 

@@ -52,11 +52,11 @@ class MatrixTests(unittest.TestCase):
     def test_schema_validation_and_safe_query(self):
         cur=MagicMock(); cur.description=[]
         with self.assertRaises(report.source.SourceDataError): report.matrix(cur,filters())
-        cur.description=[SimpleNamespace(name=n) for n in ['group_id','group','pcs']]
+        cur.description=[SimpleNamespace(name=n) for n in ['group_id','group','barcode']]
         with patch.object(report.source,'query',return_value=[]) as query:
             report.matrix(cur,filters(group_by='group'))
             sql=query.call_args.args[1]
-            self.assertIn('SUM("pcs")',sql); self.assertIn('GROUP BY "group_id", 3',sql)
+            self.assertIn('COUNT(DISTINCT barcode) + COUNT(*) FILTER (WHERE barcode IS NULL) AS pieces',sql); self.assertIn('GROUP BY "group_id", 3',sql)
             self.assertNotIn('2026-04-01',sql)
 
     def test_empty_result(self):
