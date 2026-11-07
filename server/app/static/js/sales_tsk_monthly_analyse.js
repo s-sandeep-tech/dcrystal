@@ -101,7 +101,7 @@
         const caption = element('caption', `Monthly sales by ${data.group_label.toLowerCase()}`, 'sr-only');
         const head = table.createTHead(), top = head.insertRow(), sub = head.insertRow();
         const label = element('th', data.group_label, 'monthly-label'); label.rowSpan = 2; label.scope = 'col'; top.append(label);
-        const showGrowth = month => month.month.slice(5, 7) !== '04';
+        const showGrowth = month => month.month !== data.months[0].month;
         for (const month of data.months) {
             const columns = ['Weight / Pieces', 'Share %', 'Net Turnover', 'TSK Total'];
             if (showGrowth(month)) columns.push('Sales Growth %');
@@ -134,10 +134,15 @@
         appendRow(table.createTFoot(), 'Total', data.totals);
         table.prepend(caption); wrap.append(table); container.append(wrap);
     }
+    function showLoading(status, message) {
+        const spinner = element('span', null, 'monthly-loading-spinner');
+        spinner.setAttribute('aria-hidden', 'true');
+        status.replaceChildren(spinner, document.createTextNode(message));
+    }
     async function loadMatrix() {
         controllers.get('matrix')?.abort(); const controller = new AbortController(); controllers.set('matrix', controller);
         const panel = document.getElementById('monthly-panel'), status = document.getElementById('monthly-status');
-        panel.setAttribute('aria-busy', 'true'); status.textContent = 'Loading monthly analysis…';
+        panel.setAttribute('aria-busy', 'true'); showLoading(status, 'Loading monthly analysis…');
         document.getElementById('monthly-fetched').textContent = '';
         try {
             const {data, fetched_at} = await (await request('matrix', applied, controller.signal)).json();
@@ -152,7 +157,7 @@
     }
     async function loadOptions() {
         controllers.get('options')?.abort(); const controller = new AbortController(); controllers.set('options', controller);
-        const status = document.getElementById('sales-options-status'); status.textContent = 'Loading filters…';
+        const status = document.getElementById('sales-options-status'); showLoading(status, 'Loading filters…');
         try {
             const {data} = await (await request('options', applied, controller.signal)).json();
             if (controller.signal.aborted) return;
@@ -179,6 +184,14 @@
     group.addEventListener('change', () => { applied.set('group_by', group.value); reload(); });
     form.addEventListener('reset', event => { event.preventDefault(); applied = new URLSearchParams(); restore(); filterDropdowns.forEach(d => d.reset()); reload(); });
     document.getElementById('sales-refresh').addEventListener('click', reload);
+    const infoDialog = document.getElementById('monthly-info-dialog');
+    document.getElementById('monthly-info-open').addEventListener('click', () => infoDialog.showModal());
+    document.getElementById('monthly-info-close').addEventListener('click', () => infoDialog.close());
+    infoDialog.addEventListener('click', event => {
+        if (event.target !== infoDialog) return;
+        const rect = infoDialog.getBoundingClientRect();
+        if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) infoDialog.close();
+    });
     function toggleFilters(open) {
         const sidebar = document.getElementById('sales-sidebar'); sidebar.classList.toggle('is-collapsed', !open); sidebar.inert = !open;
         document.getElementById('sales-filter-toggle').setAttribute('aria-expanded', String(open));

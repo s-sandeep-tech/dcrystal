@@ -2,6 +2,8 @@
 .monthly-analysis > .party-matrix-header { flex-shrink: 0; }
 #sales-tsk-page.monthly-analysis #monthly-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; width: 100%; margin: 0; border-radius: 0; }
 .monthly-analysis #monthly-panel > .party-matrix-panel-heading, .monthly-analysis #monthly-status, .monthly-analysis #monthly-fetched { flex-shrink: 0; }
+.monthly-analysis #monthly-panel > .party-matrix-panel-heading { align-items: center; flex-wrap: wrap; gap: 4px 12px; }
+.monthly-analysis #monthly-summary { margin: 0; margin-left: auto; text-align: right; }
 .monthly-analysis #monthly-content { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .monthly-analysis .sales-table-wrap { flex: 1; min-height: 0; max-height: none; }
 .monthly-analysis > .sales-note { flex-shrink: 0; margin: 4px 12px; }
@@ -21,4 +23,16 @@
 .monthly-analysis .monthly-partial { margin-left: 6px; font-size: 9px; font-weight: 500; color: var(--sales-muted); }
 #sales-sidebar #monthly-group { display: block; width: 100%; margin-top: 6px; padding: 8px; border: 1px solid var(--sales-border, #d8e0e9); border-radius: 6px; background: transparent; }
 #sales-sidebar .sales-filter-actions { grid-template-columns: 1fr; }
+.monthly-info-button { display: inline-flex; align-items: center; justify-content: center; padding: 4px; color: var(--sales-muted); border-radius: 5px; cursor: pointer; }
+.monthly-info-button:hover { color: #137fec; background: #137fec12; }
+.monthly-info-button .material-symbols-outlined { font-size: 18px; }
+.monthly-info-dialog { width: min(520px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); margin: auto; padding: 20px; overflow-y: auto; border: 1px solid var(--sales-border); border-radius: 10px; background: var(--sales-panel); color: var(--sales-text); box-shadow: 0 16px 48px #0f172a33; }
+.monthly-info-dialog::backdrop { background: #0f172a66; }
+.monthly-info-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.monthly-info-heading h2 { margin: 0; font-size: 15px; font-weight: 700; }
+.monthly-info-heading button { display: inline-flex; padding: 4px; }
+.monthly-info-dialog .sales-note { margin: 14px 0 0; font-size: 12px; }
+.monthly-loading-spinner { display: inline-block; width: 12px; height: 12px; margin-right: 7px; vertical-align: -2px; border: 2px solid #137fec33; border-top-color: #137fec; border-radius: 50%; animation: monthly-loading-spin .75s linear infinite; }
+@keyframes monthly-loading-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .monthly-loading-spinner { animation: none; } }
 @media(max-width: 680px) { .monthly-analysis .sales-table .monthly-label { min-width: 125px; max-width: 160px; } }
