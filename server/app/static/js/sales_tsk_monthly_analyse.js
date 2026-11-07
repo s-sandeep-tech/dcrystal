@@ -180,7 +180,6 @@
         document.getElementById('sales-filter-toggle').setAttribute('aria-expanded', String(open));
     }
     document.getElementById('sales-filter-toggle').addEventListener('click', () => toggleFilters(document.getElementById('sales-sidebar').classList.contains('is-collapsed')));
-    document.getElementById('sales-filter-close').addEventListener('click', () => toggleFilters(false));
     if (matchMedia('(max-width: 680px)').matches) toggleFilters(false);
     fields.forEach(select => { select.replaceChildren(); buildFilterDropdown(select); }); restore(); reload();
 })();

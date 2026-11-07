@@ -20,7 +20,7 @@
 <aside id="sales-sidebar" class="party-matrix-sidebar">
     <form id="sales-filters" class="sales-filter-form" data-default-start="{{ start }}" data-default-end="{{ end }}">
         <div class="party-matrix-sidebar-body">
-            <div class="party-matrix-filter-title"><h2><span class="material-symbols-outlined">filter_alt</span> Filters</h2><button id="sales-filter-close" class="party-matrix-filter-reset" type="button" aria-label="Close filters">Close</button></div>
+            <div class="party-matrix-filter-title"><h2><span class="material-symbols-outlined">filter_alt</span> Filters</h2><button class="party-matrix-filter-reset" type="reset" aria-label="Reset filters">Reset</button></div>
             <label class="sales-filter-field">Group By<select id="monthly-group" name="group_by">{% for key, group in groups.items() %}<option value="{{ key }}" {% if key == "section" %}selected{% endif %}>{{ group[0] }}</option>{% endfor %}</select></label>
             <div class="sales-date-fields"><label>From <input type="date" name="start" required value="{{ start }}"></label>
             <label>To <input type="date" name="end" required value="{{ end }}"></label></div>
