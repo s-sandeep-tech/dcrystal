@@ -1,5 +1,12 @@
 #sales-tsk-page.monthly-analysis { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .monthly-analysis > .party-matrix-header { flex-shrink: 0; }
+#sales-tsk-page.monthly-analysis > .party-matrix-header { min-height: 0; padding: 8px 16px; gap: 12px; }
+.monthly-analysis .party-matrix-title-row { gap: 8px; }
+.monthly-analysis .party-matrix-title-row h1 { font-size: 14px; font-weight: 700; letter-spacing: -.025em; }
+.monthly-analysis .party-matrix-version { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 400; letter-spacing: .1em; background: #f3f4f6; color: #6b7280; }
+.dark .monthly-analysis .party-matrix-version { background: #1f2937; color: #9ca3af; }
+.monthly-analysis .party-matrix-header-actions { gap: 8px; }
+.monthly-analysis .party-matrix-filter-open { width: 30px; height: 30px; }
 #sales-tsk-page.monthly-analysis #monthly-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; width: 100%; margin: 0; border-radius: 0; }
 .monthly-analysis #monthly-panel > .party-matrix-panel-heading, .monthly-analysis #monthly-status, .monthly-analysis #monthly-fetched { flex-shrink: 0; }
 .monthly-analysis #monthly-panel > .party-matrix-panel-heading { align-items: center; flex-wrap: wrap; gap: 4px 12px; }
