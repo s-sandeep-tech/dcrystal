@@ -297,9 +297,17 @@ window.REPORT_MENU_DATA = [
         accent: "emerald",
         reports: [
             {
-                id: "sales-tsk-performance",
+                id: "sales-tsk-monthly-analyse",
+                title: "Monthly Sales & TSK Analysis",
+                href: "/sales-tsk-monthly-analyse",
+                icon: "table_chart",
+                description: "Compare monthly sales, contribution, and growth across product groupings.",
+                tags: ["sales", "tsk", "monthly", "growth", "matrix"]
+            },
+            {
+                id: "sales-tsk-analyse",
                 title: "Sales & TSK Performance",
-                href: "/sales-tsk-performance",
+                href: "/sales-tsk-analyse",
                 icon: "monitoring",
                 description: "Live sales and TSK trends, section contribution, branch rankings, and monthly ledger.",
                 tags: ["sales", "tsk", "section", "turnover", "live"]

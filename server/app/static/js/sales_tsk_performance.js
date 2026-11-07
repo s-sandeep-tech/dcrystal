@@ -96,7 +96,7 @@
         button.type = 'button'; button.addEventListener('click', fn); status.append(button);
     }
     async function request(segment, params, signal) {
-        const response = await fetch(`/api/sales-tsk-performance/${segment}?${params}`, { headers: headers(), signal, cache: 'no-store' });
+        const response = await fetch(`/api/sales-tsk-analyse/${segment}?${params}`, { headers: headers(), signal, cache: 'no-store' });
         if (!response.ok) {
             const body = await response.json().catch(() => ({}));
             throw new Error(body.message || body.msg || `Unable to load report (${response.status}).`);

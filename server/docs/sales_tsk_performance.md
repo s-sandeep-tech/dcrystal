@@ -1,8 +1,8 @@
 # Sales & TSK Performance
 
-Route: `/sales-tsk-performance`. Listed in the Sales & Stock report menu.
+Route: `/sales-tsk-analyse`. Listed in the Sales & Stock report menu.
 
-This report queries `ext_view.vw_item_wise_tsk_details_data` on the external PostgreSQL connection. It has no snapshot model, sync job, or item-level endpoint. Each page segment and the filter options load independently through `/api/sales-tsk-performance/<segment>`. The CSV download button has been removed from the report UI; the existing protected export endpoint still contains monthly summaries only.
+This report queries `ext_view.vw_item_wise_tsk_details_data` on the external PostgreSQL connection. It has no snapshot model, sync job, or item-level endpoint. Each page segment and the filter options load independently through `/api/sales-tsk-analyse/<segment>`. The CSV download button has been removed from the report UI; the existing protected export endpoint still contains monthly summaries only.
 
 ## Definitions
 
@@ -36,7 +36,7 @@ Register the database menu on deployment:
 python scripts/add_sales_tsk_performance_menu.py
 ```
 
-The script is idempotent and grants the ADMIN role. Administrators can assign other roles through existing RBAC management. Reload application workers after deployment.
+The script migrates the existing `/sales-tsk-performance` menu row in place, preserving its role grants and placement. Old page links redirect to `/sales-tsk-analyse` with their query filters. The script is idempotent and grants the ADMIN role. Administrators can assign other roles through existing RBAC management. Reload application workers after deployment.
 
 Queries are read-only, parameterized, and limited to a 30-second statement timeout. Responses use `Cache-Control: no-store`. Database aggregates, not item rows, are transferred to the application. Each segment has its own fetch time and retry state; separate segment requests do not represent one atomic source snapshot.
 

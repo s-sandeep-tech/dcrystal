@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Monthly Sales & TSK Analysis{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/party_performance_matrix.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_tsk_performance.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_tsk_monthly_analyse.css') }}">
+{% endblock %}
+{% block content %}
+<main id="sales-tsk-page" class="party-matrix-page monthly-analysis flex-1 overflow-y-auto bg-[#f5f7fa] dark:bg-background-dark">
+<header class="party-matrix-header"><div><div class="party-matrix-title-row"><span class="material-symbols-outlined">table_chart</span><h1>Monthly Sales &amp; TSK Analysis</h1><span class="party-matrix-version">Live data</span></div><p id="sales-period">Monthly contribution and sales growth by product grouping.</p></div><div class="party-matrix-header-actions"><button id="sales-refresh" class="sales-button" type="button">Refresh</button><button id="sales-filter-toggle" class="party-matrix-filter-open" type="button" aria-controls="sales-sidebar" aria-expanded="true" aria-label="Toggle filters"><span class="material-symbols-outlined">filter_alt</span></button></div></header>
+<section class="party-matrix-table-panel sales-segment" id="monthly-panel" aria-label="Monthly sales matrix">
+<div class="party-matrix-panel-heading"><div><h2 id="monthly-title">Section performance</h2><p id="monthly-summary">Monthly comparison</p></div></div>
+<div id="monthly-status" class="sales-status" role="status" aria-live="polite"></div><div id="monthly-content" class="sales-content"></div><p id="monthly-fetched" class="sales-fetched"></p>
+</section>
+<p class="sales-note">Share shows each group's contribution to monthly net turnover. Growth compares net turnover with the previous complete selected month. The first month, missing or zero bases, and partial-month comparisons show —. Months without transactions show zero totals.</p>
+<p class="sales-note">Net turnover includes sales returns. Weight (kg), pieces, and TSK are source totals. Amounts display in Cr; hover for full values. Share bars show contribution, not targets.</p>
+</main>
+{% endblock %}
+{% block sidebar %}
+<aside id="sales-sidebar" class="party-matrix-sidebar">
+    <form id="sales-filters" class="sales-filter-form" data-default-start="{{ start }}" data-default-end="{{ end }}">
+        <div class="party-matrix-sidebar-body">
+            <div class="party-matrix-filter-title"><h2><span class="material-symbols-outlined">filter_alt</span> Filters</h2><button id="sales-filter-close" class="party-matrix-filter-reset" type="button" aria-label="Close filters">Close</button></div>
+            <label class="sales-filter-field">Group By<select id="monthly-group" name="group_by">{% for key, group in groups.items() %}<option value="{{ key }}" {% if key == "section" %}selected{% endif %}>{{ group[0] }}</option>{% endfor %}</select></label>
+            <div class="sales-date-fields"><label>From <input type="date" name="start" required value="{{ start }}"></label>
+            <label>To <input type="date" name="end" required value="{{ end }}"></label></div>
+            <p class="sales-note">Financial year to date · up to 12 months</p>
+            <div id="sales-options-status" role="status">Loading filters…</div>
+            {% for key, field in filter_fields.items() %}
+            {% if key == 'branch_id' %}<h3 class="sales-filter-group">Location</h3>{% elif key == 'make_id' %}<h3 class="sales-filter-group">Product</h3>{% elif key == 'invoice_type' %}<h3 class="sales-filter-group">Transaction</h3>{% endif %}
+            <div class="sales-filter-field"><span class="sales-filter-label" id="filter-label-{{ key }}">{{ field[0] }}</span><select name="{{ key }}" multiple aria-label="{{ field[0] }}" hidden><option disabled>Loading…</option></select></div>
+            {% endfor %}
+        </div>
+        <div class="party-matrix-sidebar-footer sales-filter-actions"><button type="reset" class="sales-filter-reset">Reset</button><button type="submit"><span class="material-symbols-outlined">search_check</span> Apply Filters</button></div>
+    </form>
+</aside>
+{% endblock %}
+{% block extra_scripts %}<script src="{{ url_for('static', filename='js/sales_tsk_monthly_analyse.js') }}"></script>{% endblock %}

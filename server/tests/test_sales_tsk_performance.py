@@ -42,25 +42,31 @@ class FilterTests(unittest.TestCase):
 class EndpointTests(unittest.TestCase):
     def setUp(self):
         self.app = Flask(__name__)
-        self.app.add_url_rule('/api/sales-tsk-performance/<segment>', view_func=routes.sales_tsk_performance_segment)
+        self.app.add_url_rule('/api/sales-tsk-analyse/<segment>', view_func=routes.sales_tsk_performance_segment)
         self.client = self.app.test_client()
+
+    def test_legacy_url_redirect_preserves_filters(self):
+        with self.app.test_request_context('/sales-tsk-performance?section_id=1&section_id=2&start=2026-04-01'):
+            response=routes.sales_tsk_performance_legacy_redirect()
+            self.assertEqual(response.status_code,302)
+            self.assertEqual(response.location,'/sales-tsk-analyse?section_id=1&section_id=2&start=2026-04-01')
 
     def test_anonymous_cannot_access_any_segment(self):
         for segment in routes.SEGMENTS:
-            self.assertEqual(self.client.get('/api/sales-tsk-performance/' + segment).status_code, 401)
+            self.assertEqual(self.client.get('/api/sales-tsk-analyse/' + segment).status_code, 401)
 
     def test_report_grant_required_for_every_segment(self):
         user = SimpleNamespace(is_active=True, roles=[], username='reader', is_admin=False)
         with patch('app.utils.decorators.verify_jwt_in_request'), patch('app.utils.decorators.get_jwt_identity', return_value='1'), patch('app.extensions.db.session.get', return_value=user), patch.object(report, 'load_segment') as loader:
             for segment in routes.SEGMENTS:
-                self.assertEqual(self.client.get('/api/sales-tsk-performance/' + segment).status_code, 403)
+                self.assertEqual(self.client.get('/api/sales-tsk-analyse/' + segment).status_code, 403)
             loader.assert_not_called()
 
     def test_granted_api_decimal_and_no_store(self):
         menu = SimpleNamespace(url=routes.REPORT, permission_required=None)
         user = SimpleNamespace(is_active=True, roles=[SimpleNamespace(name='REPORT_READER', permissions=[], menus=[menu])], username='reader', is_admin=False)
         with patch('app.utils.decorators.verify_jwt_in_request'), patch('app.utils.decorators.get_jwt_identity', return_value='1'), patch('app.extensions.db.session.get', return_value=user), patch.object(report, 'load_segment', return_value={'net_turnover': Decimal('12.25')}):
-            response = self.client.get('/api/sales-tsk-performance/kpis')
+            response = self.client.get('/api/sales-tsk-analyse/kpis')
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json['data']['net_turnover'], 12.25)
             self.assertEqual(response.headers['Cache-Control'], 'no-store')

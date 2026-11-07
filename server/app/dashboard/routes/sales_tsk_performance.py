@@ -4,12 +4,12 @@ from datetime import datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from flask import Response, current_app, jsonify, render_template, request
+from flask import Response, current_app, jsonify, redirect, render_template, request
 from app.dashboard import dashboard_bp
 from app.services import sales_tsk_performance as report
 from app.utils.decorators import require_report_access
 
-REPORT = '/sales-tsk-performance'
+REPORT = '/sales-tsk-analyse'
 SEGMENTS = {'options', 'kpis', 'trend', 'sections', 'branches', 'ledger', 'export'}
 
 
@@ -25,6 +25,12 @@ def json_numbers(value):
     return value
 
 
+@dashboard_bp.route('/sales-tsk-performance')
+def sales_tsk_performance_legacy_redirect():
+    query = request.query_string.decode('utf-8', errors='replace')
+    return redirect(REPORT + ('?' + query if query else ''), code=302)
+
+
 @dashboard_bp.route(REPORT)
 @require_report_access(REPORT)
 def sales_tsk_performance_page():
@@ -33,7 +39,7 @@ def sales_tsk_performance_page():
                            filter_fields=report.FILTERS, start=start, end=end)
 
 
-@dashboard_bp.route('/api/sales-tsk-performance/<segment>')
+@dashboard_bp.route('/api/sales-tsk-analyse/<segment>')
 @require_report_access(REPORT)
 def sales_tsk_performance_segment(segment):
     if segment not in SEGMENTS:

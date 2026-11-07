@@ -9,10 +9,13 @@ from app.utils.rbac_cache import increment_rbac_version
 
 
 def seed_sales_tsk_menu():
-    menu = Menu.query.filter_by(url='/sales-tsk-performance').first()
+    menu = Menu.query.filter(Menu.url.in_(['/sales-tsk-analyse', '/sales-tsk-performance'])).order_by(Menu.id).first()
+    if menu:
+        # Update the existing row so role grants and sidebar placement survive.
+        menu.url = '/sales-tsk-analyse'
     if not menu:
         sibling = Menu.query.filter_by(url='/sales-stock-composition-analysis').first()
-        menu = Menu(title='Sales & TSK Performance', url='/sales-tsk-performance', icon='monitoring',
+        menu = Menu(title='Sales & TSK Performance', url='/sales-tsk-analyse', icon='monitoring',
                     sort_order=81, parent_id=sibling.parent_id if sibling else None)
         db.session.add(menu)
         db.session.flush()

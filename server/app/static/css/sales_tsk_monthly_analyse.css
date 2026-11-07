@@ -1,0 +1,17 @@
+.monthly-analysis .sales-table-wrap { max-height: calc(100vh - 285px); min-height: 160px; }
+.monthly-analysis .sales-table { border-collapse: separate; border-spacing: 0; }
+.monthly-analysis .sales-table thead tr:first-child th { height: 42px; top: 0; z-index: 3; text-align: center; border-bottom: 1px solid var(--sales-border); }
+.monthly-analysis .sales-table thead tr:nth-child(2) th { top: 42px; z-index: 2; height: 40px; }
+.monthly-analysis .sales-table .monthly-label { position: sticky; left: 0; z-index: 1; min-width: 170px; max-width: 250px; white-space: normal; text-align: left; background: var(--sales-panel); border-right: 1px solid var(--sales-border); }
+.monthly-analysis .sales-table thead .monthly-label { z-index: 5 !important; text-align: left !important; }
+.monthly-analysis .monthly-end { border-right: 1px solid var(--sales-border); }
+.monthly-analysis .sales-table tbody .monthly-label, .monthly-analysis .sales-table tfoot .monthly-label { top: auto; }
+.monthly-analysis .sales-table tbody tr:hover td { background: color-mix(in srgb, var(--sales-panel) 94%, #137fec); }
+.monthly-analysis .sales-table td { min-width: 105px; }
+.monthly-analysis .sales-table tfoot td { background: var(--sales-panel); border-top: 2px solid var(--sales-border); }
+.monthly-analysis .monthly-pieces { display: block; font-size: 10px; color: var(--sales-muted); margin-top: 3px; }
+.monthly-analysis .monthly-track { width: 72px; height: 4px; margin-top: 6px; margin-left: auto; border-radius: 4px; background: var(--sales-border); overflow: hidden; }
+.monthly-analysis .monthly-track span { display: block; height: 100%; background: #137fec; border-radius: inherit; }
+.monthly-analysis .monthly-partial { margin-left: 6px; font-size: 9px; font-weight: 500; color: var(--sales-muted); }
+#sales-sidebar #monthly-group { display: block; width: 100%; margin-top: 6px; padding: 8px; border: 1px solid var(--sales-border, #d8e0e9); border-radius: 6px; background: transparent; }
+@media(max-width: 680px) { .monthly-analysis .sales-table-wrap { max-height: 65vh; } .monthly-analysis .sales-table .monthly-label { min-width: 125px; max-width: 160px; } }
