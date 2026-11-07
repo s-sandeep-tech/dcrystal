@@ -101,17 +101,20 @@
         const caption = element('caption', `Monthly sales by ${data.group_label.toLowerCase()}`, 'sr-only');
         const head = table.createTHead(), top = head.insertRow(), sub = head.insertRow();
         const label = element('th', data.group_label, 'monthly-label'); label.rowSpan = 2; label.scope = 'col'; top.append(label);
+        const showGrowth = month => month.month.slice(5, 7) !== '04';
         for (const month of data.months) {
-            const th = element('th', monthName(month.month), 'monthly-end'); th.colSpan = 5; th.scope = 'colgroup';
+            const columns = ['Weight / Pieces', 'Share %', 'Net Turnover', 'TSK Total'];
+            if (showGrowth(month)) columns.push('Sales Growth %');
+            const th = element('th', monthName(month.month), 'monthly-end'); th.colSpan = columns.length; th.scope = 'colgroup';
             if (month.is_partial) th.append(element('span', 'Partial', 'monthly-partial'));
             top.append(th);
-            ['Weight / Pieces', 'Share %', 'Net Turnover', 'TSK Total', 'Sales Growth %'].forEach((name, i) => {
-                const cell = element('th', name, i === 4 ? 'monthly-end' : ''); cell.scope = 'col'; sub.append(cell);
+            columns.forEach((name, i) => {
+                const cell = element('th', name, i === columns.length - 1 ? 'monthly-end' : ''); cell.scope = 'col'; sub.append(cell);
             });
         }
         function appendRow(parent, name, cells) {
             const tr = parent.insertRow(); const title = element('th', name, 'monthly-label'); title.scope = 'row'; tr.append(title);
-            for (const cell of cells) {
+            for (const [index, cell] of cells.entries()) {
                 const weight = tr.insertCell(); weight.append(element('span', `${number(cell.net_weight)} kg`), element('span', `${number(cell.pieces)} pcs`, 'monthly-pieces'));
                 const share = tr.insertCell(); share.append(element('span', cell.share == null ? '—' : `${number(cell.share)}%`));
                 if (cell.share != null) {
@@ -119,6 +122,7 @@
                     fill.style.width = `${Math.max(0, Math.min(100, cell.share))}%`; track.setAttribute('aria-hidden', 'true'); track.append(fill); share.append(track);
                 }
                 for (const key of ['net_turnover', 'total_tsk']) { const td = tr.insertCell(); td.textContent = money(cell[key]); td.title = number(cell[key]); }
+                if (!showGrowth(data.months[index])) { tr.lastElementChild.classList.add('monthly-end'); continue; }
                 const growth = tr.insertCell(); growth.className = 'monthly-end';
                 const value = cell.growth;
                 const badge = element('span', value == null ? '—' : `${value > 0 ? '↑ +' : value < 0 ? '↓ ' : ''}${number(value)}%`, `sales-mom-badge ${value == null || value === 0 ? 'is-neutral' : value > 0 ? 'is-up' : 'is-down'}`);
