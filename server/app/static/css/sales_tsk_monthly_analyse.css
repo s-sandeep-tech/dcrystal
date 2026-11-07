@@ -31,7 +31,7 @@
 .monthly-analysis .sales-table tbody .monthly-label, .monthly-analysis .sales-table tfoot .monthly-label { top: auto; }
 .monthly-analysis .sales-table tbody tr:hover td { background: color-mix(in srgb, var(--sales-panel) 94%, #137fec); }
 .monthly-analysis .sales-table td { min-width: 105px; }
-.monthly-analysis .sales-table td:not(.monthly-end), .monthly-analysis .sales-table thead tr:nth-child(2) th:not(.monthly-end) { border-right: 1px solid #137fec33; }
+.monthly-analysis .sales-table td:not(.monthly-end), .monthly-analysis .sales-table thead tr:nth-child(2) th:not(.monthly-end) { border-right: 1px solid #137fec80; }
 .monthly-analysis .sales-table tfoot td { background: var(--sales-panel); border-top: 2px solid var(--sales-border); }
 .monthly-analysis .monthly-pieces { display: block; font-size: 10px; color: var(--sales-muted); margin-top: 3px; }
 .monthly-analysis .monthly-track { width: 72px; height: 4px; margin-top: 6px; margin-left: auto; border-radius: 4px; background: var(--sales-border); overflow: hidden; }
