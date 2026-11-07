@@ -133,6 +133,16 @@
             }
         }
         const body = table.createTBody(); data.rows.forEach(row => appendRow(body, row.label, row.months));
+        function selectRow(selected) {
+            for (const row of body.rows) row.classList.toggle('is-selected', row === selected);
+        }
+        for (const row of body.rows) {
+            row.tabIndex = 0;
+            row.addEventListener('click', () => selectRow(row));
+            row.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectRow(row); }
+            });
+        }
         appendRow(table.createTFoot(), 'Total', data.totals);
         table.prepend(caption); wrap.append(table); container.append(wrap);
         applyZoom(); filterHierarchy();
