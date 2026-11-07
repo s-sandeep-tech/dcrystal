@@ -14,4 +14,5 @@
 .monthly-analysis .monthly-track span { display: block; height: 100%; background: #137fec; border-radius: inherit; }
 .monthly-analysis .monthly-partial { margin-left: 6px; font-size: 9px; font-weight: 500; color: var(--sales-muted); }
 #sales-sidebar #monthly-group { display: block; width: 100%; margin-top: 6px; padding: 8px; border: 1px solid var(--sales-border, #d8e0e9); border-radius: 6px; background: transparent; }
+#sales-sidebar .sales-filter-actions { grid-template-columns: 1fr; }
 @media(max-width: 680px) { .monthly-analysis .sales-table-wrap { max-height: 65vh; } .monthly-analysis .sales-table .monthly-label { min-width: 125px; max-width: 160px; } }
