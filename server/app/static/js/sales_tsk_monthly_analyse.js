@@ -105,7 +105,7 @@
         const label = element('th', data.group_label, 'monthly-label'); label.rowSpan = 2; label.scope = 'col'; top.append(label);
         const showGrowth = month => month.month !== data.months[0].month;
         for (const month of data.months) {
-            const columns = ['Weight / Pieces', 'Share %', 'Net Turnover', 'TSK Total'];
+            const columns = ['Weight / Pieces', 'Contribution %', 'Net Turnover', 'TSK Total'];
             if (showGrowth(month)) columns.push('Sales Growth %');
             const th = element('th', monthName(month.month), 'monthly-end'); th.colSpan = columns.length; th.scope = 'colgroup';
             if (month.is_partial) th.append(element('span', 'Partial', 'monthly-partial'));
