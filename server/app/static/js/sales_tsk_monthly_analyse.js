@@ -7,6 +7,8 @@
     const controllers = new Map();
     const group = document.getElementById('monthly-group');
     let applied = new URLSearchParams(location.search);
+    let currentZoom = 1;
+    const hierarchySearch = document.getElementById('monthly-hierarchy-search');
     const number = value => Number(value).toLocaleString('en-IN', {maximumFractionDigits: 2});
     const money = value => `${(value / 10000000).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Cr`;
     const monthName = value => new Date(`${value}T12:00:00`).toLocaleDateString('en-IN', {month:'short', year:'numeric'});
@@ -133,7 +135,27 @@
         const body = table.createTBody(); data.rows.forEach(row => appendRow(body, row.label, row.months));
         appendRow(table.createTFoot(), 'Total', data.totals);
         table.prepend(caption); wrap.append(table); container.append(wrap);
+        applyZoom(); filterHierarchy();
     }
+    function applyZoom() {
+        const table = document.querySelector('#monthly-content .sales-table');
+        if (table) table.style.zoom = currentZoom;
+        document.getElementById('monthly-zoom-level').textContent = `${Math.round(currentZoom * 100)}%`;
+        document.getElementById('monthly-zoom-out').disabled = currentZoom <= 0.5;
+        document.getElementById('monthly-zoom-in').disabled = currentZoom >= 1.5;
+    }
+    function filterHierarchy() {
+        const query = hierarchySearch.value.trim().toLocaleLowerCase();
+        const rows = [...document.querySelectorAll('#monthly-content tbody tr')];
+        rows.forEach(row => { row.hidden = !row.querySelector('th').textContent.toLocaleLowerCase().includes(query); });
+        const container = document.getElementById('monthly-content');
+        container.querySelector('.monthly-search-empty')?.remove();
+        if (rows.length && rows.every(row => row.hidden)) container.append(element('p', 'No matching groups.', 'sales-note monthly-search-empty'));
+    }
+    hierarchySearch.addEventListener('input', filterHierarchy);
+    document.getElementById('monthly-zoom-out').addEventListener('click', () => { currentZoom = Math.max(0.5, Math.round((currentZoom - 0.1) * 10) / 10); applyZoom(); });
+    document.getElementById('monthly-zoom-in').addEventListener('click', () => { currentZoom = Math.min(1.5, Math.round((currentZoom + 0.1) * 10) / 10); applyZoom(); });
+    document.getElementById('monthly-zoom-level').addEventListener('click', () => { currentZoom = 1; applyZoom(); });
     function showLoading(status, message) {
         const spinner = element('span', null, 'monthly-loading-spinner');
         spinner.setAttribute('aria-hidden', 'true');
