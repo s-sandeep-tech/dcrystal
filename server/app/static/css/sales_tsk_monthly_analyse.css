@@ -4,6 +4,8 @@
 .monthly-analysis #monthly-panel > .party-matrix-panel-heading, .monthly-analysis #monthly-status, .monthly-analysis #monthly-fetched { flex-shrink: 0; }
 .monthly-analysis #monthly-panel > .party-matrix-panel-heading { align-items: center; flex-wrap: wrap; gap: 4px 12px; }
 .monthly-analysis #monthly-summary { margin: 0; margin-left: auto; text-align: right; }
+.monthly-analysis .monthly-period-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; }
+.monthly-analysis .monthly-period-row #sales-period, .monthly-analysis .monthly-period-row #monthly-fetched { margin: 0; padding: 0; text-align: left; }
 .monthly-analysis #monthly-content { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .monthly-analysis .sales-table-wrap { flex: 1; min-height: 0; max-height: none; }
 .monthly-analysis > .sales-note { flex-shrink: 0; margin: 4px 12px; }
