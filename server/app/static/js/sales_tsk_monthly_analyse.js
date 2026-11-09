@@ -134,7 +134,8 @@
         }
         const body = table.createTBody(); data.rows.forEach(row => appendRow(body, row.label, row.months));
         function selectRow(selected) {
-            for (const row of body.rows) row.classList.toggle('is-selected', row === selected);
+            const clearSelection = selected.classList.contains('is-selected');
+            for (const row of body.rows) row.classList.toggle('is-selected', !clearSelection && row === selected);
         }
         for (const row of body.rows) {
             row.tabIndex = 0;

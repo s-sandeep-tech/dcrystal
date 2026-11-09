@@ -395,7 +395,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 { url: window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, label: 'Pending Acceptance', type: 'pending_acceptance' },
                 { url: window.SETTINGS_CONFIG.syncRejectedWeightUrl, label: 'Rejected Weight', type: 'rejected_weight' },
                 { url: window.SETTINGS_CONFIG.syncProvisionStatusUrl, label: 'Provision & Stock Status', type: 'provision_stock_status' },
-                { url: window.SETTINGS_CONFIG.syncStockDrilldownDetailsUrl, label: 'Stock Drill-down Details', type: 'stock_drilldown_details' },
                 { url: window.SETTINGS_CONFIG.syncHallmarkingDelayedUrl, label: 'Hallmarking Delayed', type: 'hallmarking_delayed' },
                 { url: window.SETTINGS_CONFIG.syncQCDelayedUrl, label: 'QC Pending', type: 'qc_delayed' },
                 { url: window.SETTINGS_CONFIG.syncOrderProcessingPendingUrl, label: 'Barcode completed – HM issue pending', type: 'order_processing_pending' },

@@ -304,6 +304,13 @@ def process_sync_queue():
             logger.error(f"Error in sync consumer loop: {str(e)}")
             time.sleep(5)
         finally:
+            if task_data and task_data.get('type') == 'provision_stock_status':
+                try:
+                    from app.utils.stock_sync_chain import run_stock_sync_followup
+                    with flask_app.app_context():
+                        run_stock_sync_followup(task_data)
+                except Exception:
+                    logger.exception('Failed to complete chained stock drill-down sync')
             if task_data and task_data.get('scheduled_all_batch'):
                 try:
                     enqueue_next_scheduled_all_task(task_data)
@@ -867,16 +874,7 @@ def setup_scheduler():
         replace_existing=True
     )
 
-    # Schedule both stock drill-down detail syncs every day at 11:30 AM IST.
-    scheduler.add_job(
-        func=enqueue_sync_task,
-        trigger='cron',
-        hour=11,
-        minute=30,
-        args=['stock_drilldown_details'],
-        id='daily_size_level_nip_barcode_sync',
-        replace_existing=True
-    )
+    # Stock drill-down details now run immediately after every provision sync.
 
     # Schedule "Branch Authority Sync" every day at 10:00 AM and 4:00 PM IST
     # Task type 'branch_authority' matches sync_manager.py

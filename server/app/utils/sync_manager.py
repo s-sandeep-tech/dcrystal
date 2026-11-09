@@ -13,7 +13,6 @@ SCHEDULED_ALL_SYNC_TASKS = (
     'pending_acceptance',
     'rejected_weight',
     'provision_stock_status',
-    'size_level_nip_barcode',
     'hallmarking_delayed',
     'qc_delayed',
     'order_processing_pending',
