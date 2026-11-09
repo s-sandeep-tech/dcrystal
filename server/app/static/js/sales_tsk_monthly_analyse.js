@@ -175,7 +175,14 @@
     async function loadMatrix() {
         controllers.get('matrix')?.abort(); const controller = new AbortController(); controllers.set('matrix', controller);
         const panel = document.getElementById('monthly-panel'), status = document.getElementById('monthly-status');
-        panel.setAttribute('aria-busy', 'true'); showLoading(status, 'Loading monthly analysis…');
+        const title = document.getElementById('monthly-title');
+        const summary = document.getElementById('monthly-summary');
+        const groupLabel = [...group.options].find(option => option.value === applied.get('group_by'))?.text || 'Section';
+        const performanceTitle = `${groupLabel} performance`;
+        panel.setAttribute('aria-busy', 'true');
+        status.replaceChildren();
+        summary.hidden = true;
+        showLoading(title, 'Loading monthly analysis…');
         document.getElementById('monthly-fetched').textContent = '';
         try {
             const {data, fetched_at} = await (await request('matrix', applied, controller.signal)).json();
@@ -186,7 +193,13 @@
             if (controller.signal.aborted) return;
             document.getElementById('monthly-content').replaceChildren();
             retry(status, error.message, loadMatrix);
-        } finally { if (!controller.signal.aborted) panel.setAttribute('aria-busy', 'false'); }
+        } finally {
+            if (!controller.signal.aborted) {
+                if (title.querySelector('.monthly-loading-spinner')) title.textContent = performanceTitle;
+                summary.hidden = false;
+                panel.setAttribute('aria-busy', 'false');
+            }
+        }
     }
     async function loadOptions() {
         controllers.get('options')?.abort(); const controller = new AbortController(); controllers.set('options', controller);
