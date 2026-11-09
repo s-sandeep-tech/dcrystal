@@ -15,7 +15,7 @@ GROUPS = {
     'type': ('Type', 'type_id', 'type'),
     'wide_range': ('Wide Range', 'wide_range_id', 'wide_range'),
 }
-METRICS = ('net_weight', 'pieces', 'net_turnover', 'total_tsk')
+METRICS = ('net_weight', 'pieces', 'net_turnover', 'total_tsk', 'mcprofit')
 
 
 def parse_filters(args):
@@ -70,14 +70,14 @@ def matrix(cur, filters):
     # Count each null barcode independently, equivalent to a unique fallback per row.
     cur.execute(f'SELECT * FROM {source.SOURCE} LIMIT 0')
     columns = {column.name for column in cur.description}
-    missing = [name for name in (key, label, 'barcode') if name not in columns]
+    missing = [name for name in (key, label, 'barcode', 'mcprofit') if name not in columns]
     if missing:
         raise source.SourceDataError('Source columns missing: ' + ', '.join(missing) + '.')
     where, params = source.where_clause(filters)
     records = source.query(cur, f'''SELECT "{key}"::text AS id,
         COALESCE(MAX(NULLIF(TRIM("{label}"::text), '')), "{key}"::text, 'Unspecified') AS label,
         date_trunc('month', {source.SALES_DATE})::date AS month,
-        {source.aggregates()},
+        {source.aggregates()}, COALESCE(SUM(mcprofit), 0) AS mcprofit,
         COUNT(DISTINCT barcode) + COUNT(*) FILTER (WHERE barcode IS NULL) AS pieces
         FROM {source.SOURCE} WHERE {where} GROUP BY "{key}", 3''', params)
     return build_matrix(records, filters)

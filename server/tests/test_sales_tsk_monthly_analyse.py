@@ -16,7 +16,7 @@ def filters(**kwargs):
 def record(month, amount, key='1'):
     return dict(id=key, label='Section '+str(key), month=date(2026, month, 1),
                 net_turnover=Decimal(amount), net_weight=Decimal('1.25'), pieces=Decimal(3),
-                total_tsk=Decimal(10), row_count=1)
+                total_tsk=Decimal(10), mcprofit=Decimal(amount) / 10, row_count=1)
 
 
 class MatrixTests(unittest.TestCase):
@@ -31,10 +31,14 @@ class MatrixTests(unittest.TestCase):
         self.assertEqual(first[2]['pieces'],0)
         self.assertEqual(data['totals'][1]['growth'],-50)
         self.assertEqual(data['totals'][0]['pieces'],6)
+        self.assertEqual(first[0]['mcprofit'], Decimal(10))
+        self.assertEqual(first[2]['mcprofit'], 0)
+        self.assertEqual(data['totals'][0]['mcprofit'], Decimal(40))
 
     def test_negative_zero_missing_and_partial_bases(self):
         data=report.build_matrix([record(4,-100),record(5,-50)],filters())
         self.assertEqual(data['rows'][0]['months'][1]['growth'],50)
+        self.assertEqual(data['totals'][0]['mcprofit'], Decimal(-10))
         self.assertIsNone(data['rows'][0]['months'][0]['share'])
         for records in ([record(4,0),record(5,50)], [record(5,50)]):
             self.assertIsNone(report.build_matrix(records,filters())['rows'][0]['months'][1]['growth'])
@@ -52,12 +56,13 @@ class MatrixTests(unittest.TestCase):
     def test_schema_validation_and_safe_query(self):
         cur=MagicMock(); cur.description=[]
         with self.assertRaises(report.source.SourceDataError): report.matrix(cur,filters())
-        cur.description=[SimpleNamespace(name=n) for n in ['group_id','group','barcode']]
+        cur.description=[SimpleNamespace(name=n) for n in ['group_id','group','barcode','mcprofit']]
         with patch.object(report.source,'query',return_value=[]) as query:
             report.matrix(cur,filters(group_by='group'))
             sql=query.call_args.args[1]
             self.assertIn('COUNT(DISTINCT barcode) + COUNT(*) FILTER (WHERE barcode IS NULL) AS pieces',sql); self.assertIn('GROUP BY "group_id", 3',sql)
             self.assertNotIn('2026-04-01',sql)
+            self.assertIn('COALESCE(SUM(mcprofit), 0) AS mcprofit', sql)
 
     def test_empty_result(self):
         data=report.build_matrix([],filters())

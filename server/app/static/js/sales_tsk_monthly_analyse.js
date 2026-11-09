@@ -105,7 +105,7 @@
         const label = element('th', data.group_label, 'monthly-label'); label.rowSpan = 2; label.scope = 'col'; top.append(label);
         const showGrowth = month => month.month !== data.months[0].month;
         for (const month of data.months) {
-            const columns = ['Weight / Pieces', 'Contribution %', 'Net Turnover', 'TSK Total'];
+            const columns = ['Weight / Pieces', 'Contribution %', 'Net Turnover', 'TSK Total', 'MC Profit'];
             if (showGrowth(month)) columns.push('Sales Growth %');
             const th = element('th', monthName(month.month), 'monthly-end'); th.colSpan = columns.length; th.scope = 'colgroup';
             if (month.is_partial) th.append(element('span', 'Partial', 'monthly-partial'));
@@ -123,7 +123,7 @@
                     const track = element('div', null, 'monthly-track'), fill = element('span');
                     fill.style.width = `${Math.max(0, Math.min(100, cell.share))}%`; track.setAttribute('aria-hidden', 'true'); track.append(fill); share.append(track);
                 }
-                for (const key of ['net_turnover', 'total_tsk']) { const td = tr.insertCell(); td.textContent = money(cell[key]); td.title = number(cell[key]); }
+                for (const key of ['net_turnover', 'total_tsk', 'mcprofit']) { const td = tr.insertCell(); td.textContent = money(cell[key]); td.title = number(cell[key]); }
                 if (!showGrowth(data.months[index])) { tr.lastElementChild.classList.add('monthly-end'); continue; }
                 const growth = tr.insertCell(); growth.className = 'monthly-end';
                 const value = cell.growth;
