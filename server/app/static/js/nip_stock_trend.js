@@ -11,6 +11,7 @@
     const name = key => key.replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
     const number = value => value == null ? 'N/A' : Number(value).toLocaleString('en-IN', {
         minimumFractionDigits: data?.metric === 'pieces' ? 0 : 3, maximumFractionDigits: data?.metric === 'pieces' ? 0 : 3});
+    const tooltipNumber = value => value == null ? 'N/A' : Number(value).toLocaleString('en-IN', {maximumFractionDigits: 0});
     async function responseJSON(response) {
         const value = await response.json();
         if (!response.ok) throw new Error(value.error || value.msg || 'Unable to load report');
@@ -191,7 +192,7 @@
                 const group=items[0].dataset.comparisonGroup;
                 const label=data.group_by==='purity'&&Number.isFinite(Number(group))?String(Number(group)):String(group);
                 return [label,`${items[0].label} (balance ${data.balance_dates[items[0].dataIndex]})`];
-            },label:context=>`${({total:'Total Stock',nip:'NIP Stock',excess:'Excess Stock'})[context.dataset.stockKind]}: ${number(context.raw)} ${data.unit}`}}}}});
+            },label:context=>`${({total:'Total Stock',nip:'NIP Stock',excess:'Excess Stock'})[context.dataset.stockKind]}: ${tooltipNumber(context.raw)} ${data.unit}`}}}}});
         } else el('nip-status').textContent += ' Chart library unavailable; table values remain available.';
     }
     function drawLineChart() {
@@ -240,7 +241,7 @@
             scales:{y:{beginAtZero:true,title:{display:true,text:data.unit}}},
             plugins:{legend:{position:'bottom'},tooltip:{callbacks:{
                 title:items=>items.length?`${items[0].label} (balance ${data.balance_dates[items[0].dataIndex]})`:'',
-                label:context=>`${context.dataset.label}: ${number(context.raw)} ${data.unit}`}}}
+                label:context=>`${context.dataset.label}: ${tooltipNumber(context.raw)} ${data.unit}`}}}
         }});
         chart._nipLineView=true;
     }
