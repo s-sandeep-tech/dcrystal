@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Sales Quantity ABC Analysis{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_qty_abc_analysis.css') }}">{% endblock %}
+{% block content %}
+<main id="abc-page">
+    <header class="abc-header">
+        <div><div class="abc-title"><h1>Sales Quantity ABC Analysis</h1><button id="abc-info-open" type="button" aria-label="About this report" aria-haspopup="dialog" aria-controls="abc-info"><span class="material-symbols-outlined" aria-hidden="true">info</span></button><span class="abc-live">Live data</span></div><p id="abc-period">Quantity contribution across the product hierarchy</p><small id="abc-fetched"></small></div>
+        <div class="abc-actions">
+            <div class="abc-zoom" role="group" aria-label="Table zoom"><button id="abc-zoom-out" type="button" aria-label="Zoom out">−</button><button id="abc-zoom-reset" type="button" aria-label="Reset zoom">100%</button><button id="abc-zoom-in" type="button" aria-label="Zoom in">+</button></div>
+            <input id="abc-search" type="search" placeholder="Search hierarchy…" aria-label="Search hierarchy">
+            <button id="abc-refresh" type="button" aria-label="Refresh report" title="Refresh report"><span class="material-symbols-outlined" aria-hidden="true">refresh</span></button>
+            <button id="abc-filter-toggle" type="button" aria-label="Toggle filters" aria-controls="abc-sidebar" aria-expanded="true"><span class="material-symbols-outlined" aria-hidden="true">filter_alt</span></button>
+        </div>
+    </header>
+    <section class="abc-panel" aria-label="Sales quantity hierarchy">
+        <div class="abc-toolbar"><label>Show through <select id="abc-depth">{% for key, label, title in levels %}<option value="{{ loop.index0 }}">{{ title }}</option>{% endfor %}</select></label><button id="abc-collapse" type="button">Collapse all</button>
+            <details class="abc-columns"><summary>Columns</summary><div>{% for key, title in [('overall', 'Overall Contribution %'), ('sold_weight', 'Sold Weight (kg)'), ('net_turnover', 'Net Turnover'), ('mcprofit', 'MC Profit')] %}<label><input type="checkbox" data-abc-column="{{ key }}"> {{ title }}</label>{% endfor %}</div></details>
+            <span id="abc-summary">A · 80% &nbsp; B · 15% &nbsp; C · 5%</span>
+        </div>
+        <div id="abc-status" role="status" aria-live="polite"></div>
+        <div id="abc-content"></div>
+        <p class="abc-footnote">Make → Purity → Collection → Subsection → Section → Type → Weight Range · ABC is ranked within each parent.</p>
+    </section>
+    <dialog id="abc-info" aria-labelledby="abc-info-title"><div class="abc-title"><h2 id="abc-info-title">About this report</h2><button id="abc-info-close" type="button" aria-label="Close report information">✕</button></div>
+        <p>Sold Qty counts distinct invoice barcodes within each complete hierarchy path across the selected period; every null-barcode invoice row counts as one. Parent quantities sum their children. Repeated sales of the same barcode within a path count once; a barcode appearing in different paths counts in each path. This is a barcode-based quantity, not net transaction units.</p>
+        <p>Contribution uses the parent quantity; Overall Contribution uses the filtered report total. Siblings rank by quantity descending, then label and ID. Cumulative contribution restarts within each parent. A covers the first 80%, B the next 15%, and C the remainder. The row crossing a boundary stays in the category it completes. Zero-quantity rows are Unclassified.</p>
+        <p>Sold Weight includes invoice weights in kg. Net Turnover includes configured sales returns; MC Profit preserves source signs. Amounts display in Cr with full-value tooltips. Transaction filters apply to every metric; selecting only returns produces no sold quantity.</p>
+        <p>Search reveals matching paths without recalculating ABC. The footer always shows the complete filtered total, counting each leaf once.</p>
+    </dialog>
+</main>
+{% endblock %}
+{% block sidebar %}
+<aside id="abc-sidebar" aria-label="Report filters">
+    <form id="abc-filters" data-start="{{ start }}" data-end="{{ end }}">
+        <div class="abc-filter-body"><div class="abc-filter-title"><h2><span class="material-symbols-outlined" aria-hidden="true">filter_alt</span> Filters</h2><button type="reset">Reset</button></div>
+            <div class="abc-dates"><label>From<input type="date" name="start" value="{{ start }}" required></label><label>To<input type="date" name="end" value="{{ end }}" required></label></div>
+            <p class="abc-note">Financial year to date · up to 12 months</p><p id="abc-options-status" role="status"></p>
+            {% for key, field in filter_fields.items() %}<div class="abc-filter-field"><span>{{ field[0] }}</span><select name="{{ key }}" multiple aria-label="{{ field[0] }}" hidden></select></div>{% endfor %}
+        </div>
+        <div class="abc-filter-footer"><button type="submit"><span class="material-symbols-outlined" aria-hidden="true">search_check</span> Apply Filters</button></div>
+    </form>
+</aside>
+{% endblock %}
+{% block extra_scripts %}<script src="{{ url_for('static', filename='js/sales_qty_abc_analysis.js') }}"></script>{% endblock %}
