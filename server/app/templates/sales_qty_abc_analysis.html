@@ -13,7 +13,7 @@
         </div>
     </header>
     <section class="abc-panel" aria-label="Sales quantity hierarchy">
-        <div class="abc-toolbar"><div class="abc-depth-control"><span id="abc-depth-label">Show through</span><div id="abc-depth" role="group" aria-labelledby="abc-depth-label">{% for key, label, title in levels %}<button type="button" data-abc-depth="{{ loop.index0 }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ title }}</button>{% endfor %}</div></div><button id="abc-collapse" type="button">Collapse all</button>
+        <div class="abc-toolbar"><div class="abc-depth-control"><span id="abc-depth-label">Show through</span><div class="abc-depth-popup"><button id="abc-depth-toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="abc-depth" aria-labelledby="abc-depth-label abc-depth-value"><span id="abc-depth-value">Make</span><span aria-hidden="true">▾</span></button><div id="abc-depth" role="menu" aria-labelledby="abc-depth-label" hidden>{% for key, label, title in levels %}<button type="button" role="menuitemradio" tabindex="-1" data-abc-depth="{{ loop.index0 }}" aria-checked="{{ 'true' if loop.first else 'false' }}">{{ title }}</button>{% endfor %}</div></div></div><button id="abc-collapse" type="button">Collapse all</button>
             <details class="abc-columns"><summary>Columns</summary><div>{% for key, title in [('overall', 'Overall Contribution %'), ('sold_weight', 'Sold Weight (kg)'), ('net_turnover', 'Net Turnover'), ('mcprofit', 'MC Profit')] %}<label><input type="checkbox" checked data-abc-column="{{ key }}"> {{ title }}</label>{% endfor %}</div></details>
             <span id="abc-summary">A · 80% &nbsp; B · 15% &nbsp; C · 5%</span>
         </div>

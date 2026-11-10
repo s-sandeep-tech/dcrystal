@@ -190,8 +190,17 @@
     function selectDepth(depth) {
         selectedDepth = depth;
         $('depth').querySelectorAll('[data-abc-depth]').forEach(button => {
-            button.setAttribute('aria-pressed', String(Number(button.dataset.abcDepth) === depth));
+            button.setAttribute('aria-checked', String(Number(button.dataset.abcDepth) === depth));
+            if (Number(button.dataset.abcDepth) === depth) $('depth-value').textContent = button.textContent;
         });
+    }
+    function depthPopup(open, focus = false) {
+        $('depth').hidden = !open;
+        $('depth-toggle').setAttribute('aria-expanded', String(open));
+        if (focus) {
+            if (open) $('depth').querySelector('[aria-checked="true"]').focus();
+            else $('depth-toggle').focus();
+        }
     }
     function applyDepth() {
         if (!data) return;
@@ -207,8 +216,28 @@
     window.addEventListener('popstate', () => {applied = new URLSearchParams(location.search); restore(applied); load();});
     $('refresh').addEventListener('click', load);
     $('search').addEventListener('input', render);
+    $('depth-toggle').addEventListener('click', () => depthPopup($('depth').hidden, true));
+    $('depth-toggle').addEventListener('keydown', event => {
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {event.preventDefault(); depthPopup(true, true);}
+    });
+    $('depth').addEventListener('keydown', event => {
+        const buttons = [...$('depth').querySelectorAll('[data-abc-depth]')];
+        const index = buttons.indexOf(document.activeElement);
+        const positions = {ArrowDown: (index + 1) % buttons.length, ArrowUp: (index - 1 + buttons.length) % buttons.length, Home: 0, End: buttons.length - 1};
+        if (event.key in positions) {event.preventDefault(); buttons[positions[event.key]].focus();}
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !$('depth').hidden) {event.preventDefault(); depthPopup(false, true);}
+    });
+    document.addEventListener('click', event => {
+        if (!$('depth-toggle').parentElement.contains(event.target)) depthPopup(false);
+    });
+    document.addEventListener('focusin', event => {
+        if (!$('depth-toggle').parentElement.contains(event.target)) depthPopup(false);
+    });
     $('depth').querySelectorAll('[data-abc-depth]').forEach(button => button.addEventListener('click', () => {
         selectDepth(Number(button.dataset.abcDepth));
+        depthPopup(false, true);
         $('search').value = '';
         applyDepth();
     }));
