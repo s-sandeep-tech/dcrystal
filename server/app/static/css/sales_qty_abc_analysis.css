@@ -15,7 +15,9 @@
 #abc-page .abc-actions { flex-wrap: wrap; }
 #abc-page .abc-actions > button, #abc-page #abc-info-open { display: inline-flex; align-items: center; justify-content: center; padding: 4px; border-radius: 4px; color: var(--abc-muted); }
 #abc-page .material-symbols-outlined { font-size: 19px; }
-#abc-page input, #abc-page select, #abc-sidebar input { background: var(--abc-panel); color: var(--abc-text); border: 1px solid var(--abc-border); border-radius: 5px; padding: 5px 8px; font-size: 11px; }
+#abc-page input:not([type="checkbox"]), #abc-page select, #abc-sidebar input:not([type="checkbox"]) { background: var(--abc-panel); color: var(--abc-text); border: 1px solid var(--abc-border); border-radius: 5px; padding: 5px 8px; font-size: 11px; }
+/* Preserve the forms plugin's checked background and checkmark. */
+#abc-page input[type="checkbox"], #abc-sidebar input[type="checkbox"] { width: 14px; height: 14px; padding: 0; flex-shrink: 0; color: #137fec; accent-color: #137fec; cursor: pointer; }
 #abc-page #abc-search { width: 160px; }
 #abc-page .abc-zoom { display: flex; border: 1px solid var(--abc-border); border-radius: 4px; }
 #abc-page .abc-zoom button { padding: 4px 7px; font-size: 11px; }
@@ -26,7 +28,7 @@
 #abc-page .abc-columns { position: relative; }
 #abc-page .abc-columns summary { cursor: pointer; }
 #abc-page .abc-columns > div { position: absolute; top: 25px; right: 0; width: 220px; z-index: 15; background: var(--abc-panel); border: 1px solid var(--abc-border); border-radius: 6px; padding: 10px; box-shadow: 0 8px 24px #0002; }
-#abc-page .abc-columns label { display: block; padding: 5px; }
+#abc-page .abc-columns label { display: flex; align-items: center; gap: 7px; padding: 5px; cursor: pointer; }
 #abc-page #abc-status { padding: 8px 16px; color: var(--abc-muted); }
 #abc-page #abc-status:empty { display: none; }
 #abc-page #abc-status button, #abc-sidebar #abc-options-status button { color: #137fec; margin-left: 8px; text-decoration: underline; }
