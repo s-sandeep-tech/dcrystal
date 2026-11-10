@@ -24,13 +24,13 @@
 #abc-page .abc-panel { display: flex; flex: 1; flex-direction: column; min-height: 0; background: var(--abc-panel); }
 #abc-page .abc-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 9px 16px; border-bottom: 1px solid var(--abc-border); }
 #abc-page .abc-toolbar > button { color: #137fec; }
-#abc-page .abc-depth-control { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+#abc-page .abc-depth-control { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; min-width: 0; }
 #abc-page #abc-depth-label { font-size: 11px; color: var(--abc-muted); }
 #abc-page .abc-depth-popup { position: relative; }
-#abc-page #abc-depth-toggle { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-width: 108px; padding: 5px 8px; border: 1px solid var(--abc-border); border-radius: 5px; background: var(--abc-panel); font-size: 11px; }
-#abc-page #abc-depth { position: absolute; top: calc(100% + 5px); left: 0; z-index: 20; width: 155px; padding: 4px; border: 1px solid var(--abc-border); border-radius: 6px; background: var(--abc-panel); box-shadow: 0 8px 24px #0002; }
+#abc-page #abc-depth-toggle { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 2px 5px; border: 1px solid var(--abc-border); border-radius: 3px; background: var(--abc-panel); font-size: 10px; line-height: 1.4; }
+#abc-page #abc-depth { position: absolute; top: calc(100% + 3px); left: 0; z-index: 20; width: max-content; min-width: 100%; padding: 2px; border: 1px solid var(--abc-border); border-radius: 4px; background: var(--abc-panel); box-shadow: 0 4px 12px #0002; }
 #abc-page #abc-depth[hidden] { display: none; }
-#abc-page #abc-depth button { display: block; width: 100%; text-align: left; padding: 6px 8px; border-radius: 4px; font-size: 10px; line-height: 1.4; white-space: nowrap; color: var(--abc-muted); }
+#abc-page #abc-depth button { display: block; width: 100%; text-align: left; padding: 3px 6px; border-radius: 2px; font-size: 10px; line-height: 1.4; white-space: nowrap; color: var(--abc-muted); }
 #abc-page #abc-depth button:hover { background: #137fec12; color: #137fec; }
 #abc-page #abc-depth button[aria-checked="true"] { background: #137fec; color: #fff; font-weight: 600; }
 #abc-page #abc-summary { margin-left: auto; color: var(--abc-muted); font-size: 11px; }
