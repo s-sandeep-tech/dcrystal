@@ -48,6 +48,8 @@ let purchasePlanHierarchyRoot = initialPurchasePlanParams.get('hierarchy_root') 
 let purchasePlanFilterValues = {
     date: '',
     division: 'Gold',
+    branch_type: '',
+    branch_status: '',
     location: '',
     section: '',
     classification: '',
@@ -56,6 +58,8 @@ let purchasePlanFilterValues = {
     search: ''
 };
 
+let purchasePlanBranchTypeSelect = null;
+let purchasePlanBranchStatusSelect = null;
 let purchasePlanLocationSelect = null;
 let purchasePlanSectionSelect = null;
 let purchasePlanClassificationSelect = null;
@@ -116,6 +120,8 @@ function collectPurchasePlanFilterValues() {
     purchasePlanFilterValues.classification = purchasePlanClassificationSelect ? purchasePlanClassificationSelect.getValues().join(',') : '';
     purchasePlanFilterValues.make = purchasePlanMakeSelect ? purchasePlanMakeSelect.getValues().join(',') : '';
     purchasePlanFilterValues.purity = purchasePlanPuritySelect ? purchasePlanPuritySelect.getValues().join(',') : '';
+    purchasePlanFilterValues.branch_type = purchasePlanBranchTypeSelect ? purchasePlanBranchTypeSelect.getValues() : [];
+    purchasePlanFilterValues.branch_status = purchasePlanBranchStatusSelect ? purchasePlanBranchStatusSelect.getValues() : [];
     purchasePlanFilterValues.search = purchasePlanSearch;
 }
 
@@ -127,6 +133,8 @@ function buildPurchasePlanRequestParams() {
     if (divisionVal) params.append('division', divisionVal);
 
     for (const [key, ctrl] of [
+        ['branch_type', purchasePlanBranchTypeSelect],
+        ['branch_status', purchasePlanBranchStatusSelect],
         ['branch_id', purchasePlanLocationSelect],
         ['section', purchasePlanSectionSelect],
         ['classification', purchasePlanClassificationSelect],
@@ -184,6 +192,24 @@ function applyPurchasePlanFilterOptions(data) {
             divisionSelect.appendChild(opt);
             purchasePlanFilterValues.division = targetDiv;
         }
+    }
+
+    if (!purchasePlanBranchTypeSelect) {
+        purchasePlanBranchTypeSelect = new CustomMultiSelect({
+            containerId: 'purchase-plan-filter-branch-type-container',
+            label: 'Branch Type',
+            defaultText: 'All Branch Types',
+            options: data.branch_types || []
+        });
+    }
+
+    if (!purchasePlanBranchStatusSelect) {
+        purchasePlanBranchStatusSelect = new CustomMultiSelect({
+            containerId: 'purchase-plan-filter-branch-status-container',
+            label: 'Branch Status',
+            defaultText: 'All Branch Statuses',
+            options: data.branch_statuses || []
+        });
     }
 
     if (!purchasePlanLocationSelect) {
@@ -481,6 +507,8 @@ function resetPurchasePlanFilters() {
         purchasePlanFilterValues.division = divisionSelect.value;
     }
 
+    if (purchasePlanBranchTypeSelect) purchasePlanBranchTypeSelect.reset();
+    if (purchasePlanBranchStatusSelect) purchasePlanBranchStatusSelect.reset();
     if (purchasePlanLocationSelect) purchasePlanLocationSelect.reset();
     if (purchasePlanSectionSelect) purchasePlanSectionSelect.reset();
     if (purchasePlanClassificationSelect) purchasePlanClassificationSelect.reset();

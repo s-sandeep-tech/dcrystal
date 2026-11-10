@@ -13,6 +13,8 @@ class SalesStockCompositionAnalysisSnapshot(db.Model):
     date = db.Column(db.Date, index=True)
     min_trans_date = db.Column(db.Date)
     branch_id = db.Column(db.Integer, index=True)
+    branch_type = db.Column(db.Text)
+    branch_status = db.Column(db.Text)
     location_name = db.Column(db.String(150), index=True)
     state_name = db.Column(db.String(100))
     item_definition_id = db.Column(db.Integer, index=True)

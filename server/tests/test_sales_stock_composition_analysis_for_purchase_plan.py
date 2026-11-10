@@ -27,6 +27,41 @@ from app.services.sales_stock_composition_analysis_for_purchase_plan import (
 
 
 class PurchasePlanServiceTests(unittest.TestCase):
+    def test_branch_filters_scope_sales_stock_factors_and_contributors(self):
+        app = Flask(__name__)
+        app.config.update(TESTING=True, SQLALCHEMY_DATABASE_URI='sqlite:///:memory:',
+                          SQLALCHEMY_TRACK_MODIFICATIONS=False)
+        db.init_app(app)
+        with app.app_context():
+            db.metadata.create_all(db.engine, tables=[Snapshot.__table__])
+            for i, (kind, status) in enumerate([
+                    ('Retail', 'Active'), ('Retail', 'Closed'), ('Wholesale', 'Active'), (None, None)], 1):
+                db.session.add(Snapshot(id=i, branch_id=i, branch_type=kind, branch_status=status,
+                    date=date(2026, 9, 30), section='CHAIN', classification='GENERIC',
+                    gross_weight=100*i, provision_weight=20*i, inshop_weight=10*i))
+            db.session.commit()
+            options = get_purchase_plan_options()
+            self.assertEqual(options['branch_types'], ['(Unspecified)', 'Retail', 'Wholesale'])
+            self.assertEqual(options['branch_statuses'], ['(Unspecified)', 'Active', 'Closed'])
+            selection = {'branch_type': ['Retail'], 'branch_status': ['Active']}
+            data = fetch_purchase_plan_composition_data(date(2026, 9, 30), selection)
+            self.assertEqual(data['total']['sales_weight'], 100)
+            self.assertEqual(data['total']['provision_weight'], 20)
+            self.assertEqual(data['total']['inshop_weight'], 10)
+            self.assertEqual(len(data['stats']['location_factors']), 1)
+            drill = fetch_purchase_plan_composition_data(date(2026, 9, 30), selection, path=['CHAIN'])
+            self.assertEqual(drill['total']['sales_weight'], 100)
+            chart = fetch_purchase_plan_composition_data(date(2026, 9, 30), selection, contributors=True)
+            self.assertEqual(chart['sales']['items'][0]['weight'], 100)
+            self.assertEqual(chart['stock']['items'][0]['weight'], 20)
+            multi = fetch_purchase_plan_composition_data(date(2026, 9, 30),
+                {'branch_type': ['Retail', 'Wholesale'], 'branch_status': ['Active']})
+            self.assertEqual(multi['total']['sales_weight'], 400)
+            missing = fetch_purchase_plan_composition_data(date(2026, 9, 30),
+                {'branch_type': ['(Unspecified)']})
+            self.assertEqual(missing['total']['sales_weight'], 400)
+            db.session.remove()
+
     def test_fy_factor_calculation(self):
         # 183 days elapsed in FY
         factor, total_days, elapsed_days, fy_label = calculate_fy_factor(date(2026, 9, 30))

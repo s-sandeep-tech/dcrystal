@@ -32,6 +32,8 @@ def purchase_plan_hierarchy(root='section'):
 
 FILTERS: List[str] = [
     'branch_id',
+    'branch_type',
+    'branch_status',
     'division',
     'section',
     'classification',
@@ -157,6 +159,9 @@ def get_purchase_plan_options() -> Dict[str, Any]:
     return {
         'dates': dates,
         'locations': locations,
+        **{('branch_types' if name == 'branch_type' else 'branch_statuses'): [r[0] for r in db.session.query(dimension_expr(name))
+                       .distinct().order_by(dimension_expr(name))]
+           for name in ('branch_type', 'branch_status')},
         'divisions': divisions,
         'sections': sections,
         'classifications': classifications,
@@ -307,6 +312,10 @@ def fetch_purchase_plan_composition_data(
     branch_ids = [int(v) for v in selections.get('branch_id', []) if str(v).isdigit()]
     if branch_ids:
         location_dates_q = location_dates_q.filter(Snapshot.branch_id.in_(branch_ids))
+
+    for name in ('branch_type', 'branch_status'):
+        if selections.get(name):
+            location_dates_q = location_dates_q.filter(dimension_expr(name).in_(selections[name]))
 
     location_factors: List[Dict[str, Any]] = []
     factors_by_loc: Dict[str, float] = {}

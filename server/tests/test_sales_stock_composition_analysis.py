@@ -432,6 +432,8 @@ class SummarySyncTests(unittest.TestCase):
                  'size': Decimal('22'), 'gross_weight': Decimal('-2.5'),
                  'purchase_board_rate': 5000} for i in range(30001)]
         rows[0]['inshop_weight']=Decimal('12.3456')
+        rows[0].update(Branch_type=' Retail ', Branch_status=' Active ')
+        rows[1].update(branch_type='Wholesale', branch_status='Closed')
         with patch.object(sync_tasks, 'composition_source_rows', return_value=iter_rows(rows)) as source, \
                 patch.object(sync_tasks, 'emit_combined_sync_update'), \
                 patch.object(sync_tasks, 'db') as database, \
@@ -448,6 +450,11 @@ class SummarySyncTests(unittest.TestCase):
         self.assertEqual(record['barcode'], 'D-001')
         self.assertEqual(record['gross_weight'], Decimal('-2.5'))
         self.assertEqual(record['inshop_weight'], Decimal('12.3456'))
+        self.assertEqual(record['branch_type'], 'Retail')
+        self.assertEqual(record['branch_status'], 'Active')
+        self.assertEqual(batches[0].args[1][1]['branch_type'], 'Wholesale')
+        self.assertEqual(batches[0].args[1][1]['branch_status'], 'Closed')
+        self.assertIsNone(batches[0].args[1][2]['branch_type'])
         self.assertIsNone(batches[0].args[1][1]['inshop_weight'])
         database.session.commit.assert_called_once()
         database.session.rollback.assert_not_called()

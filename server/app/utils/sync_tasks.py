@@ -5041,6 +5041,8 @@ def sync_sales_stock_composition_analysis_task(task_type_override=None, progress
                     'date': report_date,
                     'min_trans_date': first_date,
                     'branch_id': to_int(row.get('branch_id')),
+                    'branch_type': to_str(row.get('branch_type', row.get('Branch_type'))),
+                    'branch_status': to_str(row.get('branch_status', row.get('Branch_status'))),
                     'location_name': to_str(row.get('location')),
                     'state_name': to_str(row.get('state_name')),
                     'item_definition_id': to_int(row.get('item_definition_id')),
