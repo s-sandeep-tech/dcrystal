@@ -20,8 +20,11 @@ Changing Group By requests only the matrix; Apply Filters reuses options when
 dates are unchanged. Refresh explicitly reloads options, failed requests remain
 retryable, and superseded date requests cannot overwrite newer results.
 
-Use the root `./compose.sh up -d --build server` launcher to apply the server
-container limit of 60% of Docker-engine RAM. This does not limit the external
+Use `docker compose up -d --build server` to apply the server container limit.
+The default is 10,059,718,656 bytes: 60% of the deployment host's reported
+16,766,197,760 bytes of Docker-engine RAM, with no environment variable required.
+Use `./compose.sh` to recalculate the percentage on a different host.
+This does not limit the external
 database. Live query plans and memory measurements are still required to confirm
 the production error is resolved.
 
