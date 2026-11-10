@@ -175,7 +175,9 @@
         } catch (error) {if (error.name !== 'AbortError' && run === sequence) failure($('options-status'), error, () => loadOptions(applied, sequence));}
     }
     async function loadHierarchy(params, run) {
-        data = null; render(); $('status').textContent = 'Loading sales hierarchy…'; $('content').setAttribute('aria-busy', 'true'); $('fetched').textContent = '';
+        data = null; render();
+        const spinner = element('span', null, 'abc-loading-spinner'); spinner.setAttribute('aria-hidden', 'true');
+        $('status').replaceChildren(spinner, document.createTextNode('Loading sales hierarchy…')); $('content').setAttribute('aria-busy', 'true'); $('fetched').textContent = '';
         try {
             const response = await request('hierarchy', params);
             if (run !== sequence) return;
