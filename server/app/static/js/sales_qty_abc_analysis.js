@@ -7,7 +7,7 @@
     const pickers = new Map();
     const controllers = new Map();
     const expanded = new Set();
-    const extraColumns = new Set();
+    const extraColumns = new Set([...document.querySelectorAll('[data-abc-column]:checked')].map(input => input.dataset.abcColumn));
     let applied = new URLSearchParams(location.search), data = null, zoom = 1, sequence = 0;
     const number = value => Number(value).toLocaleString('en-IN', {maximumFractionDigits: 2});
     const percent = value => value == null ? '—' : `${number(value)}%`;

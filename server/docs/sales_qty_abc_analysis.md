@@ -16,7 +16,7 @@ Sold Weight sums invoice `net_weight` / 1000 in kg. Net Turnover combines invoic
 
 ## ABC and display
 
-Default columns: Hierarchy, Rank, Sold Qty, Contribution %, Cumulative %, Category. Selectable extra columns: Overall Contribution %, Sold Weight (kg), Net Turnover, MC Profit. Monetary columns display Cr and provide full-value tooltips.
+All ten columns display by default: Hierarchy, Rank, Sold Qty, Contribution %, Cumulative %, Category, Overall Contribution %, Sold Weight (kg), Net Turnover, MC Profit. The last four columns can be hidden using the Columns menu. Table rows use compact vertical spacing. Monetary columns display Cr and provide full-value tooltips.
 
 Siblings sort by quantity descending, then label, then ID; Rank is a sequential position. Contribution divides by parent quantity (report total at Make level). Cumulative contribution restarts within each parent. Overall Contribution divides by report quantity. Full-precision calculations precede display rounding.
 

@@ -35,14 +35,14 @@
 #abc-page #abc-content { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 #abc-page .abc-table-wrap { overflow: auto; flex: 1; min-height: 0; }
 #abc-page table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: calc(11px * var(--abc-zoom, 1)); font-variant-numeric: tabular-nums; }
-#abc-page th, #abc-page td { padding: 11px 14px; border-bottom: 1px solid var(--abc-border); border-right: 1px solid #137fec30; text-align: right; white-space: nowrap; }
-#abc-page thead th { position: sticky; top: 0; z-index: 3; background: var(--abc-bg); font-weight: 600; height: 43px; border-top: 1px solid #137fec80; }
+#abc-page th, #abc-page td { padding: 5px 12px; border-bottom: 1px solid var(--abc-border); border-right: 1px solid #137fec30; text-align: right; white-space: nowrap; }
+#abc-page thead th { position: sticky; top: 0; z-index: 3; background: var(--abc-bg); font-weight: 600; height: 34px; border-top: 1px solid #137fec80; }
 #abc-page .abc-hierarchy { position: sticky; left: 0; z-index: 1; background: var(--abc-panel); min-width: 240px; text-align: left; border-right: 2px solid #137fec80; }
 #abc-page thead .abc-hierarchy { z-index: 4; background: var(--abc-bg); }
 #abc-page tbody tr:hover > * { background: color-mix(in srgb, var(--abc-panel) 94%, #137fec); }
 #abc-page .abc-node { display: flex; align-items: center; gap: 6px; text-align: left; width: 100%; }
 #abc-page .abc-node span:first-child { width: 12px; color: #137fec; }
-#abc-page .abc-level { display: block; color: var(--abc-muted); font-size: .85em; font-weight: 400; margin-top: 3px; }
+#abc-page .abc-level { display: block; color: var(--abc-muted); font-size: .85em; font-weight: 400; margin-top: 1px; }
 #abc-page tfoot td, #abc-page tfoot th { background: var(--abc-bg); border-top: 2px solid var(--abc-border); font-weight: 600; }
 #abc-page .abc-track { height: 4px; width: 80px; margin: 5px 0 0 auto; background: var(--abc-border); border-radius: 4px; overflow: hidden; }
 #abc-page .abc-track span { display: block; height: 100%; background: #137fec; }

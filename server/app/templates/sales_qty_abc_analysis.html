@@ -14,7 +14,7 @@
     </header>
     <section class="abc-panel" aria-label="Sales quantity hierarchy">
         <div class="abc-toolbar"><label>Show through <select id="abc-depth">{% for key, label, title in levels %}<option value="{{ loop.index0 }}">{{ title }}</option>{% endfor %}</select></label><button id="abc-collapse" type="button">Collapse all</button>
-            <details class="abc-columns"><summary>Columns</summary><div>{% for key, title in [('overall', 'Overall Contribution %'), ('sold_weight', 'Sold Weight (kg)'), ('net_turnover', 'Net Turnover'), ('mcprofit', 'MC Profit')] %}<label><input type="checkbox" data-abc-column="{{ key }}"> {{ title }}</label>{% endfor %}</div></details>
+            <details class="abc-columns"><summary>Columns</summary><div>{% for key, title in [('overall', 'Overall Contribution %'), ('sold_weight', 'Sold Weight (kg)'), ('net_turnover', 'Net Turnover'), ('mcprofit', 'MC Profit')] %}<label><input type="checkbox" checked data-abc-column="{{ key }}"> {{ title }}</label>{% endfor %}</div></details>
             <span id="abc-summary">A · 80% &nbsp; B · 15% &nbsp; C · 5%</span>
         </div>
         <div id="abc-status" role="status" aria-live="polite"></div>
