@@ -24,6 +24,12 @@
 #abc-page .abc-panel { display: flex; flex: 1; flex-direction: column; min-height: 0; background: var(--abc-panel); }
 #abc-page .abc-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 9px 16px; border-bottom: 1px solid var(--abc-border); }
 #abc-page .abc-toolbar > button { color: #137fec; }
+#abc-page .abc-depth-control { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+#abc-page #abc-depth-label { font-size: 11px; color: var(--abc-muted); }
+#abc-page #abc-depth { display: flex; flex-wrap: wrap; gap: 3px; padding: 3px; border: 1px solid var(--abc-border); border-radius: 6px; background: var(--abc-bg); }
+#abc-page #abc-depth button { padding: 4px 7px; border-radius: 4px; font-size: 10px; line-height: 1.4; white-space: nowrap; color: var(--abc-muted); }
+#abc-page #abc-depth button:hover { background: #137fec12; color: #137fec; }
+#abc-page #abc-depth button[aria-pressed="true"] { background: #137fec; color: #fff; font-weight: 600; }
 #abc-page #abc-summary { margin-left: auto; color: var(--abc-muted); font-size: 11px; }
 #abc-page .abc-columns { position: relative; }
 #abc-page .abc-columns summary { cursor: pointer; }

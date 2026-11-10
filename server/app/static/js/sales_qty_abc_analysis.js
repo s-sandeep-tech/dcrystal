@@ -8,7 +8,7 @@
     const controllers = new Map();
     const expanded = new Set();
     const extraColumns = new Set([...document.querySelectorAll('[data-abc-column]:checked')].map(input => input.dataset.abcColumn));
-    let applied = new URLSearchParams(location.search), data = null, zoom = 1, sequence = 0;
+    let applied = new URLSearchParams(location.search), data = null, zoom = 1, sequence = 0, selectedDepth = 0;
     const number = value => Number(value).toLocaleString('en-IN', {maximumFractionDigits: 2});
     const percent = value => value == null ? '—' : `${number(value)}%`;
     const money = value => `${(value / 10000000).toLocaleString('en-IN', {maximumFractionDigits: 2, minimumFractionDigits: 2})} Cr`;
@@ -187,22 +187,32 @@
         $('period').textContent = `${applied.get('start') || form.dataset.start} to ${applied.get('end') || form.dataset.end} · Invoice barcode quantity`;
         loadOptions(new URLSearchParams(applied), run); loadHierarchy(new URLSearchParams(applied), run);
     }
+    function selectDepth(depth) {
+        selectedDepth = depth;
+        $('depth').querySelectorAll('[data-abc-depth]').forEach(button => {
+            button.setAttribute('aria-pressed', String(Number(button.dataset.abcDepth) === depth));
+        });
+    }
     function applyDepth() {
         if (!data) return;
         expanded.clear();
-        const depth = Number($('depth').value);
+        const depth = selectedDepth;
         function walk(rows) {for (const row of rows) {if (row.depth < depth) expanded.add(row.key); walk(row.children);}}
         walk(data.rows); render();
     }
     function sidebar(show) {$('sidebar').hidden = !show; $('filter-toggle').setAttribute('aria-expanded', String(show));}
     fields.forEach(picker); restore(applied);
     form.addEventListener('submit', event => {event.preventDefault(); applied = new URLSearchParams(new FormData(form)); history.replaceState(null, '', `${location.pathname}?${applied}`); if (matchMedia('(max-width: 900px)').matches) sidebar(false); load();});
-    form.addEventListener('reset', event => {event.preventDefault(); applied = new URLSearchParams({start: form.dataset.start, end: form.dataset.end}); restore(applied); $('search').value = ''; $('depth').value = '0'; history.replaceState(null, '', location.pathname); load();});
+    form.addEventListener('reset', event => {event.preventDefault(); applied = new URLSearchParams({start: form.dataset.start, end: form.dataset.end}); restore(applied); $('search').value = ''; selectDepth(0); history.replaceState(null, '', location.pathname); load();});
     window.addEventListener('popstate', () => {applied = new URLSearchParams(location.search); restore(applied); load();});
     $('refresh').addEventListener('click', load);
     $('search').addEventListener('input', render);
-    $('depth').addEventListener('change', applyDepth);
-    $('collapse').addEventListener('click', () => {expanded.clear(); $('depth').value = '0'; $('search').value = ''; render();});
+    $('depth').querySelectorAll('[data-abc-depth]').forEach(button => button.addEventListener('click', () => {
+        selectDepth(Number(button.dataset.abcDepth));
+        $('search').value = '';
+        applyDepth();
+    }));
+    $('collapse').addEventListener('click', () => {expanded.clear(); selectDepth(0); $('search').value = ''; render();});
     document.querySelectorAll('[data-abc-column]').forEach(input => input.addEventListener('change', () => {input.checked ? extraColumns.add(input.dataset.abcColumn) : extraColumns.delete(input.dataset.abcColumn); render();}));
     function setZoom(value) {zoom = Math.max(.7, Math.min(1.4, Math.round(value * 10) / 10)); $('zoom-reset').textContent = `${Math.round(zoom * 100)}%`; $('zoom-out').disabled = zoom === .7; $('zoom-in').disabled = zoom === 1.4; render();}
     $('zoom-out').addEventListener('click', () => setZoom(zoom - .1)); $('zoom-in').addEventListener('click', () => setZoom(zoom + .1)); $('zoom-reset').addEventListener('click', () => setZoom(1));
