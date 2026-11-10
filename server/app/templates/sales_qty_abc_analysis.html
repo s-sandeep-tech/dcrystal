@@ -35,7 +35,7 @@
         <div class="abc-filter-body"><div class="abc-filter-title"><h2><span class="material-symbols-outlined" aria-hidden="true">filter_alt</span> Filters</h2><button type="reset">Reset</button></div>
             <div class="abc-dates"><label>From<input type="date" name="start" value="{{ start }}" required></label><label>To<input type="date" name="end" value="{{ end }}" required></label></div>
             <p class="abc-note">Financial year to date · up to 12 months</p><p id="abc-options-status" role="status"></p>
-            <fieldset class="abc-exclusions"><legend>Exclude Makes</legend><input type="hidden" name="exclude_make_set" value="1">{% for make in ['KMU 999 COIN', 'CUSTOM'] %}<label><input type="checkbox" name="exclude_make" value="{{ make }}" checked> {{ make }}</label>{% endfor %}</fieldset>
+            <div class="abc-filter-field"><span>Exclude Makes</span><input type="hidden" name="exclude_make_set" value="1"><select name="exclude_make" multiple aria-label="Exclude Makes" data-static-options hidden>{% for make in ['KMU 999 COIN', 'CUSTOM'] %}<option value="{{ make }}" selected>{{ make }}</option>{% endfor %}</select></div>
             {% for key, field in filter_fields.items() %}<div class="abc-filter-field"><span>{{ field[0] }}</span><select name="{{ key }}" multiple aria-label="{{ field[0] }}" hidden></select></div>{% endfor %}
         </div>
         <div class="abc-filter-footer"><button type="submit"><span class="material-symbols-outlined" aria-hidden="true">search_check</span> Apply Filters</button></div>

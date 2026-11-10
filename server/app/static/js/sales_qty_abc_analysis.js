@@ -48,7 +48,7 @@
         panel.append(search, clear, list); details.append(summary, panel); select.after(details);
         function label() {
             const chosen = [...select.selectedOptions];
-            summary.textContent = chosen.length ? (chosen.length === 1 ? chosen[0].text : `${chosen.length} selected`) : `All ${title.toLowerCase()}`;
+            summary.textContent = chosen.length ? (chosen.length === 1 ? chosen[0].text : `${chosen.length} selected`) : select.name === 'exclude_make' ? 'No exclusions' : `All ${title.toLowerCase()}`;
             summary.title = chosen.map(o => o.text).join(', ');
         }
         function refresh() {
@@ -71,11 +71,10 @@
     }
     function restore(params) {
         const excluded = params.has('exclude_make_set') || params.has('exclude_make') ? params.getAll('exclude_make') : ['KMU 999 COIN', 'CUSTOM'];
-        form.querySelectorAll('[name="exclude_make"]').forEach(input => {input.checked = excluded.includes(input.value);});
         form.elements.start.value = params.get('start') || form.dataset.start;
         form.elements.end.value = params.get('end') || form.dataset.end;
         for (const select of fields) {
-            const values = params.getAll(select.name);
+            const values = select.name === 'exclude_make' ? excluded : params.getAll(select.name);
             for (const value of values) if (![...select.options].some(o => o.value === value)) select.add(new Option(value, value));
             [...select.options].forEach(o => {o.selected = values.includes(o.value);});
             pickers.get(select).reset();
@@ -164,6 +163,7 @@
             const response = await request('options', params);
             if (run !== sequence) return;
             for (const select of fields) {
+                if (select.hasAttribute('data-static-options')) continue;
                 // Preserve in-progress edits while option requests are running.
                 const selected = [...select.selectedOptions].map(o => o.value);
                 const options = response.data[select.name] || [], known = new Set(options.map(o => o.value));
