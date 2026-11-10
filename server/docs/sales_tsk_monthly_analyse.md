@@ -5,6 +5,26 @@ New protected APIs: `/api/sales-tsk-monthly-analyse/options` and `/api/sales-tsk
 
 The existing performance report and its redirects are not modified. This report has separate routes, template, JavaScript, scoped layout CSS, and service. It imports the existing live source connection, date parsing, filter options, parameterized predicates, and turnover aggregates. No model, migration, or snapshot is created.
 
+### Memory and filter loading
+
+The shared dropdown loader now queries one dimension at a time with scalar
+`SELECT DISTINCT`, rather than maintaining twelve distinct array aggregates in
+one query. This also benefits the original Sales & TSK report. The tradeoff is
+additional source scans; verify latency against the production view. The monthly
+report sets transaction-local `work_mem = '4MB'` and disables parallel query
+workers so sort/hash operations can spill without multiplying parallel-worker
+allocations. This is a per-operation budget, not a total PostgreSQL memory cap.
+
+The browser reuses loaded/in-flight dropdowns for an unchanged date range.
+Changing Group By requests only the matrix; Apply Filters reuses options when
+dates are unchanged. Refresh explicitly reloads options, failed requests remain
+retryable, and superseded date requests cannot overwrite newer results.
+
+Use the root `./compose.sh up -d --build server` launcher to apply the server
+container limit of 60% of Docker-engine RAM. This does not limit the external
+database. Live query plans and memory measurements are still required to confirm
+the production error is resolved.
+
 Group By options, in order: Group, Purity, Classification, Make, Collection, Section (default), Type, Wide Range. Each groups on the corresponding `_id` field and uses the matching label column (`group` is quoted). Missing IDs form an Unspecified group. Source metadata is checked before querying; the source must provide `barcode`. Pieces count distinct non-null barcodes per grouping/month, plus one for every null-barcode row (equivalent to assigning each null a unique fallback). Missing columns produce an error naming the columns. Live schema verification is still required because the external database was unreachable during implementation.
 
 Dates are inclusive, up to twelve calendar months, defaulting to the current financial year to date in Asia/Kolkata. All existing location, product and transaction filters are reused. Changing Group By immediately refreshes the applied date/filter selection; Apply Filters commits other edits. Query parameters preserve the selection.

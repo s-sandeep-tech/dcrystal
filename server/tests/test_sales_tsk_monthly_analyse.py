@@ -70,6 +70,22 @@ class MatrixTests(unittest.TestCase):
         self.assertEqual(len(data['totals']),3)
         self.assertIsNone(data['totals'][0]['share'])
 
+    def test_cells_allocated_once_per_group(self):
+        with patch.object(report, 'empty_cell', wraps=report.empty_cell) as allocate:
+            report.build_matrix([record(4, 100), record(5, 150), record(6, 200)], filters())
+            self.assertEqual(allocate.call_count, 6)  # Three group cells and three totals.
+
+    def test_transaction_memory_settings_for_both_segments(self):
+        for segment in ('options', 'matrix'):
+            with patch.object(report.source, 'source_cursor') as context, \
+                    patch.object(report.source, 'options', return_value={}), \
+                    patch.object(report, 'matrix', return_value={}):
+                report.load_segment(segment, filters())
+                cur = context.return_value.__enter__.return_value
+                self.assertEqual([call.args[0] for call in cur.execute.call_args_list],
+                                 ["SET LOCAL work_mem = '4MB'",
+                                  'SET LOCAL max_parallel_workers_per_gather = 0'])
+
 
 class EndpointTests(unittest.TestCase):
     def setUp(self):

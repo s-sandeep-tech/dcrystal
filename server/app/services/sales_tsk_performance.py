@@ -193,13 +193,17 @@ def monthly(cur, filters):
 
 
 def options(cur, filters):
-    # One scan for all option lists; dates scope the lists without losing selected options.
+    # Deduplicate one dimension at a time. Unlike concurrent ARRAY_AGG(DISTINCT
+    # ARRAY[...]) states, these scalar sorts can spill under PostgreSQL work_mem.
+    # Keep date-only scoping so choosing a filter never hides other choices.
     where, params = where_clause({**filters, 'selections': {}})
-    expressions = [f'ARRAY_AGG(DISTINCT ARRAY[{key}::text, COALESCE({label}::text, {key}::text)]) '
-                   f'FILTER (WHERE {key} IS NOT NULL) AS {key}' for key, (_, label) in FILTERS.items()]
-    cur.execute(f"SELECT {', '.join(expressions)} FROM {SOURCE} WHERE {where}", params)
-    row = cur.fetchone()
-    return {key: sorted([{'value': v[0], 'label': v[1]} for v in (row[key] or [])], key=lambda v: v['label']) for key in FILTERS}
+    result = {}
+    for key, (_, label) in FILTERS.items():
+        cur.execute(f'''SELECT DISTINCT {key}::text AS value,
+            COALESCE({label}::text, {key}::text) AS label
+            FROM {SOURCE} WHERE {where} AND {key} IS NOT NULL''', params)
+        result[key] = sorted((dict(row) for row in cur.fetchall()), key=lambda row: row['label'])
+    return result
 
 
 def load_segment(segment, filters):

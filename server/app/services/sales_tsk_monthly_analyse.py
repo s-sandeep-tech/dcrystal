@@ -47,7 +47,9 @@ def build_matrix(records, filters):
     indices = {m['month']: i for i, m in enumerate(months)}
     for record in records:
         key = record['id']
-        row = rows.setdefault(key, {'id': key, 'label': record['label'], 'months': [empty_cell() for _ in months]})
+        if key not in rows:
+            rows[key] = {'id': key, 'label': record['label'], 'months': [empty_cell() for _ in months]}
+        row = rows[key]
         index = indices[record['month'].isoformat()]
         for metric in (*METRICS, 'row_count'):
             row['months'][index][metric] += record[metric]
@@ -85,4 +87,8 @@ def matrix(cur, filters):
 
 def load_segment(segment, filters):
     with source.source_cursor() as cur:
+        # Transaction-local budgets: spills are preferable to large per-sort
+        # allocations; avoid multiplying those allocations across parallel workers.
+        cur.execute("SET LOCAL work_mem = '4MB'")
+        cur.execute('SET LOCAL max_parallel_workers_per_gather = 0')
         return source.options(cur, filters) if segment == 'options' else matrix(cur, filters)

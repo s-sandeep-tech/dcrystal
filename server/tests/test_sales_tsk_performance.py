@@ -3,7 +3,7 @@ import unittest
 from datetime import date, datetime
 from decimal import Decimal
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from flask import Flask
 from werkzeug.datastructures import MultiDict
@@ -37,6 +37,32 @@ class FilterTests(unittest.TestCase):
     def test_invalid_transaction_type(self):
         with self.assertRaises(ValueError):
             report.parse_filters(MultiDict(dict(trans_type='OTHER')))
+
+
+class OptionsTests(unittest.TestCase):
+    def test_sequential_scalar_options_keep_date_scope_and_distinct_ids(self):
+        cur = MagicMock()
+        cur.fetchall.return_value = [{'value': '2', 'label': 'Rings'},
+                                    {'value': '1', 'label': 'Bangles'}]
+        filters = report.parse_filters(MultiDict(dict(start='2026-01-01', end='2026-01-31', branch_id='42')))
+        result = report.options(cur, filters)
+        self.assertEqual(result['section_id'], [{'value': '1', 'label': 'Bangles'},
+                                               {'value': '2', 'label': 'Rings'}])
+        self.assertEqual(cur.execute.call_count, len(report.FILTERS))
+        for call in cur.execute.call_args_list:
+            sql, params = call.args
+            self.assertIn('SELECT DISTINCT', sql)
+            self.assertNotIn('ARRAY_AGG', sql)
+            self.assertNotIn('ANY(', sql)
+            self.assertEqual(params, [date(2026, 1, 1), date(2026, 2, 1)])
+        self.assertEqual([call[0] for call in cur.method_calls],
+                         ['execute', 'fetchall'] * len(report.FILTERS))
+
+    def test_empty_options(self):
+        cur = MagicMock()
+        cur.fetchall.return_value = []
+        self.assertEqual(report.options(cur, report.parse_filters(MultiDict())),
+                         {key: [] for key in report.FILTERS})
 
 
 class EndpointTests(unittest.TestCase):

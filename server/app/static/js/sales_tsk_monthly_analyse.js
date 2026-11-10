@@ -7,6 +7,8 @@
     const controllers = new Map();
     const group = document.getElementById('monthly-group');
     let applied = new URLSearchParams(location.search);
+    let loadedOptionsKey = null;
+    let pendingOptionsKey = null;
     let currentZoom = 1;
     const hierarchySearch = document.getElementById('monthly-hierarchy-search');
     const number = value => Number(value).toLocaleString('en-IN', {maximumFractionDigits: 2});
@@ -201,20 +203,32 @@
             }
         }
     }
-    async function loadOptions() {
+    async function loadOptions(force = false) {
+        // Options depend only on dates, not grouping or selected dimensions.
+        const params = new URLSearchParams({start: applied.get('start'), end: applied.get('end')});
+        const key = params.toString();
+        if (!force && (loadedOptionsKey === key || pendingOptionsKey === key)) return;
         controllers.get('options')?.abort(); const controller = new AbortController(); controllers.set('options', controller);
+        pendingOptionsKey = key;
+        loadedOptionsKey = null;
         const status = document.getElementById('sales-options-status'); showLoading(status, 'Loading filters…');
         try {
-            const {data} = await (await request('options', applied, controller.signal)).json();
+            const {data} = await (await request('options', params, controller.signal)).json();
             if (controller.signal.aborted) return;
             fields.forEach(select => setOptions(select, data[select.name] || [], [...select.selectedOptions].map(o => o.value)));
+            loadedOptionsKey = key;
             status.replaceChildren();
-        } catch (error) { if (!controller.signal.aborted) retry(status, error.message, loadOptions); }
+        } catch (error) {
+            if (!controller.signal.aborted) retry(status, error.message, () => loadOptions(true));
+        } finally {
+            if (controllers.get('options') === controller) pendingOptionsKey = null;
+        }
     }
-    function reload() {
+    function reload({options = true, forceOptions = false} = {}) {
         history.replaceState(null, '', `${location.pathname}?${applied}`);
         document.getElementById('sales-period').textContent = `${applied.get('start')} to ${applied.get('end')} · Monthly comparison`;
-        loadMatrix(); loadOptions();
+        loadMatrix();
+        if (options) loadOptions(forceOptions);
     }
     function restore() {
         for (const key of ['start', 'end']) {
@@ -227,9 +241,9 @@
         fields.forEach(select => setOptions(select, [...select.options].map(o => ({value:o.value, label:o.text})), applied.getAll(select.name)));
     }
     form.addEventListener('submit', event => { event.preventDefault(); applied = new URLSearchParams(new FormData(form)); filterDropdowns.forEach(d => {d.details.open = false;}); reload(); });
-    group.addEventListener('change', () => { applied.set('group_by', group.value); reload(); });
+    group.addEventListener('change', () => { applied.set('group_by', group.value); reload({options: false}); });
     form.addEventListener('reset', event => { event.preventDefault(); applied = new URLSearchParams(); restore(); filterDropdowns.forEach(d => d.reset()); reload(); });
-    document.getElementById('sales-refresh').addEventListener('click', reload);
+    document.getElementById('sales-refresh').addEventListener('click', () => reload({forceOptions: true}));
     const infoDialog = document.getElementById('monthly-info-dialog');
     document.getElementById('monthly-info-open').addEventListener('click', () => infoDialog.showModal());
     document.getElementById('monthly-info-close').addEventListener('click', () => infoDialog.close());

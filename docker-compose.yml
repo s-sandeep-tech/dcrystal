@@ -25,6 +25,10 @@ services:
 
   server:
     build: ./server
+    # ./compose.sh computes 60% of Docker-engine RAM. Require an explicit limit
+    # for direct Compose invocations rather than silently starting unlimited.
+    mem_limit: ${SERVER_MEMORY_LIMIT:?Run ./compose.sh or set SERVER_MEMORY_LIMIT in bytes}
+    memswap_limit: ${SERVER_MEMORY_LIMIT:?Run ./compose.sh or set SERVER_MEMORY_LIMIT in bytes}
     init: true
     restart: unless-stopped
     stop_grace_period: 70s
