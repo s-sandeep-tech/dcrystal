@@ -26,6 +26,7 @@ FILTERS = {
 }
 METRICS = ('sold_qty', 'sold_weight', 'net_turnover', 'mcprofit')
 MAX_LEAVES = 20000
+EXCLUDED_MAKES = ('KMU 999 COIN', 'CUSTOM')
 
 
 class SourceDataError(Exception):
@@ -55,12 +56,21 @@ def parse_filters(args):
             raise ValueError('Transaction type must be INVOICE or SR.')
         if values:
             selections[key] = values
-    return {'start': start, 'end': end, 'selections': selections}
+    exclusions = list(dict.fromkeys(v.strip().upper() for v in args.getlist('exclude_make') if v.strip()))
+    if not args.get('exclude_make_set') and not exclusions:
+        exclusions = list(EXCLUDED_MAKES)
+    if any(value not in EXCLUDED_MAKES for value in exclusions):
+        raise ValueError('Choose a valid Make exclusion.')
+    return {'start': start, 'end': end, 'selections': selections, 'exclude_make': exclusions}
 
 
 def where_clause(filters, options=False):
     clauses = ["trans_type IN ('INVOICE', 'SR')", f'{SALES_DATE} >= %s', f'{SALES_DATE} < %s']
     params = [filters['start'], filters['end'] + timedelta(days=1)]
+    exclusions = filters.get('exclude_make', list(EXCLUDED_MAKES))
+    if exclusions:
+        clauses.append("NOT (UPPER(TRIM(COALESCE(make::text, ''))) = ANY(%s))")
+        params.append(exclusions)
     if not options:
         for key, values in filters['selections'].items():
             clauses.append(f'"{key}"::text = ANY(%s)')

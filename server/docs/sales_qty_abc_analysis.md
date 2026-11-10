@@ -50,3 +50,5 @@ Unit coverage includes ABC boundaries/crossing rows, tie ordering, zero/null gro
 Fixture Chromium checks passed for initial columns, expansion through all seven levels, search retaining calculations, optional columns, zoom, information dialog, Apply/Reset, mobile filters, error/retry and desktop/dark/mobile screenshots. No browser JavaScript errors were observed. These tests do not validate live PostgreSQL execution or real quantities.
 
 The external hostname could not resolve in the development environment. Live schema, barcode uniqueness across hierarchy paths, subsection/weight-range availability, return signs, production values and query performance still require verification from the deployment network.
+
+Exclude Makes defaults to KMU 999 COIN and CUSTOM. Uncheck either value and Apply Filters to include it again. Matching is exact after trimming and ignoring case; missing Make labels are retained. Exclusions apply to source rows, filter options, totals and ABC calculations. Reset restores both exclusions; applied choices persist in the URL.

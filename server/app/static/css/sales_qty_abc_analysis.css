@@ -86,3 +86,7 @@
 #abc-sidebar .abc-filter-footer { padding: 14px 18px; border-top: 1px solid var(--abc-border); }
 #abc-sidebar .abc-filter-footer button { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 10px; width: 100%; background: #137fec; color: white; border-radius: 5px; font-weight: 600; }
 @media (max-width: 900px) { #abc-sidebar { position: fixed; right: 0; top: 0; bottom: 0; z-index: 40; box-shadow: -8px 0 24px #0002; } #abc-page .abc-hierarchy { min-width: 180px; } #abc-page .abc-actions { gap: 5px; } }
+
+#abc-sidebar .abc-exclusions { margin: 14px 0; padding: 8px; border: 1px solid var(--abc-border); border-radius: 5px; }
+#abc-sidebar .abc-exclusions legend { padding: 0 4px; font-size: 11px; font-weight: 600; }
+#abc-sidebar .abc-exclusions label { display: flex; align-items: center; gap: 7px; padding: 4px 0; font-size: 11px; cursor: pointer; }
