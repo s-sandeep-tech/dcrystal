@@ -26,7 +26,7 @@ FILTERS = {
 }
 METRICS = ('sold_qty', 'sold_weight', 'net_turnover', 'mcprofit')
 MAX_LEAVES = 20000
-EXCLUDED_MAKES = ('KMU 999 COIN', 'CUSTOM')
+EXCLUDED_MAKES = ('KMU 999 COIN', 'CUSTOM', 'KMU-COIN')
 
 
 class SourceDataError(Exception):

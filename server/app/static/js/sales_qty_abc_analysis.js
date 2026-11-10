@@ -70,7 +70,7 @@
         refresh();
     }
     function restore(params) {
-        const excluded = params.has('exclude_make_set') || params.has('exclude_make') ? params.getAll('exclude_make') : ['KMU 999 COIN', 'CUSTOM'];
+        const excluded = params.has('exclude_make_set') || params.has('exclude_make') ? params.getAll('exclude_make') : ['KMU 999 COIN', 'CUSTOM', 'KMU-COIN'];
         form.elements.start.value = params.get('start') || form.dataset.start;
         form.elements.end.value = params.get('end') || form.dataset.end;
         for (const select of fields) {

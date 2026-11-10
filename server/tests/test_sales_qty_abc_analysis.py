@@ -24,12 +24,12 @@ def record(qty, make='1', purity='1', **metrics):
 
 class CalculationTests(unittest.TestCase):
     def test_make_exclusions_defaults_override_and_validation(self):
-        self.assertEqual(filters()['exclude_make'], ['KMU 999 COIN', 'CUSTOM'])
+        self.assertEqual(filters()['exclude_make'], ['KMU 999 COIN', 'CUSTOM', 'KMU-COIN'])
         for options in (False, True):
             where, params = report.where_clause(filters(), options=options)
             self.assertIn("COALESCE(make::text, '')", where)
             self.assertNotIn('KMU 999 COIN', where)
-            self.assertIn(['KMU 999 COIN', 'CUSTOM'], params)
+            self.assertIn(['KMU 999 COIN', 'CUSTOM', 'KMU-COIN'], params)
         included = filters(exclude_make_set='1')
         self.assertEqual(included['exclude_make'], [])
         self.assertNotIn('COALESCE(make', report.where_clause(included)[0])
