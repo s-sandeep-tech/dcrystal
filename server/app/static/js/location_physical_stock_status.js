@@ -31,6 +31,18 @@ let reportRequestId = 0;
 let appliedStockFilters = { ...filterValues };
 let activeDrilldownFilters = { ...filterValues };
 
+function toggleStockFilters() {
+    const sidebar = document.getElementById('stock-filter-sidebar');
+    const button = document.getElementById('stock-filter-toggle');
+    const hide = sidebar.style.display !== 'none';
+    sidebar.style.display = hide ? 'none' : '';
+    button.setAttribute('aria-expanded', String(!hide));
+    const label = hide ? 'Show filters' : 'Hide filters';
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    button.firstElementChild.textContent = hide ? 'filter_alt_off' : 'filter_alt';
+}
+
 function setupStockRefreshPrompt() {
     const dialog = document.getElementById('stock-refresh-dialog');
     const yes = document.getElementById('stock-refresh-yes');

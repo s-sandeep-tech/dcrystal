@@ -40,6 +40,12 @@
             </button>
             {% endif %}
 
+            <button id="stock-filter-toggle" type="button" onclick="toggleStockFilters()"
+                class="inline-flex items-center justify-center w-7 h-7 rounded border border-gray-200 dark:border-gray-700 text-primary hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors"
+                aria-controls="stock-filter-sidebar" aria-expanded="true" aria-label="Hide filters" title="Hide filters">
+                <span class="material-symbols-outlined text-[17px]" aria-hidden="true">filter_alt</span>
+            </button>
+
             <!-- Zoom Controls -->
             <div class="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5 items-center mr-2">
                 <button onclick="adjustZoom(-0.1)"
@@ -334,7 +340,7 @@
 {% endblock %}
 
 {% block sidebar %}
-<aside
+<aside id="stock-filter-sidebar"
     class="w-80 bg-white dark:bg-background-dark border-l border-gray-200 dark:border-gray-800 flex flex-col shrink-0 overflow-hidden">
     <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex-1 overflow-y-auto no-scrollbar">
         <div class="flex items-center justify-between mb-4">
@@ -454,5 +460,5 @@
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script src="{{ url_for('static', filename='js/header_filter.js') }}"></script>
-<script src="{{ url_for('static', filename='js/location_physical_stock_status.js', v='20261103-ordered-compact') }}"></script>
+<script src="{{ url_for('static', filename='js/location_physical_stock_status.js', v='20261112-filter-toggle') }}"></script>
 {% endblock %}
