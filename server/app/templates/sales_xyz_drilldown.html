@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Sales XYZ Drilldown{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css', v='20261112-layout') }}">
 {% endblock %}
 {% block content %}
 <main id="xyz-report" data-api="{{ url_for('dashboard.sales_xyz_drilldown_segment', segment='hierarchy') }}">
@@ -18,11 +18,19 @@
     <div id="xyz-status" role="status" aria-live="polite"></div>
     <div class="xyz-table-wrap" tabindex="0" role="region" aria-label="Sales XYZ drill-down table">
         <table>
-            <thead><tr>
-                {% for column in ['Hierarchy', 'Type', 'Wide Range', 'Sale Pieces', 'Sale Weight (kg)', 'Sale Value (Cr)', 'Profit (Cr)', 'ABC Category – Pieces', 'ABC Category – Weight', 'ABC Category – Amount'] %}
-                <th scope="col">{{ column }}</th>
-                {% endfor %}
-            </tr></thead>
+            <thead>
+                <tr class="xyz-column-groups">
+                    <th rowspan="2" scope="col">Hierarchy</th>
+                    <th colspan="2" scope="colgroup">Product details</th>
+                    <th colspan="4" scope="colgroup">Sales</th>
+                    <th colspan="3" scope="colgroup">ABC category</th>
+                </tr>
+                <tr>
+                    {% for column in ['Type', 'Wide Range', 'Pieces', 'Weight (kg)', 'Value (Cr)', 'Profit (Cr)', 'Pieces', 'Weight', 'Amount'] %}
+                    <th scope="col">{{ column }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
             <tbody id="xyz-rows"></tbody>
             <tfoot id="xyz-totals"></tfoot>
         </table>
@@ -46,10 +54,12 @@
                 {% endfor %}
             </fieldset>
             {% for key, (_, title) in filter_fields.items() %}
+            {% if key == 'branch_id' %}<h3 class="xyz-filter-section">Location</h3>{% elif key == 'section_id' %}<h3 class="xyz-filter-section">Product</h3>{% elif key == 'invoice_type' %}<h3 class="xyz-filter-section">Transaction</h3>{% endif %}
             <details class="xyz-filter" data-field="{{ key }}">
                 <summary>{{ title }} <span></span></summary>
                 <label class="sr-only" for="xyz-filter-{{ key }}">{{ title }}</label>
-                <select id="xyz-filter-{{ key }}" name="{{ key }}" multiple size="5"></select>
+                <select hidden id="xyz-filter-{{ key }}" name="{{ key }}" multiple></select>
+                <div class="xyz-filter-choices"></div>
                 <button type="button" data-clear>Clear selection</button>
                 <p class="xyz-filter-status" role="status"></p>
             </details>
@@ -60,5 +70,5 @@
 </aside>
 {% endblock %}
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js') }}"></script>
+<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261112-layout') }}"></script>
 {% endblock %}

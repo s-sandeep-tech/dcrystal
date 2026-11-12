@@ -94,6 +94,8 @@
         function append(children) {
             for (const row of children) {
                 const tr = element('tr');
+                tr.dataset.depth = row.parent.length;
+                tr.classList.toggle('xyz-open', row.open);
                 const heading = element('th');
                 heading.scope = 'row';
                 heading.style.paddingInlineStart = `${12 + row.parent.length * 16}px`;
@@ -164,7 +166,25 @@
         const values = new Set(options.map(option => option.value));
         const fullOptions = [...options, ...selected.filter(value => !values.has(value)).map(value => ({value, label: value}))];
         select.replaceChildren(...fullOptions.map(({value, label}) => new Option(label, value, false, selected.includes(value))));
+        renderChoices(select);
         updateCount(select);
+    }
+
+    function renderChoices(select) {
+        const choices = select.closest('details').querySelector('.xyz-filter-choices');
+        choices.replaceChildren();
+        for (const option of select.options) {
+            const label = element('label');
+            const checkbox = element('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = option.selected;
+            checkbox.addEventListener('change', () => {
+                option.selected = checkbox.checked;
+                updateCount(select);
+            });
+            label.append(checkbox, document.createTextNode(option.text));
+            choices.append(label);
+        }
     }
 
     function updateCount(select) {
@@ -250,6 +270,7 @@
         select.addEventListener('change', () => updateCount(select));
         panel.querySelector('[data-clear]').addEventListener('click', () => {
             for (const option of select.options) option.selected = false;
+            renderChoices(select);
             updateCount(select);
         });
     }
