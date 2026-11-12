@@ -3,6 +3,7 @@
     const form = document.getElementById('sales-filters');
     if (!form) return;
     const fields = [...form.querySelectorAll('select[multiple]')];
+    const barcodeCheckboxes = form.querySelectorAll('input[name="crystalbarcodeyn"]');
     const filterDropdowns = new Map();
     const controllers = new Map();
     const group = document.getElementById('monthly-group');
@@ -239,6 +240,8 @@
         if (!group.value) group.value = 'section';
         applied.set('group_by', group.value);
         fields.forEach(select => setOptions(select, [...select.options].map(o => ({value:o.value, label:o.text})), applied.getAll(select.name)));
+        const barcodeTypes = applied.getAll('crystalbarcodeyn');
+        barcodeCheckboxes.forEach(checkbox => { checkbox.checked = barcodeTypes.includes(checkbox.value); });
     }
     form.addEventListener('submit', event => { event.preventDefault(); applied = new URLSearchParams(new FormData(form)); filterDropdowns.forEach(d => {d.details.open = false;}); reload(); });
     group.addEventListener('change', () => { applied.set('group_by', group.value); reload({options: false}); });

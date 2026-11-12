@@ -16,7 +16,6 @@ GROUPS = {
     'wide_range': ('Wide Range', 'wide_range_id', 'wide_range'),
 }
 METRICS = ('net_weight', 'pieces', 'net_turnover', 'total_tsk', 'mcprofit')
-FILTER_FIELDS = {**source.FILTERS, 'crystalbarcodeyn': ('Barcode type', 'crystalbarcodeyn')}
 BARCODE_TYPES = {
     'Y': ('Crystal barcode', ('y', 'yes', 't', 'true', '1')),
     'N': ('Muziris barcode', ('n', 'no', 'f', 'false', '0')),

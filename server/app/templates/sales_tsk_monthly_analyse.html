@@ -40,9 +40,18 @@
             {% if key == 'branch_id' %}<h3 class="sales-filter-group">Location</h3>{% elif key == 'make_id' %}<h3 class="sales-filter-group">Product</h3>{% elif key == 'invoice_type' %}<h3 class="sales-filter-group">Transaction</h3>{% endif %}
             <div class="sales-filter-field"><span class="sales-filter-label" id="filter-label-{{ key }}">{{ field[0] }}</span><select name="{{ key }}" multiple aria-label="{{ field[0] }}" hidden><option disabled>Loading…</option></select></div>
             {% endfor %}
+            <fieldset class="sales-filter-field">
+                <legend class="sales-filter-label">Barcode type</legend>
+                {% for value, (label, _) in barcode_types.items() %}
+                <label class="mt-1 flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
+                    <input type="checkbox" name="crystalbarcodeyn" value="{{ value }}" class="size-3.5 rounded border-gray-300 text-primary">
+                    {{ label }}
+                </label>
+                {% endfor %}
+            </fieldset>
         </div>
         <div class="party-matrix-sidebar-footer sales-filter-actions"><button type="submit"><span class="material-symbols-outlined">search_check</span> Apply Filters</button></div>
     </form>
 </aside>
 {% endblock %}
-{% block extra_scripts %}<script src="{{ url_for('static', filename='js/sales_tsk_monthly_analyse.js') }}"></script>{% endblock %}
+{% block extra_scripts %}<script src="{{ url_for('static', filename='js/sales_tsk_monthly_analyse.js', v='20261112-barcode-checkboxes') }}"></script>{% endblock %}
