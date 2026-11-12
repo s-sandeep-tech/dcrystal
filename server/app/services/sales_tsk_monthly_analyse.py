@@ -16,6 +16,11 @@ GROUPS = {
     'wide_range': ('Wide Range', 'wide_range_id', 'wide_range'),
 }
 METRICS = ('net_weight', 'pieces', 'net_turnover', 'total_tsk', 'mcprofit')
+FILTER_FIELDS = {**source.FILTERS, 'crystalbarcodeyn': ('Barcode type', 'crystalbarcodeyn')}
+BARCODE_TYPES = {
+    'Y': ('Crystal barcode', ('y', 'yes', 't', 'true', '1')),
+    'N': ('Muziris barcode', ('n', 'no', 'f', 'false', '0')),
+}
 
 
 def parse_filters(args):
@@ -23,7 +28,11 @@ def parse_filters(args):
     group = args.get('group_by', 'section')
     if group not in GROUPS:
         raise ValueError('Choose a valid Group By option.')
-    return {**filters, 'group_by': group}
+    barcode_types = list(dict.fromkeys(value.strip().upper() for value in args.getlist('crystalbarcodeyn')
+                                       if value.strip()))
+    if any(value not in BARCODE_TYPES for value in barcode_types):
+        raise ValueError('Choose Crystal barcode or Muziris barcode.')
+    return {**filters, 'group_by': group, 'barcode_types': barcode_types}
 
 
 def month_list(filters):
@@ -71,10 +80,16 @@ def matrix(cur, filters):
     _, key, label = GROUPS[filters['group_by']]
     cur.execute(f'SELECT * FROM {source.SOURCE} LIMIT 0')
     columns = {column.name for column in cur.description}
-    missing = [name for name in (key, label, 'pieces', 'mcprofit') if name not in columns]
+    required = [key, label, 'pieces', 'mcprofit']
+    if filters['barcode_types']:
+        required.append('crystalbarcodeyn')
+    missing = [name for name in required if name not in columns]
     if missing:
         raise source.SourceDataError('Source columns missing: ' + ', '.join(missing) + '.')
     where, params = source.where_clause(filters)
+    if filters['barcode_types']:
+        where += ' AND LOWER(BTRIM(crystalbarcodeyn::text)) = ANY(%s)'
+        params.append([flag for value in filters['barcode_types'] for flag in BARCODE_TYPES[value][1]])
     records = source.query(cur, f'''SELECT "{key}"::text AS id,
         COALESCE(MAX(NULLIF(TRIM("{label}"::text), '')), "{key}"::text, 'Unspecified') AS label,
         date_trunc('month', {source.SALES_DATE})::date AS month,
@@ -90,4 +105,8 @@ def load_segment(segment, filters):
         # allocations; avoid multiplying those allocations across parallel workers.
         cur.execute("SET LOCAL work_mem = '4MB'")
         cur.execute('SET LOCAL max_parallel_workers_per_gather = 0')
-        return source.options(cur, filters) if segment == 'options' else matrix(cur, filters)
+        if segment == 'options':
+            return {**source.options(cur, filters), 'crystalbarcodeyn': [
+                {'value': value, 'label': label} for value, (label, _) in BARCODE_TYPES.items()
+            ]}
+        return matrix(cur, filters)

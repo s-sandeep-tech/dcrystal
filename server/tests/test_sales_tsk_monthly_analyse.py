@@ -74,6 +74,22 @@ class MatrixTests(unittest.TestCase):
         self.assertEqual(len(data['totals']),3)
         self.assertIsNone(data['totals'][0]['share'])
 
+    def test_barcode_type_filter_uses_parameterized_source_flags(self):
+        selected = filters(crystalbarcodeyn=['Y', 'n', 'Y'])
+        self.assertEqual(selected['barcode_types'], ['Y', 'N'])
+        with self.assertRaisesRegex(ValueError, 'Crystal barcode or Muziris barcode'):
+            filters(crystalbarcodeyn='invalid')
+        cur = MagicMock()
+        cur.description = [SimpleNamespace(name=name) for name in ('section_id', 'section', 'pieces', 'mcprofit')]
+        with self.assertRaisesRegex(report.source.SourceDataError, 'Source columns missing: crystalbarcodeyn'):
+            report.matrix(cur, selected)
+        cur.description.append(SimpleNamespace(name='crystalbarcodeyn'))
+        with patch.object(report.source, 'query', return_value=[]) as query:
+            report.matrix(cur, selected)
+        _, sql, params = query.call_args.args
+        self.assertIn('LOWER(BTRIM(crystalbarcodeyn::text)) = ANY(%s)', sql)
+        self.assertEqual(params[-1], ['y', 'yes', 't', 'true', '1', 'n', 'no', 'f', 'false', '0'])
+
     def test_cells_allocated_once_per_group(self):
         with patch.object(report, 'empty_cell', wraps=report.empty_cell) as allocate:
             report.build_matrix([record(4, 100), record(5, 150), record(6, 200)], filters())
@@ -84,11 +100,15 @@ class MatrixTests(unittest.TestCase):
             with patch.object(report.source, 'source_cursor') as context, \
                     patch.object(report.source, 'options', return_value={}), \
                     patch.object(report, 'matrix', return_value={}):
-                report.load_segment(segment, filters())
+                result = report.load_segment(segment, filters())
                 cur = context.return_value.__enter__.return_value
                 self.assertEqual([call.args[0] for call in cur.execute.call_args_list],
                                  ["SET LOCAL work_mem = '4MB'",
                                   'SET LOCAL max_parallel_workers_per_gather = 0'])
+                if segment == 'options':
+                    self.assertEqual(result['crystalbarcodeyn'], [
+                        {'value': 'Y', 'label': 'Crystal barcode'}, {'value': 'N', 'label': 'Muziris barcode'},
+                    ])
 
 
 class EndpointTests(unittest.TestCase):

@@ -25,7 +25,7 @@ def json_numbers(value):
 def sales_tsk_monthly_analyse_page():
     start, end = report.source.defaults()
     return render_template('sales_tsk_monthly_analyse.html', unread_count=0,
-                           filter_fields=report.source.FILTERS, groups=report.GROUPS, start=start, end=end)
+                           filter_fields=report.FILTER_FIELDS, groups=report.GROUPS, start=start, end=end)
 
 
 @dashboard_bp.route('/api/sales-tsk-monthly-analyse/<segment>')
