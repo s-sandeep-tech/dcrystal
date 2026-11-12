@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Sales XYZ Drilldown{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css') }}">
+{% endblock %}
+{% block content %}
+<main id="xyz-report" data-api="{{ url_for('dashboard.sales_xyz_drilldown_segment', segment='hierarchy') }}">
+    <header class="xyz-header">
+        <div><h1>Sales XYZ Drilldown</h1><p id="xyz-period"></p></div>
+        <div class="xyz-actions">
+            <button type="button" id="xyz-collapse">Collapse all</button>
+            <button type="button" id="xyz-refresh" aria-label="Refresh report" title="Refresh report"><span class="material-symbols-outlined" aria-hidden="true">refresh</span></button>
+            <button type="button" id="xyz-filter-toggle" aria-label="Toggle filters" aria-controls="xyz-sidebar" aria-expanded="true" title="Toggle filters"><span class="material-symbols-outlined" aria-hidden="true">filter_alt</span></button>
+        </div>
+    </header>
+    <p class="xyz-note">{{ levels | map(attribute=2) | join(' → ') }}<br>
+        ABC is calculated independently within each parent for pieces, weight, and turnover.</p>
+    <div id="xyz-status" role="status" aria-live="polite"></div>
+    <div class="xyz-table-wrap" tabindex="0" role="region" aria-label="Sales XYZ drill-down table">
+        <table>
+            <thead><tr>
+                {% for column in ['Hierarchy', 'Type', 'Wide Range', 'Sale Pieces', 'Sale Weight (kg)', 'Sale Value (Cr)', 'Profit (Cr)', 'ABC Category – Pieces', 'ABC Category – Weight', 'ABC Category – Amount'] %}
+                <th scope="col">{{ column }}</th>
+                {% endfor %}
+            </tr></thead>
+            <tbody id="xyz-rows"></tbody>
+            <tfoot id="xyz-totals"></tfoot>
+        </table>
+    </div>
+</main>
+{% endblock %}
+{% block sidebar %}
+<aside id="xyz-sidebar" aria-label="Sales XYZ filters">
+    <form id="xyz-filters">
+        <div class="xyz-filter-body">
+            <div class="xyz-filter-heading"><h2>Filters</h2><button type="reset">Reset</button></div>
+            <div class="xyz-dates">
+                <label>From <input name="start" type="date" value="{{ start }}" required></label>
+                <label>To <input name="end" type="date" value="{{ end }}" required></label>
+            </div>
+            <fieldset class="xyz-exclusions">
+                <legend>Exclude Makes</legend>
+                <input type="hidden" name="exclude_make_set" value="1">
+                {% for make in excluded_makes %}
+                <label><input type="checkbox" name="exclude_make" value="{{ make }}" checked> {{ make }}</label>
+                {% endfor %}
+            </fieldset>
+            {% for key, (_, title) in filter_fields.items() %}
+            <details class="xyz-filter" data-field="{{ key }}">
+                <summary>{{ title }} <span></span></summary>
+                <label class="sr-only" for="xyz-filter-{{ key }}">{{ title }}</label>
+                <select id="xyz-filter-{{ key }}" name="{{ key }}" multiple size="5"></select>
+                <button type="button" data-clear>Clear selection</button>
+                <p class="xyz-filter-status" role="status"></p>
+            </details>
+            {% endfor %}
+        </div>
+        <div class="xyz-filter-footer"><button type="submit">Apply Filters</button></div>
+    </form>
+</aside>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js') }}"></script>
+{% endblock %}
