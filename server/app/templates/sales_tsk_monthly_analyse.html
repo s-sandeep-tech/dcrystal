@@ -3,7 +3,7 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/party_performance_matrix.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sales_tsk_performance.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_tsk_monthly_analyse.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_tsk_monthly_analyse.css', v='20261112-barcode-sizing') }}">
 {% endblock %}
 {% block content %}
 <main id="sales-tsk-page" class="party-matrix-page monthly-analysis flex-1 overflow-y-auto bg-[#f5f7fa] dark:bg-background-dark">
@@ -40,11 +40,11 @@
             {% if key == 'branch_id' %}<h3 class="sales-filter-group">Location</h3>{% elif key == 'make_id' %}<h3 class="sales-filter-group">Product</h3>{% elif key == 'invoice_type' %}<h3 class="sales-filter-group">Transaction</h3>{% endif %}
             <div class="sales-filter-field"><span class="sales-filter-label" id="filter-label-{{ key }}">{{ field[0] }}</span><select name="{{ key }}" multiple aria-label="{{ field[0] }}" hidden><option disabled>Loading…</option></select></div>
             {% endfor %}
-            <fieldset class="sales-filter-field">
+            <fieldset class="sales-filter-field monthly-barcode-filter">
                 <legend class="sales-filter-label">Barcode type</legend>
                 {% for value, (label, _) in barcode_types.items() %}
-                <label class="mt-1 flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
-                    <input type="checkbox" name="crystalbarcodeyn" value="{{ value }}" class="size-3.5 rounded border-gray-300 text-primary">
+                <label>
+                    <input type="checkbox" name="crystalbarcodeyn" value="{{ value }}">
                     {{ label }}
                 </label>
                 {% endfor %}

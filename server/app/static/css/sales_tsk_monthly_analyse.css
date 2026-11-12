@@ -41,6 +41,19 @@
 .monthly-analysis .monthly-partial { margin-left: 6px; font-size: 9px; font-weight: 500; color: var(--sales-muted); }
 #sales-sidebar #monthly-group { display: block; width: 100%; margin-top: 6px; padding: 8px; border: 1px solid var(--sales-border, #d8e0e9); border-radius: 6px; background: transparent; }
 #sales-sidebar .sales-filter-actions { grid-template-columns: 1fr; }
+.monthly-barcode-filter { min-width: 0; }
+.monthly-barcode-filter label { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 12px; }
+#sales-sidebar .monthly-barcode-filter input[type="checkbox"] {
+    appearance: auto;
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    padding: 0;
+    background: revert;
+    accent-color: #137fec;
+}
+.dark .monthly-barcode-filter { color-scheme: dark; }
 .monthly-info-button { display: inline-flex; align-items: center; justify-content: center; padding: 4px; color: var(--sales-muted); border-radius: 5px; cursor: pointer; }
 .monthly-info-button:hover { color: #137fec; background: #137fec12; }
 .monthly-info-button .material-symbols-outlined { font-size: 18px; }
