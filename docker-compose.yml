@@ -67,6 +67,9 @@ services:
 
   sync-consumer:
     build: ./sync-consumer
+    # 30% of the deployment host's 16,766,197,760 bytes of RAM.
+    mem_limit: 5029859328
+    memswap_limit: 5029859328
     env_file: .env
     environment:
       - SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://meetaccess:meetpass@db:5432/dcrystaldb
