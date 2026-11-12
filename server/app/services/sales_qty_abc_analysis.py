@@ -13,7 +13,8 @@ LEVELS = (
     ('make_id', 'make', 'Make'), ('purity_id', 'purity', 'Purity'),
     ('collection_id', 'collection', 'Collection'),
     ('sub_section_id', 'sub_section', 'Subsection'), ('section_id', 'section', 'Section'),
-    ('type_id', 'type', 'Type'), ('wide_range_id', 'wide_range', 'Weight Range'),
+    ('type_id', 'type', 'Type'), ('wide_range_id', 'wide_range', 'wide_range'),
+    ('range_weight', 'range_weight', 'range_weight'),
 )
 FILTERS = {
     'branch_id': ('Location', 'location_name'), 'state_name': ('State', 'state_name'),
@@ -160,9 +161,11 @@ def hierarchy(cur, filters):
         raise SourceDataError('Invalid sales return-sign configuration.')
     multiplier, invalid = (1, '> 0') if sign == 'signed' else (-1, '< 0')
     where, params = where_clause(filters)
-    keys = ', '.join(f'"{key}"' for key, _, _ in LEVELS)
+    group_keys = ', '.join(f'"{key}"' for key, _, _ in LEVELS)
+    keys = ', '.join(f'"{key}"::text AS "{key}"' if key == label else f'"{key}"'
+                     for key, label, _ in LEVELS)
     labels = ', '.join(f'COALESCE(MAX(NULLIF(TRIM("{label}"::text), \'\')), "{key}"::text, \'Unspecified\') AS "{label}"'
-                       for key, label, _ in LEVELS)
+                       for key, label, _ in LEVELS if key != label)
     cur.execute(f'''SELECT {keys}, {labels},
         COALESCE(SUM(pieces::numeric) FILTER (WHERE trans_type = 'INVOICE'), 0) AS sold_qty,
         COALESCE(SUM(net_weight) FILTER (WHERE trans_type = 'INVOICE'), 0) / 1000.0 AS sold_weight,
@@ -170,7 +173,7 @@ def hierarchy(cur, filters):
           + COALESCE(SUM(turn_over) FILTER (WHERE trans_type = 'SR'), 0) * {multiplier} AS net_turnover,
         COALESCE(SUM(mcprofit), 0) AS mcprofit,
         COUNT(*) FILTER (WHERE turn_over IS NULL OR (trans_type = 'SR' AND turn_over {invalid})) AS invalid_rows
-        FROM {SOURCE} WHERE {where} GROUP BY {keys} LIMIT {MAX_LEAVES + 1}''', params)
+        FROM {SOURCE} WHERE {where} GROUP BY {group_keys} LIMIT {MAX_LEAVES + 1}''', params)
     records = [dict(row) for row in cur.fetchall()]
     if len(records) > MAX_LEAVES:
         raise SourceDataError('Too many hierarchy groups. Narrow the date range or product/location filters.')

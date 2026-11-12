@@ -75,6 +75,17 @@ class CalculationTests(unittest.TestCase):
         self.assertEqual(zero['category'], 'Unclassified')
         self.assertEqual(report.build_tree([])['rows'], [])
 
+    def test_range_weights_group_under_wide_range(self):
+        data = report.build_tree([record(5, range_weight='0'), record(4, range_weight='2.50'),
+                                  record(3, range_weight='2.50'), record(2, range_weight=None)])
+        wide_range = data['rows'][0]
+        for _ in range(6):
+            wide_range = wide_range['children'][0]
+        self.assertEqual(data['levels'][-2:], ['wide_range', 'range_weight'])
+        self.assertEqual(wide_range['sold_qty'], 14)
+        self.assertEqual([(row['id'], row['label'], row['sold_qty']) for row in wide_range['children']],
+                         [('2.50', '2.50', 7), ('0', '0', 5), (None, 'Unspecified', 2)])
+
     def test_filter_validation_and_parameterization(self):
         for args in ({'start': 'bad'}, {'end': '2026-03-01'}, {'end': '2027-04-01'}, {'trans_type': 'DROP'}):
             with self.assertRaises(ValueError): filters(**args)

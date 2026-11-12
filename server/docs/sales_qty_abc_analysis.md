@@ -8,7 +8,7 @@ The report has independent routes, service, template, JavaScript, CSS, tests and
 
 Reads `ext_view.vw_item_wise_tsk_details_data` directly using a read-only transaction, a 30-second query timeout and parameterized filters. No snapshots, models or migrations are created. The date expression is `COALESCE(trans_date::date, date)`, inclusive of both selected dates. Defaults are financial-year-to-date in Asia/Kolkata, with at most twelve calendar months.
 
-Hierarchy: Make → Purity → Collection → Subsection → Section → Type → Weight Range. IDs identify groups within their full ancestor path; null IDs are retained as Unspecified. Weight Range maps to `wide_range_id` / `wide_range`; Subsection maps to `sub_section_id` / `sub_section`. Source schema is checked before both API queries, and missing columns produce a descriptive 422 error.
+The hierarchy is Make → Purity → Collection → Subsection → Section → Type → `wide_range` → `range_weight`. IDs identify groups within their full ancestor path. The `wide_range` level groups by `wide_range_id`, and the final level groups directly by `range_weight`. Missing values appear as Unspecified. Subsection uses `sub_section_id` and `sub_section`. Both API queries validate the source schema and report missing columns with a 422 error.
 
 Sold Qty sums the source `pieces` column for **invoice** rows in each complete hierarchy path across the selected period. Missing quantities contribute zero. Parent quantities sum their children.
 
