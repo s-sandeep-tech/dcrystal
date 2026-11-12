@@ -10,7 +10,7 @@ Reads `ext_view.vw_item_wise_tsk_details_data` directly using a read-only transa
 
 Hierarchy: Make → Purity → Collection → Subsection → Section → Type → Weight Range. IDs identify groups within their full ancestor path; null IDs are retained as Unspecified. Weight Range maps to `wide_range_id` / `wide_range`; Subsection maps to `sub_section_id` / `sub_section`. Source schema is checked before both API queries, and missing columns produce a descriptive 422 error.
 
-Sold Qty counts distinct non-null **invoice** barcodes per complete seven-level hierarchy path across the selected period, plus one per null-barcode invoice row. Parents sum leaf quantities, so each parent reconciles to its children. Repeated invoice appearances of a barcode within the same path count once; appearances in different paths count in each. This intentionally measures barcode-based sold quantity, not signed net units or the count of sales events. It differs from summing the reference report's monthly barcode counts. Returns do not subtract from Sold Qty.
+Sold Qty sums the source `pieces` column for **invoice** rows in each complete hierarchy path across the selected period. Missing quantities contribute zero. Parent quantities sum their children.
 
 Sold Weight sums invoice `net_weight` / 1000 in kg. Net Turnover combines invoice turnover and returns according to `SALES_PREDICTION_RETURN_SIGN` (`signed` by default, or `positive`). Missing turnover and incompatible return signs produce a source error. MC Profit sums `mcprofit` with source signs across included transactions. Transaction filters apply to every metric; a returns-only selection produces zero Sold Qty and Unclassified rows.
 
@@ -45,10 +45,10 @@ PYTHONPATH=server venv/bin/python -m unittest discover -s server/tests -p 'test_
 PYTHONPATH=server venv/bin/python -m unittest discover -s server/tests -p 'test_sales*tsk*py' -q
 ```
 
-Unit coverage includes ABC boundaries/crossing rows, tie ordering, zero/null groups, all-level reconciliation, parent versus overall contribution, date validation, parameterized SQL, invoice/null barcode query semantics, schema errors, result limits, read-only connection cleanup, independent report authorization, API errors and menu idempotence.
+Unit coverage includes ABC boundaries/crossing rows, tie ordering, zero/null groups, all-level reconciliation, parent versus overall contribution, date validation, parameterized SQL, invoice pieces aggregation, schema errors, result limits, read-only connection cleanup, independent report authorization, API errors and menu idempotence.
 
 Fixture Chromium checks passed for initial columns, expansion through all seven levels, search retaining calculations, optional columns, zoom, information dialog, Apply/Reset, mobile filters, error/retry and desktop/dark/mobile screenshots. No browser JavaScript errors were observed. These tests do not validate live PostgreSQL execution or real quantities.
 
-The external hostname could not resolve in the development environment. Live schema, barcode uniqueness across hierarchy paths, subsection/weight-range availability, return signs, production values and query performance still require verification from the deployment network.
+The external hostname could not resolve in the development environment. Live schema, `pieces` values, subsection/weight-range availability, return signs, and query performance still require verification from the deployment network.
 
 Exclude Makes defaults to KMU 999 COIN, CUSTOM, and KMU-COIN. Uncheck any value and Apply Filters to include it again. Matching is exact after trimming and ignoring case; missing Make labels are retained. Exclusions apply to source rows, filter options, totals and ABC calculations. Reset restores all three exclusions; applied choices persist in the URL.

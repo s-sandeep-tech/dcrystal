@@ -86,14 +86,14 @@ class CalculationTests(unittest.TestCase):
 
     def test_schema_and_query_contract(self):
         cur = MagicMock(); cur.description = []
-        with self.assertRaisesRegex(report.SourceDataError, 'sub_section_id'): report.validate_schema(cur)
+        with self.assertRaisesRegex(report.SourceDataError, 'pieces'): report.validate_schema(cur)
         cur.fetchall.return_value = [record(4)]
         with patch.dict('os.environ', {'SALES_PREDICTION_RETURN_SIGN': 'signed'}):
             data = report.hierarchy(cur, filters())
         self.assertEqual(data['totals']['sold_qty'], 4)
         sql, params = cur.execute.call_args.args
-        self.assertIn("COUNT(DISTINCT barcode) FILTER (WHERE trans_type = 'INVOICE')", sql)
-        self.assertIn("trans_type = 'INVOICE' AND barcode IS NULL", sql)
+        self.assertIn("COALESCE(SUM(pieces::numeric) FILTER (WHERE trans_type = 'INVOICE'), 0) AS sold_qty", sql)
+        self.assertNotIn('barcode', sql)
         self.assertIn('"wide_range_id"', sql)
         self.assertNotIn('2026-04-01', sql)
         self.assertIn('LIMIT 20001', sql)

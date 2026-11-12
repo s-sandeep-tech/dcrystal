@@ -69,10 +69,9 @@ def build_matrix(records, filters):
 
 def matrix(cur, filters):
     _, key, label = GROUPS[filters['group_by']]
-    # Count each null barcode independently, equivalent to a unique fallback per row.
     cur.execute(f'SELECT * FROM {source.SOURCE} LIMIT 0')
     columns = {column.name for column in cur.description}
-    missing = [name for name in (key, label, 'barcode', 'mcprofit') if name not in columns]
+    missing = [name for name in (key, label, 'pieces', 'mcprofit') if name not in columns]
     if missing:
         raise source.SourceDataError('Source columns missing: ' + ', '.join(missing) + '.')
     where, params = source.where_clause(filters)
@@ -80,7 +79,7 @@ def matrix(cur, filters):
         COALESCE(MAX(NULLIF(TRIM("{label}"::text), '')), "{key}"::text, 'Unspecified') AS label,
         date_trunc('month', {source.SALES_DATE})::date AS month,
         {source.aggregates()}, COALESCE(SUM(mcprofit), 0) AS mcprofit,
-        COUNT(DISTINCT barcode) + COUNT(*) FILTER (WHERE barcode IS NULL) AS pieces
+        COALESCE(SUM(pieces::numeric), 0) AS pieces
         FROM {source.SOURCE} WHERE {where} GROUP BY "{key}", 3''', params)
     return build_matrix(records, filters)
 

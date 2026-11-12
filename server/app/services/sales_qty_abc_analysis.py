@@ -97,7 +97,7 @@ def source_cursor():
 def validate_schema(cur):
     cur.execute(f'SELECT * FROM {SOURCE} LIMIT 0')
     columns = {c.name for c in cur.description}
-    required = {'barcode', 'trans_type', 'trans_date', 'date', 'net_weight', 'turn_over', 'mcprofit'}
+    required = {'pieces', 'trans_type', 'trans_date', 'date', 'net_weight', 'turn_over', 'mcprofit'}
     required.update(key for key, _, _ in LEVELS)
     required.update(label for _, label, _ in LEVELS)
     required.update(FILTERS)
@@ -164,8 +164,7 @@ def hierarchy(cur, filters):
     labels = ', '.join(f'COALESCE(MAX(NULLIF(TRIM("{label}"::text), \'\')), "{key}"::text, \'Unspecified\') AS "{label}"'
                        for key, label, _ in LEVELS)
     cur.execute(f'''SELECT {keys}, {labels},
-        COUNT(DISTINCT barcode) FILTER (WHERE trans_type = 'INVOICE')
-          + COUNT(*) FILTER (WHERE trans_type = 'INVOICE' AND barcode IS NULL) AS sold_qty,
+        COALESCE(SUM(pieces::numeric) FILTER (WHERE trans_type = 'INVOICE'), 0) AS sold_qty,
         COALESCE(SUM(net_weight) FILTER (WHERE trans_type = 'INVOICE'), 0) / 1000.0 AS sold_weight,
         COALESCE(SUM(turn_over) FILTER (WHERE trans_type = 'INVOICE'), 0)
           + COALESCE(SUM(turn_over) FILTER (WHERE trans_type = 'SR'), 0) * {multiplier} AS net_turnover,

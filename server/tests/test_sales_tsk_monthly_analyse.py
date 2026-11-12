@@ -54,13 +54,17 @@ class MatrixTests(unittest.TestCase):
         self.assertEqual([m['is_partial'] for m in report.month_list(f)],[True,False,True])
 
     def test_schema_validation_and_safe_query(self):
-        cur=MagicMock(); cur.description=[]
-        with self.assertRaises(report.source.SourceDataError): report.matrix(cur,filters())
-        cur.description=[SimpleNamespace(name=n) for n in ['group_id','group','barcode','mcprofit']]
+        cur = MagicMock()
+        cur.description = [SimpleNamespace(name=n) for n in ('group_id', 'group', 'mcprofit')]
+        with self.assertRaisesRegex(report.source.SourceDataError, 'Source columns missing: pieces'):
+            report.matrix(cur, filters(group_by='group'))
+        cur.description.append(SimpleNamespace(name='pieces'))
         with patch.object(report.source,'query',return_value=[]) as query:
             report.matrix(cur,filters(group_by='group'))
             sql=query.call_args.args[1]
-            self.assertIn('COUNT(DISTINCT barcode) + COUNT(*) FILTER (WHERE barcode IS NULL) AS pieces',sql); self.assertIn('GROUP BY "group_id", 3',sql)
+            self.assertIn('COALESCE(SUM(pieces::numeric), 0) AS pieces', sql)
+            self.assertNotIn('barcode', sql)
+            self.assertIn('GROUP BY "group_id", 3', sql)
             self.assertNotIn('2026-04-01',sql)
             self.assertIn('COALESCE(SUM(mcprofit), 0) AS mcprofit', sql)
 
