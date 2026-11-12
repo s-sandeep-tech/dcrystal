@@ -292,73 +292,75 @@ def sync_pending_order_details_task(task_type_override=None, progress_range=(0, 
     try:
         emit('processing', 'Starting Pending Order Details Sync...', 5)
         conn = get_external_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
+
         emit('processing', 'Fetching data from Azure PostgreSQL...', 20)
-        query = "SELECT * FROM ext_view.vw_pending_order_details"
-        
-        start_time = time.time()
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        duration = time.time() - start_time
-        
-        logger.info(f"vw_pending_order_details query took {duration:.2f} seconds.")
-        emit('processing', f'Fetched {len(rows)} records. Updating local database...', 50)
-        
-        db.session.query(PendingOrderDetailsSnapshot).delete()
-        
-        new_records = []
-        for row in rows:
-            new_records.append({
-                'location': row.get('location'),
-                'branch_id': row.get('branch_id'),
-                'supplier': row.get('supplier'),
-                'order_date': row.get('order_date'),
-                'order_type': row.get('order_type'),
-                'order_request_type': row.get('order_request_type'),
-                'order_ro': row.get('order_ro'),
-                'division': row.get('division'),
-                'group_name': row.get('group'),
-                'purity': row.get('purity'),
-                'classification': row.get('classification'),
-                'make': row.get('make'),
-                'collection': row.get('collection'),
-                'classification_owner': row.get('classification_owner'),
-                'collection_owner': row.get('collection_owner'),
-                'make_owner': row.get('make_owner'),
-                'provision_type': row.get('provision_type'),
-                'branch_type': row.get('branch_type'),
-                'branch_provision_type': row.get('branch_provision_type'),
-                'qc_ro': row.get('qc_ro'),
-                'customer_order_type': row.get('customer_order_type'),
-                'is_discount_party': row.get('is_discount_party'),
-                'business_head_name': row.get('business_head_name'),
-                'bh_emp_code': row.get('bh_emp_code'),
-                'accept_pending_pcs': row.get('accept_pending_pcs') or 0,
-                'accept_pending_wt': row.get('accept_pending_wt') or 0.0,
-                'process_pending_pcs': row.get('process_pending_pcs') or 0,
-                'process_pending_wt': row.get('process_pending_wt') or 0.0,
-                'barcode_pending_pcs': row.get('barcode_pending_pcs') or 0,
-                'barcode_pending_wt': row.get('barcode_pending_wt') or 0.0,
-                'hallmark_pending_pcs': row.get('hallmark_pending_pcs') or 0,
-                'hallmark_pending_wt': row.get('hallmark_pending_wt') or 0.0,
-                'qc_issue_pending_pcs': row.get('qc_issue_pending_pcs') or 0,
-                'qc_issue_pending_wt': row.get('qc_issue_pending_wt') or 0.0,
-                'qc_complete_pending_pcs': row.get('qc_complete_pending_pcs') or 0,
-                'qc_complete_pending_wt': row.get('qc_complete_pending_wt') or 0.0,
-                'invoice_pending_pcs': row.get('invoice_pending_pcs') or 0,
-                'invoice_pending_wt': row.get('invoice_pending_wt') or 0.0,
-                'total_pcs': row.get('total_pcs') or 0,
-                'total_weight': row.get('total_wt') or 0.0
-            })
-            
-        db.session.bulk_insert_mappings(PendingOrderDetailsSnapshot, new_records)
+        start_time = time.monotonic()
+        batch_size = 2000
+        loaded = 0
+
+        # Serialize snapshot replacements while allowing reports to read the committed snapshot.
+        db.session.execute(text('LOCK TABLE pending_order_details_snapshot IN SHARE ROW EXCLUSIVE MODE'))
+        with conn.cursor(name='pending_order_details_sync', cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM ext_view.vw_pending_order_details")
+            rows = cur.fetchmany(batch_size)
+            emit('processing', 'Updating the local Pending Order Details snapshot in batches...', 50)
+            db.session.query(PendingOrderDetailsSnapshot).delete(synchronize_session=False)
+
+            while rows:
+                new_records = [{
+                    'location': row.get('location'),
+                    'branch_id': row.get('branch_id'),
+                    'supplier': row.get('supplier'),
+                    'order_date': row.get('order_date'),
+                    'order_type': row.get('order_type'),
+                    'order_request_type': row.get('order_request_type'),
+                    'order_ro': row.get('order_ro'),
+                    'division': row.get('division'),
+                    'group_name': row.get('group'),
+                    'purity': row.get('purity'),
+                    'classification': row.get('classification'),
+                    'make': row.get('make'),
+                    'collection': row.get('collection'),
+                    'classification_owner': row.get('classification_owner'),
+                    'collection_owner': row.get('collection_owner'),
+                    'make_owner': row.get('make_owner'),
+                    'provision_type': row.get('provision_type'),
+                    'branch_type': row.get('branch_type'),
+                    'branch_provision_type': row.get('branch_provision_type'),
+                    'qc_ro': row.get('qc_ro'),
+                    'customer_order_type': row.get('customer_order_type'),
+                    'is_discount_party': row.get('is_discount_party'),
+                    'business_head_name': row.get('business_head_name'),
+                    'bh_emp_code': row.get('bh_emp_code'),
+                    'accept_pending_pcs': row.get('accept_pending_pcs') or 0,
+                    'accept_pending_wt': row.get('accept_pending_wt') or 0.0,
+                    'process_pending_pcs': row.get('process_pending_pcs') or 0,
+                    'process_pending_wt': row.get('process_pending_wt') or 0.0,
+                    'barcode_pending_pcs': row.get('barcode_pending_pcs') or 0,
+                    'barcode_pending_wt': row.get('barcode_pending_wt') or 0.0,
+                    'hallmark_pending_pcs': row.get('hallmark_pending_pcs') or 0,
+                    'hallmark_pending_wt': row.get('hallmark_pending_wt') or 0.0,
+                    'qc_issue_pending_pcs': row.get('qc_issue_pending_pcs') or 0,
+                    'qc_issue_pending_wt': row.get('qc_issue_pending_wt') or 0.0,
+                    'qc_complete_pending_pcs': row.get('qc_complete_pending_pcs') or 0,
+                    'qc_complete_pending_wt': row.get('qc_complete_pending_wt') or 0.0,
+                    'invoice_pending_pcs': row.get('invoice_pending_pcs') or 0,
+                    'invoice_pending_wt': row.get('invoice_pending_wt') or 0.0,
+                    'total_pcs': row.get('total_pcs') or 0,
+                    'total_weight': row.get('total_wt') or 0.0
+                } for row in rows]
+                db.session.bulk_insert_mappings(PendingOrderDetailsSnapshot, new_records)
+                loaded += len(rows)
+                rows = cur.fetchmany(batch_size)
+
         db.session.commit()
-        
-        emit('success', f'Sync completed! {len(rows)} records updated.', 100)
-        return {"status": "success", "count": len(rows)}
-        
+        logger.info('Synced %s pending order details in %.2f seconds.', loaded, time.monotonic() - start_time)
+        emit('success', f'Sync completed! {loaded} records updated.', 100)
+        return {"status": "success", "count": loaded}
+
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
