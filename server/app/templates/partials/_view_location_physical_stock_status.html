@@ -80,8 +80,8 @@
                                   onclick="toggleAllSectionDetails(this)"
                                   title="Expand/Shrink All">keyboard_double_arrow_down</span>
                             {% endif %}
-                            {% if title == 'Make Wise' or title == 'Section Wise' or title == 'Purity Wise' or title == 'Collection Wise' or title == 'Section Details' %}
-                            {% set filter_id = 'make' if title == 'Make Wise' else ('section' if (title == 'Section Wise' or title == 'Section Details') else ('collection' if title == 'Collection Wise' else 'purity')) %}
+                            {% if title == 'Make Wise' or title == 'Purity Wise' or title == 'Collection Wise' or title == 'Section Details' %}
+                            {% set filter_id = 'make' if title == 'Make Wise' else ('section' if title == 'Section Details' else ('collection' if title == 'Collection Wise' else 'purity')) %}
                             <span class="header-filter-container material-symbols-outlined text-[14px] cursor-pointer hover:text-primary transition-colors" 
                                   data-id="{{ filter_id }}" 
                                   onclick="toggleHeaderFilter(event, '{{ filter_id }}')">filter_alt</span>
@@ -270,12 +270,6 @@
             {% if 'Provision Type Wise' in segments %}
             <div class="break-inside-avoid mb-8 inline-block w-full">
                 {{ render_std_table('Provision Type Wise', segments['Provision Type Wise']) }}
-            </div>
-            {% endif %}
-
-            {% if 'Section Wise' in segments %}
-            <div class="break-inside-avoid mb-8 inline-block w-full">
-                {{ render_std_table('Section Wise', segments['Section Wise'], show_pcs=true, show_drilldown=true) }}
             </div>
             {% endif %}
 

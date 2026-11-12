@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sectionHeaderFilter = new HeaderFilter({
         id: 'section',
-        title: 'Section Wise',
+        title: 'Section Details',
         onApply: (values) => {
             applyFilters();
         },
