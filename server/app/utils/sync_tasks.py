@@ -4170,133 +4170,140 @@ def sync_order_fulfillment_aging_matrix_task(task_type_override=None, progress_r
 
 
 def sync_collection_wise_average_delivery_days_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
-    conn = None
     TASK_TYPE = task_type_override or 'collection_wise_average_delivery_days'
 
     def emit(status, message, progress):
         emit_combined_sync_update(status, message, progress, TASK_TYPE, progress_range, is_subtask)
 
-    try:
-        emit('processing', 'Starting Collection Wise Average Delivery Days Sync...', 5)
-        conn = get_external_db_connection()
-        conn.set_session(readonly=True, autocommit=False)
-        with conn.cursor() as settings_cursor:
-            settings_cursor.execute("SET LOCAL statement_timeout = '3min'")
+    max_attempts = 3
+    for attempt in range(1, max_attempts + 1):
+        conn = None
+        try:
+            emit('processing', f'Starting Collection Wise Average Delivery Days Sync (attempt {attempt}/{max_attempts})...', 5)
+            conn = get_external_db_connection()
+            conn.set_session(readonly=True, autocommit=False)
+            with conn.cursor() as settings_cursor:
+                settings_cursor.execute("SET LOCAL statement_timeout = '3min'")
 
-        emit('processing', 'Fetching data from ext_view.vw_muziris_inshop_receipt_tracking...', 20)
-        start_time = time.monotonic()
-        batch_size = 2000
-        loaded = 0
-        with conn.cursor(name='collection_delivery_days_sync', cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT * FROM ext_view.vw_muziris_inshop_receipt_tracking")
-            rows = cur.fetchmany(batch_size)
-
-            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
-            db.session.execute(text("SET LOCAL statement_timeout = '3min'"))
-            db.session.execute(text(
-                'LOCK TABLE snapshot_collection_wise_average_delivery_days IN SHARE ROW EXCLUSIVE MODE'
-            ))
-            db.session.query(CollectionWiseAverageDeliveryDaysSnapshot).delete(synchronize_session=False)
-            emit('processing', 'Updating the local delivery days snapshot in batches...', 50)
-            next_progress_log = time.monotonic() + 30
-
-            while rows:
-                new_records = []
-                for row in rows:
-                    new_records.append({
-                        'id': row.get('id'),
-                        'order_id': row.get('order_id'),
-                        'purchase_bill_id': row.get('purchase_bill_id'),
-                        'morr_id': row.get('morr_id'),
-                        'item_definition_id': row.get('item_definition_id'),
-                        'branch_id': row.get('branch_id'),
-                        'location': row.get('location'),
-                        'group_id': row.get('group_id'),
-                        'group_name': row.get('group'),
-                        'purity_id': row.get('purity_id'),
-                        'purity': row.get('purity'),
-                        'classification_id': row.get('classification_id'),
-                        'classification': row.get('classification'),
-                        'sub_classification_id': row.get('sub_classification_id'),
-                        'sub_classification': row.get('sub_classification'),
-                        'section_id': row.get('section_id'),
-                        'section': row.get('section'),
-                        'type_id': row.get('type_id'),
-                        'type': row.get('type'),
-                        'make_id': row.get('make_id'),
-                        'make': row.get('make'),
-                        'master_collection_id': row.get('master_collection_id'),
-                        'master_collection': row.get('master_collection'),
-                        'collection_id': row.get('collection_id'),
-                        'collection': row.get('collection'),
-                        'sub_section_id': row.get('sub_section_id'),
-                        'sub_section': row.get('sub_section'),
-                        'gender_id': row.get('gender_id'),
-                        'gender': row.get('gender'),
-                        'wide_range_id': row.get('wide_range_id'),
-                        'wide_range': row.get('wide_range'),
-                        'weight': row.get('weight'),
-                        'size_id': row.get('size_id'),
-                        'size': row.get('size'),
-                        'screw_type_id': row.get('screw_type_id'),
-                        'screw_type': row.get('screw_type'),
-                        'design_id': row.get('design_id'),
-                        'design_no': row.get('design_no'),
-                        'barcode_no': row.get('barcode_no'),
-                        'ordered_date': row.get('ordered_date'),
-                        'crystal_invoice_date': row.get('crystal_invoice_date'),
-                        'muziris_inshop_received_date': row.get('muziris_inshop_received_date'),
-                        'morr_received_date': row.get('morr_received_date'),
-                        'is_excluded': row.get('is_excluded'),
-                        'received_branch_id': row.get('received_branch_id'),
-                        'received_location': row.get('received_location'),
-                        'last_updated_at': row.get('last_updated_at'),
-                        'order_request_type': row.get('order_request_type'),
-                        'order_request_type_name': row.get('order_request_type_name'),
-                        'current_branch_id': row.get('current_branch_id'),
-                        'current_location': row.get('current_location'),
-                        'hm_issue_date': row.get('hm_issue_date'),
-                        'qc_issue_date': row.get('qc_issue_date'),
-                        'hm_receipt_date': row.get('hm_receipt_date'),
-                        'qc_receipt_date': row.get('qc_receipt_date'),
-                        'branch_type': row.get('branch_type'),
-                        'by_hand': row.get('by_hand'),
-                        'supplier_id': row.get('supplier_id'),
-                        'supplier_name': row.get('supplier_name'),
-                        'delivery_days': row.get('delivery_days'),
-                        'order_period': row.get('order_period'),
-                        'classification_owner': row.get('classification_owner'),
-                        'make_owner': row.get('make_owner'),
-                        'collection_owner': row.get('collection_owner'),
-                        'classification_user_code': row.get('classification_user_code'),
-                        'make_user_code': row.get('make_user_code'),
-                        'collection_user_code': row.get('collection_user_code'),
-                        'is_re_ordered': row.get('is_re_ordered'),
-                        'in_transit_days': row.get('in_transit_days')
-                    })
-
-                db.session.bulk_insert_mappings(CollectionWiseAverageDeliveryDaysSnapshot, new_records)
-                loaded += len(rows)
-                now = time.monotonic()
-                if now >= next_progress_log:
-                    logger.info('Collection Wise Average Delivery Days: loaded %s rows, awaiting commit.', loaded)
-                    emit('processing', f'Loaded {loaded:,} delivery days records...', 70)
-                    next_progress_log = now + 30
+            emit('processing', 'Fetching data from ext_view.vw_muziris_inshop_receipt_tracking...', 20)
+            start_time = time.monotonic()
+            batch_size = 2000
+            loaded = 0
+            with conn.cursor(name='collection_delivery_days_sync', cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT * FROM ext_view.vw_muziris_inshop_receipt_tracking")
                 rows = cur.fetchmany(batch_size)
 
-        db.session.commit()
-        logger.info('Synced %s Collection Wise Average Delivery Days rows in %.2f seconds.',
-                    loaded, time.monotonic() - start_time)
-        emit('success', f'Sync completed! {loaded:,} records updated.', 100)
-        return {"status": "success", "count": loaded}
-    except Exception as e:
-        db.session.rollback()
-        error_msg = str(e)
-        logger.error(f"CollectionWiseAverageDeliveryDays Sync error: {error_msg}")
-        emit('error', f'Sync failed: {error_msg}', 0)
-        return {"status": "error", "message": error_msg}
-    finally:
-        if conn: conn.close()
+                db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+                db.session.execute(text("SET LOCAL statement_timeout = '3min'"))
+                db.session.execute(text(
+                    'LOCK TABLE snapshot_collection_wise_average_delivery_days IN SHARE ROW EXCLUSIVE MODE'
+                ))
+                db.session.query(CollectionWiseAverageDeliveryDaysSnapshot).delete(synchronize_session=False)
+                emit('processing', 'Updating the local delivery days snapshot in batches...', 50)
+                next_progress_log = time.monotonic() + 30
+
+                while rows:
+                    new_records = []
+                    for row in rows:
+                        new_records.append({
+                            'id': row.get('id'),
+                            'order_id': row.get('order_id'),
+                            'purchase_bill_id': row.get('purchase_bill_id'),
+                            'morr_id': row.get('morr_id'),
+                            'item_definition_id': row.get('item_definition_id'),
+                            'branch_id': row.get('branch_id'),
+                            'location': row.get('location'),
+                            'group_id': row.get('group_id'),
+                            'group_name': row.get('group'),
+                            'purity_id': row.get('purity_id'),
+                            'purity': row.get('purity'),
+                            'classification_id': row.get('classification_id'),
+                            'classification': row.get('classification'),
+                            'sub_classification_id': row.get('sub_classification_id'),
+                            'sub_classification': row.get('sub_classification'),
+                            'section_id': row.get('section_id'),
+                            'section': row.get('section'),
+                            'type_id': row.get('type_id'),
+                            'type': row.get('type'),
+                            'make_id': row.get('make_id'),
+                            'make': row.get('make'),
+                            'master_collection_id': row.get('master_collection_id'),
+                            'master_collection': row.get('master_collection'),
+                            'collection_id': row.get('collection_id'),
+                            'collection': row.get('collection'),
+                            'sub_section_id': row.get('sub_section_id'),
+                            'sub_section': row.get('sub_section'),
+                            'gender_id': row.get('gender_id'),
+                            'gender': row.get('gender'),
+                            'wide_range_id': row.get('wide_range_id'),
+                            'wide_range': row.get('wide_range'),
+                            'weight': row.get('weight'),
+                            'size_id': row.get('size_id'),
+                            'size': row.get('size'),
+                            'screw_type_id': row.get('screw_type_id'),
+                            'screw_type': row.get('screw_type'),
+                            'design_id': row.get('design_id'),
+                            'design_no': row.get('design_no'),
+                            'barcode_no': row.get('barcode_no'),
+                            'ordered_date': row.get('ordered_date'),
+                            'crystal_invoice_date': row.get('crystal_invoice_date'),
+                            'muziris_inshop_received_date': row.get('muziris_inshop_received_date'),
+                            'morr_received_date': row.get('morr_received_date'),
+                            'is_excluded': row.get('is_excluded'),
+                            'received_branch_id': row.get('received_branch_id'),
+                            'received_location': row.get('received_location'),
+                            'last_updated_at': row.get('last_updated_at'),
+                            'order_request_type': row.get('order_request_type'),
+                            'order_request_type_name': row.get('order_request_type_name'),
+                            'current_branch_id': row.get('current_branch_id'),
+                            'current_location': row.get('current_location'),
+                            'hm_issue_date': row.get('hm_issue_date'),
+                            'qc_issue_date': row.get('qc_issue_date'),
+                            'hm_receipt_date': row.get('hm_receipt_date'),
+                            'qc_receipt_date': row.get('qc_receipt_date'),
+                            'branch_type': row.get('branch_type'),
+                            'by_hand': row.get('by_hand'),
+                            'supplier_id': row.get('supplier_id'),
+                            'supplier_name': row.get('supplier_name'),
+                            'delivery_days': row.get('delivery_days'),
+                            'order_period': row.get('order_period'),
+                            'classification_owner': row.get('classification_owner'),
+                            'make_owner': row.get('make_owner'),
+                            'collection_owner': row.get('collection_owner'),
+                            'classification_user_code': row.get('classification_user_code'),
+                            'make_user_code': row.get('make_user_code'),
+                            'collection_user_code': row.get('collection_user_code'),
+                            'is_re_ordered': row.get('is_re_ordered'),
+                            'in_transit_days': row.get('in_transit_days')
+                        })
+
+                    db.session.bulk_insert_mappings(CollectionWiseAverageDeliveryDaysSnapshot, new_records)
+                    loaded += len(rows)
+                    now = time.monotonic()
+                    if now >= next_progress_log:
+                        logger.info('Collection Wise Average Delivery Days: loaded %s rows, awaiting commit.', loaded)
+                        emit('processing', f'Loaded {loaded:,} delivery days records...', 70)
+                        next_progress_log = now + 30
+                    rows = cur.fetchmany(batch_size)
+
+            db.session.commit()
+            logger.info('Synced %s Collection Wise Average Delivery Days rows in %.2f seconds.',
+                        loaded, time.monotonic() - start_time)
+            emit('success', f'Sync completed! {loaded:,} records updated.', 100)
+            return {"status": "success", "count": loaded}
+        except Exception as exc:
+            db.session.rollback()
+            error_msg = str(exc)
+            logger.error('CollectionWiseAverageDeliveryDays sync failed (attempt %s/%s): %s',
+                         attempt, max_attempts, error_msg)
+            if not isinstance(exc, (psycopg2.OperationalError, psycopg2.InterfaceError)) or attempt == max_attempts:
+                emit('error', f'Sync failed: {error_msg}', 0)
+                return {"status": "error", "message": error_msg}
+            emit('processing', f'Source database error. Retrying in 5 seconds: {error_msg}', 5)
+        finally:
+            if conn is not None:
+                conn.close()
+        time.sleep(5)
 
 
 PARTY_PERFORMANCE_SYNC_SPECS = (
