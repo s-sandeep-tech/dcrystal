@@ -315,7 +315,9 @@
         }
         document.getElementById('xyz-order-label').textContent = hierarchy.querySelector('strong').textContent;
         const selectedPath = hierarchy.querySelector('span').textContent;
-        document.getElementById('xyz-selected-hierarchy').textContent = selectedPath;
+        const selectedHierarchy = document.getElementById('xyz-selected-hierarchy');
+        selectedHierarchy.textContent = selectedPath;
+        selectedHierarchy.title = selectedPath;
         document.getElementById('xyz-info-hierarchy').textContent = selectedPath;
     }
     for (const button of hierarchyButtons) {
