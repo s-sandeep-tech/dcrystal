@@ -140,6 +140,8 @@ def build_tree(records):
     def finish(parent):
         quantity = parent['sold_qty']
         parent['profit_per_piece'] = parent['invoice_profit'] / quantity if quantity else None
+        turnover = parent['net_turnover']
+        parent['profit_turnover_pct'] = parent['profit'] * 100 / turnover if turnover > 0 else None
         children = sorted(parent['children'].values(), key=lambda n: (-n['sold_qty'], n['label'], str(n['id'])))
         running = Decimal(0)
         for rank, node in enumerate(children, 1):

@@ -12,7 +12,7 @@
     const number = value => Number(value).toLocaleString('en-IN', {maximumFractionDigits: 2});
     const percent = value => value == null ? '—' : `${number(value)}%`;
     const money = value => `${(value / 10000000).toLocaleString('en-IN', {maximumFractionDigits: 2, minimumFractionDigits: 2})} Cr`;
-    const columns = [['overall', 'Overall Contribution %'], ['sold_weight', 'Sold Weight (kg)'], ['net_turnover', 'Net Turnover'], ['profit', 'Profit'], ['profit_per_piece', 'Profit per Piece']];
+    const columns = [['overall', 'Contribution %'], ['sold_weight', 'Sold Weight (kg)'], ['net_turnover', 'Net Turnover'], ['profit', 'Profit'], ['profit_per_piece', 'Profit/Pc'], ['profit_turnover_pct', 'Profit % of Turnover']];
     function element(tag, text, className) {
         const node = document.createElement(tag);
         if (text != null) node.textContent = text;
@@ -105,8 +105,15 @@
         const table = element('table'); table.style.setProperty('--abc-zoom', zoom);
         const caption = element('caption', 'Sales Quantity ABC Analysis — ranked within each parent'); caption.className = 'sr-only'; table.append(caption);
         const head = table.createTHead().insertRow();
-        ['Hierarchy', 'Rank', 'Sold Qty', 'Contribution %', 'Cumulative %', 'Category', ...columns.filter(([key]) => extraColumns.has(key)).map(([, title]) => title)].forEach((title, index) => {
-            const th = element('th', title, index === 0 ? 'abc-hierarchy' : ''); th.scope = 'col'; head.append(th);
+        const headers = [['hierarchy', 'Hierarchy'], ['rank', 'Rank'], ['sold_qty', 'Sold Qty'],
+                         ['contribution', 'Contribution %'], ['cumulative', 'Cumulative %'], ['category', 'Category'],
+                         ...columns.filter(([key]) => extraColumns.has(key))];
+        headers.forEach(([key, title]) => {
+            const th = element('th', title, key === 'hierarchy' ? 'abc-hierarchy' : '');
+            th.scope = 'col';
+            if (key === 'contribution') th.title = 'Share of parent Sold Qty';
+            if (key === 'overall') th.title = 'Share of filtered report Sold Qty';
+            head.append(th);
         });
         const body = table.createTBody(); let count = 0;
         function extras(tr, row, total = false) {
@@ -115,6 +122,11 @@
                 if (key === 'profit_per_piece') {
                     const value = row[key];
                     cell.textContent = value == null ? '' : `₹${number(value)}`;
+                    continue;
+                }
+                if (key === 'profit_turnover_pct') {
+                    const value = row[key];
+                    cell.textContent = value == null ? '' : percent(value);
                     continue;
                 }
                 cell.textContent = key === 'overall' ? percent(total ? (row.sold_qty > 0 ? 100 : null) : row.overall) : key === 'sold_weight' ? number(row[key]) : money(row[key]);

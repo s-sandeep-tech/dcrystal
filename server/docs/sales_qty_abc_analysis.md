@@ -16,9 +16,9 @@ Sold Weight sums invoice `net_weight` / 1000 in kg. Net Turnover combines invoic
 
 ## ABC and display
 
-All eleven columns display by default: Hierarchy, Rank, Sold Qty, Contribution %, Cumulative %, Category, Overall Contribution %, Sold Weight (kg), Net Turnover, Profit, Profit per Piece. The last five columns can be hidden using the Columns menu. Table rows use compact vertical spacing. Net Turnover and Profit display in Cr with full-value tooltips. Profit per Piece divides invoice TSK by Sold Qty at each level and in the footer. It displays in rupees and is blank when Sold Qty is zero.
+All twelve columns display by default: Hierarchy, Rank, Sold Qty, Contribution %, Cumulative %, Category, Contribution % (report-wide), Sold Weight (kg), Net Turnover, Profit, Profit/Pc, Profit % of Turnover. The last six columns can be hidden using the Columns menu. Table rows use compact vertical spacing. Net Turnover and Profit display in Cr with full-value tooltips. Profit/Pc divides invoice TSK by Sold Qty at each level and in the footer. It displays in rupees and is blank when Sold Qty is zero. Profit % of Turnover uses total TSK divided by positive Net Turnover, multiplied by 100, at each level and in the footer.
 
-Siblings sort by quantity descending, then label, then ID; Rank is a sequential position. Contribution divides by parent quantity (report total at Make level). Cumulative contribution restarts within each parent. Overall Contribution divides by report quantity. Full-precision calculations precede display rounding.
+Siblings sort by quantity descending, then label, then ID; Rank is a sequential position. Contribution divides by parent quantity (report total at Make level). Cumulative contribution restarts within each parent. The Contribution % after Category divides by report quantity. Full-precision calculations precede display rounding.
 
 The category uses cumulative contribution **before** the current row: below 80% is A; below 95% is B; otherwise C. Thus the row crossing a threshold remains in the category it completes. Exact 80% and 95% boundaries start the next category. A single dominant row is A. Ties are deterministically ordered and can span categories. Zero quantities are Unclassified; non-positive denominators show unavailable percentages.
 
