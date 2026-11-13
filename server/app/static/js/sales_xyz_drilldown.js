@@ -3,6 +3,8 @@
 
     const report = document.getElementById('xyz-report');
     const form = document.getElementById('xyz-filters');
+    const defaultBranchTypes = Object.entries(JSON.parse(form.dataset.defaultBranchTypes))
+        .map(([value, label]) => ({value, label}));
     const status = document.getElementById('xyz-status');
     const tbody = document.getElementById('xyz-rows');
     const tableWrap = tbody.closest('.xyz-table-wrap');
@@ -262,7 +264,13 @@
         }
         for (const panel of filters) {
             const select = panel.querySelector('select');
-            replaceOptions(select, [], applied.getAll(select.name));
+            const defaults = select.name === 'branch_type' ? defaultBranchTypes : [];
+            const selected = applied.getAll(select.name).map(value =>
+                select.name === 'branch_type' && value === 'FRANCHISE' ? 'FRANCHISE_SHOP' : value);
+            if (select.name === 'branch_type' && !selected.length && !applied.has('branch_type_set')) {
+                selected.push(...defaults.map(option => option.value));
+            }
+            replaceOptions(select, defaults, selected);
             delete panel.dataset.loaded;
         }
     }

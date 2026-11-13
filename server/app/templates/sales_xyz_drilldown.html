@@ -79,7 +79,8 @@
 {% endblock %}
 {% block sidebar %}
 <aside id="xyz-sidebar" aria-label="Sales XYZ filters">
-    <form id="xyz-filters">
+    <form id="xyz-filters" data-default-branch-types='{{ default_branch_types | tojson }}'>
+        <input type="hidden" name="branch_type_set" value="1">
         <div class="xyz-filter-body">
             <div class="xyz-filter-heading"><h2>Filters</h2><button type="reset">Reset</button></div>
             <div class="xyz-dates">
@@ -110,5 +111,5 @@
 </aside>
 {% endblock %}
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261113-whole-percent') }}"></script>
+<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261114-franchise-shop') }}"></script>
 {% endblock %}

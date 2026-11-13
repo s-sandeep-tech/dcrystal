@@ -39,12 +39,12 @@ class SalesXYZTests(unittest.TestCase):
         parent = report.parse_parent('["4",null,"0.00"]')
         where, params = report.where_clause(filters(trans_type='INVOICE'), parent)
         self.assertIn('"purity_id"::text IS NOT DISTINCT FROM %s', where)
-        self.assertEqual(params[-4:], [['INVOICE'], '4', None, '0.00'])
+        self.assertEqual(params[-5:], [['INVOICE'], ['SHOP', 'FRANCHISE_SHOP'], '4', None, '0.00'])
 
     def test_leaf_query_groups_type_and_wide_range_and_preserves_totals(self):
         cursor = MagicMock()
         cursor.description = [SimpleNamespace(name=name) for name in (
-            'pieces', 'net_weight', 'turn_over', 'tsk', 'trans_type', 'trans_date', 'date', 'make',
+            'pieces', 'net_weight', 'turn_over', 'tsk', 'trans_type', 'trans_date', 'date', 'make', 'branch_type',
             *(key for key, _, _ in report.LEVELS), 'type_id', 'type', 'wide_range_id', 'wide_range',
         )]
         cursor.fetchall.return_value = [{

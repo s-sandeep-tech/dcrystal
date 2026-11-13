@@ -30,6 +30,7 @@ HIERARCHIES = {
 }
 FILTERS = {
     'branch_id': ('location_name', 'Location'),
+    'branch_type': ('branch_type', 'Branch Type'),
     'state_name': ('state_name', 'State'),
     'location_group': ('location_group', 'Location Group'),
     **{key: (label, title) for key, label, title in (*LEVELS, *DETAILS)},
@@ -39,6 +40,7 @@ FILTERS = {
     'trans_type': ('trans_type', 'Transaction Type'),
 }
 EXCLUDED_MAKES = ('KMU 999 COIN', 'CUSTOM', 'KMU-COIN')
+DEFAULT_BRANCH_TYPES = {'SHOP': 'SHOP', 'FRANCHISE_SHOP': 'FRANCHISE_SHOP'}
 METRICS = ('pieces', 'weight', 'turnover', 'profit')
 ABC_METRICS = ('pieces', 'weight', 'turnover', 'tsk')
 MAX_SIBLINGS = 20000
@@ -67,6 +69,13 @@ def parse_filters(args):
             raise ValueError('Too many or invalid filter values.')
         if values:
             selections[field] = values
+    if 'branch_type' in selections:
+        # Support links saved when Franchise used a shorter filter value.
+        selections['branch_type'] = list(dict.fromkeys(
+            'FRANCHISE_SHOP' if value == 'FRANCHISE' else value for value in selections['branch_type']
+        ))
+    elif not args.get('branch_type_set'):
+        selections['branch_type'] = list(DEFAULT_BRANCH_TYPES)
     if set(selections.get('trans_type', ())) - {'INVOICE', 'SR'}:
         raise ValueError('Choose Invoice or Sales Return.')
     exclusions = list(dict.fromkeys(value.strip().upper() for value in args.getlist('exclude_make')))
