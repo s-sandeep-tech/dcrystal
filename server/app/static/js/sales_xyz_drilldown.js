@@ -122,7 +122,10 @@
                 appendMetrics(tr, row);
                 for (const key of categoryKeys) {
                     const category = row.categories[key];
-                    tr.insertCell().append(element('span', category, `xyz-category xyz-${category.toLowerCase()}`));
+                    const cell = tr.insertCell();
+                    if (category && category !== 'Unclassified') {
+                        cell.append(element('span', category, `xyz-category xyz-${category.toLowerCase()}`));
+                    }
                 }
                 rows.append(tr);
                 if (!row.open) continue;
