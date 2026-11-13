@@ -160,7 +160,7 @@ def drilldown(cur, filters, parent):
     depth = len(parent)
     leaf = depth == len(LEVELS)
     dimensions = DETAILS if leaf else LEVELS[depth:depth + 1]
-    required = {'pieces', 'net_weight', 'turn_over', 'mcprofit', 'tsk', 'trans_type', 'trans_date', 'date', 'make'}
+    required = {'pieces', 'net_weight', 'turn_over', 'tsk', 'trans_type', 'trans_date', 'date', 'make'}
     required.update(filters['selections'])
     required.update(key for key, _, _ in LEVELS[:depth])
     required.update(column for key, label, _ in dimensions for column in (key, label))
@@ -181,7 +181,6 @@ def drilldown(cur, filters, parent):
         COALESCE(SUM(net_weight::numeric) FILTER (WHERE trans_type = 'INVOICE'), 0) / 1000 AS weight,
         COALESCE(SUM(turn_over::numeric) FILTER (WHERE trans_type = 'INVOICE'), 0)
           + COALESCE(SUM(turn_over::numeric) FILTER (WHERE trans_type = 'SR'), 0) * {multiplier} AS turnover,
-        COALESCE(SUM(mcprofit::numeric), 0) AS profit,
         COALESCE(SUM(tsk::numeric), 0) AS tsk,
         COUNT(*) FILTER (WHERE turn_over IS NULL OR (trans_type = 'SR' AND turn_over {invalid_sign})) AS invalid_rows
         FROM {SOURCE} WHERE {where} GROUP BY {', '.join(groups)} LIMIT {MAX_SIBLINGS + 1}""", params)
@@ -193,7 +192,8 @@ def drilldown(cur, filters, parent):
 
     rows = []
     for record in records:
-        row = {metric: record[metric] for metric in METRICS}
+        row = {metric: record[metric] for metric in METRICS if metric != 'profit'}
+        row['profit'] = record['tsk']
         row['tsk'] = record['tsk']
         if leaf:
             row.update(id=[record['id_0'], record['id_1']], label=f"{record['label_0']} / {record['label_1']}",

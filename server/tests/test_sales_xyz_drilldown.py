@@ -44,13 +44,13 @@ class SalesXYZTests(unittest.TestCase):
     def test_leaf_query_groups_type_and_wide_range_and_preserves_totals(self):
         cursor = MagicMock()
         cursor.description = [SimpleNamespace(name=name) for name in (
-            'pieces', 'net_weight', 'turn_over', 'mcprofit', 'tsk', 'trans_type', 'trans_date', 'date', 'make',
+            'pieces', 'net_weight', 'turn_over', 'tsk', 'trans_type', 'trans_date', 'date', 'make',
             *(key for key, _, _ in report.LEVELS), 'type_id', 'type', 'wide_range_id', 'wide_range',
         )]
         cursor.fetchall.return_value = [{
             'id_0': '7', 'id_1': '8', 'label_0': 'Type A', 'label_1': '2–4',
             'pieces': Decimal('4'), 'weight': Decimal('1.25'), 'turnover': Decimal('80'),
-            'profit': Decimal('-2'), 'tsk': Decimal('7'), 'invalid_rows': 0,
+            'tsk': Decimal('7'), 'invalid_rows': 0,
         }]
         result = report.drilldown(cursor, filters(), ['1'] * len(report.LEVELS))
         sql, params = cursor.execute.call_args.args
@@ -58,7 +58,8 @@ class SalesXYZTests(unittest.TestCase):
         self.assertIn('SUM(pieces::numeric)', sql)
         self.assertIn('SUM(tsk::numeric)', sql)
         self.assertEqual(result['rows'][0]['categories']['tsk'], 'A')
-        self.assertEqual(result['totals']['profit'], Decimal('-2'))
+        self.assertEqual(result['rows'][0]['profit'], Decimal('7'))
+        self.assertEqual(result['totals']['profit'], Decimal('7'))
         self.assertEqual(params[-8:], ['1'] * 8)
         self.assertTrue(result['leaf'])
         self.assertEqual(result['rows'][0]['type'], 'Type A')
