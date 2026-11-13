@@ -3,12 +3,14 @@
     const $ = id => document.getElementById(`abc-${id}`);
     const form = $('filters');
     if (!form) return;
+    const basis = $('basis');
     const fields = [...form.querySelectorAll('select[multiple]')];
     const pickers = new Map();
     const controllers = new Map();
     const expanded = new Set();
     const extraColumns = new Set([...document.querySelectorAll('[data-abc-column]:checked')].map(input => input.dataset.abcColumn));
     let applied = new URLSearchParams(location.search), data = null, zoom = 1, sequence = 0, selectedDepth = 0;
+    let hierarchySequence = 0;
     const number = value => Number(value).toLocaleString('en-IN', {maximumFractionDigits: 2});
     const percent = value => value == null ? '—' : `${number(value)}%`;
     const money = value => `${(value / 10000000).toLocaleString('en-IN', {maximumFractionDigits: 2, minimumFractionDigits: 2})} Cr`;
@@ -111,8 +113,9 @@
         headers.forEach(([key, title]) => {
             const th = element('th', title, key === 'hierarchy' ? 'abc-hierarchy' : '');
             th.scope = 'col';
-            if (key === 'contribution') th.title = 'Share of parent Sold Qty';
-            if (key === 'overall') th.title = 'Share of filtered report Sold Qty';
+            const basisLabel = basis.selectedOptions[0].textContent;
+            if (key === 'contribution') th.title = `Share within parent by ${basisLabel}`;
+            if (key === 'overall') th.title = `Share of filtered report total by ${basisLabel}`;
             head.append(th);
         });
         const body = table.createTBody(); let count = 0;
@@ -129,7 +132,7 @@
                     cell.textContent = value == null ? '' : percent(value);
                     continue;
                 }
-                cell.textContent = key === 'overall' ? percent(total ? (row.sold_qty > 0 ? 100 : null) : row.overall) : key === 'sold_weight' ? number(row[key]) : money(row[key]);
+                cell.textContent = key === 'overall' ? percent(total ? (row[basis.value] > 0 ? 100 : null) : row.overall) : key === 'sold_weight' ? number(row[key]) : money(row[key]);
                 if (key === 'net_turnover' || key === 'profit') cell.title = number(row[key]);
             }
         }
@@ -161,14 +164,15 @@
                 const contribution = tr.insertCell(); contribution.append(element('span', percent(row.contribution)));
                 if (row.contribution != null) {const track = element('div', null, 'abc-track'), fill = element('span'); fill.style.width = `${Math.min(100, Math.max(0, row.contribution))}%`; track.setAttribute('aria-hidden', 'true'); track.append(fill); contribution.append(track);}
                 tr.insertCell().textContent = percent(row.cumulative);
-                tr.insertCell().append(element('span', row.category, `abc-badge abc-${row.category.toLowerCase()}`));
+                const category = tr.insertCell();
+                if (row.category) category.append(element('span', row.category, `abc-badge abc-${row.category.toLowerCase()}`));
                 extras(tr, row);
                 if (open) append(row.children);
             }
         }
         append(data.rows);
         const footer = table.createTFoot().insertRow(), title = element('th', 'Filtered total', 'abc-hierarchy'); title.scope = 'row'; footer.append(title);
-        const totalPct = data.totals.sold_qty > 0 ? '100%' : '—';
+        const totalPct = data.totals.abc_total > 0 ? '100%' : '—';
         ['—', number(data.totals.sold_qty), totalPct, totalPct, '—'].forEach(value => {footer.insertCell().textContent = value;});
         extras(footer, data.totals, true);
         wrap.append(table); container.append(wrap);
@@ -191,22 +195,28 @@
             $('options-status').textContent = '';
         } catch (error) {if (error.name !== 'AbortError' && run === sequence) failure($('options-status'), error, () => loadOptions(applied, sequence));}
     }
-    async function loadHierarchy(params, run) {
+    async function loadHierarchy(params) {
+        const run = ++hierarchySequence;
         data = null; render();
         const spinner = element('span', null, 'abc-loading-spinner'); spinner.setAttribute('aria-hidden', 'true');
         $('status').replaceChildren(spinner, document.createTextNode('Loading sales hierarchy…')); $('content').setAttribute('aria-busy', 'true'); $('fetched').textContent = '';
         try {
             const response = await request('hierarchy', params);
-            if (run !== sequence) return;
+            if (run !== hierarchySequence) return;
             data = response.data; setPaths(data.rows); expanded.clear(); applyDepth();
             $('status').textContent = ''; $('fetched').textContent = `Fetched ${new Date(response.fetched_at).toLocaleString('en-IN', {timeZone: 'Asia/Kolkata'})} IST`;
-        } catch (error) {if (error.name !== 'AbortError' && run === sequence) failure($('status'), error, () => loadHierarchy(applied, sequence));}
-        finally {if (run === sequence) $('content').setAttribute('aria-busy', 'false');}
+        } catch (error) {if (error.name !== 'AbortError' && run === hierarchySequence) failure($('status'), error, () => loadHierarchy(applied));}
+        finally {if (run === hierarchySequence) $('content').setAttribute('aria-busy', 'false');}
     }
     function load() {
         const run = ++sequence;
-        $('period').textContent = `${applied.get('start') || form.dataset.start} to ${applied.get('end') || form.dataset.end} · Invoice barcode quantity`;
-        loadOptions(new URLSearchParams(applied), run); loadHierarchy(new URLSearchParams(applied), run);
+        basis.value = applied.get('abc_by') || 'sold_qty';
+        if (!basis.value) {
+            basis.value = 'sold_qty';
+            applied.delete('abc_by');
+        }
+        $('period').textContent = `${applied.get('start') || form.dataset.start} to ${applied.get('end') || form.dataset.end}`;
+        loadOptions(new URLSearchParams(applied), run); loadHierarchy(new URLSearchParams(applied));
     }
     function selectDepth(depth) {
         selectedDepth = depth;
@@ -232,7 +242,12 @@
     }
     function sidebar(show) {$('sidebar').hidden = !show; $('filter-toggle').setAttribute('aria-expanded', String(show));}
     fields.forEach(picker); restore(applied);
-    form.addEventListener('submit', event => {event.preventDefault(); applied = new URLSearchParams(new FormData(form)); history.replaceState(null, '', `${location.pathname}?${applied}`); if (matchMedia('(max-width: 900px)').matches) sidebar(false); load();});
+    form.addEventListener('submit', event => {event.preventDefault(); applied = new URLSearchParams(new FormData(form)); applied.set('abc_by', basis.value); history.replaceState(null, '', `${location.pathname}?${applied}`); if (matchMedia('(max-width: 900px)').matches) sidebar(false); load();});
+    basis.addEventListener('change', () => {
+        applied.set('abc_by', basis.value);
+        history.replaceState(null, '', `${location.pathname}?${applied}`);
+        loadHierarchy(new URLSearchParams(applied));
+    });
     form.addEventListener('reset', event => {event.preventDefault(); applied = new URLSearchParams({start: form.dataset.start, end: form.dataset.end}); restore(applied); $('search').value = ''; selectDepth(0); history.replaceState(null, '', location.pathname); load();});
     window.addEventListener('popstate', () => {applied = new URLSearchParams(location.search); restore(applied); load();});
     $('refresh').addEventListener('click', load);

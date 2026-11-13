@@ -26,6 +26,7 @@ FILTERS = {
     'trans_type': ('Transaction type', 'trans_type'),
 }
 METRICS = ('sold_qty', 'sold_weight', 'net_turnover', 'profit', 'invoice_profit')
+ABC_BASES = {'sold_qty': 'Pieces', 'sold_weight': 'Weight', 'net_turnover': 'Amount', 'profit': 'Profit'}
 MAX_LEAVES = 20000
 EXCLUDED_MAKES = ('KMU 999 COIN', 'CUSTOM', 'KMU-COIN')
 
@@ -62,7 +63,10 @@ def parse_filters(args):
         exclusions = list(EXCLUDED_MAKES)
     if any(value not in EXCLUDED_MAKES for value in exclusions):
         raise ValueError('Choose a valid Make exclusion.')
-    return {'start': start, 'end': end, 'selections': selections, 'exclude_make': exclusions}
+    abc_by = args.get('abc_by', 'sold_qty')
+    if abc_by not in ABC_BASES:
+        raise ValueError('Choose a valid ABC basis.')
+    return {'start': start, 'end': end, 'selections': selections, 'exclude_make': exclusions, 'abc_by': abc_by}
 
 
 def where_clause(filters, options=False):
@@ -118,7 +122,7 @@ def options(cur, filters):
             for key in FILTERS}
 
 
-def build_tree(records):
+def build_tree(records, abc_by='sold_qty'):
     root = {'children': {}, **{metric: Decimal(0) for metric in METRICS}}
     for record in records:
         parent = root
@@ -135,24 +139,32 @@ def build_tree(records):
             for metric in METRICS:
                 node[metric] += record[metric]
             parent = node
-    total = root['sold_qty']
+    total = root[abc_by]
+    positive_only = abc_by in ('net_turnover', 'profit')
+
+    def abc_value(node):
+        value = node[abc_by]
+        return max(value, 0) if positive_only else value
 
     def finish(parent):
         quantity = parent['sold_qty']
         parent['profit_per_piece'] = parent['invoice_profit'] / quantity if quantity else None
         turnover = parent['net_turnover']
         parent['profit_turnover_pct'] = parent['profit'] * 100 / turnover if turnover > 0 else None
-        children = sorted(parent['children'].values(), key=lambda n: (-n['sold_qty'], n['label'], str(n['id'])))
+        children = sorted(parent['children'].values(), key=lambda n: (-n[abc_by], n['label'], str(n['id'])))
+        denominator = sum(abc_value(node) for node in children)
+        if parent is root:
+            root['abc_total'] = denominator
         running = Decimal(0)
         for rank, node in enumerate(children, 1):
-            qty, denominator = node['sold_qty'], parent['sold_qty']
+            value = abc_value(node)
             prior = running / denominator * 100 if denominator > 0 else None
-            running += qty
-            node.update(rank=rank, contribution=qty / denominator * 100 if denominator > 0 else None,
+            running += value
+            node.update(rank=rank, contribution=value / denominator * 100 if denominator > 0 else None,
                         cumulative=running / denominator * 100 if denominator > 0 else None,
-                        overall=qty / total * 100 if total > 0 else None,
+                        overall=node[abc_by] / total * 100 if total > 0 else None,
                         category=('A' if prior < 80 else 'B' if prior < 95 else 'C')
-                        if qty > 0 and prior is not None else 'Unclassified')
+                        if value > 0 and prior is not None else ('' if positive_only else 'Unclassified'))
             finish(node)
         parent['children'] = children
     finish(root)
@@ -184,7 +196,7 @@ def hierarchy(cur, filters):
         raise SourceDataError('Too many hierarchy groups. Narrow the date range or product/location filters.')
     if any(row['invalid_rows'] for row in records):
         raise SourceDataError('Source turnover is missing or sales-return signs differ from configuration.')
-    return build_tree(records)
+    return build_tree(records, filters['abc_by'])
 
 
 def load_segment(segment, filters):

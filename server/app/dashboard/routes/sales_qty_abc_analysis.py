@@ -25,7 +25,8 @@ def json_numbers(value):
 def sales_qty_abc_analysis_page():
     start, end = report.defaults()
     return render_template('sales_qty_abc_analysis.html', unread_count=0,
-                           filter_fields=report.FILTERS, levels=report.LEVELS, start=start, end=end)
+                           filter_fields=report.FILTERS, levels=report.LEVELS, abc_bases=report.ABC_BASES,
+                           start=start, end=end)
 
 
 @dashboard_bp.route('/api/sales-qty-abc-analysis/<segment>')
