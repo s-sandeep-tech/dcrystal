@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Sales XYZ Drilldown{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css', v='20261113-hierarchy') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css', v='20261113-orders') }}">
 {% endblock %}
 {% block content %}
 <main id="xyz-report" data-api="{{ url_for('dashboard.sales_xyz_drilldown_segment', segment='hierarchy') }}">
@@ -28,7 +28,7 @@
                 <span class="material-symbols-outlined" aria-hidden="true">close</span>
             </button>
         </div>
-        <p>{{ levels | map(attribute=2) | join(' → ') }}</p>
+        <p id="xyz-info-hierarchy">{{ levels | map(attribute=2) | join(' → ') }}</p>
         <p>ABC is calculated independently within each parent for pieces, weight, turnover, and profit. Profit (Cr) displays total TSK in crores. The Profit category ranks rows by the same total.</p>
     </dialog>
     <div id="xyz-status" role="status" aria-live="polite"></div>
@@ -40,12 +40,15 @@
                         <div class="xyz-hierarchy-heading">
                             <span>Hierarchy</span>
                             <details class="xyz-hierarchy-menu">
-                                <summary>Drill-down <span aria-hidden="true">▾</span></summary>
-                                <ol aria-label="Current drill-down order">
-                                    {% for _, _, title in levels %}
-                                    <li>{{ title }}</li>
+                                <summary>Drill-down <span id="xyz-order-label">Default</span><span aria-hidden="true">▾</span></summary>
+                                <ul aria-label="Drill-down orders">
+                                    {% for key, order in hierarchies.items() %}
+                                    <li><button type="button" data-hierarchy="{{ key }}" aria-pressed="{{ 'true' if key == 'default' else 'false' }}">
+                                        <strong>{{ 'Default' if key == 'default' else 'Order ' ~ key }}</strong>
+                                        <span>{{ order | map(attribute=2) | join(' → ') }}</span>
+                                    </button></li>
                                     {% endfor %}
-                                </ol>
+                                </ul>
                             </details>
                         </div>
                     </th>
@@ -98,5 +101,5 @@
 </aside>
 {% endblock %}
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261113-blank-abc') }}"></script>
+<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261113-orders') }}"></script>
 {% endblock %}

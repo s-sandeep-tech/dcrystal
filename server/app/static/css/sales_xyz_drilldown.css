@@ -117,14 +117,17 @@
     background: var(--xyz-surface); font-size: 10px;
 }
 .xyz-hierarchy-menu summary::-webkit-details-marker { display: none; }
-.xyz-hierarchy-menu ol {
+.xyz-hierarchy-menu ul {
     position: absolute; inset-block-start: calc(100% + 4px); inset-inline-start: 0;
-    width: max-content; max-height: min(260px, 50vh); overflow: auto;
-    margin: 0; padding: 8px 12px 8px 28px; list-style: decimal;
+    width: min(380px, calc(100vw - 115px)); max-height: min(320px, 50vh); overflow: auto;
+    margin: 0; padding: 4px; list-style: none;
     border: 1px solid var(--xyz-line); border-radius: 6px;
     background: var(--xyz-surface); color: var(--xyz-text); box-shadow: 0 4px 12px #0002;
     font-weight: 400; line-height: 1.85;
 }
+.xyz-hierarchy-menu li button { display: block; width: 100%; padding: 6px 8px; border-radius: 4px; text-align: left; white-space: normal; }
+.xyz-hierarchy-menu li button span { display: block; }
+.xyz-hierarchy-menu li button:hover, .xyz-hierarchy-menu li button[aria-pressed="true"] { background: var(--xyz-header); }
 #xyz-report tbody tr[data-depth="0"] > * { background: var(--xyz-header); font-weight: 600; }
 #xyz-report tbody tr.xyz-open > th { color: var(--xyz-accent); }
 #xyz-report tbody tr:hover > * { background: color-mix(in srgb, var(--xyz-surface) 92%, var(--xyz-accent)); }

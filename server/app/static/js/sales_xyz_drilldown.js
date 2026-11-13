@@ -16,6 +16,10 @@
     const rowsByButton = new WeakMap();
 
     let applied = new URLSearchParams(location.search);
+    const hierarchyMenu = report.querySelector('.xyz-hierarchy-menu');
+    const hierarchyButtons = [...hierarchyMenu.querySelectorAll('[data-hierarchy]')];
+    let hierarchy = hierarchyButtons.find(button => button.dataset.hierarchy === applied.get('hierarchy'))
+        ?? hierarchyButtons[0];
     let controller;
     let roots = [];
     let rootTotals;
@@ -239,6 +243,7 @@
     }
 
     async function reload() {
+        applied.set('hierarchy', hierarchy.dataset.hierarchy);
         controller?.abort();
         controller = new AbortController();
         const {signal} = controller;
@@ -248,7 +253,7 @@
         }
         history.replaceState(null, '', `${location.pathname}?${applied}`);
         document.getElementById('xyz-period').textContent = `${applied.get('start')} to ${applied.get('end')}`;
-        status.textContent = 'Loading sections…';
+        status.textContent = 'Loading hierarchy…';
         roots = [];
         rootTotals = null;
         render();
@@ -290,6 +295,23 @@
         reload();
     });
     document.getElementById('xyz-refresh').addEventListener('click', reload);
+    function showSelectedHierarchy() {
+        for (const button of hierarchyButtons) {
+            button.setAttribute('aria-pressed', String(button === hierarchy));
+        }
+        document.getElementById('xyz-order-label').textContent = hierarchy.querySelector('strong').textContent;
+        document.getElementById('xyz-info-hierarchy').textContent = hierarchy.querySelector('span').textContent;
+    }
+    for (const button of hierarchyButtons) {
+        button.addEventListener('click', () => {
+            hierarchyMenu.open = false;
+            hierarchyMenu.querySelector('summary').focus();
+            if (hierarchy === button) return;
+            hierarchy = button;
+            showSelectedHierarchy();
+            reload();
+        });
+    }
     const infoDialog = document.getElementById('xyz-info-dialog');
     document.getElementById('xyz-info-open').addEventListener('click', () => infoDialog.showModal());
     document.getElementById('xyz-info-close').addEventListener('click', () => infoDialog.close());
@@ -310,5 +332,6 @@
     filterToggle.addEventListener('click', () => setSidebar(sidebar.hidden));
     setSidebar(!matchMedia('(max-width: 700px)').matches);
     restoreForm();
+    showSelectedHierarchy();
     reload();
 })();

@@ -12,7 +12,7 @@ REPORT = '/sales-xyz-drilldown'
 def sales_xyz_drilldown_page():
     start, end = report.defaults()
     return render_template('sales_xyz_drilldown.html', unread_count=0, start=start, end=end,
-                           levels=report.LEVELS, filter_fields=report.FILTERS,
+                           levels=report.LEVELS, hierarchies=report.HIERARCHIES, filter_fields=report.FILTERS,
                            excluded_makes=report.EXCLUDED_MAKES)
 
 

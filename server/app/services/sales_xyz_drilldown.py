@@ -19,6 +19,15 @@ LEVELS = (
     ('sub_section_id', 'sub_section', 'Subsection'),
 )
 DETAILS = (('type_id', 'type', 'Type'), ('wide_range_id', 'wide_range', 'Wide Range'))
+SECTION, PURITY, RANGE_WEIGHT, *_, MAKE, COLLECTION, SUBSECTION = LEVELS
+TYPE, WIDE_RANGE = DETAILS
+HIERARCHIES = {
+    'default': LEVELS,
+    '1': (MAKE, PURITY, COLLECTION, SUBSECTION, TYPE, SECTION, TYPE, RANGE_WEIGHT),
+    '2': (SECTION, TYPE, WIDE_RANGE, PURITY, MAKE, COLLECTION, SUBSECTION, RANGE_WEIGHT),
+    '3': (SECTION, TYPE, PURITY, WIDE_RANGE, MAKE, COLLECTION, SUBSECTION, RANGE_WEIGHT),
+    '4': (SECTION, PURITY, TYPE, WIDE_RANGE, MAKE, COLLECTION, SUBSECTION, RANGE_WEIGHT),
+}
 FILTERS = {
     'branch_id': ('location_name', 'Location'),
     'state_name': ('state_name', 'State'),
@@ -65,7 +74,10 @@ def parse_filters(args):
         exclusions = list(EXCLUDED_MAKES)
     if set(exclusions) - set(EXCLUDED_MAKES):
         raise ValueError('Choose a valid Make exclusion.')
-    return {'start': start, 'end': end, 'selections': selections, 'exclusions': exclusions}
+    hierarchy = args.get('hierarchy', 'default')
+    if hierarchy not in HIERARCHIES:
+        raise ValueError('Choose a valid drill-down order.')
+    return {'start': start, 'end': end, 'selections': selections, 'exclusions': exclusions, 'hierarchy': hierarchy}
 
 
 def parse_parent(value):
@@ -113,7 +125,7 @@ def where_clause(filters, parent=(), *, options=False):
         for field, values in filters['selections'].items():
             conditions.append(f'"{field}"::text = ANY(%s)')
             params.append(values)
-        for (field, _, _), part in zip(LEVELS, parent):
+        for (field, _, _), part in zip(HIERARCHIES[filters['hierarchy']], parent):
             conditions.append(f'"{field}"::text IS NOT DISTINCT FROM %s')
             params.append(part)
     return ' AND '.join(conditions), params
@@ -157,12 +169,13 @@ def assign_categories(rows):
 
 
 def drilldown(cur, filters, parent):
+    levels = HIERARCHIES[filters['hierarchy']]
     depth = len(parent)
-    leaf = depth == len(LEVELS)
-    dimensions = DETAILS if leaf else LEVELS[depth:depth + 1]
+    leaf = depth == len(levels)
+    dimensions = DETAILS if leaf else levels[depth:depth + 1]
     required = {'pieces', 'net_weight', 'turn_over', 'tsk', 'trans_type', 'trans_date', 'date', 'make'}
     required.update(filters['selections'])
-    required.update(key for key, _, _ in LEVELS[:depth])
+    required.update(key for key, _, _ in levels[:depth])
     required.update(column for key, label, _ in dimensions for column in (key, label))
     validate_columns(cur, required)
 
