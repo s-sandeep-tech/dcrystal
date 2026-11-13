@@ -161,7 +161,7 @@
 #xyz-report tbody tr:hover > * { background: color-mix(in srgb, var(--xyz-surface) 92%, var(--xyz-accent)); }
 #xyz-report tbody td:nth-child(n+7) { text-align: center; min-width: 70px; }
 #xyz-report tbody td:nth-child(3), #xyz-report tbody td:nth-child(7) { border-left: 1px solid var(--xyz-accent); }
-.xyz-contribution { display: block; margin-top: 2px; color: var(--xyz-muted); font-size: 10px; font-weight: 400; }
+.xyz-contribution { display: block; margin-top: 2px; color: var(--xyz-muted); font-size: 9px; font-weight: 400; }
 .xyz-sort { cursor: pointer; }
 .xyz-sort-indicator { color: var(--xyz-muted); font-size: 10px; }
 .xyz-sort:hover, th[aria-sort] .xyz-sort-indicator { color: var(--xyz-accent); }
