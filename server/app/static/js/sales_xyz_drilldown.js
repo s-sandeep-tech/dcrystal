@@ -253,7 +253,9 @@
         }
         history.replaceState(null, '', `${location.pathname}?${applied}`);
         document.getElementById('xyz-period').textContent = `${applied.get('start')} to ${applied.get('end')}`;
-        status.textContent = 'Loading hierarchy…';
+        const spinner = element('span', null, 'xyz-loading-spinner');
+        spinner.setAttribute('aria-hidden', 'true');
+        status.replaceChildren(spinner, document.createTextNode('Loading hierarchy…'));
         roots = [];
         rootTotals = null;
         render();

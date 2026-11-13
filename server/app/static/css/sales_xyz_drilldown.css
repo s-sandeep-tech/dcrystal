@@ -52,6 +52,21 @@
 .xyz-actions .material-symbols-outlined { font-size: 17px; vertical-align: middle; }
 #xyz-status { padding: 8px 16px; color: var(--xyz-muted); }
 #xyz-status:empty { display: none; }
+.xyz-loading-spinner {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-inline-end: 6px;
+    vertical-align: -1px;
+    border: 1.5px solid var(--xyz-line);
+    border-top-color: var(--xyz-accent);
+    border-radius: 50%;
+    animation: xyz-spin .75s linear infinite;
+}
+@keyframes xyz-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+    .xyz-loading-spinner { animation: none; }
+}
 #xyz-status button, .xyz-detail-status button, .xyz-filter button { margin-left: 8px; color: var(--xyz-accent); text-decoration: underline; }
 .xyz-table-wrap { overflow: auto; flex: 1; }
 #xyz-report table { width: 100%; border-spacing: 0; font-variant-numeric: tabular-nums; }
