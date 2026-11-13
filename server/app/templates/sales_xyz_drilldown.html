@@ -1,20 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Sales XYZ Drilldown{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css', v='20261112-layout') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css', v='20261113-info') }}">
 {% endblock %}
 {% block content %}
 <main id="xyz-report" data-api="{{ url_for('dashboard.sales_xyz_drilldown_segment', segment='hierarchy') }}">
     <header class="xyz-header">
-        <div><h1>Sales XYZ Drilldown</h1><p id="xyz-period"></p></div>
+        <div>
+            <h1>Sales XYZ Drilldown</h1>
+            <div class="xyz-period-row">
+                <p id="xyz-period"></p>
+                <button id="xyz-info-open" class="xyz-info-button" type="button" aria-label="About this report" aria-haspopup="dialog" aria-controls="xyz-info-dialog" title="About this report">
+                    <span class="material-symbols-outlined" aria-hidden="true">info</span>
+                </button>
+            </div>
+        </div>
         <div class="xyz-actions">
             <button type="button" id="xyz-collapse">Collapse all</button>
             <button type="button" id="xyz-refresh" aria-label="Refresh report" title="Refresh report"><span class="material-symbols-outlined" aria-hidden="true">refresh</span></button>
             <button type="button" id="xyz-filter-toggle" aria-label="Toggle filters" aria-controls="xyz-sidebar" aria-expanded="true" title="Toggle filters"><span class="material-symbols-outlined" aria-hidden="true">filter_alt</span></button>
         </div>
     </header>
-    <p class="xyz-note">{{ levels | map(attribute=2) | join(' → ') }}<br>
-        ABC is calculated independently within each parent for pieces, weight, and turnover.</p>
+    <dialog id="xyz-info-dialog" aria-labelledby="xyz-info-title">
+        <div class="xyz-info-heading">
+            <h2 id="xyz-info-title">About this report</h2>
+            <button id="xyz-info-close" class="xyz-info-button" type="button" aria-label="Close report information">
+                <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+        </div>
+        <p>{{ levels | map(attribute=2) | join(' → ') }}</p>
+        <p>ABC is calculated independently within each parent for pieces, weight, and turnover.</p>
+    </dialog>
     <div id="xyz-status" role="status" aria-live="polite"></div>
     <div class="xyz-table-wrap" tabindex="0" role="region" aria-label="Sales XYZ drill-down table">
         <table>
@@ -70,5 +86,5 @@
 </aside>
 {% endblock %}
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261112-layout') }}"></script>
+<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261113-info') }}"></script>
 {% endblock %}

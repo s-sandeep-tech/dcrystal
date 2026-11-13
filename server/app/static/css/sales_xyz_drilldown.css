@@ -21,9 +21,25 @@
 .xyz-header, .xyz-filter-heading, .xyz-actions { display: flex; align-items: center; gap: 8px; }
 .xyz-header { justify-content: space-between; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--xyz-line); }
 .xyz-header h1 { font-size: 15px; font-weight: 700; }
-#xyz-period, .xyz-note { color: var(--xyz-muted); font-size: 11px; }
-#xyz-period { margin-top: 3px; }
-.xyz-note { padding: 6px 16px; line-height: 1.6; }
+#xyz-period { color: var(--xyz-muted); font-size: 11px; margin: 0; }
+.xyz-period-row, .xyz-info-heading { display: flex; align-items: center; gap: 6px; }
+.xyz-period-row { margin-top: 3px; }
+.xyz-info-button { display: inline-flex; align-items: center; padding: 3px; border-radius: 4px; color: var(--xyz-accent); }
+.xyz-info-button:hover { background: var(--xyz-header); }
+.xyz-info-button .material-symbols-outlined { font-size: 16px; }
+#xyz-info-dialog {
+    width: min(480px, calc(100vw - 32px));
+    margin: auto;
+    padding: 18px;
+    border: 1px solid var(--xyz-line);
+    border-radius: 10px;
+    background: var(--xyz-surface);
+    color: var(--xyz-text);
+}
+#xyz-info-dialog::backdrop { background: #0f172a66; }
+.xyz-info-heading { justify-content: space-between; }
+.xyz-info-heading h2 { font-size: 15px; font-weight: 700; }
+#xyz-info-dialog p { margin-top: 12px; line-height: 1.6; }
 .xyz-actions button, .xyz-filter-footer button {
     border: 1px solid var(--xyz-line); border-radius: 5px; padding: 4px 8px;
     color: var(--xyz-accent); background: var(--xyz-surface);
@@ -85,7 +101,6 @@
 .xyz-header h1 { font-size: 16px; letter-spacing: -.025em; }
 .xyz-actions button { min-height: 30px; }
 .xyz-actions button:hover { background: var(--xyz-header); }
-.xyz-note { padding: 9px 18px; border-bottom: 1px solid var(--xyz-line); line-height: 1.8; }
 .xyz-table-wrap { min-height: 0; }
 #xyz-report table { border-collapse: separate; font-size: 11px; }
 #xyz-report th, #xyz-report td { padding: 7px 12px; border-right: 1px solid var(--xyz-line); }
@@ -125,6 +140,5 @@
 @media (max-width: 700px) {
     .xyz-header { padding: 10px 12px; }
     .xyz-header h1 { font-size: 14px; }
-    .xyz-note { padding: 6px 12px; }
     #xyz-report thead tr:first-child th:first-child { min-width: 180px; }
 }

@@ -286,6 +286,9 @@
         reload();
     });
     document.getElementById('xyz-refresh').addEventListener('click', reload);
+    const infoDialog = document.getElementById('xyz-info-dialog');
+    document.getElementById('xyz-info-open').addEventListener('click', () => infoDialog.showModal());
+    document.getElementById('xyz-info-close').addEventListener('click', () => infoDialog.close());
     document.getElementById('xyz-collapse').addEventListener('click', () => {
         function collapse(rows) {
             for (const row of rows) {
