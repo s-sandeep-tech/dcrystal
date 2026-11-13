@@ -1599,7 +1599,7 @@ def sync_showroom_wise_order_summary_task(task_type_override=None, progress_rang
         conn = get_external_db_connection()
         conn.set_session(readonly=True, autocommit=False)
         with conn.cursor() as settings_cursor:
-            settings_cursor.execute("SET LOCAL statement_timeout = '3min'")
+            settings_cursor.execute("SET LOCAL statement_timeout = '5min'")
         
         emit('processing', 'Fetching Showroom Wise Order Summary from Azure...', 15)
         query = """
@@ -1627,7 +1627,6 @@ SELECT
     ownershippo.order_date,
     ownershippo.order_ro,
     ownershippo.batch,
-    ownershippo.bh_emp_code,
     ownershippo.division,
     ownershippo."group",
     ownershippo.purity,
@@ -1689,8 +1688,11 @@ FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS
         loaded = 0
         today = date.today()
         with conn.cursor(name='showroom_order_summary_sync', cursor_factory=RealDictCursor) as cur:
+            logger.info('Showroom Wise Order Summary: opening source cursor with a 5-minute statement timeout.')
             cur.execute(query)
             rows = cur.fetchmany(batch_size)
+            logger.info('Showroom Wise Order Summary: fetched first batch of %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
 
             db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
             db.session.execute(text("SET LOCAL statement_timeout = '3min'"))
