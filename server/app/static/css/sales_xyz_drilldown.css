@@ -162,6 +162,9 @@
 #xyz-report tbody td:nth-child(n+7) { text-align: center; min-width: 70px; }
 #xyz-report tbody td:nth-child(3), #xyz-report tbody td:nth-child(7) { border-left: 1px solid var(--xyz-accent); }
 .xyz-contribution { display: block; margin-top: 2px; color: var(--xyz-muted); font-size: 10px; font-weight: 400; }
+.xyz-sort { cursor: pointer; }
+.xyz-sort-indicator { color: var(--xyz-muted); font-size: 10px; }
+.xyz-sort:hover, th[aria-sort] .xyz-sort-indicator { color: var(--xyz-accent); }
 #xyz-report tfoot th, #xyz-report tfoot td { position: sticky; bottom: 0; z-index: 2; padding-top: 10px; padding-bottom: 10px; }
 #xyz-report tfoot th { z-index: 3; }
 .xyz-expand { width: 100%; min-height: 25px; font-weight: 500; }

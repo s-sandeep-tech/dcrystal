@@ -15,6 +15,9 @@
     const percent = new Intl.NumberFormat('en-IN', {style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2});
     const metricKeys = ['pieces', 'weight', 'turnover', 'profit'];
     const categoryKeys = ['pieces', 'weight', 'turnover', 'tsk'];
+    const sortButtons = [...report.querySelectorAll('[data-sort-metric]')];
+    let sortMetric = 'pieces';
+    let sortDescending = true;
     const rowsByButton = new WeakMap();
 
     let applied = new URLSearchParams(location.search);
@@ -109,7 +112,9 @@
         const focusedRow = rowsByButton.get(document.activeElement) || focusRow;
         let focusTarget;
         function append(children) {
-            for (const row of children) {
+            const direction = sortDescending ? -1 : 1;
+            const sorted = [...children].sort((a, b) => direction * (Number(a[sortMetric]) - Number(b[sortMetric])));
+            for (const row of sorted) {
                 const tr = element('tr');
                 tr.dataset.depth = row.parent.length;
                 tr.classList.toggle('xyz-open', row.open);
@@ -313,6 +318,21 @@
         reload();
     });
     document.getElementById('xyz-refresh').addEventListener('click', reload);
+    for (const button of sortButtons) {
+        button.addEventListener('click', () => {
+            const metric = button.dataset.sortMetric;
+            sortDescending = metric === sortMetric ? !sortDescending : true;
+            sortMetric = metric;
+            for (const headerButton of sortButtons) {
+                const header = headerButton.closest('th');
+                const active = headerButton === button;
+                if (active) header.setAttribute('aria-sort', sortDescending ? 'descending' : 'ascending');
+                else header.removeAttribute('aria-sort');
+                headerButton.querySelector('.xyz-sort-indicator').textContent = active ? (sortDescending ? '↓' : '↑') : '↕';
+            }
+            render();
+        });
+    }
     function showSelectedHierarchy() {
         for (const button of hierarchyButtons) {
             button.setAttribute('aria-pressed', String(button === hierarchy));

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Sales XYZ Drilldown{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css', v='20261113-contribution') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css', v='20261113-sales-sort') }}">
 {% endblock %}
 {% block content %}
 <main id="xyz-report" data-api="{{ url_for('dashboard.sales_xyz_drilldown_segment', segment='hierarchy') }}">
@@ -57,8 +57,13 @@
                     <th colspan="4" scope="colgroup">ABC category</th>
                 </tr>
                 <tr>
-                    {% for column in ['Pieces', 'Weight (kg)', 'Value (Cr)', 'Profit (Cr)'] %}
-                    <th scope="col">{{ column }}<small class="xyz-contribution">Contribution %</small></th>
+                    {% for metric, column in [('pieces', 'Pieces'), ('weight', 'Weight (kg)'), ('turnover', 'Value (Cr)'), ('profit', 'Profit (Cr)')] %}
+                    <th scope="col"{% if loop.first %} aria-sort="descending"{% endif %}>
+                        <button type="button" class="xyz-sort" data-sort-metric="{{ metric }}">
+                            {{ column }} <span class="xyz-sort-indicator" aria-hidden="true">{{ '↓' if loop.first else '↕' }}</span>
+                        </button>
+                        <small class="xyz-contribution" title="Contribution percentage">%</small>
+                    </th>
                     {% endfor %}
                     {% for column in ['Pieces', 'Weight', 'Amount', 'Profit'] %}
                     <th scope="col">{{ column }}</th>
@@ -104,5 +109,5 @@
 </aside>
 {% endblock %}
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261113-contribution-decimals') }}"></script>
+<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261113-sales-sort') }}"></script>
 {% endblock %}
