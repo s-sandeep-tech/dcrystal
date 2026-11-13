@@ -31,6 +31,7 @@ FILTERS = {
 }
 EXCLUDED_MAKES = ('KMU 999 COIN', 'CUSTOM', 'KMU-COIN')
 METRICS = ('pieces', 'weight', 'turnover', 'profit')
+ABC_METRICS = ('pieces', 'weight', 'turnover', 'tsk')
 MAX_SIBLINGS = 20000
 
 
@@ -135,16 +136,17 @@ def assign_categories(rows):
     totals = {metric: sum(row[metric] for row in rows) for metric in METRICS}
     for row in rows:
         row['categories'] = {}
-    for metric in METRICS[:3]:
+    for metric in ABC_METRICS:
+        category_total = sum(row[metric] for row in rows)
         ranked = sorted(rows, key=lambda row: (-row[metric], row['label'], str(row['id'])))
         running = 0
         for row in ranked:
             value = row[metric]
             category = 'Unclassified'
-            if value > 0 and totals[metric] > 0:
-                if running * 100 < totals[metric] * 80:
+            if value > 0 and category_total > 0:
+                if running * 100 < category_total * 80:
                     category = 'A'
-                elif running * 100 < totals[metric] * 95:
+                elif running * 100 < category_total * 95:
                     category = 'B'
                 else:
                     category = 'C'
@@ -158,7 +160,7 @@ def drilldown(cur, filters, parent):
     depth = len(parent)
     leaf = depth == len(LEVELS)
     dimensions = DETAILS if leaf else LEVELS[depth:depth + 1]
-    required = {'pieces', 'net_weight', 'turn_over', 'mcprofit', 'trans_type', 'trans_date', 'date', 'make'}
+    required = {'pieces', 'net_weight', 'turn_over', 'mcprofit', 'tsk', 'trans_type', 'trans_date', 'date', 'make'}
     required.update(filters['selections'])
     required.update(key for key, _, _ in LEVELS[:depth])
     required.update(column for key, label, _ in dimensions for column in (key, label))
@@ -180,6 +182,7 @@ def drilldown(cur, filters, parent):
         COALESCE(SUM(turn_over::numeric) FILTER (WHERE trans_type = 'INVOICE'), 0)
           + COALESCE(SUM(turn_over::numeric) FILTER (WHERE trans_type = 'SR'), 0) * {multiplier} AS turnover,
         COALESCE(SUM(mcprofit::numeric), 0) AS profit,
+        COALESCE(SUM(tsk::numeric), 0) AS tsk,
         COUNT(*) FILTER (WHERE turn_over IS NULL OR (trans_type = 'SR' AND turn_over {invalid_sign})) AS invalid_rows
         FROM {SOURCE} WHERE {where} GROUP BY {', '.join(groups)} LIMIT {MAX_SIBLINGS + 1}""", params)
     records = cur.fetchall()
@@ -191,6 +194,7 @@ def drilldown(cur, filters, parent):
     rows = []
     for record in records:
         row = {metric: record[metric] for metric in METRICS}
+        row['tsk'] = record['tsk']
         if leaf:
             row.update(id=[record['id_0'], record['id_1']], label=f"{record['label_0']} / {record['label_1']}",
                        type=record['label_0'], wide_range=record['label_1'])

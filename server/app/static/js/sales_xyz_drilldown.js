@@ -12,6 +12,7 @@
     const number = new Intl.NumberFormat('en-IN', {maximumFractionDigits: 3});
     const currency = new Intl.NumberFormat('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     const metricKeys = ['pieces', 'weight', 'turnover', 'profit'];
+    const categoryKeys = ['pieces', 'weight', 'turnover', 'tsk'];
     const rowsByButton = new WeakMap();
 
     let applied = new URLSearchParams(location.search);
@@ -119,7 +120,7 @@
                 tr.insertCell().textContent = row.type ?? '—';
                 tr.insertCell().textContent = row.wide_range ?? '—';
                 appendMetrics(tr, row);
-                for (const key of metricKeys.slice(0, 3)) {
+                for (const key of categoryKeys) {
                     const category = row.categories[key];
                     tr.insertCell().append(element('span', category, `xyz-category xyz-${category.toLowerCase()}`));
                 }
@@ -131,7 +132,7 @@
                 }
                 const detail = element('tr', null, 'xyz-detail-status');
                 const cell = detail.insertCell();
-                cell.colSpan = 10;
+                cell.colSpan = 3 + metricKeys.length + categoryKeys.length;
                 cell.setAttribute('role', 'status');
                 cell.style.paddingInlineStart = `${28 + row.parent.length * 16}px`;
                 cell.textContent = row.error || (row.children ? 'No matching detail rows.' : 'Loading…');
@@ -154,7 +155,7 @@
             tr.append(heading);
             tr.insertCell().colSpan = 2;
             appendMetrics(tr, rootTotals);
-            tr.insertCell().colSpan = 3;
+            tr.insertCell().colSpan = categoryKeys.length;
         }
         wrap.scrollTo(...scroll);
         if (focusTarget && document.activeElement === document.body) {

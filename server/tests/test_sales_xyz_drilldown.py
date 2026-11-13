@@ -17,18 +17,18 @@ def filters(**values):
 class SalesXYZTests(unittest.TestCase):
     def test_categories_are_independent_and_respect_exact_boundaries(self):
         rows = [
-            {'id': '1', 'label': 'One', 'pieces': 80, 'weight': 5, 'turnover': 15, 'profit': 2},
-            {'id': '2', 'label': 'Two', 'pieces': 15, 'weight': 80, 'turnover': 5, 'profit': 3},
-            {'id': '3', 'label': 'Three', 'pieces': 5, 'weight': 15, 'turnover': 80, 'profit': 4},
-            {'id': '4', 'label': 'Four', 'pieces': 0, 'weight': 0, 'turnover': 0, 'profit': -1},
+            {'id': '1', 'label': 'One', 'pieces': 80, 'weight': 5, 'turnover': 15, 'profit': 2, 'tsk': 80},
+            {'id': '2', 'label': 'Two', 'pieces': 15, 'weight': 80, 'turnover': 5, 'profit': 3, 'tsk': 5},
+            {'id': '3', 'label': 'Three', 'pieces': 5, 'weight': 15, 'turnover': 80, 'profit': 4, 'tsk': 15},
+            {'id': '4', 'label': 'Four', 'pieces': 0, 'weight': 0, 'turnover': 0, 'profit': -1, 'tsk': 0},
         ]
         totals = report.assign_categories(rows)
         self.assertEqual(totals, {'pieces': 100, 'weight': 100, 'turnover': 100, 'profit': 8})
         self.assertEqual([row['categories'] for row in rows], [
-            {'pieces': 'A', 'weight': 'C', 'turnover': 'B'},
-            {'pieces': 'B', 'weight': 'A', 'turnover': 'C'},
-            {'pieces': 'C', 'weight': 'B', 'turnover': 'A'},
-            dict.fromkeys(('pieces', 'weight', 'turnover'), 'Unclassified'),
+            {'pieces': 'A', 'weight': 'C', 'turnover': 'B', 'tsk': 'A'},
+            {'pieces': 'B', 'weight': 'A', 'turnover': 'C', 'tsk': 'C'},
+            {'pieces': 'C', 'weight': 'B', 'turnover': 'A', 'tsk': 'B'},
+            dict.fromkeys(('pieces', 'weight', 'turnover', 'tsk'), 'Unclassified'),
         ])
 
     def test_path_is_validated_and_parameters_handle_missing_values(self):
@@ -44,18 +44,21 @@ class SalesXYZTests(unittest.TestCase):
     def test_leaf_query_groups_type_and_wide_range_and_preserves_totals(self):
         cursor = MagicMock()
         cursor.description = [SimpleNamespace(name=name) for name in (
-            'pieces', 'net_weight', 'turn_over', 'mcprofit', 'trans_type', 'trans_date', 'date', 'make',
+            'pieces', 'net_weight', 'turn_over', 'mcprofit', 'tsk', 'trans_type', 'trans_date', 'date', 'make',
             *(key for key, _, _ in report.LEVELS), 'type_id', 'type', 'wide_range_id', 'wide_range',
         )]
         cursor.fetchall.return_value = [{
             'id_0': '7', 'id_1': '8', 'label_0': 'Type A', 'label_1': '2–4',
             'pieces': Decimal('4'), 'weight': Decimal('1.25'), 'turnover': Decimal('80'),
-            'profit': Decimal('-2'), 'invalid_rows': 0,
+            'profit': Decimal('-2'), 'tsk': Decimal('7'), 'invalid_rows': 0,
         }]
         result = report.drilldown(cursor, filters(), ['1'] * len(report.LEVELS))
         sql, params = cursor.execute.call_args.args
         self.assertIn('GROUP BY "type_id"::text, "wide_range_id"::text', sql)
         self.assertIn('SUM(pieces::numeric)', sql)
+        self.assertIn('SUM(tsk::numeric)', sql)
+        self.assertEqual(result['rows'][0]['categories']['tsk'], 'A')
+        self.assertEqual(result['totals']['profit'], Decimal('-2'))
         self.assertEqual(params[-8:], ['1'] * 8)
         self.assertTrue(result['leaf'])
         self.assertEqual(result['rows'][0]['type'], 'Type A')

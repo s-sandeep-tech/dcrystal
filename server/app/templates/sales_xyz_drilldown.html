@@ -29,7 +29,7 @@
             </button>
         </div>
         <p>{{ levels | map(attribute=2) | join(' → ') }}</p>
-        <p>ABC is calculated independently within each parent for pieces, weight, and turnover.</p>
+        <p>ABC is calculated independently within each parent for pieces, weight, turnover, and profit. The Profit category ranks rows by total TSK.</p>
     </dialog>
     <div id="xyz-status" role="status" aria-live="polite"></div>
     <div class="xyz-table-wrap" tabindex="0" role="region" aria-label="Sales XYZ drill-down table">
@@ -51,10 +51,10 @@
                     </th>
                     <th colspan="2" scope="colgroup">Product details</th>
                     <th colspan="4" scope="colgroup">Sales</th>
-                    <th colspan="3" scope="colgroup">ABC category</th>
+                    <th colspan="4" scope="colgroup">ABC category</th>
                 </tr>
                 <tr>
-                    {% for column in ['Type', 'Wide Range', 'Pieces', 'Weight (kg)', 'Value (Cr)', 'Profit (Cr)', 'Pieces', 'Weight', 'Amount'] %}
+                    {% for column in ['Type', 'Wide Range', 'Pieces', 'Weight (kg)', 'Value (Cr)', 'Profit (Cr)', 'Pieces', 'Weight', 'Amount', 'Profit'] %}
                     <th scope="col">{{ column }}</th>
                     {% endfor %}
                 </tr>
@@ -98,5 +98,5 @@
 </aside>
 {% endblock %}
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261113-info') }}"></script>
+<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261113-profit-abc') }}"></script>
 {% endblock %}
