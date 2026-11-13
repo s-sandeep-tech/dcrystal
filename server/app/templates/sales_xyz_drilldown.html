@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Sales XYZ Drilldown{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css', v='20261113-small-contribution') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css', v='20261113-sales-value-size') }}">
 {% endblock %}
 {% block content %}
 <main id="xyz-report" data-api="{{ url_for('dashboard.sales_xyz_drilldown_segment', segment='hierarchy') }}">
