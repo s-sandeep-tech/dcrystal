@@ -188,91 +188,104 @@ def sync_owner_wise_data_task(task_type_override=None, progress_range=(0, 100), 
     try:
         emit('processing', 'Starting Owner Wise Order Summary Sync...', 5)
         conn = get_external_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = '3min'")
         
         emit('processing', 'Fetching data from Azure PostgreSQL...', 20)
         query = "SELECT * FROM ext_view.vw_ownership_wise_order_summary_with_order_type_provision_type"
         
-        start_time = time.time()
-        # Ensure session doesn't time out for this specific slow query
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        duration = time.time() - start_time
-        
-        logger.info(f"OwnerWise query took {duration:.2f} seconds.")
-        emit('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local database...', 50)
-        
-        # Clear existing
-        db.session.query(OwnerWiseOrderSummarySnapshot).delete()
-        
-        # Insert new using high-performance bulk mappings
-        new_records = []
-        for row in rows:
-            new_records.append({
-                'supplier': row.get('supplier'),
-                'batch': row.get('batch'),
-                'division': row.get('division'),
-                'group_name': row.get('group'),
-                'purity': row.get('purity'),
-                'classification': row.get('classification'),
-                'make': row.get('make'),
-                'collection': row.get('collection'),
-                'order_request_type': row.get('order_request_type'),
-                'order_type': row.get('order_type'),
-                'order_date': row.get('order_date'),
-                'order_ro': row.get('order_ro'),
-                'provision_type': row.get('provision_type'),
-                'branch_provision_type': row.get('branch_provision_type'),
-                'branch_type': row.get('branch_type') or '',
-                'customer_order_type': row.get('customer_order_type') or '',
-                'is_discount_party': row.get('is_discount_party') or '',
-                'classification_owner': row.get('classification_owner'),
-                'collection_owner': row.get('collection_owner'),
-                'make_owner': row.get('make_owner'),
-                'collection_owner_emp_code': row.get('collection_owner_emp_code'),
-                'make_owner_emp_code': row.get('make_owner_emp_code'),
-                'ordered_pcs': row.get('order_qty'),
-                'ordered_wt': row.get('order_wt'),
-                'accepted_pcs': row.get('accepted_pcs'),
-                'accepted_wt': row.get('accepted_wt'),
-                'rejected_pcs': row.get('rejected_pcs'),
-                'rejected_wt': row.get('rejected_wt'),
-                'cancelled_pcs': row.get('cancelled_pcs'),
-                'cancelled_wt': row.get('cancelled_wt'),
-                'barcoded_pcs': row.get('barcoded_pcs'),
-                'barcoded_wt': row.get('barcoded_wt'),
-                'not_barcoded_pcs': row.get('not_barcoded_pcs'),
-                'not_barcoded_wt': row.get('not_barcoded_wt'),
-                'hm_processed_pcs': row.get('hm_processed_pcs'),
-                'hm_testcut_pcs': row.get('hm_testcut_pcs'),
-                'hm_testcut_wt': row.get('hm_testcut_wt'),
-                'hm_passed_pcs': row.get('hm_passed_pcs'),
-                'hm_passed_wt': row.get('hm_passed_wt'),
-                'hm_failed_pcs': row.get('hm_failed_pcs'),
-                'hm_failed_wt': row.get('hm_failed_wt'),
-                'qc_processed_pcs': row.get('qc_processed_pcs'),
-                'qc_pending_pcs': row.get('qc_pending_pcs'),
-                'qc_pending_wt': row.get('qc_pending_wt'),
-                'qc_rejected_pcs': row.get('qc_reject_pcs'),
-                'qc_rejected_wt': row.get('qc_reject_wt'),
-                'qc_passed_pcs': row.get('qc_passed_pcs'),
-                'qc_passed_wt': row.get('qc_passed_wt'),
-                'invoiced_pcs': row.get('invoice_pcs'),
-                'invoiced_wt': row.get('invoiced_wt'),
-                'delivered_pcs': row.get('delivered_pcs'),
-                'delivered_wt': row.get('delivered_wt'),
-                'pending_to_be_delv_pcs': row.get('pending_to_deliver_pcs'),
-                'pending_to_be_delv_wt': row.get('pending_to_deliver_wt'),
-                'pending_to_accepted_pcs': row.get('pending_to_accepted_pcs'),
-                'pending_to_accepted_wt': row.get('pending_to_accepted_wt')
-            })
-        
-        db.session.bulk_insert_mappings(OwnerWiseOrderSummarySnapshot, new_records)
+        start_time = time.monotonic()
+        loaded = 0
+        batch_size = 2000
+        with conn.cursor(name='owner_order_summary_sync', cursor_factory=RealDictCursor) as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text("SET LOCAL statement_timeout = '3min'"))
+            db.session.execute(text(
+                f'LOCK TABLE {OwnerWiseOrderSummarySnapshot.__tablename__} IN SHARE ROW EXCLUSIVE MODE'
+            ))
+            db.session.query(OwnerWiseOrderSummarySnapshot).delete(synchronize_session=False)
+            logger.info('Owner Wise Order Summary: loading local snapshot in batches.')
+            emit('processing', 'Updating the local snapshot in batches...', 50)
+            next_progress_log = time.monotonic() + 30
+
+            while rows:
+                new_records = []
+                for row in rows:
+                    new_records.append({
+                        'supplier': row.get('supplier'),
+                        'batch': row.get('batch'),
+                        'division': row.get('division'),
+                        'group_name': row.get('group'),
+                        'purity': row.get('purity'),
+                        'classification': row.get('classification'),
+                        'make': row.get('make'),
+                        'collection': row.get('collection'),
+                        'order_request_type': row.get('order_request_type'),
+                        'order_type': row.get('order_type'),
+                        'order_date': row.get('order_date'),
+                        'order_ro': row.get('order_ro'),
+                        'provision_type': row.get('provision_type'),
+                        'branch_provision_type': row.get('branch_provision_type'),
+                        'branch_type': row.get('branch_type') or '',
+                        'customer_order_type': row.get('customer_order_type') or '',
+                        'is_discount_party': row.get('is_discount_party') or '',
+                        'classification_owner': row.get('classification_owner'),
+                        'collection_owner': row.get('collection_owner'),
+                        'make_owner': row.get('make_owner'),
+                        'collection_owner_emp_code': row.get('collection_owner_emp_code'),
+                        'make_owner_emp_code': row.get('make_owner_emp_code'),
+                        'ordered_pcs': row.get('order_qty'),
+                        'ordered_wt': row.get('order_wt'),
+                        'accepted_pcs': row.get('accepted_pcs'),
+                        'accepted_wt': row.get('accepted_wt'),
+                        'rejected_pcs': row.get('rejected_pcs'),
+                        'rejected_wt': row.get('rejected_wt'),
+                        'cancelled_pcs': row.get('cancelled_pcs'),
+                        'cancelled_wt': row.get('cancelled_wt'),
+                        'barcoded_pcs': row.get('barcoded_pcs'),
+                        'barcoded_wt': row.get('barcoded_wt'),
+                        'not_barcoded_pcs': row.get('not_barcoded_pcs'),
+                        'not_barcoded_wt': row.get('not_barcoded_wt'),
+                        'hm_processed_pcs': row.get('hm_processed_pcs'),
+                        'hm_testcut_pcs': row.get('hm_testcut_pcs'),
+                        'hm_testcut_wt': row.get('hm_testcut_wt'),
+                        'hm_passed_pcs': row.get('hm_passed_pcs'),
+                        'hm_passed_wt': row.get('hm_passed_wt'),
+                        'hm_failed_pcs': row.get('hm_failed_pcs'),
+                        'hm_failed_wt': row.get('hm_failed_wt'),
+                        'qc_processed_pcs': row.get('qc_processed_pcs'),
+                        'qc_pending_pcs': row.get('qc_pending_pcs'),
+                        'qc_pending_wt': row.get('qc_pending_wt'),
+                        'qc_rejected_pcs': row.get('qc_reject_pcs'),
+                        'qc_rejected_wt': row.get('qc_reject_wt'),
+                        'qc_passed_pcs': row.get('qc_passed_pcs'),
+                        'qc_passed_wt': row.get('qc_passed_wt'),
+                        'invoiced_pcs': row.get('invoice_pcs'),
+                        'invoiced_wt': row.get('invoiced_wt'),
+                        'delivered_pcs': row.get('delivered_pcs'),
+                        'delivered_wt': row.get('delivered_wt'),
+                        'pending_to_be_delv_pcs': row.get('pending_to_deliver_pcs'),
+                        'pending_to_be_delv_wt': row.get('pending_to_deliver_wt'),
+                        'pending_to_accepted_pcs': row.get('pending_to_accepted_pcs'),
+                        'pending_to_accepted_wt': row.get('pending_to_accepted_wt')
+                    })
+                db.session.bulk_insert_mappings(OwnerWiseOrderSummarySnapshot, new_records)
+                loaded += len(rows)
+                now = time.monotonic()
+                if now >= next_progress_log:
+                    logger.info('Owner Wise Order Summary: loaded %s rows, awaiting commit.', loaded)
+                    next_progress_log = now + 30
+                rows = cur.fetchmany(batch_size)
+
         db.session.commit()
-        
-        emit('success', f'Sync completed! {len(rows)} records updated.', 100)
-        return {"status": "success", "count": len(rows)}
+        logger.info('Synced %s Owner Wise Order Summary rows in %.2f seconds.', loaded, time.monotonic() - start_time)
+        emit('success', f'Sync completed! {loaded} records updated.', 100)
+        return {"status": "success", "count": loaded}
+
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
@@ -382,65 +395,80 @@ def sync_active_order_details_task(task_type_override=None, progress_range=(0, 1
     try:
         emit('processing', 'Starting Active Orders Sync...', 5)
         conn = get_external_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = '3min'")
         
         emit('processing', 'Fetching data from Azure PostgreSQL...', 20)
         query = "SELECT * FROM ext_view.vw_active_order_details"
         
-        start_time = time.time()
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        duration = time.time() - start_time
-        
-        logger.info(f"vw_active_order_details query took {duration:.2f} seconds.")
-        emit('processing', f'Fetched {len(rows)} records. Updating local database...', 50)
-        
-        db.session.query(ActiveOrderDetailsSnapshot).delete()
-        
-        new_records = []
-        for row in rows:
-            new_records.append({
-                'supplier': row.get('supplier'),
-                'order_type': row.get('order_type'),
-                'order_request_type': row.get('order_request_type'),
-                'order_ro': row.get('order_ro'),
-                'division': row.get('division'),
-                'group_name': row.get('group'),
-                'purity': row.get('purity'),
-                'classification': row.get('classification'),
-                'make': row.get('make'),
-                'collection': row.get('collection'),
-                'classification_owner': row.get('classification_owner'),
-                'collection_owner': row.get('collection_owner'),
-                'make_owner': row.get('make_owner'),
-                'provision_type': row.get('provision_type'),
-                'branch_type': row.get('branch_type'),
-                'branch_provision_type': row.get('branch_provision_type'),
-                'accepted_pcs': row.get('accepted_pcs') or 0,
-                'accepted_wt': row.get('accepted_wt') or 0.0,
-                'process_completed_pcs': row.get('process_completed_pcs') or 0,
-                'process_completed_wt': row.get('process_completed_wt') or 0.0,
-                'barcoded_pcs': row.get('barcoded_pcs') or 0,
-                'barcoded_wt': row.get('barcoded_wt') or 0.0,
-                'hallmarked_pcs': row.get('hallmarked_pcs') or 0,
-                'hallmarked_wt': row.get('hallmarked_wt') or 0.0,
-                'qc_issued_pcs': row.get('qc_issued_pcs') or 0,
-                'qc_issued_wt': row.get('qc_issued_wt') or 0.0,
-                'qc_completed_pcs': row.get('qc_completed_pcs') or 0,
-                'qc_completed_wt': row.get('qc_completed_wt') or 0.0,
-                'invoiced_pcs': row.get('invoiced_pcs') or 0,
-                'invoiced_wt': row.get('invoiced_wt') or 0.0,
-                'total_pcs': row.get('total_pcs') or 0,
-                'total_weight': row.get('total_weight') or 0.0
-            })
-            
-        db.session.bulk_insert_mappings(ActiveOrderDetailsSnapshot, new_records)
+        start_time = time.monotonic()
+        loaded = 0
+        batch_size = 2000
+        with conn.cursor(name='active_order_details_sync', cursor_factory=RealDictCursor) as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text("SET LOCAL statement_timeout = '3min'"))
+            db.session.execute(text(
+                f'LOCK TABLE {ActiveOrderDetailsSnapshot.__tablename__} IN SHARE ROW EXCLUSIVE MODE'
+            ))
+            db.session.query(ActiveOrderDetailsSnapshot).delete(synchronize_session=False)
+            logger.info('Active Order Details: loading local snapshot in batches.')
+            emit('processing', 'Updating the local snapshot in batches...', 50)
+            next_progress_log = time.monotonic() + 30
+
+            while rows:
+                new_records = []
+                for row in rows:
+                    new_records.append({
+                        'supplier': row.get('supplier'),
+                        'order_type': row.get('order_type'),
+                        'order_request_type': row.get('order_request_type'),
+                        'order_ro': row.get('order_ro'),
+                        'division': row.get('division'),
+                        'group_name': row.get('group'),
+                        'purity': row.get('purity'),
+                        'classification': row.get('classification'),
+                        'make': row.get('make'),
+                        'collection': row.get('collection'),
+                        'classification_owner': row.get('classification_owner'),
+                        'collection_owner': row.get('collection_owner'),
+                        'make_owner': row.get('make_owner'),
+                        'provision_type': row.get('provision_type'),
+                        'branch_type': row.get('branch_type'),
+                        'branch_provision_type': row.get('branch_provision_type'),
+                        'accepted_pcs': row.get('accepted_pcs') or 0,
+                        'accepted_wt': row.get('accepted_wt') or 0.0,
+                        'process_completed_pcs': row.get('process_completed_pcs') or 0,
+                        'process_completed_wt': row.get('process_completed_wt') or 0.0,
+                        'barcoded_pcs': row.get('barcoded_pcs') or 0,
+                        'barcoded_wt': row.get('barcoded_wt') or 0.0,
+                        'hallmarked_pcs': row.get('hallmarked_pcs') or 0,
+                        'hallmarked_wt': row.get('hallmarked_wt') or 0.0,
+                        'qc_issued_pcs': row.get('qc_issued_pcs') or 0,
+                        'qc_issued_wt': row.get('qc_issued_wt') or 0.0,
+                        'qc_completed_pcs': row.get('qc_completed_pcs') or 0,
+                        'qc_completed_wt': row.get('qc_completed_wt') or 0.0,
+                        'invoiced_pcs': row.get('invoiced_pcs') or 0,
+                        'invoiced_wt': row.get('invoiced_wt') or 0.0,
+                        'total_pcs': row.get('total_pcs') or 0,
+                        'total_weight': row.get('total_weight') or 0.0
+                    })
+                db.session.bulk_insert_mappings(ActiveOrderDetailsSnapshot, new_records)
+                loaded += len(rows)
+                now = time.monotonic()
+                if now >= next_progress_log:
+                    logger.info('Active Order Details: loaded %s rows, awaiting commit.', loaded)
+                    next_progress_log = now + 30
+                rows = cur.fetchmany(batch_size)
+
         db.session.commit()
-        
-        emit('success', f'Sync completed! {len(rows)} records updated.', 100)
-        return {"status": "success", "count": len(rows)}
-        
+        logger.info('Synced %s Active Order Details rows in %.2f seconds.', loaded, time.monotonic() - start_time)
+        emit('success', f'Sync completed! {loaded} records updated.', 100)
+        return {"status": "success", "count": loaded}
+
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
@@ -4151,112 +4179,116 @@ def sync_collection_wise_average_delivery_days_task(task_type_override=None, pro
     try:
         emit('processing', 'Starting Collection Wise Average Delivery Days Sync...', 5)
         conn = get_external_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = '3min'")
 
         emit('processing', 'Fetching data from ext_view.vw_muziris_inshop_receipt_tracking...', 20)
-        query = "SELECT * FROM ext_view.vw_muziris_inshop_receipt_tracking"
+        start_time = time.monotonic()
+        batch_size = 2000
+        loaded = 0
+        with conn.cursor(name='collection_delivery_days_sync', cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM ext_view.vw_muziris_inshop_receipt_tracking")
+            rows = cur.fetchmany(batch_size)
 
-        start_time = time.time()
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        duration = time.time() - start_time
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text("SET LOCAL statement_timeout = '3min'"))
+            db.session.execute(text(
+                'LOCK TABLE snapshot_collection_wise_average_delivery_days IN SHARE ROW EXCLUSIVE MODE'
+            ))
+            db.session.query(CollectionWiseAverageDeliveryDaysSnapshot).delete(synchronize_session=False)
+            emit('processing', 'Updating the local delivery days snapshot in batches...', 50)
+            next_progress_log = time.monotonic() + 30
 
-        logger.info(f"CollectionWiseAverageDeliveryDays query took {duration:.2f} seconds.")
-        emit('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot database...', 50)
+            while rows:
+                new_records = []
+                for row in rows:
+                    new_records.append({
+                        'id': row.get('id'),
+                        'order_id': row.get('order_id'),
+                        'purchase_bill_id': row.get('purchase_bill_id'),
+                        'morr_id': row.get('morr_id'),
+                        'item_definition_id': row.get('item_definition_id'),
+                        'branch_id': row.get('branch_id'),
+                        'location': row.get('location'),
+                        'group_id': row.get('group_id'),
+                        'group_name': row.get('group'),
+                        'purity_id': row.get('purity_id'),
+                        'purity': row.get('purity'),
+                        'classification_id': row.get('classification_id'),
+                        'classification': row.get('classification'),
+                        'sub_classification_id': row.get('sub_classification_id'),
+                        'sub_classification': row.get('sub_classification'),
+                        'section_id': row.get('section_id'),
+                        'section': row.get('section'),
+                        'type_id': row.get('type_id'),
+                        'type': row.get('type'),
+                        'make_id': row.get('make_id'),
+                        'make': row.get('make'),
+                        'master_collection_id': row.get('master_collection_id'),
+                        'master_collection': row.get('master_collection'),
+                        'collection_id': row.get('collection_id'),
+                        'collection': row.get('collection'),
+                        'sub_section_id': row.get('sub_section_id'),
+                        'sub_section': row.get('sub_section'),
+                        'gender_id': row.get('gender_id'),
+                        'gender': row.get('gender'),
+                        'wide_range_id': row.get('wide_range_id'),
+                        'wide_range': row.get('wide_range'),
+                        'weight': row.get('weight'),
+                        'size_id': row.get('size_id'),
+                        'size': row.get('size'),
+                        'screw_type_id': row.get('screw_type_id'),
+                        'screw_type': row.get('screw_type'),
+                        'design_id': row.get('design_id'),
+                        'design_no': row.get('design_no'),
+                        'barcode_no': row.get('barcode_no'),
+                        'ordered_date': row.get('ordered_date'),
+                        'crystal_invoice_date': row.get('crystal_invoice_date'),
+                        'muziris_inshop_received_date': row.get('muziris_inshop_received_date'),
+                        'morr_received_date': row.get('morr_received_date'),
+                        'is_excluded': row.get('is_excluded'),
+                        'received_branch_id': row.get('received_branch_id'),
+                        'received_location': row.get('received_location'),
+                        'last_updated_at': row.get('last_updated_at'),
+                        'order_request_type': row.get('order_request_type'),
+                        'order_request_type_name': row.get('order_request_type_name'),
+                        'current_branch_id': row.get('current_branch_id'),
+                        'current_location': row.get('current_location'),
+                        'hm_issue_date': row.get('hm_issue_date'),
+                        'qc_issue_date': row.get('qc_issue_date'),
+                        'hm_receipt_date': row.get('hm_receipt_date'),
+                        'qc_receipt_date': row.get('qc_receipt_date'),
+                        'branch_type': row.get('branch_type'),
+                        'by_hand': row.get('by_hand'),
+                        'supplier_id': row.get('supplier_id'),
+                        'supplier_name': row.get('supplier_name'),
+                        'delivery_days': row.get('delivery_days'),
+                        'order_period': row.get('order_period'),
+                        'classification_owner': row.get('classification_owner'),
+                        'make_owner': row.get('make_owner'),
+                        'collection_owner': row.get('collection_owner'),
+                        'classification_user_code': row.get('classification_user_code'),
+                        'make_user_code': row.get('make_user_code'),
+                        'collection_user_code': row.get('collection_user_code'),
+                        'is_re_ordered': row.get('is_re_ordered'),
+                        'in_transit_days': row.get('in_transit_days')
+                    })
 
-        db.session.query(CollectionWiseAverageDeliveryDaysSnapshot).delete()
-
-        new_records = []
-        for row in rows:
-            new_records.append({
-                'id': row.get('id'),
-                'order_id': row.get('order_id'),
-                'purchase_bill_id': row.get('purchase_bill_id'),
-                'morr_id': row.get('morr_id'),
-                'item_definition_id': row.get('item_definition_id'),
-                'branch_id': row.get('branch_id'),
-                'location': row.get('location'),
-                'group_id': row.get('group_id'),
-                'group_name': row.get('group'),
-                'purity_id': row.get('purity_id'),
-                'purity': row.get('purity'),
-                'classification_id': row.get('classification_id'),
-                'classification': row.get('classification'),
-                'sub_classification_id': row.get('sub_classification_id'),
-                'sub_classification': row.get('sub_classification'),
-                'section_id': row.get('section_id'),
-                'section': row.get('section'),
-                'type_id': row.get('type_id'),
-                'type': row.get('type'),
-                'make_id': row.get('make_id'),
-                'make': row.get('make'),
-                'master_collection_id': row.get('master_collection_id'),
-                'master_collection': row.get('master_collection'),
-                'collection_id': row.get('collection_id'),
-                'collection': row.get('collection'),
-                'sub_section_id': row.get('sub_section_id'),
-                'sub_section': row.get('sub_section'),
-                'gender_id': row.get('gender_id'),
-                'gender': row.get('gender'),
-                'wide_range_id': row.get('wide_range_id'),
-                'wide_range': row.get('wide_range'),
-                'weight': row.get('weight'),
-                'size_id': row.get('size_id'),
-                'size': row.get('size'),
-                'screw_type_id': row.get('screw_type_id'),
-                'screw_type': row.get('screw_type'),
-                'design_id': row.get('design_id'),
-                'design_no': row.get('design_no'),
-                'barcode_no': row.get('barcode_no'),
-                'ordered_date': row.get('ordered_date'),
-                'crystal_invoice_date': row.get('crystal_invoice_date'),
-                'muziris_inshop_received_date': row.get('muziris_inshop_received_date'),
-                'morr_received_date': row.get('morr_received_date'),
-                'is_excluded': row.get('is_excluded'),
-                'received_branch_id': row.get('received_branch_id'),
-                'received_location': row.get('received_location'),
-                'last_updated_at': row.get('last_updated_at'),
-                'order_request_type': row.get('order_request_type'),
-                'order_request_type_name': row.get('order_request_type_name'),
-                'current_branch_id': row.get('current_branch_id'),
-                'current_location': row.get('current_location'),
-                'hm_issue_date': row.get('hm_issue_date'),
-                'qc_issue_date': row.get('qc_issue_date'),
-                'hm_receipt_date': row.get('hm_receipt_date'),
-                'qc_receipt_date': row.get('qc_receipt_date'),
-                'branch_type': row.get('branch_type'),
-                'by_hand': row.get('by_hand'),
-                'supplier_id': row.get('supplier_id'),
-                'supplier_name': row.get('supplier_name'),
-                'delivery_days': row.get('delivery_days'),
-                'order_period': row.get('order_period'),
-                'classification_owner': row.get('classification_owner'),
-                'make_owner': row.get('make_owner'),
-                'collection_owner': row.get('collection_owner'),
-                'classification_user_code': row.get('classification_user_code'),
-                'make_user_code': row.get('make_user_code'),
-                'collection_user_code': row.get('collection_user_code'),
-                'is_re_ordered': row.get('is_re_ordered'),
-                'in_transit_days': row.get('in_transit_days')
-            })
-
-        if new_records:
-            chunk_size = 5000
-            for i in range(0, len(new_records), chunk_size):
-                db.session.bulk_insert_mappings(CollectionWiseAverageDeliveryDaysSnapshot, new_records[i:i + chunk_size])
+                db.session.bulk_insert_mappings(CollectionWiseAverageDeliveryDaysSnapshot, new_records)
+                loaded += len(rows)
+                now = time.monotonic()
+                if now >= next_progress_log:
+                    logger.info('Collection Wise Average Delivery Days: loaded %s rows, awaiting commit.', loaded)
+                    emit('processing', f'Loaded {loaded:,} delivery days records...', 70)
+                    next_progress_log = now + 30
+                rows = cur.fetchmany(batch_size)
 
         db.session.commit()
-
-        try:
-            redis_client.flushdb()
-            cache_msg = " Cache cleared."
-        except Exception as ce:
-            logger.error(f"Failed to clear cache during CollectionWiseAverageDeliveryDays sync: {ce}")
-            cache_msg = " Cache clear failed."
-
-        emit('success', f'Sync completed! {len(rows)} records updated.{cache_msg}', 100)
-        return {"status": "success", "count": len(rows)}
+        logger.info('Synced %s Collection Wise Average Delivery Days rows in %.2f seconds.',
+                    loaded, time.monotonic() - start_time)
+        emit('success', f'Sync completed! {loaded:,} records updated.', 100)
+        return {"status": "success", "count": loaded}
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
@@ -4891,79 +4923,91 @@ def sync_party_make_capacity_details_task(task_type_override=None, progress_rang
             emit('processing', f'Starting Party Make Capacity Details Sync (Attempt {attempt}/{max_attempts})...', 5)
 
             conn = get_external_db_connection()
-            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            conn.set_session(readonly=True, autocommit=False)
+            with conn.cursor() as settings_cursor:
+                settings_cursor.execute("SET LOCAL statement_timeout = '3min'")
 
             emit('processing', 'Fetching data from Azure PostgreSQL...', 20)
-            started_at = time.time()
-            cursor.execute("SET statement_timeout = 0")
-            query = "SELECT * FROM ext_view.vw_party_make_capacity_details"
-            cursor.execute(query)
-            source_rows = cursor.fetchall()
-            duration = time.time() - started_at
-
-            logger.info(f"vw_party_make_capacity_details query took {duration:.2f} seconds.")
-            emit('processing', f'Fetched {len(source_rows):,} records in {duration:.1f}s. Updating local snapshot...', 50)
-
-            PartyMakeCapacityDetailsSnapshot.__table__.create(db.engine, checkfirst=True)
-            db.session.query(PartyMakeCapacityDetailsSnapshot).delete()
-
+            started_at = time.monotonic()
             today = date.today()
             now = datetime.utcnow()
-            records = []
-            for row in source_rows:
-                records.append({
-                    'supplier': str(row.get('supplier') or '').strip(),
-                    'make': str(row.get('make') or '').strip(),
-                    'party_capacity_kg': to_decimal(row.get('party_capacity_kg')),
-                    'actual_capacity_kg': to_decimal(row['actual_capacity_kg']) if row.get('actual_capacity_kg') is not None else None,
-                    'correction_pcs': to_int(row['correction_pcs']) if row.get('correction_pcs') is not None else None,
-                    'make_owner': str(row['make_owner']).strip() if row.get('make_owner') is not None else None,
-                    'collection_owner': str(row['collection_owner']).strip() if row.get('collection_owner') is not None else None,
-                    'collection_owner_emp_code': str(row['collection_owner_emp_code']).strip() if row.get('collection_owner_emp_code') is not None else None,
-                    'make_owner_emp_code': str(row['make_owner_emp_code']).strip() if row.get('make_owner_emp_code') is not None else None,
-                    'correction_wt': to_decimal(row['correction_wt']) if row.get('correction_wt') is not None else None,
-                    'is_orders': row.get('is_orders'),
-                    'order_ro': str(row.get('order_ro') or '').strip(),
-                    'location': str(row.get('location') or '').strip(),
-                    'provision_type': str(row.get('provision_type') or '').strip(),
-                    'branch_type': str(row.get('branch_type') or '').strip(),
-                    'is_msme': bool(row.get('is_msme')),
-                    'group_name': str(row.get('group') or '').strip(),
-                    'purity': str(row.get('purity') or '').strip(),
-                    'division': str(row.get('division') or '').strip(),
-                    'classification': str(row.get('classification') or '').strip(),
-                    'collection': str(row.get('collection') or '').strip(),
-                    'order_type': str(row.get('order_type') or '').strip(),
-                    'order_request_type': str(row.get('order_request_type') or '').strip(),
-                    'process_pending_pcs': to_int(row.get('process_pending_pcs')),
-                    'process_pending_wt': to_decimal(row.get('process_pending_wt')),
-                    'barcode_pending_pcs': to_int(row.get('barcode_pending_pcs')),
-                    'barcode_pending_wt': to_decimal(row.get('barcode_pending_wt')),
-                    'hallmark_pending_pcs': to_int(row.get('hallmark_pending_pcs')),
-                    'hallmark_pending_wt': to_decimal(row.get('hallmark_pending_wt')),
-                    'qc_issue_pending_pcs': to_int(row.get('qc_issue_pending_pcs')),
-                    'qc_issue_pending_wt': to_decimal(row.get('qc_issue_pending_wt')),
-                    'qc_complete_pending_pcs': to_int(row.get('qc_complete_pending_pcs')),
-                    'qc_complete_pending_wt': to_decimal(row.get('qc_complete_pending_wt')),
-                    'invoice_pending_pcs': to_int(row.get('invoice_pending_pcs')),
-                    'invoice_pending_wt': to_decimal(row.get('invoice_pending_wt')),
-                    'receipt_pending_pcs': to_int(row.get('receipt_pending_pcs')),
-                    'receipt_pending_wt': to_decimal(row.get('receipt_pending_wt')),
-                    'total_pcs': to_int(row.get('total_pcs')),
-                    'total_wt': to_decimal(row.get('total_wt')),
-                    'snapshot_date': today,
-                    'updated_at': now,
-                })
+            loaded = 0
+            batch_size = 2000
+            with conn.cursor(name='party_make_capacity_sync', cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("SELECT * FROM ext_view.vw_party_make_capacity_details")
+                source_rows = cursor.fetchmany(batch_size)
+                PartyMakeCapacityDetailsSnapshot.__table__.create(db.engine, checkfirst=True)
 
-            for start in range(0, len(records), 5000):
-                db.session.bulk_insert_mappings(
-                    PartyMakeCapacityDetailsSnapshot,
-                    records[start:start + 5000]
-                )
+                db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+                db.session.execute(text("SET LOCAL statement_timeout = '3min'"))
+                db.session.execute(text(
+                    'LOCK TABLE party_make_capacity_details_snapshot IN SHARE ROW EXCLUSIVE MODE'
+                ))
+                db.session.query(PartyMakeCapacityDetailsSnapshot).delete(synchronize_session=False)
+                emit('processing', 'Updating the local capacity snapshot in batches...', 50)
+                next_progress_log = time.monotonic() + 30
+
+                while source_rows:
+                    records = []
+                    for row in source_rows:
+                        records.append({
+                            'supplier': str(row.get('supplier') or '').strip(),
+                            'make': str(row.get('make') or '').strip(),
+                            'party_capacity_kg': to_decimal(row.get('party_capacity_kg')),
+                            'actual_capacity_kg': to_decimal(row['actual_capacity_kg']) if row.get('actual_capacity_kg') is not None else None,
+                            'correction_pcs': to_int(row['correction_pcs']) if row.get('correction_pcs') is not None else None,
+                            'make_owner': str(row['make_owner']).strip() if row.get('make_owner') is not None else None,
+                            'collection_owner': str(row['collection_owner']).strip() if row.get('collection_owner') is not None else None,
+                            'collection_owner_emp_code': str(row['collection_owner_emp_code']).strip() if row.get('collection_owner_emp_code') is not None else None,
+                            'make_owner_emp_code': str(row['make_owner_emp_code']).strip() if row.get('make_owner_emp_code') is not None else None,
+                            'correction_wt': to_decimal(row['correction_wt']) if row.get('correction_wt') is not None else None,
+                            'is_orders': row.get('is_orders'),
+                            'order_ro': str(row.get('order_ro') or '').strip(),
+                            'location': str(row.get('location') or '').strip(),
+                            'provision_type': str(row.get('provision_type') or '').strip(),
+                            'branch_type': str(row.get('branch_type') or '').strip(),
+                            'is_msme': bool(row.get('is_msme')),
+                            'group_name': str(row.get('group') or '').strip(),
+                            'purity': str(row.get('purity') or '').strip(),
+                            'division': str(row.get('division') or '').strip(),
+                            'classification': str(row.get('classification') or '').strip(),
+                            'collection': str(row.get('collection') or '').strip(),
+                            'order_type': str(row.get('order_type') or '').strip(),
+                            'order_request_type': str(row.get('order_request_type') or '').strip(),
+                            'process_pending_pcs': to_int(row.get('process_pending_pcs')),
+                            'process_pending_wt': to_decimal(row.get('process_pending_wt')),
+                            'barcode_pending_pcs': to_int(row.get('barcode_pending_pcs')),
+                            'barcode_pending_wt': to_decimal(row.get('barcode_pending_wt')),
+                            'hallmark_pending_pcs': to_int(row.get('hallmark_pending_pcs')),
+                            'hallmark_pending_wt': to_decimal(row.get('hallmark_pending_wt')),
+                            'qc_issue_pending_pcs': to_int(row.get('qc_issue_pending_pcs')),
+                            'qc_issue_pending_wt': to_decimal(row.get('qc_issue_pending_wt')),
+                            'qc_complete_pending_pcs': to_int(row.get('qc_complete_pending_pcs')),
+                            'qc_complete_pending_wt': to_decimal(row.get('qc_complete_pending_wt')),
+                            'invoice_pending_pcs': to_int(row.get('invoice_pending_pcs')),
+                            'invoice_pending_wt': to_decimal(row.get('invoice_pending_wt')),
+                            'receipt_pending_pcs': to_int(row.get('receipt_pending_pcs')),
+                            'receipt_pending_wt': to_decimal(row.get('receipt_pending_wt')),
+                            'total_pcs': to_int(row.get('total_pcs')),
+                            'total_wt': to_decimal(row.get('total_wt')),
+                            'snapshot_date': today,
+                            'updated_at': now,
+                        })
+
+                    db.session.bulk_insert_mappings(PartyMakeCapacityDetailsSnapshot, records)
+                    loaded += len(records)
+                    elapsed_at = time.monotonic()
+                    if elapsed_at >= next_progress_log:
+                        logger.info('Party Make Capacity Details: loaded %s rows, awaiting commit.', loaded)
+                        emit('processing', f'Loaded {loaded:,} capacity records...', 70)
+                        next_progress_log = elapsed_at + 30
+                    source_rows = cursor.fetchmany(batch_size)
+
             db.session.commit()
-
-            emit('success', f'Sync completed! {len(records):,} records updated.', 100)
-            return {'status': 'success', 'count': len(records)}
+            logger.info('Synced %s Party Make Capacity Details rows in %.2f seconds.',
+                        loaded, time.monotonic() - started_at)
+            emit('success', f'Sync completed! {loaded:,} records updated.', 100)
+            return {'status': 'success', 'count': loaded}
         except Exception as exc:
             db.session.rollback()
             logger.exception('Party Make Capacity Details sync failed (attempt %s/%s)', attempt, max_attempts)

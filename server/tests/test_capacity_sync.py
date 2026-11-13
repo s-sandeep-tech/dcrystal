@@ -11,6 +11,12 @@ class CapacitySyncTests(unittest.TestCase):
         sleeper.start()
         self.addCleanup(sleeper.stop)
         self.connection = MagicMock()
+        settings_cursor = MagicMock()
+        source_cursor = MagicMock()
+        self.cursor = source_cursor.__enter__.return_value
+        self.connection.cursor.side_effect = (
+            lambda *, name=None, cursor_factory=None: source_cursor if name else settings_cursor
+        )
         model = MagicMock()
         model.__table__ = MagicMock()
         for name, value in [
@@ -24,7 +30,7 @@ class CapacitySyncTests(unittest.TestCase):
             self.addCleanup(patcher.stop)
 
     def test_fetches_maps_and_commits_actual_rows(self):
-        self.connection.cursor.return_value.fetchall.return_value = [{
+        self.cursor.fetchmany.side_effect = [[{
             'supplier': ' Supplier ', 'make': 'Make', 'group': 'Gold',
             'party_capacity_kg': '2.5', 'receipt_pending_wt': '12.345',
             'process_pending_pcs': '4', 'is_msme': False,
@@ -35,11 +41,15 @@ class CapacitySyncTests(unittest.TestCase):
             'correction_wt': Decimal('123456789012345.123456'),
             'is_orders': True,
             'order_type': 'x' * 250, 'order_request_type': 'y' * 250,
-        }]
+        }], []]
         result = sync_tasks.sync_party_make_capacity_details_task()
         self.assertEqual(result, {'status': 'success', 'count': 1})
-        self.connection.cursor.return_value.execute.assert_any_call(
+        self.cursor.execute.assert_called_once_with(
             'SELECT * FROM ext_view.vw_party_make_capacity_details')
+        self.connection.cursor.assert_any_call(
+            name='party_make_capacity_sync', cursor_factory=sync_tasks.RealDictCursor)
+        self.cursor.fetchall.assert_not_called()
+        self.assertEqual([call.args for call in self.cursor.fetchmany.call_args_list], [(2000,), (2000,)])
         record = sync_tasks.db.session.bulk_insert_mappings.call_args.args[1][0]
         self.assertEqual(record['supplier'], 'Supplier')
         self.assertEqual(record['group_name'], 'Gold')
@@ -62,7 +72,7 @@ class CapacitySyncTests(unittest.TestCase):
         self.connection.close.assert_called_once()
 
     def test_source_failure_does_not_delete_snapshot(self):
-        self.connection.cursor.return_value.execute.side_effect = RuntimeError('source unavailable')
+        self.cursor.execute.side_effect = RuntimeError('source unavailable')
         result = sync_tasks.sync_party_make_capacity_details_task()
         self.assertEqual(result['status'], 'error')
         sync_tasks.db.session.query.assert_not_called()
@@ -71,11 +81,12 @@ class CapacitySyncTests(unittest.TestCase):
         self.assertEqual(self.connection.close.call_count, 6)
 
     def test_new_fields_preserve_nulls_and_false(self):
-        self.connection.cursor.return_value.fetchall.return_value = [
-            {'supplier': 'A'}, {'supplier': 'B', 'is_orders': False}]
+        self.cursor.fetchmany.side_effect = [
+            [{'supplier': 'A'}], [{'supplier': 'B', 'is_orders': False}], []]
         result = sync_tasks.sync_party_make_capacity_details_task()
         self.assertEqual(result['status'], 'success')
-        records = sync_tasks.db.session.bulk_insert_mappings.call_args.args[1]
+        records = [call.args[1][0] for call in sync_tasks.db.session.bulk_insert_mappings.call_args_list]
+        self.assertEqual(result['count'], 2)
         for field in ('actual_capacity_kg', 'correction_pcs', 'correction_wt', 'is_orders',
                       'make_owner', 'collection_owner', 'make_owner_emp_code', 'collection_owner_emp_code'):
             self.assertIsNone(records[0][field])
@@ -103,7 +114,7 @@ class CapacitySyncTests(unittest.TestCase):
             self.assertIsNone(columns[name].type.scale)
 
     def test_insert_failure_rolls_back(self):
-        self.connection.cursor.return_value.fetchall.return_value = [{'supplier': 'Supplier'}]
+        self.cursor.fetchmany.return_value = [{'supplier': 'Supplier'}]
         sync_tasks.db.session.bulk_insert_mappings.side_effect = RuntimeError('insert failed')
         result = sync_tasks.sync_party_make_capacity_details_task()
         self.assertEqual(result['status'], 'error')
