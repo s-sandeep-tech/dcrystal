@@ -57,7 +57,10 @@
                     <th colspan="4" scope="colgroup">ABC category</th>
                 </tr>
                 <tr>
-                    {% for column in ['Pieces', 'Weight (kg)', 'Value (Cr)', 'Profit (Cr)', 'Pieces', 'Weight', 'Amount', 'Profit'] %}
+                    {% for column in ['Pieces', 'Weight (kg)', 'Value (Cr)', 'Profit (Cr)'] %}
+                    <th scope="col">{{ column }}<small class="xyz-contribution">Contribution %</small></th>
+                    {% endfor %}
+                    {% for column in ['Pieces', 'Weight', 'Amount', 'Profit'] %}
                     <th scope="col">{{ column }}</th>
                     {% endfor %}
                 </tr>
