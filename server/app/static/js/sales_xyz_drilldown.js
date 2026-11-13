@@ -12,6 +12,7 @@
     const filters = [...form.querySelectorAll('[data-field]')];
     const number = new Intl.NumberFormat('en-IN', {maximumFractionDigits: 3});
     const currency = new Intl.NumberFormat('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const percent = new Intl.NumberFormat('en-IN', {style: 'percent', maximumFractionDigits: 2});
     const metricKeys = ['pieces', 'weight', 'turnover', 'profit'];
     const categoryKeys = ['pieces', 'weight', 'turnover', 'tsk'];
     const rowsByButton = new WeakMap();
@@ -57,7 +58,7 @@
         }));
     }
 
-    function appendMetrics(tr, row) {
+    function appendMetrics(tr, row, isTotal = false) {
         for (const key of metricKeys) {
             const cell = tr.insertCell();
             const value = Number(row[key]);
@@ -66,6 +67,10 @@
                 cell.title = number.format(value);
             } else {
                 cell.textContent = number.format(value);
+            }
+            const share = isTotal ? (value > 0 ? 100 : null) : row.contributions[key];
+            if (share != null) {
+                cell.append(element('small', percent.format(Number(share) / 100), 'xyz-contribution'));
             }
         }
     }
@@ -128,8 +133,7 @@
                     heading.append(button);
                 }
                 tr.append(heading);
-                tr.insertCell().textContent = row.type ?? '—';
-                tr.insertCell().textContent = row.wide_range ?? '—';
+                tr.insertCell().textContent = row.leaf ? row.label : '—';
                 appendMetrics(tr, row);
                 for (const key of categoryKeys) {
                     const category = row.categories[key];
@@ -146,7 +150,7 @@
                 }
                 const detail = element('tr', null, 'xyz-detail-status');
                 const cell = detail.insertCell();
-                cell.colSpan = 3 + metricKeys.length + categoryKeys.length;
+                cell.colSpan = 2 + metricKeys.length + categoryKeys.length;
                 cell.setAttribute('role', 'status');
                 cell.style.paddingInlineStart = `${28 + row.parent.length * 16}px`;
                 if (row.loading) {
@@ -171,8 +175,8 @@
             const heading = element('th', 'Grand Total');
             heading.scope = 'row';
             tr.append(heading);
-            tr.insertCell().colSpan = 2;
-            appendMetrics(tr, rootTotals);
+            tr.insertCell();
+            appendMetrics(tr, rootTotals, true);
             tr.insertCell().colSpan = categoryKeys.length;
         }
         wrap.scrollTo(...scroll);

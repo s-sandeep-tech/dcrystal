@@ -215,4 +215,9 @@ def drilldown(cur, filters, parent):
             row.update(id=record['id_0'], label=record['label_0'])
         rows.append(row)
     totals = assign_categories(rows)
+    for row in rows:
+        row['contributions'] = {
+            metric: row[metric] * 100 / totals[metric] if totals[metric] > 0 else None
+            for metric in METRICS
+        }
     return {'rows': rows, 'totals': totals, 'level': 'Detail' if leaf else dimensions[0][2], 'leaf': leaf}
