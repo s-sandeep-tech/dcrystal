@@ -25,7 +25,7 @@ FILTERS = {
     'gender_id': ('Gender', 'gender'), 'invoice_type': ('Invoice type', 'invoice_type'),
     'trans_type': ('Transaction type', 'trans_type'),
 }
-METRICS = ('sold_qty', 'sold_weight', 'net_turnover', 'profit')
+METRICS = ('sold_qty', 'sold_weight', 'net_turnover', 'profit', 'invoice_profit')
 MAX_LEAVES = 20000
 EXCLUDED_MAKES = ('KMU 999 COIN', 'CUSTOM', 'KMU-COIN')
 
@@ -138,6 +138,8 @@ def build_tree(records):
     total = root['sold_qty']
 
     def finish(parent):
+        quantity = parent['sold_qty']
+        parent['profit_per_piece'] = parent['invoice_profit'] / quantity if quantity else None
         children = sorted(parent['children'].values(), key=lambda n: (-n['sold_qty'], n['label'], str(n['id'])))
         running = Decimal(0)
         for rank, node in enumerate(children, 1):
@@ -172,6 +174,7 @@ def hierarchy(cur, filters):
         COALESCE(SUM(turn_over) FILTER (WHERE trans_type = 'INVOICE'), 0)
           + COALESCE(SUM(turn_over) FILTER (WHERE trans_type = 'SR'), 0) * {multiplier} AS net_turnover,
         COALESCE(SUM(tsk::numeric), 0) AS profit,
+        COALESCE(SUM(tsk::numeric) FILTER (WHERE trans_type = 'INVOICE'), 0) AS invoice_profit,
         COUNT(*) FILTER (WHERE turn_over IS NULL OR (trans_type = 'SR' AND turn_over {invalid})) AS invalid_rows
         FROM {SOURCE} WHERE {where} GROUP BY {group_keys} LIMIT {MAX_LEAVES + 1}''', params)
     records = [dict(row) for row in cur.fetchall()]

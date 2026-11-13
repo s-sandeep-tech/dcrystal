@@ -16,7 +16,7 @@ Sold Weight sums invoice `net_weight` / 1000 in kg. Net Turnover combines invoic
 
 ## ABC and display
 
-All ten columns display by default: Hierarchy, Rank, Sold Qty, Contribution %, Cumulative %, Category, Overall Contribution %, Sold Weight (kg), Net Turnover, Profit. The last four columns can be hidden using the Columns menu. Table rows use compact vertical spacing. Monetary columns display Cr and provide full-value tooltips.
+All eleven columns display by default: Hierarchy, Rank, Sold Qty, Contribution %, Cumulative %, Category, Overall Contribution %, Sold Weight (kg), Net Turnover, Profit, Profit per Piece. The last five columns can be hidden using the Columns menu. Table rows use compact vertical spacing. Net Turnover and Profit display in Cr with full-value tooltips. Profit per Piece divides invoice TSK by Sold Qty at each level and in the footer. It displays in rupees and is blank when Sold Qty is zero.
 
 Siblings sort by quantity descending, then label, then ID; Rank is a sequential position. Contribution divides by parent quantity (report total at Make level). Cumulative contribution restarts within each parent. Overall Contribution divides by report quantity. Full-precision calculations precede display rounding.
 

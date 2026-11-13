@@ -17,7 +17,7 @@ def record(qty, make='1', purity='1', **metrics):
     row = {key: '1' for key, _, _ in report.LEVELS}
     row.update({label: title + ' 1' for _, label, title in report.LEVELS})
     row.update(make_id=make, make='Make ' + str(make), purity_id=purity, purity='Purity ' + str(purity),
-               sold_qty=qty, sold_weight=Decimal('1.25'), net_turnover=Decimal('100'), profit=Decimal('10'), invalid_rows=0)
+               sold_qty=qty, sold_weight=Decimal('1.25'), net_turnover=Decimal('100'), profit=Decimal('10'), invoice_profit=Decimal('8'), invalid_rows=0)
     row.update(metrics)
     return row
 
@@ -51,6 +51,8 @@ class CalculationTests(unittest.TestCase):
         data = report.build_tree([record(60, '1', '1'), record(20, '1', '2'), record(20, '2', '1')])
         root = data['rows'][0]
         self.assertEqual(root['sold_qty'], 80)
+        self.assertEqual(root['profit_per_piece'], Decimal('0.2'))
+        self.assertEqual(data['totals']['profit_per_piece'], Decimal('0.24'))
         self.assertEqual(root['children'][0]['contribution'], 75)
         self.assertEqual(root['children'][0]['overall'], 60)
         self.assertEqual(root['children'][1]['category'], 'A')
@@ -73,6 +75,7 @@ class CalculationTests(unittest.TestCase):
         self.assertIsNone(zero['contribution'])
         self.assertIsNone(zero['cumulative'])
         self.assertEqual(zero['category'], 'Unclassified')
+        self.assertIsNone(zero['profit_per_piece'])
         self.assertEqual(report.build_tree([])['rows'], [])
 
     def test_range_weights_group_under_wide_range(self):
@@ -105,6 +108,8 @@ class CalculationTests(unittest.TestCase):
         sql, params = cur.execute.call_args.args
         self.assertIn("COALESCE(SUM(pieces::numeric) FILTER (WHERE trans_type = 'INVOICE'), 0) AS sold_qty", sql)
         self.assertIn('COALESCE(SUM(tsk::numeric), 0) AS profit', sql)
+        self.assertIn("SUM(tsk::numeric) FILTER (WHERE trans_type = 'INVOICE')", sql)
+        self.assertEqual(data['totals']['profit_per_piece'], Decimal('2'))
         self.assertEqual(data['totals']['profit'], Decimal('10'))
         self.assertNotIn('barcode', sql)
         self.assertIn('"wide_range_id"', sql)

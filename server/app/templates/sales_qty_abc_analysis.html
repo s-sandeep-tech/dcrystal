@@ -14,7 +14,7 @@
     </header>
     <section class="abc-panel" aria-label="Sales quantity hierarchy">
         <div class="abc-toolbar"><div class="abc-depth-control"><span id="abc-depth-label">Show through</span><div class="abc-depth-popup"><button id="abc-depth-toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="abc-depth" aria-labelledby="abc-depth-label abc-depth-value"><span id="abc-depth-value">Make</span><span aria-hidden="true">▾</span></button><div id="abc-depth" role="menu" aria-labelledby="abc-depth-label" hidden>{% for key, label, title in levels %}<button type="button" role="menuitemradio" tabindex="-1" data-abc-depth="{{ loop.index0 }}" aria-checked="{{ 'true' if loop.first else 'false' }}">{{ title }}</button>{% endfor %}</div></div></div><button id="abc-collapse" type="button">Collapse all</button>
-            <details class="abc-columns"><summary>Columns</summary><div>{% for key, title in [('overall', 'Overall Contribution %'), ('sold_weight', 'Sold Weight (kg)'), ('net_turnover', 'Net Turnover'), ('profit', 'Profit')] %}<label><input type="checkbox" checked data-abc-column="{{ key }}"> {{ title }}</label>{% endfor %}</div></details>
+            <details class="abc-columns"><summary>Columns</summary><div>{% for key, title in [('overall', 'Overall Contribution %'), ('sold_weight', 'Sold Weight (kg)'), ('net_turnover', 'Net Turnover'), ('profit', 'Profit'), ('profit_per_piece', 'Profit per Piece')] %}<label><input type="checkbox" checked data-abc-column="{{ key }}"> {{ title }}</label>{% endfor %}</div></details>
             <span id="abc-summary">A · 80% &nbsp; B · 15% &nbsp; C · 5%</span>
         </div>
         <div id="abc-status" role="status" aria-live="polite"></div>
@@ -24,7 +24,7 @@
     <dialog id="abc-info" aria-labelledby="abc-info-title"><div class="abc-title"><h2 id="abc-info-title">About this report</h2><button id="abc-info-close" type="button" aria-label="Close report information">✕</button></div>
         <p>Sold Qty sums the source pieces for invoice rows across the selected period. Parent quantities sum their children.</p>
         <p>Contribution uses the parent quantity; Overall Contribution uses the filtered report total. Siblings rank by quantity descending, then label and ID. Cumulative contribution restarts within each parent. A covers the first 80%, B the next 15%, and C the remainder. The row crossing a boundary stays in the category it completes. Zero-quantity rows are Unclassified.</p>
-        <p>Sold Weight includes invoice weights in kg. Net Turnover includes configured sales returns; Profit sums source TSK values. Amounts display in Cr with full-value tooltips. Transaction filters apply to every metric; selecting only returns produces no sold quantity.</p>
+        <p>Sold Weight includes invoice weights in kg. Net Turnover includes configured sales returns; Profit sums source TSK values. Profit per Piece divides invoice TSK by Sold Qty and displays in rupees. Turnover and Profit display in Cr with full-value tooltips. Transaction filters apply to every metric; selecting only returns produces no sold quantity.</p>
         <p>Search reveals matching paths without recalculating ABC. The footer always shows the complete filtered total, counting each leaf once.</p>
     </dialog>
 </main>
@@ -42,4 +42,4 @@
     </form>
 </aside>
 {% endblock %}
-{% block extra_scripts %}<script src="{{ url_for('static', filename='js/sales_qty_abc_analysis.js', v='20261113-tsk-profit') }}"></script>{% endblock %}
+{% block extra_scripts %}<script src="{{ url_for('static', filename='js/sales_qty_abc_analysis.js', v='20261113-profit-per-piece') }}"></script>{% endblock %}

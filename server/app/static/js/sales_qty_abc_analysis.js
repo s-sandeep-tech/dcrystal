@@ -12,7 +12,7 @@
     const number = value => Number(value).toLocaleString('en-IN', {maximumFractionDigits: 2});
     const percent = value => value == null ? '—' : `${number(value)}%`;
     const money = value => `${(value / 10000000).toLocaleString('en-IN', {maximumFractionDigits: 2, minimumFractionDigits: 2})} Cr`;
-    const columns = [['overall', 'Overall Contribution %'], ['sold_weight', 'Sold Weight (kg)'], ['net_turnover', 'Net Turnover'], ['profit', 'Profit']];
+    const columns = [['overall', 'Overall Contribution %'], ['sold_weight', 'Sold Weight (kg)'], ['net_turnover', 'Net Turnover'], ['profit', 'Profit'], ['profit_per_piece', 'Profit per Piece']];
     function element(tag, text, className) {
         const node = document.createElement(tag);
         if (text != null) node.textContent = text;
@@ -112,6 +112,11 @@
         function extras(tr, row, total = false) {
             for (const [key] of columns) if (extraColumns.has(key)) {
                 const cell = tr.insertCell();
+                if (key === 'profit_per_piece') {
+                    const value = row[key];
+                    cell.textContent = value == null ? '' : `₹${number(value)}`;
+                    continue;
+                }
                 cell.textContent = key === 'overall' ? percent(total ? (row.sold_qty > 0 ? 100 : null) : row.overall) : key === 'sold_weight' ? number(row[key]) : money(row[key]);
                 if (key === 'net_turnover' || key === 'profit') cell.title = number(row[key]);
             }
