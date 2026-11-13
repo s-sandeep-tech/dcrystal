@@ -5,6 +5,7 @@
     const form = document.getElementById('xyz-filters');
     const status = document.getElementById('xyz-status');
     const tbody = document.getElementById('xyz-rows');
+    const tableWrap = tbody.closest('.xyz-table-wrap');
     const tfoot = document.getElementById('xyz-totals');
     const sidebar = document.getElementById('xyz-sidebar');
     const filterToggle = document.getElementById('xyz-filter-toggle');
@@ -264,6 +265,7 @@
         history.replaceState(null, '', `${location.pathname}?${applied}`);
         document.getElementById('xyz-period').textContent = `${applied.get('start')} to ${applied.get('end')}`;
         showLoading(status, 'Loading hierarchy…');
+        tableWrap.hidden = true;
         roots = [];
         rootTotals = null;
         render();
@@ -280,6 +282,8 @@
             retry.type = 'button';
             retry.addEventListener('click', reload);
             status.replaceChildren(document.createTextNode(error.message), retry);
+        } finally {
+            if (!signal.aborted) tableWrap.hidden = false;
         }
     }
 
