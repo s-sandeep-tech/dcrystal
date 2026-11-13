@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Sales XYZ Drilldown{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css', v='20261113-orders') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css', v='20261113-header-order') }}">
 {% endblock %}
 {% block content %}
 <main id="xyz-report" data-api="{{ url_for('dashboard.sales_xyz_drilldown_segment', segment='hierarchy') }}">
@@ -15,6 +15,17 @@
                 </button>
             </div>
         </div>
+        <details class="xyz-hierarchy-menu">
+            <summary>Drill-down <span id="xyz-order-label">Default</span><span aria-hidden="true">▾</span></summary>
+            <ul aria-label="Drill-down orders">
+                {% for key, order in hierarchies.items() %}
+                <li><button type="button" data-hierarchy="{{ key }}" aria-pressed="{{ 'true' if key == 'default' else 'false' }}">
+                    <strong>{{ 'Default' if key == 'default' else 'Order ' ~ key }}</strong>
+                    <span>{{ order | map(attribute=2) | join(' → ') }}</span>
+                </button></li>
+                {% endfor %}
+            </ul>
+        </details>
         <div class="xyz-actions">
             <button type="button" id="xyz-collapse">Collapse all</button>
             <button type="button" id="xyz-refresh" aria-label="Refresh report" title="Refresh report"><span class="material-symbols-outlined" aria-hidden="true">refresh</span></button>
@@ -36,22 +47,7 @@
         <table>
             <thead>
                 <tr class="xyz-column-groups">
-                    <th rowspan="2" scope="col">
-                        <div class="xyz-hierarchy-heading">
-                            <span>Hierarchy</span>
-                            <details class="xyz-hierarchy-menu">
-                                <summary>Drill-down <span id="xyz-order-label">Default</span><span aria-hidden="true">▾</span></summary>
-                                <ul aria-label="Drill-down orders">
-                                    {% for key, order in hierarchies.items() %}
-                                    <li><button type="button" data-hierarchy="{{ key }}" aria-pressed="{{ 'true' if key == 'default' else 'false' }}">
-                                        <strong>{{ 'Default' if key == 'default' else 'Order ' ~ key }}</strong>
-                                        <span>{{ order | map(attribute=2) | join(' → ') }}</span>
-                                    </button></li>
-                                    {% endfor %}
-                                </ul>
-                            </details>
-                        </div>
-                    </th>
+                    <th rowspan="2" scope="col">Hierarchy</th>
                     <th colspan="2" scope="colgroup">Product details</th>
                     <th colspan="4" scope="colgroup">Sales</th>
                     <th colspan="4" scope="colgroup">ABC category</th>
