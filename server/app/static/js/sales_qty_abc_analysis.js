@@ -12,7 +12,7 @@
     const number = value => Number(value).toLocaleString('en-IN', {maximumFractionDigits: 2});
     const percent = value => value == null ? '—' : `${number(value)}%`;
     const money = value => `${(value / 10000000).toLocaleString('en-IN', {maximumFractionDigits: 2, minimumFractionDigits: 2})} Cr`;
-    const columns = [['overall', 'Overall Contribution %'], ['sold_weight', 'Sold Weight (kg)'], ['net_turnover', 'Net Turnover'], ['mcprofit', 'MC Profit']];
+    const columns = [['overall', 'Overall Contribution %'], ['sold_weight', 'Sold Weight (kg)'], ['net_turnover', 'Net Turnover'], ['profit', 'Profit']];
     function element(tag, text, className) {
         const node = document.createElement(tag);
         if (text != null) node.textContent = text;
@@ -113,7 +113,7 @@
             for (const [key] of columns) if (extraColumns.has(key)) {
                 const cell = tr.insertCell();
                 cell.textContent = key === 'overall' ? percent(total ? (row.sold_qty > 0 ? 100 : null) : row.overall) : key === 'sold_weight' ? number(row[key]) : money(row[key]);
-                if (key === 'net_turnover' || key === 'mcprofit') cell.title = number(row[key]);
+                if (key === 'net_turnover' || key === 'profit') cell.title = number(row[key]);
             }
         }
         function append(rows) {

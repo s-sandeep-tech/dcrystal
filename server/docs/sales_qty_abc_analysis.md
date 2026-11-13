@@ -12,11 +12,11 @@ The hierarchy is Make → Purity → Collection → Subsection → Section → T
 
 Sold Qty sums the source `pieces` column for **invoice** rows in each complete hierarchy path across the selected period. Missing quantities contribute zero. Parent quantities sum their children.
 
-Sold Weight sums invoice `net_weight` / 1000 in kg. Net Turnover combines invoice turnover and returns according to `SALES_PREDICTION_RETURN_SIGN` (`signed` by default, or `positive`). Missing turnover and incompatible return signs produce a source error. MC Profit sums `mcprofit` with source signs across included transactions. Transaction filters apply to every metric; a returns-only selection produces zero Sold Qty and Unclassified rows.
+Sold Weight sums invoice `net_weight` / 1000 in kg. Net Turnover combines invoice turnover and returns according to `SALES_PREDICTION_RETURN_SIGN` (`signed` by default, or `positive`). Missing turnover and incompatible return signs produce a source error. Profit sums `tsk` with source signs across included transactions. Transaction filters apply to every metric; a returns-only selection produces zero Sold Qty and Unclassified rows.
 
 ## ABC and display
 
-All ten columns display by default: Hierarchy, Rank, Sold Qty, Contribution %, Cumulative %, Category, Overall Contribution %, Sold Weight (kg), Net Turnover, MC Profit. The last four columns can be hidden using the Columns menu. Table rows use compact vertical spacing. Monetary columns display Cr and provide full-value tooltips.
+All ten columns display by default: Hierarchy, Rank, Sold Qty, Contribution %, Cumulative %, Category, Overall Contribution %, Sold Weight (kg), Net Turnover, Profit. The last four columns can be hidden using the Columns menu. Table rows use compact vertical spacing. Monetary columns display Cr and provide full-value tooltips.
 
 Siblings sort by quantity descending, then label, then ID; Rank is a sequential position. Contribution divides by parent quantity (report total at Make level). Cumulative contribution restarts within each parent. Overall Contribution divides by report quantity. Full-precision calculations precede display rounding.
 

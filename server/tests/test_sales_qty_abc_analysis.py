@@ -17,7 +17,7 @@ def record(qty, make='1', purity='1', **metrics):
     row = {key: '1' for key, _, _ in report.LEVELS}
     row.update({label: title + ' 1' for _, label, title in report.LEVELS})
     row.update(make_id=make, make='Make ' + str(make), purity_id=purity, purity='Purity ' + str(purity),
-               sold_qty=qty, sold_weight=Decimal('1.25'), net_turnover=Decimal('100'), mcprofit=Decimal('10'), invalid_rows=0)
+               sold_qty=qty, sold_weight=Decimal('1.25'), net_turnover=Decimal('100'), profit=Decimal('10'), invalid_rows=0)
     row.update(metrics)
     return row
 
@@ -104,6 +104,8 @@ class CalculationTests(unittest.TestCase):
         self.assertEqual(data['totals']['sold_qty'], 4)
         sql, params = cur.execute.call_args.args
         self.assertIn("COALESCE(SUM(pieces::numeric) FILTER (WHERE trans_type = 'INVOICE'), 0) AS sold_qty", sql)
+        self.assertIn('COALESCE(SUM(tsk::numeric), 0) AS profit', sql)
+        self.assertEqual(data['totals']['profit'], Decimal('10'))
         self.assertNotIn('barcode', sql)
         self.assertIn('"wide_range_id"', sql)
         self.assertNotIn('2026-04-01', sql)

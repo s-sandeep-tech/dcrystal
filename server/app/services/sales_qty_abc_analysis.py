@@ -25,7 +25,7 @@ FILTERS = {
     'gender_id': ('Gender', 'gender'), 'invoice_type': ('Invoice type', 'invoice_type'),
     'trans_type': ('Transaction type', 'trans_type'),
 }
-METRICS = ('sold_qty', 'sold_weight', 'net_turnover', 'mcprofit')
+METRICS = ('sold_qty', 'sold_weight', 'net_turnover', 'profit')
 MAX_LEAVES = 20000
 EXCLUDED_MAKES = ('KMU 999 COIN', 'CUSTOM', 'KMU-COIN')
 
@@ -98,7 +98,7 @@ def source_cursor():
 def validate_schema(cur):
     cur.execute(f'SELECT * FROM {SOURCE} LIMIT 0')
     columns = {c.name for c in cur.description}
-    required = {'pieces', 'trans_type', 'trans_date', 'date', 'net_weight', 'turn_over', 'mcprofit'}
+    required = {'pieces', 'trans_type', 'trans_date', 'date', 'net_weight', 'turn_over', 'tsk'}
     required.update(key for key, _, _ in LEVELS)
     required.update(label for _, label, _ in LEVELS)
     required.update(FILTERS)
@@ -171,7 +171,7 @@ def hierarchy(cur, filters):
         COALESCE(SUM(net_weight) FILTER (WHERE trans_type = 'INVOICE'), 0) / 1000.0 AS sold_weight,
         COALESCE(SUM(turn_over) FILTER (WHERE trans_type = 'INVOICE'), 0)
           + COALESCE(SUM(turn_over) FILTER (WHERE trans_type = 'SR'), 0) * {multiplier} AS net_turnover,
-        COALESCE(SUM(mcprofit), 0) AS mcprofit,
+        COALESCE(SUM(tsk::numeric), 0) AS profit,
         COUNT(*) FILTER (WHERE turn_over IS NULL OR (trans_type = 'SR' AND turn_over {invalid})) AS invalid_rows
         FROM {SOURCE} WHERE {where} GROUP BY {group_keys} LIMIT {MAX_LEAVES + 1}''', params)
     records = [dict(row) for row in cur.fetchall()]
