@@ -129,7 +129,12 @@
 #xyz-report thead tr:nth-child(2) th:first-child { position: sticky; left: auto; min-width: 90px; z-index: 2; }
 #xyz-report thead tr:first-child th:first-child { text-align: left; min-width: 250px; z-index: 4; }
 #xyz-report .xyz-column-groups th { color: var(--xyz-accent); border-bottom: 1px solid var(--xyz-line); }
-.xyz-hierarchy-menu { position: relative; justify-self: center; }
+.xyz-hierarchy-control {
+    display: grid; justify-items: center; gap: 4px;
+    width: min(420px, calc(100cqw - 390px)); text-align: center;
+}
+#xyz-selected-hierarchy { color: var(--xyz-muted); font-size: 10px; line-height: 1.45; }
+.xyz-hierarchy-menu { position: relative; }
 .xyz-hierarchy-menu summary {
     display: flex; align-items: center; gap: 5px; cursor: pointer;
     min-height: 30px; padding: 4px 8px; border: 1px solid var(--xyz-line); border-radius: 5px;
@@ -178,7 +183,7 @@
 #xyz-report button:focus-visible, #xyz-report summary:focus-visible, #xyz-sidebar button:focus-visible, #xyz-sidebar summary:focus-visible { outline: 2px solid var(--xyz-accent); outline-offset: 2px; }
 @container (max-width: 540px) {
     .xyz-header { grid-template-columns: minmax(0, 1fr) auto; }
-    .xyz-hierarchy-menu { grid-column: 1 / -1; grid-row: 2; }
+    .xyz-hierarchy-control { grid-column: 1 / -1; grid-row: 2; width: min(420px, 100%); justify-self: center; }
 }
 @media (max-width: 700px) {
     .xyz-header { padding: 10px 12px; }

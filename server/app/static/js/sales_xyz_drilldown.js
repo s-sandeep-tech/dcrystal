@@ -31,6 +31,12 @@
         return node;
     }
 
+    function showLoading(target, message) {
+        const spinner = element('span', null, 'xyz-loading-spinner');
+        spinner.setAttribute('aria-hidden', 'true');
+        target.replaceChildren(spinner, document.createTextNode(message));
+    }
+
     async function fetchData(endpoint, params, signal) {
         const url = new URL(report.dataset.api, location.origin);
         if (endpoint === 'options') url.pathname = url.pathname.replace(/hierarchy$/, 'options');
@@ -142,12 +148,16 @@
                 cell.colSpan = 3 + metricKeys.length + categoryKeys.length;
                 cell.setAttribute('role', 'status');
                 cell.style.paddingInlineStart = `${28 + row.parent.length * 16}px`;
-                cell.textContent = row.error || (row.children ? 'No matching detail rows.' : 'Loading…');
-                if (row.error) {
+                if (row.loading) {
+                    showLoading(cell, 'Loading…');
+                } else if (row.error) {
+                    cell.textContent = row.error;
                     const retry = element('button', 'Retry');
                     retry.type = 'button';
                     retry.addEventListener('click', () => { row.open = false; toggleNode(row); });
                     cell.append(retry);
+                } else {
+                    cell.textContent = 'No matching detail rows.';
                 }
                 rows.append(detail);
             }
@@ -253,9 +263,7 @@
         }
         history.replaceState(null, '', `${location.pathname}?${applied}`);
         document.getElementById('xyz-period').textContent = `${applied.get('start')} to ${applied.get('end')}`;
-        const spinner = element('span', null, 'xyz-loading-spinner');
-        spinner.setAttribute('aria-hidden', 'true');
-        status.replaceChildren(spinner, document.createTextNode('Loading hierarchy…'));
+        showLoading(status, 'Loading hierarchy…');
         roots = [];
         rootTotals = null;
         render();
@@ -302,7 +310,9 @@
             button.setAttribute('aria-pressed', String(button === hierarchy));
         }
         document.getElementById('xyz-order-label').textContent = hierarchy.querySelector('strong').textContent;
-        document.getElementById('xyz-info-hierarchy').textContent = hierarchy.querySelector('span').textContent;
+        const selectedPath = hierarchy.querySelector('span').textContent;
+        document.getElementById('xyz-selected-hierarchy').textContent = selectedPath;
+        document.getElementById('xyz-info-hierarchy').textContent = selectedPath;
     }
     for (const button of hierarchyButtons) {
         button.addEventListener('click', () => {
