@@ -12,7 +12,7 @@
     const filters = [...form.querySelectorAll('[data-field]')];
     const number = new Intl.NumberFormat('en-IN', {maximumFractionDigits: 3});
     const currency = new Intl.NumberFormat('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    const percent = new Intl.NumberFormat('en-IN', {style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const percent = new Intl.NumberFormat('en-IN', {style: 'percent', maximumFractionDigits: 0});
     const metricKeys = ['pieces', 'weight', 'turnover', 'profit'];
     const categoryKeys = ['pieces', 'weight', 'turnover', 'tsk'];
     const sortButtons = [...report.querySelectorAll('[data-sort-metric]')];

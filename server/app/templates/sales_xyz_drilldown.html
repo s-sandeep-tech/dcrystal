@@ -64,7 +64,6 @@
                             {{ column }} <span class="xyz-sort-indicator" aria-hidden="true">{{ '↓' if loop.first else '↕' }}</span>
                             <span class="sr-only xyz-sort-description"></span>
                         </button>
-                        <small class="xyz-contribution" title="Contribution percentage">%</small>
                     </th>
                     {% endfor %}
                     {% for column in ['Pieces', 'Weight', 'Amount', 'Profit'] %}
@@ -111,5 +110,5 @@
 </aside>
 {% endblock %}
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261113-blank-type-range') }}"></script>
+<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261113-whole-percent') }}"></script>
 {% endblock %}
