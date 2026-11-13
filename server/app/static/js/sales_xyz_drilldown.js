@@ -16,8 +16,8 @@
     const metricKeys = ['pieces', 'weight', 'turnover', 'profit'];
     const categoryKeys = ['pieces', 'weight', 'turnover', 'tsk'];
     const sortButtons = [...report.querySelectorAll('[data-sort-metric]')];
-    let sortMetric = 'pieces';
-    let sortDescending = true;
+    const defaultSort = {metric: 'pieces', descending: true};
+    let sortKeys = [{...defaultSort}];
     const rowsByButton = new WeakMap();
 
     let applied = new URLSearchParams(location.search);
@@ -112,8 +112,13 @@
         const focusedRow = rowsByButton.get(document.activeElement) || focusRow;
         let focusTarget;
         function append(children) {
-            const direction = sortDescending ? -1 : 1;
-            const sorted = [...children].sort((a, b) => direction * (Number(a[sortMetric]) - Number(b[sortMetric])));
+            const sorted = [...children].sort((a, b) => {
+                for (const {metric, descending} of sortKeys) {
+                    const difference = Number(a[metric]) - Number(b[metric]);
+                    if (difference) return descending ? -difference : difference;
+                }
+                return 0;
+            });
             for (const row of sorted) {
                 const tr = element('tr');
                 tr.dataset.depth = row.parent.length;
@@ -314,22 +319,37 @@
     form.addEventListener('reset', event => {
         event.preventDefault();
         applied = new URLSearchParams();
+        sortKeys = [{...defaultSort}];
+        updateSortHeaders();
         restoreForm();
         reload();
     });
     document.getElementById('xyz-refresh').addEventListener('click', reload);
+    function updateSortHeaders() {
+        for (const button of sortButtons) {
+            const header = button.closest('th');
+            const index = sortKeys.findIndex(key => key.metric === button.dataset.sortMetric);
+            const key = sortKeys[index];
+            if (index === 0) header.setAttribute('aria-sort', key.descending ? 'descending' : 'ascending');
+            else header.removeAttribute('aria-sort');
+            const indicator = button.querySelector('.xyz-sort-indicator');
+            indicator.textContent = key ? `${key.descending ? '↓' : '↑'}${sortKeys.length > 1 ? index + 1 : ''}` : '↕';
+            const description = button.querySelector('.xyz-sort-description');
+            description.textContent = key ? `, sort priority ${index + 1}, ${key.descending ? 'descending' : 'ascending'}` : '';
+        }
+    }
     for (const button of sortButtons) {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', event => {
             const metric = button.dataset.sortMetric;
-            sortDescending = metric === sortMetric ? !sortDescending : true;
-            sortMetric = metric;
-            for (const headerButton of sortButtons) {
-                const header = headerButton.closest('th');
-                const active = headerButton === button;
-                if (active) header.setAttribute('aria-sort', sortDescending ? 'descending' : 'ascending');
-                else header.removeAttribute('aria-sort');
-                headerButton.querySelector('.xyz-sort-indicator').textContent = active ? (sortDescending ? '↓' : '↑') : '↕';
+            const current = sortKeys.find(key => key.metric === metric);
+            if (!event.shiftKey) {
+                sortKeys = [{metric, descending: sortKeys[0] === current ? !current.descending : true}];
+            } else if (current) {
+                current.descending = !current.descending;
+            } else {
+                sortKeys.push({metric, descending: true});
             }
+            updateSortHeaders();
             render();
         });
     }

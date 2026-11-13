@@ -44,6 +44,7 @@
         </div>
         <p id="xyz-info-hierarchy">{{ levels | map(attribute=2) | join(' → ') }}</p>
         <p>The percentage below each sales value shows its share of the parent total. Top-level rows use the report total. A percentage is blank when its total is zero or negative.</p>
+        <p>Click a Sales heading to sort within each parent. Shift-click another Sales heading to add a tie-breaker. The numbers beside the arrows show sort priority.</p>
         <p>ABC is calculated independently within each parent for pieces, weight, turnover, and profit. Profit (Cr) displays total TSK in crores. The Profit category ranks rows by the same total.</p>
     </dialog>
     <div id="xyz-status" role="status" aria-live="polite"></div>
@@ -59,8 +60,9 @@
                 <tr>
                     {% for metric, column in [('pieces', 'Pieces'), ('weight', 'Weight (kg)'), ('turnover', 'Value (Cr)'), ('profit', 'Profit (Cr)')] %}
                     <th scope="col"{% if loop.first %} aria-sort="descending"{% endif %}>
-                        <button type="button" class="xyz-sort" data-sort-metric="{{ metric }}">
+                        <button type="button" class="xyz-sort" data-sort-metric="{{ metric }}" title="Click to sort. Shift-click to combine sort keys.">
                             {{ column }} <span class="xyz-sort-indicator" aria-hidden="true">{{ '↓' if loop.first else '↕' }}</span>
+                            <span class="sr-only xyz-sort-description"></span>
                         </button>
                         <small class="xyz-contribution" title="Contribution percentage">%</small>
                     </th>
@@ -109,5 +111,5 @@
 </aside>
 {% endblock %}
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261113-sales-sort') }}"></script>
+<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261113-reset-sort') }}"></script>
 {% endblock %}
