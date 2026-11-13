@@ -143,7 +143,7 @@
                     heading.append(button);
                 }
                 tr.append(heading);
-                tr.insertCell().textContent = row.leaf ? row.label : '—';
+                tr.insertCell().textContent = row.leaf ? row.label : '';
                 appendMetrics(tr, row);
                 for (const key of categoryKeys) {
                     const category = row.categories[key];
