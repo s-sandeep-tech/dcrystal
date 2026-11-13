@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Sales XYZ Drilldown{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css', v='20261113-info') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css', v='20261113-hierarchy') }}">
 {% endblock %}
 {% block content %}
 <main id="xyz-report" data-api="{{ url_for('dashboard.sales_xyz_drilldown_segment', segment='hierarchy') }}">
@@ -36,7 +36,19 @@
         <table>
             <thead>
                 <tr class="xyz-column-groups">
-                    <th rowspan="2" scope="col">Hierarchy</th>
+                    <th rowspan="2" scope="col">
+                        <div class="xyz-hierarchy-heading">
+                            <span>Hierarchy</span>
+                            <details class="xyz-hierarchy-menu">
+                                <summary>Drill-down <span aria-hidden="true">▾</span></summary>
+                                <ol aria-label="Current drill-down order">
+                                    {% for _, _, title in levels %}
+                                    <li>{{ title }}</li>
+                                    {% endfor %}
+                                </ol>
+                            </details>
+                        </div>
+                    </th>
                     <th colspan="2" scope="colgroup">Product details</th>
                     <th colspan="4" scope="colgroup">Sales</th>
                     <th colspan="3" scope="colgroup">ABC category</th>
