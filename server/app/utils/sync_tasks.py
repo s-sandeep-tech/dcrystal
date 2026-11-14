@@ -4511,23 +4511,29 @@ def _map_party_performance_rows(spec, rows, source_columns, snapshot_date, offse
 
 def _fetch_party_performance_source(cur, spec):
     view_name = spec['view']
-    cur.execute(sql.SQL('SELECT * FROM {}.{}').format(
+    # Source views do not share a unique key. Order by the full row so that
+    # ties contain identical data and can safely cross a page boundary.
+    query = sql.SQL('''
+        SELECT source.* FROM {}.{} AS source
+        ORDER BY to_jsonb(source)::text COLLATE "C"
+        LIMIT %s OFFSET %s
+    ''').format(
         sql.Identifier('ext_view'),
         sql.Identifier(view_name),
-    ))
+    )
     snapshot_date = date.today()
+    batch_size = 2000
     offset = 0
-    rows = cur.fetchmany(2000)
-    source_columns = [description.name for description in cur.description]
     while True:
+        cur.execute(query, (batch_size, offset))
+        rows = cur.fetchall()
+        source_columns = [description.name for description in cur.description]
         mapped = _map_party_performance_rows(spec, rows, source_columns, snapshot_date, offset)
-        if not mapped:
+        if mapped:
+            yield mapped
+        if len(rows) < batch_size:
             return
-        yield mapped
-        offset += len(mapped)
-        rows = cur.fetchmany(2000)
-        if not rows:
-            return
+        offset += len(rows)
 
 
 def _sync_party_performance_specs_once(
@@ -4567,16 +4573,14 @@ def _sync_party_performance_specs_once(
                     logger.info('Party Performance segment %s/%s: reading ext_view.%s (attempt %s/%s)',
                                 index, total_specs, view_name, source_attempt, max_attempts)
                     conn = get_external_db_connection()
-                    conn.set_session(readonly=True, autocommit=False)
+                    conn.set_session(isolation_level='REPEATABLE READ', readonly=True, autocommit=False)
                     with conn.cursor() as settings_cursor:
                         settings_cursor.execute('SET LOCAL statement_timeout = 0')
                         # Some source functions use unqualified Crystal table names.
                         settings_cursor.execute('SET LOCAL search_path TO crystal, ext_view, public')
                     model = spec['model']
                     loaded = 0
-                    with db.session.begin_nested(), conn.cursor(
-                        name='party_performance_sync', cursor_factory=RealDictCursor,
-                    ) as cur:
+                    with db.session.begin_nested(), conn.cursor(cursor_factory=RealDictCursor) as cur:
                         db.session.query(model).delete(synchronize_session=False)
                         for batch in _fetch_party_performance_source(cur, spec):
                             db.session.bulk_insert_mappings(model, batch)
