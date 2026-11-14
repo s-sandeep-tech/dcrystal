@@ -4,6 +4,7 @@ from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from ..extensions import db, socketio, redis_client
 from ..models.snapshots import (
     OwnerWiseOrderSummarySnapshot, 
@@ -4434,7 +4435,7 @@ def _party_sync_month_with_year(month, year):
     return f'{month_text} {year_text}'
 
 
-def _map_party_performance_rows(spec, rows, source_columns):
+def _map_party_performance_rows(spec, rows, source_columns, snapshot_date, offset):
     model = spec['model']
     view_name = spec['view']
     required_columns = spec['required']
@@ -4475,9 +4476,8 @@ def _map_party_performance_rows(spec, rows, source_columns):
             f"ext_view.{view_name} is missing required mapped columns: {', '.join(missing)}"
         )
 
-    snapshot_date = date.today()
     mapped_rows = []
-    for row_number, row in enumerate(rows, start=1):
+    for row_number, row in enumerate(rows, start=offset + 1):
         mapped = {
             column_name: row.get(source_name)
             for column_name, source_name in field_sources.items()
@@ -4515,13 +4515,19 @@ def _fetch_party_performance_source(cur, spec):
         sql.Identifier('ext_view'),
         sql.Identifier(view_name),
     ))
-    rows = cur.fetchall()
+    snapshot_date = date.today()
+    offset = 0
+    rows = cur.fetchmany(2000)
     source_columns = [description.name for description in cur.description]
-    return _map_party_performance_rows(
-        spec,
-        rows,
-        source_columns,
-    )
+    while True:
+        mapped = _map_party_performance_rows(spec, rows, source_columns, snapshot_date, offset)
+        if not mapped:
+            return
+        yield mapped
+        offset += len(mapped)
+        rows = cur.fetchmany(2000)
+        if not rows:
+            return
 
 
 def _sync_party_performance_specs_once(
@@ -4529,7 +4535,6 @@ def _sync_party_performance_specs_once(
     task_type,
     progress_range=(0, 100),
     is_subtask=False,
-    attempt=1,
     max_attempts=1,
 ):
     def emit(status, message, progress):
@@ -4544,24 +4549,40 @@ def _sync_party_performance_specs_once(
             f'({max_attempts} attempts per source)...',
             5,
         )
-        prepared = []
+        # Serialize overlapping refreshes without blocking reads of the committed snapshots.
+        tables = sorted({spec['model'].__tablename__ for spec in specs})
+        db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+        db.session.execute(text(f"LOCK TABLE {', '.join(tables)} IN SHARE ROW EXCLUSIVE MODE"))
+        counts = {}
         total_specs = len(specs)
         for index, spec in enumerate(specs, start=1):
             view_name = spec['view']
-            progress = 5 + int(index / total_specs * 45)
+            progress = 5 + int((index - 1) / total_specs * 90)
             emit('processing', f'Fetching ext_view.{view_name} ({index}/{total_specs})...', progress)
-            started_at = time.time()
+            started_at = time.monotonic()
             for source_attempt in range(1, max_attempts + 1):
                 conn = None
                 source_error = None
                 try:
+                    logger.info('Party Performance segment %s/%s: reading ext_view.%s (attempt %s/%s)',
+                                index, total_specs, view_name, source_attempt, max_attempts)
                     conn = get_external_db_connection()
-                    conn.set_session(readonly=True, autocommit=True)
-                    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                        cur.execute('SET statement_timeout = 0')
+                    conn.set_session(readonly=True, autocommit=False)
+                    with conn.cursor() as settings_cursor:
+                        settings_cursor.execute('SET LOCAL statement_timeout = 0')
                         # Some source functions use unqualified Crystal table names.
-                        cur.execute('SET search_path TO crystal, ext_view, public')
-                        mapped_rows = _fetch_party_performance_source(cur, spec)
+                        settings_cursor.execute('SET LOCAL search_path TO crystal, ext_view, public')
+                    model = spec['model']
+                    loaded = 0
+                    with db.session.begin_nested(), conn.cursor(
+                        name='party_performance_sync', cursor_factory=RealDictCursor,
+                    ) as cur:
+                        db.session.query(model).delete(synchronize_session=False)
+                        for batch in _fetch_party_performance_source(cur, spec):
+                            db.session.bulk_insert_mappings(model, batch)
+                            loaded += len(batch)
+                except SQLAlchemyError:
+                    raise
                 except Exception as error:
                     source_error = error
                 finally:
@@ -4584,32 +4605,26 @@ def _sync_party_performance_specs_once(
                      f'ext_view.{view_name} ({index}/{total_specs}) failed. '
                      f'Retrying this segment in 5 seconds '
                      f'(attempt {source_attempt + 1}/{max_attempts}); '
-                     f'{len(prepared)} completed segments retained.',
+                     f'{len(counts)} completed segments retained.',
                      progress)
                 time.sleep(5)
             logger.info(
-                'Party performance source ext_view.%s returned %s rows in %.2f seconds',
+                'Party performance source ext_view.%s staged %s rows in %.2f seconds',
                 view_name,
-                len(mapped_rows),
-                time.time() - started_at,
+                loaded,
+                time.monotonic() - started_at,
             )
-            prepared.append((spec, mapped_rows))
-
-        emit('processing', 'All sources validated. Replacing local snapshots...', 55)
-        counts = {}
-        for index, (spec, mapped_rows) in enumerate(prepared, start=1):
-            model = spec['model']
-            db.session.query(model).delete(synchronize_session=False)
-            for offset in range(0, len(mapped_rows), 5000):
-                db.session.bulk_insert_mappings(model, mapped_rows[offset:offset + 5000])
-            counts[model.__tablename__] = len(mapped_rows)
+            counts[model.__tablename__] = loaded
             emit(
                 'processing',
-                f'Updated {model.__tablename__} ({index}/{total_specs})...',
-                55 + int(index / total_specs * 40),
+                f'Loaded {model.__tablename__} ({index}/{total_specs})...',
+                5 + int(index / total_specs * 90),
             )
 
+        emit('processing', 'Committing all Party Performance snapshots...', 95)
         db.session.commit()
+        logger.info('Party Performance Matrix sync committed %s snapshots and %s rows.',
+                    len(counts), sum(counts.values()))
 
         try:
             redis_client.flushdb()

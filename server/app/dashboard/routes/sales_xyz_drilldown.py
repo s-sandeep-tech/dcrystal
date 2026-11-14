@@ -12,7 +12,7 @@ REPORT = '/sales-xyz-drilldown'
 def sales_xyz_drilldown_page():
     start, end = report.defaults()
     return render_template('sales_xyz_drilldown.html', unread_count=0, start=start, end=end,
-                           levels=report.LEVELS, hierarchies=report.HIERARCHIES, filter_fields=report.FILTERS,
+                           levels=report.HIERARCHIES['default'], hierarchies=report.HIERARCHIES, filter_fields=report.FILTERS,
                            excluded_makes=report.EXCLUDED_MAKES, default_branch_types=report.DEFAULT_BRANCH_TYPES)
 
 
@@ -24,7 +24,7 @@ def sales_xyz_drilldown_segment(segment):
     try:
         filters = report.parse_filters(request.args)
         if segment == 'hierarchy':
-            parent = report.parse_parent(request.args.get('parent', '[]'))
+            parent = report.parse_parent(request.args.get('parent', '[]'), filters['hierarchy'])
         else:
             field = request.args.get('field')
             if field not in report.FILTERS:

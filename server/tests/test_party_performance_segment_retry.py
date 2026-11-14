@@ -32,8 +32,9 @@ class PartyPerformanceSegmentRetryTests(unittest.TestCase):
         def fetch(cursor, spec):
             calls.append(spec['view'])
             if spec == sync.PARTY_PERFORMANCE_SYNC_SPECS[4] and calls.count(spec['view']) == 1:
+                yield [{'party': 'Partial batch'}]
                 raise RuntimeError('SSL connection closed')
-            return []
+            yield [{'party': 'Complete batch'}]
         result, session, sleep, emit, redis, connections = self.run_sync(fetch)
         self.assertEqual(result['status'], 'success')
         self.assertEqual(connections, 10)
@@ -42,6 +43,10 @@ class PartyPerformanceSegmentRetryTests(unittest.TestCase):
         sleep.assert_called_once_with(5)
         session.commit.assert_called_once()
         session.rollback.assert_not_called()
+        self.assertEqual(result['count'], 9)
+        self.assertEqual(session.bulk_insert_mappings.call_count, 10)
+        self.assertEqual(session.begin_nested.call_count, 10)
+        self.assertIsNotNone(session.begin_nested.return_value.__exit__.call_args_list[4].args[0])
 
     def test_exhaustion_preserves_snapshots_and_does_not_restart(self):
         calls = []
@@ -55,7 +60,7 @@ class PartyPerformanceSegmentRetryTests(unittest.TestCase):
         self.assertEqual(connections, 4)
         self.assertEqual(calls.count(sync.PARTY_PERFORMANCE_SYNC_SPECS[0]['view']), 1)
         self.assertEqual(sleep.call_count, 2)
-        session.query.assert_not_called()
+        self.assertEqual(session.query.call_count, 4)
         session.commit.assert_not_called()
         session.rollback.assert_called_once()
         redis.flushdb.assert_not_called()

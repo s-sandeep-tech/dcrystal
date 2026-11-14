@@ -22,7 +22,7 @@ DETAILS = (('type_id', 'type', 'Type'), ('wide_range_id', 'wide_range', 'Wide Ra
 SECTION, PURITY, RANGE_WEIGHT, *_, MAKE, COLLECTION, SUBSECTION = LEVELS
 TYPE, WIDE_RANGE = DETAILS
 HIERARCHIES = {
-    'default': LEVELS,
+    'default': (SECTION, PURITY, RANGE_WEIGHT, MAKE, COLLECTION, SUBSECTION),
     '1': (MAKE, PURITY, COLLECTION, SUBSECTION, TYPE, SECTION, TYPE, RANGE_WEIGHT),
     '2': (SECTION, TYPE, WIDE_RANGE, PURITY, MAKE, COLLECTION, SUBSECTION, RANGE_WEIGHT),
     '3': (SECTION, PURITY, TYPE, WIDE_RANGE, MAKE, COLLECTION, SUBSECTION, RANGE_WEIGHT),
@@ -89,12 +89,12 @@ def parse_filters(args):
     return {'start': start, 'end': end, 'selections': selections, 'exclusions': exclusions, 'hierarchy': hierarchy}
 
 
-def parse_parent(value):
+def parse_parent(value, hierarchy='default'):
     try:
         path = json.loads(value)
     except ValueError:
         raise ValueError('Invalid drill-down path.') from None
-    if (not isinstance(path, list) or len(path) > len(LEVELS)
+    if (not isinstance(path, list) or len(path) > len(HIERARCHIES[hierarchy])
             or any(part is not None and (not isinstance(part, str) or len(part) > 200) for part in path)):
         raise ValueError('Invalid drill-down path.')
     return path

@@ -52,7 +52,10 @@ class SalesXYZTests(unittest.TestCase):
             'pieces': Decimal('4'), 'weight': Decimal('1.25'), 'turnover': Decimal('80'),
             'tsk': Decimal('7'), 'invalid_rows': 0,
         }]
-        result = report.drilldown(cursor, filters(), ['1'] * len(report.LEVELS))
+        default_levels = report.HIERARCHIES['default']
+        self.assertEqual([level[2] for level in default_levels],
+                         ['Section', 'Purity', 'Weight Range', 'Make', 'Collection', 'Subsection'])
+        result = report.drilldown(cursor, filters(), ['1'] * len(default_levels))
         sql, params = cursor.execute.call_args.args
         self.assertIn('GROUP BY "type_id"::text, "wide_range_id"::text', sql)
         self.assertIn('SUM(pieces::numeric)', sql)
@@ -60,7 +63,7 @@ class SalesXYZTests(unittest.TestCase):
         self.assertEqual(result['rows'][0]['categories']['tsk'], 'A')
         self.assertEqual(result['rows'][0]['profit'], Decimal('7'))
         self.assertEqual(result['totals']['profit'], Decimal('7'))
-        self.assertEqual(params[-8:], ['1'] * 8)
+        self.assertEqual(params[-6:], ['1'] * 6)
         self.assertTrue(result['leaf'])
         self.assertEqual(result['rows'][0]['type'], 'Type A')
         self.assertEqual(result['rows'][0]['wide_range'], '2–4')
