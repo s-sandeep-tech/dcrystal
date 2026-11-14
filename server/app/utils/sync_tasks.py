@@ -4552,6 +4552,11 @@ def _fetch_party_performance_source(spec, max_attempts):
                 if conn is not None:
                     conn.close()
             time.sleep(5)
+        if attempt > 1:
+            logger.info(
+                'Party Performance ext_view.%s offset %s attempt %s/%s succeeded: fetched %s rows',
+                view_name, offset, attempt, max_attempts, len(rows),
+            )
         mapped = _map_party_performance_rows(spec, rows, source_columns, snapshot_date, offset)
         if mapped:
             yield mapped

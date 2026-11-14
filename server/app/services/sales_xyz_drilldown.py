@@ -108,7 +108,7 @@ def source_cursor():
     try:
         connection.set_session(readonly=True, autocommit=False)
         with connection.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SET LOCAL statement_timeout = '30s'")
+            cur.execute("SET LOCAL statement_timeout = '120s'")
             cur.execute("SET LOCAL work_mem = '4MB'")
             cur.execute('SET LOCAL max_parallel_workers_per_gather = 0')
             yield cur

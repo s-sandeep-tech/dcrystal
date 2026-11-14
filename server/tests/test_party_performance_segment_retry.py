@@ -50,7 +50,12 @@ class PartyPerformanceBatchRetryTests(unittest.TestCase):
                 raise psycopg2.OperationalError('SSL connection closed')
             return [{'party': 'Last page'}] if offset else []
 
-        result, session, sleep, _, _, offsets = self.run_sync(fetch)
+        with self.assertLogs(sync.logger, level='INFO') as logs:
+            result, session, sleep, _, _, offsets = self.run_sync(fetch)
+        self.assertIn(
+            'Party Performance ext_view.vw_party_design_info offset 2000 attempt 2/3 succeeded: fetched 1 rows',
+            [record.getMessage() for record in logs.records],
+        )
         self.assertEqual(result['status'], 'success')
         self.assertEqual(result['count'], 2001)
         self.assertEqual(len(result['counts']), 9)
