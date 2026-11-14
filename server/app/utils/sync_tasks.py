@@ -4,7 +4,6 @@ from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
 from ..extensions import db, socketio, redis_client
 from ..models.snapshots import (
     OwnerWiseOrderSummarySnapshot, 
@@ -4509,7 +4508,7 @@ def _map_party_performance_rows(spec, rows, source_columns, snapshot_date, offse
     return mapped_rows
 
 
-def _fetch_party_performance_source(cur, spec):
+def _fetch_party_performance_source(spec, max_attempts):
     view_name = spec['view']
     # Source views do not share a unique key. Order by the full row so that
     # ties contain identical data and can safely cross a page boundary.
@@ -4525,9 +4524,34 @@ def _fetch_party_performance_source(cur, spec):
     batch_size = 2000
     offset = 0
     while True:
-        cur.execute(query, (batch_size, offset))
-        rows = cur.fetchall()
-        source_columns = [description.name for description in cur.description]
+        for attempt in range(1, max_attempts + 1):
+            conn = None
+            try:
+                conn = get_external_db_connection()
+                conn.set_session(readonly=True, autocommit=False)
+                with conn.cursor() as settings_cursor:
+                    settings_cursor.execute('SET LOCAL statement_timeout = 0')
+                    # Some source functions use unqualified Crystal table names.
+                    settings_cursor.execute('SET LOCAL search_path TO crystal, ext_view, public')
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(query, (batch_size, offset))
+                    rows = cur.fetchall()
+                    source_columns = [description.name for description in cur.description]
+                break
+            except (psycopg2.OperationalError, psycopg2.InterfaceError, psycopg2.errors.SerializationFailure) as error:
+                logger.warning(
+                    'Party Performance ext_view.%s offset %s attempt %s/%s failed: %s',
+                    view_name, offset, attempt, max_attempts, error,
+                )
+                if attempt == max_attempts:
+                    raise RuntimeError(
+                        f'Failed fetching ext_view.{view_name} at offset {offset} '
+                        f'after {max_attempts} attempts: {error}'
+                    ) from error
+            finally:
+                if conn is not None:
+                    conn.close()
+            time.sleep(5)
         mapped = _map_party_performance_rows(spec, rows, source_columns, snapshot_date, offset)
         if mapped:
             yield mapped
@@ -4552,7 +4576,7 @@ def _sync_party_performance_specs_once(
         emit(
             'processing',
             f'Starting Party Performance Matrix Sync '
-            f'({max_attempts} attempts per source)...',
+            f'({max_attempts} attempts per batch)...',
             5,
         )
         # Serialize overlapping refreshes without blocking reads of the committed snapshots.
@@ -4566,52 +4590,14 @@ def _sync_party_performance_specs_once(
             progress = 5 + int((index - 1) / total_specs * 90)
             emit('processing', f'Fetching ext_view.{view_name} ({index}/{total_specs})...', progress)
             started_at = time.monotonic()
-            for source_attempt in range(1, max_attempts + 1):
-                conn = None
-                source_error = None
-                try:
-                    logger.info('Party Performance segment %s/%s: reading ext_view.%s (attempt %s/%s)',
-                                index, total_specs, view_name, source_attempt, max_attempts)
-                    conn = get_external_db_connection()
-                    conn.set_session(isolation_level='REPEATABLE READ', readonly=True, autocommit=False)
-                    with conn.cursor() as settings_cursor:
-                        settings_cursor.execute('SET LOCAL statement_timeout = 0')
-                        # Some source functions use unqualified Crystal table names.
-                        settings_cursor.execute('SET LOCAL search_path TO crystal, ext_view, public')
-                    model = spec['model']
-                    loaded = 0
-                    with db.session.begin_nested(), conn.cursor(cursor_factory=RealDictCursor) as cur:
-                        db.session.query(model).delete(synchronize_session=False)
-                        for batch in _fetch_party_performance_source(cur, spec):
-                            db.session.bulk_insert_mappings(model, batch)
-                            loaded += len(batch)
-                except SQLAlchemyError:
-                    raise
-                except Exception as error:
-                    source_error = error
-                finally:
-                    if conn:
-                        try:
-                            conn.close()
-                        except Exception:
-                            logger.warning('Failed closing Party Performance source connection', exc_info=True)
-                if source_error is None:
-                    break
-                logger.warning(
-                    'Party Performance segment %s/%s ext_view.%s attempt %s/%s failed: %s',
-                    index, total_specs, view_name, source_attempt, max_attempts, source_error,
-                )
-                if source_attempt == max_attempts:
-                    raise RuntimeError(
-                        f'Failed fetching ext_view.{view_name} after {max_attempts} attempts: {source_error}'
-                    ) from source_error
-                emit('processing',
-                     f'ext_view.{view_name} ({index}/{total_specs}) failed. '
-                     f'Retrying this segment in 5 seconds '
-                     f'(attempt {source_attempt + 1}/{max_attempts}); '
-                     f'{len(counts)} completed segments retained.',
-                     progress)
-                time.sleep(5)
+            logger.info('Party Performance segment %s/%s: reading ext_view.%s',
+                        index, total_specs, view_name)
+            model = spec['model']
+            loaded = 0
+            db.session.query(model).delete(synchronize_session=False)
+            for batch in _fetch_party_performance_source(spec, max_attempts):
+                db.session.bulk_insert_mappings(model, batch)
+                loaded += len(batch)
             logger.info(
                 'Party performance source ext_view.%s staged %s rows in %.2f seconds',
                 view_name,
