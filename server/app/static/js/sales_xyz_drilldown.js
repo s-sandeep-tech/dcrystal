@@ -12,6 +12,7 @@
     const sidebar = document.getElementById('xyz-sidebar');
     const filterToggle = document.getElementById('xyz-filter-toggle');
     const filters = [...form.querySelectorAll('[data-field]')];
+    const allSelections = new Map();
     const exclusionFields = [...form.querySelectorAll('[data-exclusion]')];
     const number = new Intl.NumberFormat('en-IN', {maximumFractionDigits: 3});
     const currency = new Intl.NumberFormat('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -201,7 +202,8 @@
     function replaceOptions(select, options, selected) {
         const values = new Set(options.map(option => option.value));
         const fullOptions = [...options, ...selected.filter(value => !values.has(value)).map(value => ({value, label: value}))];
-        select.replaceChildren(...fullOptions.map(({value, label}) => new Option(label, value, false, selected.includes(value))));
+        const selectedValues = new Set(selected);
+        select.replaceChildren(...fullOptions.map(({value, label}) => new Option(label, value, false, selectedValues.has(value))));
         renderChoices(select);
         updateCount(select);
     }
@@ -216,6 +218,14 @@
             checkbox.checked = option.selected;
             checkbox.addEventListener('change', () => {
                 option.selected = checkbox.checked;
+                const excluded = allSelections.get(select);
+                if (excluded) {
+                    if (checkbox.checked) excluded.delete(option.value);
+                    else excluded.add(option.value);
+                    if (select.closest('details').dataset.loaded && !select.selectedOptions.length) {
+                        allSelections.delete(select);
+                    }
+                }
                 updateCount(select);
             });
             label.append(checkbox, document.createTextNode(option.text));
@@ -239,16 +249,24 @@
         }
         const key = params.toString();
         if (panel.dataset.loaded === key || panel.dataset.loading === key) return;
+        delete panel.dataset.loaded;
         panel.dataset.loading = key;
         const select = panel.querySelector('select');
+        const selectAll = panel.querySelector('[data-select-all]');
         const message = panel.querySelector('.xyz-filter-status');
+        selectAll.disabled = true;
         message.textContent = 'Loading…';
         const {signal} = controller;
         try {
             const options = await fetchData('options', params, signal);
             if (signal.aborted || panel.dataset.loading !== key) return;
-            replaceOptions(select, options, [...select.selectedOptions].map(option => option.value));
+            const excluded = allSelections.get(select);
+            const selected = excluded
+                ? options.filter(option => !excluded.has(option.value))
+                : select.selectedOptions;
+            replaceOptions(select, options, Array.from(selected, option => option.value));
             panel.dataset.loaded = key;
+            selectAll.disabled = !options.length;
             message.textContent = options.length ? '' : 'No values in this date range.';
         } catch (error) {
             if (!signal.aborted && panel.dataset.loading === key) message.textContent = error.message;
@@ -273,12 +291,20 @@
         for (const panel of filters) {
             const select = panel.querySelector('select');
             const defaults = select.name === 'branch_type' ? defaultBranchTypes : [];
-            const selected = applied.getAll(select.name).map(value =>
+            const values = applied.getAll(select.name).map(value =>
                 select.name === 'branch_type' && value === 'FRANCHISE' ? 'FRANCHISE_SHOP' : value);
-            if (select.name === 'branch_type' && !selected.length && !applied.has('branch_type_set')) {
+            let selected = values;
+            if (applied.has(`${select.name}_all`)) {
+                allSelections.set(select, new Set(values));
+                selected = defaults.filter(option => !values.includes(option.value)).map(option => option.value);
+            } else {
+                allSelections.delete(select);
+            }
+            if (select.name === 'branch_type' && !selected.length && !applied.has('branch_type_set') && !allSelections.has(select)) {
                 selected.push(...defaults.map(option => option.value));
             }
             replaceOptions(select, defaults, selected);
+            panel.querySelector('[data-select-all]').disabled = true;
             delete panel.dataset.loaded;
         }
     }
@@ -322,7 +348,14 @@
         panel.addEventListener('toggle', () => { if (panel.open) loadOptions(panel); });
         select.addEventListener('change', () => updateCount(select));
         panel.querySelector('[data-clear]').addEventListener('click', () => {
+            allSelections.delete(select);
             for (const option of select.options) option.selected = false;
+            renderChoices(select);
+            updateCount(select);
+        });
+        panel.querySelector('[data-select-all]').addEventListener('click', () => {
+            allSelections.set(select, new Set());
+            for (const option of select.options) option.selected = true;
             renderChoices(select);
             updateCount(select);
         });
@@ -330,6 +363,12 @@
     form.addEventListener('submit', event => {
         event.preventDefault();
         applied = new URLSearchParams(new FormData(form));
+        // Submit the unchecked values in Select all mode to keep large lists out of the URL.
+        for (const [select, excluded] of allSelections) {
+            applied.set(`${select.name}_all`, '1');
+            applied.delete(select.name);
+            for (const value of excluded) applied.append(select.name, value);
+        }
         reload();
     });
     form.addEventListener('reset', event => {

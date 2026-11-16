@@ -50,6 +50,19 @@ class SalesXYZTests(unittest.TestCase):
         self.assertNotIn('COALESCE("section"::text', where)
         self.assertEqual(params[2:], [list(report.EXCLUDED_MAKES)])
 
+    def test_select_all_bypasses_branch_defaults_and_honors_unchecked_values(self):
+        selected = filters(branch_type_all='1', branch_id_all='1', branch_id='42')
+        self.assertNotIn('branch_type', selected['selections'])
+        where, params = report.where_clause(selected)
+        self.assertIn('"branch_type" IS NOT NULL', where)
+        self.assertIn('"branch_id" IS NOT NULL', where)
+        self.assertIn('NOT ("branch_id"::text = ANY(%s))', where)
+        self.assertEqual(params[-1], ['42'])
+
+        where, _ = report.where_clause(selected, options=True)
+        self.assertNotIn('"branch_id"', where)
+        self.assertNotIn('"branch_type"', where)
+
     def test_leaf_query_groups_type_and_wide_range_and_preserves_totals(self):
         cursor = MagicMock()
         cursor.description = [SimpleNamespace(name=name) for name in (

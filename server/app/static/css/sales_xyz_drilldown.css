@@ -183,7 +183,9 @@
 .xyz-filter-choices { max-height: 200px; overflow: auto; padding: 0 10px; }
 .xyz-filter-choices label { display: flex; align-items: center; gap: 7px; padding: 6px 0; cursor: pointer; font-size: 11px; }
 .xyz-filter-choices input[type="checkbox"] { flex: 0 0 13px; width: 13px; height: 13px; padding: 0; accent-color: #1766c2; }
+.xyz-filter-actions { display: flex; justify-content: space-between; }
 .xyz-filter button { margin: 6px 10px; font-size: 10px; }
+.xyz-filter button:disabled { color: var(--xyz-muted); cursor: default; }
 .xyz-filter-status { padding: 0 10px; font-size: 11px; }
 .xyz-filter-status:empty { display: none; }
 .xyz-exclusions { background: var(--xyz-header); border-radius: 6px; padding: 10px; }

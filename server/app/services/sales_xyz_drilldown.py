@@ -64,20 +64,21 @@ def parse_filters(args):
         raise ValueError('Choose a date range covering at most 12 calendar months.')
 
     selections = {}
+    all_selections = {}
     for field in FILTERS:
         values = list(dict.fromkeys(value for value in args.getlist(field) if value.strip()))
         if len(values) > 100 or any(len(value) > 200 for value in values):
             raise ValueError('Too many or invalid filter values.')
-        if values:
+        if field == 'branch_type':
+            # Support links saved when Franchise used a shorter filter value.
+            values = list(dict.fromkeys('FRANCHISE_SHOP' if value == 'FRANCHISE' else value for value in values))
+        if f'{field}_all' in args:
+            all_selections[field] = values
+        elif values:
             selections[field] = values
-    if 'branch_type' in selections:
-        # Support links saved when Franchise used a shorter filter value.
-        selections['branch_type'] = list(dict.fromkeys(
-            'FRANCHISE_SHOP' if value == 'FRANCHISE' else value for value in selections['branch_type']
-        ))
-    elif not args.get('branch_type_set'):
+    if 'branch_type' not in selections and 'branch_type' not in all_selections and not args.get('branch_type_set'):
         selections['branch_type'] = list(DEFAULT_BRANCH_TYPES)
-    if set(selections.get('trans_type', ())) - {'INVOICE', 'SR'}:
+    if set(selections.get('trans_type', all_selections.get('trans_type', ()))) - {'INVOICE', 'SR'}:
         raise ValueError('Choose Invoice or Sales Return.')
     exclusions = {}
     for field, defaults_for_field in (('make', EXCLUDED_MAKES), ('section', EXCLUDED_SECTIONS)):
@@ -92,7 +93,8 @@ def parse_filters(args):
     hierarchy = args.get('hierarchy', 'default')
     if hierarchy not in HIERARCHIES:
         raise ValueError('Choose a valid drill-down order.')
-    return {'start': start, 'end': end, 'selections': selections, 'exclusions': exclusions, 'hierarchy': hierarchy}
+    return {'start': start, 'end': end, 'selections': selections, 'all_selections': all_selections,
+            'exclusions': exclusions, 'hierarchy': hierarchy}
 
 
 def parse_parent(value, hierarchy='default'):
@@ -140,6 +142,11 @@ def where_clause(filters, parent=(), *, options=False):
         for field, values in filters['selections'].items():
             conditions.append(f'"{field}"::text = ANY(%s)')
             params.append(values)
+        for field, excluded in filters['all_selections'].items():
+            conditions.append(f'"{field}" IS NOT NULL')
+            if excluded:
+                conditions.append(f'NOT ("{field}"::text = ANY(%s))')
+                params.append(excluded)
         for (field, _, _), part in zip(HIERARCHIES[filters['hierarchy']], parent):
             conditions.append(f'"{field}"::text IS NOT DISTINCT FROM %s')
             params.append(part)
@@ -190,6 +197,7 @@ def drilldown(cur, filters, parent):
     dimensions = DETAILS if leaf else levels[depth:depth + 1]
     required = {'pieces', 'gross_weight', 'turn_over', 'tsk', 'trans_type', 'trans_date', 'date', 'make', 'section'}
     required.update(filters['selections'])
+    required.update(filters['all_selections'])
     required.update(key for key, _, _ in levels[:depth])
     required.update(column for key, label, _ in dimensions for column in (key, label))
     validate_columns(cur, required)
