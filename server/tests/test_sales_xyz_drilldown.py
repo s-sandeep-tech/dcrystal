@@ -53,7 +53,7 @@ class SalesXYZTests(unittest.TestCase):
     def test_leaf_query_groups_type_and_wide_range_and_preserves_totals(self):
         cursor = MagicMock()
         cursor.description = [SimpleNamespace(name=name) for name in (
-            'pieces', 'net_weight', 'turn_over', 'tsk', 'trans_type', 'trans_date', 'date', 'make', 'branch_type', 'section',
+            'pieces', 'gross_weight', 'turn_over', 'tsk', 'trans_type', 'trans_date', 'date', 'make', 'branch_type', 'section',
             *(key for key, _, _ in report.LEVELS), 'type_id', 'type', 'wide_range_id', 'wide_range',
         )]
         cursor.fetchall.return_value = [{
@@ -68,6 +68,7 @@ class SalesXYZTests(unittest.TestCase):
         sql, params = cursor.execute.call_args.args
         self.assertIn('GROUP BY "type_id"::text, "wide_range_id"::text', sql)
         self.assertIn('SUM(pieces::numeric)', sql)
+        self.assertIn("SUM(gross_weight::numeric) FILTER (WHERE trans_type = 'INVOICE'), 0) / 1000 AS weight", sql)
         self.assertIn('SUM(tsk::numeric)', sql)
         self.assertIn('NOT (UPPER(TRIM(COALESCE("section"::text', sql)
         self.assertEqual(params[3], ['HOOK AND CONNECTORS'])

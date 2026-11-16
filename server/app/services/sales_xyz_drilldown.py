@@ -188,7 +188,7 @@ def drilldown(cur, filters, parent):
     depth = len(parent)
     leaf = depth == len(levels)
     dimensions = DETAILS if leaf else levels[depth:depth + 1]
-    required = {'pieces', 'net_weight', 'turn_over', 'tsk', 'trans_type', 'trans_date', 'date', 'make', 'section'}
+    required = {'pieces', 'gross_weight', 'turn_over', 'tsk', 'trans_type', 'trans_date', 'date', 'make', 'section'}
     required.update(filters['selections'])
     required.update(key for key, _, _ in levels[:depth])
     required.update(column for key, label, _ in dimensions for column in (key, label))
@@ -206,7 +206,7 @@ def drilldown(cur, filters, parent):
                         f"""COALESCE(MIN(NULLIF(BTRIM("{label}"::text), '')), {key}, 'Unspecified') AS label_{index}"""))
     cur.execute(f"""SELECT {', '.join(columns)},
         COALESCE(SUM(pieces::numeric) FILTER (WHERE trans_type = 'INVOICE'), 0) AS pieces,
-        COALESCE(SUM(net_weight::numeric) FILTER (WHERE trans_type = 'INVOICE'), 0) / 1000 AS weight,
+        COALESCE(SUM(gross_weight::numeric) FILTER (WHERE trans_type = 'INVOICE'), 0) / 1000 AS weight,
         COALESCE(SUM(turn_over::numeric) FILTER (WHERE trans_type = 'INVOICE'), 0)
           + COALESCE(SUM(turn_over::numeric) FILTER (WHERE trans_type = 'SR'), 0) * {multiplier} AS turnover,
         COALESCE(SUM(tsk::numeric), 0) AS tsk,
