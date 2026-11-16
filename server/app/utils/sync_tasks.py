@@ -1590,6 +1590,7 @@ def sync_hallmarking_delayed_data_task() -> Dict[str, Any]:
 def sync_showroom_wise_order_summary_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
     conn = None
     TASK_TYPE = task_type_override or 'showroom_wise_order'
+    source_timeout_minutes = 8
     
     def emit(status, message, progress):
         emit_combined_sync_update(status, message, progress, TASK_TYPE, progress_range, is_subtask)
@@ -1599,7 +1600,7 @@ def sync_showroom_wise_order_summary_task(task_type_override=None, progress_rang
         conn = get_external_db_connection()
         conn.set_session(readonly=True, autocommit=False)
         with conn.cursor() as settings_cursor:
-            settings_cursor.execute("SET LOCAL statement_timeout = '5min'")
+            settings_cursor.execute('SET LOCAL statement_timeout = %s', (f'{source_timeout_minutes}min',))
         
         emit('processing', 'Fetching Showroom Wise Order Summary from Azure...', 15)
         query = """
@@ -1688,7 +1689,8 @@ FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS
         loaded = 0
         today = date.today()
         with conn.cursor(name='showroom_order_summary_sync', cursor_factory=RealDictCursor) as cur:
-            logger.info('Showroom Wise Order Summary: opening source cursor with a 5-minute statement timeout.')
+            logger.info('Showroom Wise Order Summary: opening source cursor with a %s-minute statement timeout.',
+                        source_timeout_minutes)
             cur.execute(query)
             rows = cur.fetchmany(batch_size)
             logger.info('Showroom Wise Order Summary: fetched first batch of %s rows in %.2f seconds.',
