@@ -87,13 +87,15 @@
                 <label>From <input name="start" type="date" value="{{ start }}" required></label>
                 <label>To <input name="end" type="date" value="{{ end }}" required></label>
             </div>
-            <fieldset class="xyz-exclusions">
-                <legend>Exclude Makes</legend>
-                <input type="hidden" name="exclude_make_set" value="1">
-                {% for make in excluded_makes %}
-                <label><input type="checkbox" name="exclude_make" value="{{ make }}" checked> {{ make }}</label>
+            {% for name, title, values in [('exclude_make', 'Exclude Makes', excluded_makes), ('exclude_section', 'Exclude Sections', excluded_sections)] %}
+            <fieldset class="xyz-exclusions" data-exclusion="{{ name }}">
+                <legend>{{ title }}</legend>
+                <input type="hidden" name="{{ name }}_set" value="1">
+                {% for value in values %}
+                <label><input type="checkbox" name="{{ name }}" value="{{ value }}" checked> {{ value }}</label>
                 {% endfor %}
             </fieldset>
+            {% endfor %}
             {% for key, (_, title) in filter_fields.items() %}
             {% if key == 'branch_id' %}<h3 class="xyz-filter-section">Location</h3>{% elif key == 'section_id' %}<h3 class="xyz-filter-section">Product</h3>{% elif key == 'invoice_type' %}<h3 class="xyz-filter-section">Transaction</h3>{% endif %}
             <details class="xyz-filter" data-field="{{ key }}">
@@ -111,5 +113,5 @@
 </aside>
 {% endblock %}
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261114-franchise-shop') }}"></script>
+<script src="{{ url_for('static', filename='js/sales_xyz_drilldown.js', v='20261116-section-exclusions') }}"></script>
 {% endblock %}

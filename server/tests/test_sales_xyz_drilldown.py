@@ -41,10 +41,19 @@ class SalesXYZTests(unittest.TestCase):
         self.assertIn('"purity_id"::text IS NOT DISTINCT FROM %s', where)
         self.assertEqual(params[-5:], [['INVOICE'], ['SHOP', 'FRANCHISE_SHOP'], '4', None, '0.00'])
 
+    def test_filter_options_honor_independent_section_and_make_exclusions(self):
+        where, params = report.where_clause(filters(exclude_make_set='1'), options=True)
+        self.assertIn('COALESCE("section"::text', where)
+        self.assertEqual(params[2:], [['HOOK AND CONNECTORS']])
+
+        where, params = report.where_clause(filters(exclude_section_set='1'), options=True)
+        self.assertNotIn('COALESCE("section"::text', where)
+        self.assertEqual(params[2:], [list(report.EXCLUDED_MAKES)])
+
     def test_leaf_query_groups_type_and_wide_range_and_preserves_totals(self):
         cursor = MagicMock()
         cursor.description = [SimpleNamespace(name=name) for name in (
-            'pieces', 'net_weight', 'turn_over', 'tsk', 'trans_type', 'trans_date', 'date', 'make', 'branch_type',
+            'pieces', 'net_weight', 'turn_over', 'tsk', 'trans_type', 'trans_date', 'date', 'make', 'branch_type', 'section',
             *(key for key, _, _ in report.LEVELS), 'type_id', 'type', 'wide_range_id', 'wide_range',
         )]
         cursor.fetchall.return_value = [{
@@ -60,6 +69,8 @@ class SalesXYZTests(unittest.TestCase):
         self.assertIn('GROUP BY "type_id"::text, "wide_range_id"::text', sql)
         self.assertIn('SUM(pieces::numeric)', sql)
         self.assertIn('SUM(tsk::numeric)', sql)
+        self.assertIn('NOT (UPPER(TRIM(COALESCE("section"::text', sql)
+        self.assertEqual(params[3], ['HOOK AND CONNECTORS'])
         self.assertEqual(result['rows'][0]['categories']['tsk'], 'A')
         self.assertEqual(result['rows'][0]['profit'], Decimal('7'))
         self.assertEqual(result['totals']['profit'], Decimal('7'))

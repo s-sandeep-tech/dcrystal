@@ -12,6 +12,7 @@
     const sidebar = document.getElementById('xyz-sidebar');
     const filterToggle = document.getElementById('xyz-filter-toggle');
     const filters = [...form.querySelectorAll('[data-field]')];
+    const exclusionFields = [...form.querySelectorAll('[data-exclusion]')];
     const number = new Intl.NumberFormat('en-IN', {maximumFractionDigits: 3});
     const currency = new Intl.NumberFormat('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     const percent = new Intl.NumberFormat('en-IN', {style: 'percent', maximumFractionDigits: 0});
@@ -229,8 +230,13 @@
 
     async function loadOptions(panel) {
         const params = new URLSearchParams({start: form.elements.start.value, end: form.elements.end.value,
-                                            field: panel.dataset.field, exclude_make_set: '1'});
-        for (const value of new FormData(form).getAll('exclude_make')) params.append('exclude_make', value);
+                                            field: panel.dataset.field});
+        const formData = new FormData(form);
+        for (const fieldset of exclusionFields) {
+            const name = fieldset.dataset.exclusion;
+            params.set(`${name}_set`, '1');
+            for (const value of formData.getAll(name)) params.append(name, value);
+        }
         const key = params.toString();
         if (panel.dataset.loaded === key || panel.dataset.loading === key) return;
         panel.dataset.loading = key;
@@ -257,10 +263,12 @@
             input.value = applied.get(key) || input.defaultValue;
             applied.set(key, input.value);
         }
-        const exclusions = applied.has('exclude_make_set') || applied.has('exclude_make')
-            ? applied.getAll('exclude_make') : null;
-        for (const input of form.querySelectorAll('[name="exclude_make"]')) {
-            input.checked = exclusions ? exclusions.includes(input.value) : input.defaultChecked;
+        for (const fieldset of exclusionFields) {
+            const name = fieldset.dataset.exclusion;
+            const exclusions = applied.has(`${name}_set`) || applied.has(name) ? applied.getAll(name) : null;
+            for (const input of fieldset.querySelectorAll('input[type="checkbox"]')) {
+                input.checked = exclusions ? exclusions.includes(input.value) : input.defaultChecked;
+            }
         }
         for (const panel of filters) {
             const select = panel.querySelector('select');

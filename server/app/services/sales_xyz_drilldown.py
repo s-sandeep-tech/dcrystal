@@ -40,6 +40,7 @@ FILTERS = {
     'trans_type': ('trans_type', 'Transaction Type'),
 }
 EXCLUDED_MAKES = ('KMU 999 COIN', 'CUSTOM', 'KMU-COIN')
+EXCLUDED_SECTIONS = ('HOOK AND CONNECTORS',)
 DEFAULT_BRANCH_TYPES = {'SHOP': 'SHOP', 'FRANCHISE_SHOP': 'FRANCHISE_SHOP'}
 METRICS = ('pieces', 'weight', 'turnover', 'profit')
 ABC_METRICS = ('pieces', 'weight', 'turnover', 'tsk')
@@ -78,11 +79,16 @@ def parse_filters(args):
         selections['branch_type'] = list(DEFAULT_BRANCH_TYPES)
     if set(selections.get('trans_type', ())) - {'INVOICE', 'SR'}:
         raise ValueError('Choose Invoice or Sales Return.')
-    exclusions = list(dict.fromkeys(value.strip().upper() for value in args.getlist('exclude_make')))
-    if not exclusions and not args.get('exclude_make_set'):
-        exclusions = list(EXCLUDED_MAKES)
-    if set(exclusions) - set(EXCLUDED_MAKES):
-        raise ValueError('Choose a valid Make exclusion.')
+    exclusions = {}
+    for field, defaults_for_field in (('make', EXCLUDED_MAKES), ('section', EXCLUDED_SECTIONS)):
+        name = f'exclude_{field}'
+        values = list(dict.fromkeys(value.strip().upper() for value in args.getlist(name)))
+        if not values and not args.get(f'{name}_set'):
+            values = list(defaults_for_field)
+        if set(values) - set(defaults_for_field):
+            raise ValueError(f'Choose a valid {field.title()} exclusion.')
+        if values:
+            exclusions[field] = values
     hierarchy = args.get('hierarchy', 'default')
     if hierarchy not in HIERARCHIES:
         raise ValueError('Choose a valid drill-down order.')
@@ -127,9 +133,9 @@ def where_clause(filters, parent=(), *, options=False):
     sales_date = 'COALESCE(trans_date::date, date)'
     conditions = ["trans_type IN ('INVOICE', 'SR')", f'{sales_date} >= %s', f'{sales_date} < %s']
     params = [filters['start'], filters['end'] + timedelta(days=1)]
-    if filters['exclusions']:
-        conditions.append("NOT (UPPER(TRIM(COALESCE(make::text, ''))) = ANY(%s))")
-        params.append(filters['exclusions'])
+    for field, values in filters['exclusions'].items():
+        conditions.append(f"NOT (UPPER(TRIM(COALESCE(\"{field}\"::text, ''))) = ANY(%s))")
+        params.append(values)
     if not options:
         for field, values in filters['selections'].items():
             conditions.append(f'"{field}"::text = ANY(%s)')
@@ -144,7 +150,7 @@ def options(cur, filters, field):
     if field not in FILTERS:
         raise ValueError('Choose a valid filter.')
     label, _ = FILTERS[field]
-    validate_columns(cur, {field, label, 'trans_type', 'trans_date', 'date', 'make'})
+    validate_columns(cur, {field, label, 'trans_type', 'trans_date', 'date', 'make', 'section'})
     where, params = where_clause(filters, options=True)
     cur.execute(f"""SELECT "{field}"::text AS value,
         COALESCE(MIN(NULLIF(BTRIM("{label}"::text), '')), "{field}"::text) AS label
@@ -182,7 +188,7 @@ def drilldown(cur, filters, parent):
     depth = len(parent)
     leaf = depth == len(levels)
     dimensions = DETAILS if leaf else levels[depth:depth + 1]
-    required = {'pieces', 'net_weight', 'turn_over', 'tsk', 'trans_type', 'trans_date', 'date', 'make'}
+    required = {'pieces', 'net_weight', 'turn_over', 'tsk', 'trans_type', 'trans_date', 'date', 'make', 'section'}
     required.update(filters['selections'])
     required.update(key for key, _, _ in levels[:depth])
     required.update(column for key, label, _ in dimensions for column in (key, label))

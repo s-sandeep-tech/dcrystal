@@ -13,7 +13,8 @@ def sales_xyz_drilldown_page():
     start, end = report.defaults()
     return render_template('sales_xyz_drilldown.html', unread_count=0, start=start, end=end,
                            levels=report.HIERARCHIES['default'], hierarchies=report.HIERARCHIES, filter_fields=report.FILTERS,
-                           excluded_makes=report.EXCLUDED_MAKES, default_branch_types=report.DEFAULT_BRANCH_TYPES)
+                           excluded_makes=report.EXCLUDED_MAKES, excluded_sections=report.EXCLUDED_SECTIONS,
+                           default_branch_types=report.DEFAULT_BRANCH_TYPES)
 
 
 @dashboard_bp.route('/api/sales-xyz-drilldown/<segment>')
