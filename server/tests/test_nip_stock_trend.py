@@ -1,4 +1,5 @@
 import unittest
+from contextlib import nullcontext
 from datetime import date
 from decimal import Decimal
 from io import BytesIO
@@ -9,10 +10,12 @@ from flask import Flask, session
 from flask_jwt_extended import JWTManager, create_access_token
 from werkzeug.datastructures import MultiDict
 from openpyxl import load_workbook
+from sqlalchemy import MetaData
+from sqlalchemy.dialects import postgresql
 from app.extensions import db
 from app.models.nip_stock_trend import NIPStockTrendSnapshot as S
 from app.models.snapshots import BranchAuthoritySnapshot
-from app.services.nip_stock_trend import prepare_trend, period_start, trend_data, scoped_query
+from app.services.nip_stock_trend import FILTER_FIELDS, prepare_trend, period_start, trend_data, scoped_query
 from app.dashboard.routes.nip_stock_trend import nip_stock_trend_data, export_nip_stock_trend, nip_stock_trend_options
 
 
@@ -43,6 +46,10 @@ class StockTrendTests(unittest.TestCase):
         self.assertIsNone(data['stats']['opening'])
 
 
+class LiveStockFixture(db.Model):
+    __table__ = S.__table__.to_metadata(MetaData(), schema='ext_view', name='nip_stock_fixture')
+
+
 class StockTrendDataTests(unittest.TestCase):
     def setUp(self):
         self.app=Flask(__name__)
@@ -51,34 +58,38 @@ class StockTrendDataTests(unittest.TestCase):
         db.init_app(self.app);JWTManager(self.app)
         self.ctx=self.app.app_context();self.ctx.push()
         S.__table__.create(db.engine);BranchAuthoritySnapshot.__table__.create(db.engine)
+        with db.engine.begin() as connection:
+            connection.exec_driver_sql("ATTACH DATABASE ':memory:' AS ext_view")
+            LiveStockFixture.__table__.create(connection)
+            connection.exec_driver_sql('CREATE VIEW ext_view.vw_weight_level_excess_nip_barcode_data '
+                                       'AS SELECT * FROM nip_stock_fixture')
+        source = patch('app.services.nip_stock_trend.source_session', side_effect=lambda: nullcontext(db.session))
+        source.start()
+        self.addCleanup(source.stop)
         self.app.add_url_rule('/api/data',view_func=nip_stock_trend_data.__wrapped__)
         self.app.add_url_rule('/api/export',view_func=export_nip_stock_trend.__wrapped__)
         for i,(day,branch,weight,pieces,nip) in enumerate([
             (1,20,1000,2,True),(2,20,2000,3,True),(2,2,5000,4,True),(2,20,9999,20,False)
         ],1):
-            db.session.add(S(id=i,uid=str(i),date=date(2026,10,day),branch_id=branch,
+            fields = dict(id=i,uid=str(i),date=date(2026,10,day),branch_id=branch,
                 location='ERNAKULAM' if branch==20 else 'THRISSUR ROUND',division='Gold',
-                gross_wt=weight,pieces=pieces,is_nip=nip,is_excess=branch==20))
+                gross_wt=weight,pieces=pieces,is_nip=nip,is_excess=branch==20)
+            db.session.add_all([S(**fields), LiveStockFixture(**fields)])
         db.session.add(BranchAuthoritySnapshot(branch_id=20,emp_code=1235));db.session.commit()
 
     def tearDown(self):
         db.session.remove();self.ctx.pop()
 
-    def test_redis_cache_reuses_data_and_invalidates_same_date_publish(self):
-        cache = {}
-        with patch('app.services.nip_stock_trend_cache.redis_client') as redis:
-            redis.get.side_effect = cache.get
-            redis.setex.side_effect = lambda key, ttl, value: cache.update({key: value})
-            client = self.app.test_client()
-            first = client.get('/api/data').get_json()
-            self.assertEqual(client.get('/api/data').get_json(), first)
-            self.assertEqual(redis.setex.call_count, 1)
-            db.session.add(S(id=5, uid='5', date=date(2026, 10, 2), branch_id=20,
-                             division='Gold', gross_wt=1000, pieces=1, is_nip=True))
-            db.session.commit()
-            refreshed = client.get('/api/data').get_json()
-            self.assertEqual(refreshed['stats']['total_stock'], first['stats']['total_stock'] + 1)
-            self.assertEqual(redis.setex.call_count, 2)
+    def test_refresh_reads_live_only_date_and_disables_http_caching(self):
+        client = self.app.test_client()
+        self.assertEqual(client.get('/api/data').get_json()['last_date'], '2026-10-02')
+        db.session.add(LiveStockFixture(uid='5', date=date(2026, 10, 3), branch_id=20,
+                                        division='Gold', gross_wt=1000, pieces=1, is_nip=True))
+        db.session.commit()
+        refreshed = client.get('/api/data')
+        self.assertTrue(refreshed.cache_control.no_store)
+        self.assertEqual(refreshed.get_json()['last_date'], '2026-10-03')
+        self.assertEqual(refreshed.get_json()['stats']['total_stock'], 1)
 
     def test_metric_conversion_and_location_multi_select(self):
         with self.app.test_request_context('/?location=ERNAKULAM'):
@@ -108,15 +119,23 @@ class StockTrendDataTests(unittest.TestCase):
             data=trend_data(MultiDict([('from_date','2026-10-02'),('is_excess','true')]))
             self.assertEqual(data['stats']['closing'],11.999)
             session['user_id']='999'
-            self.assertEqual(scoped_query().count(),0)
+            self.assertEqual(scoped_query(db.session).count(),0)
 
     def test_numeric_weight_filter_options_and_multi_select(self):
         for row,weight in [(1,'10.5'),(2,'20'),(3,'10.5'),(4,'0')]:
-            db.session.get(S,row).weight=Decimal(weight)
+            db.session.get(LiveStockFixture,row).weight=Decimal(weight)
         db.session.commit()
         with self.app.test_request_context('/'):
             session['roles']=['ADMIN']
-            options=nip_stock_trend_options.__wrapped__().get_json()['options']['weight']
+            def option_row(query):
+                statement = str(query.statement.compile(dialect=postgresql.dialect()))
+                self.assertIn('FROM ext_view.vw_weight_level_excess_nip_barcode_data', statement)
+                self.assertIn('array_agg(DISTINCT ext_view.vw_weight_level_excess_nip_barcode_data.weight ORDER BY', statement)
+                values = [None] * (len(FILTER_FIELDS) - 1) + [[Decimal(0), Decimal('10.5'), Decimal(20)]]
+                return (*values, date(2026, 10, 1), date(2026, 10, 2))
+
+            with patch('sqlalchemy.orm.Query.one', autospec=True, side_effect=option_row):
+                options=nip_stock_trend_options.__wrapped__().get_json()['options']['weight']
             self.assertEqual([Decimal(value) for value in options],[Decimal(0),Decimal('10.5'),Decimal(20)])
             single=trend_data(MultiDict({'weight':'10.500'}))
             self.assertEqual(single['stats']['total_stock'],5)
@@ -128,9 +147,9 @@ class StockTrendDataTests(unittest.TestCase):
                 with self.assertRaises(ValueError):trend_data(MultiDict({'weight':value}))
 
     def test_percentage_stats_zero_missing_and_reduction(self):
-        S.query.delete()
-        first=S(uid='first',date=date(2026,10,1),division='Gold',gross_wt=0,pieces=0,is_nip=True,is_excess=True)
-        last=S(uid='last',date=date(2026,10,2),division='Gold',gross_wt=1000,pieces=1,is_nip=True,is_excess=True)
+        LiveStockFixture.query.delete()
+        first=LiveStockFixture(uid='first',date=date(2026,10,1),division='Gold',gross_wt=0,pieces=0,is_nip=True,is_excess=True)
+        last=LiveStockFixture(uid='last',date=date(2026,10,2),division='Gold',gross_wt=1000,pieces=1,is_nip=True,is_excess=True)
         db.session.add_all([first,last]);db.session.commit()
         with self.app.test_request_context('/'):
             session['roles']=['ADMIN']
@@ -156,12 +175,12 @@ class StockTrendDataTests(unittest.TestCase):
                 with self.assertRaises(ValueError):trend_data(MultiDict(args))
 
     def test_rank_by_stock_type(self):
-        S.query.delete()
+        LiveStockFixture.query.delete()
         for i in range(1,26):
             nip=(26-i)*100
             excess=(13-abs(13-i))*100
             for kind,weight in [('base',i*10000-nip-excess),('nip',nip),('excess',excess)]:
-                db.session.add(S(uid=f'{i}-{kind}',date=date(2026,10,2),division=f'Group {i:02}',
+                db.session.add(LiveStockFixture(uid=f'{i}-{kind}',date=date(2026,10,2),division=f'Group {i:02}',
                                  gross_wt=weight,pieces=weight,is_nip=kind=='nip',is_excess=kind=='excess'))
         db.session.commit()
         with self.app.test_request_context('/'):
@@ -182,12 +201,12 @@ class StockTrendDataTests(unittest.TestCase):
             self.assertEqual(ascending['series'][0]['group'],'Group 05')
 
     def test_group_limiter_and_order_use_latest_total_not_history_sum(self):
-        S.query.delete()
+        LiveStockFixture.query.delete()
         for i in range(1,26):
-            db.session.add(S(uid=str(i),date=date(2026,10,2),division=f'Group {i:02}',
+            db.session.add(LiveStockFixture(uid=str(i),date=date(2026,10,2),division=f'Group {i:02}',
                              gross_wt=i*1000,pieces=26-i,is_nip=True,is_excess=False))
-        db.session.add(S(uid='old',date=date(2026,10,1),division='Group 01',gross_wt=999999,pieces=1))
-        db.session.add(S(uid='stale',date=date(2026,10,1),division='Stale',gross_wt=999999,pieces=1))
+        db.session.add(LiveStockFixture(uid='old',date=date(2026,10,1),division='Group 01',gross_wt=999999,pieces=1))
+        db.session.add(LiveStockFixture(uid='stale',date=date(2026,10,1),division='Stale',gross_wt=999999,pieces=1))
         db.session.commit()
         with self.app.test_request_context('/'):
             session['roles']=['ADMIN']

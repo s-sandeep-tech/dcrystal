@@ -1,22 +1,51 @@
 """Daily stock balances and common-date period closing balances, never flow sums."""
+from contextlib import contextmanager
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 from flask import session
-from sqlalchemy import func, false
+from sqlalchemy import Boolean, Column, Date, Integer, MetaData, Numeric, Table, Text, create_engine, false, func, text
+from sqlalchemy.dialects.postgresql import aggregate_order_by
+from sqlalchemy.orm import Session
+from sqlalchemy.pool import NullPool
 from app.extensions import db
-from app.models.nip_stock_trend import NIPStockTrendSnapshot as S, BOOL_FIELDS
 from app.models.snapshots import BranchAuthoritySnapshot, ProvisionStockRawSnapshot
 
 DIMENSIONS = ('location', 'division', 'group_name', 'purity', 'classification',
               'sub_classification', 'make', 'master_collection', 'collection',
               'section', 'sub_section', 'type', 'gender', 'wide_range', 'branch_type')
 FILTER_FIELDS = DIMENSIONS + ('prov_type', 'weight')
+STOCK_FLAGS = ('is_nip', 'is_excess', 'is_franchise', 'is_to_be_replaced')
 INTERVALS = ('daily', 'weekly', 'monthly', 'quarterly', 'yearly')
 GROUP_LIMIT = 5
 
+SOURCE = Table('vw_weight_level_excess_nip_barcode_data', MetaData(),
+               Column('date', Date), Column('branch_id', Integer), Column('gross_wt', Numeric),
+               Column('pieces', Integer), Column('weight', Numeric),
+               *(Column(name, Text) for name in (*DIMENSIONS, 'prov_type')),
+               *(Column(name, Boolean) for name in STOCK_FLAGS), schema='ext_view')
+S = SOURCE.c
 
-def scoped_query():
-    query = S.query
+
+def _connect_source():
+    from app.utils.sync_tasks import get_external_db_connection
+
+    return get_external_db_connection()
+
+
+source_engine = create_engine('postgresql+psycopg2://', creator=_connect_source,
+                              poolclass=NullPool, hide_parameters=True)
+
+
+@contextmanager
+def source_session():
+    with Session(source_engine) as source:
+        source.execute(text('SET TRANSACTION READ ONLY'))
+        source.execute(text("SET LOCAL statement_timeout = '120s'"))
+        yield source
+
+
+def scoped_query(source):
+    query = source.query(S.date).select_from(SOURCE)
     roles = {str(r).upper() for r in session.get('roles', [])}
     if roles.intersection({'ADMIN', 'MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'}):
         return query
@@ -24,13 +53,13 @@ def scoped_query():
     if 'BUSINESS_HEAD' in roles:
         branches = db.session.query(ProvisionStockRawSnapshot.branch_id).filter(
             ProvisionStockRawSnapshot.business_head_emp_code == employee)
-        return query.filter(S.branch_id.in_(branches))
+        return query.filter(S.branch_id.in_([branch_id for branch_id, in branches.distinct()]))
     if 'SHOWROOM_MANAGER' in roles:
         if not employee.isdigit():
             return query.filter(false())
         branches = db.session.query(BranchAuthoritySnapshot.branch_id).filter(
             BranchAuthoritySnapshot.emp_code == int(employee))
-        return query.filter(S.branch_id.in_(branches))
+        return query.filter(S.branch_id.in_([branch_id for branch_id, in branches.distinct()]))
     return query
 
 
@@ -46,7 +75,7 @@ def filter_query(query, args):
                 except (InvalidOperation, TypeError):
                     raise ValueError('Invalid weight filter') from None
             query = query.filter(getattr(S, name).in_(values))
-    for name in BOOL_FIELDS[1:]:
+    for name in STOCK_FLAGS[1:]:
         value = args.get(name, '')
         if value not in ('', 'true', 'false'):
             raise ValueError('Invalid boolean filter')
@@ -61,6 +90,22 @@ def filter_query(query, args):
     if end:
         query = query.filter(S.date <= end)
     return query
+
+
+def filter_options():
+    columns = [S[name] for name in FILTER_FIELDS]
+    expressions = []
+    for column in columns:
+        present = column.isnot(None) if column.name == 'weight' else column != ''
+        expressions.append(func.array_agg(aggregate_order_by(column.distinct(), column)).filter(present))
+    # Return all options and date bounds with one scan of the source view.
+    with source_session() as source:
+        *values, first, last = scoped_query(source).with_entities(
+            *expressions, func.min(S.date), func.max(S.date)).one()
+    options = {name: items or [] for name, items in zip(FILTER_FIELDS, values)}
+    options['weight'] = [format(value, 'f') for value in options['weight']]
+    return dict(options=options, first_date=first.isoformat() if first else None,
+                last_date=last.isoformat() if last else None)
 
 
 def period_start(day, interval):
@@ -111,7 +156,6 @@ def trend_data(args):
         raise ValueError('Invalid graph configuration')
     if limiter not in ('all', 'top', 'middle', 'bottom') or order not in ('asc', 'desc') or rank_by not in ('total', 'nip', 'excess'):
         raise ValueError('Invalid data limiter or order')
-    query = filter_query(scoped_query(), args)
     # Missing measures are unknown, not zero. Never silently omit a null measure.
     measure = getattr(S, metric)
     divisor = 1000 if metric == 'gross_wt' else 1
@@ -120,8 +164,10 @@ def trend_data(args):
         expressions.extend([func.coalesce(func.sum(measure).filter(flag.is_(True)), 0) / divisor,
                             func.count().filter(flag.is_(True)) - func.count(measure).filter(flag.is_(True))])
     group_column = func.coalesce(func.nullif(func.trim(getattr(S, group)), ''), '(Unspecified)')
-    rows = query.with_entities(S.date, group_column, *expressions).group_by(
-        S.date, group_column).order_by(S.date, group_column).all()
+    with source_session() as source:
+        query = filter_query(scoped_query(source), args)
+        rows = query.with_entities(S.date, group_column, *expressions).group_by(
+            S.date, group_column).order_by(S.date, group_column).all()
     kinds = [('total', 'Total Stock'), ('nip', 'NIP Stock'), ('excess', 'Excess Stock')]
     prepared = {kind: prepare_trend([(r[0], r[1], None if r[3 + i * 2] else r[2 + i * 2])
                 for r in rows], interval) for i, (kind, _) in enumerate(kinds)}

@@ -289,7 +289,7 @@
         tablePage=1;renderTable();
         el('nip-status').textContent = data.periods.length
             ? `${data.first_date} to ${data.last_date} · ${data.observed_days} observed days · Total / NIP / Excess · ${data.interval === 'daily' ? 'Daily balances' : 'Last reporting date per period'}${data.missing_measure_rows ? ' · Missing measurements: '+data.missing_measure_rows : ''}`
-            : 'No stock balances match these filters. Run the sync in Settings or change the selected dates.';
+            : 'No stock balances match these filters. Change the selected dates or filters.';
         if(data.total_groups!=null)el('nip-status').textContent+=` · ${data.displayed_groups} of ${data.total_groups} groups · Summary totals include all filtered groups`;
         draw(); showViews();
     }

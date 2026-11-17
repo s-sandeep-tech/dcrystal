@@ -38,7 +38,6 @@ SCHEDULED_ALL_SYNC_TASKS = (
 ALLOWED_SYNC_TASKS = {
     'stock_drilldown_details',
     'stock_processed_order_details',
-    'nip_stock_trend',
     'sales_prediction_data',
     'owner_wise',
     'process_delay',
