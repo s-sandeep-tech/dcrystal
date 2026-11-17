@@ -4510,7 +4510,7 @@ def _map_party_performance_rows(spec, rows, source_columns, snapshot_date, offse
     return mapped_rows
 
 
-def _fetch_party_performance_source(spec, max_attempts):
+def _fetch_party_performance_source(spec, max_attempts, batch_size):
     view_name = spec['view']
     # Source views do not share a unique key. Order by the full row so that
     # ties contain identical data and can safely cross a page boundary.
@@ -4523,7 +4523,6 @@ def _fetch_party_performance_source(spec, max_attempts):
         sql.Identifier(view_name),
     )
     snapshot_date = date.today()
-    batch_size = 2000
     offset = 0
     while True:
         for attempt in range(1, max_attempts + 1):
@@ -4573,6 +4572,8 @@ def _sync_party_performance_specs_once(
     progress_range=(0, 100),
     is_subtask=False,
     max_attempts=1,
+    *,
+    batch_size,
 ):
     def emit(status, message, progress):
         emit_combined_sync_update(
@@ -4602,7 +4603,7 @@ def _sync_party_performance_specs_once(
             model = spec['model']
             loaded = 0
             db.session.query(model).delete(synchronize_session=False)
-            for batch in _fetch_party_performance_source(spec, max_attempts):
+            for batch in _fetch_party_performance_source(spec, max_attempts, batch_size):
                 db.session.bulk_insert_mappings(model, batch)
                 loaded += len(batch)
             logger.info(
@@ -4648,9 +4649,11 @@ def _sync_party_performance_specs(
     task_type,
     progress_range=(0, 100),
     is_subtask=False,
+    *,
+    batch_size=2_000,
 ):
     result = _sync_party_performance_specs_once(
-        specs, task_type, progress_range, is_subtask, max_attempts=3,
+        specs, task_type, progress_range, is_subtask, max_attempts=3, batch_size=batch_size,
     )
     if result.get('status') != 'success':
         emit_combined_sync_update(
@@ -4685,6 +4688,7 @@ def sync_party_performance_matrix_task(task_type_override=None, progress_range=(
         task_type_override or 'party_performance_matrix',
         progress_range,
         is_subtask,
+        batch_size=30_000,
     )
 
 

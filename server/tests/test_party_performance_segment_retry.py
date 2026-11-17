@@ -7,6 +7,9 @@ import psycopg2
 from app.utils import sync_tasks as sync
 
 
+BATCH_SIZE = 30_000
+
+
 class PartyPerformanceBatchRetryTests(unittest.TestCase):
     def run_sync(self, fetch, fail_commit=False):
         session = MagicMock()
@@ -29,7 +32,7 @@ class PartyPerformanceBatchRetryTests(unittest.TestCase):
                 def read():
                     query, (limit, offset) = cursor.execute.call_args.args
                     self.assertIn('LIMIT %s OFFSET %s', repr(query))
-                    self.assertEqual(limit, 2000)
+                    self.assertEqual(limit, BATCH_SIZE)
                     offsets.append(offset)
                     return fetch(offset, len(connections))
 
@@ -45,7 +48,7 @@ class PartyPerformanceBatchRetryTests(unittest.TestCase):
     def test_reconnect_retries_failed_offset_and_commits_all_snapshots_once(self):
         def fetch(offset, connection_number):
             if connection_number == 1:
-                return [{'party': 'First page'}] * 2000
+                return [{'party': 'First page'}] * BATCH_SIZE
             if connection_number == 2:
                 raise psycopg2.OperationalError('SSL connection closed')
             return [{'party': 'Last page'}] if offset else []
@@ -53,13 +56,13 @@ class PartyPerformanceBatchRetryTests(unittest.TestCase):
         with self.assertLogs(sync.logger, level='INFO') as logs:
             result, session, sleep, _, _, offsets = self.run_sync(fetch)
         self.assertIn(
-            'Party Performance ext_view.vw_party_design_info offset 2000 attempt 2/3 succeeded: fetched 1 rows',
+            f'Party Performance ext_view.vw_party_design_info offset {BATCH_SIZE} attempt 2/3 succeeded: fetched 1 rows',
             [record.getMessage() for record in logs.records],
         )
         self.assertEqual(result['status'], 'success')
-        self.assertEqual(result['count'], 2001)
+        self.assertEqual(result['count'], BATCH_SIZE + 1)
         self.assertEqual(len(result['counts']), 9)
-        self.assertEqual(offsets, [0, 2000, 2000] + [0] * 8)
+        self.assertEqual(offsets, [0, BATCH_SIZE, BATCH_SIZE] + [0] * 8)
         self.assertEqual(session.bulk_insert_mappings.call_count, 2)
         self.assertEqual(session.query.call_count, 9)
         sleep.assert_called_once_with(5)
@@ -69,13 +72,13 @@ class PartyPerformanceBatchRetryTests(unittest.TestCase):
     def test_exhaustion_rolls_back_previously_loaded_batches(self):
         def fetch(offset, connection_number):
             if connection_number == 1:
-                return [{'party': 'First page'}] * 2000
+                return [{'party': 'First page'}] * BATCH_SIZE
             raise psycopg2.OperationalError('source unavailable')
 
         result, session, sleep, emit, redis, offsets = self.run_sync(fetch)
         self.assertEqual(result['status'], 'error')
-        self.assertIn('offset 2000', result['message'])
-        self.assertEqual(offsets, [0, 2000, 2000, 2000])
+        self.assertIn(f'offset {BATCH_SIZE}', result['message'])
+        self.assertEqual(offsets, [0] + [BATCH_SIZE] * 3)
         self.assertEqual(sleep.call_count, 2)
         session.bulk_insert_mappings.assert_called_once()
         session.commit.assert_not_called()
