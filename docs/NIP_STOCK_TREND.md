@@ -9,7 +9,9 @@
 
 Filter options, report data and Excel export query the external view in read-only
 transactions. PostgreSQL applies the filters and aggregates the dated barcode
-balances. Each request reads the view directly, including its latest reporting date.
+balances. Redis caches successful report and filter responses for five minutes,
+keyed by branch access and request filters. Refresh reads both endpoints directly
+from the view and replaces those cached results. Excel exports read the view directly.
 
 Gross weight is SUM(gross_wt)/1000 kg; pieces is SUM(pieces). NIP/Excess use conditional
 SUM on the same measure and filtered records. Summary indicators use Total only.

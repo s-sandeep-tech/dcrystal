@@ -1,4 +1,4 @@
-"""Redis cache for unscoped NIP report reads."""
+"""Redis caching for live NIP requests and rollback snapshot maintenance."""
 import hashlib
 import json
 import logging
@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 redis_client = Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True,
                      socket_connect_timeout=0.5, socket_timeout=0.5)
 PREFIX = 'nip-stock-trend:v2'
-TTL_SECONDS = 1800
+LIVE_PREFIX = 'nip-stock-trend:live:v1'
+LIVE_TTL_SECONDS = 300
 
 
 def snapshot_version():
@@ -24,20 +25,22 @@ def snapshot_version():
     return f'{row.date.isoformat()}:{row.synced_at.isoformat()}:{row.id}' if row else 'empty'
 
 
-def cached_payload(kind, args, build):
-    digest = hashlib.sha256(json.dumps(sorted(args.lists())).encode()).hexdigest()
-    key = f'{PREFIX}:{snapshot_version()}:{kind}:{digest}'
-    try:
-        cached = redis_client.get(key)
-        if cached is not None:
-            return json.loads(cached)
-    except (RedisError, ValueError):
-        logger.debug('NIP cache read failed; using database', exc_info=True)
-        return build()
+def cached_live_payload(kind, branches, params, build, *, refresh=False):
+    digest = hashlib.sha256(json.dumps((branches, params)).encode()).hexdigest()
+    key = f'{LIVE_PREFIX}:{kind}:{digest}'
+    if not refresh:
+        try:
+            cached = redis_client.get(key)
+            if cached is not None:
+                return json.loads(cached)
+        except (RedisError, ValueError):
+            logger.debug('NIP live cache read failed; querying the view', exc_info=True)
+            return build()
 
     payload = build()
     try:
-        redis_client.setex(key, TTL_SECONDS, json.dumps(payload))
+        # A miss that started before Refresh must not overwrite its result.
+        redis_client.set(key, json.dumps(payload), ex=LIVE_TTL_SECONDS, nx=not refresh)
     except RedisError:
         logger.debug('NIP cache write failed', exc_info=True)
     return payload

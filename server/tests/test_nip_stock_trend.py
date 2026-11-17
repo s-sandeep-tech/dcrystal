@@ -15,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 from app.extensions import db
 from app.models.nip_stock_trend import NIPStockTrendSnapshot as S
 from app.models.snapshots import BranchAuthoritySnapshot
-from app.services.nip_stock_trend import FILTER_FIELDS, prepare_trend, period_start, trend_data, scoped_query
+from app.services.nip_stock_trend import FILTER_FIELDS, allowed_branches, prepare_trend, period_start, trend_data, scoped_query
 from app.dashboard.routes.nip_stock_trend import nip_stock_trend_data, export_nip_stock_trend, nip_stock_trend_options
 
 
@@ -66,7 +66,20 @@ class StockTrendDataTests(unittest.TestCase):
         source = patch('app.services.nip_stock_trend.source_session', side_effect=lambda: nullcontext(db.session))
         source.start()
         self.addCleanup(source.stop)
+        redis_patch = patch('app.services.nip_stock_trend_cache.redis_client')
+        redis = redis_patch.start()
+        self.addCleanup(redis_patch.stop)
+        cached = {}
+        redis.get.side_effect = cached.get
+
+        def cache_set(key, value, *, ex, nx):
+            self.assertEqual(ex, 300)
+            if not nx or key not in cached:
+                cached[key] = value
+
+        redis.set.side_effect = cache_set
         self.app.add_url_rule('/api/data',view_func=nip_stock_trend_data.__wrapped__)
+        self.app.add_url_rule('/api/options',view_func=nip_stock_trend_options.__wrapped__)
         self.app.add_url_rule('/api/export',view_func=export_nip_stock_trend.__wrapped__)
         for i,(day,branch,weight,pieces,nip) in enumerate([
             (1,20,1000,2,True),(2,20,2000,3,True),(2,2,5000,4,True),(2,20,9999,20,False)
@@ -80,16 +93,39 @@ class StockTrendDataTests(unittest.TestCase):
     def tearDown(self):
         db.session.remove();self.ctx.pop()
 
-    def test_refresh_reads_live_only_date_and_disables_http_caching(self):
+    def test_report_reuses_cached_data_until_forced_refresh(self):
         client = self.app.test_client()
         self.assertEqual(client.get('/api/data').get_json()['last_date'], '2026-10-02')
         db.session.add(LiveStockFixture(uid='5', date=date(2026, 10, 3), branch_id=20,
                                         division='Gold', gross_wt=1000, pieces=1, is_nip=True))
         db.session.commit()
-        refreshed = client.get('/api/data')
+        self.assertEqual(client.get('/api/data').get_json()['last_date'], '2026-10-02')
+        refreshed = client.get('/api/data?refresh=1')
         self.assertTrue(refreshed.cache_control.no_store)
         self.assertEqual(refreshed.get_json()['last_date'], '2026-10-03')
         self.assertEqual(refreshed.get_json()['stats']['total_stock'], 1)
+        self.assertEqual(client.get('/api/data').get_json(), refreshed.get_json())
+
+    def test_filter_options_are_cached_and_replaced_on_refresh(self):
+        client = self.app.test_client()
+        original = {'options': {'location': ['ERNAKULAM']}}
+        updated = {'options': {'location': ['ERNAKULAM', 'THRISSUR ROUND']}}
+        with patch('app.services.nip_stock_trend._filter_options', side_effect=[original, updated]) as query:
+            self.assertEqual(client.get('/api/options').get_json(), original)
+            self.assertEqual(client.get('/api/options').get_json(), original)
+            self.assertEqual(client.get('/api/options?refresh=1').get_json(), updated)
+            self.assertEqual(client.get('/api/options').get_json(), updated)
+            self.assertEqual(query.call_count, 2)
+
+    def test_cached_report_tracks_current_branch_access(self):
+        client = self.app.test_client()
+        self.assertEqual(client.get('/api/data').get_json()['stats']['closing'], 16.999)
+        with client.session_transaction() as user:
+            user.update(roles=['SHOWROOM_MANAGER'], user_id='1235')
+        self.assertEqual(client.get('/api/data').get_json()['stats']['closing'], 11.999)
+        BranchAuthoritySnapshot.query.filter_by(emp_code=1235).one().branch_id = 2
+        db.session.commit()
+        self.assertEqual(client.get('/api/data').get_json()['stats']['closing'], 5)
 
     def test_metric_conversion_and_location_multi_select(self):
         with self.app.test_request_context('/?location=ERNAKULAM'):
@@ -119,7 +155,7 @@ class StockTrendDataTests(unittest.TestCase):
             data=trend_data(MultiDict([('from_date','2026-10-02'),('is_excess','true')]))
             self.assertEqual(data['stats']['closing'],11.999)
             session['user_id']='999'
-            self.assertEqual(scoped_query(db.session).count(),0)
+            self.assertEqual(scoped_query(db.session, allowed_branches()).count(),0)
 
     def test_numeric_weight_filter_options_and_multi_select(self):
         for row,weight in [(1,'10.5'),(2,'20'),(3,'10.5'),(4,'0')]:

@@ -3,7 +3,7 @@ from datetime import date
 from flask import current_app, jsonify, render_template, request, send_file
 from app.dashboard import dashboard_bp
 from app.utils.decorators import require_report_access, require_perm
-from app.services.nip_stock_trend import DIMENSIONS, FILTER_FIELDS, GROUP_LIMIT, filter_options, trend_data
+from app.services.nip_stock_trend import DIMENSIONS, FILTER_FIELDS, GROUP_LIMIT, cached_trend_data, filter_options, trend_data
 
 ROUTE = '/nip-stock-trend-analysis'
 
@@ -30,7 +30,7 @@ def nip_stock_trend_page():
 @require_report_access(ROUTE)
 def nip_stock_trend_options():
     try:
-        return _live_json(filter_options())
+        return _live_json(filter_options(refresh=request.args.get('refresh') == '1'))
     except Exception:
         return _source_unavailable()
 
@@ -39,7 +39,7 @@ def nip_stock_trend_options():
 @require_report_access(ROUTE)
 def nip_stock_trend_data():
     try:
-        return _live_json(trend_data(request.args))
+        return _live_json(cached_trend_data(request.args, refresh=request.args.get('refresh') == '1'))
     except ValueError as error:
         return jsonify(error=str(error)), 400
     except Exception:

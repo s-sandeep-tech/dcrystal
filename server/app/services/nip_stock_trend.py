@@ -3,12 +3,13 @@ from contextlib import contextmanager
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 from flask import session
-from sqlalchemy import Boolean, Column, Date, Integer, MetaData, Numeric, Table, Text, create_engine, false, func, text
+from sqlalchemy import Boolean, Column, Date, Integer, MetaData, Numeric, Table, Text, create_engine, func, text
 from sqlalchemy.dialects.postgresql import aggregate_order_by
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import NullPool
 from app.extensions import db
 from app.models.snapshots import BranchAuthoritySnapshot, ProvisionStockRawSnapshot
+from app.services.nip_stock_trend_cache import cached_live_payload
 
 DIMENSIONS = ('location', 'division', 'group_name', 'purity', 'classification',
               'sub_classification', 'make', 'master_collection', 'collection',
@@ -44,23 +45,27 @@ def source_session():
         yield source
 
 
-def scoped_query(source):
-    query = source.query(S.date).select_from(SOURCE)
+def allowed_branches():
     roles = {str(r).upper() for r in session.get('roles', [])}
     if roles.intersection({'ADMIN', 'MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'}):
-        return query
+        return None
     employee = str(session.get('user_id') or '')
     if 'BUSINESS_HEAD' in roles:
         branches = db.session.query(ProvisionStockRawSnapshot.branch_id).filter(
             ProvisionStockRawSnapshot.business_head_emp_code == employee)
-        return query.filter(S.branch_id.in_([branch_id for branch_id, in branches.distinct()]))
-    if 'SHOWROOM_MANAGER' in roles:
+    elif 'SHOWROOM_MANAGER' in roles:
         if not employee.isdigit():
-            return query.filter(false())
+            return ()
         branches = db.session.query(BranchAuthoritySnapshot.branch_id).filter(
             BranchAuthoritySnapshot.emp_code == int(employee))
-        return query.filter(S.branch_id.in_([branch_id for branch_id, in branches.distinct()]))
-    return query
+    else:
+        return None
+    return tuple(sorted(branch_id for branch_id, in branches.distinct() if branch_id is not None))
+
+
+def scoped_query(source, branches):
+    query = source.query(S.date).select_from(SOURCE)
+    return query if branches is None else query.filter(S.branch_id.in_(branches))
 
 
 def filter_query(query, args):
@@ -92,7 +97,12 @@ def filter_query(query, args):
     return query
 
 
-def filter_options():
+def filter_options(*, refresh=False):
+    branches = allowed_branches()
+    return cached_live_payload('options', branches, (), lambda: _filter_options(branches), refresh=refresh)
+
+
+def _filter_options(branches):
     columns = [S[name] for name in FILTER_FIELDS]
     expressions = []
     for column in columns:
@@ -100,7 +110,7 @@ def filter_options():
         expressions.append(func.array_agg(aggregate_order_by(column.distinct(), column)).filter(present))
     # Return all options and date bounds with one scan of the source view.
     with source_session() as source:
-        *values, first, last = scoped_query(source).with_entities(
+        *values, first, last = scoped_query(source, branches).with_entities(
             *expressions, func.min(S.date), func.max(S.date)).one()
     options = {name: items or [] for name, items in zip(FILTER_FIELDS, values)}
     options['weight'] = [format(value, 'f') for value in options['weight']]
@@ -149,6 +159,16 @@ def prepare_trend(daily, interval):
 
 
 def trend_data(args):
+    return _trend_data(args, allowed_branches())
+
+
+def cached_trend_data(args, *, refresh=False):
+    branches = allowed_branches()
+    params = sorted((name, values) for name, values in args.lists() if name != 'refresh')
+    return cached_live_payload('data', branches, params, lambda: _trend_data(args, branches), refresh=refresh)
+
+
+def _trend_data(args, branches):
     metric, group, interval = args.get('metric', 'gross_wt'), args.get('group_by', 'division'), args.get('interval', 'daily')
     limiter, order = args.get('limiter', 'top'), args.get('order', 'desc')
     rank_by = args.get('rank_by', 'total')
@@ -165,7 +185,7 @@ def trend_data(args):
                             func.count().filter(flag.is_(True)) - func.count(measure).filter(flag.is_(True))])
     group_column = func.coalesce(func.nullif(func.trim(getattr(S, group)), ''), '(Unspecified)')
     with source_session() as source:
-        query = filter_query(scoped_query(source), args)
+        query = filter_query(scoped_query(source, branches), args)
         rows = query.with_entities(S.date, group_column, *expressions).group_by(
             S.date, group_column).order_by(S.date, group_column).all()
     kinds = [('total', 'Total Stock'), ('nip', 'NIP Stock'), ('excess', 'Excess Stock')]
