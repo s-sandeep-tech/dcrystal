@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Sales XYZ Drilldown{% endblock %}
+{% block title %}ABC Analysis{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sales_xyz_drilldown.css', v='20261116-select-all') }}">
 {% endblock %}
@@ -7,7 +7,7 @@
 <main id="xyz-report" data-api="{{ url_for('dashboard.sales_xyz_drilldown_segment', segment='hierarchy') }}">
     <header class="xyz-header">
         <div>
-            <h1>Sales XYZ Drilldown</h1>
+            <h1>ABC Analysis</h1>
             <div class="xyz-period-row">
                 <p id="xyz-period"></p>
                 <button id="xyz-info-open" class="xyz-info-button" type="button" aria-label="About this report" aria-haspopup="dialog" aria-controls="xyz-info-dialog" title="About this report">
@@ -78,7 +78,7 @@
 </main>
 {% endblock %}
 {% block sidebar %}
-<aside id="xyz-sidebar" aria-label="Sales XYZ filters">
+<aside id="xyz-sidebar" aria-label="ABC Analysis filters">
     <form id="xyz-filters" data-default-branch-types='{{ default_branch_types | tojson }}'>
         <input type="hidden" name="branch_type_set" value="1">
         <div class="xyz-filter-body">

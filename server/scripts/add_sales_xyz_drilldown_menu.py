@@ -1,4 +1,4 @@
-"""Register Sales XYZ Drilldown and grant the ADMIN role access."""
+"""Register ABC Analysis and grant the ADMIN role access."""
 from app import create_app
 from app.extensions import db
 from app.models.rbac import Menu, Role, RoleMenu
@@ -10,10 +10,12 @@ def seed_menu():
     menu = Menu.query.filter_by(url=url).first()
     if menu is None:
         sibling = Menu.query.filter_by(url='/sales-tsk-monthly-analyse').first()
-        menu = Menu(title='Sales XYZ Drilldown', url=url, icon='account_tree',
+        menu = Menu(title='ABC Analysis', url=url, icon='account_tree',
                     sort_order=84, parent_id=sibling.parent_id if sibling else None)
         db.session.add(menu)
         db.session.flush()
+    else:
+        menu.title = 'ABC Analysis'
     admin = Role.query.filter_by(name='ADMIN').first()
     if admin and not db.session.get(RoleMenu, (admin.id, menu.id)):
         db.session.add(RoleMenu(role_id=admin.id, menu_id=menu.id))

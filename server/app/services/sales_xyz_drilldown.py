@@ -39,7 +39,7 @@ FILTERS = {
     'invoice_type': ('invoice_type', 'Invoice Type'),
     'trans_type': ('trans_type', 'Transaction Type'),
 }
-EXCLUDED_MAKES = ('KMU 999 COIN', 'CUSTOM', 'KMU-COIN')
+EXCLUDED_MAKES = ('KMU 999 COIN', 'CUSTOM', 'KMU-COIN', 'KMU B2B COIN')
 EXCLUDED_SECTIONS = ('HOOK AND CONNECTORS',)
 DEFAULT_BRANCH_TYPES = {'SHOP': 'SHOP', 'FRANCHISE_SHOP': 'FRANCHISE_SHOP'}
 METRICS = ('pieces', 'weight', 'turnover', 'profit')

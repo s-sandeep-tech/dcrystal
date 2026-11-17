@@ -298,7 +298,7 @@ window.REPORT_MENU_DATA = [
         reports: [
             {
                 id: "sales-xyz-drilldown",
-                title: "Sales XYZ Drilldown",
+                title: "ABC Analysis",
                 href: "/sales-xyz-drilldown",
                 icon: "account_tree",
                 description: "Drill into sales by product and compare ABC categories for pieces, weight, and turnover.",
