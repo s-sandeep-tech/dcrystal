@@ -40,7 +40,7 @@ source_engine = create_engine('postgresql+psycopg2://', creator=_connect_source,
 def source_session():
     with Session(source_engine) as source:
         source.execute(text('SET TRANSACTION READ ONLY'))
-        source.execute(text("SET LOCAL statement_timeout = '120s'"))
+        source.execute(text("SET LOCAL statement_timeout = '300s'"))
         yield source
 
 
