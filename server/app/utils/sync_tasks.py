@@ -178,7 +178,9 @@ def get_kjch_db_connection():
         logger.error(f"Failed to connect to KJCH DB: {str(e)}")
         raise e
 
-def sync_owner_wise_data_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+def sync_owner_wise_data_task(
+    task_type_override=None, progress_range=(0, 100), is_subtask=False, *, batch_size=2_000,
+) -> Dict[str, Any]:
     conn = None
     TASK_TYPE = task_type_override or 'owner_wise'
     
@@ -197,7 +199,6 @@ def sync_owner_wise_data_task(task_type_override=None, progress_range=(0, 100), 
         
         start_time = time.monotonic()
         loaded = 0
-        batch_size = 2000
         with conn.cursor(name='owner_order_summary_sync', cursor_factory=RealDictCursor) as cur:
             cur.execute(query)
             rows = cur.fetchmany(batch_size)
@@ -295,7 +296,9 @@ def sync_owner_wise_data_task(task_type_override=None, progress_range=(0, 100), 
     finally:
         if conn: conn.close()
 
-def sync_pending_order_details_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+def sync_pending_order_details_task(
+    task_type_override=None, progress_range=(0, 100), is_subtask=False, *, batch_size=2_000,
+) -> Dict[str, Any]:
     conn = None
     TASK_TYPE = task_type_override or 'pending_order_details'
     
@@ -311,7 +314,6 @@ def sync_pending_order_details_task(task_type_override=None, progress_range=(0, 
 
         emit('processing', 'Fetching data from Azure PostgreSQL...', 20)
         start_time = time.monotonic()
-        batch_size = 2000
         loaded = 0
 
         # Serialize snapshot replacements while allowing reports to read the committed snapshot.
@@ -384,7 +386,9 @@ def sync_pending_order_details_task(task_type_override=None, progress_range=(0, 
         if conn: conn.close()
 
 
-def sync_active_order_details_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+def sync_active_order_details_task(
+    task_type_override=None, progress_range=(0, 100), is_subtask=False, *, batch_size=2_000,
+) -> Dict[str, Any]:
     from app.models.snapshots import ActiveOrderDetailsSnapshot
     conn = None
     TASK_TYPE = task_type_override or 'active_order_details'
@@ -404,7 +408,6 @@ def sync_active_order_details_task(task_type_override=None, progress_range=(0, 1
         
         start_time = time.monotonic()
         loaded = 0
-        batch_size = 2000
         with conn.cursor(name='active_order_details_sync', cursor_factory=RealDictCursor) as cur:
             cur.execute(query)
             rows = cur.fetchmany(batch_size)
@@ -1587,7 +1590,9 @@ def sync_hallmarking_delayed_data_task() -> Dict[str, Any]:
     finally:
         if conn: conn.close()
 
-def sync_showroom_wise_order_summary_task(task_type_override=None, progress_range=(0, 100), is_subtask=False) -> Dict[str, Any]:
+def sync_showroom_wise_order_summary_task(
+    task_type_override=None, progress_range=(0, 100), is_subtask=False, *, batch_size=2_000,
+) -> Dict[str, Any]:
     conn = None
     TASK_TYPE = task_type_override or 'showroom_wise_order'
     source_timeout_minutes = 8
@@ -1685,7 +1690,6 @@ FROM ext_view.vw_ownership_wise_order_summary_with_order_type_and_po_number_b AS
         """
         
         start_time = time.monotonic()
-        batch_size = 2000
         loaded = 0
         today = date.today()
         with conn.cursor(name='showroom_order_summary_sync', cursor_factory=RealDictCursor) as cur:
@@ -1814,7 +1818,7 @@ def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
         for attempt in range(1, 4):
             try:
                 result = task(task_type_override=TASK_TYPE,
-                              progress_range=progress_range, is_subtask=True)
+                              progress_range=progress_range, is_subtask=True, batch_size=30_000)
                 if isinstance(result, dict) and result.get('status') == 'success':
                     return result
                 error = result.get('message', 'Unsuccessful segment result') if isinstance(result, dict) else 'No segment result'

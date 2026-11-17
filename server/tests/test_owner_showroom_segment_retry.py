@@ -30,7 +30,10 @@ class OwnerShowroomRetryTests(unittest.TestCase):
         sleep.assert_called_once_with(5)
         self.assertEqual(result['active_count'], 5)
         tasks[1].assert_called_with(task_type_override='owner_showroom_combined',
-                                    progress_range=(25, 45), is_subtask=True)
+                                    progress_range=(25, 45), is_subtask=True, batch_size=30_000)
+        for task in tasks:
+            for attempt in task.call_args_list:
+                self.assertEqual(attempt.kwargs['batch_size'], 30_000)
         redis.flushdb.assert_called_once()
 
     def test_exhausted_segment_stops_without_restarting_previous(self):
