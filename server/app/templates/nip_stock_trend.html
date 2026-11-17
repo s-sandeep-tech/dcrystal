@@ -89,6 +89,8 @@
         <span id="nip-loading-progress" aria-hidden="true"
             class="size-3 shrink-0 rounded-full border-2 border-blue-200 border-t-blue-600 motion-safe:animate-spin"></span>
         <span id="nip-status" role="status">Loading stock history...</span>
+        <button id="nip-retry" type="button" hidden
+            class="shrink-0 rounded border border-blue-600 px-2 py-1 font-semibold text-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-950">Retry</button>
     </p>
     <div id="nip-output" aria-busy="true" class="flex-1 min-h-0 overflow-auto">
         <section id="nip-graph" class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
@@ -138,5 +140,5 @@
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261117-nip-live') }}"></script>
+<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261117-nip-retry') }}"></script>
 {% endblock %}

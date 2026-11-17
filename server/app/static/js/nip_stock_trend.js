@@ -6,6 +6,7 @@
         else window.addEventListener('load',resolve,{once:true});
     });
     let applied = new URLSearchParams(), chart = null, data = null, pending = null, mode = 'graph', tablePage = 1;
+    let filtersReady = false, loadingFilters = false;
     const defaultDivision = 'Gold';
     const headers = () => ({Authorization: `Bearer ${localStorage.getItem('access_token') || ''}`});
     const name = key => key.replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -13,9 +14,25 @@
         minimumFractionDigits: data?.metric === 'pieces' ? 0 : 3, maximumFractionDigits: data?.metric === 'pieces' ? 0 : 3});
     const tooltipNumber = value => value == null ? 'N/A' : Number(value).toLocaleString('en-IN', {maximumFractionDigits: 0});
     async function responseJSON(response) {
-        const value = await response.json();
-        if (!response.ok) throw new Error(value.error || value.msg || 'Unable to load report');
-        return value;
+        if (response.ok) return response.json();
+        const value = await response.json().catch(() => ({}));
+        const error = new Error(value?.error || value?.msg || 'Unable to load report');
+        error.status = response.status;
+        throw error;
+    }
+    function setStatus(message, retry = null) {
+        el('nip-status').textContent = message;
+        const button = el('nip-retry');
+        button.onclick = retry;
+        button.hidden = !retry;
+    }
+    function showRequestError(error, retry) {
+        const retryable = !error.status || error.status === 429 || error.status >= 500;
+        setStatus(error.message, retryable ? retry : null);
+    }
+    function setLoading(loading) {
+        el('nip-output').setAttribute('aria-busy', String(loading));
+        el('nip-loading-progress').hidden = !loading;
     }
     function collect() {
         const params = new URLSearchParams();
@@ -287,34 +304,70 @@
         });
         document.querySelectorAll('.nip-unit').forEach(node=>node.textContent=node.dataset.stat.endsWith('_pct')?'':data.unit);
         tablePage=1;renderTable();
-        el('nip-status').textContent = data.periods.length
+        setStatus(data.periods.length
             ? `${data.first_date} to ${data.last_date} · ${data.observed_days} observed days · Total / NIP / Excess · ${data.interval === 'daily' ? 'Daily balances' : 'Last reporting date per period'}${data.missing_measure_rows ? ' · Missing measurements: '+data.missing_measure_rows : ''}`
-            : 'No stock balances match these filters. Change the selected dates or filters.';
+            : 'No stock balances match these filters. Change the selected dates or filters.');
         if(data.total_groups!=null)el('nip-status').textContent+=` · ${data.displayed_groups} of ${data.total_groups} groups · Summary totals include all filtered groups`;
         draw(); showViews();
     }
     async function load() {
+        if (!filtersReady) return loadFilters();
         await pageLoaded;
         pending?.abort(); const controller=new AbortController();pending=controller;
-        el('nip-output').setAttribute('aria-busy','true');
-        el('nip-loading-progress').hidden=false;
-        el('nip-status').textContent='Loading stock history...';
+        setLoading(true);
+        setStatus('Loading stock history...');
         try {
             const result=await responseJSON(await fetch('/api/nip-stock-trend-analysis/data?'+requestParams(), {headers:headers(),signal:controller.signal}));
             if(controller.signal.aborted)return;
             data=result;render();
-        } catch(error){if(error.name!=='AbortError'){el('nip-status').textContent=error.message;data=null;chart?.destroy();chart=null;el('nip-table').replaceChildren();
+        } catch(error){if(!controller.signal.aborted && error.name!=='AbortError'){showRequestError(error,load);data=null;chart?.destroy();chart=null;el('nip-table').replaceChildren();
             statKeys.forEach(key=>{el('nip-stat-'+key).textContent='-';delete el('nip-stat-'+key).dataset.direction;});
             document.querySelectorAll('[data-progress]').forEach(node=>{
                 node.firstElementChild.style.width='0%';delete node.dataset.direction;node.title='N/A';node.setAttribute('aria-label','Unavailable');
             });}}
-        finally{if(pending===controller){el('nip-output').setAttribute('aria-busy','false');el('nip-loading-progress').hidden=true;pending=null;}}
+        finally{if(pending===controller){setLoading(false);pending=null;}}
     }
     async function download(response,filename) {
-        if(!response.ok)throw new Error((await response.json()).error || 'Export permission required');
+        if(!response.ok)await responseJSON(response);
         const url=URL.createObjectURL(await response.blob()),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     }
-    document.addEventListener('DOMContentLoaded', async()=>{
+    async function exportReport(params) {
+        const button = el('nip-export');
+        const preparing = 'Preparing Excel export...';
+        button.disabled = true;
+        setStatus(preparing);
+        try {
+            await download(await fetch('/api/nip-stock-trend-analysis/export?'+params,{headers:headers()}),'nip_stock_trend.xlsx');
+            if (el('nip-status').textContent === preparing) setStatus('Excel export downloaded.');
+        } catch(error) {
+            if (el('nip-status').textContent === preparing) showRequestError(error, () => exportReport(params));
+        } finally {
+            button.disabled = false;
+        }
+    }
+    async function loadFilters() {
+        if (loadingFilters) return;
+        loadingFilters = true;
+        setLoading(true);
+        setStatus('Loading stock filters...');
+        try {
+            const result=await responseJSON(await fetch('/api/nip-stock-trend-analysis/options',{headers:headers()}));
+            for(const [key,values] of Object.entries(result.options)) {
+                const choices = key === 'division' && !values.some(value => value.toLowerCase() === defaultDivision.toLowerCase())
+                    ? [...values, defaultDivision] : values;
+                controls[key]=new CustomMultiSelect({containerId:'nip-filter-'+key,label:key==='weight'?'Weight (g)':name(key),defaultText:'All '+name(key),options:choices.map(value=>({value,label:value}))});
+            }
+            applyDefaultFilters();
+            filtersReady = true;
+        } catch(error) {
+            showRequestError(error, loadFilters);
+            setLoading(false);
+        } finally {
+            loadingFilters = false;
+        }
+        if (filtersReady) await load();
+    }
+    document.addEventListener('DOMContentLoaded', ()=>{
         el('nip-apply').onclick=()=>{applied=collect();load();};
         const clear=()=>{Object.values(controls).forEach(control=>control.reset());el('nip-from').value='';el('nip-to').value='';
             document.querySelectorAll('[data-nip-boolean]').forEach(node=>node.value='');
@@ -327,23 +380,13 @@
         document.querySelectorAll('[data-view]').forEach(node=>node.onclick=()=>{mode=node.dataset.view;showViews();if(mode!=='table')draw();});
         el('nip-filter-toggle').onclick=()=>{const node=el('nip-sidebar');node.hidden=!node.hidden;node.style.display=node.hidden?'none':'';
             el('nip-filter-toggle').setAttribute('aria-expanded',String(!node.hidden));chart?.resize();};
-        el('nip-expand').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await el('nip-graph').requestFullscreen();}catch{el('nip-status').textContent='Fullscreen is unavailable in this browser.';}};
+        el('nip-expand').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await el('nip-graph').requestFullscreen();}catch{setStatus('Fullscreen is unavailable in this browser.');}};
         document.addEventListener('fullscreenchange',()=>{const expanded=!!document.fullscreenElement;
             el('nip-expand').title=expanded?'Exit expanded graph':'Expand graph';
             el('nip-expand').setAttribute('aria-label',el('nip-expand').title);
             el('nip-expand').querySelector('span').textContent=expanded?'fullscreen_exit':'fullscreen';chart?.resize();});
         el('nip-png').onclick=()=>{if(!chart||!data?.periods.length)return;const a=document.createElement('a');a.href=chart.toBase64Image();a.download='nip-stock-trend.png';a.click();};
-        if(el('nip-export'))el('nip-export').onclick=async()=>{const button=el('nip-export');button.disabled=true;try{await download(await fetch('/api/nip-stock-trend-analysis/export?'+requestParams(),{headers:headers()}),'nip_stock_trend.xlsx');}
-            catch(error){el('nip-status').textContent=error.message;}finally{button.disabled=false;}};
-        try {
-            const result=await responseJSON(await fetch('/api/nip-stock-trend-analysis/options',{headers:headers()}));
-            for(const [key,values] of Object.entries(result.options)) {
-                const choices = key === 'division' && !values.some(value => value.toLowerCase() === defaultDivision.toLowerCase())
-                    ? [...values, defaultDivision] : values;
-                controls[key]=new CustomMultiSelect({containerId:'nip-filter-'+key,label:key==='weight'?'Weight (g)':name(key),defaultText:'All '+name(key),options:choices.map(value=>({value,label:value}))});
-            }
-            applyDefaultFilters();
-            await load();
-        }catch(error){el('nip-status').textContent=error.message;el('nip-output').setAttribute('aria-busy','false');el('nip-loading-progress').hidden=true;}
+        if(el('nip-export'))el('nip-export').onclick=()=>exportReport(requestParams());
+        loadFilters();
     });
 })();
