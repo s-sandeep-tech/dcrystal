@@ -109,9 +109,12 @@ class SalesXYZTests(unittest.TestCase):
         with patch('app.utils.decorators.verify_jwt_in_request'), \
              patch('app.utils.decorators.get_jwt_identity', return_value='1'), \
              patch('app.extensions.db.session.get', return_value=user), \
+             patch.object(routes, 'redis_client') as redis, \
              patch.object(report, 'source_cursor') as source:
             self.assertEqual(client.get('/api/sales-xyz-drilldown/hierarchy').status_code, 403)
             source.assert_not_called()
+            redis.get.assert_not_called()
+            redis.get.return_value = None
             role.menus = [SimpleNamespace(url=routes.REPORT, permission_required=None)]
             self.assertEqual(client.get('/api/sales-xyz-drilldown/hierarchy?parent=broken').status_code, 400)
             with patch.object(report, 'drilldown', return_value={'rows': []}) as query:
@@ -119,3 +122,34 @@ class SalesXYZTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.json['data'], {'rows': []})
                 self.assertEqual(query.call_args.args[-1], [])
+
+    def test_cache_reuses_results_and_refresh_replaces_matching_entry(self):
+        app = Flask(__name__)
+        app.add_url_rule('/<segment>', view_func=routes.sales_xyz_drilldown_segment.__wrapped__)
+        client = app.test_client()
+        entries = {}
+
+        def store(key, value, *, ex, nx):
+            self.assertEqual(ex, 3600)
+            if not nx or key not in entries:
+                entries[key] = value
+
+        with patch.object(routes, 'redis_client') as redis, \
+             patch.object(report, 'source_cursor') as source, \
+             patch.object(report, 'drilldown', side_effect=[{'pieces': Decimal('1.25')}, {'pieces': 2}, {'pieces': 3}]), \
+             patch.object(report, 'options', return_value=[{'value': 'SHOP', 'label': 'SHOP'}]):
+            redis.get.side_effect = entries.get
+            redis.set.side_effect = store
+            first = client.get('/hierarchy')
+            repeated = client.get('/hierarchy')
+            self.assertEqual(first.json, {'data': {'pieces': '1.25'}})
+            self.assertEqual(repeated.json, first.json)
+            self.assertTrue(repeated.cache_control.no_store)
+            self.assertEqual(source.call_count, 1)
+            self.assertEqual(client.get('/hierarchy?parent=["1"]').json, {'data': {'pieces': 2}})
+            fresh = client.get('/hierarchy?refresh=1')
+            self.assertEqual(fresh.json, {'data': {'pieces': 3}})
+            self.assertEqual(client.get('/hierarchy').json, fresh.json)
+            options = client.get('/options?field=branch_type')
+            self.assertEqual(client.get('/options?field=branch_type').json, options.json)
+            self.assertEqual(source.call_count, 4)

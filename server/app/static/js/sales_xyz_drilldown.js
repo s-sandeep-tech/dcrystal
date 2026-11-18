@@ -25,6 +25,8 @@
     const rowsByButton = new WeakMap();
 
     let applied = new URLSearchParams(location.search);
+    applied.delete('refresh');
+    let refreshRun = false;
     const hierarchyMenu = report.querySelector('.xyz-hierarchy-menu');
     const hierarchyButtons = [...hierarchyMenu.querySelectorAll('[data-hierarchy]')];
     let hierarchy = hierarchyButtons.find(button => button.dataset.hierarchy === applied.get('hierarchy'))
@@ -50,6 +52,7 @@
         const url = new URL(report.dataset.api, location.origin);
         if (endpoint === 'options') url.pathname = url.pathname.replace(/hierarchy$/, 'options');
         url.search = params.toString();
+        if (refreshRun) url.searchParams.set('refresh', '1');
         const token = localStorage.getItem('access_token');
         const headers = token ? {Authorization: `Bearer ${token}`} : {};
         const response = await fetch(url, {headers, signal, cache: 'no-store'});
@@ -309,13 +312,15 @@
         }
     }
 
-    async function reload() {
+    async function reload(refresh = false) {
+        refreshRun = refresh;
         applied.set('hierarchy', hierarchy.dataset.hierarchy);
         controller?.abort();
         controller = new AbortController();
         const {signal} = controller;
         for (const panel of filters) {
             delete panel.dataset.loading;
+            if (refresh) delete panel.dataset.loaded;
             if (panel.open) loadOptions(panel);
         }
         history.replaceState(null, '', `${location.pathname}?${applied}`);
@@ -336,7 +341,7 @@
             if (signal.aborted) return;
             const retry = element('button', 'Retry');
             retry.type = 'button';
-            retry.addEventListener('click', reload);
+            retry.addEventListener('click', () => reload(refresh));
             status.replaceChildren(document.createTextNode(error.message), retry);
         } finally {
             if (!signal.aborted) tableWrap.hidden = false;
@@ -379,7 +384,7 @@
         restoreForm();
         reload();
     });
-    document.getElementById('xyz-refresh').addEventListener('click', reload);
+    document.getElementById('xyz-refresh').addEventListener('click', () => reload(true));
     function updateSortHeaders() {
         for (const button of sortButtons) {
             const header = button.closest('th');

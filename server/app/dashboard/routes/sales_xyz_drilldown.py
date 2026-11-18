@@ -1,10 +1,18 @@
+from hashlib import sha256
+
 from flask import current_app, jsonify, render_template, request
+from redis import Redis
+from redis.exceptions import RedisError
 
 from app.dashboard import dashboard_bp
+from app.extensions import REDIS_HOST, REDIS_PORT
 from app.services import sales_xyz_drilldown as report
 from app.utils.decorators import require_report_access
 
 REPORT = '/sales-xyz-drilldown'
+CACHE_TTL_SECONDS = 3600
+redis_client = Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True,
+                     socket_connect_timeout=0.5, socket_timeout=0.5)
 
 
 @dashboard_bp.route(REPORT)
@@ -26,14 +34,35 @@ def sales_xyz_drilldown_segment(segment):
         filters = report.parse_filters(request.args)
         if segment == 'hierarchy':
             parent = report.parse_parent(request.args.get('parent', '[]'), filters['hierarchy'])
+            cache_params = (filters, parent)
         else:
             field = request.args.get('field')
             if field not in report.FILTERS:
                 raise ValueError('Choose a valid filter.')
-        with report.source_cursor() as cursor:
-            data = (report.drilldown(cursor, filters, parent) if segment == 'hierarchy'
-                    else report.options(cursor, filters, field))
-        response = jsonify(data=data)
+            cache_params = (field, filters['start'], filters['end'], filters['exclusions'])
+        digest = sha256(current_app.json.dumps(cache_params, sort_keys=True).encode()).hexdigest()
+        key = f'sales-xyz-drilldown:v1:{segment}:{digest}'
+        refresh = request.args.get('refresh') == '1'
+        cached = None
+        if not refresh:
+            try:
+                cached = redis_client.get(key)
+            except RedisError:
+                current_app.logger.debug('ABC Analysis Redis read failed', exc_info=True)
+                key = None
+        if cached is not None:
+            response = current_app.response_class(cached, mimetype='application/json')
+        else:
+            with report.source_cursor() as cursor:
+                data = (report.drilldown(cursor, filters, parent) if segment == 'hierarchy'
+                        else report.options(cursor, filters, field))
+            response = jsonify(data=data)
+            if key is not None:
+                try:
+                    # A cache miss that began before Refresh must not overwrite its result.
+                    redis_client.set(key, response.get_data(as_text=True), ex=CACHE_TTL_SECONDS, nx=not refresh)
+                except RedisError:
+                    current_app.logger.debug('ABC Analysis Redis write failed', exc_info=True)
         response.headers['Cache-Control'] = 'no-store'
         return response
     except ValueError as error:
