@@ -76,8 +76,11 @@ class SalesXYZTests(unittest.TestCase):
         }]
         default_levels = report.HIERARCHIES['default']
         self.assertEqual([level[2] for level in default_levels],
+                         ['Section', 'Purity', 'Weight Range', 'Collection', 'Subsection'])
+        self.assertEqual([level[2] for level in report.HIERARCHIES['5']],
                          ['Section', 'Purity', 'Weight Range', 'Make', 'Collection', 'Subsection'])
-        result = report.drilldown(cursor, filters(), ['1'] * len(default_levels))
+        parent = ['1', '2', '3', '4', '5']
+        result = report.drilldown(cursor, filters(), parent)
         sql, params = cursor.execute.call_args.args
         self.assertIn('GROUP BY "type_id"::text, "wide_range_id"::text', sql)
         self.assertIn('SUM(pieces::numeric)', sql)
@@ -88,7 +91,9 @@ class SalesXYZTests(unittest.TestCase):
         self.assertEqual(result['rows'][0]['categories']['tsk'], 'A')
         self.assertEqual(result['rows'][0]['profit'], Decimal('7'))
         self.assertEqual(result['totals']['profit'], Decimal('7'))
-        self.assertEqual(params[-6:], ['1'] * 6)
+        self.assertIn('"collection_id"::text IS NOT DISTINCT FROM %s', sql)
+        self.assertNotIn('"make_id"::text IS NOT DISTINCT FROM %s', sql)
+        self.assertEqual(params[-5:], parent)
         self.assertTrue(result['leaf'])
         self.assertEqual(result['rows'][0]['type'], 'Type A')
         self.assertEqual(result['rows'][0]['wide_range'], '2–4')
