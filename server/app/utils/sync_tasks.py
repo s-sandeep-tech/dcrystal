@@ -812,7 +812,9 @@ def sync_stage_level_delay_data_task() -> Dict[str, Any]:
     try:
         emit_sync_update('processing', 'Starting StageLevel Delay Sync...', 5, 'stage_delay')
         conn = get_external_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
         
         emit_sync_update('processing', 'Fetching data from Azure...', 20, 'stage_delay')
         query = """
@@ -1040,55 +1042,62 @@ SELECT
 FROM current_stage;
         """
         
-        start_time = time.time()
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        duration = time.time() - start_time
-        
-        logger.info(f"StageLevelDelay query took {duration:.2f} seconds.")
-        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, 'stage_delay')
-        
-        # Clear existing
-        db.session.query(StageLevelDelaySnapshot).delete()
-        
-        new_records = []
-        for row in rows:
-            # parsing window count
-            w1 = 1 if row.get('pending_window') == '1-2' else 0
-            w2 = 1 if row.get('pending_window') == '3-4' else 0
-            w3 = 1 if row.get('pending_window') == '5-10' else 0
-            w4 = 1 if row.get('pending_window') == '10+' else 0
-            
-            record = StageLevelDelaySnapshot(
-                classification_owner=row.get('classification_owner'),
-                make_owner=row.get('make_owner'),
-                collection_owner=row.get('collection_owner'),
-                division=row.get('division'),
-                group=row.get('group'),
-                purity=row.get('purity'),
-                purchase_ro=row.get('order_ro'),
-                order_number=row.get('order_no'),
-                order_date=row.get('order_date'),
-                barcode_number=row.get('barcode'),
-                barcode_last_step_date=row.get('completed_date'),
-                party=row.get('party_name'),
-                completed_process_level=row.get('completed_process_level'),
-                next_process_level=row.get('next_process_level'),
-                seq=row.get('seq'),
-                time_window_1_2_days=w1,
-                time_window_3_4_days=w2,
-                time_window_5_10_days=w3,
-                time_window_more_than_10_days=w4,
-                snapshot_date=db.func.current_date()
-            )
-            new_records.append(record)
-        
-        db.session.add_all(new_records)
+        start_time = time.monotonic()
+        batch_size = 30_000
+        loaded = 0
+        logger.info('Stage Delay: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='stage_delay_sync', cursor_factory=RealDictCursor) as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('Stage Delay: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                f'LOCK TABLE "{StageLevelDelaySnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'
+            ))
+            snapshot_date = db.session.execute(text('SELECT CURRENT_DATE')).scalar_one()
+            db.session.query(StageLevelDelaySnapshot).delete(synchronize_session=False)
+            while rows:
+                records = []
+                for row in rows:
+                    records.append(dict(
+                        classification_owner=row.get('classification_owner'),
+                        make_owner=row.get('make_owner'),
+                        collection_owner=row.get('collection_owner'),
+                        division=row.get('division'),
+                        group=row.get('group'),
+                        purity=row.get('purity'),
+                        purchase_ro=row.get('order_ro'),
+                        order_number=row.get('order_no'),
+                        order_date=row.get('order_date'),
+                        barcode_number=row.get('barcode'),
+                        barcode_last_step_date=row.get('completed_date'),
+                        party=row.get('party_name'),
+                        completed_process_level=row.get('completed_process_level'),
+                        next_process_level=row.get('next_process_level'),
+                        seq=row.get('seq'),
+                        time_window_1_2_days=int(row.get('pending_window') == '1-2'),
+                        time_window_3_4_days=int(row.get('pending_window') == '3-4'),
+                        time_window_5_10_days=int(row.get('pending_window') == '5-10'),
+                        time_window_more_than_10_days=int(row.get('pending_window') == '10+'),
+                        snapshot_date=snapshot_date
+                    ))
+                db.session.bulk_insert_mappings(StageLevelDelaySnapshot, records)
+                loaded += len(rows)
+                logger.info('Stage Delay: loaded %s rows, awaiting commit.', loaded)
+                emit_sync_update('processing', f'Loaded {loaded:,} Stage Delay records. Importing in batches...',
+                                 60, 'stage_delay')
+                del records, rows
+                rows = cur.fetchmany(batch_size)
+
+        logger.info('Stage Delay: committing %s rows.', loaded)
         db.session.commit()
-        
-        emit_sync_update('success', f'StageLevel Delay Sync completed! {len(rows)} records updated.', 100, 'stage_delay')
-        return {"status": "success", "count": len(rows)}
+        logger.info('Synced %s Stage Delay rows in %.2f seconds.',
+                    loaded, time.monotonic() - start_time)
+        emit_sync_update('success', f'StageLevel Delay Sync completed! {loaded} records updated.',
+                         100, 'stage_delay')
+        return {"status": "success", "count": loaded}
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
