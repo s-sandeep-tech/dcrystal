@@ -715,7 +715,9 @@ def sync_outstanding_purchase_order_data_task() -> Dict[str, Any]:
     try:
         emit_sync_update('processing', 'Starting Outstanding PO Sync...', 5, 'outstanding_po')
         conn = get_external_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
         
         emit_sync_update('processing', 'Fetching PO data from Azure...', 20, 'outstanding_po')
         query = """
@@ -762,46 +764,39 @@ def sync_outstanding_purchase_order_data_task() -> Dict[str, Any]:
                 (inv.order_receipt_created_at IS NOT NULL);
     """
         
-        start_time = time.time()
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        duration = time.time() - start_time
-        
-        logger.info(f"OutstandingPO query took {duration:.2f} seconds.")
-        emit_sync_update('processing', f'Fetched {len(rows)} PO records in {int(duration)}s. Updating local snapshot...', 60, 'outstanding_po')
-        
-        db.session.query(OutstandingPurchaseOrderStatusSnapshot).delete()
-        new_records = []
-        for row in rows:
-            record = OutstandingPurchaseOrderStatusSnapshot(
-                party=row.get('party'),
-                order_number=row.get('order_number'),
-                order_date=row.get('order_date'),
-                classification=row.get('classification'),
-                classification_owner=row.get('classification_owner'),
-                make=row.get('make'),
-                make_owner=row.get('make_owner'),
-                collection=row.get('collection'),
-                collection_owner=row.get('collection_owner'),
-                section=row.get('section'),
-                division=row.get('division'),
-                group=row.get('group'),
-                purity=row.get('purity'),
-                purchase_ro=row.get('purchase_ro'),
-                receipt_present=row.get('receipt_present'),
-                order_pieces=row.get('order_pieces'),
-                order_weight=row.get('order_weight'),
-                accepted_pieces=row.get('accepted_pieces'),
-                accepted_weight=row.get('accepted_weight')
-            )
-            new_records.append(record)
-        
-        db.session.add_all(new_records)
+        start_time = time.monotonic()
+        batch_size = 30_000
+        loaded = 0
+        logger.info('Outstanding PO: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='outstanding_po_sync', cursor_factory=RealDictCursor) as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('Outstanding PO: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                f'LOCK TABLE {OutstandingPurchaseOrderStatusSnapshot.__tablename__} '
+                'IN SHARE ROW EXCLUSIVE MODE'
+            ))
+            db.session.query(OutstandingPurchaseOrderStatusSnapshot).delete(synchronize_session=False)
+            while rows:
+                records = [dict(row) for row in rows]
+                db.session.bulk_insert_mappings(OutstandingPurchaseOrderStatusSnapshot, records)
+                loaded += len(rows)
+                logger.info('Outstanding PO: loaded %s rows, awaiting commit.', loaded)
+                emit_sync_update('processing', f'Loaded {loaded:,} PO records. Importing in batches...',
+                                 60, 'outstanding_po')
+                del records, rows
+                rows = cur.fetchmany(batch_size)
+
+        logger.info('Outstanding PO: committing %s rows.', loaded)
         db.session.commit()
-        
-        emit_sync_update('success', f'Outstanding PO Sync completed! {len(rows)} records updated.', 100, 'outstanding_po')
-        return {"status": "success", "count": len(rows)}
+        logger.info('Synced %s Outstanding PO rows in %.2f seconds.',
+                    loaded, time.monotonic() - start_time)
+        emit_sync_update('success', f'Outstanding PO Sync completed! {loaded} records updated.',
+                         100, 'outstanding_po')
+        return {"status": "success", "count": loaded}
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
