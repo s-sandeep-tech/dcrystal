@@ -1114,7 +1114,9 @@ def sync_order_delay_tracking_data_task() -> Dict[str, Any]:
     try:
         emit_sync_update('processing', 'Starting Order Delay Tracking Sync...', 5, 'order_delay_tracking')
         conn = get_external_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
         
         emit_sync_update('processing', 'Fetching data from Azure...', 20, 'order_delay_tracking')
         query = """
@@ -1264,52 +1266,65 @@ def sync_order_delay_tracking_data_task() -> Dict[str, Any]:
             OR qb.order_id IS NOT NULL;
         """
         
-        start_time = time.time()
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        duration = time.time() - start_time
-        
-        logger.info(f"OrderDelayTracking query took {duration:.2f} seconds.")
-        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, 'order_delay_tracking')
-        
-        # Clear existing
-        db.session.query(OrderDelayTrackingSnapshot).delete()
-        
-        new_records = []
-        for row in rows:
-            record = OrderDelayTrackingSnapshot(
-                classification_owner=row.get('classification_owner'),
-                make_owner=row.get('make_owner'),
-                collection_owner=row.get('collection_owner'),
-                delay_1_2_days=row.get('production_1_2_delay'),
-                delay_3_4_days=row.get('production_3_4_delay'),
-                delay_5_10_days=row.get('production_5_10_delay'),
-                delay_more_than_10_days=row.get('production_gt_10_delay'),
-                delay_days=row.get('production_delay_days'),
-                qc_delay_1_2_days=row.get('qc_1_2_delay'),
-                qc_delay_3_4_days=row.get('qc_3_4_delay'),
-                qc_delay_5_10_days=row.get('qc_5_10_delay'),
-                qc_delay_more_than_10_days=row.get('qc_gt_10_delay'),
-                qc_delay_days=row.get('qc_delay_days'),
-                supplier=row.get('supplier'),
-                po_id=row.get('po_id'),
-                order_id=row.get('order_id'),
-                po_number=row.get('po_number'),
-                po_date=row.get('po_date'),
-                delivery_target_date=row.get('delivery_target_date'),
-                qc_target_date=row.get('qc_target_date'),
-                make=row.get('make'),
-                collection=row.get('collection'),
-                snapshot_date=db.func.current_date()
-            )
-            new_records.append(record)
-        
-        db.session.add_all(new_records)
+        start_time = time.monotonic()
+        batch_size = 30_000
+        loaded = 0
+        logger.info('Order Delay Tracking: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='order_delay_tracking_sync', cursor_factory=RealDictCursor) as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('Order Delay Tracking: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                f'LOCK TABLE "{OrderDelayTrackingSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'
+            ))
+            snapshot_date = db.session.execute(text('SELECT CURRENT_DATE')).scalar_one()
+            db.session.query(OrderDelayTrackingSnapshot).delete(synchronize_session=False)
+            while rows:
+                records = []
+                for row in rows:
+                    records.append(dict(
+                        classification_owner=row.get('classification_owner'),
+                        make_owner=row.get('make_owner'),
+                        collection_owner=row.get('collection_owner'),
+                        delay_1_2_days=row.get('production_1_2_delay'),
+                        delay_3_4_days=row.get('production_3_4_delay'),
+                        delay_5_10_days=row.get('production_5_10_delay'),
+                        delay_more_than_10_days=row.get('production_gt_10_delay'),
+                        delay_days=row.get('production_delay_days'),
+                        qc_delay_1_2_days=row.get('qc_1_2_delay'),
+                        qc_delay_3_4_days=row.get('qc_3_4_delay'),
+                        qc_delay_5_10_days=row.get('qc_5_10_delay'),
+                        qc_delay_more_than_10_days=row.get('qc_gt_10_delay'),
+                        qc_delay_days=row.get('qc_delay_days'),
+                        supplier=row.get('supplier'),
+                        po_id=row.get('po_id'),
+                        order_id=row.get('order_id'),
+                        po_number=row.get('po_number'),
+                        po_date=row.get('po_date'),
+                        delivery_target_date=row.get('delivery_target_date'),
+                        qc_target_date=row.get('qc_target_date'),
+                        make=row.get('make'),
+                        collection=row.get('collection'),
+                        snapshot_date=snapshot_date
+                    ))
+                db.session.bulk_insert_mappings(OrderDelayTrackingSnapshot, records)
+                loaded += len(rows)
+                logger.info('Order Delay Tracking: loaded %s rows, awaiting commit.', loaded)
+                emit_sync_update('processing', f'Loaded {loaded:,} Order Delay Tracking records. Importing in batches...',
+                                 60, 'order_delay_tracking')
+                del records, rows
+                rows = cur.fetchmany(batch_size)
+
+        logger.info('Order Delay Tracking: committing %s rows.', loaded)
         db.session.commit()
-        
-        emit_sync_update('success', f'Order Delay Tracking Sync completed! {len(rows)} records updated.', 100, 'order_delay_tracking')
-        return {"status": "success", "count": len(rows)}
+        logger.info('Synced %s Order Delay Tracking rows in %.2f seconds.',
+                    loaded, time.monotonic() - start_time)
+        emit_sync_update('success', f'Order Delay Tracking Sync completed! {loaded} records updated.',
+                         100, 'order_delay_tracking')
+        return {"status": "success", "count": loaded}
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
@@ -1325,7 +1340,9 @@ def sync_pending_acceptance_data_task() -> Dict[str, Any]:
     try:
         emit_sync_update('processing', 'Starting Pending Acceptance Sync...', 5, 'pending_acceptance')
         conn = get_external_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
         
         emit_sync_update('processing', 'Fetching data from Azure...', 20, 'pending_acceptance')
         query = """
@@ -1361,51 +1378,39 @@ def sync_pending_acceptance_data_task() -> Dict[str, Any]:
                 a.pending_to_accepted_wt DESC;
         """
         
-        start_time = time.time()
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        duration = time.time() - start_time
-        
-        logger.info(f"PendingAcceptance query took {duration:.2f} seconds.")
-        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, 'pending_acceptance')
-        
-        # Clear existing
-        db.session.query(PendingAcceptanceSnapshot).delete()
-        
-        new_records = []
-        for row in rows:
-            record = PendingAcceptanceSnapshot(
-                collection_owner=row.get('collection_owner'),
-                make_owner=row.get('make_owner'),
-                supplier=row.get('supplier'),
-                collection=row.get('collection'),
-                classification=row.get('classification'),
-                po_number=row.get('po_number'),
-                po_date=row.get('po_date'),
-                total_weight=row.get('total_weight'),
-                order_piece=row.get('order_piece'),
-                order_wt=row.get('order_wt'),
-                accepted_wt=row.get('accepted_wt'),
-                pending_to_accepted_wt=row.get('pending_to_accepted_wt'),
-                pending_to_deliver_pcs=row.get('pending_to_deliver_pcs'),
-                pending_to_deliver_wt=row.get('pending_to_deliver_wt'),
-                not_barcoded_pcs=row.get('not_barcoded_pcs'),
-                not_barcoded_wt=row.get('not_barcoded_wt'),
-                order_type=row.get('order_type'),
-                order_request_type=row.get('order_request_type'),
-                order_date=row.get('order_date'),
-                delivery_target_date=row.get('delivery_target_date'),
-                branch_type=row.get('branch_type'),
-                snapshot_date=db.func.current_date()
-            )
-            new_records.append(record)
-        
-        db.session.add_all(new_records)
+        start_time = time.monotonic()
+        batch_size = 30_000
+        loaded = 0
+        logger.info('Pending Acceptance: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='pending_acceptance_sync', cursor_factory=RealDictCursor) as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('Pending Acceptance: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                f'LOCK TABLE "{PendingAcceptanceSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'
+            ))
+            snapshot_date = db.session.execute(text('SELECT CURRENT_DATE')).scalar_one()
+            db.session.query(PendingAcceptanceSnapshot).delete(synchronize_session=False)
+            while rows:
+                records = [dict(row, snapshot_date=snapshot_date) for row in rows]
+                db.session.bulk_insert_mappings(PendingAcceptanceSnapshot, records)
+                loaded += len(rows)
+                logger.info('Pending Acceptance: loaded %s rows, awaiting commit.', loaded)
+                emit_sync_update('processing', f'Loaded {loaded:,} Pending Acceptance records. Importing in batches...',
+                                 60, 'pending_acceptance')
+                del records, rows
+                rows = cur.fetchmany(batch_size)
+
+        logger.info('Pending Acceptance: committing %s rows.', loaded)
         db.session.commit()
-        
-        emit_sync_update('success', f'Pending Acceptance Sync completed! {len(rows)} records updated.', 100, 'pending_acceptance')
-        return {"status": "success", "count": len(rows)}
+        logger.info('Synced %s Pending Acceptance rows in %.2f seconds.',
+                    loaded, time.monotonic() - start_time)
+        emit_sync_update('success', f'Pending Acceptance Sync completed! {loaded} records updated.',
+                         100, 'pending_acceptance')
+        return {"status": "success", "count": loaded}
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
@@ -1421,7 +1426,9 @@ def sync_rejected_weight_data_task() -> Dict[str, Any]:
     try:
         emit_sync_update('processing', 'Starting Rejected Weight Sync...', 5, 'rejected_weight')
         conn = get_external_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
         
         emit_sync_update('processing', 'Fetching data from Azure...', 20, 'rejected_weight')
         query = """
@@ -1448,44 +1455,39 @@ def sync_rejected_weight_data_task() -> Dict[str, Any]:
             a.rejected_wt DESC;
         """
         
-        start_time = time.time()
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        duration = time.time() - start_time
-        
-        logger.info(f"RejectedWeight query took {duration:.2f} seconds.")
-        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, 'rejected_weight')
-        
-        # Clear existing
-        db.session.query(RejectedWeightSnapshot).delete()
-        
-        new_records = []
-        for row in rows:
-            record = RejectedWeightSnapshot(
-                collection_owner=row.get('collection_owner'),
-                make_owner=row.get('make_owner'),
-                supplier=row.get('supplier'),
-                collection=row.get('collection'),
-                po_number=row.get('po_number'),
-                po_date=row.get('po_date'),
-                total_weight=row.get('total_weight'),
-                order_piece=row.get('order_piece'),
-                order_wt=row.get('order_wt'),
-                accepted_wt=row.get('accepted_wt'),
-                rejected_wt=row.get('rejected_wt'),
-                order_type=row.get('order_type'),
-                order_request_type=row.get('order_request_type'),
-                order_date=row.get('order_date'),
-                snapshot_date=db.func.current_date()
-            )
-            new_records.append(record)
-        
-        db.session.add_all(new_records)
+        start_time = time.monotonic()
+        batch_size = 30_000
+        loaded = 0
+        logger.info('Rejected Weight: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='rejected_weight_sync', cursor_factory=RealDictCursor) as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('Rejected Weight: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                f'LOCK TABLE "{RejectedWeightSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'
+            ))
+            snapshot_date = db.session.execute(text('SELECT CURRENT_DATE')).scalar_one()
+            db.session.query(RejectedWeightSnapshot).delete(synchronize_session=False)
+            while rows:
+                records = [dict(row, snapshot_date=snapshot_date) for row in rows]
+                db.session.bulk_insert_mappings(RejectedWeightSnapshot, records)
+                loaded += len(rows)
+                logger.info('Rejected Weight: loaded %s rows, awaiting commit.', loaded)
+                emit_sync_update('processing', f'Loaded {loaded:,} Rejected Weight records. Importing in batches...',
+                                 60, 'rejected_weight')
+                del records, rows
+                rows = cur.fetchmany(batch_size)
+
+        logger.info('Rejected Weight: committing %s rows.', loaded)
         db.session.commit()
-        
-        emit_sync_update('success', f'Rejected Weight Sync completed! {len(rows)} records updated.', 100, 'rejected_weight')
-        return {"status": "success", "count": len(rows)}
+        logger.info('Synced %s Rejected Weight rows in %.2f seconds.',
+                    loaded, time.monotonic() - start_time)
+        emit_sync_update('success', f'Rejected Weight Sync completed! {loaded} records updated.',
+                         100, 'rejected_weight')
+        return {"status": "success", "count": loaded}
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
@@ -1501,7 +1503,9 @@ def sync_hallmarking_delayed_data_task() -> Dict[str, Any]:
     try:
         emit_sync_update('processing', 'Starting Hallmarking Delayed Sync...', 5, 'hallmarking_delayed')
         conn = get_external_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
         
         emit_sync_update('processing', 'Fetching data from Azure...', 20, 'hallmarking_delayed')
         query = """
@@ -1548,43 +1552,43 @@ def sync_hallmarking_delayed_data_task() -> Dict[str, Any]:
         WHERE cancelled_on IS  NULL;
         """
         
-        start_time = time.time()
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        duration = time.time() - start_time
-        
-        logger.info(f"HallmarkingDelayed query took {duration:.2f} seconds.")
-        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, 'hallmarking_delayed')
-        
-        # Clear existing
-        db.session.execute(text("TRUNCATE hallmarking_delayed_snapshot"))
-        
-        new_records = []
-        for row in rows:
-            record = HallmarkingDelayedSnapshot(
-                office=row.get('hm_ro'),
-                make_owner=row.get('make_owner'),
-                collection_owner=row.get('collection_owner'),
-                collection=row.get('collection'),
-                hm_agent=row.get('hm_agent'),
-                supplier=row.get('supplier'),
-                challan_date=row.get('challan_date'),
-                challan_no=row.get('challan_no'),
-                pieces=row.get('pieces'),
-                weight=row.get('weight'),
-                receipt_date=row.get('receipt_date'),
-                receipt_no=row.get('receipt_no'),
-                hm_status=row.get('hm_status'),
-                snapshot_date=db.func.current_date()
-            )
-            new_records.append(record)
-        
-        db.session.add_all(new_records)
+        start_time = time.monotonic()
+        batch_size = 30_000
+        loaded = 0
+        logger.info('Hallmarking Delayed: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='hallmarking_delayed_sync', cursor_factory=RealDictCursor) as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('Hallmarking Delayed: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                f'LOCK TABLE "{HallmarkingDelayedSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'
+            ))
+            snapshot_date = db.session.execute(text('SELECT CURRENT_DATE')).scalar_one()
+            db.session.query(HallmarkingDelayedSnapshot).delete(synchronize_session=False)
+            while rows:
+                records = []
+                for row in rows:
+                    record = dict(row, snapshot_date=snapshot_date)
+                    record['office'] = record.pop('hm_ro', None)
+                    records.append(record)
+                db.session.bulk_insert_mappings(HallmarkingDelayedSnapshot, records)
+                loaded += len(rows)
+                logger.info('Hallmarking Delayed: loaded %s rows, awaiting commit.', loaded)
+                emit_sync_update('processing', f'Loaded {loaded:,} Hallmarking Delayed records. Importing in batches...',
+                                 60, 'hallmarking_delayed')
+                del record, records, rows
+                rows = cur.fetchmany(batch_size)
+
+        logger.info('Hallmarking Delayed: committing %s rows.', loaded)
         db.session.commit()
-        
-        emit_sync_update('success', f'Hallmarking Delayed Sync completed! {len(rows)} records updated.', 100, 'hallmarking_delayed')
-        return {"status": "success", "count": len(rows)}
+        logger.info('Synced %s Hallmarking Delayed rows in %.2f seconds.',
+                    loaded, time.monotonic() - start_time)
+        emit_sync_update('success', f'Hallmarking Delayed Sync completed! {loaded} records updated.',
+                         100, 'hallmarking_delayed')
+        return {"status": "success", "count": loaded}
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
@@ -2421,7 +2425,9 @@ def sync_qc_delayed_data_task() -> Dict[str, Any]:
     try:
         emit_sync_update('processing', 'Starting QC Delayed Sync...', 5, DATA_TYPE)
         conn = get_external_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
         
         emit_sync_update('processing', 'Fetching QC data from Azure...', 20, DATA_TYPE)
         query = """
@@ -2473,44 +2479,56 @@ def sync_qc_delayed_data_task() -> Dict[str, Any]:
             WHERE cancelled_on IS NULL;
         """
         
-        start_time = time.time()
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        duration = time.time() - start_time
-        
-        logger.info(f"QCDelayed query took {duration:.2f} seconds.")
-        emit_sync_update('processing', f'Fetched {len(rows)} records in {int(duration)}s. Updating local snapshot...', 60, DATA_TYPE)
-        
-        # Clear existing
-        db.session.execute(text("TRUNCATE qc_delayed_snapshot"))
-        
-        new_records = []
-        for row in rows:
-            record = {
-                'order_id': row.get('order_id'),
-                'office': row.get('office'),
-                'make_owner': row.get('make_owner'),
-                'collection_owner': row.get('collection_owner'),
-                'collection': row.get('collection'),
-                'supplier': row.get('supplier'),
-                'pieces': row.get('pieces'),
-                'weight': row.get('weight'),
-                'qc_completion_status': row.get('qc_completion_status'),
-                'qc_request_no': row.get('qc_request_no'),
-                'qc_date': row.get('qc_date'),
-                'qc_received_delivery_challan': row.get('qc_received_delivery_challan'),
-                'receipt_no': row.get('receipt_no'),
-                'qc_received_on': row.get('qc_received_on'),
-                'snapshot_date': date.today()
-            }
-            new_records.append(record)
-        
-        db.session.bulk_insert_mappings(QCDelayedSnapshot, new_records)
+        start_time = time.monotonic()
+        batch_size = 30_000
+        loaded = 0
+        logger.info('QC Delayed: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='qc_delayed_sync', cursor_factory=RealDictCursor) as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('QC Delayed: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                f'LOCK TABLE "{QCDelayedSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'
+            ))
+            snapshot_date = date.today()
+            db.session.query(QCDelayedSnapshot).delete(synchronize_session=False)
+            while rows:
+                records = []
+                for row in rows:
+                    records.append({
+                        'order_id': row.get('order_id'),
+                        'office': row.get('office'),
+                        'make_owner': row.get('make_owner'),
+                        'collection_owner': row.get('collection_owner'),
+                        'collection': row.get('collection'),
+                        'supplier': row.get('supplier'),
+                        'pieces': row.get('pieces'),
+                        'weight': row.get('weight'),
+                        'qc_completion_status': row.get('qc_completion_status'),
+                        'qc_request_no': row.get('qc_request_no'),
+                        'qc_date': row.get('qc_date'),
+                        'qc_received_delivery_challan': row.get('qc_received_delivery_challan'),
+                        'receipt_no': row.get('receipt_no'),
+                        'qc_received_on': row.get('qc_received_on'),
+                        'snapshot_date': snapshot_date
+                    })
+                db.session.bulk_insert_mappings(QCDelayedSnapshot, records)
+                loaded += len(rows)
+                logger.info('QC Delayed: loaded %s rows, awaiting commit.', loaded)
+                emit_sync_update('processing', f'Loaded {loaded:,} QC Delayed records. Importing in batches...',
+                                 60, DATA_TYPE)
+                del records, rows
+                rows = cur.fetchmany(batch_size)
+
+        logger.info('QC Delayed: committing %s rows.', loaded)
         db.session.commit()
-        
-        emit_sync_update('success', f'QC Delayed Sync completed! {len(rows)} records updated.', 100, DATA_TYPE)
-        return {"status": "success", "count": len(rows)}
+        logger.info('Synced %s QC Delayed rows in %.2f seconds.',
+                    loaded, time.monotonic() - start_time)
+        emit_sync_update('success', f'QC Delayed Sync completed! {loaded} records updated.', 100, DATA_TYPE)
+        return {"status": "success", "count": loaded}
     except Exception as e:
         db.session.rollback()
         error_msg = str(e)
@@ -2521,22 +2539,18 @@ def sync_qc_delayed_data_task() -> Dict[str, Any]:
         if conn: conn.close()
 
 def sync_order_processing_pending_data_task():
-    """Sync Order Processing Pending Report data from External Azure DB"""
+    """Sync Order Processing Pending Report data from External Azure DB."""
     DATA_TYPE = 'order_processing_pending'
-    
-    emit_sync_update('processing', 'Fetching data from external source...', 10, DATA_TYPE)
-    start_time = time.time()
-    logger.info("Starting Order Processing Pending Data sync...")
-
-    conn = get_external_db_connection()
-    if not conn:
-        error_msg = "Could not establish connection to external database"
-        logger.error(f"OrderProcessingPending sync error: {error_msg}")
-        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
-        return {"status": "error", "message": error_msg}
-
+    conn = None
+    start_time = time.monotonic()
     try:
-        cur = conn.cursor()
+        emit_sync_update('processing', 'Fetching data from external source...', 10, DATA_TYPE)
+        conn = get_external_db_connection()
+        if conn is None:
+            raise RuntimeError('Could not establish connection to external database')
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
         query = """
         SELECT 
             make_owner, collection_owner, collection, order_branch, party, po_date, po_number, 
@@ -2547,83 +2561,86 @@ def sync_order_processing_pending_data_task():
         WHERE CURRENT_DATE - DATE(barcode_completion_date) > 1;
         """
         
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
-        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+        batch_size = 30_000
+        loaded = 0
+        logger.info('Order Processing Pending: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='order_processing_pending_sync') as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('Order Processing Pending: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+            if not rows:
+                msg = 'No data found for Order Processing Pending Report'
+                logger.warning(msg)
+                emit_sync_update('success', msg, 100, DATA_TYPE)
+                return {"status": "success", "message": msg, "count": 0}
 
-        if rows:
-            # Clear existing data
-            db.session.execute(text("TRUNCATE TABLE order_processing_pending_snapshots"))
-            db.session.commit()
-
-            # Insert all records at once
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                f'LOCK TABLE "{OrderProcessingPendingSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'
+            ))
             snapshot_date = datetime.now()
-            objects = [
-                OrderProcessingPendingSnapshot(
-                    snapshot_date=snapshot_date,
-                    make_owner=row[0],
-                    collection_owner=row[1],
-                    collection=row[2],
-                    branch=row[3],
-                    supplier=row[4],
-                    po_date=row[5],
-                    po_number=row[6],
-                    # party (repeat) is row[7]
-                    party_mobile_no=row[8],
-                    barcode_completion_date=row[9],
-                    barcoded_weight=row[10],
-                    set_identifier=row[11],
-                    set_design_no=row[12],
-                    order_type=row[13],
-                    order_request_type=row[14],
-                    target_date=row[15],
-                    pieces=row[16], # pending_to_hallmark_issue_piece
-                    weight=row[17]  # pending_to_hallmark_issue_wt
-                )
-                for row in rows
-            ]
-            db.session.bulk_save_objects(objects)
-            db.session.commit()
-            emit_sync_update('processing', 'Local snapshot updated successfully.', 90, DATA_TYPE)
+            db.session.query(OrderProcessingPendingSnapshot).delete(synchronize_session=False)
+            while rows:
+                records = [
+                    dict(
+                        snapshot_date=snapshot_date,
+                        make_owner=row[0],
+                        collection_owner=row[1],
+                        collection=row[2],
+                        branch=row[3],
+                        supplier=row[4],
+                        po_date=row[5],
+                        po_number=row[6],
+                        # party (repeat) is row[7]
+                        party_mobile_no=row[8],
+                        barcode_completion_date=row[9],
+                        barcoded_weight=row[10],
+                        set_identifier=row[11],
+                        set_design_no=row[12],
+                        order_type=row[13],
+                        order_request_type=row[14],
+                        target_date=row[15],
+                        pieces=row[16], # pending_to_hallmark_issue_piece
+                        weight=row[17]  # pending_to_hallmark_issue_wt
+                    )
+                    for row in rows
+                ]
+                db.session.bulk_insert_mappings(OrderProcessingPendingSnapshot, records)
+                loaded += len(rows)
+                logger.info('Order Processing Pending: loaded %s rows, awaiting commit.', loaded)
+                emit_sync_update('processing', f'Loaded {loaded:,} Order Processing Pending records. Importing in batches...',
+                                 60, DATA_TYPE)
+                del records, rows
+                rows = cur.fetchmany(batch_size)
 
-            duration = time.time() - start_time
-            msg = f"Successfully synced {len(rows)} records in {duration:.2f}s"
-            logger.info(msg)
-            emit_sync_update('success', msg, 100, DATA_TYPE)
-            return {"status": "success", "message": msg, "count": len(rows)}
-        else:
-            msg = "No data found for Order Processing Pending Report"
-            logger.warning(msg)
-            emit_sync_update('success', msg, 100, DATA_TYPE)
-            return {"status": "success", "message": msg, "count": 0}
-
-    except Exception as e:
+        logger.info('Order Processing Pending: committing %s rows.', loaded)
+        db.session.commit()
+        msg = f"Successfully synced {loaded} records in {time.monotonic() - start_time:.2f}s"
+        logger.info(msg)
+        emit_sync_update('success', msg, 100, DATA_TYPE)
+        return {"status": "success", "message": msg, "count": loaded}
+    except Exception as error:
         db.session.rollback()
-        error_msg = str(e)
-        logger.error(f"OrderProcessingPending sync error: {error_msg}")
+        error_msg = str(error)
+        logger.error('OrderProcessingPending sync error: %s', error_msg)
         emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
         return {"status": "error", "message": error_msg}
     finally:
-        if cur: cur.close()
-        if conn: conn.close()
+        if conn:
+            conn.close()
+
 
 def sync_hm_completed_return_data_task():
     DATA_TYPE = 'hm_return_pending'
-    start_time = time.time()
+    start_time = time.monotonic()
     conn = None
     try:
         emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
         conn = get_external_db_connection()
-    except Exception as e:
-        error_msg = f"Connection failed: {str(e)}"
-        logger.error(f"HMCompletedReturn sync error: {error_msg}")
-        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
-        return {"status": "error", "message": error_msg}
-
-    try:
-        cur = conn.cursor()
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
         query = """
         SELECT
             make_owner, collection_owner, collection, order_branch, party, po_date, po_number,
@@ -2637,22 +2654,27 @@ def sync_hm_completed_return_data_task():
         WHERE CURRENT_DATE - DATE(hm_completed_at) > 1;
         """
         
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
-        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+        batch_size = 30_000
+        loaded = 0
+        logger.info('HM Completed Return: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='hm_completed_return_sync') as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('HM Completed Return: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+            if not rows:
+                emit_sync_update('success', 'Successfully synced 0 records', 100, DATA_TYPE)
+                return {"status": "success", "count": 0}
 
-        if rows:
-            db.session.execute(text("TRUNCATE TABLE hm_completed_return_snapshots"))
-            db.session.commit()
-
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                f'LOCK TABLE "{HMCompletedReturnSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'
+            ))
             snapshot_date = datetime.now()
-            batch_size = 1000
-            for i in range(0, len(rows), batch_size):
-                batch = rows[i:i + batch_size]
-                objects = [
-                    HMCompletedReturnSnapshot(
+            db.session.query(HMCompletedReturnSnapshot).delete(synchronize_session=False)
+            while rows:
+                records = [
+                    dict(
                         snapshot_date=snapshot_date,
                         make_owner=row[0],
                         collection_owner=row[1],
@@ -2682,42 +2704,43 @@ def sync_hm_completed_return_data_task():
                         logistic_date=row[28],
                         vehicle_no=row[29]
                     )
-                    for row in batch
+                    for row in rows
                 ]
-                db.session.bulk_save_objects(objects)
-                db.session.commit()
-                
-                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
-                emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
+                db.session.bulk_insert_mappings(HMCompletedReturnSnapshot, records)
+                loaded += len(rows)
+                logger.info('HM Completed Return: loaded %s rows, awaiting commit.', loaded)
+                emit_sync_update('processing', f'Loaded {loaded:,} HM Completed Return records. Importing in batches...',
+                                 60, DATA_TYPE)
+                del records, rows
+                rows = cur.fetchmany(batch_size)
 
-        duration = time.time() - start_time
-        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
-        return {"status": "success", "count": len(rows)}
-
-    except Exception as e:
+        logger.info('HM Completed Return: committing %s rows.', loaded)
+        db.session.commit()
+        logger.info('Synced %s HM Completed Return rows in %.2f seconds.',
+                    loaded, time.monotonic() - start_time)
+        emit_sync_update('success', f'Successfully synced {loaded} records', 100, DATA_TYPE)
+        return {"status": "success", "count": loaded}
+    except Exception as error:
         db.session.rollback()
-        logger.error(f"Sync failed: {str(e)}")
-        emit_sync_update('error', str(e), 0, DATA_TYPE)
-        return {"status": "error", "message": str(e)}
+        error_msg = str(error)
+        logger.error('HMCompletedReturn sync error: %s', error_msg)
+        emit_sync_update('error', error_msg, 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
     finally:
-        if conn: conn.close()
+        if conn:
+            conn.close()
+
 
 def sync_supplier_hm_issue_data_task():
     DATA_TYPE = 'supplier_hm_issue'
-    start_time = time.time()
+    start_time = time.monotonic()
     conn = None
     try:
         emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
         conn = get_external_db_connection()
-    except Exception as e:
-        error_msg = f"Connection failed: {str(e)}"
-        logger.error(f"SupplierHMIssue sync error: {error_msg}")
-        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
-        return {"status": "error", "message": error_msg}
-
-    try:
-        cur = conn.cursor()
-        # Query based on user provided view and columns
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
         query = """
         SELECT 
             make_owner, collection_owner, collection, order_branch, party, po_date, po_number, 
@@ -2730,64 +2753,73 @@ def sync_supplier_hm_issue_data_task():
         WHERE CURRENT_DATE - DATE(hm_issue_receipt_date) > 1
         """
         
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
-        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+        batch_size = 30_000
+        loaded = 0
+        logger.info('Supplier HM Issue: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='supplier_hm_issue_sync') as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('Supplier HM Issue: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+            if rows:
+                db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+                db.session.execute(text(
+                    f'LOCK TABLE "{SupplierHMIssueSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'
+                ))
+                snapshot_date = datetime.now()
+                db.session.query(SupplierHMIssueSnapshot).delete(synchronize_session=False)
+                while rows:
+                    records = [
+                        dict(
+                            snapshot_date=snapshot_date,
+                            make_owner=row[0],
+                            collection_owner=row[1],
+                            collection=row[2],
+                            order_branch=row[3],
+                            supplier=row[4],
+                            po_date=row[5],
+                            po_number=row[6],
+                            order_type=row[7],
+                            order_request_type=row[8],
+                            party_mobile_no=row[9],
+                            barcode_completion_date=row[10],
+                            barcoded_weight=row[11],
+                            set_identifier=row[12],
+                            set_design_no=row[13],
+                            target_date=row[14],
+                            hm_ro=row[15],
+                            hallmark_agent=row[16],
+                            hm_agent_email=row[17],
+                            hm_agent_pnone_no=row[18],
+                            hm_issue_receipt_no=row[19],
+                            hm_issue_receipt_date=row[20],
+                            net_weight=row[21],
+                            gross_weight=row[22],
+                            stone_weight=row[23],
+                            business_head_name=row[24],
+                            pieces=row[25] # hm_receipt_pending_pcs
+                        )
+                        for row in rows
+                    ]
+                    db.session.bulk_insert_mappings(SupplierHMIssueSnapshot, records)
+                    loaded += len(rows)
+                    logger.info('Supplier HM Issue: loaded %s rows, awaiting commit.', loaded)
+                    emit_sync_update('processing', f'Loaded {loaded:,} Supplier HM Issue records. Importing in batches...',
+                                     60, DATA_TYPE)
+                    del records, rows
+                    rows = cur.fetchmany(batch_size)
 
-        if rows:
-            # Clear existing data
-            db.session.execute(text("TRUNCATE TABLE supplier_hm_issue_snapshots"))
+        if loaded:
+            logger.info('Supplier HM Issue: committing %s rows.', loaded)
             db.session.commit()
-
-            # Insert all records at once
-            snapshot_date = datetime.now()
-            objects = [
-                SupplierHMIssueSnapshot(
-                    snapshot_date=snapshot_date,
-                    make_owner=row[0],
-                    collection_owner=row[1],
-                    collection=row[2],
-                    order_branch=row[3],
-                    supplier=row[4],
-                    po_date=row[5],
-                    po_number=row[6],
-                    order_type=row[7],
-                    order_request_type=row[8],
-                    party_mobile_no=row[9],
-                    barcode_completion_date=row[10],
-                    barcoded_weight=row[11],
-                    set_identifier=row[12],
-                    set_design_no=row[13],
-                    target_date=row[14],
-                    hm_ro=row[15],
-                    hallmark_agent=row[16],
-                    hm_agent_email=row[17],
-                    hm_agent_pnone_no=row[18],
-                    hm_issue_receipt_no=row[19],
-                    hm_issue_receipt_date=row[20],
-                    net_weight=row[21],
-                    gross_weight=row[22],
-                    stone_weight=row[23],
-                    business_head_name=row[24],
-                    pieces=row[25] # hm_receipt_pending_pcs
-                )
-                for row in rows
-            ]
-            db.session.bulk_save_objects(objects)
-            db.session.commit()
-            emit_sync_update('processing', 'Local snapshot updated successfully.', 90, DATA_TYPE)
-
-        duration = time.time() - start_time
-        msg = f"Successfully synced {len(rows)} records in {duration:.2f}s"
+        duration = time.monotonic() - start_time
+        msg = f"Successfully synced {loaded} records in {duration:.2f}s"
         logger.info(msg)
         emit_sync_update('success', msg, 100, DATA_TYPE)
-        return {"status": "success", "count": len(rows), "duration": duration}
-
-    except Exception as e:
+        return {"status": "success", "count": loaded, "duration": duration}
+    except Exception as error:
         db.session.rollback()
-        error_msg = f"Sync failed: {str(e)}"
+        error_msg = f'Sync failed: {error}'
         logger.error(error_msg)
         emit_sync_update('error', error_msg, 0, DATA_TYPE)
         return {"status": "error", "message": error_msg}
@@ -2795,21 +2827,17 @@ def sync_supplier_hm_issue_data_task():
         if conn:
             conn.close()
 
+
 def sync_hm_return_qc_issue_data_task():
     DATA_TYPE = 'hm_qc_issue_pending'
-    start_time = time.time()
+    start_time = time.monotonic()
     conn = None
     try:
         emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
         conn = get_external_db_connection()
-    except Exception as e:
-        error_msg = f"Connection failed: {str(e)}"
-        logger.error(f"HMReturnQCIssue sync error: {error_msg}")
-        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
-        return {"status": "error", "message": error_msg}
-
-    try:
-        cur = conn.cursor()
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
         query = """
         SELECT 
             make_owner, collection_owner, collection, order_branch, party, po_date, po_number, 
@@ -2823,22 +2851,27 @@ def sync_hm_return_qc_issue_data_task():
         WHERE CURRENT_DATE - DATE(hm_agent_invoice_receipt_date) > 1
         """
         
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
-        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+        batch_size = 30_000
+        loaded = 0
+        logger.info('HM Return QC Issue: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='hm_return_qc_issue_sync') as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('HM Return QC Issue: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+            if not rows:
+                emit_sync_update('success', 'Successfully synced 0 records', 100, DATA_TYPE)
+                return {"status": "success", "count": 0}
 
-        if rows:
-            db.session.execute(text("TRUNCATE TABLE hm_return_qc_issue_snapshots"))
-            db.session.commit()
-
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                f'LOCK TABLE "{HMReturnQCIssueSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'
+            ))
             snapshot_date = datetime.now()
-            batch_size = 1000
-            for i in range(0, len(rows), batch_size):
-                batch = rows[i:i + batch_size]
-                objects = [
-                    HMReturnQCIssueSnapshot(
+            db.session.query(HMReturnQCIssueSnapshot).delete(synchronize_session=False)
+            while rows:
+                records = [
+                    dict(
                         snapshot_date=snapshot_date,
                         make_owner=row[0],
                         collection_owner=row[1],
@@ -2869,41 +2902,43 @@ def sync_hm_return_qc_issue_data_task():
                         pieces=row[26], # pending_to_final_qc_issue_pcs
                         weight=row[27]   # pending_to_final_qc_issue_weight
                     )
-                    for row in batch
+                    for row in rows
                 ]
-                db.session.bulk_save_objects(objects)
-                db.session.commit()
-                
-                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
-                emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
+                db.session.bulk_insert_mappings(HMReturnQCIssueSnapshot, records)
+                loaded += len(rows)
+                logger.info('HM Return QC Issue: loaded %s rows, awaiting commit.', loaded)
+                emit_sync_update('processing', f'Loaded {loaded:,} HM Return QC Issue records. Importing in batches...',
+                                 60, DATA_TYPE)
+                del records, rows
+                rows = cur.fetchmany(batch_size)
 
-        duration = time.time() - start_time
-        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
-        return {"status": "success", "count": len(rows)}
-
-    except Exception as e:
+        logger.info('HM Return QC Issue: committing %s rows.', loaded)
+        db.session.commit()
+        logger.info('Synced %s HM Return QC Issue rows in %.2f seconds.',
+                    loaded, time.monotonic() - start_time)
+        emit_sync_update('success', f'Successfully synced {loaded} records', 100, DATA_TYPE)
+        return {"status": "success", "count": loaded}
+    except Exception as error:
         db.session.rollback()
-        logger.error(f"Sync failed: {str(e)}")
-        emit_sync_update('error', str(e), 0, DATA_TYPE)
-        return {"status": "error", "message": str(e)}
+        error_msg = str(error)
+        logger.error('HMReturnQCIssue sync error: %s', error_msg)
+        emit_sync_update('error', error_msg, 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
     finally:
-        if conn: conn.close()
+        if conn:
+            conn.close()
+
 
 def sync_supplier_qc_issue_receipt_pending_data_task():
     DATA_TYPE = 'supplier_qc_issue_receipt_pending'
-    start_time = time.time()
+    start_time = time.monotonic()
     conn = None
     try:
         emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
         conn = get_external_db_connection()
-    except Exception as e:
-        error_msg = f"Connection failed: {str(e)}"
-        logger.error(f"SupplierQCIssueReceiptPending sync error: {error_msg}")
-        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
-        return {"status": "error", "message": error_msg}
-
-    try:
-        cur = conn.cursor()
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
         query = """
         SELECT 
             make_owner, collection_owner, collection, order_branch, '' business_head_name, 
@@ -2918,22 +2953,27 @@ def sync_supplier_qc_issue_receipt_pending_data_task():
         WHERE CURRENT_DATE - DATE(qc_issue_receipt_date) > 1;
         """
         
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
-        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+        batch_size = 30_000
+        loaded = 0
+        logger.info('Supplier QC Issue Receipt Pending: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='supplier_qc_issue_receipt_pending_sync') as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('Supplier QC Issue Receipt Pending: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+            if not rows:
+                emit_sync_update('success', 'Successfully synced 0 records', 100, DATA_TYPE)
+                return {"status": "success", "count": 0}
 
-        if rows:
-            db.session.execute(text("TRUNCATE TABLE supplier_qc_issue_receipt_pending_snapshots"))
-            db.session.commit()
-
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                f'LOCK TABLE "{SupplierQCIssueReceiptPendingSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'
+            ))
             snapshot_date = datetime.now()
-            batch_size = 1000
-            for i in range(0, len(rows), batch_size):
-                batch = rows[i:i + batch_size]
-                objects = [
-                    SupplierQCIssueReceiptPendingSnapshot(
+            db.session.query(SupplierQCIssueReceiptPendingSnapshot).delete(synchronize_session=False)
+            while rows:
+                records = [
+                    dict(
                         snapshot_date=snapshot_date,
                         make_owner=row[0],
                         collection_owner=row[1],
@@ -2969,41 +3009,43 @@ def sync_supplier_qc_issue_receipt_pending_data_task():
                         order_no=row[31],
                         design_no=row[32]
                     )
-                    for row in batch
+                    for row in rows
                 ]
-                db.session.bulk_save_objects(objects)
-                db.session.commit()
-                
-                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
-                emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
+                db.session.bulk_insert_mappings(SupplierQCIssueReceiptPendingSnapshot, records)
+                loaded += len(rows)
+                logger.info('Supplier QC Issue Receipt Pending: loaded %s rows, awaiting commit.', loaded)
+                emit_sync_update('processing', f'Loaded {loaded:,} Supplier QC Issue Receipt Pending records. Importing in batches...',
+                                 60, DATA_TYPE)
+                del records, rows
+                rows = cur.fetchmany(batch_size)
 
-        duration = time.time() - start_time
-        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
-        return {"status": "success", "count": len(rows)}
-
-    except Exception as e:
+        logger.info('Supplier QC Issue Receipt Pending: committing %s rows.', loaded)
+        db.session.commit()
+        logger.info('Synced %s Supplier QC Issue Receipt Pending rows in %.2f seconds.',
+                    loaded, time.monotonic() - start_time)
+        emit_sync_update('success', f'Successfully synced {loaded} records', 100, DATA_TYPE)
+        return {"status": "success", "count": loaded}
+    except Exception as error:
         db.session.rollback()
-        logger.error(f"Sync failed: {str(e)}")
-        emit_sync_update('error', str(e), 0, DATA_TYPE)
-        return {"status": "error", "message": str(e)}
+        error_msg = str(error)
+        logger.error('SupplierQCIssueReceiptPending sync error: %s', error_msg)
+        emit_sync_update('error', error_msg, 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
     finally:
-        if conn: conn.close()
+        if conn:
+            conn.close()
+
 
 def sync_qc_completed_invoice_pending_data_task():
     DATA_TYPE = 'qc_completed_invoice_pending'
-    start_time = time.time()
+    start_time = time.monotonic()
     conn = None
     try:
         emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
         conn = get_external_db_connection()
-    except Exception as e:
-        error_msg = f"Connection failed: {str(e)}"
-        logger.error(f"QCCompletedInvoicePending sync error: {error_msg}")
-        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
-        return {"status": "error", "message": error_msg}
-
-    try:
-        cur = conn.cursor()
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
         query = """
         SELECT 
             make_owner, make, collection_owner, collection, order_branch, business_head_name, 
@@ -3020,22 +3062,27 @@ def sync_qc_completed_invoice_pending_data_task():
         WHERE CURRENT_DATE - DATE(qc_completed_date) > 1
         """
         
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
-        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+        batch_size = 30_000
+        loaded = 0
+        logger.info('QC Completed Invoice Pending: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='qc_completed_invoice_pending_sync') as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('QC Completed Invoice Pending: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+            if not rows:
+                emit_sync_update('success', 'Successfully synced 0 records', 100, DATA_TYPE)
+                return {"status": "success", "count": 0}
 
-        if rows:
-            db.session.execute(text("TRUNCATE TABLE qc_completed_invoice_pending_snapshots"))
-            db.session.commit()
-
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                f'LOCK TABLE "{QCCompletedInvoicePendingSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'
+            ))
             snapshot_date = datetime.now()
-            batch_size = 1000
-            for i in range(0, len(rows), batch_size):
-                batch = rows[i:i + batch_size]
-                objects = [
-                    QCCompletedInvoicePendingSnapshot(
+            db.session.query(QCCompletedInvoicePendingSnapshot).delete(synchronize_session=False)
+            while rows:
+                records = [
+                    dict(
                         snapshot_date=snapshot_date,
                         make_owner=row[0],
                         make=row[1],
@@ -3073,41 +3120,43 @@ def sync_qc_completed_invoice_pending_data_task():
                         weight=row[33],  # pending_to_invoice_wt
                         design_no=row[34]
                     )
-                    for row in batch
+                    for row in rows
                 ]
-                db.session.bulk_save_objects(objects)
-                db.session.commit()
-                
-                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
-                emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
+                db.session.bulk_insert_mappings(QCCompletedInvoicePendingSnapshot, records)
+                loaded += len(rows)
+                logger.info('QC Completed Invoice Pending: loaded %s rows, awaiting commit.', loaded)
+                emit_sync_update('processing', f'Loaded {loaded:,} QC Completed Invoice Pending records. Importing in batches...',
+                                 60, DATA_TYPE)
+                del records, rows
+                rows = cur.fetchmany(batch_size)
 
-        duration = time.time() - start_time
-        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
-        return {"status": "success", "count": len(rows)}
-
-    except Exception as e:
+        logger.info('QC Completed Invoice Pending: committing %s rows.', loaded)
+        db.session.commit()
+        logger.info('Synced %s QC Completed Invoice Pending rows in %.2f seconds.',
+                    loaded, time.monotonic() - start_time)
+        emit_sync_update('success', f'Successfully synced {loaded} records', 100, DATA_TYPE)
+        return {"status": "success", "count": loaded}
+    except Exception as error:
         db.session.rollback()
-        logger.error(f"Sync failed: {str(e)}")
-        emit_sync_update('error', str(e), 0, DATA_TYPE)
-        return {"status": "error", "message": str(e)}
+        error_msg = str(error)
+        logger.error('QCCompletedInvoicePending sync error: %s', error_msg)
+        emit_sync_update('error', error_msg, 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
     finally:
-        if conn: conn.close()
+        if conn:
+            conn.close()
+
 
 def sync_qc_completed_invoice_request_pending_data_task():
     DATA_TYPE = 'qc_completed_invoice_request_pending'
-    start_time = time.time()
+    start_time = time.monotonic()
     conn = None
     try:
         emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
         conn = get_external_db_connection()
-    except Exception as e:
-        error_msg = f"Connection failed: {str(e)}"
-        logger.error(f"QCCompletedInvoiceRequestPending sync error: {error_msg}")
-        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
-        return {"status": "error", "message": error_msg}
-
-    try:
-        cur = conn.cursor()
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
         query = """
         SELECT 
             order_id, order_no, qc_ro_id, qc_ro, qc_ro_incharge, qc_ro_incharge_email, 
@@ -3121,22 +3170,27 @@ def sync_qc_completed_invoice_request_pending_data_task():
         FROM ext_view.vw_qc_completed_invoice_request_pending
         """
         
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
-        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+        batch_size = 30_000
+        loaded = 0
+        logger.info('QC Completed Invoice Request Pending: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='qc_completed_invoice_request_pending_sync') as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('QC Completed Invoice Request Pending: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+            if not rows:
+                emit_sync_update('success', 'Successfully synced 0 records', 100, DATA_TYPE)
+                return {"status": "success", "count": 0}
 
-        if rows:
-            db.session.execute(text("TRUNCATE TABLE qc_completed_invoice_request_pending_snapshots"))
-            db.session.commit()
-
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                f'LOCK TABLE "{QCCompletedInvoiceRequestPendingSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'
+            ))
             snapshot_date = datetime.now()
-            batch_size = 1000
-            for i in range(0, len(rows), batch_size):
-                batch = rows[i:i + batch_size]
-                objects = [
-                    QCCompletedInvoiceRequestPendingSnapshot(
+            db.session.query(QCCompletedInvoiceRequestPendingSnapshot).delete(synchronize_session=False)
+            while rows:
+                records = [
+                    dict(
                         snapshot_date=snapshot_date,
                         order_id=row[0],
                         order_no=row[1],
@@ -3175,41 +3229,43 @@ def sync_qc_completed_invoice_request_pending_data_task():
                         gross_weight=row[34],
                         stone_weight=row[35]
                     )
-                    for row in batch
+                    for row in rows
                 ]
-                db.session.bulk_save_objects(objects)
-                db.session.commit()
-                
-                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
-                emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
+                db.session.bulk_insert_mappings(QCCompletedInvoiceRequestPendingSnapshot, records)
+                loaded += len(rows)
+                logger.info('QC Completed Invoice Request Pending: loaded %s rows, awaiting commit.', loaded)
+                emit_sync_update('processing', f'Loaded {loaded:,} QC Completed Invoice Request Pending records. Importing in batches...',
+                                 60, DATA_TYPE)
+                del records, rows
+                rows = cur.fetchmany(batch_size)
 
-        duration = time.time() - start_time
-        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
-        return {"status": "success", "count": len(rows)}
-
-    except Exception as e:
+        logger.info('QC Completed Invoice Request Pending: committing %s rows.', loaded)
+        db.session.commit()
+        logger.info('Synced %s QC Completed Invoice Request Pending rows in %.2f seconds.',
+                    loaded, time.monotonic() - start_time)
+        emit_sync_update('success', f'Successfully synced {loaded} records', 100, DATA_TYPE)
+        return {"status": "success", "count": loaded}
+    except Exception as error:
         db.session.rollback()
-        logger.error(f"Sync failed: {str(e)}")
-        emit_sync_update('error', str(e), 0, DATA_TYPE)
-        return {"status": "error", "message": str(e)}
+        error_msg = str(error)
+        logger.error('QCCompletedInvoiceRequestPending sync error: %s', error_msg)
+        emit_sync_update('error', error_msg, 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
     finally:
-        if conn: conn.close()
+        if conn:
+            conn.close()
+
 
 def sync_invoice_completed_pending_deliver_data_task():
     DATA_TYPE = 'invoice_completed_pending_deliver'
-    start_time = time.time()
+    start_time = time.monotonic()
     conn = None
     try:
         emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
         conn = get_external_db_connection()
-    except Exception as e:
-        error_msg = f"Connection failed: {str(e)}"
-        logger.error(f"InvoiceCompletedPendingDeliver sync error: {error_msg}")
-        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
-        return {"status": "error", "message": error_msg}
-
-    try:
-        cur = conn.cursor()
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
         query = """
         SELECT 
             make_owner, make, collection_owner, collection, order_branch, business_head_name, 
@@ -3223,22 +3279,27 @@ def sync_invoice_completed_pending_deliver_data_task():
         WHERE invoice_date IS NOT NULL AND CURRENT_DATE - DATE(invoice_date) >= 1
         """
         
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
-        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+        batch_size = 30_000
+        loaded = 0
+        logger.info('Invoice Completed Pending Deliver: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='invoice_completed_pending_deliver_sync') as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('Invoice Completed Pending Deliver: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+            if not rows:
+                emit_sync_update('success', 'Successfully synced 0 records', 100, DATA_TYPE)
+                return {"status": "success", "count": 0}
 
-        if rows:
-            db.session.execute(text("TRUNCATE TABLE invoice_completed_pending_deliver_snapshots"))
-            db.session.commit()
-
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                f'LOCK TABLE "{InvoiceCompletedPendingDeliverSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'
+            ))
             snapshot_date = datetime.now()
-            batch_size = 1000
-            for i in range(0, len(rows), batch_size):
-                batch = rows[i:i + batch_size]
-                objects = [
-                    InvoiceCompletedPendingDeliverSnapshot(
+            db.session.query(InvoiceCompletedPendingDeliverSnapshot).delete(synchronize_session=False)
+            while rows:
+                records = [
+                    dict(
                         snapshot_date=snapshot_date,
                         make_owner=row[0],
                         make=row[1],
@@ -3272,74 +3333,91 @@ def sync_invoice_completed_pending_deliver_data_task():
                         pieces=row[29], # pending_to_deliver_pcs
                         weight=row[30]   # pending_to_deliver_wt
                     )
-                    for row in batch
+                    for row in rows
                 ]
-                db.session.bulk_save_objects(objects)
-                db.session.commit()
-                
-                progress = 40 + int(((i + len(batch)) / len(rows)) * 50)
-                emit_sync_update('processing', f'Saving batch {i//batch_size + 1}...', progress, DATA_TYPE)
+                db.session.bulk_insert_mappings(InvoiceCompletedPendingDeliverSnapshot, records)
+                loaded += len(rows)
+                logger.info('Invoice Completed Pending Deliver: loaded %s rows, awaiting commit.', loaded)
+                emit_sync_update('processing', f'Loaded {loaded:,} Invoice Completed Pending Deliver records. Importing in batches...',
+                                 60, DATA_TYPE)
+                del records, rows
+                rows = cur.fetchmany(batch_size)
 
-        duration = time.time() - start_time
-        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
-        return {"status": "success", "count": len(rows)}
-
-    except Exception as e:
+        logger.info('Invoice Completed Pending Deliver: committing %s rows.', loaded)
+        db.session.commit()
+        logger.info('Synced %s Invoice Completed Pending Deliver rows in %.2f seconds.',
+                    loaded, time.monotonic() - start_time)
+        emit_sync_update('success', f'Successfully synced {loaded} records', 100, DATA_TYPE)
+        return {"status": "success", "count": loaded}
+    except Exception as error:
         db.session.rollback()
-        logger.error(f"Sync failed: {str(e)}")
-        emit_sync_update('error', str(e), 0, DATA_TYPE)
-        return {"status": "error", "message": str(e)}
+        error_msg = str(error)
+        logger.error('InvoiceCompletedPendingDeliver sync error: %s', error_msg)
+        emit_sync_update('error', error_msg, 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
     finally:
-        if conn: conn.close()
+        if conn:
+            conn.close()
+
 
 def sync_branch_authority_data_task():
     DATA_TYPE = 'branch_authority'
-    start_time = time.time()
+    start_time = time.monotonic()
     conn = None
     try:
         emit_sync_update('processing', 'Connecting to external database...', 10, DATA_TYPE)
         conn = get_external_db_connection()
-    except Exception as e:
-        error_msg = f"Connection failed: {str(e)}"
-        logger.error(f"BranchAuthority sync error: {error_msg}")
-        emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
-        return {"status": "error", "message": error_msg}
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as settings_cursor:
+            settings_cursor.execute("SET LOCAL statement_timeout = 0")
 
-    try:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
         query = "SELECT branch_id, emp_code FROM ext_view.vw_branch_authority_data"
-        
-        cur.execute("SET statement_timeout = 0")
-        cur.execute(query)
-        rows = cur.fetchall()
-        logger.info(f"Fetched {len(rows)} rows from external DB in {time.time() - start_time:.2f}s")
-        emit_sync_update('processing', f'Processing {len(rows)} records...', 40, DATA_TYPE)
+        batch_size = 30_000
+        loaded = 0
+        logger.info('Branch Authority: opening source cursor with %s-row batches.', batch_size)
+        with conn.cursor(name='branch_authority_sync', cursor_factory=RealDictCursor) as cur:
+            cur.execute(query)
+            rows = cur.fetchmany(batch_size)
+            logger.info('Branch Authority: fetched first %s rows in %.2f seconds.',
+                        len(rows), time.monotonic() - start_time)
+            if not rows:
+                emit_sync_update('success', 'Successfully synced 0 records', 100, DATA_TYPE)
+                return {"status": "success", "count": 0}
 
-        if rows:
-            db.session.execute(text("TRUNCATE TABLE branch_authority_snapshot"))
-            db.session.commit()
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                f'LOCK TABLE "{BranchAuthoritySnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'
+            ))
+            db.session.query(BranchAuthoritySnapshot).delete(synchronize_session=False)
+            while rows:
+                records = [
+                    {'branch_id': row.get('branch_id'), 'emp_code': row.get('emp_code')}
+                    for row in rows
+                ]
+                db.session.bulk_insert_mappings(BranchAuthoritySnapshot, records)
+                loaded += len(rows)
+                logger.info('Branch Authority: loaded %s rows, awaiting commit.', loaded)
+                emit_sync_update('processing', f'Loaded {loaded:,} Branch Authority records. Importing in batches...',
+                                 60, DATA_TYPE)
+                del records, rows
+                rows = cur.fetchmany(batch_size)
 
-            new_records = []
-            for row in rows:
-                new_records.append({
-                    'branch_id': row.get('branch_id'),
-                    'emp_code': row.get('emp_code')
-                })
-            
-            db.session.bulk_insert_mappings(BranchAuthoritySnapshot, new_records)
-            db.session.commit()
-
-        duration = time.time() - start_time
-        emit_sync_update('success', f"Successfully synced {len(rows)} records", 100, DATA_TYPE)
-        return {"status": "success", "count": len(rows)}
-
-    except Exception as e:
+        logger.info('Branch Authority: committing %s rows.', loaded)
+        db.session.commit()
+        logger.info('Synced %s Branch Authority rows in %.2f seconds.',
+                    loaded, time.monotonic() - start_time)
+        emit_sync_update('success', f'Successfully synced {loaded} records', 100, DATA_TYPE)
+        return {"status": "success", "count": loaded}
+    except Exception as error:
         db.session.rollback()
-        logger.error(f"Sync failed: {str(e)}")
-        emit_sync_update('error', str(e), 0, DATA_TYPE)
-        return {"status": "error", "message": str(e)}
+        error_msg = str(error)
+        logger.error('BranchAuthority sync error: %s', error_msg)
+        emit_sync_update('error', error_msg, 0, DATA_TYPE)
+        return {"status": "error", "message": error_msg}
     finally:
-        if conn: conn.close()
+        if conn:
+            conn.close()
+
 
 def sync_qc_delay_management_data_task():
     DATA_TYPE = 'qc_delay_management'
@@ -3347,13 +3425,26 @@ def sync_qc_delay_management_data_task():
     retry_count = 0
     
     while retry_count < max_retries:
-        start_time = time.time()
+        start_time = time.monotonic()
         conn = None
         current_view = "initialization"
         try:
             emit_sync_update('processing', f'Connecting to external database (Attempt {retry_count + 1}/{max_retries})...', 5, DATA_TYPE)
             conn = get_external_db_connection()
-            cur = conn.cursor()
+            conn.set_session(readonly=True, autocommit=False)
+            with conn.cursor() as settings_cursor:
+                settings_cursor.execute("SET LOCAL statement_timeout = 0")
+            batch_size = 30_000
+            snapshot_date = datetime.now()
+            tables = sorted(model.__tablename__ for model in (
+                QCDelayManagementSnapshot, SupplierQCIssueReceiptPendingSnapshot,
+                QCReceiptCompletedQCPendingSnapshot, QCCompletedInvoiceRequestPendingSnapshot,
+            ))
+            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+            db.session.execute(text(
+                'LOCK TABLE ' + ', '.join('"' + table + '"' for table in tables)
+                + ' IN SHARE ROW EXCLUSIVE MODE'
+            ))
             
             # 1. Sync Summary Data
             emit_sync_update('processing', 'Fetching QC Summary data...', 10, DATA_TYPE)
@@ -3371,48 +3462,56 @@ def sync_qc_delay_management_data_task():
                 qc_issue_completed_date, qc_receipt_completed_date, qc_completed_date
             FROM ext_view.vw_qc_summary_data
             """
-            current_view = "ext_view.qc_summary_data"
-            cur.execute(summary_query)
-            summary_rows = cur.fetchall()
-            
-            db.session.execute(text("TRUNCATE TABLE qc_delay_management_snapshots"))
-            snapshot_date = datetime.now()
-            summary_objects = [
-                QCDelayManagementSnapshot(
-                    snapshot_date=snapshot_date,
-                    qc_ro_id=row[0],
-                    qc_ro=row[1],
-                    qc_ro_code=row[2],
-                    qc_issue_completed_receipt_pending_piece=row[3],
-                    qc_issue_completed_receipt_pending_weight=row[4],
-                    delayed_qc_issue_completed_receipt_pending_piece=row[5],
-                    delayed_qc_issue_completed_receipt_pending_weight=row[6],
-                    qc_receipt_completed_qc_pending_piece=row[7],
-                    qc_receipt_completed_qc_pending_weight=row[8],
-                    delayed_qc_receipt_completed_qc_pending_piece=row[9],
-                    delayed_qc_receipt_completed_qc_pending_weight=row[10],
-                    qc_completed_invoice_request_pending_piece=row[11],
-                    qc_completed_invoice_request_pending_weight=row[12],
-                    delayed_qc_completed_invoice_request_pending_piece=row[13],
-                    delayed_qc_completed_invoice_request_pending_weight=row[14],
-                    qc_ro_incharge=row[15],
-                    qc_ro_incharge_email=row[16],
-                    qc_ro_incharge_phone_number=row[17],
-                    qc_ro_address=row[18],
-                    make=row[19],
-                    make_owner=row[20],
-                    make_owner_emp_code=row[21],
-                    order_id=row[22],
-                    party_code=row[23],
-                    party=row[24],
-                    qc_issue_completed_date=row[25],
-                    qc_receipt_completed_date=row[26],
-                    qc_completed_date=row[27]
-                ) for row in summary_rows
-            ]
-            db.session.bulk_save_objects(summary_objects)
-            db.session.commit()
-            emit_sync_update('processing', 'Summary synced. Syncing Segment 1 details...', 30, DATA_TYPE)
+            current_view = "ext_view.vw_qc_summary_data"
+            loaded = 0
+            logger.info('QC Delay Management: reading %s in %s-row batches.', current_view, batch_size)
+            with conn.cursor(name='qc_delay_management_summary_sync') as cur:
+                cur.execute(summary_query)
+                rows = cur.fetchmany(batch_size)
+                db.session.query(QCDelayManagementSnapshot).delete(synchronize_session=False)
+                while rows:
+                    records = [
+                        dict(
+                            snapshot_date=snapshot_date,
+                            qc_ro_id=row[0],
+                            qc_ro=row[1],
+                            qc_ro_code=row[2],
+                            qc_issue_completed_receipt_pending_piece=row[3],
+                            qc_issue_completed_receipt_pending_weight=row[4],
+                            delayed_qc_issue_completed_receipt_pending_piece=row[5],
+                            delayed_qc_issue_completed_receipt_pending_weight=row[6],
+                            qc_receipt_completed_qc_pending_piece=row[7],
+                            qc_receipt_completed_qc_pending_weight=row[8],
+                            delayed_qc_receipt_completed_qc_pending_piece=row[9],
+                            delayed_qc_receipt_completed_qc_pending_weight=row[10],
+                            qc_completed_invoice_request_pending_piece=row[11],
+                            qc_completed_invoice_request_pending_weight=row[12],
+                            delayed_qc_completed_invoice_request_pending_piece=row[13],
+                            delayed_qc_completed_invoice_request_pending_weight=row[14],
+                            qc_ro_incharge=row[15],
+                            qc_ro_incharge_email=row[16],
+                            qc_ro_incharge_phone_number=row[17],
+                            qc_ro_address=row[18],
+                            make=row[19],
+                            make_owner=row[20],
+                            make_owner_emp_code=row[21],
+                            order_id=row[22],
+                            party_code=row[23],
+                            party=row[24],
+                            qc_issue_completed_date=row[25],
+                            qc_receipt_completed_date=row[26],
+                            qc_completed_date=row[27]
+                        )
+                        for row in rows
+                    ]
+                    db.session.bulk_insert_mappings(QCDelayManagementSnapshot, records)
+                    loaded += len(rows)
+                    logger.info('QC Delay Management: %s loaded %s rows, awaiting commit.', current_view, loaded)
+                    emit_sync_update('processing', f'Loaded {loaded:,} rows from {current_view}...',
+                                     25, DATA_TYPE)
+                    del records, rows
+                    rows = cur.fetchmany(batch_size)
+            emit_sync_update('processing', 'Summary loaded. Syncing Segment 1 details...', 30, DATA_TYPE)
 
             # 2. Segment 1 Details (QC issue completed - KJ receipt pending)
             s1_query = """
@@ -3429,51 +3528,61 @@ def sync_qc_delay_management_data_task():
             WHERE CURRENT_DATE - DATE(qc_issue_receipt_date) > 1
             """
             current_view = "ext_view.vw_supplier_qc_issue_completed_receipt_pending"
-            cur.execute(s1_query)
-            s1_rows = cur.fetchall()
-            db.session.execute(text("TRUNCATE TABLE supplier_qc_issue_receipt_pending_snapshots"))
-            s1_objects = [
-                SupplierQCIssueReceiptPendingSnapshot(
-                    snapshot_date=snapshot_date,
-                    make_owner=row[0],
-                    make_owner_emp_code=row[1],
-                    collection_owner=row[2],
-                    collection=row[3],
-                    order_branch=row[4],
-                    business_head_name=row[5],
-                    party=row[6],
-                    po_date=row[7],
-                    po_number=row[8],
-                    order_type=row[9],
-                    order_request_type=row[10],
-                    party_mobile_no=row[11],
-                    barcode_completion_date=row[12],
-                    barcoded_weight=row[13],
-                    set_identifier=row[14],
-                    set_design_no=row[15],
-                    target_date=row[16],
-                    hm_request_no=row[17],
-                    hm_ro=row[18],
-                    hallmark_agent=row[19],
-                    hm_agent_email=row[20],
-                    hm_agent_pnone_no=row[21],
-                    hm_completed_at=row[22],
-                    qc_issue_receipt_no=row[23],
-                    qc_issue_receipt_date=row[24],
-                    qc_ro=row[25],
-                    qc_ro_incharge=row[26],
-                    net_weight=row[27],
-                    gross_weight=row[28],
-                    stone_weight=row[29],
-                    pieces=row[30],
-                    weight=row[31],
-                    order_no=row[32],
-                    design_no=row[33]
-                ) for row in s1_rows
-            ]
-            db.session.bulk_save_objects(s1_objects)
-            db.session.commit()
-            emit_sync_update('processing', 'Segment 1 details synced. Syncing Segment 2...', 60, DATA_TYPE)
+            loaded = 0
+            logger.info('QC Delay Management: reading %s in %s-row batches.', current_view, batch_size)
+            with conn.cursor(name='qc_delay_management_s1_sync') as cur:
+                cur.execute(s1_query)
+                rows = cur.fetchmany(batch_size)
+                db.session.query(SupplierQCIssueReceiptPendingSnapshot).delete(synchronize_session=False)
+                while rows:
+                    records = [
+                        dict(
+                            snapshot_date=snapshot_date,
+                            make_owner=row[0],
+                            make_owner_emp_code=row[1],
+                            collection_owner=row[2],
+                            collection=row[3],
+                            order_branch=row[4],
+                            business_head_name=row[5],
+                            party=row[6],
+                            po_date=row[7],
+                            po_number=row[8],
+                            order_type=row[9],
+                            order_request_type=row[10],
+                            party_mobile_no=row[11],
+                            barcode_completion_date=row[12],
+                            barcoded_weight=row[13],
+                            set_identifier=row[14],
+                            set_design_no=row[15],
+                            target_date=row[16],
+                            hm_request_no=row[17],
+                            hm_ro=row[18],
+                            hallmark_agent=row[19],
+                            hm_agent_email=row[20],
+                            hm_agent_pnone_no=row[21],
+                            hm_completed_at=row[22],
+                            qc_issue_receipt_no=row[23],
+                            qc_issue_receipt_date=row[24],
+                            qc_ro=row[25],
+                            qc_ro_incharge=row[26],
+                            net_weight=row[27],
+                            gross_weight=row[28],
+                            stone_weight=row[29],
+                            pieces=row[30],
+                            weight=row[31],
+                            order_no=row[32],
+                            design_no=row[33]
+                        )
+                        for row in rows
+                    ]
+                    db.session.bulk_insert_mappings(SupplierQCIssueReceiptPendingSnapshot, records)
+                    loaded += len(rows)
+                    logger.info('QC Delay Management: %s loaded %s rows, awaiting commit.', current_view, loaded)
+                    emit_sync_update('processing', f'Loaded {loaded:,} rows from {current_view}...',
+                                     50, DATA_TYPE)
+                    del records, rows
+                    rows = cur.fetchmany(batch_size)
+            emit_sync_update('processing', 'Segment 1 details loaded. Syncing Segment 2...', 60, DATA_TYPE)
 
             # 3. Segment 2 Details (QC Receipt Completed - QC Pending)
             s2_query = """
@@ -3488,28 +3597,66 @@ def sync_qc_delay_management_data_task():
             FROM ext_view.vw_qc_receipt_completed_qc_pending
             """
             current_view = "ext_view.vw_qc_receipt_completed_qc_pending"
-            cur.execute(s2_query)
-            s2_rows = cur.fetchall()
-            db.session.execute(text("TRUNCATE TABLE qc_receipt_completed_qc_pending_snapshots"))
-            s2_objects = [
-                QCReceiptCompletedQCPendingSnapshot(
-                    snapshot_date=snapshot_date,
-                    order_id=row[0], order_no=row[1], qc_ro_id=row[2], qc_ro=row[3], qc_ro_incharge=row[4],
-                    qc_ro_incharge_email=row[5], qc_ro_incharge_phone_no=row[6], make_owner=row[7],
-                    make_owner_emp_code=row[8], make=row[9], collection_owner=row[10], collection=row[11],
-                    party=row[12], party_mobile_no=row[13], po_date=row[14], delivery_target_date=row[15],
-                    po_number=row[16], order_type=row[17], order_request_type=row[18], design_no=row[19],
-                    set_identifier=row[20], set_design_no=row[21], order_ro=row[22], order_branch=row[23],
-                    business_head_name=row[24], order_incharge_email=row[25], order_incharge_phone_no=row[26],
-                    barcoded_weight=row[27], barcode_completion_date=row[28], hm_completed_date=row[29],
-                    qc_issue_challan_no=row[30], qc_issue_challan_date=row[31], receipt_no=row[32],
-                    receipt_date=row[33], net_weight=row[34], gross_weight=row[35],
-                    stone_weight=row[36], weight=row[35], piece=1
-                ) for row in s2_rows
-            ]
-            db.session.bulk_save_objects(s2_objects)
-            db.session.commit()
-            emit_sync_update('processing', 'Segment 2 details synced. Syncing Segment 3...', 80, DATA_TYPE)
+            loaded = 0
+            logger.info('QC Delay Management: reading %s in %s-row batches.', current_view, batch_size)
+            with conn.cursor(name='qc_delay_management_s2_sync') as cur:
+                cur.execute(s2_query)
+                rows = cur.fetchmany(batch_size)
+                db.session.query(QCReceiptCompletedQCPendingSnapshot).delete(synchronize_session=False)
+                while rows:
+                    records = [
+                        dict(
+                            snapshot_date=snapshot_date,
+                            order_id=row[0],
+                            order_no=row[1],
+                            qc_ro_id=row[2],
+                            qc_ro=row[3],
+                            qc_ro_incharge=row[4],
+                            qc_ro_incharge_email=row[5],
+                            qc_ro_incharge_phone_no=row[6],
+                            make_owner=row[7],
+                            make_owner_emp_code=row[8],
+                            make=row[9],
+                            collection_owner=row[10],
+                            collection=row[11],
+                            party=row[12],
+                            party_mobile_no=row[13],
+                            po_date=row[14],
+                            delivery_target_date=row[15],
+                            po_number=row[16],
+                            order_type=row[17],
+                            order_request_type=row[18],
+                            design_no=row[19],
+                            set_identifier=row[20],
+                            set_design_no=row[21],
+                            order_ro=row[22],
+                            order_branch=row[23],
+                            business_head_name=row[24],
+                            order_incharge_email=row[25],
+                            order_incharge_phone_no=row[26],
+                            barcoded_weight=row[27],
+                            barcode_completion_date=row[28],
+                            hm_completed_date=row[29],
+                            qc_issue_challan_no=row[30],
+                            qc_issue_challan_date=row[31],
+                            receipt_no=row[32],
+                            receipt_date=row[33],
+                            net_weight=row[34],
+                            gross_weight=row[35],
+                            stone_weight=row[36],
+                            weight=row[35],
+                            piece=1
+                        )
+                        for row in rows
+                    ]
+                    db.session.bulk_insert_mappings(QCReceiptCompletedQCPendingSnapshot, records)
+                    loaded += len(rows)
+                    logger.info('QC Delay Management: %s loaded %s rows, awaiting commit.', current_view, loaded)
+                    emit_sync_update('processing', f'Loaded {loaded:,} rows from {current_view}...',
+                                     75, DATA_TYPE)
+                    del records, rows
+                    rows = cur.fetchmany(batch_size)
+            emit_sync_update('processing', 'Segment 2 details loaded. Syncing Segment 3...', 80, DATA_TYPE)
 
             # 4. Segment 3 Details (QC Completed - Invoice Request Pending)
             s3_query = """
@@ -3525,29 +3672,67 @@ def sync_qc_delay_management_data_task():
             FROM ext_view.vw_qc_completed_invoice_request_pending
             """
             current_view = "ext_view.vw_qc_completed_invoice_request_pending"
-            cur.execute(s3_query)
-            s3_rows = cur.fetchall()
-            db.session.execute(text("TRUNCATE TABLE qc_completed_invoice_request_pending_snapshots"))
-            s3_objects = [
-                QCCompletedInvoiceRequestPendingSnapshot(
-                    snapshot_date=snapshot_date,
-                    order_id=row[0], order_no=row[1], qc_ro_id=row[2], qc_ro=row[3], qc_ro_incharge=row[4],
-                    qc_ro_incharge_email=row[5], qc_ro_incharge_phone_no=row[6], make_owner=row[7],
-                    make_owner_emp_code=row[8], make=row[9], collection_owner=row[10], collection=row[11],
-                    party=row[12], party_mobile_no=row[13], po_date=row[14], delivery_target_date=row[15],
-                    po_number=row[16], order_type=row[17], order_request_type=row[18], design_no=row[19],
-                    set_identifier=row[20], set_design_no=row[21], order_ro=row[22], order_branch=row[23],
-                    business_head_name=row[24], order_incharge_email=row[25], order_incharge_phone_no=row[26],
-                    barcoded_weight=row[27], barcode_completion_date=row[28], hm_completed_date=row[29],
-                    final_qc_receipt_no=row[30], final_qc_receipt_date=row[31], qc_number=row[32],
-                    qc_completed_date=row[33], net_weight=row[34], gross_weight=row[35],
-                    stone_weight=row[36]
-                ) for row in s3_rows
-            ]
-            db.session.bulk_save_objects(s3_objects)
-            db.session.commit()
+            loaded = 0
+            logger.info('QC Delay Management: reading %s in %s-row batches.', current_view, batch_size)
+            with conn.cursor(name='qc_delay_management_s3_sync') as cur:
+                cur.execute(s3_query)
+                rows = cur.fetchmany(batch_size)
+                db.session.query(QCCompletedInvoiceRequestPendingSnapshot).delete(synchronize_session=False)
+                while rows:
+                    records = [
+                        dict(
+                            snapshot_date=snapshot_date,
+                            order_id=row[0],
+                            order_no=row[1],
+                            qc_ro_id=row[2],
+                            qc_ro=row[3],
+                            qc_ro_incharge=row[4],
+                            qc_ro_incharge_email=row[5],
+                            qc_ro_incharge_phone_no=row[6],
+                            make_owner=row[7],
+                            make_owner_emp_code=row[8],
+                            make=row[9],
+                            collection_owner=row[10],
+                            collection=row[11],
+                            party=row[12],
+                            party_mobile_no=row[13],
+                            po_date=row[14],
+                            delivery_target_date=row[15],
+                            po_number=row[16],
+                            order_type=row[17],
+                            order_request_type=row[18],
+                            design_no=row[19],
+                            set_identifier=row[20],
+                            set_design_no=row[21],
+                            order_ro=row[22],
+                            order_branch=row[23],
+                            business_head_name=row[24],
+                            order_incharge_email=row[25],
+                            order_incharge_phone_no=row[26],
+                            barcoded_weight=row[27],
+                            barcode_completion_date=row[28],
+                            hm_completed_date=row[29],
+                            final_qc_receipt_no=row[30],
+                            final_qc_receipt_date=row[31],
+                            qc_number=row[32],
+                            qc_completed_date=row[33],
+                            net_weight=row[34],
+                            gross_weight=row[35],
+                            stone_weight=row[36]
+                        )
+                        for row in rows
+                    ]
+                    db.session.bulk_insert_mappings(QCCompletedInvoiceRequestPendingSnapshot, records)
+                    loaded += len(rows)
+                    logger.info('QC Delay Management: %s loaded %s rows, awaiting commit.', current_view, loaded)
+                    emit_sync_update('processing', f'Loaded {loaded:,} rows from {current_view}...',
+                                     95, DATA_TYPE)
+                    del records, rows
+                    rows = cur.fetchmany(batch_size)
 
-            duration = time.time() - start_time
+            logger.info('QC Delay Management: committing summary and all three detail segments.')
+            db.session.commit()
+            duration = time.monotonic() - start_time
             emit_sync_update('success', f"Successfully synced QC Delay Management data in {duration:.2f}s", 100, DATA_TYPE)
             return {"status": "success", "duration": duration}
 
