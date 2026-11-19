@@ -161,7 +161,7 @@ def get_provision_stock_status_partial():
 
         # Redis Caching Logic
         snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
-        cache_key = generate_cache_key("prov_stock_status_partial", snapshot_date, **params)
+        cache_key = generate_cache_key("prov_stock_status_partial_v2_section_provision", snapshot_date, **params)
         
         cached_html = redis_client.get(cache_key)
         if cached_html:
@@ -492,14 +492,15 @@ section_wise AS (
     SELECT
         'SUMMARY'::text AS location,
         'Section Wise'::text AS report_section,
-        section::text AS report_label,
+        CASE WHEN GROUPING(COALESCE(NULLIF(BTRIM(prov_type), ''), 'Unspecified')) = 1
+             THEN section::text ELSE COALESCE(NULLIF(BTRIM(prov_type), ''), 'Unspecified') END AS report_label,
         NULL::text AS classification,
         NULL::text AS sub_classification,
         NULL::text AS collection,
         NULL::text AS sub_section,
-        NULL::text AS sec_name,
+        section::text AS sec_name,
         NULL::text AS typ_name,
-        1 AS is_parent,
+        GROUPING(COALESCE(NULLIF(BTRIM(prov_type), ''), 'Unspecified')) AS is_parent,
         SUM(prov_pieces) AS prov_pcs,
         SUM(prov_gr_wt) AS prov_gr_wt,
         SUM(in_shop_wt) AS in_shop_wt,
@@ -510,9 +511,9 @@ section_wise AS (
             CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
         ) AS percent,
         7 AS section_sort,
-        ROW_NUMBER() OVER (ORDER BY section) AS row_sort
+        ROW_NUMBER() OVER (ORDER BY section, GROUPING(COALESCE(NULLIF(BTRIM(prov_type), ''), 'Unspecified')) DESC, COALESCE(NULLIF(BTRIM(prov_type), ''), 'Unspecified')) AS row_sort
     FROM base
-    GROUP BY section
+    GROUP BY GROUPING SETS ((section), (section, COALESCE(NULLIF(BTRIM(prov_type), ''), 'Unspecified')))
 ),
 provision_mode_wise AS (
     SELECT
@@ -605,7 +606,7 @@ ORDER BY
             
             for s in sorted_section_names:
                 sec_rows = sections[s]
-                if s in ['Classification Wise', 'Collection Wise', 'Section Details']:
+                if s in ['Classification Wise', 'Collection Wise', 'Section Details', 'Section Wise']:
                     # Hierarchical sorting
                     key = 'classification' if s == 'Classification Wise' else ('collection' if s == 'Collection Wise' else 'sec_name')
                     

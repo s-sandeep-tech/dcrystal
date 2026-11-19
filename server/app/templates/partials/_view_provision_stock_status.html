@@ -1,10 +1,11 @@
 {# Macro Definitions #}
 
-{% macro render_row(label, prov_gr_wt, in_shop_wt, ordered_wt, in_transit_wt, short_excess_wt, percent, prov_pcs=none, is_grand_total=false, is_category=false, indent=false, is_parent=1, classification=none, collection=none, section_detail=none, sr_no=none, show_drilldown=false) %}
+{% macro render_row(label, prov_gr_wt, in_shop_wt, ordered_wt, in_transit_wt, short_excess_wt, percent, prov_pcs=none, is_grand_total=false, is_category=false, indent=false, is_parent=1, classification=none, collection=none, section_detail=none, sr_no=none, show_drilldown=false, section_provision=none) %}
 <tr class="{% if is_grand_total %}bg-[#d6d6d6] dark:bg-gray-700 font-bold{% elif is_category %}bg-[#e3f2fd] dark:bg-blue-900/30 font-bold{% else %}bg-white dark:bg-gray-800{% endif %} {% if is_parent == 1 and (classification or collection or section_detail) %}cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 parent-row{% elif is_parent == 0 %}child-row hidden{% endif %}"
     {% if classification %}data-classification="{{ classification }}"{% endif %}
     {% if collection %}data-collection="{{ collection }}"{% endif %}
     {% if section_detail %}data-section-detail="{{ section_detail }}"{% endif %}
+    {% if section_provision is not none %}data-section-provision="{{ section_provision }}"{% endif %}
     {% if is_parent == 1 and classification %}onclick="toggleClassification('{{ classification }}')"{% endif %}
     {% if is_parent == 1 and collection %}onclick="toggleCollection('{{ collection }}')"{% endif %}
     {% if is_parent == 1 and section_detail %}onclick="toggleSectionDetails('{{ section_detail }}')"{% endif %}>
@@ -13,6 +14,13 @@
     {% endif %}
     <td class="px-2 py-0.5 border border-gray-300 text-left {% if indent %}pl-4{% endif %} h-6">
         <div class="flex items-center gap-1 h-full">
+            {% if is_parent == 1 and section_provision is not none %}
+                <button type="button" class="inline-flex items-center gap-1 flex-1 text-left" aria-expanded="false"
+                        onclick="toggleSectionProvisionTypes(this)" aria-label="Expand Provision Types for {{ label or 'Unspecified' }}">
+                    <span class="toggle-arrow inline-block w-4" aria-hidden="true">▶</span>
+                    <span>{{ label or 'Unspecified' }}</span>
+                </button>
+            {% endif %}
             {% if is_parent == 1 and classification %}
                 <span class="inline-flex items-center justify-center w-4 transition-transform duration-200 toggle-arrow cursor-pointer" id="arrow-{{ classification }}">▶</span>
             {% endif %}
@@ -25,9 +33,11 @@
             {% if is_parent == 0 %}
                 <span class="inline-flex items-center justify-center text-gray-400 w-4">→</span>
             {% endif %}
+            {% if not (is_parent == 1 and section_provision is not none) %}
             <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ label or '-' }}</span>
+            {% endif %}
             {% if show_drilldown and not is_grand_total and not is_category %}
-                <button onclick="openDrillDownModal('{{ label }}')" class="ml-1 text-primary hover:text-blue-700 transition-colors p-0.5 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center shrink-0" title="Click to see drill-down">
+                <button type="button" onclick="event.stopPropagation(); openDrillDownModal({{ label|tojson|forceescape }})" class="ml-1 text-primary hover:text-blue-700 transition-colors p-0.5 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center shrink-0" title="Click to see drill-down">
                     <span class="material-symbols-outlined text-[14px]">analytics</span>
                 </button>
             {% endif %}
@@ -213,15 +223,16 @@
                     {% endif %}
                     
                     {{ render_row(row.report_label, row.prov_gr_wt, row.in_shop_wt, row.ordered_wt, row.in_transit_wt, row.short_excess_wt, row.percent, 
-                                 prov_pcs=(row.prov_pcs if show_pcs else none),
+                                 prov_pcs=((row.prov_pcs or 0) if show_pcs else none),
                                  is_category=is_cat, 
-                                 indent=(use_cats and not is_cat),
+                                 indent=((use_cats and not is_cat) or (title == 'Section Wise' and row.is_parent == 0)),
                                  is_parent=(row.is_parent if row.is_parent is not none else 1),
                                  classification=row.classification,
                                  collection=row.collection,
-                                 section_detail=row.sec_name,
+                                 section_detail=(row.sec_name if title != 'Section Wise' else none),
+                                 section_provision=(row.sec_name|tojson if title == 'Section Wise' else none),
                                  sr_no=(totals.sr if show_sr_no else none),
-                                 show_drilldown=show_drilldown) }}
+                                 show_drilldown=(show_drilldown and row.is_parent != 0)) }}
                 {% endif %}
             {% endfor %}
             {% if not totals.has_grand and rows|length > 0 %}
@@ -314,6 +325,19 @@
 </div>
 
 <script>
+    function toggleSectionProvisionTypes(button) {
+        const parent = button.closest('tr');
+        const expanded = button.getAttribute('aria-expanded') !== 'true';
+        for (const row of parent.closest('tbody').querySelectorAll('tr[data-section-provision].child-row')) {
+            if (row.dataset.sectionProvision === parent.dataset.sectionProvision) {
+                row.classList.toggle('hidden', !expanded);
+            }
+        }
+        button.setAttribute('aria-expanded', String(expanded));
+        button.setAttribute('aria-label', `${expanded ? 'Collapse' : 'Expand'} Provision Types for ${button.textContent.trim().slice(1).trim()}`);
+        button.querySelector('.toggle-arrow').style.transform = expanded ? 'rotate(90deg)' : '';
+    }
+
     function toggleClassification(classification) {
         const rows = document.querySelectorAll(`tr[data-classification="${classification}"].child-row`);
         const arrow = document.getElementById(`arrow-${classification}`);
