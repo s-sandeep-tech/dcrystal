@@ -161,7 +161,7 @@ def get_provision_stock_status_partial():
 
         # Redis Caching Logic
         snapshot_date = db.session.query(func.max(ProvisionStockRawSnapshot.snapshot_date)).scalar()
-        cache_key = generate_cache_key("prov_stock_status_partial_v3_section_provision", snapshot_date, **params)
+        cache_key = generate_cache_key("prov_stock_status_partial_v4_section_provision", snapshot_date, **params)
         
         cached_html = redis_client.get(cache_key)
         if cached_html:

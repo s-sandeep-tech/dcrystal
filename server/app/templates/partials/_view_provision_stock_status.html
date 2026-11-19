@@ -17,7 +17,7 @@
             {% if is_parent == 1 and section_provision is not none %}
                 <button type="button" class="inline-flex items-center gap-1 flex-1 text-left" aria-expanded="false"
                         onclick="toggleSectionProvisionTypes(this)" aria-label="Expand Provision Types for {{ label or 'Unspecified' }}">
-                    <span class="toggle-arrow inline-block w-4" aria-hidden="true">▶</span>
+                    <span class="toggle-arrow inline-flex items-center justify-center w-4 h-4 shrink-0 leading-none" aria-hidden="true">▶</span>
                     <span>{{ label or 'Unspecified' }}</span>
                 </button>
             {% endif %}
@@ -335,7 +335,7 @@
         }
         button.setAttribute('aria-expanded', String(expanded));
         button.setAttribute('aria-label', `${expanded ? 'Collapse' : 'Expand'} Provision Types for ${button.textContent.trim().slice(1).trim()}`);
-        button.querySelector('.toggle-arrow').style.transform = expanded ? 'rotate(90deg)' : '';
+        button.querySelector('.toggle-arrow').textContent = expanded ? '▼' : '▶';
     }
 
     function toggleClassification(classification) {

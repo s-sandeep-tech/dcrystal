@@ -48,7 +48,7 @@ class SectionProvisionTypesTests(unittest.TestCase):
             self.assertEqual(html.count('title="Click to see drill-down"'), 2)
             self.assertIn('>35</td>', html)
             self.assertNotIn('>70</td>', html)
-            self.assertIn('prov_stock_status_partial_v3_section_provision', redis.setex.call_args.args[0])
+            self.assertIn('prov_stock_status_partial_v4_section_provision', redis.setex.call_args.args[0])
             groups = []
 
             class SectionParser(HTMLParser):
