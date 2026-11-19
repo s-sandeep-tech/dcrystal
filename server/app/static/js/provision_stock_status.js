@@ -28,6 +28,17 @@ let sectionHeaderFilter;
 let purityHeaderFilter;
 let collectionHeaderFilter;
 
+function toggleProvisionFilters() {
+    const sidebar = document.getElementById('provision-filter-sidebar');
+    const button = document.getElementById('provision-filter-toggle');
+    sidebar.hidden = !sidebar.hidden;
+    sidebar.style.display = sidebar.hidden ? 'none' : '';
+    const label = sidebar.hidden ? 'Show filters' : 'Hide filters';
+    button.setAttribute('aria-expanded', String(!sidebar.hidden));
+    button.setAttribute('aria-label', label);
+    button.title = label;
+}
+
 
 
 
