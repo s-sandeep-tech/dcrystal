@@ -10,7 +10,7 @@ from app.services import sales_xyz_drilldown as report
 from app.utils.decorators import require_report_access
 
 REPORT = '/sales-xyz-drilldown'
-CACHE_TTL_SECONDS = 3600
+CACHE_TTL_SECONDS = 8 * 60 * 60
 redis_client = Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True,
                      socket_connect_timeout=0.5, socket_timeout=0.5)
 

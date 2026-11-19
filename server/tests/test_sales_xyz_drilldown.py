@@ -130,7 +130,7 @@ class SalesXYZTests(unittest.TestCase):
         entries = {}
 
         def store(key, value, *, ex, nx):
-            self.assertEqual(ex, 3600)
+            self.assertEqual(ex, 28_800)
             if not nx or key not in entries:
                 entries[key] = value
 
