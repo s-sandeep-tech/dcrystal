@@ -1,4 +1,5 @@
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -47,7 +48,18 @@ class SectionProvisionTypesTests(unittest.TestCase):
             self.assertEqual(html.count('title="Click to see drill-down"'), 2)
             self.assertIn('>35</td>', html)
             self.assertNotIn('>70</td>', html)
-            self.assertIn('prov_stock_status_partial_v2_section_provision', redis.setex.call_args.args[0])
+            self.assertIn('prov_stock_status_partial_v3_section_provision', redis.setex.call_args.args[0])
+            groups = []
+
+            class SectionParser(HTMLParser):
+                def handle_starttag(self, tag, attrs):
+                    attributes = dict(attrs)
+                    if tag == 'tr' and 'data-section-provision' in attributes:
+                        groups.append(attributes['data-section-provision'])
+
+            parser = SectionParser()
+            parser.feed(html)
+            self.assertEqual(groups, ['"CHAIN"', '"CHAIN"', '"BANGLE"', '"BANGLE"', '"BANGLE"'])
 
     def test_null_section_has_expandable_group(self):
         rows = [section_row(None, 1, 4, None), section_row('Unspecified', 0, 4, None)]

@@ -5,7 +5,7 @@
     {% if classification %}data-classification="{{ classification }}"{% endif %}
     {% if collection %}data-collection="{{ collection }}"{% endif %}
     {% if section_detail %}data-section-detail="{{ section_detail }}"{% endif %}
-    {% if section_provision is not none %}data-section-provision="{{ section_provision }}"{% endif %}
+    {% if section_provision is not none %}data-section-provision="{{ section_provision|forceescape }}"{% endif %}
     {% if is_parent == 1 and classification %}onclick="toggleClassification('{{ classification }}')"{% endif %}
     {% if is_parent == 1 and collection %}onclick="toggleCollection('{{ collection }}')"{% endif %}
     {% if is_parent == 1 and section_detail %}onclick="toggleSectionDetails('{{ section_detail }}')"{% endif %}>
