@@ -48,23 +48,61 @@
         target.replaceChildren(spinner, document.createTextNode(message));
     }
 
-    async function fetchData(endpoint, params, signal) {
+    function retryDelay(signal) {
+        return new Promise((resolve, reject) => {
+            signal.throwIfAborted();
+            const timer = setTimeout(() => {
+                signal.removeEventListener('abort', abort);
+                resolve();
+            }, 1000);
+            function abort() {
+                clearTimeout(timer);
+                reject(signal.reason);
+            }
+            signal.addEventListener('abort', abort, {once: true});
+        });
+    }
+
+    async function fetchData(endpoint, params, signal, onRetry = () => {}) {
         const url = new URL(report.dataset.api, location.origin);
         if (endpoint === 'options') url.pathname = url.pathname.replace(/hierarchy$/, 'options');
         url.search = params.toString();
         if (refreshRun) url.searchParams.set('refresh', '1');
         const token = localStorage.getItem('access_token');
         const headers = token ? {Authorization: `Bearer ${token}`} : {};
-        const response = await fetch(url, {headers, signal, cache: 'no-store'});
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.message || 'Could not load the report.');
-        return payload.data;
+        const maxRetries = 5;
+        for (let attempt = 0; ; attempt++) {
+            signal.throwIfAborted();
+            let failure;
+            let response;
+            try {
+                response = await fetch(url, {headers, signal, cache: 'no-store'});
+            } catch (error) {
+                signal.throwIfAborted();
+                if (error.name !== 'TypeError') throw error;
+                failure = error;
+            }
+            if (response) {
+                const payload = await response.json().catch(() => ({}));
+                signal.throwIfAborted();
+                if (response.ok) return payload.data;
+                failure = new Error(payload.message || 'Could not load the report.');
+                if (response.status !== 503) throw failure;
+            }
+            if (attempt === maxRetries) throw failure;
+            for (let seconds = 3; seconds > 0; seconds--) {
+                signal.throwIfAborted();
+                onRetry(`Retrying in ${seconds}… (retry ${attempt + 1}/${maxRetries})`);
+                await retryDelay(signal);
+            }
+            onRetry(`Retrying… (retry ${attempt + 1}/${maxRetries})`);
+        }
     }
 
     function nodes(data, parent = []) {
         return data.rows.map(row => ({
             ...row, parent, level: data.level, leaf: data.leaf,
-            open: false, children: null, loading: false, error: null,
+            open: false, children: null, loading: false, error: null, retryMessage: null,
         }));
     }
 
@@ -94,13 +132,17 @@
 
         row.loading = true;
         row.error = null;
+        row.retryMessage = null;
         render(row);
         const path = [...row.parent, row.id];
         const params = new URLSearchParams(applied);
         params.set('parent', JSON.stringify(path));
         const {signal} = controller;
         try {
-            const data = await fetchData('hierarchy', params, signal);
+            const data = await fetchData('hierarchy', params, signal, message => {
+                row.retryMessage = message;
+                render();
+            });
             if (!signal.aborted) row.children = nodes(data, path);
         } catch (error) {
             if (!signal.aborted) row.error = error.message;
@@ -171,7 +213,7 @@
                 cell.setAttribute('role', 'status');
                 cell.style.paddingInlineStart = `${28 + row.parent.length * 16}px`;
                 if (row.loading) {
-                    showLoading(cell, 'Loading…');
+                    showLoading(cell, row.retryMessage || 'Loading…');
                 } else if (row.error) {
                     cell.textContent = row.error;
                     const retry = element('button', 'Retry');
@@ -261,7 +303,9 @@
         message.textContent = 'Loading…';
         const {signal} = controller;
         try {
-            const options = await fetchData('options', params, signal);
+            const options = await fetchData('options', params, signal, text => {
+                if (!signal.aborted && panel.dataset.loading === key) message.textContent = text;
+            });
             if (signal.aborted || panel.dataset.loading !== key) return;
             const excluded = allSelections.get(select);
             const selected = excluded
@@ -272,7 +316,12 @@
             selectAll.disabled = !options.length;
             message.textContent = options.length ? '' : 'No values in this date range.';
         } catch (error) {
-            if (!signal.aborted && panel.dataset.loading === key) message.textContent = error.message;
+            if (!signal.aborted && panel.dataset.loading === key) {
+                const retry = element('button', 'Retry');
+                retry.type = 'button';
+                retry.addEventListener('click', () => loadOptions(panel));
+                message.replaceChildren(document.createTextNode(error.message), retry);
+            }
         } finally {
             if (!signal.aborted && panel.dataset.loading === key) delete panel.dataset.loading;
         }
@@ -331,7 +380,9 @@
         rootTotals = null;
         render();
         try {
-            const data = await fetchData('hierarchy', applied, signal);
+            const data = await fetchData('hierarchy', applied, signal, message => {
+                showLoading(status, message);
+            });
             if (signal.aborted) return;
             roots = nodes(data);
             rootTotals = data.totals;
