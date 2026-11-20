@@ -67,7 +67,8 @@ try:
         sync_customer_order_analysis_task,
         sync_customer_order_fulfilment_summary_task,
         sync_customer_order_approval_pending_task,
-        emit_sync_update
+        emit_sync_update,
+        run_sync_with_retry
     )
 
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -139,17 +140,17 @@ def process_sync_queue():
                     if task_type == 'owner_wise':
                         res = sync_owner_wise_data_task()
                     elif task_type == 'process_delay':
-                        res = sync_process_level_delay_data_task()
+                        res = run_sync_with_retry(sync_process_level_delay_data_task, 'process_delay')
                     elif task_type == 'outstanding_po':
-                        res = sync_outstanding_purchase_order_data_task()
+                        res = run_sync_with_retry(sync_outstanding_purchase_order_data_task, 'outstanding_po')
                     elif task_type == 'stage_delay':
-                        res = sync_stage_level_delay_data_task()
+                        res = run_sync_with_retry(sync_stage_level_delay_data_task, 'stage_delay')
                     elif task_type == 'order_delay_tracking':
-                        res = sync_order_delay_tracking_data_task()
+                        res = run_sync_with_retry(sync_order_delay_tracking_data_task, 'order_delay_tracking')
                     elif task_type == 'pending_acceptance':
-                        res = sync_pending_acceptance_data_task()
+                        res = run_sync_with_retry(sync_pending_acceptance_data_task, 'pending_acceptance')
                     elif task_type == 'rejected_weight':
-                        res = sync_rejected_weight_data_task()
+                        res = run_sync_with_retry(sync_rejected_weight_data_task, 'rejected_weight')
                     elif task_type == 'showroom_wise_order':
                         res = sync_showroom_wise_order_summary_task()
                     elif task_type == 'owner_showroom_combined':
@@ -157,7 +158,7 @@ def process_sync_queue():
                     elif task_type == 'provision_stock_status':
                         res = sync_provision_stock_status_data_task()
                     elif task_type == 'hallmarking_delayed':
-                        res = sync_hallmarking_delayed_data_task()
+                        res = run_sync_with_retry(sync_hallmarking_delayed_data_task, 'hallmarking_delayed')
                     elif task_type == 'qc_delayed':
                         res = sync_qc_delayed_data_task()
                     elif task_type == 'order_processing_pending':

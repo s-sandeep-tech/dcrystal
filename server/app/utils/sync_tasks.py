@@ -75,11 +75,15 @@ import logging
 import threading
 import queue
 import traceback
+from contextvars import ContextVar
 
 logger = logging.getLogger(__name__)
+_retrying_sync_type = ContextVar('retrying_sync_type', default=None)
 
 def emit_sync_update(status, message, progress=0, data_type=None, metadata=None):
     """Utility to emit real-time updates via SocketIO and Redis bridge."""
+    if status == 'error' and data_type is not None and _retrying_sync_type.get() == data_type:
+        status = 'processing'
     payload = {
         'status': status,
         'message': message,
@@ -116,6 +120,34 @@ def emit_sync_update(status, message, progress=0, data_type=None, metadata=None)
             redis_client.publish('global_notifications', json.dumps(global_payload))
     except Exception as e:
         logger.error(f"Failed to publish sync update to Redis: {e}")
+
+def run_sync_with_retry(task, data_type):
+    """Retry a queue task without publishing terminal errors between attempts."""
+    max_attempts = 3
+    for attempt in range(1, max_attempts + 1):
+        token = _retrying_sync_type.set(data_type)
+        try:
+            result = task()
+            if isinstance(result, dict) and result.get('status') == 'success':
+                return result
+            error = result.get('message', 'Unknown sync error') if isinstance(result, dict) else 'No sync result'
+        except Exception as exc:
+            error = str(exc)
+        finally:
+            _retrying_sync_type.reset(token)
+        db.session.rollback()
+        logger.warning('%s attempt %s/%s failed: %s', data_type, attempt, max_attempts, error)
+        if attempt == max_attempts:
+            message = f'Sync failed after {max_attempts} attempts: {error}'
+            emit_sync_update('error', message, 0, data_type)
+            return {'status': 'error', 'message': message}
+        emit_sync_update(
+            'processing',
+            f'Sync failed: {error}. Retrying in 5s (Attempt {attempt + 1}/{max_attempts})...',
+            0, data_type,
+        )
+        time.sleep(5)
+
 
 def emit_combined_sync_update(status, message, progress, task_type, progress_range=(0, 100), is_subtask=False):
     """

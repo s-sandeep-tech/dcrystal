@@ -6,6 +6,8 @@ The follow-up runs inline before the worker accepts another queue item or advanc
 
 The separate 11:30 AM drill-down schedule is removed. The 11 AM provision schedule is retained. Daily all-sync no longer includes a separate size-level barcode refresh; manual Sync All no longer enqueues a separate combined drill-down refresh. The standalone manual buttons remain available.
 
+The queue worker gives Process Delay, Outstanding PO, Stage Delay, Order Delay Tracking, Pending Acceptance, Rejected Weight, and Hallmarking Delayed three attempts, with a five-second pause between failed attempts. Both returned errors and raised exceptions trigger retries. Failed transactions are rolled back before retrying. Progress remains processing until attempts are exhausted, and the worker records one final SyncLog result before advancing the batch. This applies to scheduled, manual, and third-party queue requests. Owner/Showroom Combined retains its segment-level retries, and Provision/Stock retains its startup and producer retries.
+
 Restart the sync-consumer service after deploying. No database migration is required. The chain applies to attempts that reach worker completion; forced process termination is not a completion event and does not guarantee follow-up execution.
 
 Validation:
