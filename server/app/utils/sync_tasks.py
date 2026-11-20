@@ -2087,62 +2087,60 @@ def _provision_sync_consumer(app, data_queue, stop_event, total_to_sync, data_ty
         stop_event.set()
         raise e
 
+def _prepare_provision_stock_sync():
+    """Retry startup with a fresh source connection and clean staging transaction."""
+    data_type = 'provision_stock_status'
+    max_attempts = 3
+    for attempt in range(1, max_attempts + 1):
+        conn = None
+        try:
+            emit_sync_update(
+                'processing',
+                f'Preparing Provision & Stock Status Sync (Attempt {attempt}/{max_attempts})...',
+                5, data_type,
+            )
+            conn = get_external_db_connection()
+            with conn.cursor() as cursor:
+                cursor.execute('SET statement_timeout = 0')
+                cursor.execute('SELECT COUNT(*), SUM(prov_gr_wt) FROM ext_view.vw_prov_and_stock_size_level')
+                source_stats = cursor.fetchone()
+            emit_sync_update('processing', 'Preparing staging area...', 10, data_type)
+            db.session.execute(text('TRUNCATE provision_stock_raw_staging'))
+            db.session.commit()
+            return source_stats[0], source_stats[1] or 0
+        except Exception as error:
+            db.session.rollback()
+            logger.warning('Provision sync startup attempt %s/%s failed: %s', attempt, max_attempts, error)
+            if attempt == max_attempts:
+                raise RuntimeError(f'Provision sync startup failed after {max_attempts} attempts: {error}') from error
+        finally:
+            if conn is not None:
+                try:
+                    conn.close()
+                except Exception:
+                    logger.warning('Could not close provision startup connection', exc_info=True)
+        emit_sync_update(
+            'processing',
+            f'Provision sync startup failed; retrying in 5s (Attempt {attempt + 1}/{max_attempts})...',
+            5, data_type,
+        )
+        time.sleep(5)
+
+
 def sync_provision_stock_status_data_task() -> Dict[str, Any]:
     """
     Synchronizes Provision & Stock Status data using a parallelized Producer-Consumer model.
     This avoids SSL connection timeouts by keeping the connection active during inserts.
     """
-    conn = None
     BATCH_SIZE = 20000  # Reduced batch size for more consistent performance
     DATA_TYPE = 'provision_stock_status'
     
     try:
         emit_sync_update('processing', 'Starting Async Provision & Stock Status Sync...', 5, DATA_TYPE)
 
-        conn = get_external_db_connection()
-        
-        # 1. Clear existing STAGING data (ensure clean slate)
-        emit_sync_update('processing', 'Preparing staging area...', 10, DATA_TYPE)
-        db.session.execute(text("TRUNCATE provision_stock_raw_staging"))
-        db.session.commit()
-
-        # 2. Get total count and sum for validation
-        count_cur = conn.cursor()
-        count_cur.execute('SELECT COUNT(*), SUM(prov_gr_wt) FROM ext_view.vw_prov_and_stock_size_level')
-        source_stats = count_cur.fetchone()
-        total_to_sync = source_stats[0]
-        source_sum_wt = source_stats[1] or 0
-        count_cur.close()
-        
+        total_to_sync, source_sum_wt = _prepare_provision_stock_sync()
         logger.info(f"Provision Stock Sync: Source Total Count: {total_to_sync}, Source Sum Weight: {source_sum_wt}")
-        
-        # 3. Setup Named Cursor
-        cur = conn.cursor(name='provision_stock_sync_cursor', cursor_factory=RealDictCursor)
-        cur.itersize = 2000  # Optimal itersize for SSL stability and streaming
-        
-        # Set timeout on session before main query
-        with conn.cursor() as s_cur:
-            s_cur.execute("SET statement_timeout = 0")
-        
-        query = """
-            SELECT "division","group","location","branch_id","provision_mode","provision_mode_filter",
-                   "purity","classification","sub_classification","section","type","make","collection",
-                   "master_collection","sub_section","gender","wide_range","range_weight","size",
-                   "screw_type","prov_pieces","prov_gr_wt","prov_amount","stock_qty","stock_gr_wt",
-                   "stock_amount","in_shop_pcs","in_shop_wt","in_shop_amt","not_in_shop","in_transit",
-                   "order_only","req_only","in_transit_wt","order_only_wt","not_in_shop_wt","refill_from_qty",
-                   "refill_to_qty","refill_from_wt","refill_to_wt","prov_type_filter","short_pcs",
-                   "short_gr_wt","short_amt","short_percent","excess_pcs","excess_gr_weight","excess_amt",
-                   "not_in_prov_pcs","not_in_prov_gr_weight","not_in_prov_amt","prov_type",
-                   "branch_type","branch_status","business_head_name","business_head_emp_code",
-                   "state","division_id","group_id","purity_id","classification_id",
-                   "sub_classification_id","section_id","type_id","make_id","collection_id",
-                   "master_collection_id","sub_section_id","wide_range_id","gender_id","size_id",
-                   "screw_type_id",
-                   "last_updated_at"
-            FROM  ext_view.vw_prov_and_stock_size_level;
-        """
-        
+
         start_time = time.time()
         # Initial query call moved inside producer for resumability
         
@@ -2252,8 +2250,6 @@ def sync_provision_stock_status_data_task() -> Dict[str, Any]:
         emit_sync_update('error', f'Sync failed: {error_msg}', 0, DATA_TYPE)
         return {"status": "error", "message": error_msg}
 
-    finally:
-        if conn: conn.close()
 
 
 SIZE_LEVEL_NIP_BARCODE_COLUMNS = (
