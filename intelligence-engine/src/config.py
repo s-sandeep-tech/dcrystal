@@ -28,7 +28,7 @@ try:
         # Gemini configuration (Exclusive to IntelligenceEngine)
         INTELLIGENCE_GEMINI_API_KEY: Optional[str] = None
         GEMINI_API_KEY: Optional[str] = None
-        GEMINI_MODEL: str = "gemini-3.5-flash-lite"
+        GEMINI_MODEL: str = "gemini-4-hydrogen"
 
         @property
         def active_gemini_api_key(self) -> Optional[str]:
@@ -72,7 +72,7 @@ except ImportError:
 
         INTELLIGENCE_GEMINI_API_KEY: Optional[str] = os.getenv("INTELLIGENCE_GEMINI_API_KEY")
         GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
-        GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+        GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-4-hydrogen")
 
         @property
         def active_gemini_api_key(self) -> Optional[str]:
