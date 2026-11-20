@@ -48,11 +48,11 @@ function setup(outcomes, refreshRun = false) {
 test('503 recovers after a three-second countdown and preserves request settings', async () => {
     const app = setup([503, 200], true);
     const result = app.run(); await settle();
-    assert.deepEqual(app.messages, ['Retrying in 3… (retry 1/5)']);
+    assert.deepEqual(app.messages, ['Loading sales data… Next attempt in 3s (1/5).']);
     await app.tick();
-    assert.equal(app.messages.at(-1), 'Retrying in 2… (retry 1/5)');
+    assert.equal(app.messages.at(-1), 'Loading sales data… Next attempt in 2s (1/5).');
     await app.tick();
-    assert.equal(app.messages.at(-1), 'Retrying in 1… (retry 1/5)');
+    assert.equal(app.messages.at(-1), 'Loading sales data… Next attempt in 1s (1/5).');
     assert.equal(app.requests.length, 1);
     await app.tick(); await result;
     assert.equal(app.requests.length, 2);
@@ -70,7 +70,7 @@ test('stops after five retries and a manual restart gets a fresh budget', async 
     for (let i = 0; i < 15; i++) await app.tick();
     await failed;
     assert.equal(app.requests.length, 6);
-    assert.equal(app.messages.filter(message => message.includes('in 3')).length, 5);
+    assert.equal(app.messages.filter(message => message.includes('Next attempt in 3s')).length, 5);
     assert.equal(app.timers.size, 0);
     await app.run();
     assert.equal(app.requests.length, 7);

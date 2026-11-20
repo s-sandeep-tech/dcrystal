@@ -70,6 +70,7 @@
         if (refreshRun) url.searchParams.set('refresh', '1');
         const token = localStorage.getItem('access_token');
         const headers = token ? {Authorization: `Bearer ${token}`} : {};
+        const loadingMessage = endpoint === 'options' ? 'Loading filter options…' : 'Loading sales data…';
         const maxRetries = 5;
         for (let attempt = 0; ; attempt++) {
             signal.throwIfAborted();
@@ -92,10 +93,10 @@
             if (attempt === maxRetries) throw failure;
             for (let seconds = 3; seconds > 0; seconds--) {
                 signal.throwIfAborted();
-                onRetry(`Retrying in ${seconds}… (retry ${attempt + 1}/${maxRetries})`);
+                onRetry(`${loadingMessage} Next attempt in ${seconds}s (${attempt + 1}/${maxRetries}).`);
                 await retryDelay(signal);
             }
-            onRetry(`Retrying… (retry ${attempt + 1}/${maxRetries})`);
+            onRetry(`${loadingMessage} Additional attempt ${attempt + 1}/${maxRetries}.`);
         }
     }
 
@@ -213,7 +214,7 @@
                 cell.setAttribute('role', 'status');
                 cell.style.paddingInlineStart = `${28 + row.parent.length * 16}px`;
                 if (row.loading) {
-                    showLoading(cell, row.retryMessage || 'Loading…');
+                    showLoading(cell, row.retryMessage || 'Loading sales details…');
                 } else if (row.error) {
                     cell.textContent = row.error;
                     const retry = element('button', 'Retry');
@@ -300,7 +301,7 @@
         const selectAll = panel.querySelector('[data-select-all]');
         const message = panel.querySelector('.xyz-filter-status');
         selectAll.disabled = true;
-        message.textContent = 'Loading…';
+        message.textContent = 'Loading filter options…';
         const {signal} = controller;
         try {
             const options = await fetchData('options', params, signal, text => {
@@ -374,7 +375,7 @@
         }
         history.replaceState(null, '', `${location.pathname}?${applied}`);
         document.getElementById('xyz-period').textContent = `${applied.get('start')} to ${applied.get('end')}`;
-        showLoading(status, 'Loading hierarchy…');
+        showLoading(status, 'Loading sales data…');
         tableWrap.hidden = true;
         roots = [];
         rootTotals = null;
