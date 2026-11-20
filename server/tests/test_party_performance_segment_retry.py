@@ -1,4 +1,5 @@
 import unittest
+from datetime import date
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -105,3 +106,16 @@ class PartyPerformanceBatchRetryTests(unittest.TestCase):
         session.rollback.assert_called_once()
         sleep.assert_not_called()
         redis.flushdb.assert_not_called()
+
+
+class PartyPerformanceQuarterMappingTests(unittest.TestCase):
+    def test_quarter_is_copied_from_every_view(self):
+        for spec in sync.PARTY_PERFORMANCE_SYNC_SPECS:
+            with self.subTest(view=spec['view']):
+                row = {column.name: 'test' for column in spec['model'].__table__.columns
+                       if not column.nullable}
+                row.update({name: 1 for name in spec['required']})
+                row['financial_quarter'] = 'FY2026-27 Q2'
+                mapped = sync._map_party_performance_rows(
+                    spec, [row], list(row), date(2026, 11, 20), 0)
+                self.assertEqual(mapped[0]['financial_quarter'], 'FY2026-27 Q2')

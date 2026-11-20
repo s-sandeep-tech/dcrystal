@@ -120,6 +120,14 @@
                 {% endfor %}
             </select>
         </label>
+        <label>Financial Quarter
+            <select id="matrix-filter-financial-quarter">
+                <option value="">All Financial Quarters</option>
+                {% for value in filter_options.financial_quarters %}
+                <option value="{{ value }}" {% if request.args.get('financial_quarter', '')|trim == value %}selected{% endif %}>{{ value }}</option>
+                {% endfor %}
+            </select>
+        </label>
         <label>Sort By
             <select id="matrix-sort-by">
                 {% set sort_options = [

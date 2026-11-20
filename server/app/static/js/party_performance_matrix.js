@@ -184,6 +184,7 @@
         const filters = {
             order_type: 'matrix-filter-order-type',
             make: 'matrix-filter-make',
+            financial_quarter: 'matrix-filter-financial-quarter',
             sort_by: 'matrix-sort-by',
             sort_dir: 'matrix-sort-dir'
         };
@@ -215,6 +216,8 @@
         if (orderType) orderType.value = '';
         const make = document.getElementById('matrix-filter-make');
         if (make) make.value = '';
+        const financialQuarter = document.getElementById('matrix-filter-financial-quarter');
+        if (financialQuarter) financialQuarter.value = '';
         if (sortBy) sortBy.value = 'order_wt';
         if (sortDirection) sortDirection.value = 'desc';
         if (search) search.value = '';

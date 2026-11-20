@@ -95,6 +95,9 @@ def apply_common_filters(query, model, party_column, filters):
     order_types = split_values(filters['order_type'])
     if order_types and hasattr(model, 'order_type'):
         query = query.filter(model.order_type.in_(order_types))
+    quarters = split_values(filters.get('financial_quarter'))
+    if quarters:
+        query = query.filter(func.trim(model.financial_quarter).in_(quarters))
     make = filters.get('make')
     if make:
         query = query.filter(func.trim(model.make) == make)
@@ -389,6 +392,7 @@ def get_matrix_report_context(args, include_page_options=True):
         'order_type': args.get('order_type', '').strip(),
         'location': args.get('location', '').strip(),
         'make': args.get('make', '').strip(),
+        'financial_quarter': args.get('financial_quarter', '').strip(),
     }
     sort_by = args.get('sort_by', 'order_wt').strip()
     sort_dir = args.get('sort_dir', 'desc').strip().lower()
@@ -462,6 +466,7 @@ def get_matrix_report_context(args, include_page_options=True):
             'order_types': get_common_options('order_type'),
             'locations': get_common_options('location'),
             'makes': get_common_options('make'),
+            'financial_quarters': get_common_options('financial_quarter'),
         }
     return context
 
@@ -520,6 +525,7 @@ def party_performance_matrix():
             'order_types': get_common_options('order_type'),
             'locations': get_common_options('location'),
             'makes': get_common_options('make'),
+            'financial_quarters': get_common_options('financial_quarter'),
         },
     )
 
