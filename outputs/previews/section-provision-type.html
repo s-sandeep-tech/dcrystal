@@ -1,0 +1,609 @@
+<!doctype html><html><head><meta charset="utf-8">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined">
+<style>body{font-family:Inter,sans-serif;background:#f8fafc;margin:0;padding:28px} .text-primary{color:#137fec}</style>
+</head><body><div id="preview" class="bg-white border border-gray-200 rounded-lg p-5">
+<div class="flex justify-between items-center mb-4"><div><div class="text-sm font-bold text-gray-800">Location Physical Stock Status</div><div class="text-xs text-gray-500 mt-1">Section details preview</div></div><span class="text-xs text-gray-500">Sample data</span></div>
+<div class="overflow-x-auto shadow-sm">
+    <table class="w-full text-[10px] border-collapse border border-gray-300">
+        <thead>
+            <tr class="bg-[#fce4ec] dark:bg-pink-900/30">
+                
+                <th class="px-2 py-1 border border-gray-300 text-left font-bold text-gray-700">
+                    <div class="flex items-center justify-between gap-1">
+                        <span>Section Details – Pro. Type</span>
+                        <div class="flex items-center gap-2">
+                            
+                            <button type="button" class="material-symbols-outlined text-[14px] hover:text-primary transition-colors select-none"
+                                    onclick="toggleAllSectionProvisionTypes(this)" title="Expand/Shrink All"
+                                    aria-label="Expand All Provision Types" aria-expanded="false">keyboard_double_arrow_down</button>
+                            
+                            
+                            
+                            <span class="header-filter-container material-symbols-outlined text-[14px] cursor-pointer hover:text-primary transition-colors" 
+                                  data-id="section" 
+                                  onclick="toggleHeaderFilter(event, 'section')">filter_alt</span>
+                            
+                        </div>
+                    </div>
+                </th>
+                
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('prov_pcs')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Prov Pcs</span>
+                        <span class="material-symbols-outlined text-[14px] text-gray-300 opacity-0 group-hover:opacity-100">
+                            unfold_more
+                        </span>
+                    </div>
+                </th>
+                
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('prov_gr_wt')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Prov Gr.Wt</span>
+                        <span class="material-symbols-outlined text-[14px] text-gray-300 opacity-0 group-hover:opacity-100">
+                            unfold_more
+                        </span>
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('in_shop_wt')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>In Shop Wt</span>
+                        <span class="material-symbols-outlined text-[14px] text-gray-300 opacity-0 group-hover:opacity-100">
+                            unfold_more
+                        </span>
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('in_transit_wt')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Transit Wt</span>
+                        <span class="material-symbols-outlined text-[14px] text-gray-300 opacity-0 group-hover:opacity-100">
+                            unfold_more
+                        </span>
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('short_excess_wt')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Short/Excess</span>
+                        <span class="material-symbols-outlined text-[14px] text-gray-300 opacity-0 group-hover:opacity-100">
+                            unfold_more
+                        </span>
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('percent')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>%</span>
+                        <span class="material-symbols-outlined text-[14px] text-gray-300 opacity-0 group-hover:opacity-100">
+                            unfold_more
+                        </span>
+                    </div>
+                </th>
+                <th class="px-2 py-1 border border-gray-300 text-right font-bold text-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                    onclick="toggleSort('ordered_wt')">
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Ordered Wt</span>
+                        <span class="material-symbols-outlined text-[14px] text-gray-300 opacity-0 group-hover:opacity-100">
+                            unfold_more
+                        </span>
+                    </div>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            
+            
+            
+            
+            
+
+            
+                
+                
+                
+                
+                    
+                        
+                            
+                        
+                    
+                    
+                    
+                        
+                    
+                    
+                    
+<tr class="bg-white dark:bg-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 parent-row"
+    data-section-provision="&#34;BANGLE&#34;"
+    onclick="toggleSectionProvisionTypes(this)"
+    
+    
+    
+    
+    
+    >
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-left  h-6">
+        <div class="flex items-center gap-1 h-full">
+            
+                <button type="button" class="inline-flex items-center gap-1 flex-1 text-left" aria-expanded="false"
+                        onclick="event.stopPropagation(); toggleSectionProvisionTypes(this.closest('tr'))"
+                        aria-label="Expand Provision Types for BANGLE">
+                    <span class="toggle-arrow inline-flex items-center justify-center w-4 transition-transform duration-200" aria-hidden="true">▶</span>
+                    <span>BANGLE</span>
+                </button>
+            
+            
+            
+            
+            
+            
+            
+        </div>
+    </td>
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-right">120</td>
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-right">1,500.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">1,230.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">90.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right text-red-500 font-bold">
+        -180.000
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right relative min-w-[50px]">
+        
+        <div class="absolute top-0 left-0 h-full bg-red-100 dark:bg-red-900/20 opacity-60" style="width: 12.0%;"></div>
+        
+        <span class="relative z-10">-12.0%</span>
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">180.000</td>
+</tr>
+
+                
+            
+                
+                
+                
+                
+                    
+                        
+                    
+                    
+                    
+                    
+                    
+<tr class="bg-white dark:bg-gray-800 child-row hidden"
+    data-section-provision="&#34;BANGLE&#34;"
+    
+    
+    
+    
+    
+    
+    >
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-left  h-6">
+        <div class="flex items-center gap-1 h-full">
+            
+            
+            
+            
+            
+                <span class="inline-flex items-center justify-center text-gray-400 w-4">→</span>
+            
+            
+            <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">Regular</span>
+            
+            
+        </div>
+    </td>
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-right">80</td>
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-right">1,000.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">850.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">60.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right text-red-500 font-bold">
+        -90.000
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right relative min-w-[50px]">
+        
+        <div class="absolute top-0 left-0 h-full bg-red-100 dark:bg-red-900/20 opacity-60" style="width: 9.0%;"></div>
+        
+        <span class="relative z-10">-9.0%</span>
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">120.000</td>
+</tr>
+
+                
+            
+                
+                
+                
+                
+                    
+                        
+                    
+                    
+                    
+                    
+                    
+<tr class="bg-white dark:bg-gray-800 child-row hidden"
+    data-section-provision="&#34;BANGLE&#34;"
+    
+    
+    
+    
+    
+    
+    >
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-left  h-6">
+        <div class="flex items-center gap-1 h-full">
+            
+            
+            
+            
+            
+                <span class="inline-flex items-center justify-center text-gray-400 w-4">→</span>
+            
+            
+            <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">Individual</span>
+            
+            
+        </div>
+    </td>
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-right">40</td>
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-right">500.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">380.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">30.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right text-red-500 font-bold">
+        -90.000
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right relative min-w-[50px]">
+        
+        <div class="absolute top-0 left-0 h-full bg-red-100 dark:bg-red-900/20 opacity-60" style="width: 18.0%;"></div>
+        
+        <span class="relative z-10">-18.0%</span>
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">60.000</td>
+</tr>
+
+                
+            
+                
+                
+                
+                
+                    
+                        
+                            
+                        
+                    
+                    
+                    
+                        
+                    
+                    
+                    
+<tr class="bg-white dark:bg-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 parent-row"
+    data-section-provision="&#34;CHAIN&#34;"
+    onclick="toggleSectionProvisionTypes(this)"
+    
+    
+    
+    
+    
+    >
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-left  h-6">
+        <div class="flex items-center gap-1 h-full">
+            
+                <button type="button" class="inline-flex items-center gap-1 flex-1 text-left" aria-expanded="false"
+                        onclick="event.stopPropagation(); toggleSectionProvisionTypes(this.closest('tr'))"
+                        aria-label="Expand Provision Types for CHAIN">
+                    <span class="toggle-arrow inline-flex items-center justify-center w-4 transition-transform duration-200" aria-hidden="true">▶</span>
+                    <span>CHAIN</span>
+                </button>
+            
+            
+            
+            
+            
+            
+            
+        </div>
+    </td>
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-right">90</td>
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-right">900.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">920.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">40.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right text-green-600">
+        60.000
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right relative min-w-[50px]">
+        
+        <div class="absolute top-0 left-0 h-full bg-blue-100 dark:bg-blue-900/20 opacity-60" style="width: 6.666666666666667%;"></div>
+        
+        <span class="relative z-10">6.7%</span>
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">75.000</td>
+</tr>
+
+                
+            
+                
+                
+                
+                
+                    
+                        
+                    
+                    
+                    
+                    
+                    
+<tr class="bg-white dark:bg-gray-800 child-row hidden"
+    data-section-provision="&#34;CHAIN&#34;"
+    
+    
+    
+    
+    
+    
+    >
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-left  h-6">
+        <div class="flex items-center gap-1 h-full">
+            
+            
+            
+            
+            
+                <span class="inline-flex items-center justify-center text-gray-400 w-4">→</span>
+            
+            
+            <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">Regular</span>
+            
+            
+        </div>
+    </td>
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-right">90</td>
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-right">900.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">920.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">40.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right text-green-600">
+        60.000
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right relative min-w-[50px]">
+        
+        <div class="absolute top-0 left-0 h-full bg-blue-100 dark:bg-blue-900/20 opacity-60" style="width: 6.666666666666667%;"></div>
+        
+        <span class="relative z-10">6.7%</span>
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">75.000</td>
+</tr>
+
+                
+            
+            
+                
+                
+<tr class="bg-[#d6d6d6] dark:bg-gray-700 font-bold "
+    
+    
+    
+    
+    
+    
+    
+    >
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-left  h-6">
+        <div class="flex items-center gap-1 h-full">
+            
+            
+            
+            
+            
+            
+            <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">Grand Total</span>
+            
+            
+        </div>
+    </td>
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-right">210</td>
+    
+    <td class="px-2 py-0.5 border border-gray-300 text-right">2,400.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">2,150.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">130.000</td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right text-red-500 font-bold">
+        -120.000
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right relative min-w-[50px]">
+        
+        <span class="relative z-10">-5.0%</span>
+    </td>
+    <td class="px-2 py-0.5 border border-gray-300 text-right">255.000</td>
+</tr>
+
+            
+        </tbody>
+    </table>
+</div>
+<div class="text-xs text-gray-500 mt-4">BANGLE expanded · CHAIN collapsed</div></div><script>
+    function toggleClassification(classification) {
+        const rows = document.querySelectorAll(`tr[data-classification="${classification}"].child-row`);
+        const arrow = document.getElementById(`arrow-${classification}`);
+        
+        rows.forEach(row => {
+            row.classList.toggle('hidden');
+        });
+
+        if (arrow) {
+            if (rows[0] && !rows[0].classList.contains('hidden')) {
+                arrow.style.transform = 'rotate(90deg)';
+            } else {
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+
+    function toggleCollection(collection) {
+        const rows = document.querySelectorAll(`tr[data-collection="${collection}"].child-row`);
+        const arrow = document.getElementById(`arrow-col-${collection}`);
+        
+        rows.forEach(row => {
+            row.classList.toggle('hidden');
+        });
+
+        if (arrow) {
+            if (rows[0] && !rows[0].classList.contains('hidden')) {
+                arrow.style.transform = 'rotate(90deg)';
+            } else {
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+
+    function toggleAllClassifications(icon) {
+        const isExpanding = icon.textContent === 'keyboard_double_arrow_down';
+        const parentRows = document.querySelectorAll('.parent-row[data-classification]');
+        
+        parentRows.forEach(parent => {
+            const classification = parent.getAttribute('data-classification');
+            const childRows = document.querySelectorAll(`tr[data-classification="${classification}"].child-row`);
+            const arrow = document.getElementById(`arrow-${classification}`);
+            
+            childRows.forEach(row => {
+                if (isExpanding) {
+                    row.classList.remove('hidden');
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+            
+            if (arrow) {
+                arrow.style.transform = isExpanding ? 'rotate(90deg)' : 'rotate(0deg)';
+            }
+        });
+        
+        icon.textContent = isExpanding ? 'keyboard_double_arrow_up' : 'keyboard_double_arrow_down';
+    }
+
+    function toggleAllCollections(icon) {
+        const isExpanding = icon.textContent === 'keyboard_double_arrow_down';
+        const parentRows = document.querySelectorAll('.parent-row[data-collection]');
+        
+        parentRows.forEach(parent => {
+            const collection = parent.getAttribute('data-collection');
+            const childRows = document.querySelectorAll(`tr[data-collection="${collection}"].child-row`);
+            const arrow = document.getElementById(`arrow-col-${collection}`);
+            
+            childRows.forEach(row => {
+                if (isExpanding) {
+                    row.classList.remove('hidden');
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+            
+            if (arrow) {
+                arrow.style.transform = isExpanding ? 'rotate(90deg)' : 'rotate(0deg)';
+            }
+        });
+        
+        icon.textContent = isExpanding ? 'keyboard_double_arrow_up' : 'keyboard_double_arrow_down';
+    }
+
+    function setSectionProvisionExpanded(parent, expanded) {
+        const tbody = parent.closest('tbody');
+        for (const row of tbody.querySelectorAll('tr[data-section-provision].child-row')) {
+            if (row.dataset.sectionProvision === parent.dataset.sectionProvision) {
+                row.classList.toggle('hidden', !expanded);
+            }
+        }
+        const button = parent.querySelector('button[aria-expanded]');
+        button.setAttribute('aria-expanded', String(expanded));
+        button.setAttribute('aria-label', `${expanded ? 'Collapse' : 'Expand'} Provision Types for ${button.textContent.replace('▶', '').trim()}`);
+        parent.querySelector('.toggle-arrow').style.transform = expanded ? 'rotate(90deg)' : 'rotate(0deg)';
+    }
+
+    function toggleSectionProvisionTypes(parent) {
+        const expanded = parent.querySelector('button[aria-expanded]').getAttribute('aria-expanded') !== 'true';
+        setSectionProvisionExpanded(parent, expanded);
+        updateSectionProvisionHeader(parent.closest('table'));
+    }
+
+    function updateSectionProvisionHeader(table) {
+        const parents = [...table.querySelectorAll('tr.parent-row[data-section-provision]')];
+        const allExpanded = parents.length > 0 && parents.every(row => row.querySelector('button[aria-expanded]').getAttribute('aria-expanded') === 'true');
+        const header = table.querySelector('thead button[aria-expanded]');
+        header.setAttribute('aria-expanded', String(allExpanded));
+        header.textContent = allExpanded ? 'keyboard_double_arrow_up' : 'keyboard_double_arrow_down';
+        header.setAttribute('aria-label', `${allExpanded ? 'Collapse' : 'Expand'} All Provision Types`);
+    }
+
+    function toggleAllSectionProvisionTypes(button) {
+        const table = button.closest('table');
+        const expanded = button.getAttribute('aria-expanded') !== 'true';
+        table.querySelectorAll('tr.parent-row[data-section-provision]').forEach(parent => {
+            setSectionProvisionExpanded(parent, expanded);
+        });
+        updateSectionProvisionHeader(table);
+    }
+
+    function toggleSectionDetails(sectionDetail) {
+        const rows = document.querySelectorAll(`tr[data-section-detail="${sectionDetail}"].child-row`);
+        const arrow = document.getElementById(`arrow-sec-${sectionDetail}`);
+        
+        rows.forEach(row => {
+            row.classList.toggle('hidden');
+        });
+
+        if (arrow) {
+            if (rows[0] && !rows[0].classList.contains('hidden')) {
+                arrow.style.transform = 'rotate(90deg)';
+            } else {
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+
+    function toggleAllSectionDetails(icon) {
+        const isExpanding = icon.textContent === 'keyboard_double_arrow_down';
+        const parentRows = document.querySelectorAll('.parent-row[data-section-detail]');
+        
+        parentRows.forEach(parent => {
+            const sectionDetail = parent.getAttribute('data-section-detail');
+            const childRows = document.querySelectorAll(`tr[data-section-detail="${sectionDetail}"].child-row`);
+            const arrow = document.getElementById(`arrow-sec-${sectionDetail}`);
+            
+            childRows.forEach(row => {
+                if (isExpanding) {
+                    row.classList.remove('hidden');
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+            
+            if (arrow) {
+                arrow.style.transform = isExpanding ? 'rotate(90deg)' : 'rotate(0deg)';
+            }
+        });
+        
+        icon.textContent = isExpanding ? 'keyboard_double_arrow_up' : 'keyboard_double_arrow_down';
+    }
+</script></body></html>

@@ -1763,6 +1763,71 @@ section_details_wise AS (
         GROUP BY section, type
     ) x
 ),
+section_provision_details_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        x.report_section,
+        x.report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        x.sec_name,
+        x.typ_name,
+        x.is_parent,
+        x.prov_pcs,
+        x.prov_gr_wt,
+        x.in_shop_wt,
+        x.ordered_wt,
+        x.in_transit_wt,
+        x.short_excess_wt,
+        x.percent,
+        10 AS section_sort,
+        ROW_NUMBER() OVER (
+            ORDER BY x.sec_name, x.level_order, x.typ_name NULLS FIRST
+        ) AS row_sort
+    FROM (
+        SELECT
+            'Section Details – Pro. Type'::text AS report_section,
+            section::text AS report_label,
+            section::text AS sec_name,
+            NULL::text AS typ_name,
+            1 AS is_parent,
+            SUM(prov_pieces) AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            0 AS level_order
+        FROM base
+        GROUP BY section
+
+        UNION ALL
+
+        SELECT
+            'Section Details – Pro. Type'::text AS report_section,
+            '   ' || COALESCE(NULLIF(BTRIM(prov_type), ''), 'Unspecified') AS report_label,
+            section::text AS sec_name,
+            COALESCE(NULLIF(BTRIM(prov_type), ''), 'Unspecified') AS typ_name,
+            0 AS is_parent,
+            SUM(prov_pieces) AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            1 AS level_order
+        FROM base
+        GROUP BY section, COALESCE(NULLIF(BTRIM(prov_type), ''), 'Unspecified')
+    ) x
+),
 make_wise AS (
     SELECT
         'SUMMARY'::text AS location,
@@ -1885,6 +1950,8 @@ combined_report AS (
     SELECT * FROM provision_mode_wise
     UNION ALL
     SELECT * FROM section_details_wise
+    UNION ALL
+    SELECT * FROM section_provision_details_wise
 )
 SELECT
     location,
@@ -1940,7 +2007,7 @@ ORDER BY
         
         for s in sorted_section_names:
             sec_rows = sections[s]
-            if s in ['Classification Wise', 'Collection Wise', 'Section Details']:
+            if s in ['Classification Wise', 'Collection Wise', 'Section Details', 'Section Details – Pro. Type']:
                 key = 'classification' if s == 'Classification Wise' else ('collection' if s == 'Collection Wise' else 'sec_name')
                 parents = [r for r in sec_rows if r['is_parent'] == 1]
                 parents.sort(key=lambda r: float(r.get(sort_by) or 0), reverse=(sort_order == 'desc'))
@@ -2265,6 +2332,12 @@ ORDER BY
     if 'Section Details' in segments:
         col_2_row = render_excel_table(
             col_2_row, 9, 'Section Details', segments['Section Details'], show_pcs=True
+        )
+        col_2_row += 2
+
+    if 'Section Details – Pro. Type' in segments:
+        col_2_row = render_excel_table(
+            col_2_row, 9, 'Section Details – Pro. Type', segments['Section Details – Pro. Type'], show_pcs=True
         )
         col_2_row += 2
 
