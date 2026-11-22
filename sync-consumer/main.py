@@ -917,6 +917,17 @@ def setup_scheduler():
         replace_existing=True
     )
 
+    # Schedule "Supplier Capacity & Backlog Analysis Sync" daily at 4:00 AM IST
+    scheduler.add_job(
+        func=enqueue_sync_task,
+        trigger='cron',
+        hour=4,
+        minute=0,
+        args=['party_make_capacity_details'],
+        id='supplier_capacity_backlog_sync',
+        replace_existing=True
+    )
+
     # Schedule "Order Fulfillment Value Aging Matrix Sync" every day at 8:45 AM IST
     # Task type 'order_fulfillment_aging_matrix' matches sync_manager.py
     scheduler.add_job(
@@ -935,6 +946,7 @@ def setup_scheduler():
     logger.info("Size Level NIP Barcode Sync scheduled for 11:30 IST daily.")
     logger.info("Branch Authority Sync scheduled for 10:00 IST and 16:00 IST daily.")
     logger.info("Owner, Showroom, Pending Order Details & Active Orders Sync scheduled for 03:00 IST daily.")
+    logger.info("Supplier Capacity & Backlog Analysis Sync scheduled for 04:00 IST daily.")
     logger.info("QC Delay Summary Sync scheduled for 9:00 IST daily.")
     logger.info("HM Delay Management Sync scheduled for 9:05 IST daily.")
     logger.info("Vendor Delay Management Sync scheduled for 9:10 IST daily.")
