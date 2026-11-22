@@ -905,13 +905,13 @@ def setup_scheduler():
         replace_existing=True
     )
 
-    # Schedule "Owner & Showroom Wise Order Summary Sync" daily at 10:30 AM and 2:30 PM IST
+    # Schedule "Owner, Showroom, Pending Order Details & Active Orders Sync" daily at 3:00 AM IST
     # Task type 'owner_showroom_combined' matches sync_manager.py
     scheduler.add_job(
         func=enqueue_sync_task,
         trigger='cron',
-        hour='10,14',
-        minute=30,
+        hour=3,
+        minute=0,
         args=['owner_showroom_combined'],
         id='owner_showroom_sync',
         replace_existing=True
@@ -934,7 +934,7 @@ def setup_scheduler():
     logger.info("Background Scheduler started. 'Provision & Stock Status Sync' scheduled for 11:00 IST daily.")
     logger.info("Size Level NIP Barcode Sync scheduled for 11:30 IST daily.")
     logger.info("Branch Authority Sync scheduled for 10:00 IST and 16:00 IST daily.")
-    logger.info("Owner & Showroom Wise Order Summary Sync scheduled for 10:30 IST and 14:30 IST daily.")
+    logger.info("Owner, Showroom, Pending Order Details & Active Orders Sync scheduled for 03:00 IST daily.")
     logger.info("QC Delay Summary Sync scheduled for 9:00 IST daily.")
     logger.info("HM Delay Management Sync scheduled for 9:05 IST daily.")
     logger.info("Vendor Delay Management Sync scheduled for 9:10 IST daily.")
