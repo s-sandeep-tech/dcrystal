@@ -497,7 +497,7 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertIn('GOLD', html)
         self.assertIn('Grand Total', html)
         self.assertIn('Provision Dtls', html)
-        self.assertEqual(html.count('Wt (kg):'), 4)
+        self.assertNotIn('Wt (kg):', html)
         self.assertNotIn('Wt (g):', html)
         self.assertIn('Sales Dtls', html)
         self.assertEqual(html.count('1.235'), 2)
