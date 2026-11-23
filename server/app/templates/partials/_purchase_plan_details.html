@@ -1,8 +1,8 @@
 {% macro details(pieces, weight) -%}
 <div class="whitespace-nowrap leading-tight">
-    <div><span class="text-gray-500 dark:text-gray-400 font-normal">Pcs:</span>
+    <div>
         {{ "{:,.4f}".format(pieces).rstrip('0').rstrip('.') if pieces is defined and pieces is not none else 'N/A' }}</div>
-    <div class="mt-0.5">
+    <div class="mt-0.5 text-[11px]">
         {{ "{:,.3f}".format(weight / 1000) if weight is defined and weight is not none else 'N/A' }}</div>
 </div>
 {%- endmacro %}
