@@ -1,6 +1,6 @@
 # Purchase plan detail columns
 
-The Purchase Plan report displays `Provision Dtls` and `Sales Dtls` after
+The Purchase Plan report displays `Provision` and `Sales` after
 Product Hierarchy, including every drilldown and Grand Total. Each cell shows
 pieces (up to four decimal places) and weight in kilograms (three decimal places). Stored weights remain in grams;
 the display divides them by 1,000.
