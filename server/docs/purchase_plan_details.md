@@ -32,4 +32,10 @@ The CSV importer also accepts `pieces` and decimal `provision_qty`.
 Existing snapshots have null sales pieces until resynced. A group or total
 containing missing sales quantities displays `N/A` for sales pieces; known
 zero quantities display `0`. No-data totals are zero. The main-report cache
-namespace is `purchase-plan:main:v3` so older cached responses are bypassed.
+namespace is `purchase-plan:main:v4` so older cached responses are bypassed.
+
+The purchase plan hierarchy is Section → Classification → Make → Wide Range →
+Weight → Collection → Purity. Weight groups by the source `weight` column
+(already mapped by sync), replacing Master Collection. These grouping labels
+use the source values; the kilogram conversion applies to the Sales and
+Provision detail values only.
