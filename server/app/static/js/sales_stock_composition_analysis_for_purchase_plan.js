@@ -3,9 +3,9 @@
  * Standalone JavaScript View
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     resetPurchasePlanTopStats();
-    initPurchasePlanFilters();
+    await initPurchasePlanFilters();
     loadPurchasePlanReportData();
 });
 
@@ -60,6 +60,17 @@ let purchasePlanFilterValues = {
 
 let purchasePlanBranchTypeSelect = null;
 let purchasePlanBranchStatusSelect = null;
+const purchasePlanDefaultBranchTypes = ['FRANCHISE_SHOP', 'SHOP'];
+const purchasePlanDefaultBranchStatuses = ['Active', 'In Active'];
+
+function setPurchasePlanDefaultSelection(control, values) {
+    if (!control) return;
+    document.querySelectorAll(`.${control.containerId}-checkbox`).forEach(checkbox => {
+        checkbox.checked = values.includes(checkbox.value);
+    });
+    control.updateTriggerText();
+}
+
 let purchasePlanLocationSelect = null;
 let purchasePlanSectionSelect = null;
 let purchasePlanClassificationSelect = null;
@@ -201,6 +212,7 @@ function applyPurchasePlanFilterOptions(data) {
             defaultText: 'All Branch Types',
             options: data.branch_types || []
         });
+        setPurchasePlanDefaultSelection(purchasePlanBranchTypeSelect, purchasePlanDefaultBranchTypes);
     }
 
     if (!purchasePlanBranchStatusSelect) {
@@ -210,6 +222,7 @@ function applyPurchasePlanFilterOptions(data) {
             defaultText: 'All Branch Statuses',
             options: data.branch_statuses || []
         });
+        setPurchasePlanDefaultSelection(purchasePlanBranchStatusSelect, purchasePlanDefaultBranchStatuses);
     }
 
     if (!purchasePlanLocationSelect) {
@@ -509,6 +522,8 @@ function resetPurchasePlanFilters() {
 
     if (purchasePlanBranchTypeSelect) purchasePlanBranchTypeSelect.reset();
     if (purchasePlanBranchStatusSelect) purchasePlanBranchStatusSelect.reset();
+    setPurchasePlanDefaultSelection(purchasePlanBranchTypeSelect, purchasePlanDefaultBranchTypes);
+    setPurchasePlanDefaultSelection(purchasePlanBranchStatusSelect, purchasePlanDefaultBranchStatuses);
     if (purchasePlanLocationSelect) purchasePlanLocationSelect.reset();
     if (purchasePlanSectionSelect) purchasePlanSectionSelect.reset();
     if (purchasePlanClassificationSelect) purchasePlanClassificationSelect.reset();
