@@ -17,8 +17,8 @@ HIERARCHY: List[str] = [
     'classification',
     'make',
     'wide_range',
-    'collection',
     'master_collection',
+    'collection',
     'purity',
 ]
 
@@ -26,9 +26,7 @@ HIERARCHY: List[str] = [
 def purchase_plan_hierarchy(root='section'):
     if root not in HIERARCHY:
         root = HIERARCHY[0]
-    levels = [*HIERARCHY[:4], 'master_collection', 'collection', 'purity']
-    start = 'master_collection' if root == 'collection' else root
-    return levels[levels.index(start):]
+    return HIERARCHY[HIERARCHY.index(root):]
 
 FILTERS: List[str] = [
     'branch_id',

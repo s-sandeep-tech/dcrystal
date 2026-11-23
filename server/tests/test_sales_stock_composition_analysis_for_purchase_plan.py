@@ -16,7 +16,9 @@ from app.models.rbac import Role, Menu, Permission, UserRole, RoleMenu, RolePerm
 from app.models import SalesStockCompositionAnalysisSnapshot as Snapshot
 from app.dashboard import dashboard_bp
 from app.services.sales_stock_composition_analysis_for_purchase_plan import (
+    HIERARCHY,
     SORT_KEYS,
+    purchase_plan_hierarchy,
     calculate_fy_factor,
     compute_ratio,
     compute_turn_ratio,
@@ -60,6 +62,56 @@ class PurchasePlanServiceTests(unittest.TestCase):
             missing = fetch_purchase_plan_composition_data(date(2026, 9, 30),
                 {'branch_type': ['(Unspecified)']})
             self.assertEqual(missing['total']['sales_weight'], 400)
+            db.session.remove()
+
+    def test_collection_and_master_collection_grouping_and_drilldowns(self):
+        self.assertEqual(HIERARCHY, [
+            'section', 'classification', 'make', 'wide_range',
+            'master_collection', 'collection', 'purity',
+        ])
+        self.assertEqual(purchase_plan_hierarchy('collection'), ['collection', 'purity'])
+        self.assertEqual(purchase_plan_hierarchy('master_collection'),
+                         ['master_collection', 'collection', 'purity'])
+        app = Flask(__name__)
+        app.config.update(TESTING=True, SQLALCHEMY_DATABASE_URI='sqlite:///:memory:',
+                          SQLALCHEMY_TRACK_MODIFICATIONS=False)
+        db.init_app(app)
+        with app.app_context():
+            db.metadata.create_all(db.engine, tables=[Snapshot.__table__])
+            for i, (master, collection, purity, weight) in enumerate([
+                    ('MASTER A', 'COLLECTION X', '22', 100),
+                    ('MASTER A', 'COLLECTION Y', '18', 200),
+                    ('MASTER B', 'COLLECTION X', '18', 300)], 1):
+                db.session.add(Snapshot(id=i, branch_id=1, date=date(2026, 9, 30),
+                    master_collection=master, collection=collection, purity=purity,
+                    gross_weight=weight, provision_weight=weight / 2))
+            db.session.commit()
+            cases = [
+                ('collection', [], 'collection',
+                 {'COLLECTION X': 400, 'COLLECTION Y': 200}, True),
+                ('collection', ['COLLECTION X'], 'purity', {'22': 100, '18': 300}, False),
+                ('master_collection', [], 'master_collection',
+                 {'MASTER A': 300, 'MASTER B': 300}, True),
+                ('master_collection', ['MASTER A'], 'collection',
+                 {'COLLECTION X': 100, 'COLLECTION Y': 200}, True),
+                ('master_collection', ['MASTER A', 'COLLECTION X'],
+                 'purity', {'22': 100}, False),
+            ]
+            for root, path, level, expected, can_expand in cases:
+                with self.subTest(root=root, path=path):
+                    result = fetch_purchase_plan_composition_data(
+                        date(2026, 9, 30), {}, path=path, hierarchy_root=root)
+                    self.assertEqual(result['level'], level)
+                    self.assertEqual(result['can_expand'], can_expand)
+                    self.assertEqual({r['label']: r['sales_weight'] for r in result['rows']}, expected)
+                    self.assertEqual({r['label']: r['provision_weight'] for r in result['rows']},
+                                     {label: weight / 2 for label, weight in expected.items()})
+                    chart = fetch_purchase_plan_composition_data(
+                        date(2026, 9, 30), {}, path=path, hierarchy_root=root, contributors=True)
+                    self.assertEqual(chart['level'], level)
+                    self.assertEqual({r['label']: r['weight'] for r in chart['sales']['items']}, expected)
+                    self.assertEqual({r['label']: r['weight'] for r in chart['stock']['items']},
+                                     {label: weight / 2 for label, weight in expected.items()})
             db.session.remove()
 
     def test_fy_factor_calculation(self):
@@ -135,14 +187,6 @@ class PurchasePlanServiceTests(unittest.TestCase):
             branch = fetch_purchase_plan_composition_data(
                 date(2026, 9, 30), {}, path=['BRAND'], hierarchy_root='classification')
             self.assertEqual(branch['level'], 'make')
-            for path, level in [
-                ([], 'master_collection'),
-                (['MASTER'], 'collection'),
-                (['MASTER', 'COLLECTION'], 'purity'),
-            ]:
-                result_for_level = fetch_purchase_plan_composition_data(
-                    date(2026, 9, 30), {}, path=path, hierarchy_root='collection')
-                self.assertEqual(result_for_level['level'], level)
             # Check sales contributors
             self.assertIn('sales', result)
             self.assertEqual(result['sales']['items'][0]['label'], 'GENERIC')
@@ -279,6 +323,7 @@ class PurchasePlanSecurityAndRouteTests(unittest.TestCase):
             self.assertEqual(self.client.get(endpoint + '?division=Gold', headers=self.headers()).text, '100.0')
             self.assertEqual(self.client.get(endpoint + '?division=Gold', headers=self.headers()).text, '100.0')
             self.assertEqual(redis.setex.call_count, 1)
+            self.assertTrue(redis.setex.call_args.args[0].startswith('purchase-plan:main:v2:'))
             self.assertEqual(redis.setex.call_args.args[1], 10800)
             self.assertEqual(self.client.get(endpoint + '?division=Silver', headers=self.headers()).text, '0.0')
 
@@ -366,13 +411,15 @@ class TemplateRenderingTests(unittest.TestCase):
             'includes_projection': False,
         }
         html = ' '.join(tmpl.render(rows=rows, total=total, stats={}, can_expand=True,
-                                    hierarchy=['section', 'make'], hierarchy_root='make').split())
+                                    hierarchy=HIERARCHY, hierarchy_root='make').split())
 
         # Check requested columns are present
         self.assertIn('Product Hierarchy', html)
         self.assertIn('aria-pressed="true" onclick="setPurchasePlanHierarchy(\'make\')"', html)
         self.assertIn('aria-pressed="false" onclick="setPurchasePlanHierarchy(\'section\')"', html)
         self.assertLess(html.index("setPurchasePlanHierarchy('section')"), html.index("setPurchasePlanHierarchy('make')"))
+        self.assertLess(html.index("setPurchasePlanHierarchy('master_collection')"),
+                        html.index("setPurchasePlanHierarchy('collection')"))
         self.assertIn('Sales Composition %', html)
         self.assertIn('Stock Composition %', html)
         self.assertIn('Stock Turn in Weight (times)', html)
