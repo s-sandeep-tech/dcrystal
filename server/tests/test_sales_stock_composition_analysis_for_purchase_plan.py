@@ -472,8 +472,8 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertLess(html.index("setPurchasePlanHierarchy('section')"), html.index("setPurchasePlanHierarchy('make')"))
         self.assertLess(html.index("setPurchasePlanHierarchy('master_collection')"),
                         html.index("setPurchasePlanHierarchy('collection')"))
-        self.assertIn('Sales Composition %', html)
-        self.assertIn('Stock Composition %', html)
+        self.assertIn('Sales Comp. %', html)
+        self.assertIn('Stock Comp. %', html)
         self.assertIn('Stock Turn in Weight (times)', html)
         self.assertIn('Stock Turn in Weight (based on shopweight, times)', html)
         self.assertIn('block text-[8px] font-normal normal-case',html)

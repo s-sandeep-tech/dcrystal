@@ -41,11 +41,11 @@
     <div class="flex-1 min-h-0 overflow-auto custom-scrollbar">
         <table id="purchase-plan-composition-table" class="w-full min-w-[1100px] table-fixed border-collapse text-left">
             <colgroup>
-                <col class="w-[33%]">
+                <col class="w-[37%]">
                 <col class="w-[12%]">
                 <col class="w-[12%]">
-                <col class="w-[10%]">
-                <col class="w-[10%]">
+                <col class="w-[8%]">
+                <col class="w-[8%]">
                 <col class="w-[11%]">
                 <col class="w-[12%]">
             </colgroup>
@@ -81,8 +81,7 @@
                     </th>
                     <th scope="col" class="px-3 py-1.5 text-right border-r border-gray-200 dark:border-gray-700">Provision Dtls</th>
                     <th scope="col" class="px-3 py-1.5 text-right border-r border-gray-200 dark:border-gray-700">Sales Dtls</th>
-                    {% for key, label in [('sales_composition', 'Sales Composition %'), ('stock_composition', 'Stock
-                    Composition %'), ('weight_turn', 'Stock Turn in Weight (times)'), ('shop_weight_turn', 'Stock Turn
+                    {% for key, label in [('sales_composition', 'Sales Comp. %'), ('stock_composition', 'Stock Comp. %'), ('weight_turn', 'Stock Turn in Weight (times)'), ('shop_weight_turn', 'Stock Turn
                     in Weight (based on shopweight, times)')] %}
                     <th scope="col"
                         aria-sort="{{ ('ascending' if sort_order == 'asc' else 'descending') if sort_by == key else 'none' }}"
