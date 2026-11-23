@@ -348,15 +348,20 @@ def fetch_purchase_plan_composition_data(
         keys = [location_key_expr] if group_dim is None else [group_dim, location_key_expr]
         results = query.with_entities(
             *keys,
-            func.sum(func.coalesce(Snapshot.gross_weight, 0))
+            func.sum(func.coalesce(Snapshot.gross_weight, 0)),
+            func.sum(Snapshot.pieces),
+            func.count() - func.count(Snapshot.pieces),
         ).group_by(*keys).all()
 
         aggregates: Dict[Any, List[float]] = {}
         for res in results:
             grp_lbl = None if group_dim is None else res[0]
-            loc_k, wt = res[-2:]
-            # [sales_weight, adjusted_sales_weight, missing_factor_count, projected_location_count]
-            t = aggregates.setdefault(grp_lbl, [0.0, 0.0, 0.0, 0.0])
+            loc_k, wt, pieces, missing_pieces = res[-4:]
+            # [sales_weight, adjusted_sales_weight, missing_factor_count,
+            #  projected_location_count, pieces, missing_pieces_count]
+            t = aggregates.setdefault(grp_lbl, [0.0] * 6)
+            t[4] += float(pieces or 0)
+            t[5] += missing_pieces
             if loc_k in projected_locations:
                 t[3] += 1
             f = factors_by_loc.get(loc_k)
@@ -379,6 +384,7 @@ def fetch_purchase_plan_composition_data(
         Snapshot.date.label('date'),
         *dims,
         prov_expr.label('provision'),
+        Snapshot.provision_qty.label('provision_qty'),
         Snapshot.inshop_weight.label('inshop_weight')
     ).subquery()
 
@@ -400,12 +406,14 @@ def fetch_purchase_plan_composition_data(
                 stock_q = stock_q.filter(cast(getattr(stock_subq.c, name), String).in_(vals))
 
     # Overall totals
-    total_sales_agg = aggregate_sales_weights(sales_q).get(None, [0.0, 0.0, 0.0, 0.0])
+    total_sales_agg = aggregate_sales_weights(sales_q).get(None, [0.0] * 6)
+    grand_sales_pieces = None if total_sales_agg[5] else total_sales_agg[4]
     grand_sales_weight = float(total_sales_agg[0] or 0)
     grand_includes_projection = bool(total_sales_agg[3])
     grand_annual_sales_wt = None if total_sales_agg[2] else float(total_sales_agg[1] or 0)
 
     grand_stock_weight = float(stock_q.with_entities(func.sum(stock_subq.c.provision)).scalar() or 0)
+    grand_provision_qty = float(stock_q.with_entities(func.sum(stock_subq.c.provision_qty)).scalar() or 0)
     shop_total, shop_missing = stock_q.with_entities(func.sum(stock_subq.c.inshop_weight),
         func.count() - func.count(stock_subq.c.inshop_weight)).one()
     grand_shop_weight = None if shop_missing else float(shop_total or 0)
@@ -427,7 +435,8 @@ def fetch_purchase_plan_composition_data(
         getattr(stock_subq.c, cur_level),
         func.sum(stock_subq.c.provision),
         func.sum(stock_subq.c.inshop_weight),
-        func.count() - func.count(stock_subq.c.inshop_weight)
+        func.count() - func.count(stock_subq.c.inshop_weight),
+        func.sum(stock_subq.c.provision_qty),
     ).group_by(getattr(stock_subq.c, cur_level)).all()
 
     combined_groups: Dict[str, Dict[str, Any]] = {}
@@ -437,8 +446,10 @@ def fetch_purchase_plan_composition_data(
         ann_wt = None if totals[2] else totals[1]
         combined_groups[clean_lbl] = {
             'sales_weight': totals[0],
+            'sales_pieces': None if totals[5] else totals[4],
             'annualised_sales_weight': ann_wt,
             'provision_weight': 0.0,
+            'provision_qty': 0.0,
             'inshop_weight': 0.0,
             'includes_projection': bool(totals[3])
         }
@@ -449,6 +460,7 @@ def fetch_purchase_plan_composition_data(
         if lbl not in combined_groups:
             combined_groups[lbl] = {
                 'sales_weight': 0.0,
+                'sales_pieces': 0.0,
                 'annualised_sales_weight': 0.0,
                 'provision_weight': pw,
                 'includes_projection': False
@@ -456,6 +468,7 @@ def fetch_purchase_plan_composition_data(
         else:
             combined_groups[lbl]['provision_weight'] = pw
         combined_groups[lbl]['inshop_weight'] = None if row[3] else float(row[2] or 0)
+        combined_groups[lbl]['provision_qty'] = float(row[4] or 0)
 
     rows: List[Dict[str, Any]] = []
     for lbl, data in combined_groups.items():
@@ -470,7 +483,9 @@ def fetch_purchase_plan_composition_data(
         rows.append({
             'label': lbl,
             'sales_weight': sw,
+            'sales_pieces': data['sales_pieces'],
             'provision_weight': pw,
+            'provision_qty': data['provision_qty'],
             'sales_composition': s_comp,
             'stock_composition': st_comp,
             'weight_turn': w_turn,
@@ -488,7 +503,9 @@ def fetch_purchase_plan_composition_data(
         'rows': sorted_rows,
         'total': {
             'sales_weight': grand_sales_weight,
+            'sales_pieces': grand_sales_pieces,
             'provision_weight': grand_stock_weight,
+            'provision_qty': grand_provision_qty,
             'sales_composition': 100.0 if grand_sales_weight > 0 else 0.0,
             'stock_composition': 100.0 if grand_stock_weight > 0 else 0.0,
             'weight_turn': grand_turn_weight,

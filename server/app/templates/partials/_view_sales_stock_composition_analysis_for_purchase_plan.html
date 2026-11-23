@@ -1,3 +1,4 @@
+{% from 'partials/_purchase_plan_details.html' import details %}
 {% from 'partials/_purchase_plan_stock_turn.html' import stock_turn %}
 {% set sort_by = sort_by|default('label') %}
 {% set sort_order = sort_order|default('asc') %}
@@ -38,13 +39,15 @@
     </div>
     {% else %}
     <div class="flex-1 min-h-0 overflow-auto custom-scrollbar">
-        <table id="purchase-plan-composition-table" class="w-full min-w-[750px] table-fixed border-collapse text-left">
+        <table id="purchase-plan-composition-table" class="w-full min-w-[1100px] table-fixed border-collapse text-left">
             <colgroup>
-                <col class="w-[40%]">
-                <col class="w-[13%]">
-                <col class="w-[13%]">
-                <col class="w-[14%]">
-                <col class="w-[20%]">
+                <col class="w-[30%]">
+                <col class="w-[12%]">
+                <col class="w-[12%]">
+                <col class="w-[10%]">
+                <col class="w-[10%]">
+                <col class="w-[11%]">
+                <col class="w-[15%]">
             </colgroup>
             <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr class="text-[9px] uppercase text-gray-500 font-bold tracking-wider">
@@ -76,6 +79,8 @@
                                 title="Collapse All">keyboard_double_arrow_up</span>
                         </div>
                     </th>
+                    <th scope="col" class="px-3 py-1.5 text-right border-r border-gray-200 dark:border-gray-700">Provision Dtls</th>
+                    <th scope="col" class="px-3 py-1.5 text-right border-r border-gray-200 dark:border-gray-700">Sales Dtls</th>
                     {% for key, label in [('sales_composition', 'Sales Composition %'), ('stock_composition', 'Stock
                     Composition %'), ('weight_turn', 'Stock Turn in Weight (times)'), ('shop_weight_turn', 'Stock Turn
                     in Weight (based on shopweight, times)')] %}
@@ -124,6 +129,8 @@
                             </button>
                         </div>
                     </td>
+                    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ details(row.provision_qty, row.provision_weight) }}</td>
+                    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ details(row.sales_pieces, row.sales_weight) }}</td>
                     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{
                         format_pct(row.sales_composition) }}</td>
                     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{
@@ -151,6 +158,8 @@
                             </button>
                         </div>
                     </td>
+                    <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ details(total.provision_qty, total.provision_weight) }}</td>
+                    <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ details(total.sales_pieces, total.sales_weight) }}</td>
                     <td
                         class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
                         {{ format_pct(total.sales_composition) }}</td>

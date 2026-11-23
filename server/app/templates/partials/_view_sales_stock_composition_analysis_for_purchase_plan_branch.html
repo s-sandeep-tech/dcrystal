@@ -1,3 +1,4 @@
+{% from 'partials/_purchase_plan_details.html' import details %}
 {% from 'partials/_purchase_plan_stock_turn.html' import stock_turn %}
 {% macro format_pct(value) -%}
 {{ "{:,.2f}%".format(value) if value is not none else 'N/A' }}
@@ -27,6 +28,8 @@
             </button>
         </div>
     </td>
+    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ details(row.provision_qty, row.provision_weight) }}</td>
+    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ details(row.sales_pieces, row.sales_weight) }}</td>
     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.sales_composition) }}</td>
     <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.stock_composition) }}</td>
     <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{ stock_turn(row.weight_turn, row.includes_projection) }}</td>

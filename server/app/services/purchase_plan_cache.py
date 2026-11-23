@@ -24,7 +24,7 @@ def cached_purchase_plan_data(date, selections, path, sort_by, sort_order, hiera
     filters = {name: sorted(set(values)) for name, values in selections.items()}
     params = [date.isoformat() if date else None, filters, path, sort_by, sort_order, hierarchy_root]
     digest = hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()
-    key = f'purchase-plan:main:v2:{synced_at.isoformat()}:{digest}'
+    key = f'purchase-plan:main:v3:{synced_at.isoformat()}:{digest}'
     try:
         cached = redis_client.get(key)
         if cached is not None:

@@ -84,7 +84,8 @@ class PurchasePlanServiceTests(unittest.TestCase):
                     ('MASTER B', 'COLLECTION X', '18', 300)], 1):
                 db.session.add(Snapshot(id=i, branch_id=1, date=date(2026, 9, 30),
                     master_collection=master, collection=collection, purity=purity,
-                    gross_weight=weight, provision_weight=weight / 2))
+                    gross_weight=weight, provision_weight=weight / 2,
+                    pieces=Decimal(str(weight)) / 80, provision_qty=Decimal(str(weight)) / 40))
             db.session.commit()
             cases = [
                 ('collection', [], 'collection',
@@ -103,6 +104,13 @@ class PurchasePlanServiceTests(unittest.TestCase):
                         date(2026, 9, 30), {}, path=path, hierarchy_root=root)
                     self.assertEqual(result['level'], level)
                     self.assertEqual(result['can_expand'], can_expand)
+                    self.assertEqual({r['label']: r['sales_pieces'] for r in result['rows']},
+                                     {label: weight / 80 for label, weight in expected.items()})
+                    self.assertEqual({r['label']: r['provision_qty'] for r in result['rows']},
+                                     {label: weight / 40 for label, weight in expected.items()})
+                    self.assertEqual(result['total']['sales_pieces'], 7.5)
+                    self.assertEqual(result['total']['provision_qty'], 15)
+
                     self.assertEqual({r['label']: r['sales_weight'] for r in result['rows']}, expected)
                     self.assertEqual({r['label']: r['provision_weight'] for r in result['rows']},
                                      {label: weight / 2 for label, weight in expected.items()})
@@ -112,6 +120,46 @@ class PurchasePlanServiceTests(unittest.TestCase):
                     self.assertEqual({r['label']: r['weight'] for r in chart['sales']['items']}, expected)
                     self.assertEqual({r['label']: r['weight'] for r in chart['stock']['items']},
                                      {label: weight / 2 for label, weight in expected.items()})
+            db.session.remove()
+
+    def test_details_apply_filters_cutoff_returns_and_missing_sales_quantity(self):
+        app = Flask(__name__)
+        app.config.update(TESTING=True, SQLALCHEMY_DATABASE_URI='sqlite:///:memory:',
+                          SQLALCHEMY_TRACK_MODIFICATIONS=False)
+        db.init_app(app)
+        with app.app_context():
+            db.metadata.create_all(db.engine, tables=[Snapshot.__table__])
+            for i, (branch, dt, section, pieces, qty, weight) in enumerate([
+                    (1, date(2026, 9, 30), 'CHAIN', Decimal('10.125'), Decimal('20.25'), 100),
+                    (1, date(2026, 9, 30), 'CHAIN', Decimal('-1.25'), Decimal('-2.5'), -10),
+                    (1, None, 'STOCK ONLY', None, Decimal('3.125'), 0),
+                    (1, date(2026, 10, 1), 'FUTURE', 90, 90, 900),
+                    (2, date(2026, 9, 30), 'OTHER BRANCH', 80, 80, 800)], 1):
+                db.session.add(Snapshot(id=i, branch_id=branch, date=dt, section=section,
+                    division='Gold', pieces=pieces, provision_qty=qty,
+                    gross_weight=weight, provision_weight=weight / 2))
+            db.session.commit()
+            result = fetch_purchase_plan_composition_data(date(2026, 9, 30),
+                {'branch_id': ['1'], 'division': ['GOLD']})
+            rows = {r['label']: r for r in result['rows']}
+            self.assertEqual(set(rows), {'CHAIN', 'STOCK ONLY'})
+            self.assertEqual(rows['CHAIN']['sales_pieces'], 8.875)
+            self.assertEqual(rows['CHAIN']['provision_qty'], 17.75)
+            self.assertEqual(rows['CHAIN']['sales_weight'], 90)
+            self.assertEqual(rows['CHAIN']['provision_weight'], 45)
+            self.assertEqual(rows['STOCK ONLY']['sales_pieces'], 0)
+            self.assertEqual(rows['STOCK ONLY']['provision_qty'], 3.125)
+            self.assertEqual(result['total']['sales_pieces'], 8.875)
+            self.assertEqual(result['total']['provision_qty'], 20.875)
+            empty = fetch_purchase_plan_composition_data(date(2026, 9, 30), {'branch_id': ['999']})
+            self.assertEqual(empty['total']['sales_pieces'], 0)
+            self.assertEqual(empty['total']['provision_qty'], 0)
+            db.session.add(Snapshot(id=6, branch_id=1, date=date(2026, 9, 30),
+                                    section='CHAIN', pieces=None))
+            db.session.commit()
+            missing = fetch_purchase_plan_composition_data(date(2026, 9, 30), {'branch_id': ['1']})
+            self.assertIsNone(missing['total']['sales_pieces'])
+            self.assertIsNone(next(r for r in missing['rows'] if r['label'] == 'CHAIN')['sales_pieces'])
             db.session.remove()
 
     def test_fy_factor_calculation(self):
@@ -323,7 +371,7 @@ class PurchasePlanSecurityAndRouteTests(unittest.TestCase):
             self.assertEqual(self.client.get(endpoint + '?division=Gold', headers=self.headers()).text, '100.0')
             self.assertEqual(self.client.get(endpoint + '?division=Gold', headers=self.headers()).text, '100.0')
             self.assertEqual(redis.setex.call_count, 1)
-            self.assertTrue(redis.setex.call_args.args[0].startswith('purchase-plan:main:v2:'))
+            self.assertTrue(redis.setex.call_args.args[0].startswith('purchase-plan:main:v3:'))
             self.assertEqual(redis.setex.call_args.args[1], 10800)
             self.assertEqual(self.client.get(endpoint + '?division=Silver', headers=self.headers()).text, '0.0')
 
@@ -397,6 +445,8 @@ class TemplateRenderingTests(unittest.TestCase):
         tmpl = self.env.get_template('partials/_view_sales_stock_composition_analysis_for_purchase_plan.html')
         rows = [{
             'label': 'GOLD',
+            'provision_qty': 120.125, 'provision_weight': 1234.567,
+            'sales_pieces': 85, 'sales_weight': 987.654,
             'sales_composition': 55.25,
             'stock_composition': 45.10,
             'weight_turn': 3.45,
@@ -404,6 +454,8 @@ class TemplateRenderingTests(unittest.TestCase):
             'includes_projection': False,
         }]
         total = {
+            'provision_qty': 120.125, 'provision_weight': 1234.567,
+            'sales_pieces': 85, 'sales_weight': 987.654,
             'sales_composition': 100.0,
             'stock_composition': 100.0,
             'weight_turn': 3.45,
@@ -444,12 +496,20 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertNotIn('3.45%', html)
         self.assertIn('GOLD', html)
         self.assertIn('Grand Total', html)
+        self.assertIn('Provision Dtls', html)
+        self.assertIn('Sales Dtls', html)
+        self.assertEqual(html.count('1,234.567'), 2)
+        self.assertEqual(html.count('987.654'), 2)
+        self.assertEqual(html.count('120.125'), 2)
+        self.assertEqual(html.count('<td '), 14)
         self.assertIn('openPurchasePlanChart', html)
 
-    def test_branch_template_renders_five_columns(self):
+    def test_branch_template_renders_seven_columns(self):
         tmpl = self.env.get_template('partials/_view_sales_stock_composition_analysis_for_purchase_plan_branch.html')
         rows = [{
             'label': 'CHAINS',
+            'provision_qty': 12.5, 'provision_weight': 123.456,
+            'sales_pieces': 0, 'sales_weight': -10.125,
             'sales_composition': 20.0,
             'stock_composition': 15.0,
             'weight_turn': 2.1,
@@ -459,14 +519,19 @@ class TemplateRenderingTests(unittest.TestCase):
         html = tmpl.render(rows=rows, parent_path=['GOLD'], can_expand=True)
 
         self.assertIn('CHAINS', html)
+        self.assertIn('123.456', html)
+        self.assertIn('-10.125', html)
+        self.assertIn('12.5', html)
+        rows[0]['sales_pieces'] = None
+        self.assertIn('N/A', tmpl.render(rows=rows, parent_path=['GOLD'], can_expand=True))
         self.assertIn('20.00%', html)
         self.assertIn('15.00%', html)
         self.assertIn('>2.10</td>', html)
         self.assertNotIn('2.10 times', html)
         self.assertIn('>4.20</td>',html)
         self.assertNotIn('2.10%', html)
-        # Hierarchy, composition percentages, and both stock-turn columns.
-        self.assertEqual(html.count('<td '), 5)
+        # Hierarchy, two details columns, composition percentages, and stock turns.
+        self.assertEqual(html.count('<td '), 7)
         self.assertIn('openPurchasePlanChart', html)
         rows[0]['includes_projection'] = True
         projected = tmpl.render(rows=rows, parent_path=['GOLD'], can_expand=True)

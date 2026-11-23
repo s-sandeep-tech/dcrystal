@@ -188,7 +188,7 @@ def get_sales_stock_composition_analysis_for_purchase_plan_branch():
     except Exception as e:
         logger.exception("Error in sales_stock_composition_analysis_for_purchase_plan branch: %s", str(e))
         db.session.rollback()
-        return f'<tr><td colspan="4" class="p-2 text-center text-red-500 text-xs">Error: {str(e)}</td></tr>', 200
+        return f'<tr><td colspan="7" class="p-2 text-center text-red-500 text-xs">Error: {str(e)}</td></tr>', 200
 
 
 @dashboard_bp.route('/api/sales-stock-composition-analysis-for-purchase-plan/options')

@@ -423,6 +423,20 @@ class SalesStockCompositionSecurityTests(unittest.TestCase):
 
 
 class SummarySyncTests(unittest.TestCase):
+    def test_csv_import_preserves_decimal_quantities(self):
+        from io import StringIO
+        from scripts import import_sales_stock_composition_csv as importer
+        csv_data = StringIO('pieces,provision_qty\n-2.125,10.5678\n,3.25\n')
+        with patch.object(importer, 'create_app'), patch.object(importer, 'db') as database, \
+                patch.object(Snapshot.__table__, 'create'), \
+                patch.object(importer.sys, 'stdin', csv_data), patch('builtins.print'):
+            importer.run_import('-', truncate=False)
+        records = database.session.bulk_insert_mappings.call_args.args[1]
+        self.assertEqual(records[0]['pieces'], Decimal('-2.125'))
+        self.assertEqual(records[0]['provision_qty'], Decimal('10.5678'))
+        self.assertIsNone(records[1]['pieces'])
+        self.assertEqual(records[1]['provision_qty'], Decimal('3.25'))
+
     def test_source_mapping_and_atomic_commit(self):
         from app.utils import sync_tasks
         rows = [{'branch_id': 12, 'item_definition_id': i,
@@ -432,6 +446,7 @@ class SummarySyncTests(unittest.TestCase):
                  'size': Decimal('22'), 'gross_weight': Decimal('-2.5'),
                  'purchase_board_rate': 5000} for i in range(30001)]
         rows[0]['inshop_weight']=Decimal('12.3456')
+        rows[0].update(pieces=Decimal('-2.125'), provision_qty=Decimal('10.5678'))
         rows[0].update(Branch_type=' Retail ', Branch_status=' Active ')
         rows[1].update(branch_type='Wholesale', branch_status='Closed')
         with patch.object(sync_tasks, 'composition_source_rows', return_value=iter_rows(rows)) as source, \
@@ -450,6 +465,9 @@ class SummarySyncTests(unittest.TestCase):
         self.assertEqual(record['barcode'], 'D-001')
         self.assertEqual(record['gross_weight'], Decimal('-2.5'))
         self.assertEqual(record['inshop_weight'], Decimal('12.3456'))
+        self.assertEqual(record['pieces'], Decimal('-2.125'))
+        self.assertEqual(record['provision_qty'], Decimal('10.5678'))
+        self.assertIsNone(batches[0].args[1][1]['pieces'])
         self.assertEqual(record['branch_type'], 'Retail')
         self.assertEqual(record['branch_status'], 'Active')
         self.assertEqual(batches[0].args[1][1]['branch_type'], 'Wholesale')
