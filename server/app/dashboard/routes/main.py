@@ -518,7 +518,9 @@ def get_sync_logs():
     logs_data = []
     for log in pagination.items:
         log_dict = log.to_dict()
-        if log.initiated_by and log.initiated_by in users_dict:
+        if log.initiated_by == 'SCHEDULER':
+            log_dict['initiated_by'] = 'Scheduler'
+        elif log.initiated_by and log.initiated_by in users_dict:
             log_dict['initiated_by'] = users_dict[log.initiated_by]
         logs_data.append(log_dict)
     

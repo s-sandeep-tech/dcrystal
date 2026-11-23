@@ -913,6 +913,7 @@ def setup_scheduler():
         hour=3,
         minute=0,
         args=['owner_showroom_combined'],
+        kwargs={'user_id': 'SCHEDULER'},
         id='owner_showroom_sync',
         replace_existing=True
     )
@@ -924,7 +925,20 @@ def setup_scheduler():
         hour=4,
         minute=0,
         args=['party_make_capacity_details'],
+        kwargs={'user_id': 'SCHEDULER'},
         id='supplier_capacity_backlog_sync',
+        replace_existing=True
+    )
+
+    # Schedule "Party Performance Matrix Sync" daily at 4:30 AM IST
+    scheduler.add_job(
+        func=enqueue_sync_task,
+        trigger='cron',
+        hour=4,
+        minute=30,
+        args=['party_performance_matrix'],
+        kwargs={'user_id': 'SCHEDULER'},
+        id='party_performance_matrix_sync',
         replace_existing=True
     )
 
@@ -947,6 +961,7 @@ def setup_scheduler():
     logger.info("Branch Authority Sync scheduled for 10:00 IST and 16:00 IST daily.")
     logger.info("Owner, Showroom, Pending Order Details & Active Orders Sync scheduled for 03:00 IST daily.")
     logger.info("Supplier Capacity & Backlog Analysis Sync scheduled for 04:00 IST daily.")
+    logger.info("Party Performance Matrix Sync scheduled for 04:30 IST daily.")
     logger.info("QC Delay Summary Sync scheduled for 9:00 IST daily.")
     logger.info("HM Delay Management Sync scheduled for 9:05 IST daily.")
     logger.info("Vendor Delay Management Sync scheduled for 9:10 IST daily.")
