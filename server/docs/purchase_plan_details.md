@@ -2,7 +2,8 @@
 
 The Purchase Plan report displays `Provision Dtls` and `Sales Dtls` after
 Product Hierarchy, including every drilldown and Grand Total. Each cell shows
-pieces (up to four decimal places) and weight in grams (three decimal places).
+pieces (up to four decimal places) and weight in kilograms (three decimal places). Stored weights remain in grams;
+the display divides them by 1,000.
 
 Source: `ext_view.item_wise_tsk_summary_view`.
 
