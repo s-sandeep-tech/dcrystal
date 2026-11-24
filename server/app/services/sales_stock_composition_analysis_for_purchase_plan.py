@@ -176,6 +176,7 @@ def fetch_purchase_plan_composition_data(
     sort_by: str = 'label',
     sort_order: str = 'asc',
     hierarchy_root: str = 'section',
+    cache_shared: bool = False,
 ) -> Dict[str, Any]:
     """Calculate Sales & Stock Composition Analysis specifically for Purchase Plan.
 
@@ -298,51 +299,71 @@ def fetch_purchase_plan_composition_data(
         else_='location:' + dimension_expr('location_name')
     )
 
-    location_dates_q = db.session.query(
-        location_key_expr,
-        func.max(Snapshot.date),
-        func.min(Snapshot.min_trans_date)
-    ).group_by(location_key_expr)
+    def build_location_factors():
+        location_dates_q = db.session.query(
+            location_key_expr,
+            func.max(Snapshot.date),
+            func.min(Snapshot.min_trans_date)
+        ).group_by(location_key_expr)
 
-    if selected_date:
-        location_dates_q = location_dates_q.filter(Snapshot.date <= selected_date)
+        if selected_date:
+            location_dates_q = location_dates_q.filter(Snapshot.date <= selected_date)
 
-    branch_ids = [int(v) for v in selections.get('branch_id', []) if str(v).isdigit()]
-    if branch_ids:
-        location_dates_q = location_dates_q.filter(Snapshot.branch_id.in_(branch_ids))
+        branch_ids = [int(v) for v in selections.get('branch_id', []) if str(v).isdigit()]
+        if branch_ids:
+            location_dates_q = location_dates_q.filter(Snapshot.branch_id.in_(branch_ids))
 
-    for name in ('branch_type', 'branch_status'):
-        if selections.get(name):
-            location_dates_q = location_dates_q.filter(dimension_expr(name).in_(selections[name]))
+        for name in ('branch_type', 'branch_status'):
+            if selections.get(name):
+                location_dates_q = location_dates_q.filter(dimension_expr(name).in_(selections[name]))
 
-    location_factors: List[Dict[str, Any]] = []
-    factors_by_loc: Dict[str, float] = {}
-    projected_locations = set()
+        location_factors: List[Dict[str, Any]] = []
+        factors_by_loc: Dict[str, float] = {}
+        projected_locations = set()
 
-    for loc_key, loc_date, first_sales_date in location_dates_q.all():
-        if loc_date is None:
-            continue
-        loc_fac, l_days, l_elapsed, l_label = calculate_fy_factor(loc_date)
-        loc_fy_start = date(loc_date.year if loc_date.month >= 4 else loc_date.year - 1, 4, 1)
-        projected_days = l_days
-        if first_sales_date and loc_fy_start < first_sales_date <= loc_date:
-            projected_locations.add(loc_key)
-            projected_days -= (first_sales_date - loc_fy_start).days
-            l_elapsed = (loc_date - first_sales_date).days + 1
-            loc_fac = projected_days / l_elapsed
+        for loc_key, loc_date, first_sales_date in location_dates_q.all():
+            if loc_date is None:
+                continue
+            loc_fac, l_days, l_elapsed, l_label = calculate_fy_factor(loc_date)
+            loc_fy_start = date(loc_date.year if loc_date.month >= 4 else loc_date.year - 1, 4, 1)
+            projected_days = l_days
+            if first_sales_date and loc_fy_start < first_sales_date <= loc_date:
+                projected_locations.add(loc_key)
+                projected_days -= (first_sales_date - loc_fy_start).days
+                l_elapsed = (loc_date - first_sales_date).days + 1
+                loc_fac = projected_days / l_elapsed
 
-        factors_by_loc[loc_key] = loc_fac
-        location_factors.append({
-            'location_key': loc_key,
-            'date': loc_date.isoformat(),
-            'first_sales_date': first_sales_date.isoformat() if first_sales_date else None,
-            'includes_projection': loc_key in projected_locations,
-            'factor': loc_fac,
-            'fy_label': l_label,
-            'inclusive_fy_days': l_days,
-            'projected_days': projected_days,
-            'inclusive_elapsed_days': l_elapsed
-        })
+            factors_by_loc[loc_key] = loc_fac
+            location_factors.append({
+                'location_key': loc_key,
+                'date': loc_date.isoformat(),
+                'first_sales_date': first_sales_date.isoformat() if first_sales_date else None,
+                'includes_projection': loc_key in projected_locations,
+                'factor': loc_fac,
+                'fy_label': l_label,
+                'inclusive_fy_days': l_days,
+                'projected_days': projected_days,
+                'inclusive_elapsed_days': l_elapsed
+            })
+
+        return {
+            "location_factors": location_factors,
+            "factors_by_loc": factors_by_loc,
+            "projected_locations": sorted(projected_locations),
+        }
+
+    if cache_shared:
+        from app.services.purchase_plan_cache import cached_purchase_plan_value, normalized_selections
+        factor_filters = {k: v for k, v in selections.items()
+                          if k in ('branch_id', 'branch_type', 'branch_status')}
+        factor_data = cached_purchase_plan_value(
+            'factors', [selected_date.isoformat() if selected_date else None,
+                        normalized_selections(factor_filters)], build_location_factors)
+    else:
+        factor_data = build_location_factors()
+    location_factors = factor_data['location_factors']
+    factors_by_loc = factor_data['factors_by_loc']
+    projected_locations = set(factor_data['projected_locations'])
 
     def aggregate_sales_weights(query, group_dim=None):
         keys = [location_key_expr] if group_dim is None else [group_dim, location_key_expr]
@@ -405,18 +426,36 @@ def fetch_purchase_plan_composition_data(
             else:
                 stock_q = stock_q.filter(cast(getattr(stock_subq.c, name), String).in_(vals))
 
-    # Overall totals
-    total_sales_agg = aggregate_sales_weights(sales_q).get(None, [0.0] * 6)
+    # Overall totals are independent of the expanded path/hierarchy/sort.
+    def build_overall_totals():
+        sales = aggregate_sales_weights(sales_q).get(None, [0.0] * 6)
+        provision, quantity, shop, missing = stock_q.with_entities(
+            func.sum(stock_subq.c.provision),
+            func.sum(stock_subq.c.provision_qty),
+            func.sum(stock_subq.c.inshop_weight),
+            func.count() - func.count(stock_subq.c.inshop_weight),
+        ).one()
+        return {
+            'sales': sales,
+            'provision': float(provision or 0),
+            'quantity': float(quantity or 0),
+            'shop': None if missing else float(shop or 0),
+        }
+
+    if cache_shared:
+        totals = cached_purchase_plan_value(
+            'totals', [selected_date.isoformat() if selected_date else None,
+                       normalized_selections(selections)], build_overall_totals)
+    else:
+        totals = build_overall_totals()
+    total_sales_agg = totals['sales']
     grand_sales_pieces = None if total_sales_agg[5] else total_sales_agg[4]
     grand_sales_weight = float(total_sales_agg[0] or 0)
     grand_includes_projection = bool(total_sales_agg[3])
     grand_annual_sales_wt = None if total_sales_agg[2] else float(total_sales_agg[1] or 0)
-
-    grand_stock_weight = float(stock_q.with_entities(func.sum(stock_subq.c.provision)).scalar() or 0)
-    grand_provision_qty = float(stock_q.with_entities(func.sum(stock_subq.c.provision_qty)).scalar() or 0)
-    shop_total, shop_missing = stock_q.with_entities(func.sum(stock_subq.c.inshop_weight),
-        func.count() - func.count(stock_subq.c.inshop_weight)).one()
-    grand_shop_weight = None if shop_missing else float(shop_total or 0)
+    grand_stock_weight = totals['provision']
+    grand_provision_qty = totals['quantity']
+    grand_shop_weight = totals['shop']
 
     grand_turn_weight = compute_turn_ratio(grand_annual_sales_wt, grand_stock_weight)
 

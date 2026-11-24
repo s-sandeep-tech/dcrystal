@@ -9,7 +9,10 @@ from app.dashboard import dashboard_bp
 from app.extensions import db
 from app.models.sales_stock_composition_analysis import SalesStockCompositionAnalysisSnapshot as Snapshot
 from app.models.core import Notification
-from app.services.purchase_plan_cache import cached_purchase_plan_data
+from app.services.purchase_plan_cache import (
+    cached_purchase_plan_data, cached_purchase_plan_value,
+    measure_purchase_plan, normalized_selections,
+)
 from app.services.sales_stock_composition_analysis_for_purchase_plan import (
     HIERARCHY,
     FILTERS,
@@ -45,6 +48,7 @@ def get_selected_hierarchy_root():
 @dashboard_bp.route('/api/sales-stock-composition-analysis-for-purchase-plan/contributors')
 @jwt_required()
 @require_report_access(ROUTE_URL)
+@measure_purchase_plan('contributors')
 def sales_stock_composition_analysis_for_purchase_plan_contributors():
     try:
         path = json.loads(request.args.get('path', '[]'))
@@ -52,8 +56,13 @@ def sales_stock_composition_analysis_for_purchase_plan_contributors():
         if not isinstance(path, list) or len(path) > len(purchase_plan_hierarchy(root)) or not all(isinstance(v, str) for v in path):
             return jsonify(error='Invalid hierarchy path'), 400
         selections = {k: request.args.getlist(k) for k in FILTERS if request.args.getlist(k)}
-        return jsonify(fetch_purchase_plan_composition_data(get_selected_date(), selections, path, contributors=True,
-                                                             hierarchy_root=root))
+        selected_date = get_selected_date()
+        data = cached_purchase_plan_value(
+            'contributors', [selected_date.isoformat() if selected_date else None,
+                             normalized_selections(selections), path, root],
+            lambda: fetch_purchase_plan_composition_data(
+                selected_date, selections, path, contributors=True, hierarchy_root=root))
+        return jsonify(data)
     except (ValueError, TypeError):
         return jsonify(error='Invalid chart filters'), 400
     except Exception:
@@ -64,6 +73,7 @@ def sales_stock_composition_analysis_for_purchase_plan_contributors():
 
 @dashboard_bp.route(ROUTE_URL)
 @require_report_access(ROUTE_URL)
+@measure_purchase_plan('page')
 def sales_stock_composition_analysis_for_purchase_plan_page():
     try:
         unread_count = Notification.query.filter_by(is_read=False).count()
@@ -72,7 +82,7 @@ def sales_stock_composition_analysis_for_purchase_plan_page():
         permissions = session.get('permissions', [])
 
         factor, fy_days, elapsed_days, fy_label = calculate_fy_factor(snapshot_date or date.today())
-        filter_options = get_purchase_plan_options()
+        filter_options = cached_purchase_plan_value('options', [], get_purchase_plan_options)
 
         return render_template(
             'sales_stock_composition_analysis_for_purchase_plan.html',
@@ -106,6 +116,7 @@ def sales_stock_composition_analysis_for_purchase_plan_page():
 @dashboard_bp.route('/partial/sales-stock-composition-analysis-for-purchase-plan')
 @jwt_required()
 @require_report_access(ROUTE_URL)
+@measure_purchase_plan('main')
 def get_sales_stock_composition_analysis_for_purchase_plan_partial():
     try:
         selections = {}
@@ -126,7 +137,7 @@ def get_sales_stock_composition_analysis_for_purchase_plan_partial():
             selected_date, selections, path, sort_by, sort_order, hierarchy_root,
             lambda: fetch_purchase_plan_composition_data(
                 selected_date, selections, path=path, sort_by=sort_by,
-                sort_order=sort_order, hierarchy_root=hierarchy_root),
+                sort_order=sort_order, hierarchy_root=hierarchy_root, cache_shared=True),
         )
 
         return render_template(
@@ -160,6 +171,7 @@ def get_sales_stock_composition_analysis_for_purchase_plan_partial():
 @dashboard_bp.route('/partial/sales-stock-composition-analysis-for-purchase-plan/branch')
 @jwt_required()
 @require_report_access(ROUTE_URL)
+@measure_purchase_plan('branch')
 def get_sales_stock_composition_analysis_for_purchase_plan_branch():
     try:
         path_str = request.args.get('path', '[]')
@@ -174,9 +186,14 @@ def get_sales_stock_composition_analysis_for_purchase_plan_branch():
                 selections[k] = vals
 
         sort_by, sort_order = get_selected_sort()
-        data = fetch_purchase_plan_composition_data(get_selected_date(), selections, path=path,
-                                                   sort_by=sort_by, sort_order=sort_order,
-                                                   hierarchy_root=get_selected_hierarchy_root())
+        selected_date = get_selected_date()
+        hierarchy_root = get_selected_hierarchy_root()
+        data = cached_purchase_plan_value(
+            'branch', [selected_date.isoformat() if selected_date else None,
+                       normalized_selections(selections), path, sort_by, sort_order, hierarchy_root],
+            lambda: fetch_purchase_plan_composition_data(
+                selected_date, selections, path=path, sort_by=sort_by,
+                sort_order=sort_order, hierarchy_root=hierarchy_root, cache_shared=True))
 
         return render_template(
             'partials/_view_sales_stock_composition_analysis_for_purchase_plan_branch.html',
@@ -194,9 +211,10 @@ def get_sales_stock_composition_analysis_for_purchase_plan_branch():
 @dashboard_bp.route('/api/sales-stock-composition-analysis-for-purchase-plan/options')
 @jwt_required()
 @require_report_access(ROUTE_URL)
+@measure_purchase_plan('options')
 def sales_stock_composition_analysis_for_purchase_plan_options():
     try:
-        return jsonify(get_purchase_plan_options())
+        return jsonify(cached_purchase_plan_value('options', [], get_purchase_plan_options))
     except Exception as e:
         logger.exception("Error fetching sales_stock_composition_analysis_for_purchase_plan options: %s", str(e))
         db.session.rollback()

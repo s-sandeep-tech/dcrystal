@@ -371,8 +371,8 @@ class PurchasePlanSecurityAndRouteTests(unittest.TestCase):
             redis.setex.side_effect = lambda key, ttl, value: entries.update({key: value})
             self.assertEqual(self.client.get(endpoint + '?division=Gold', headers=self.headers()).text, '100.0')
             self.assertEqual(self.client.get(endpoint + '?division=Gold', headers=self.headers()).text, '100.0')
-            self.assertEqual(redis.setex.call_count, 1)
-            self.assertTrue(redis.setex.call_args.args[0].startswith('purchase-plan:main:v4:'))
+            self.assertEqual(redis.setex.call_count, 3)
+            self.assertTrue(redis.setex.call_args.args[0].startswith('purchase-plan:main:v5:'))
             self.assertEqual(redis.setex.call_args.args[1], 10800)
             self.assertEqual(self.client.get(endpoint + '?division=Silver', headers=self.headers()).text, '0.0')
 
@@ -380,10 +380,44 @@ class PurchasePlanSecurityAndRouteTests(unittest.TestCase):
             snapshot.synced_at = datetime(2026, 10, 1, 1)
             db.session.commit()
             self.assertEqual(self.client.get(endpoint + '?division=Gold', headers=self.headers()).text, '200.0')
-            self.assertEqual(redis.setex.call_count, 3)
+            self.assertEqual(redis.setex.call_count, 8)
 
             redis.get.side_effect = RedisConnectionError('offline')
             self.assertEqual(self.client.get(endpoint + '?division=Gold', headers=self.headers()).text, '200.0')
+
+    def test_branch_and_contributors_cache_values_paths_and_sync_refresh(self):
+        self.app.jinja_loader = FileSystemLoader(Path(__file__).resolve().parents[1] / 'app/templates')
+        from tests.test_purchase_plan_performance import MemoryRedis
+        from app.services import purchase_plan_cache as cache
+        self.role.menus.append(Menu(title='Purchase Plan',
+                                    url='/sales-stock-composition-analysis-for-purchase-plan'))
+        snapshot = Snapshot(id=1, branch_id=1, section='CHAIN', classification='PLAIN',
+                            date=date(2026, 9, 30), gross_weight=123.456,
+                            pieces=1.25, provision_weight=25, inshop_weight=10,
+                            synced_at=datetime(2026, 10, 1))
+        db.session.add(snapshot)
+        db.session.commit()
+        branch = '/partial/sales-stock-composition-analysis-for-purchase-plan/branch'
+        chart = '/api/sales-stock-composition-analysis-for-purchase-plan/contributors'
+        with patch.object(cache, 'redis_client', MemoryRedis()):
+            for endpoint in (branch, chart):
+                with self.subTest(endpoint=endpoint):
+                    kwargs = {'query_string': {'path': '["CHAIN"]'}, 'headers': self.headers()}
+                    first = self.client.get(endpoint, **kwargs)
+                    with patch(
+                        'app.dashboard.routes.sales_stock_composition_analysis_for_purchase_plan.fetch_purchase_plan_composition_data',
+                        side_effect=AssertionError('Cached request recalculated'),
+                    ):
+                        repeated = self.client.get(endpoint, **kwargs)
+                    self.assertEqual(first.data, repeated.data)
+                    other_path = self.client.get(endpoint, query_string={'path': '["OTHER"]'},
+                                                 headers=self.headers())
+                    self.assertNotEqual(first.data, other_path.data)
+                    snapshot.gross_weight += 100
+                    snapshot.synced_at = snapshot.synced_at.replace(hour=snapshot.synced_at.hour + 1)
+                    db.session.commit()
+                    refreshed = self.client.get(endpoint, **kwargs)
+                    self.assertNotEqual(first.data, refreshed.data)
 
     def test_division_make_purity_filters_passed_to_service(self):
         self.role.menus.append(Menu(title='Purchase Plan',
