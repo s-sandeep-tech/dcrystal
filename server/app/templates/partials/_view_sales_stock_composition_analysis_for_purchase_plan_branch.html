@@ -28,11 +28,11 @@
             </button>
         </div>
     </td>
-    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ details(row.provision_qty, row.provision_weight) }}</td>
-    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ details(row.sales_pieces, row.sales_weight) }}</td>
-    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.sales_composition) }}</td>
-    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.stock_composition) }}</td>
-    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{ stock_turn(row.weight_turn, row.includes_projection) }}</td>
-    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{ stock_turn(row.shop_weight_turn|default(none), row.includes_projection) }}</td>
+    <td class="px-3 py-1 text-right tabular-nums border-r border-b border-gray-200 dark:border-gray-700">{{ details(row.provision_qty, row.provision_weight) }}</td>
+    <td class="px-3 py-1 text-right tabular-nums border-r border-b border-gray-200 dark:border-gray-700">{{ details(row.sales_pieces, row.sales_weight) }}</td>
+    <td class="px-3 py-1 text-right tabular-nums border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.sales_composition) }}</td>
+    <td class="px-3 py-1 text-right tabular-nums border-r border-b border-gray-200 dark:border-gray-700">{{ format_pct(row.stock_composition) }}</td>
+    <td class="px-3 py-1 text-right tabular-nums border-b border-gray-200 dark:border-gray-700">{{ stock_turn(row.weight_turn, row.includes_projection) }}</td>
+    <td class="px-3 py-1 text-right tabular-nums border-b border-gray-200 dark:border-gray-700">{{ stock_turn(row.shop_weight_turn|default(none), row.includes_projection) }}</td>
 </tr>
 {% endfor %}

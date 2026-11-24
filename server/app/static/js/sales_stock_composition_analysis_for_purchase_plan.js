@@ -683,6 +683,8 @@ function renderContributorPanel(type, dataSection, canvasId, frameId, emptyMsgId
             plugins: {
                 legend: { display: false },
                 tooltip: {
+                    titleFont: { family: getComputedStyle(canvas).fontFamily },
+                    bodyFont: { family: getComputedStyle(canvas).fontFamily },
                     callbacks: {
                         label: ctx => {
                             const val = Number(ctx.raw);

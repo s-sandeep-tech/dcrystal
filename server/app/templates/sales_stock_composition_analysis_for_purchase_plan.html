@@ -66,12 +66,12 @@
 
     <!-- Stats Grid at Top -->
     <div
-        class="grid grid-cols-2 md:grid-cols-5 gap-2 p-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm z-10">
+        class="grid grid-cols-2 md:grid-cols-5 gap-2 p-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0 z-10">
         <!-- Stat 1: Net Sales Weight -->
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <div class="flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-[13px] text-primary">scale</span>
-                <p class="text-[9px] text-gray-500 font-bold uppercase">Net Sales Wt (YTD, kg)</p>
+                <p class="text-[10px] text-gray-500 font-medium">Net Sales Wt (YTD, kg)</p>
             </div>
             <div class="flex flex-col mt-1">
                 <p id="stat-sales-weight" class="text-base font-bold text-primary">-</p>
@@ -81,7 +81,7 @@
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <div class="flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-[13px] text-emerald-600">inventory_2</span>
-                <p class="text-[9px] text-gray-500 font-bold uppercase">Provision Wt (kg)</p>
+                <p class="text-[10px] text-gray-500 font-medium">Provision Wt (kg)</p>
             </div>
             <div class="flex flex-col mt-1">
                 <p id="stat-provision-weight" class="text-base font-bold text-emerald-600">-</p>
@@ -90,7 +90,7 @@
         <div class="p-2 border-r border-gray-100 dark:border-gray-800 text-center">
             <div class="flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-[13px] text-cyan-600">storefront</span>
-                <p class="text-[9px] text-gray-500 font-bold uppercase">Shop Weight (kg)</p>
+                <p class="text-[10px] text-gray-500 font-medium">Shop Weight (kg)</p>
             </div>
             <div class="flex flex-col mt-1">
                 <p id="stat-shop-weight" class="text-base font-bold text-cyan-600">-</p>
@@ -101,7 +101,7 @@
             title="Annualised Sales Weight divided by Provision Weight">
             <div class="flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-[13px] text-amber-600">autorenew</span>
-                <p class="text-[9px] text-gray-500 font-bold uppercase">Stock Turn (Prov Wt, times)</p>
+                <p class="text-[10px] text-gray-500 font-medium">Stock Turn (Prov Wt, times)</p>
             </div>
             <div class="flex flex-col mt-1">
                 <p id="stat-turn-weight" class="text-base font-bold text-amber-600">-</p>
@@ -110,7 +110,7 @@
         <div class="p-2 text-center" title="Annualised Sales Weight divided by Shop Weight (inshop_weight)">
             <div class="flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined text-[13px] text-violet-600">autorenew</span>
-                <p class="text-[9px] text-gray-500 font-bold uppercase">Stock Turn (Shop Wt, times)</p>
+                <p class="text-[10px] text-gray-500 font-medium">Stock Turn (Shop Wt, times)</p>
             </div>
             <div class="flex flex-col mt-1">
                 <p id="stat-shop-turn-weight" class="text-base font-bold text-violet-600">-</p>
@@ -264,7 +264,7 @@
         max-height: 94vh;
         padding: 20px 24px;
         border: 1px solid #d1d5db;
-        border-radius: 14px;
+        border-radius: 8px;
         box-sizing: border-box;
     }
 
@@ -307,7 +307,7 @@
         min-width: 0;
         background: rgba(249, 250, 251, 0.7);
         border: 1px solid #e5e7eb;
-        border-radius: 12px;
+        border-radius: 4px;
         padding: 16px;
         box-sizing: border-box;
         overflow: hidden;
@@ -408,5 +408,5 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script
-    src="{{ url_for('static', filename='js/sales_stock_composition_analysis_for_purchase_plan.js', v='20261123-branch-defaults') }}"></script>
+    src="{{ url_for('static', filename='js/sales_stock_composition_analysis_for_purchase_plan.js', v='20261124-clean-ui') }}"></script>
 {% endblock %}

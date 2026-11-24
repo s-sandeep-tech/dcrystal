@@ -50,7 +50,7 @@
                 <col class="w-[12%]">
             </colgroup>
             <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                <tr class="text-[9px] uppercase text-gray-500 font-bold tracking-wider">
+                <tr class="text-[10px] text-gray-500 font-semibold">
                     <th scope="col"
                         aria-sort="{{ ('ascending' if sort_order == 'asc' else 'descending') if sort_by == 'label' else 'none' }}"
                         class="px-3 py-1.5 border-r border-gray-200 dark:border-gray-700">
@@ -101,10 +101,10 @@
                     {% endfor %}
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-gray-700 text-[10px]">
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700 text-[11px]">
                 {% for row in rows %}
                 {% set current_path = [row.label] %}
-                <tr class="bg-white dark:bg-gray-800 font-bold hover:bg-slate-100 dark:hover:bg-gray-700/60 cursor-pointer parent-row transition-colors border-b border-gray-200 dark:border-gray-700"
+                <tr class="bg-white dark:bg-gray-800 font-semibold hover:bg-slate-100 dark:hover:bg-gray-700/60 cursor-pointer parent-row transition-colors border-b border-gray-200 dark:border-gray-700"
                     data-path='{{ current_path|tojson }}' data-depth="1" data-expanded="false"
                     onclick="togglePurchasePlanBranch(this)">
                     <td class="px-3 py-1 text-left border-r border-b border-gray-200 dark:border-gray-700 h-7">
@@ -128,25 +128,25 @@
                             </button>
                         </div>
                     </td>
-                    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ details(row.provision_qty, row.provision_weight) }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{ details(row.sales_pieces, row.sales_weight) }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{
+                    <td class="px-3 py-1 text-right tabular-nums border-r border-b border-gray-200 dark:border-gray-700">{{ details(row.provision_qty, row.provision_weight) }}</td>
+                    <td class="px-3 py-1 text-right tabular-nums border-r border-b border-gray-200 dark:border-gray-700">{{ details(row.sales_pieces, row.sales_weight) }}</td>
+                    <td class="px-3 py-1 text-right tabular-nums border-r border-b border-gray-200 dark:border-gray-700">{{
                         format_pct(row.sales_composition) }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-r border-b border-gray-200 dark:border-gray-700">{{
+                    <td class="px-3 py-1 text-right tabular-nums border-r border-b border-gray-200 dark:border-gray-700">{{
                         format_pct(row.stock_composition) }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{
+                    <td class="px-3 py-1 text-right tabular-nums border-b border-gray-200 dark:border-gray-700">{{
                         stock_turn(row.weight_turn, row.includes_projection) }}</td>
-                    <td class="px-3 py-1 text-right font-mono border-b border-gray-200 dark:border-gray-700">{{
+                    <td class="px-3 py-1 text-right tabular-nums border-b border-gray-200 dark:border-gray-700">{{
                         stock_turn(row.shop_weight_turn|default(none), row.includes_projection) }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
             {% if total %}
             <tfoot
-                class="sticky bottom-0 z-10 bg-[#d6d6d6] dark:bg-gray-700 font-bold border-t-2 border-gray-300 dark:border-gray-600 text-[10px]">
+                class="sticky bottom-0 z-10 bg-gray-100 dark:bg-gray-800 font-semibold border-t border-gray-300 dark:border-gray-600 text-[11px]">
                 <tr>
                     <td
-                        class="px-3 py-1.5 text-left border-r border-gray-300 dark:border-gray-600 h-7 uppercase tracking-wider text-gray-900 dark:text-white">
+                        class="px-3 py-1.5 text-left border-r border-gray-300 dark:border-gray-600 h-7 text-gray-900 dark:text-white">
                         <div class="flex items-center justify-between gap-1.5 h-full pl-5">
                             <span>Grand Total</span>
                             <button type="button"
@@ -157,17 +157,17 @@
                             </button>
                         </div>
                     </td>
-                    <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ details(total.provision_qty, total.provision_weight) }}</td>
-                    <td class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ details(total.sales_pieces, total.sales_weight) }}</td>
+                    <td class="px-3 py-1.5 text-right tabular-nums border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ details(total.provision_qty, total.provision_weight) }}</td>
+                    <td class="px-3 py-1.5 text-right tabular-nums border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">{{ details(total.sales_pieces, total.sales_weight) }}</td>
                     <td
-                        class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
+                        class="px-3 py-1.5 text-right tabular-nums border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
                         {{ format_pct(total.sales_composition) }}</td>
                     <td
-                        class="px-3 py-1.5 text-right font-mono border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
+                        class="px-3 py-1.5 text-right tabular-nums border-r border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
                         {{ format_pct(total.stock_composition) }}</td>
-                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white">{{
+                    <td class="px-3 py-1.5 text-right tabular-nums text-gray-900 dark:text-white">{{
                         stock_turn(total.weight_turn, total.includes_projection) }}</td>
-                    <td class="px-3 py-1.5 text-right font-mono text-gray-900 dark:text-white">{{
+                    <td class="px-3 py-1.5 text-right tabular-nums text-gray-900 dark:text-white">{{
                         stock_turn(total.shop_weight_turn|default(none), total.includes_projection) }}</td>
                 </tr>
             </tfoot>
