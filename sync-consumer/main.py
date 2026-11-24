@@ -155,6 +155,9 @@ def process_sync_queue():
                         res = sync_showroom_wise_order_summary_task()
                     elif task_type == 'owner_showroom_combined':
                         res = sync_owner_and_showroom_wise_task()
+                    elif task_type == 'online_provision_stock_status':
+                        from app.utils.online_provision_stock_sync import sync_online_provision_stock_status_data_task
+                        res = sync_online_provision_stock_status_data_task()
                     elif task_type == 'provision_stock_status':
                         res = sync_provision_stock_status_data_task()
                     elif task_type == 'hallmarking_delayed':
@@ -328,6 +331,8 @@ def process_export_queue():
                     _handle_export_pending_acceptance(task_data)
                 elif task_type == 'export_provision_allocation':
                     _handle_export_provision_allocation(task_data)
+                elif task_type == 'export_online_provision_stock_status':
+                    _handle_export_online_provision_stock_status(task_data)
                 elif task_type == 'export_location_physical_stock_status':
                     _handle_export_location_physical_stock_status(task_data)
                 elif task_type == 'export_location_provision_stock_analysis':
@@ -970,6 +975,91 @@ def setup_scheduler():
 # ─────────────────────────────────────────────────────────────────────────────
 # Entry point — run workers and scheduler
 # ─────────────────────────────────────────────────────────────────────────────
+def _handle_export_online_provision_stock_status(task_data: dict):
+    """Generate Online Provision Stock status Excel export and push a download notification."""
+    from datetime import datetime, timezone, timedelta
+    from app.models import Notification
+    from app.extensions import db, socketio
+    from app.utils.online_provision_stock_export import generate_online_provision_stock_status_export
+
+    filters = task_data.get('filters', {})
+
+    try:
+        filename = generate_online_provision_stock_status_export(filters)
+        download_url = f'/exports/download/{filename}'
+
+        notification = Notification(
+            title='Export Ready — Online Provision Stock status',
+            message='Success! Your Online Provision Stock status Excel file is ready. Open the notification window and click Download to download your file.',
+            notification_type='success',
+            icon='download',
+            priority='high',
+            user_id=task_data.get('user_id'),
+            created_at=datetime.utcnow(),
+            is_read=False,
+            action_url=download_url
+        )
+        db.session.add(notification)
+        db.session.commit()
+
+        socket_id = task_data.get('socket_id')
+        socketio_payload = {
+            'id': notification.id,
+            'title': notification.title,
+            'message': notification.message,
+            'type': notification.notification_type,
+            'icon': notification.icon,
+            'priority': notification.priority,
+            'time': notification.get_time_ago(),
+            'related_order_id': None,
+            'action_url': download_url,
+            'socket_id': socket_id,
+            'user_id': task_data.get('user_id')
+        }
+
+        # 1. Internal SocketIO emit
+        socketio.emit('new_notification', socketio_payload)
+
+        # 2. Bridge to Node.js socket server via Redis
+        redis_client.publish('global_notifications', json.dumps(socketio_payload))
+
+        logger.info(f"Online Provision Stock status export notification sent for file: {filename}")
+
+    except Exception as e:
+        logger.error(f"Online Provision Stock status export failed: {str(e)}")
+        try:
+            with flask_app.app_context():
+                notification = Notification(
+                    title='Export Failed — Online Provision Stock status',
+                    message=f'Online Provision Stock status export could not be generated. Please try again.',
+                    notification_type='error',
+                    icon='error',
+                    priority='high',
+                    user_id=task_data.get('user_id'),
+                    created_at=datetime.utcnow(),
+                    is_read=False
+                )
+                db.session.add(notification)
+                db.session.commit()
+
+                err_payload = {
+                    'id': notification.id,
+                    'title': notification.title,
+                    'message': notification.message,
+                    'type': 'error',
+                    'icon': 'error',
+                    'priority': 'high',
+                    'time': 'Just now',
+                    'action_url': None,
+                    'socket_id': task_data.get('socket_id')
+                }
+
+                socketio.emit('new_notification', err_payload)
+                redis_client.publish('global_notifications', json.dumps(err_payload))
+        except Exception as inner_e:
+            logger.error(f"Failed to send error notification: {inner_e}")
+
+
 if __name__ == "__main__":
     # Start the automated scheduler
     setup_scheduler()

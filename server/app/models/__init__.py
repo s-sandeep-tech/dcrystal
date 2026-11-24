@@ -113,3 +113,5 @@ __all__ = [
 
 
 from .nip_stock_trend import NIPStockTrendSnapshot
+
+from .online_provision_stock import OnlineProvisionStockRawSnapshot, OnlineProvisionStockRawStaging

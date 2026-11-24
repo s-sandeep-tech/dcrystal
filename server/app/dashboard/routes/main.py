@@ -919,3 +919,13 @@ def debug_origin():
     if header_value:
         return jsonify({"origin": header_value})
     return "Header Not Found"
+
+
+@dashboard_bp.route('/settings/sync-online-provision-stock-status', methods=['POST'])
+def settings_sync_online_provision_stock_status():
+    if not session.get('user_id') or ('ADMIN' not in session.get('roles', []) and 'DATA_SYNC_USER' not in session.get('roles', [])):
+        return {"status": "error", "message": "Unauthorized: Admin or Data Sync role required"}, 401
+
+    from app.utils.sync_manager import sync_online_provision_stock_status_data
+    result = sync_online_provision_stock_status_data(session.get('user_id'))
+    return result, 200 if result.get('status') == 'success' else 500

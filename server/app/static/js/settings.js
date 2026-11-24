@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         [
                             syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn,
                             syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn,
-                            syncProvisionStatusBtn, syncSizeLevelNIPBarcodeBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn,
+                            syncProvisionStatusBtn, syncOnlineProvisionStatusBtn, syncSizeLevelNIPBarcodeBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn,
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn,
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn,
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         [
                             syncOwnerShowroomBtn, syncProcessBtn, syncOutstandingPOBtn,
                             syncStageDelayBtn, syncOrderDelayBtn, syncPendingAcceptanceBtn, syncRejectedWeightBtn,
-                            syncProvisionStatusBtn, syncSizeLevelNIPBarcodeBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn,
+                            syncProvisionStatusBtn, syncOnlineProvisionStatusBtn, syncSizeLevelNIPBarcodeBtn, syncHallmarkingDelayedBtn, syncQCDelayedBtn, syncOrderProcessingPendingBtn,
                             syncSupplierHMIssueBtn, syncHMReturnPendingBtn, syncHMQCIssuePendingBtn, syncSupplierQCIssueReceiptBtn,
                             syncQCCompletedInvoiceBtn, syncInvoiceCompletedDeliverBtn, syncBranchAuthorityBtn,
                             syncQCDelayManagementBtn, syncHMDelayManagementBtn, syncPartyDelayManagementBtn, syncOrderFulfillmentAgingMatrixBtn,
@@ -179,6 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncOrderDelayBtn = document.getElementById('sync-order-delay-btn');
     const syncPendingAcceptanceBtn = document.getElementById('sync-pending-acceptance-btn');
     const syncRejectedWeightBtn = document.getElementById('sync-rejected-weight-btn');
+    const syncOnlineProvisionStatusBtn = document.getElementById('sync-online-provision-status-btn');
     const syncProvisionStatusBtn = document.getElementById('sync-provision-status-btn');
     const syncSizeLevelNIPBarcodeBtn = document.getElementById('sync-size-level-nip-barcode-btn');
     const syncHallmarkingDelayedBtn = document.getElementById('sync-hallmarking-delayed-btn');
@@ -287,6 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (syncOrderDelayBtn) syncOrderDelayBtn.addEventListener('click', () => triggerSync(syncOrderDelayBtn, window.SETTINGS_CONFIG.syncOrderDelayUrl, 'Order Delay Sync', 'order_delay_tracking'));
     if (syncPendingAcceptanceBtn) syncPendingAcceptanceBtn.addEventListener('click', () => triggerSync(syncPendingAcceptanceBtn, window.SETTINGS_CONFIG.syncPendingAcceptanceUrl, 'Pending Acceptance Sync', 'pending_acceptance'));
     if (syncRejectedWeightBtn) syncRejectedWeightBtn.addEventListener('click', () => triggerSync(syncRejectedWeightBtn, window.SETTINGS_CONFIG.syncRejectedWeightUrl, 'Rejected Weight Sync', 'rejected_weight'));
+    if (syncOnlineProvisionStatusBtn) syncOnlineProvisionStatusBtn.addEventListener('click', () => triggerSync(syncOnlineProvisionStatusBtn, window.SETTINGS_CONFIG.syncOnlineProvisionStatusUrl, 'Online Provision Stock status', 'online_provision_stock_status'));
     if (syncProvisionStatusBtn) syncProvisionStatusBtn.addEventListener('click', () => triggerSync(syncProvisionStatusBtn, window.SETTINGS_CONFIG.syncProvisionStatusUrl, 'Provision & Stock Status Sync', 'provision_stock_status'));
     if (syncSizeLevelNIPBarcodeBtn) syncSizeLevelNIPBarcodeBtn.addEventListener('click', () => triggerSync(syncSizeLevelNIPBarcodeBtn, window.SETTINGS_CONFIG.syncStockDrilldownDetailsUrl, 'Stock Drill-down Details Sync', 'stock_drilldown_details'));
     if (syncHallmarkingDelayedBtn) syncHallmarkingDelayedBtn.addEventListener('click', () => triggerSync(syncHallmarkingDelayedBtn, window.SETTINGS_CONFIG.syncHallmarkingDelayedUrl, 'Hallmarking Delayed Sync', 'hallmarking_delayed'));

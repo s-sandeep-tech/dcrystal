@@ -1,0 +1,1840 @@
+from flask import render_template, request, jsonify, session
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.dashboard import dashboard_bp
+from app.models.online_provision_stock import OnlineProvisionStockRawSnapshot
+from app.models.snapshots import BranchAuthoritySnapshot
+from app.extensions import db, redis_client
+from app.utils.sync_manager import sync_online_provision_stock_status_data
+from app.utils.cache_utils import generate_cache_key
+from sqlalchemy import func, text, cast, Integer
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from app.utils.decorators import require_perm, require_report_access, require_role
+from app.utils.stock_processed_order_sync import COMBINED_TASK, IDENTITY_FIELDS, TASK as PROCESSED_ORDER_TASK
+import logging
+import json
+
+logger = logging.getLogger(__name__)
+
+FRANCHISE_INDIA_HEAD_ROLE = 'FRANCHISE_INDIA_HEAD'
+FRANCHISE_INDIA_BRANCH_TYPE = 'FRANCHISE_SHOP'
+
+
+def is_franchise_india_head(roles):
+    return FRANCHISE_INDIA_HEAD_ROLE in roles and 'SUPER_ADMIN' not in roles
+
+
+def apply_franchise_india_branch_filter(query, roles):
+    if is_franchise_india_head(roles):
+        return query.filter(OnlineProvisionStockRawSnapshot.branch_type == FRANCHISE_INDIA_BRANCH_TYPE)
+    return query
+
+
+def apply_franchise_india_branch_param(params, roles):
+    if is_franchise_india_head(roles):
+        params['branch_type'] = FRANCHISE_INDIA_BRANCH_TYPE
+
+
+@dashboard_bp.route('/online-provision-stock-status')
+@require_report_access('/online-provision-stock-status')
+def online_provision_stock_status():
+    try:
+        snapshot_date = db.session.query(func.max(OnlineProvisionStockRawSnapshot.snapshot_date)).scalar()
+        is_today = True
+        if snapshot_date:
+            sync_time = snapshot_date.strftime("%d, %I:%M %p")
+            today_date = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+            if snapshot_date.date() == today_date:
+                is_today = True
+            else:
+                is_today = False
+        else:
+            sync_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d, %I:%M %p")
+
+        roles = [r.upper() for r in session.get('roles', [])]
+        base_q = db.session.query(OnlineProvisionStockRawSnapshot)
+        base_q = apply_franchise_india_branch_filter(base_q, roles)
+        divisions = [r[0] for r in base_q.with_entities(OnlineProvisionStockRawSnapshot.division.distinct()).order_by(OnlineProvisionStockRawSnapshot.division).all() if r[0]]
+            
+        return render_template('online_provision_stock_status.html', sync_time=sync_time, is_today=is_today,
+                               snapshot_version=snapshot_date.isoformat() if snapshot_date else '',
+                               divisions=divisions)
+    except Exception as e:
+        logger.error(f"Error in online_provision_stock_status: {str(e)}")
+        return f"Error: {str(e)}", 500
+
+@dashboard_bp.route('/api/online-provision-stock-status/options')
+@require_report_access('/online-provision-stock-status')
+def online_provision_stock_status_options():
+    try:
+        # Role-based filtering for Business Head
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(r in roles for r in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        is_business_head = 'BUSINESS_HEAD' in roles
+        is_showroom_manager = 'SHOWROOM_MANAGER' in roles
+        user_id = session.get('user_id')
+
+        # Get authorized branch IDs if showroom manager
+        authorized_branch_ids = []
+        if not is_admin and not is_manager and is_showroom_manager and user_id:
+            try:
+                emp_code_int = int(user_id)
+                auth_records = BranchAuthoritySnapshot.query.filter_by(emp_code=emp_code_int).all()
+                authorized_branch_ids = [r.branch_id for r in auth_records]
+            except (ValueError, TypeError):
+                pass
+
+        # Check cache first
+        snapshot_date = db.session.query(func.max(OnlineProvisionStockRawSnapshot.snapshot_date)).scalar()
+        date_str = snapshot_date.isoformat() if snapshot_date else "latest"
+        
+        # Role-aware cache key
+        cache_suffix = "all"
+        if is_franchise_india_head(roles):
+            cache_suffix = "franchise_india_head"
+        elif not is_admin and not is_manager:
+            if is_business_head and user_id:
+                cache_suffix = f"bh_{user_id}"
+            elif is_showroom_manager and user_id:
+                cache_suffix = f"sm_{user_id}"
+            
+        cache_key = f"online_provision_stock_status_options_v2:{date_str}:{cache_suffix}"
+        
+        cached_data = redis_client.get(cache_key)
+        if cached_data:
+            parsed = json.loads(cached_data)
+            if 'divisions' in parsed:
+                redis_client.expire(cache_key, 18000)  # Sliding expiry
+                return jsonify(parsed)
+
+        base_q = db.session.query(OnlineProvisionStockRawSnapshot)
+        base_q = apply_franchise_india_branch_filter(base_q, roles)
+        if not is_admin and not is_manager:
+            if is_business_head and user_id:
+                base_q = base_q.filter(OnlineProvisionStockRawSnapshot.business_head_emp_code == user_id)
+            elif is_showroom_manager and authorized_branch_ids:
+                base_q = base_q.filter(OnlineProvisionStockRawSnapshot.branch_id.in_(authorized_branch_ids))
+            elif is_showroom_manager and not authorized_branch_ids:
+                # If showroom manager but no branch authority records found, return empty results
+                base_q = base_q.filter(False)
+
+        # Query distinct values for filters from the local raw snapshot
+        locations = [r[0] for r in base_q.with_entities(OnlineProvisionStockRawSnapshot.location.distinct()).order_by(OnlineProvisionStockRawSnapshot.location).all() if r[0]]
+        divisions = [r[0] for r in base_q.with_entities(OnlineProvisionStockRawSnapshot.division.distinct()).order_by(OnlineProvisionStockRawSnapshot.division).all() if r[0]]
+        purities = [float(r[0]) for r in base_q.with_entities(OnlineProvisionStockRawSnapshot.purity.distinct()).order_by(OnlineProvisionStockRawSnapshot.purity).all() if r[0]]
+        classifications = [r[0] for r in base_q.with_entities(OnlineProvisionStockRawSnapshot.classification.distinct()).order_by(OnlineProvisionStockRawSnapshot.classification).all() if r[0]]
+        # makes and collections removed for dynamic loading
+        sections = [r[0] for r in base_q.with_entities(OnlineProvisionStockRawSnapshot.section.distinct()).order_by(OnlineProvisionStockRawSnapshot.section).all() if r[0]]
+        prov_types = [r[0] for r in base_q.with_entities(OnlineProvisionStockRawSnapshot.prov_type.distinct()).order_by(OnlineProvisionStockRawSnapshot.prov_type).all() if r[0]]
+        provision_modes = [r[0] for r in base_q.with_entities(OnlineProvisionStockRawSnapshot.provision_mode_filter.distinct()).order_by(OnlineProvisionStockRawSnapshot.provision_mode_filter).all() if r[0]]
+        branch_types = [r[0] for r in base_q.with_entities(OnlineProvisionStockRawSnapshot.branch_type.distinct()).order_by(OnlineProvisionStockRawSnapshot.branch_type).all() if r[0]]
+        branch_statuses = [r[0] for r in base_q.with_entities(OnlineProvisionStockRawSnapshot.branch_status.distinct()).order_by(OnlineProvisionStockRawSnapshot.branch_status).all() if r[0]]
+        business_heads = [r[0] for r in base_q.with_entities(OnlineProvisionStockRawSnapshot.business_head_name.distinct()).order_by(OnlineProvisionStockRawSnapshot.business_head_name).all() if r[0]]
+        states = [r[0] for r in base_q.with_entities(OnlineProvisionStockRawSnapshot.state.distinct()).order_by(OnlineProvisionStockRawSnapshot.state).all() if r[0]]
+
+        data = {
+            'locations': locations,
+            'divisions': divisions,
+            'purities': purities,
+            'classifications': classifications,
+            'sections': sections,
+            'prov_types': prov_types,
+            'provision_modes': provision_modes,
+            'branch_types': branch_types,
+            'branch_statuses': branch_statuses,
+            'business_heads': business_heads,
+            'states': states
+        }
+        
+        # Cache for 5 hours as requested
+        redis_client.setex(cache_key, 18000, json.dumps(data))
+
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@dashboard_bp.route('/api/online-provision-stock-status/collections/search')
+@require_report_access('/online-provision-stock-status')
+def online_provision_stock_status_collections_search():
+    try:
+        q = request.args.get('q', '').strip()
+        division = request.args.get('division', '').strip()
+        
+        # Role-based filtering (identical logic to options API)
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(r in roles for r in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        is_business_head = 'BUSINESS_HEAD' in roles
+        is_showroom_manager = 'SHOWROOM_MANAGER' in roles
+        user_id = session.get('user_id')
+
+        base_q = db.session.query(OnlineProvisionStockRawSnapshot.collection.distinct())
+        base_q = apply_franchise_india_branch_filter(base_q, roles)
+        
+        if not is_admin and not is_manager:
+            if is_business_head and user_id:
+                base_q = base_q.filter(OnlineProvisionStockRawSnapshot.business_head_emp_code == user_id)
+            elif is_showroom_manager:
+                emp_code_int = int(user_id)
+                auth_records = BranchAuthoritySnapshot.query.filter_by(emp_code=emp_code_int).all()
+                authorized_branch_ids = [r.branch_id for r in auth_records]
+                if authorized_branch_ids:
+                    base_q = base_q.filter(OnlineProvisionStockRawSnapshot.branch_id.in_(authorized_branch_ids))
+                else:
+                    return jsonify([])
+
+        if division:
+            base_q = base_q.filter(func.upper(OnlineProvisionStockRawSnapshot.division) == division.upper())
+
+        if q:
+            base_q = base_q.filter(OnlineProvisionStockRawSnapshot.collection.ilike(f'%{q}%'))
+        
+        # Limit results for performance
+        collections = [r[0] for r in base_q.order_by(OnlineProvisionStockRawSnapshot.collection).limit(50).all() if r[0]]
+        
+        return jsonify(collections)
+    except Exception as e:
+        logger.error(f"Error in collections search: {str(e)}")
+        return jsonify([]), 500
+
+@dashboard_bp.route('/api/online-provision-stock-status/makes/search')
+@require_report_access('/online-provision-stock-status')
+def online_provision_stock_status_makes_search():
+    try:
+        q = request.args.get('q', '').strip()
+        division = request.args.get('division', '').strip()
+        
+        # Role-based filtering
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(r in roles for r in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        is_business_head = 'BUSINESS_HEAD' in roles
+        is_showroom_manager = 'SHOWROOM_MANAGER' in roles
+        user_id = session.get('user_id')
+
+        base_q = db.session.query(OnlineProvisionStockRawSnapshot.make.distinct())
+        base_q = apply_franchise_india_branch_filter(base_q, roles)
+        
+        if not is_admin and not is_manager:
+            if is_business_head and user_id:
+                base_q = base_q.filter(OnlineProvisionStockRawSnapshot.business_head_emp_code == user_id)
+            elif is_showroom_manager:
+                emp_code_int = int(user_id)
+                auth_records = BranchAuthoritySnapshot.query.filter_by(emp_code=emp_code_int).all()
+                authorized_branch_ids = [r.branch_id for r in auth_records]
+                if authorized_branch_ids:
+                    base_q = base_q.filter(OnlineProvisionStockRawSnapshot.branch_id.in_(authorized_branch_ids))
+                else:
+                    return jsonify([])
+
+        if division:
+            base_q = base_q.filter(func.upper(OnlineProvisionStockRawSnapshot.division) == division.upper())
+
+        if q:
+            base_q = base_q.filter(OnlineProvisionStockRawSnapshot.make.ilike(f'%{q}%'))
+        
+        # Limit results for performance
+        makes = [r[0] for r in base_q.order_by(OnlineProvisionStockRawSnapshot.make).limit(50).all() if r[0]]
+        
+        return jsonify(makes)
+    except Exception as e:
+        logger.error(f"Error in makes search: {str(e)}")
+        return jsonify([]), 500
+
+@dashboard_bp.route('/partial/online-provision-stock-status')
+@require_report_access('/online-provision-stock-status')
+def get_online_provision_stock_status_partial():
+    try:
+        # Read filters from request
+        location = request.args.get('location', '')
+        division = request.args.get('division', 'Gold' if 'division' not in request.args else '')
+        purity = request.args.get('purity', '')
+        classification = request.args.get('classification', '')
+        make = request.args.get('make', '')
+        collection = request.args.get('collection', '')
+        section = request.args.get('section', '')
+        prov_type = request.args.get('prov_type', '')
+        provision_mode = request.args.get('provision_mode', '')
+        branch_type = request.args.get('branch_type', '')
+        branch_status = request.args.get('branch_status', '')
+        business_head = request.args.get('business_head', '')
+        state = request.args.get('state', '')
+        sort_by = request.args.get('sort_by', '')
+        sort_order = request.args.get('sort_order', 'asc')
+
+        params = {
+            'location': location if location else None,
+            'division': division if division else None,
+            'state': state if state else None,
+            'purity': purity if purity else None,
+            'classification': classification if classification else None,
+            'make': make if make else None,
+            'collection': collection if collection else None,
+            'section': section if section else None,
+            'prov_type': prov_type if prov_type else None,
+            'provision_mode': provision_mode if provision_mode else None,
+            'branch_type': branch_type if branch_type else None,
+            'branch_status': branch_status if branch_status else None,
+            'business_head': business_head if business_head else None,
+            'bh_emp_code': None,
+            'authorized_branch_ids': None,
+            'sort_by': sort_by if sort_by else None,
+            'sort_order': sort_order if sort_order else None
+        }
+
+        # Role-based filtering for Business Head
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(r in roles for r in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        is_business_head = 'BUSINESS_HEAD' in roles
+        is_showroom_manager = 'SHOWROOM_MANAGER' in roles
+        user_id = session.get('user_id')
+
+        apply_franchise_india_branch_param(params, roles)
+
+        if not is_admin and not is_manager:
+            if is_business_head and user_id:
+                params['bh_emp_code'] = user_id
+            elif is_showroom_manager and user_id:
+                try:
+                    emp_code_int = int(user_id)
+                    auth_records = BranchAuthoritySnapshot.query.filter_by(emp_code=emp_code_int).all()
+                    branch_ids = [r.branch_id for r in auth_records]
+                    if branch_ids:
+                        params['authorized_branch_ids'] = ','.join(map(str, branch_ids))
+                    else:
+                        params['authorized_branch_ids'] = '-1' # Force empty
+                except (ValueError, TypeError):
+                    params['authorized_branch_ids'] = '-1'
+
+        # Redis Caching Logic
+        snapshot_date = db.session.query(func.max(OnlineProvisionStockRawSnapshot.snapshot_date)).scalar()
+        cache_key = generate_cache_key("online_provision_stock_status_partial_v3_section_provision", snapshot_date,
+                                       snapshot_version=snapshot_date.isoformat() if snapshot_date else 'empty', **params)
+        
+        cached_html = redis_client.get(cache_key)
+        if cached_html:
+            redis_client.expire(cache_key, 18000)  # Sliding expiry
+            return cached_html
+
+        # Dynamic Pivot Query
+        query = """
+WITH base AS (
+    SELECT *
+    FROM online_provision_stock_raw_snapshot
+    WHERE 
+        (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
+        AND (:division IS NULL OR UPPER(division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
+        AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
+        AND (:purity IS NULL OR purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
+        AND (:classification IS NULL OR classification = ANY(string_to_array(CAST(:classification AS text), ',')))
+        AND (:make IS NULL OR make = ANY(string_to_array(CAST(:make AS text), ',')))
+        AND (:collection IS NULL OR collection = ANY(string_to_array(CAST(:collection AS text), ',')))
+        AND (:section IS NULL OR section = ANY(string_to_array(CAST(:section AS text), ',')))
+        AND (:prov_type IS NULL OR prov_type = ANY(string_to_array(CAST(:prov_type AS text), ',')))
+        AND (:provision_mode IS NULL OR provision_mode_filter = ANY(string_to_array(CAST(:provision_mode AS text), ',')))
+        AND (:branch_type IS NULL OR branch_type = ANY(string_to_array(CAST(:branch_type AS text), ',')))
+        AND (:branch_status IS NULL OR branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
+        AND (:business_head IS NULL OR business_head_name = ANY(string_to_array(CAST(:business_head AS text), ',')))
+        AND (:bh_emp_code IS NULL OR business_head_emp_code = :bh_emp_code)
+        AND (:authorized_branch_ids IS NULL OR branch_id = ANY(string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]))
+),
+location_summary AS (
+    SELECT
+        location::text AS location,
+        'Location Summary'::text AS report_section,
+        location::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        1 AS is_parent,
+        SUM(prov_pieces) AS prov_pcs,
+        SUM(prov_gr_wt) AS prov_gr_wt,
+        SUM(in_shop_wt) AS in_shop_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(in_transit_wt) AS in_transit_wt,
+        SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+        ROUND(
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+        ) AS percent,
+        1 AS section_sort,
+        1 AS row_sort
+    FROM base
+    GROUP BY location
+),
+purity_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        'Purity Wise'::text AS report_section,
+        purity::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        1 AS is_parent,
+        NULL::numeric AS prov_pcs,
+        SUM(prov_gr_wt) AS prov_gr_wt,
+        SUM(in_shop_wt) AS in_shop_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(in_transit_wt) AS in_transit_wt,
+        SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+        ROUND(
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+        ) AS percent,
+        2 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY purity) AS row_sort
+    FROM base
+    GROUP BY purity
+),
+classification_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        x.report_section,
+        x.report_label,
+        x.classification,
+        x.sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        x.is_parent,
+        x.prov_pcs,
+        x.prov_gr_wt,
+        x.in_shop_wt,
+        x.ordered_wt,
+        x.in_transit_wt,
+        x.short_excess_wt,
+        x.percent,
+        3 AS section_sort,
+        ROW_NUMBER() OVER (
+            ORDER BY x.classification, x.level_order, x.sub_classification NULLS FIRST
+        ) AS row_sort
+    FROM (
+        SELECT
+            'Classification Wise'::text AS report_section,
+            classification::text AS report_label,
+            classification::text AS classification,
+            NULL::text AS sub_classification,
+            1 AS is_parent,
+            NULL::numeric AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            0 AS level_order
+        FROM base
+        GROUP BY classification
+
+        UNION ALL
+
+        SELECT
+            'Classification Wise'::text AS report_section,
+            '   ' || COALESCE(sub_classification::text, 'Unknown') AS report_label,
+            classification::text AS classification,
+            COALESCE(sub_classification::text, 'Unknown') AS sub_classification,
+            0 AS is_parent,
+            NULL::numeric AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            1 AS level_order
+        FROM base
+        GROUP BY classification, sub_classification
+    ) x
+),
+collection_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        x.report_section,
+        x.report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        x.collection,
+        x.sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        x.is_parent,
+        x.prov_pcs,
+        x.prov_gr_wt,
+        x.in_shop_wt,
+        x.ordered_wt,
+        x.in_transit_wt,
+        x.short_excess_wt,
+        x.percent,
+        10 AS section_sort,
+        ROW_NUMBER() OVER (
+            ORDER BY x.collection, x.level_order, x.sub_section NULLS FIRST
+        ) AS row_sort
+    FROM (
+        SELECT
+            'Collection Wise'::text AS report_section,
+            collection::text AS report_label,
+            collection::text AS collection,
+            NULL::text AS sub_section,
+            1 AS is_parent,
+            NULL::numeric AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            0 AS level_order
+        FROM base
+        GROUP BY collection
+
+        UNION ALL
+
+        SELECT
+            'Collection Wise'::text AS report_section,
+            '   ' || COALESCE(sub_section::text, 'Unknown') AS report_label,
+            collection::text AS collection,
+            COALESCE(sub_section::text, 'Unknown') AS sub_section,
+            0 AS is_parent,
+            NULL::numeric AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            1 AS level_order
+        FROM base
+        GROUP BY collection, sub_section
+    ) x
+),
+section_details_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        x.report_section,
+        x.report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        x.sec_name,
+        x.typ_name,
+        x.is_parent,
+        x.prov_pcs,
+        x.prov_gr_wt,
+        x.in_shop_wt,
+        x.ordered_wt,
+        x.in_transit_wt,
+        x.short_excess_wt,
+        x.percent,
+        9 AS section_sort,
+        ROW_NUMBER() OVER (
+            ORDER BY x.sec_name, x.level_order, x.typ_name NULLS FIRST
+        ) AS row_sort
+    FROM (
+        SELECT
+            'Section Details'::text AS report_section,
+            section::text AS report_label,
+            section::text AS sec_name,
+            NULL::text AS typ_name,
+            1 AS is_parent,
+            SUM(prov_pieces) AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            0 AS level_order
+        FROM base
+        GROUP BY section
+
+        UNION ALL
+
+        SELECT
+            'Section Details'::text AS report_section,
+            '   ' || COALESCE(type::text, 'Unknown') AS report_label,
+            section::text AS sec_name,
+            COALESCE(type::text, 'Unknown') AS typ_name,
+            0 AS is_parent,
+            SUM(prov_pieces) AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            1 AS level_order
+        FROM base
+        GROUP BY section, type
+    ) x
+),
+section_provision_details_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        x.report_section,
+        x.report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        x.sec_name,
+        x.typ_name,
+        x.is_parent,
+        x.prov_pcs,
+        x.prov_gr_wt,
+        x.in_shop_wt,
+        x.ordered_wt,
+        x.in_transit_wt,
+        x.short_excess_wt,
+        x.percent,
+        10 AS section_sort,
+        ROW_NUMBER() OVER (
+            ORDER BY x.sec_name, x.level_order, x.typ_name NULLS FIRST
+        ) AS row_sort
+    FROM (
+        SELECT
+            'Section Details – Pro. Type'::text AS report_section,
+            section::text AS report_label,
+            section::text AS sec_name,
+            NULL::text AS typ_name,
+            1 AS is_parent,
+            SUM(prov_pieces) AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            0 AS level_order
+        FROM base
+        GROUP BY section
+
+        UNION ALL
+
+        SELECT
+            'Section Details – Pro. Type'::text AS report_section,
+            '   ' || COALESCE(NULLIF(BTRIM(prov_type), ''), 'Unspecified') AS report_label,
+            section::text AS sec_name,
+            COALESCE(NULLIF(BTRIM(prov_type), ''), 'Unspecified') AS typ_name,
+            0 AS is_parent,
+            SUM(prov_pieces) AS prov_pcs,
+            SUM(prov_gr_wt) AS prov_gr_wt,
+            SUM(in_shop_wt) AS in_shop_wt,
+            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+            SUM(in_transit_wt) AS in_transit_wt,
+            SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+            ROUND(
+                CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+            ) AS percent,
+            1 AS level_order
+        FROM base
+        GROUP BY section, COALESCE(NULLIF(BTRIM(prov_type), ''), 'Unspecified')
+    ) x
+),
+make_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        'Make Wise'::text AS report_section,
+        make::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        1 AS is_parent,
+        NULL::numeric AS prov_pcs,
+        SUM(prov_gr_wt) AS prov_gr_wt,
+        SUM(in_shop_wt) AS in_shop_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(in_transit_wt) AS in_transit_wt,
+        SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+        ROUND(
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+        ) AS percent,
+        5 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY make) AS row_sort
+    FROM base
+    GROUP BY make
+),
+prov_type_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        'Provision Type Wise'::text AS report_section,
+        prov_type::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        1 AS is_parent,
+        NULL::numeric AS prov_pcs,
+        SUM(prov_gr_wt) AS prov_gr_wt,
+        SUM(in_shop_wt) AS in_shop_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(in_transit_wt) AS in_transit_wt,
+        SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+        ROUND(
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+        ) AS percent,
+        6 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY prov_type) AS row_sort
+    FROM base
+    GROUP BY prov_type
+),
+section_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        'Section Wise'::text AS report_section,
+        section::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        1 AS is_parent,
+        SUM(prov_pieces) AS prov_pcs,
+        SUM(prov_gr_wt) AS prov_gr_wt,
+        SUM(in_shop_wt) AS in_shop_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(in_transit_wt) AS in_transit_wt,
+        SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+        ROUND(
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+        ) AS percent,
+        7 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY section) AS row_sort
+    FROM base
+    GROUP BY section
+),
+provision_mode_wise AS (
+    SELECT
+        'SUMMARY'::text AS location,
+        'Provision Mode Wise'::text AS report_section,
+        provision_mode_filter::text AS report_label,
+        NULL::text AS classification,
+        NULL::text AS sub_classification,
+        NULL::text AS collection,
+        NULL::text AS sub_section,
+        NULL::text AS sec_name,
+        NULL::text AS typ_name,
+        1 AS is_parent,
+        NULL::numeric AS prov_pcs,
+        SUM(prov_gr_wt) AS prov_gr_wt,
+        SUM(in_shop_wt) AS in_shop_wt,
+        SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) AS ordered_wt,
+        SUM(in_transit_wt) AS in_transit_wt,
+        SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt) AS short_excess_wt,
+        ROUND(
+            CASE WHEN SUM(prov_gr_wt) = 0 THEN 0 ELSE (SUM(in_shop_wt) + SUM(in_transit_wt) - SUM(prov_gr_wt)) * 100.0 / SUM(prov_gr_wt) END, 2
+        ) AS percent,
+        8 AS section_sort,
+        ROW_NUMBER() OVER (ORDER BY provision_mode_filter) AS row_sort
+    FROM base
+    GROUP BY provision_mode_filter
+),
+combined_report AS (
+    SELECT * FROM location_summary
+    UNION ALL
+    SELECT * FROM purity_wise
+    UNION ALL
+    SELECT * FROM classification_wise
+    UNION ALL
+    SELECT * FROM collection_wise
+    UNION ALL
+    SELECT * FROM make_wise
+    UNION ALL
+    SELECT * FROM prov_type_wise
+    UNION ALL
+    SELECT * FROM section_wise
+    UNION ALL
+    SELECT * FROM provision_mode_wise
+    UNION ALL
+    SELECT * FROM section_details_wise
+    UNION ALL
+    SELECT * FROM section_provision_details_wise
+)
+
+SELECT
+    location,
+    report_section,
+    report_label,
+    classification,
+    sub_classification,
+    collection,
+    sub_section,
+    sec_name,
+    typ_name,
+    is_parent,
+    prov_pcs,
+    prov_gr_wt,
+    in_shop_wt,
+    ordered_wt,
+    in_transit_wt,
+    short_excess_wt,
+    percent,
+    section_sort,
+    row_sort
+FROM combined_report
+ORDER BY
+    location,
+    section_sort,
+    row_sort        """
+        
+        result = db.session.execute(text(query), params)
+        rows = [dict(r._mapping) for r in result]
+
+        # General In-memory sorting for all report sections
+        numeric_cols = ['prov_pcs', 'prov_gr_wt', 'in_shop_wt', 'ordered_wt', 'in_transit_wt', 'short_excess_wt', 'percent']
+        if sort_by in numeric_cols:
+            sections = {}
+            for row in rows:
+                section_name = row['report_section']
+                if section_name not in sections:
+                    sections[section_name] = []
+                sections[section_name].append(row)
+            
+            all_sorted_rows = []
+            sorted_section_names = sorted(sections.keys(), key=lambda s: sections[s][0]['section_sort'])
+            
+            for s in sorted_section_names:
+                sec_rows = sections[s]
+                if s in ['Classification Wise', 'Collection Wise', 'Section Details', 'Section Details – Pro. Type']:
+                    # Hierarchical sorting
+                    key = 'classification' if s == 'Classification Wise' else ('collection' if s == 'Collection Wise' else 'sec_name')
+                    
+                    parents = [r for r in sec_rows if r['is_parent'] == 1]
+                    parents.sort(key=lambda r: float(r.get(sort_by) or 0), reverse=(sort_order == 'desc'))
+                    
+                    for p in parents:
+                        all_sorted_rows.append(p)
+                        children = [r for r in sec_rows if r['is_parent'] == 0 and r.get(key) == p.get(key)]
+                        children.sort(key=lambda r: float(r.get(sort_by) or 0), reverse=(sort_order == 'desc'))
+                        all_sorted_rows.extend(children)
+                else:
+                    # Flat sorting
+                    sec_rows.sort(key=lambda r: float(r.get(sort_by) or 0), reverse=(sort_order == 'desc'))
+                    all_sorted_rows.extend(sec_rows)
+            
+            rows = all_sorted_rows
+        
+        rendered_html = render_template('partials/_view_online_provision_stock_status.html', 
+                                      rows=rows, 
+                                      sort_by=sort_by, 
+                                      sort_order=sort_order)
+        
+        # Cache for 5 hours as requested
+        redis_client.setex(cache_key, 18000, rendered_html)
+        
+        return rendered_html
+
+    except Exception as e:
+        logger.error(f"Error in get_online_provision_stock_status_partial: {str(e)}")
+        return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
+
+@dashboard_bp.route('/api/online-provision-stock-status/drilldown')
+@require_report_access('/online-provision-stock-status')
+def get_online_provision_stock_status_drilldown():
+    try:
+        # Read filters from request
+        location = request.args.get('location', '')
+        division = request.args.get('division', '')
+        purity = request.args.get('purity', '')
+        classification = request.args.get('classification', '')
+        make = request.args.get('make', '')
+        collection = request.args.get('collection', '')
+        section = request.args.get('section', '')
+        prov_type = request.args.get('prov_type', '')
+        provision_mode = request.args.get('provision_mode', '')
+        branch_type = request.args.get('branch_type', '')
+        branch_status = request.args.get('branch_status', '')
+        business_head = request.args.get('business_head', '')
+        state = request.args.get('state', '')
+        
+        # Specific filter for the clicked section
+        drill_section = request.args.get('drill_section', '')
+
+        params = {
+            'location': location if location else None,
+            'division': division if division else None,
+            'purity': purity if purity else None,
+            'classification': classification if classification else None,
+            'make': make if make else None,
+            'collection': collection if collection else None,
+            'section': section if section else None,
+            'prov_type': prov_type if prov_type else None,
+            'provision_mode': provision_mode if provision_mode else None,
+            'branch_type': branch_type if branch_type else None,
+            'branch_status': branch_status if branch_status else None,
+            'business_head': business_head if business_head else None,
+            'state': state if state else None,
+            'bh_emp_code': None,
+            'authorized_branch_ids': None,
+            'drill_section': drill_section if drill_section else None
+        }
+
+        # Role-based filtering for Business Head
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(r in roles for r in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        is_business_head = 'BUSINESS_HEAD' in roles
+        is_showroom_manager = 'SHOWROOM_MANAGER' in roles
+        user_id = session.get('user_id')
+
+        apply_franchise_india_branch_param(params, roles)
+
+        if not is_admin and not is_manager:
+            if is_business_head and user_id:
+                params['bh_emp_code'] = user_id
+            elif is_showroom_manager and user_id:
+                try:
+                    emp_code_int = int(user_id)
+                    auth_records = BranchAuthoritySnapshot.query.filter_by(emp_code=emp_code_int).all()
+                    branch_ids = [r.branch_id for r in auth_records]
+                    if branch_ids:
+                        params['authorized_branch_ids'] = ','.join(map(str, branch_ids))
+                    else:
+                        params['authorized_branch_ids'] = '-1' # Force empty
+                except (ValueError, TypeError):
+                    params['authorized_branch_ids'] = '-1'
+
+        # Hierarchical Query for Modal (Location Physical logic minus ordered_wt in short_excess)
+        query = '''
+WITH base AS (
+    SELECT *
+    FROM online_provision_stock_raw_snapshot
+    WHERE 
+        (:location IS NULL OR location = ANY(string_to_array(CAST(:location AS text), ',')))
+        AND (:division IS NULL OR UPPER(division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
+        AND (:state IS NULL OR state = ANY(string_to_array(CAST(:state AS text), ',')))
+        AND (:purity IS NULL OR purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
+        AND (:classification IS NULL OR classification = ANY(string_to_array(CAST(:classification AS text), ',')))
+        AND (:make IS NULL OR make = ANY(string_to_array(CAST(:make AS text), ',')))
+        AND (:collection IS NULL OR collection = ANY(string_to_array(CAST(:collection AS text), ',')))
+        AND (:section IS NULL OR section = ANY(string_to_array(CAST(:section AS text), ',')))
+        AND (:prov_type IS NULL OR prov_type = ANY(string_to_array(CAST(:prov_type AS text), ',')))
+        AND (:provision_mode IS NULL OR provision_mode_filter = ANY(string_to_array(CAST(:provision_mode AS text), ',')))
+        AND (:branch_type IS NULL OR branch_type = ANY(string_to_array(CAST(:branch_type AS text), ',')))
+        AND (:branch_status IS NULL OR branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
+        AND (:business_head IS NULL OR business_head_name = ANY(string_to_array(CAST(:business_head AS text), ',')))
+        AND (:bh_emp_code IS NULL OR business_head_emp_code = :bh_emp_code)
+        AND (:authorized_branch_ids IS NULL OR branch_id = ANY(string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]))
+        AND (:drill_section IS NULL OR section = :drill_section)
+),
+levels AS (
+    -- Level 1: Section
+    SELECT 1 as level_id, section, NULL::numeric as purity, NULL::text as type,
+           NULL::text as wide_range, NULL::numeric as range_weight,
+           array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
+           NULL::text as purity_ids, NULL::text as type_ids, NULL::text as wide_range_ids,
+           SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
+           SUM(COALESCE(in_shop_pcs, 0) + COALESCE(in_transit, 0) - COALESCE(prov_pieces, 0)) as short_excess_pcs,
+           SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
+           SUM(in_transit_wt) as in_transit_wt
+    FROM base GROUP BY section
+
+    UNION ALL
+    -- Level 2: Section + Purity
+    SELECT 2 as level_id, section, purity, NULL::text as type,
+           NULL::text as wide_range, NULL::numeric as range_weight,
+           array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
+           array_to_string(array_agg(DISTINCT purity_id) FILTER (WHERE purity_id IS NOT NULL), ',') as purity_ids,
+           NULL::text as type_ids, NULL::text as wide_range_ids,
+           SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
+           SUM(COALESCE(in_shop_pcs, 0) + COALESCE(in_transit, 0) - COALESCE(prov_pieces, 0)) as short_excess_pcs,
+           SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
+           SUM(in_transit_wt) as in_transit_wt
+    FROM base GROUP BY section, purity
+
+    UNION ALL
+    -- Level 3: Section + Purity + Type
+    SELECT 3 as level_id, section, purity, type,
+           NULL::text as wide_range, NULL::numeric as range_weight,
+           array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
+           array_to_string(array_agg(DISTINCT purity_id) FILTER (WHERE purity_id IS NOT NULL), ',') as purity_ids,
+           array_to_string(array_agg(DISTINCT type_id) FILTER (WHERE type_id IS NOT NULL), ',') as type_ids,
+           NULL::text as wide_range_ids,
+           SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
+           SUM(COALESCE(in_shop_pcs, 0) + COALESCE(in_transit, 0) - COALESCE(prov_pieces, 0)) as short_excess_pcs,
+           SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
+           SUM(in_transit_wt) as in_transit_wt
+    FROM base GROUP BY section, purity, type
+
+    UNION ALL
+    -- Level 4: Section + Purity + Type + Wide Range
+    SELECT 4 as level_id, section, purity, type, wide_range, NULL::numeric as range_weight,
+           array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
+           array_to_string(array_agg(DISTINCT purity_id) FILTER (WHERE purity_id IS NOT NULL), ',') as purity_ids,
+           array_to_string(array_agg(DISTINCT type_id) FILTER (WHERE type_id IS NOT NULL), ',') as type_ids,
+           array_to_string(array_agg(DISTINCT wide_range_id) FILTER (WHERE wide_range_id IS NOT NULL), ',') as wide_range_ids,
+           SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
+           SUM(COALESCE(in_shop_pcs, 0) + COALESCE(in_transit, 0) - COALESCE(prov_pieces, 0)) as short_excess_pcs,
+           SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
+           SUM(in_transit_wt) as in_transit_wt
+    FROM base GROUP BY section, purity, type, wide_range
+
+    UNION ALL
+    -- Level 5: Section + Purity + Type + Wide Range + Range Weight
+    SELECT 5 as level_id, section, purity, type, wide_range, range_weight,
+           array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
+           array_to_string(array_agg(DISTINCT purity_id) FILTER (WHERE purity_id IS NOT NULL), ',') as purity_ids,
+           array_to_string(array_agg(DISTINCT type_id) FILTER (WHERE type_id IS NOT NULL), ',') as type_ids,
+           array_to_string(array_agg(DISTINCT wide_range_id) FILTER (WHERE wide_range_id IS NOT NULL), ',') as wide_range_ids,
+           SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
+           SUM(COALESCE(in_shop_pcs, 0) + COALESCE(in_transit, 0) - COALESCE(prov_pieces, 0)) as short_excess_pcs,
+           SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
+           SUM(in_transit_wt) as in_transit_wt
+    FROM base GROUP BY section, purity, type, wide_range, range_weight
+)
+SELECT 
+    level_id, section, purity, type, wide_range, range_weight,
+    section_ids, purity_ids, type_ids, wide_range_ids,
+    prov_pcs, prov_gr_wt, in_shop_wt, short_excess_pcs, ordered_wt, in_transit_wt,
+    (in_shop_wt + in_transit_wt - prov_gr_wt) as short_excess_wt,
+    CASE WHEN prov_gr_wt = 0 THEN 0 ELSE (in_shop_wt + in_transit_wt - prov_gr_wt) * 100.0 / prov_gr_wt END as percent
+FROM levels
+ORDER BY section, purity NULLS FIRST, type NULLS FIRST, wide_range NULLS FIRST, range_weight NULLS FIRST, level_id
+        '''
+        
+        result = db.session.execute(text(query), params)
+        rows = [dict(r._mapping) for r in result]
+        
+        # Calculate Grand Total for the modal
+        total_pcs = sum(r['prov_pcs'] or 0 for r in rows if r['level_id'] == 1)
+        total_gr_wt = sum(r['prov_gr_wt'] or 0 for r in rows if r['level_id'] == 1)
+        total_in_shop = sum(r['in_shop_wt'] or 0 for r in rows if r['level_id'] == 1)
+        total_transit = sum(r['in_transit_wt'] or 0 for r in rows if r['level_id'] == 1)
+        total_ordered = sum(r['ordered_wt'] or 0 for r in rows if r['level_id'] == 1)
+        total_short_excess_pcs = sum(r['short_excess_pcs'] or 0 for r in rows if r['level_id'] == 1)
+        
+        total_short_excess = total_in_shop + total_transit - total_gr_wt
+        total_percent = (total_short_excess * 100 / total_gr_wt) if total_gr_wt != 0 else 0
+        
+        modal_totals = {
+            'prov_pcs': total_pcs,
+            'prov_gr_wt': total_gr_wt,
+            'in_shop_wt': total_in_shop,
+            'ordered_wt': total_ordered,
+            'in_transit_wt': total_transit,
+            'short_excess_pcs': total_short_excess_pcs,
+            'short_excess_wt': total_short_excess,
+            'percent': total_percent
+        }
+
+        # We will reuse the provision partial view since it only loops rows
+        return render_template('partials/_view_online_provision_stock_drilldown.html', 
+                               rows=rows, 
+                               modal_totals=modal_totals,
+                               drill_section=drill_section,
+                               include_purity_hierarchy=True,
+                               include_piece_variance=True,
+                               enable_in_shop_details=True,
+                               enable_ordered_details=True)
+
+    except Exception as e:
+        logger.error(f"Error in get_online_provision_stock_status_drilldown: {str(e)}")
+        return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
+
+
+@dashboard_bp.route('/api/online-provision-stock-status/in-shop-details')
+@require_report_access('/online-provision-stock-status')
+def get_online_provision_stock_in_shop_details():
+    return _get_online_provision_stock_details()
+
+
+@dashboard_bp.route('/api/online-provision-stock-status/ordered-details')
+@require_report_access('/online-provision-stock-status')
+def get_online_provision_stock_ordered_details():
+    from app.models.auth import User
+    from app.utils.access_policy import effective_roles
+
+    actor = db.session.get(User, int(get_jwt_identity()))
+    return _get_online_provision_stock_details(
+        ordered=True, roles=effective_roles(actor), user_id=actor.user_id)
+
+
+
+
+
+
+def _get_online_provision_stock_details(ordered=False, roles=None, user_id=None):
+    try:
+        page = max(request.args.get('page', 1, type=int), 1)
+        per_page = 100
+        drill_level = min(max(request.args.get('drill_level', 1, type=int), 1), 5)
+
+        params = {
+            'location': request.args.get('location') or None,
+            'division': request.args.get('division') or None,
+            'purity': request.args.get('purity') or None,
+            'classification': request.args.get('classification') or None,
+            'make': request.args.get('make') or None,
+            'collection': request.args.get('collection') or None,
+            'section': request.args.get('section') or None,
+            'prov_type': request.args.get('prov_type') or None,
+            'provision_mode': request.args.get('provision_mode') or None,
+            'branch_type': request.args.get('branch_type') or None,
+            'branch_status': request.args.get('branch_status') or None,
+            'business_head': request.args.get('business_head') or None,
+            'state': request.args.get('state') or None,
+            'bh_emp_code': None,
+            'authorized_branch_ids': None,
+            'drill_level': drill_level,
+            'drill_range_weight': request.args.get('drill_range_weight') or None,
+            'drill_section_ids': request.args.get('drill_section_ids') or None,
+            'drill_purity_ids': request.args.get('drill_purity_ids') or None,
+            'drill_type_ids': request.args.get('drill_type_ids') or None,
+            'drill_wide_range_ids': request.args.get('drill_wide_range_ids') or None,
+            'limit': per_page,
+            'offset': (page - 1) * per_page,
+        }
+
+        required_id_params = ['drill_section_ids']
+        if drill_level >= 2:
+            required_id_params.append('drill_purity_ids')
+        if drill_level >= 3:
+            required_id_params.append('drill_type_ids')
+        if drill_level >= 4:
+            required_id_params.append('drill_wide_range_ids')
+
+        if any(not params[param] for param in required_id_params):
+            return '<div class="p-8 text-center text-red-500">Required hierarchy IDs are missing.</div>', 400
+        if drill_level >= 5 and params['drill_range_weight'] is None:
+            return '<div class="p-8 text-center text-red-500">A range weight is required.</div>', 400
+
+        roles = [role.upper() for role in (roles if ordered else session.get('roles', []))]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(role in roles for role in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        user_id = user_id if ordered else session.get('user_id')
+
+        apply_franchise_india_branch_param(params, roles)
+
+        if not is_admin and not is_manager:
+            if ordered and not user_id and {'BUSINESS_HEAD', 'SHOWROOM_MANAGER'}.intersection(roles):
+                return '<div class="p-8 text-center">Branch access is unavailable.</div>', 403
+            if 'BUSINESS_HEAD' in roles and user_id:
+                params['bh_emp_code'] = user_id
+            elif 'SHOWROOM_MANAGER' in roles and user_id:
+                try:
+                    branch_ids = [
+                        row.branch_id
+                        for row in BranchAuthoritySnapshot.query.filter_by(emp_code=int(user_id)).all()
+                    ]
+                    params['authorized_branch_ids'] = ','.join(map(str, branch_ids)) if branch_ids else '-1'
+                except (ValueError, TypeError):
+                    params['authorized_branch_ids'] = '-1'
+
+        hierarchy_id_columns = (
+            'division_id', 'group_id', 'purity_id', 'classification_id',
+            'sub_classification_id', 'section_id', 'type_id', 'make_id',
+            'collection_id', 'master_collection_id', 'sub_section_id',
+            'wide_range_id', 'gender_id', 'size_id', 'screw_type_id',
+        )
+        stock_identity_columns = ',\n        '.join(
+            ('branch_id', *hierarchy_id_columns) + (('range_weight',) if ordered else ())
+        )
+        identity_join = '\n'.join(
+            f'AND p.{column} = b.{column}'
+            for column in ('branch_id', *hierarchy_id_columns)
+        )
+        barcode_filters = '\n'.join(
+            f"AND (:{name} IS NULL OR b.{name} = ANY(string_to_array(CAST(:{name} AS text), ',')))"
+            for name in ('location', 'division', 'classification', 'make', 'collection', 'section', 'prov_type', 'branch_type')
+        )
+
+        matching_stock_sql = f'''
+WITH matching_stock AS MATERIALIZED (
+    SELECT DISTINCT
+        {stock_identity_columns}
+    FROM online_provision_stock_raw_snapshot AS p
+    WHERE (:location IS NULL OR p.location = ANY(string_to_array(CAST(:location AS text), ',')))
+          AND (:division IS NULL OR UPPER(p.division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
+          AND (:state IS NULL OR p.state = ANY(string_to_array(CAST(:state AS text), ',')))
+          AND (:purity IS NULL OR p.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
+          AND (:classification IS NULL OR p.classification = ANY(string_to_array(CAST(:classification AS text), ',')))
+          AND (:make IS NULL OR p.make = ANY(string_to_array(CAST(:make AS text), ',')))
+          AND (:collection IS NULL OR p.collection = ANY(string_to_array(CAST(:collection AS text), ',')))
+          AND (:section IS NULL OR p.section = ANY(string_to_array(CAST(:section AS text), ',')))
+          AND (:prov_type IS NULL OR p.prov_type = ANY(string_to_array(CAST(:prov_type AS text), ',')))
+          AND (:provision_mode IS NULL OR p.provision_mode_filter = ANY(string_to_array(CAST(:provision_mode AS text), ',')))
+          AND (:branch_type IS NULL OR p.branch_type = ANY(string_to_array(CAST(:branch_type AS text), ',')))
+          AND (:branch_status IS NULL OR p.branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
+          AND (:business_head IS NULL OR p.business_head_name = ANY(string_to_array(CAST(:business_head AS text), ',')))
+          AND (:bh_emp_code IS NULL OR p.business_head_emp_code = :bh_emp_code)
+          AND (:authorized_branch_ids IS NULL OR p.branch_id = ANY(string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]))
+          AND p.section_id = ANY(string_to_array(CAST(:drill_section_ids AS text), ',')::bigint[])
+          AND (:drill_level < 2 OR p.purity_id = ANY(string_to_array(CAST(:drill_purity_ids AS text), ',')::bigint[]))
+          AND (:drill_level < 3 OR p.type_id = ANY(string_to_array(CAST(:drill_type_ids AS text), ',')::bigint[]))
+          AND (:drill_level < 4 OR p.wide_range_id = ANY(string_to_array(CAST(:drill_wide_range_ids AS text), ',')::bigint[]))
+          AND (:drill_level < 5 OR p.range_weight = CAST(:drill_range_weight AS numeric))
+)
+'''
+        if ordered:
+            return _render_processed_order_details(matching_stock_sql, params, page, per_page)
+
+        query = text(matching_stock_sql + f''',
+matched_barcodes AS (
+    SELECT b.*
+    FROM matching_stock AS p
+    JOIN size_level_nip_barcode_snapshot AS b
+      ON TRUE
+      {identity_join}
+    WHERE (:drill_level < 5 OR b.weight = CAST(:drill_range_weight AS numeric))
+      AND (:purity IS NULL OR b.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
+      {barcode_filters}
+)
+SELECT
+    b.*,
+    COUNT(*) OVER () AS total_records,
+    COALESCE(SUM(b.pieces) OVER (), 0) AS total_pieces,
+    COALESCE(SUM(b.gross_wt) OVER (), 0) AS total_gross_wt
+FROM matched_barcodes AS b
+ORDER BY b.barcode_no NULLS LAST, b.design_no NULLS LAST, b.id
+LIMIT :limit OFFSET :offset
+        ''')
+
+        result = db.session.execute(query, params)
+        rows = [dict(row._mapping) for row in result]
+        total_records = int(rows[0]['total_records']) if rows else 0
+        total_pages = max((total_records + per_page - 1) // per_page, 1)
+
+        return render_template(
+            'partials/_view_online_provision_stock_in_shop_details.html',
+            rows=rows,
+            page=page,
+            total_pages=total_pages,
+            total_records=total_records,
+            total_pieces=rows[0]['total_pieces'] if rows else 0,
+            total_gross_wt=rows[0]['total_gross_wt'] if rows else 0,
+        )
+    except Exception as e:
+        if ordered:
+            db.session.rollback()
+            logger.exception('Error loading processed order details')
+            return '<div class="p-8 text-center">Unable to load processed order details. Please try again later.</div>', 503
+        logger.exception('Error loading location physical in-shop details')
+        return render_template(
+            'partials/_view_online_provision_stock_in_shop_details.html',
+            rows=[],
+            page=1,
+            total_pages=1,
+            total_records=0,
+            total_pieces=0,
+            total_gross_wt=0,
+            error_message=str(e),
+        ), 500
+
+
+def _render_processed_order_details(matching_stock_sql, params, page, per_page):
+    identity = ' AND '.join(f'p.{name} IS NOT DISTINCT FROM o.{name}'
+                            for name in IDENTITY_FIELDS if name != 'section_id')
+    query = text(matching_stock_sql + f'''
+SELECT o.order_no, o.order_date, o.location,
+       NULLIF(TRIM(o.supplier), '') AS supplier, o.design_no,
+       o.quantity, o.gross_weight, o.process_status, o.current_status, o.date,
+       COUNT(*) OVER () AS total_records,
+       SUM(o.quantity) OVER () AS total_quantity,
+       SUM(o.gross_weight) OVER () AS total_gross_weight,
+       COUNT(*) OVER supplier_group AS supplier_order_count,
+       SUM(o.quantity) OVER supplier_group AS supplier_quantity,
+       SUM(o.gross_weight) OVER supplier_group AS supplier_gross_weight
+FROM stock_processed_order_details_snapshot o
+WHERE EXISTS (
+    SELECT 1 FROM matching_stock p
+    WHERE p.branch_id = o.branch_id AND p.section_id = o.section_id
+      AND p.range_weight IS NOT DISTINCT FROM o.range_weight
+      AND {identity}
+)
+WINDOW supplier_group AS (PARTITION BY NULLIF(TRIM(o.supplier), ''))
+ORDER BY NULLIF(TRIM(o.supplier), '') NULLS LAST,
+         o.order_date DESC NULLS LAST, o.order_no NULLS LAST, o.id
+LIMIT :limit OFFSET :offset
+''')
+    rows = db.session.execute(query, params).mappings().all()
+    totals = rows[0] if rows else {}
+    total_pages = max((totals.get('total_records', 0) + per_page - 1) // per_page, 1)
+    return render_template('partials/_view_online_provision_stock_ordered_details.html',
+                           rows=rows, totals=totals, page=page, total_pages=total_pages)
+
+
+@dashboard_bp.route('/api/online-provision-stock-status/provision-details')
+@require_report_access('/online-provision-stock-status')
+def get_online_provision_stock_provision_details():
+    try:
+        page = max(request.args.get('page', 1, type=int), 1)
+        per_page = 100
+        drill_level = min(max(request.args.get('drill_level', 1, type=int), 1), 5)
+
+        params = {
+            'location': request.args.get('location') or None,
+            'division': request.args.get('division') or None,
+            'purity': request.args.get('purity') or None,
+            'classification': request.args.get('classification') or None,
+            'make': request.args.get('make') or None,
+            'collection': request.args.get('collection') or None,
+            'section': request.args.get('section') or None,
+            'prov_type': request.args.get('prov_type') or None,
+            'provision_mode': request.args.get('provision_mode') or None,
+            'branch_type': request.args.get('branch_type') or None,
+            'branch_status': request.args.get('branch_status') or None,
+            'business_head': request.args.get('business_head') or None,
+            'state': request.args.get('state') or None,
+            'bh_emp_code': None,
+            'authorized_branch_ids': None,
+            'drill_level': drill_level,
+            'drill_range_weight': request.args.get('drill_range_weight') or None,
+            'drill_section_ids': request.args.get('drill_section_ids') or None,
+            'drill_purity_ids': request.args.get('drill_purity_ids') or None,
+            'drill_type_ids': request.args.get('drill_type_ids') or None,
+            'drill_wide_range_ids': request.args.get('drill_wide_range_ids') or None,
+            'limit': per_page,
+            'offset': (page - 1) * per_page,
+        }
+
+        required_id_params = ['drill_section_ids']
+        if drill_level >= 2:
+            required_id_params.append('drill_purity_ids')
+        if drill_level >= 3:
+            required_id_params.append('drill_type_ids')
+        if drill_level >= 4:
+            required_id_params.append('drill_wide_range_ids')
+
+        if any(not params[param] for param in required_id_params):
+            return '<div class="p-8 text-center text-red-500">Required hierarchy IDs are missing.</div>', 400
+        if drill_level >= 5 and params['drill_range_weight'] is None:
+            return '<div class="p-8 text-center text-red-500">A range weight is required.</div>', 400
+
+        roles = [role.upper() for role in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(role in roles for role in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        user_id = session.get('user_id')
+
+        apply_franchise_india_branch_param(params, roles)
+
+        if not is_admin and not is_manager:
+            if 'BUSINESS_HEAD' in roles and user_id:
+                params['bh_emp_code'] = user_id
+            elif 'SHOWROOM_MANAGER' in roles and user_id:
+                try:
+                    branch_ids = [
+                        row.branch_id
+                        for row in BranchAuthoritySnapshot.query.filter_by(emp_code=int(user_id)).all()
+                    ]
+                    params['authorized_branch_ids'] = ','.join(map(str, branch_ids)) if branch_ids else '-1'
+                except (ValueError, TypeError):
+                    params['authorized_branch_ids'] = '-1'
+
+        query = text('''
+SELECT
+    p.location,
+    p.division,
+    p."group" AS group_name,
+    p.purity,
+    p.classification,
+    p.sub_classification,
+    p.make,
+    p.collection,
+    p.section,
+    p.sub_section,
+    p.type,
+    p.wide_range,
+    p.size,
+    p.screw_type,
+    p.range_weight AS weight,
+    p.prov_pieces AS pieces,
+    p.prov_gr_wt AS gross_weight,
+    p.prov_type,
+    COUNT(*) OVER () AS total_records,
+    COALESCE(SUM(p.prov_pieces) OVER (), 0) AS total_pieces,
+    COALESCE(SUM(p.prov_gr_wt) OVER (), 0) AS total_gross_wt
+FROM online_provision_stock_raw_snapshot AS p
+WHERE (:location IS NULL OR p.location = ANY(string_to_array(CAST(:location AS text), ',')))
+  AND (:division IS NULL OR UPPER(p.division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
+  AND (:state IS NULL OR p.state = ANY(string_to_array(CAST(:state AS text), ',')))
+  AND (:purity IS NULL OR p.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
+  AND (:classification IS NULL OR p.classification = ANY(string_to_array(CAST(:classification AS text), ',')))
+  AND (:make IS NULL OR p.make = ANY(string_to_array(CAST(:make AS text), ',')))
+  AND (:collection IS NULL OR p.collection = ANY(string_to_array(CAST(:collection AS text), ',')))
+  AND (:section IS NULL OR p.section = ANY(string_to_array(CAST(:section AS text), ',')))
+  AND (:prov_type IS NULL OR p.prov_type = ANY(string_to_array(CAST(:prov_type AS text), ',')))
+  AND (:provision_mode IS NULL OR p.provision_mode_filter = ANY(string_to_array(CAST(:provision_mode AS text), ',')))
+  AND (:branch_type IS NULL OR p.branch_type = ANY(string_to_array(CAST(:branch_type AS text), ',')))
+  AND (:branch_status IS NULL OR p.branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
+  AND (:business_head IS NULL OR p.business_head_name = ANY(string_to_array(CAST(:business_head AS text), ',')))
+  AND (:bh_emp_code IS NULL OR p.business_head_emp_code = :bh_emp_code)
+  AND (:authorized_branch_ids IS NULL OR p.branch_id = ANY(string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]))
+  AND p.section_id = ANY(string_to_array(CAST(:drill_section_ids AS text), ',')::bigint[])
+  AND (:drill_level < 2 OR p.purity_id = ANY(string_to_array(CAST(:drill_purity_ids AS text), ',')::bigint[]))
+  AND (:drill_level < 3 OR p.type_id = ANY(string_to_array(CAST(:drill_type_ids AS text), ',')::bigint[]))
+  AND (:drill_level < 4 OR p.wide_range_id = ANY(string_to_array(CAST(:drill_wide_range_ids AS text), ',')::bigint[]))
+  AND (:drill_level < 5 OR p.range_weight = CAST(:drill_range_weight AS numeric))
+ORDER BY p.location NULLS LAST, p.division NULLS LAST, p."group" NULLS LAST,
+         p.classification NULLS LAST, p.make NULLS LAST, p.collection NULLS LAST, p.id
+LIMIT :limit OFFSET :offset
+        ''')
+
+        result = db.session.execute(query, params)
+        rows = [dict(row._mapping) for row in result]
+        total_records = int(rows[0]['total_records']) if rows else 0
+        total_pages = max((total_records + per_page - 1) // per_page, 1)
+
+        return render_template(
+            'partials/_view_online_provision_stock_provision_details.html',
+            rows=rows,
+            page=page,
+            total_pages=total_pages,
+            total_records=total_records,
+            total_pieces=rows[0]['total_pieces'] if rows else 0,
+            total_gross_wt=rows[0]['total_gross_wt'] if rows else 0,
+        )
+    except Exception as e:
+        logger.exception('Error loading location physical provision details')
+        return render_template(
+            'partials/_view_online_provision_stock_provision_details.html',
+            rows=[],
+            page=1,
+            total_pages=1,
+            total_records=0,
+            total_pieces=0,
+            total_gross_wt=0,
+            error_message=str(e),
+        ), 500
+
+
+@dashboard_bp.route('/api/online-provision-stock-status/stock-comparison')
+@require_report_access('/online-provision-stock-status')
+def get_online_provision_stock_comparison():
+    try:
+        page = max(request.args.get('page', 1, type=int), 1)
+        per_page = 50
+        drill_level = min(max(request.args.get('drill_level', 1, type=int), 1), 5)
+
+        params = {
+            'location': request.args.get('location') or None,
+            'division': request.args.get('division') or None,
+            'purity': request.args.get('purity') or None,
+            'classification': request.args.get('classification') or None,
+            'make': request.args.get('make') or None,
+            'collection': request.args.get('collection') or None,
+            'section': request.args.get('section') or None,
+            'prov_type': request.args.get('prov_type') or None,
+            'provision_mode': request.args.get('provision_mode') or None,
+            'branch_type': request.args.get('branch_type') or None,
+            'branch_status': request.args.get('branch_status') or None,
+            'business_head': request.args.get('business_head') or None,
+            'state': request.args.get('state') or None,
+            'bh_emp_code': None,
+            'authorized_branch_ids': None,
+            'drill_level': drill_level,
+            'drill_range_weight': request.args.get('drill_range_weight') or None,
+            'drill_section_ids': request.args.get('drill_section_ids') or None,
+            'drill_purity_ids': request.args.get('drill_purity_ids') or None,
+            'drill_type_ids': request.args.get('drill_type_ids') or None,
+            'drill_wide_range_ids': request.args.get('drill_wide_range_ids') or None,
+            'limit': per_page,
+            'offset': (page - 1) * per_page,
+        }
+
+        required_id_params = ['drill_section_ids']
+        if drill_level >= 2:
+            required_id_params.append('drill_purity_ids')
+        if drill_level >= 3:
+            required_id_params.append('drill_type_ids')
+        if drill_level >= 4:
+            required_id_params.append('drill_wide_range_ids')
+
+        if any(not params[param] for param in required_id_params):
+            return '<div class="p-8 text-center text-red-500">Required hierarchy IDs are missing.</div>', 400
+        if drill_level >= 5 and params['drill_range_weight'] is None:
+            return '<div class="p-8 text-center text-red-500">A range weight is required.</div>', 400
+
+        roles = [role.upper() for role in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(role in roles for role in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        user_id = session.get('user_id')
+
+        apply_franchise_india_branch_param(params, roles)
+
+        if not is_admin and not is_manager:
+            if 'BUSINESS_HEAD' in roles and user_id:
+                params['bh_emp_code'] = user_id
+            elif 'SHOWROOM_MANAGER' in roles and user_id:
+                try:
+                    branch_ids = [
+                        row.branch_id
+                        for row in BranchAuthoritySnapshot.query.filter_by(emp_code=int(user_id)).all()
+                    ]
+                    params['authorized_branch_ids'] = ','.join(map(str, branch_ids)) if branch_ids else '-1'
+                except (ValueError, TypeError):
+                    params['authorized_branch_ids'] = '-1'
+
+        identity_columns = (
+            'branch_id', 'division_id', 'group_id', 'purity_id',
+            'classification_id', 'sub_classification_id', 'section_id',
+            'type_id', 'make_id', 'collection_id', 'master_collection_id',
+            'sub_section_id', 'wide_range_id', 'gender_id', 'size_id',
+            'screw_type_id',
+        )
+        provision_identity = ',\n        '.join(f'p.{column}' for column in identity_columns)
+        nip_identity = ',\n        '.join(f'b.{column}' for column in identity_columns)
+        provision_group_by = ', '.join(f'p.{column}' for column in identity_columns)
+        nip_group_by = ', '.join(f'b.{column}' for column in identity_columns)
+        provision_nip_join = '\n'.join(
+            f'      AND p.{column} = b.{column}' for column in identity_columns
+        )
+        comparison_join = '\n'.join(
+            f'      AND p.{column} = n.{column}' for column in identity_columns
+        )
+
+        query = text(f'''
+WITH provision_rows AS MATERIALIZED (
+    SELECT
+        {provision_identity},
+        p.range_weight,
+        MIN(p.location) AS location,
+        MIN(p.division) AS division,
+        MIN(p."group") AS group_name,
+        MIN(p.purity) AS purity,
+        MIN(p.classification) AS classification,
+        MIN(p.sub_classification) AS sub_classification,
+        MIN(p.make) AS make,
+        MIN(p.collection) AS collection,
+        MIN(p.section) AS section,
+        MIN(p.sub_section) AS sub_section,
+        MIN(p.type) AS type,
+        MIN(p.wide_range) AS wide_range,
+        MIN(p.size) AS size,
+        MIN(p.screw_type) AS screw_type,
+        MIN(p.prov_type) AS prov_type,
+        COALESCE(SUM(p.prov_pieces), 0) AS provision_pieces,
+        COALESCE(SUM(p.prov_gr_wt), 0) AS provision_weight
+    FROM online_provision_stock_raw_snapshot AS p
+    WHERE (:location IS NULL OR p.location = ANY(string_to_array(CAST(:location AS text), ',')))
+      AND (:division IS NULL OR UPPER(p.division) = ANY(string_to_array(UPPER(CAST(:division AS text)), ',')))
+      AND (:state IS NULL OR p.state = ANY(string_to_array(CAST(:state AS text), ',')))
+      AND (:purity IS NULL OR p.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
+      AND (:classification IS NULL OR p.classification = ANY(string_to_array(CAST(:classification AS text), ',')))
+      AND (:make IS NULL OR p.make = ANY(string_to_array(CAST(:make AS text), ',')))
+      AND (:collection IS NULL OR p.collection = ANY(string_to_array(CAST(:collection AS text), ',')))
+      AND (:section IS NULL OR p.section = ANY(string_to_array(CAST(:section AS text), ',')))
+      AND (:prov_type IS NULL OR p.prov_type = ANY(string_to_array(CAST(:prov_type AS text), ',')))
+      AND (:provision_mode IS NULL OR p.provision_mode_filter = ANY(string_to_array(CAST(:provision_mode AS text), ',')))
+      AND (:branch_type IS NULL OR p.branch_type = ANY(string_to_array(CAST(:branch_type AS text), ',')))
+      AND (:branch_status IS NULL OR p.branch_status = ANY(string_to_array(CAST(:branch_status AS text), ',')))
+      AND (:business_head IS NULL OR p.business_head_name = ANY(string_to_array(CAST(:business_head AS text), ',')))
+      AND (:bh_emp_code IS NULL OR p.business_head_emp_code = :bh_emp_code)
+      AND (:authorized_branch_ids IS NULL OR p.branch_id = ANY(string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]))
+      AND p.section_id = ANY(string_to_array(CAST(:drill_section_ids AS text), ',')::bigint[])
+      AND (:drill_level < 2 OR p.purity_id = ANY(string_to_array(CAST(:drill_purity_ids AS text), ',')::bigint[]))
+      AND (:drill_level < 3 OR p.type_id = ANY(string_to_array(CAST(:drill_type_ids AS text), ',')::bigint[]))
+      AND (:drill_level < 4 OR p.wide_range_id = ANY(string_to_array(CAST(:drill_wide_range_ids AS text), ',')::bigint[]))
+      AND (:drill_level < 5 OR p.range_weight = CAST(:drill_range_weight AS numeric))
+    GROUP BY {provision_group_by}, p.range_weight
+),
+nip_rows AS MATERIALIZED (
+    SELECT
+        {nip_identity},
+        b.weight AS range_weight,
+        MIN(b.location) AS nip_location,
+        MIN(b.classification) AS nip_classification,
+        MIN(b.make) AS nip_make,
+        MIN(b.collection) AS nip_collection,
+        MIN(b.section) AS nip_section,
+        MIN(b.sub_section) AS nip_sub_section,
+        MIN(b.type) AS nip_type,
+        MIN(b.wide_range) AS nip_wide_range,
+        MIN(b.size) AS nip_size,
+        MIN(b.screw_type) AS nip_screw_type,
+        COUNT(*) AS barcode_count,
+        COALESCE(SUM(b.pieces), 0) AS nip_pieces,
+        COALESCE(SUM(b.gross_wt), 0) AS nip_weight
+    FROM size_level_nip_barcode_snapshot AS b
+    JOIN provision_rows AS p
+      ON p.range_weight = b.weight
+      {provision_nip_join}
+    GROUP BY {nip_group_by}, b.weight
+),
+comparison AS (
+    SELECT
+        p.*,
+        n.nip_location,
+        n.nip_classification,
+        n.nip_make,
+        n.nip_collection,
+        n.nip_section,
+        n.nip_sub_section,
+        n.nip_type,
+        n.nip_wide_range,
+        n.nip_size,
+        n.nip_screw_type,
+        COALESCE(n.barcode_count, 0) AS barcode_count,
+        COALESCE(n.nip_pieces, 0) AS nip_pieces,
+        COALESCE(n.nip_weight, 0) AS nip_weight,
+        COALESCE(n.nip_pieces, 0) - p.provision_pieces AS pieces_difference,
+        COALESCE(n.nip_weight, 0) - p.provision_weight AS weight_difference
+    FROM provision_rows AS p
+    LEFT JOIN nip_rows AS n
+      ON p.range_weight = n.range_weight
+      {comparison_join}
+)
+SELECT
+    comparison.*,
+    (ABS(pieces_difference) > 0.0005 OR ABS(weight_difference) > 0.0005) AS has_difference,
+    COUNT(*) OVER () AS total_pairs,
+    COUNT(*) FILTER (
+        WHERE ABS(pieces_difference) > 0.0005 OR ABS(weight_difference) > 0.0005
+    ) OVER () AS mismatch_pairs,
+    COALESCE(SUM(provision_pieces) OVER (), 0) AS total_provision_pieces,
+    COALESCE(SUM(nip_pieces) OVER (), 0) AS total_nip_pieces,
+    COALESCE(SUM(provision_weight) OVER (), 0) AS total_provision_weight,
+    COALESCE(SUM(nip_weight) OVER (), 0) AS total_nip_weight
+FROM comparison
+ORDER BY
+    (ABS(pieces_difference) > 0.0005 OR ABS(weight_difference) > 0.0005) DESC,
+    location NULLS LAST, classification NULLS LAST, make NULLS LAST,
+    collection NULLS LAST, section NULLS LAST, range_weight NULLS LAST
+LIMIT :limit OFFSET :offset
+        ''')
+
+        result = db.session.execute(query, params)
+        rows = [dict(row._mapping) for row in result]
+        total_pairs = int(rows[0]['total_pairs']) if rows else 0
+        total_pages = max((total_pairs + per_page - 1) // per_page, 1)
+
+        summary = {
+            'total_pairs': total_pairs,
+            'mismatch_pairs': int(rows[0]['mismatch_pairs']) if rows else 0,
+            'provision_pieces': rows[0]['total_provision_pieces'] if rows else 0,
+            'nip_pieces': rows[0]['total_nip_pieces'] if rows else 0,
+            'provision_weight': rows[0]['total_provision_weight'] if rows else 0,
+            'nip_weight': rows[0]['total_nip_weight'] if rows else 0,
+        }
+
+        return render_template(
+            'partials/_view_online_provision_stock_comparison.html',
+            rows=rows,
+            summary=summary,
+            page=page,
+            total_pages=total_pages,
+        )
+    except Exception as e:
+        logger.exception('Error loading location physical stock comparison')
+        return render_template(
+            'partials/_view_online_provision_stock_comparison.html',
+            rows=[],
+            summary={},
+            page=1,
+            total_pages=1,
+            error_message=str(e),
+        ), 500
+
+
+@dashboard_bp.route('/api/online-provision-stock-status/stock-comparison-barcodes')
+@require_report_access('/online-provision-stock-status')
+def get_online_provision_stock_comparison_barcodes():
+    try:
+        page = max(request.args.get('page', 1, type=int), 1)
+        per_page = 100
+        identity_columns = (
+            'branch_id', 'division_id', 'group_id', 'purity_id',
+            'classification_id', 'sub_classification_id', 'section_id',
+            'type_id', 'make_id', 'collection_id', 'master_collection_id',
+            'sub_section_id', 'wide_range_id', 'gender_id', 'size_id',
+            'screw_type_id',
+        )
+        params = {
+            column: request.args.get(column) or None
+            for column in identity_columns
+        }
+        params.update({
+            'range_weight': request.args.get('range_weight') or None,
+            'bh_emp_code': None,
+            'authorized_branch_ids': None,
+            'required_branch_type': None,
+            'limit': per_page,
+            'offset': (page - 1) * per_page,
+        })
+
+        if any(params[column] is None for column in identity_columns) or params['range_weight'] is None:
+            return render_template(
+                'partials/_view_online_provision_stock_comparison_barcodes.html',
+                rows=[],
+                page=1,
+                total_pages=1,
+                total_records=0,
+                error_message='Required comparison identity values are missing.',
+            ), 400
+
+        roles = [role.upper() for role in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(role in roles for role in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        user_id = session.get('user_id')
+
+        if is_franchise_india_head(roles):
+            params['required_branch_type'] = FRANCHISE_INDIA_BRANCH_TYPE
+
+        if not is_admin and not is_manager:
+            if 'BUSINESS_HEAD' in roles and user_id:
+                params['bh_emp_code'] = user_id
+            elif 'SHOWROOM_MANAGER' in roles and user_id:
+                try:
+                    branch_ids = [
+                        row.branch_id
+                        for row in BranchAuthoritySnapshot.query.filter_by(emp_code=int(user_id)).all()
+                    ]
+                    params['authorized_branch_ids'] = ','.join(map(str, branch_ids)) if branch_ids else '-1'
+                except (ValueError, TypeError):
+                    params['authorized_branch_ids'] = '-1'
+
+        provision_identity_filters = '\n'.join(
+            f'      AND p.{column} = CAST(:{column} AS bigint)'
+            for column in identity_columns
+        )
+        barcode_identity_join = '\n'.join(
+            f'      AND p.{column} = b.{column}'
+            for column in identity_columns
+        )
+
+        query = text(f'''
+WITH authorized_identity AS MATERIALIZED (
+    SELECT DISTINCT
+        {', '.join(f'p.{column}' for column in identity_columns)},
+        p.range_weight
+    FROM online_provision_stock_raw_snapshot AS p
+    WHERE TRUE
+      {provision_identity_filters}
+      AND p.range_weight = CAST(:range_weight AS numeric)
+      AND (:required_branch_type IS NULL OR p.branch_type = :required_branch_type)
+      AND (:bh_emp_code IS NULL OR p.business_head_emp_code = :bh_emp_code)
+      AND (:authorized_branch_ids IS NULL OR p.branch_id = ANY(
+          string_to_array(CAST(:authorized_branch_ids AS text), ',')::integer[]
+      ))
+),
+matched_barcodes AS (
+    SELECT b.*
+    FROM authorized_identity AS p
+    JOIN size_level_nip_barcode_snapshot AS b
+      ON p.range_weight = b.weight
+      {barcode_identity_join}
+)
+SELECT
+    b.*,
+    COUNT(*) OVER () AS total_records,
+    COALESCE(SUM(b.pieces) OVER (), 0) AS total_pieces,
+    COALESCE(SUM(b.gross_wt) OVER (), 0) AS total_gross_wt
+FROM matched_barcodes AS b
+ORDER BY b.barcode_no NULLS LAST, b.design_no NULLS LAST, b.id
+LIMIT :limit OFFSET :offset
+        ''')
+
+        result = db.session.execute(query, params)
+        rows = [dict(row._mapping) for row in result]
+        total_records = int(rows[0]['total_records']) if rows else 0
+        total_pages = max((total_records + per_page - 1) // per_page, 1)
+
+        return render_template(
+            'partials/_view_online_provision_stock_comparison_barcodes.html',
+            rows=rows,
+            page=page,
+            total_pages=total_pages,
+            total_records=total_records,
+            total_pieces=rows[0]['total_pieces'] if rows else 0,
+            total_gross_wt=rows[0]['total_gross_wt'] if rows else 0,
+        )
+    except Exception as e:
+        logger.exception('Error loading comparison barcode details')
+        return render_template(
+            'partials/_view_online_provision_stock_comparison_barcodes.html',
+            rows=[],
+            page=1,
+            total_pages=1,
+            total_records=0,
+            error_message=str(e),
+        ), 500
+
+
+@dashboard_bp.route('/api/sync/online-provision-stock-status', methods=['POST'])
+@require_role(['ADMIN', 'DATA_SYNC_USER'])
+def sync_online_provision_stock_status():
+    user_id = get_jwt_identity()
+    return jsonify(sync_online_provision_stock_status_data(user_id))
+
+
+@dashboard_bp.route('/api/online-provision-stock-status/export', methods=['POST'])
+@require_report_access('/online-provision-stock-status')
+@require_perm('report.export')
+def queue_online_provision_stock_status_export():
+    try:
+        data = request.get_json() or {}
+        filters = data.get('filters', {})
+        socket_id = data.get('socket_id')
+        user_id = get_jwt_identity()
+
+        # Role-based filtering resolution
+        roles = [r.upper() for r in session.get('roles', [])]
+        is_admin = 'ADMIN' in roles
+        is_manager = any(r in roles for r in ['MANAGER_2', 'MANAGER-BIC', 'TSK_DIRECTOR'])
+        is_business_head = 'BUSINESS_HEAD' in roles
+        is_showroom_manager = 'SHOWROOM_MANAGER' in roles
+        session_user_id = session.get('user_id')
+
+        bh_emp_code = None
+        authorized_branch_ids = None
+        if is_franchise_india_head(roles):
+            filters['branch_type'] = FRANCHISE_INDIA_BRANCH_TYPE
+
+        if not is_admin and not is_manager:
+            if is_business_head and session_user_id:
+                bh_emp_code = session_user_id
+            elif is_showroom_manager and session_user_id:
+                try:
+                    emp_code_int = int(session_user_id)
+                    auth_records = BranchAuthoritySnapshot.query.filter_by(emp_code=emp_code_int).all()
+                    branch_ids = [r.branch_id for r in auth_records]
+                    if branch_ids:
+                        authorized_branch_ids = ','.join(map(str, branch_ids))
+                    else:
+                        authorized_branch_ids = '-1' # Force empty
+                except (ValueError, TypeError):
+                    authorized_branch_ids = '-1'
+
+        filters['bh_emp_code'] = bh_emp_code
+        filters['authorized_branch_ids'] = authorized_branch_ids
+
+        task_payload = {
+            'type': 'export_online_provision_stock_status',
+            'filters': filters,
+            'socket_id': socket_id,
+            'user_id': user_id
+        }
+
+        redis_client.rpush('export_queue', json.dumps(task_payload))
+        logger.info(f"Queued online_provision_stock_status export for user {user_id}")
+
+        return jsonify({'status': 'success', 'message': 'Export job enqueued.'}), 200
+    except Exception as e:
+        logger.error(f"Failed to queue online_provision_stock_status export: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500

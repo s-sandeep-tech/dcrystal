@@ -1,0 +1,1289 @@
+let currentSearch = '';
+let filterValues = {
+    location: '',
+    division: 'Gold',
+    purity: '',
+    classification: '',
+    make: '',
+    collection: '',
+    section: '',
+    prov_type: '',
+    provision_mode: '',
+    branch_type: '',
+    branch_status: '',
+    business_head: '',
+    state: '',
+    sort_by: '',
+    sort_order: 'none'
+};
+let locationMultiSelect;
+let stateMultiSelect;
+let branchTypeMultiSelect;
+let branchStatusMultiSelect;
+let makeMultiSelect;
+let sectionMultiSelect;
+let makeHeaderFilter;
+let sectionHeaderFilter;
+let purityHeaderFilter;
+let collectionMultiSelect;
+let collectionHeaderFilter;
+let reportRequestId = 0;
+let appliedStockFilters = { ...filterValues };
+let activeDrilldownFilters = { ...filterValues };
+
+function onlineToggleStockFilters() {
+    const sidebar = document.getElementById('stock-filter-sidebar');
+    const button = document.getElementById('stock-filter-toggle');
+    const hide = sidebar.style.display !== 'none';
+    sidebar.style.display = hide ? 'none' : '';
+    button.setAttribute('aria-expanded', String(!hide));
+    const label = hide ? 'Show filters' : 'Hide filters';
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    button.firstElementChild.textContent = hide ? 'filter_alt_off' : 'filter_alt';
+}
+
+function onlineSetupStockRefreshPrompt() {
+    const dialog = document.getElementById('online-stock-refresh-dialog');
+    const yes = document.getElementById('online-stock-refresh-yes');
+    const no = document.getElementById('online-stock-refresh-no');
+    const error = document.getElementById('online-stock-refresh-error');
+    let lastVersion = dialog.dataset.snapshotVersion;
+    let pending = null;
+    let refreshing = false;
+
+    function onlineShowPending() {
+        if (!pending || refreshing) return;
+        document.getElementById('online-stock-refresh-message').textContent = pending.validation_passed === false
+            ? 'The background sync has completed with validation warnings. Updated stock data is available, but some totals may need verification. Would you like to refresh this report? Your current filters will be kept.'
+            : 'The background sync has completed. Would you like to refresh this report to view the latest stock data? Your current filters will be kept.';
+        error.hidden = true;
+        if (!dialog.open) dialog.showModal();
+    }
+
+    function onlineDismiss() {
+        if (refreshing) return;
+        pending = null;
+        dialog.close();
+    }
+    no.addEventListener('click', onlineDismiss);
+    dialog.addEventListener('cancel', event => { event.preventDefault(); onlineDismiss(); });
+    yes.addEventListener('click', async () => {
+        if (refreshing || !pending) return;
+        const update = pending;
+        refreshing = true;
+        yes.disabled = no.disabled = true;
+        yes.textContent = 'Refreshing…';
+        error.hidden = true;
+        clearTimeout(window.searchTimeout);
+        try {
+            await onlineLoadOptions(true);
+            if (!await onlineLoadReport(true)) throw new Error('The report changed while refreshing. Please try again.');
+            ['online-drillDownModal', 'online-inShopDetailsModal', 'online-provisionDetailsModal', 'online-stockComparisonModal'].forEach(id => {
+                document.getElementById(id)?.classList.add('hidden');
+            });
+            document.getElementById('sync-time-info').textContent = update.sync_time;
+            document.getElementById('online-modal-last-refresh').textContent = `LATEST SYNC: ${update.sync_time}`;
+            if (pending === update) pending = null;
+            dialog.close();
+        } catch (err) {
+            error.textContent = 'Unable to refresh the report. Please try again, or keep the current view.';
+            error.hidden = false;
+        } finally {
+            refreshing = false;
+            yes.disabled = no.disabled = false;
+            yes.textContent = 'Yes, refresh';
+            if (!dialog.open) onlineShowPending();
+        }
+    });
+
+    // The shared socket reconnects automatically; register this handler only once.
+    if (window.socket) window.socket.on('sync_update', data => {
+        if (data.type !== 'online_provision_stock_status' || data.status !== 'success' || !data.snapshot_version) return;
+        if (lastVersion && data.snapshot_version <= lastVersion) return;
+        lastVersion = data.snapshot_version;
+        pending = data;
+        onlineShowPending();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    locationMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-location-container',
+        label: 'Location',
+        defaultText: 'All Locations',
+        options: []
+    });
+
+    branchStatusMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-branch-status-container',
+        label: 'Branch Status',
+        defaultText: 'All Branch Statuses',
+        options: []
+    });
+
+    branchTypeMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-branch-type-container',
+        label: 'Branch Type',
+        defaultText: 'All Branch Types',
+        options: []
+    });
+
+    stateMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-state-container',
+        label: 'State',
+        defaultText: 'All States',
+        options: []
+    });
+
+    sectionMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-section-container',
+        label: 'Section',
+        defaultText: 'All Sections',
+        options: []
+    });
+
+    makeMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-make-container',
+        label: 'Make',
+        defaultText: 'All Makes',
+        options: [],
+        onSearch: async (query, callback) => {
+            try {
+                const response = await fetch(`/api/online-provision-stock-status/makes/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Make search failed:', err);
+                callback([]);
+            }
+        }
+    });
+
+    collectionMultiSelect = new CustomMultiSelect({
+        containerId: 'filter-collection-container',
+        label: 'Collection',
+        defaultText: 'All Collections',
+        options: [],
+        onSearch: async (query, callback) => {
+            try {
+                const response = await fetch(`/api/online-provision-stock-status/collections/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Collection search failed:', err);
+                callback([]);
+            }
+        }
+    });
+
+    makeHeaderFilter = new HeaderFilter({
+        id: 'make',
+        title: 'Make Wise',
+        onApply: (values) => {
+            onlineApplyFilters();
+        },
+        onClear: () => {
+            onlineApplyFilters();
+        },
+        onSearch: async (query, callback) => {
+            try {
+                const response = await fetch(`/api/online-provision-stock-status/makes/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Make header search failed:', err);
+                callback([]);
+            }
+        }
+    });
+
+    sectionHeaderFilter = new HeaderFilter({
+        id: 'section',
+        title: 'Section Details',
+        onApply: (values) => {
+            onlineApplyFilters();
+        },
+        onClear: () => {
+            onlineApplyFilters();
+        }
+    });
+
+    purityHeaderFilter = new HeaderFilter({
+        id: 'purity',
+        title: 'Purity Wise',
+        onApply: (values) => {
+            onlineApplyFilters();
+        },
+        onClear: () => {
+            onlineApplyFilters();
+        }
+    });
+
+    collectionHeaderFilter = new HeaderFilter({
+        id: 'collection',
+        title: 'Collection Wise',
+        onApply: (values) => {
+            onlineApplyFilters();
+        },
+        onClear: () => {
+            onlineApplyFilters();
+        },
+        onSearch: async (query, callback) => {
+            try {
+                const response = await fetch(`/api/online-provision-stock-status/collections/search?q=${encodeURIComponent(query)}&division=${encodeURIComponent(filterValues.division || '')}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                });
+                const data = await response.json();
+                callback(data);
+            } catch (err) {
+                console.error('Collection header search failed:', err);
+                callback([]);
+            }
+        }
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlDivision = urlParams.get('division');
+    if (urlDivision !== null) {
+        filterValues.division = urlDivision;
+        const divSelect = document.getElementById('filter-division');
+        if (divSelect) divSelect.value = urlDivision;
+    }
+
+    onlineSetupStockRefreshPrompt();
+    onlineLoadOptions();
+    onlineLoadReport();
+
+    // Reset export cooldown flag when export completes (success or failure)
+    if (window.socket) {
+        window.socket.on('new_notification', function (data) {
+            if (data.title && data.title.includes('Online Provision Stock status')) {
+                localStorage.removeItem('last_stock_export_time');
+            }
+        });
+    }
+});
+
+async function onlineLoadOptions(throwOnError = false) {
+    try {
+        const response = await fetch('/api/online-provision-stock-status/options', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+        });
+        if (!response.ok) throw new Error('Failed to load filter options');
+        const data = await response.json();
+
+        const config = [
+            { id: 'filter-division', data: data.divisions },
+            { id: 'filter-purity', data: data.purities },
+            { id: 'filter-classification', data: data.classifications },
+            { id: 'filter-prov-type', data: data.prov_types },
+            { id: 'filter-provision-mode', data: data.provision_modes },
+            { id: 'filter-business-head', data: data.business_heads }
+        ];
+
+        function onlinePopulatePreservingSelection(control, options) {
+            if (!control) return;
+            const selected = control.getValues();
+            control.populateOptions([...new Set([...(options || []), ...selected])]);
+            document.querySelectorAll(`.${control.containerId}-checkbox`).forEach(checkbox => {
+                checkbox.checked = selected.includes(checkbox.value);
+            });
+            control.updateTriggerText();
+        }
+        onlinePopulatePreservingSelection(locationMultiSelect, data.locations);
+        onlinePopulatePreservingSelection(branchStatusMultiSelect, data.branch_statuses);
+        onlinePopulatePreservingSelection(branchTypeMultiSelect, data.branch_types);
+        onlinePopulatePreservingSelection(stateMultiSelect, data.states);
+        onlinePopulatePreservingSelection(sectionMultiSelect, data.sections);
+        // makeMultiSelect is now dynamic
+        if (makeHeaderFilter) makeHeaderFilter.setOptions([]);
+        if (sectionHeaderFilter) sectionHeaderFilter.setOptions(data.sections);
+        if (purityHeaderFilter) purityHeaderFilter.setOptions(data.purities);
+        // collectionMultiSelect is now dynamic
+        if (collectionHeaderFilter) collectionHeaderFilter.setOptions([]); // Initially empty or we can add search here too
+
+        config.forEach(item => {
+            const select = document.getElementById(item.id);
+            if (select && item.data) {
+                let selected = select.value;
+                if (item.id === 'filter-division' && !selected && filterValues.division) {
+                    selected = filterValues.division;
+                }
+                const placeholder = select.options[0]?.cloneNode(true);
+                select.replaceChildren();
+                if (placeholder) select.appendChild(placeholder);
+                const options = Array.isArray(item.data) ? item.data : [];
+                options.forEach(opt => {
+                    const el = document.createElement('option');
+                    el.value = opt;
+                    el.textContent = opt;
+                    select.appendChild(el);
+                });
+                if (selected) {
+                    const matchedOpt = options.find(o => String(o).toLowerCase() === String(selected).toLowerCase());
+                    if (matchedOpt) {
+                        select.value = matchedOpt;
+                        if (item.id === 'filter-division') {
+                            filterValues.division = matchedOpt;
+                        }
+                    } else if (item.id === 'filter-division') {
+                        const goldOpt = options.find(o => String(o).toLowerCase() === 'gold');
+                        if (goldOpt) {
+                            select.value = goldOpt;
+                            filterValues.division = goldOpt;
+                        } else {
+                            select.value = '';
+                        }
+                    } else {
+                        select.value = '';
+                    }
+                } else if (item.id === 'filter-division') {
+                    const goldOpt = options.find(o => String(o).toLowerCase() === 'gold');
+                    if (goldOpt) {
+                        select.value = goldOpt;
+                        filterValues.division = goldOpt;
+                    } else {
+                        select.value = '';
+                    }
+                } else {
+                    select.value = '';
+                }
+            }
+        });
+    } catch (err) {
+        console.error('Failed to load filter options:', err);
+        if (throwOnError) throw err;
+    }
+}
+
+async function onlineLoadReport(throwOnError = false) {
+    const requestId = ++reportRequestId;
+    const tableArea = document.getElementById('view-online-provision-stock-status');
+    const mainContainer = document.getElementById('table-area');
+    const progressBar = document.getElementById('report-progress');
+    if (!tableArea) return;
+
+    mainContainer.classList.add('opacity-50', 'pointer-events-none');
+    if (progressBar) progressBar.classList.remove('hidden');
+
+    try {
+        const params = new URLSearchParams({
+            search: currentSearch,
+            ...filterValues
+        });
+
+        // Optimization: Don't send sort_order if sort_by is empty
+        if (!filterValues.sort_by) {
+            params.delete('sort_order');
+        } else if (filterValues.sort_order === 'none') {
+            params.delete('sort_by');
+            params.delete('sort_order');
+        }
+
+        const response = await fetch(`/partial/online-provision-stock-status?${params}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+        });
+        if (!response.ok) throw new Error('Failed to load report');
+        const html = await response.text();
+        if (requestId !== reportRequestId) return false;
+        tableArea.innerHTML = html;
+        appliedStockFilters = Object.fromEntries(params);
+
+        // Re-execute scripts in the partial
+        const scripts = tableArea.getElementsByTagName('script');
+        for (let i = 0; i < scripts.length; i++) {
+            eval(scripts[i].innerText);
+        }
+
+        // Apply filter highlight to header icons if filtered
+        if (makeHeaderFilter && makeHeaderFilter.selectedValues.length > 0) {
+            const icon = document.querySelector('.header-filter-container[data-id="make"]');
+            if (icon) icon.classList.add('filtered');
+        }
+        if (sectionHeaderFilter && sectionHeaderFilter.selectedValues.length > 0) {
+            const icon = document.querySelector('.header-filter-container[data-id="section"]');
+            if (icon) icon.classList.add('filtered');
+        }
+        if (purityHeaderFilter && purityHeaderFilter.selectedValues.length > 0) {
+            const icon = document.querySelector('.header-filter-container[data-id="purity"]');
+            if (icon) icon.classList.add('filtered');
+        }
+        if (collectionHeaderFilter && collectionHeaderFilter.selectedValues.length > 0) {
+            const icon = document.querySelector('.header-filter-container[data-id="collection"]');
+            if (icon) icon.classList.add('filtered');
+        }
+        return true;
+    } catch (err) {
+        console.error('Failed to load report:', err);
+        if (throwOnError) throw err;
+        if (requestId !== reportRequestId) return false;
+        tableArea.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Failed to load data: ${err.message}</div>`;
+    } finally {
+        if (requestId === reportRequestId) {
+            mainContainer.classList.remove('opacity-50', 'pointer-events-none');
+            if (progressBar) progressBar.classList.add('hidden');
+        }
+    }
+}
+
+function onlineOnSearchInput(val) {
+    currentSearch = val;
+    clearTimeout(window.searchTimeout);
+    window.searchTimeout = setTimeout(() => {
+        onlineLoadReport();
+    }, 300);
+}
+
+function onlineApplyFilters() {
+    filterValues.branch_type = '';
+    filterValues.branch_status = '';
+    filterValues.business_head = document.getElementById('filter-business-head').value;
+    filterValues.division = document.getElementById('filter-division')?.value || '';
+
+    if (locationMultiSelect) filterValues.location = locationMultiSelect.getValues().join(',');
+    if (branchStatusMultiSelect) filterValues.branch_status = branchStatusMultiSelect.getValues().join(',');
+    if (branchTypeMultiSelect) filterValues.branch_type = branchTypeMultiSelect.getValues().join(',');
+    if (stateMultiSelect) filterValues.state = stateMultiSelect.getValues().join(',');
+
+    filterValues.purity = document.getElementById('filter-purity').value;
+    filterValues.classification = document.getElementById('filter-classification').value;
+    filterValues.prov_type = document.getElementById('filter-prov-type').value;
+    filterValues.provision_mode = document.getElementById('filter-provision-mode').value;
+
+    // Combine Sidebar and Header Filter
+    let sidebarMakes = makeMultiSelect ? makeMultiSelect.getValues() : [];
+    let headerMakes = makeHeaderFilter ? makeHeaderFilter.selectedValues : [];
+    let combinedMakes = new Set([...sidebarMakes, ...headerMakes]);
+    filterValues.make = Array.from(combinedMakes).join(',');
+
+    let sidebarSections = sectionMultiSelect ? sectionMultiSelect.getValues() : [];
+    let headerSections = sectionHeaderFilter ? sectionHeaderFilter.selectedValues : [];
+    let combinedSections = new Set([...sidebarSections, ...headerSections]);
+    filterValues.section = Array.from(combinedSections).join(',');
+
+    const puritySelect = document.getElementById('filter-purity');
+    let sidebarPurity = puritySelect ? puritySelect.value : '';
+    let headerPurities = purityHeaderFilter ? purityHeaderFilter.selectedValues : [];
+    let combinedPurities = new Set(headerPurities);
+    if (sidebarPurity) combinedPurities.add(sidebarPurity);
+    filterValues.purity = Array.from(combinedPurities).join(',');
+
+    let sidebarCollections = collectionMultiSelect ? collectionMultiSelect.getValues() : [];
+    let headerCollections = collectionHeaderFilter ? collectionHeaderFilter.selectedValues : [];
+    let combinedCollections = new Set([...sidebarCollections, ...headerCollections]);
+    filterValues.collection = Array.from(combinedCollections).join(',');
+
+    onlineLoadReport();
+}
+
+function onlineResetFilters() {
+    Object.keys(filterValues).forEach(key => filterValues[key] = '');
+    currentSearch = '';
+
+    const filterIds = [
+        'filter-purity', 'filter-classification',
+        'filter-prov-type', 'filter-provision-mode',
+        'filter-business-head'
+    ];
+    filterIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    const divSelect = document.getElementById('filter-division');
+    if (divSelect) {
+        const goldOpt = Array.from(divSelect.options).find(o => o.value.toLowerCase() === 'gold');
+        if (goldOpt) {
+            divSelect.value = goldOpt.value;
+            filterValues.division = goldOpt.value;
+        } else {
+            divSelect.value = 'Gold';
+            filterValues.division = 'Gold';
+        }
+    } else {
+        filterValues.division = 'Gold';
+    }
+
+    if (locationMultiSelect) locationMultiSelect.reset();
+    if (branchStatusMultiSelect) branchStatusMultiSelect.reset();
+    if (branchTypeMultiSelect) branchTypeMultiSelect.reset();
+    if (stateMultiSelect) stateMultiSelect.reset();
+    if (sectionMultiSelect) sectionMultiSelect.reset();
+    if (makeMultiSelect) makeMultiSelect.reset();
+    if (collectionMultiSelect) collectionMultiSelect.reset();
+
+    if (makeHeaderFilter) makeHeaderFilter.setSelectedValues([]);
+    if (sectionHeaderFilter) sectionHeaderFilter.setSelectedValues([]);
+    if (purityHeaderFilter) purityHeaderFilter.setSelectedValues([]);
+    if (collectionHeaderFilter) collectionHeaderFilter.setSelectedValues([]);
+
+    filterValues.sort_by = '';
+    filterValues.sort_order = 'none';
+
+    const searchInput = document.getElementById('report-search');
+    if (searchInput) searchInput.value = '';
+
+    onlineLoadReport();
+}
+
+function onlineToggleSort(column) {
+    if (filterValues.sort_by === column) {
+        if (filterValues.sort_order === 'asc') {
+            filterValues.sort_order = 'desc';
+        } else if (filterValues.sort_order === 'desc') {
+            filterValues.sort_order = 'none';
+            filterValues.sort_by = '';
+        } else {
+            filterValues.sort_order = 'asc';
+        }
+    } else {
+        filterValues.sort_by = column;
+        filterValues.sort_order = 'asc';
+    }
+    onlineLoadReport();
+}
+
+function onlineAdjustZoom(delta, reset = false) {
+    const main = document.getElementById('online-provision-stock-status-main');
+    if (!main) return;
+
+    let currentZoom = parseFloat(main.getAttribute('data-zoom') || '1');
+
+    if (reset) currentZoom = 1;
+    else currentZoom += delta;
+
+    currentZoom = Math.max(0.7, Math.min(1.5, currentZoom));
+    main.style.zoom = currentZoom;
+    main.setAttribute('data-zoom', currentZoom);
+
+    const zoomText = document.getElementById('zoom-level');
+    if (zoomText) zoomText.textContent = `${Math.round(currentZoom * 100)}%`;
+}
+
+// Global toggle for header filters
+function onlineToggleHeaderFilter(event, id) {
+    event.stopPropagation();
+    const icon = event.currentTarget;
+
+    if (id === 'make' && makeHeaderFilter) {
+        if (makeHeaderFilter.isOpen) {
+            makeHeaderFilter.close();
+            icon.classList.remove('active');
+        } else {
+            document.querySelectorAll('.header-filter-container').forEach(el => el.classList.remove('active'));
+            icon.classList.add('active');
+            makeHeaderFilter.render(icon);
+        }
+    } else if (id === 'section' && sectionHeaderFilter) {
+        if (sectionHeaderFilter.isOpen) {
+            sectionHeaderFilter.close();
+            icon.classList.remove('active');
+        } else {
+            document.querySelectorAll('.header-filter-container').forEach(el => el.classList.remove('active'));
+            icon.classList.add('active');
+            sectionHeaderFilter.render(icon);
+        }
+    } else if (id === 'purity' && purityHeaderFilter) {
+        if (purityHeaderFilter.isOpen) {
+            purityHeaderFilter.close();
+            icon.classList.remove('active');
+        } else {
+            document.querySelectorAll('.header-filter-container').forEach(el => el.classList.remove('active'));
+            icon.classList.add('active');
+            purityHeaderFilter.render(icon);
+        }
+    } else if (id === 'collection' && collectionHeaderFilter) {
+        if (collectionHeaderFilter.isOpen) {
+            collectionHeaderFilter.close();
+            icon.classList.remove('active');
+        } else {
+            document.querySelectorAll('.header-filter-container').forEach(el => el.classList.remove('active'));
+            icon.classList.add('active');
+            collectionHeaderFilter.render(icon);
+        }
+    }
+}
+
+/**
+ * Drill-down Modal Functions
+ */
+
+async function onlineOpenDrillDownModal(sectionName) {
+    const drilldownFilters = { ...appliedStockFilters };
+    const modal = document.getElementById('online-drillDownModal');
+    const container = document.getElementById('online-drillDownContainer');
+    const title = document.getElementById('online-drillDownTitle');
+    const loader = document.getElementById('online-modal-loader');
+    const contentArea = document.getElementById('online-modal-content-area');
+    const progressBar = document.getElementById('online-modal-progress');
+
+    if (!modal || !container) return;
+
+    // Show modal structure
+    modal.classList.remove('hidden');
+    // Trigger animation next frame
+    requestAnimationFrame(() => {
+        container.classList.remove('translate-x-full');
+    });
+
+    // Set title
+    title.textContent = `${sectionName} - Section Drill-down`;
+
+    // Show loading state
+    loader.classList.remove('hidden');
+    if (progressBar) progressBar.classList.remove('hidden');
+    contentArea.innerHTML = '';
+
+    try {
+        // Collect all current report filters
+        const params = new URLSearchParams({
+            ...drilldownFilters,
+            drill_section: sectionName // Explicitly filter by the clicked section
+        });
+
+        const response = await fetch(`/api/online-provision-stock-status/drilldown?${params}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch drill-down data');
+
+        const html = await response.text();
+        contentArea.innerHTML = html;
+        activeDrilldownFilters = { ...drilldownFilters, drill_section: sectionName };
+
+    } catch (err) {
+        console.error('Drill-down error:', err);
+        contentArea.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-full p-12 text-center">
+                <span class="material-symbols-outlined text-4xl text-red-500 mb-4">error</span>
+                <h4 class="text-sm font-bold text-gray-800 dark:text-white mb-2">Something went wrong</h4>
+                <p class="text-xs text-gray-500">${err.message}</p>
+                <button onclick="onlineOpenDrillDownModal('${sectionName}')" class="mt-6 px-4 py-2 bg-primary text-white text-[10px] font-bold rounded uppercase tracking-wider">Try Again</button>
+            </div>
+        `;
+    } finally {
+        loader.classList.add('hidden');
+        if (progressBar) progressBar.classList.add('hidden');
+    }
+}
+
+function onlineToggleDrilldownTreeNode(buttonEl, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    const currentRow = buttonEl.closest('tr[data-tree-row]');
+    if (!currentRow) return;
+
+    const nodeId = currentRow.dataset.nodeId;
+    if (!nodeId) return;
+
+    const iconSpan = buttonEl.querySelector('.material-symbols-outlined');
+    const isExpanded = iconSpan ? iconSpan.textContent.trim() === 'arrow_drop_down' : true;
+
+    if (isExpanded) {
+        if (iconSpan) iconSpan.textContent = 'arrow_right';
+        onlineCollapseDrilldownChildren(currentRow.parentElement, nodeId);
+    } else {
+        if (iconSpan) iconSpan.textContent = 'arrow_drop_down';
+        onlineExpandDrilldownChildren(currentRow.parentElement, nodeId);
+    }
+}
+window.onlineToggleDrilldownTreeNode = onlineToggleDrilldownTreeNode;
+
+function onlineCollapseDrilldownChildren(tbody, parentNodeId) {
+    const childRows = tbody.querySelectorAll(`tr[data-parent-id="${parentNodeId}"]`);
+    childRows.forEach(row => {
+        row.classList.add('hidden');
+        const toggleBtn = row.querySelector('[data-tree-toggle] .material-symbols-outlined');
+        if (toggleBtn) {
+            toggleBtn.textContent = 'arrow_right';
+        }
+        const childNodeId = row.dataset.nodeId;
+        if (childNodeId) {
+            onlineCollapseDrilldownChildren(tbody, childNodeId);
+        }
+    });
+}
+
+function onlineExpandDrilldownChildren(tbody, parentNodeId) {
+    const childRows = tbody.querySelectorAll(`tr[data-parent-id="${parentNodeId}"]`);
+    childRows.forEach(row => {
+        row.classList.remove('hidden');
+        const toggleBtn = row.querySelector('[data-tree-toggle] .material-symbols-outlined');
+        const isChildExpanded = toggleBtn ? toggleBtn.textContent.trim() === 'arrow_drop_down' : false;
+        const childNodeId = row.dataset.nodeId;
+
+        if (isChildExpanded && childNodeId) {
+            onlineExpandDrilldownChildren(tbody, childNodeId);
+        } else if (childNodeId) {
+            // Keep grandchildren collapsed
+            onlineCollapseDrilldownChildren(tbody, childNodeId);
+        }
+    });
+}
+
+function onlineCloseDrillDownModal() {
+    const modal = document.getElementById('online-drillDownModal');
+    const container = document.getElementById('online-drillDownContainer');
+
+    if (!modal || !container) return;
+
+    // Trigger close animation
+    container.classList.add('translate-x-full');
+
+    // Hide backdrop after animation
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+}
+
+function onlineBuildHierarchyDetailParams(link) {
+    return new URLSearchParams({
+        ...activeDrilldownFilters,
+        drill_level: link.dataset.level,
+        drill_section: link.dataset.section,
+        drill_purity: link.dataset.purity,
+        drill_type: link.dataset.type,
+        drill_wide_range: link.dataset.wideRange,
+        drill_range_weight: link.dataset.rangeWeight,
+        drill_section_ids: link.dataset.sectionIds,
+        drill_purity_ids: link.dataset.purityIds,
+        drill_type_ids: link.dataset.typeIds,
+        drill_wide_range_ids: link.dataset.wideRangeIds,
+        page: '1'
+    });
+}
+
+function onlineSetHierarchyDetailsPath(path, link) {
+    const pathParts = [link.dataset.section];
+    if (Number(link.dataset.level) >= 2) pathParts.push(link.dataset.purity || 'Unknown Purity');
+    if (Number(link.dataset.level) >= 3) pathParts.push(link.dataset.type || 'Unknown Type');
+    if (Number(link.dataset.level) >= 4) pathParts.push(link.dataset.wideRange || 'Unknown Range');
+    if (Number(link.dataset.level) >= 5) pathParts.push(link.dataset.rangeWeight || 'Unknown Weight');
+    path.textContent = pathParts.join(' / ');
+}
+
+let activeInShopDetailParams = null;
+let activeStockDetailEndpoint = 'in-shop-details';
+let inShopDetailsRequestController = null;
+let inShopDetailsTimeout = null;
+
+async function onlineOpenInShopDetailsModal(link) {
+    const modal = document.getElementById('online-inShopDetailsModal');
+    const path = document.getElementById('online-inShopDetailsPath');
+    if (!modal) return;
+
+    activeInShopDetailParams = onlineBuildHierarchyDetailParams(link);
+    const ordered = link.hasAttribute('data-ordered-detail');
+    document.getElementById('online-inShopDetailsContainer').classList.toggle('is-ordered-detail', ordered);
+    activeStockDetailEndpoint = ordered ? 'ordered-details' : 'in-shop-details';
+    document.getElementById('online-inShopDetailsTitle').textContent = ordered
+        ? 'Processed Order Details' : 'In-shop Barcode Details';
+    onlineSetHierarchyDetailsPath(path, link);
+    modal.classList.remove('hidden');
+    await onlineLoadInShopDetails();
+}
+
+window.onlineOpenInShopDetailsModal = onlineOpenInShopDetailsModal;
+
+async function onlineLoadInShopDetails(page) {
+    if (!activeInShopDetailParams) return;
+    if (page) activeInShopDetailParams.set('page', String(page));
+
+    const loader = document.getElementById('online-inShopDetailsLoader');
+    const content = document.getElementById('online-inShopDetailsContent');
+    if (inShopDetailsRequestController) inShopDetailsRequestController.abort();
+    const requestController = new AbortController();
+    inShopDetailsRequestController = requestController;
+    loader.classList.remove('hidden');
+    const requestTimeout = window.setTimeout(() => requestController.abort(), 30000);
+    inShopDetailsTimeout = requestTimeout;
+
+    try {
+        const response = await fetch(`/api/online-provision-stock-status/${activeStockDetailEndpoint}?${activeInShopDetailParams}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+            signal: requestController.signal
+        });
+        const html = await response.text();
+        if (inShopDetailsRequestController !== requestController) return;
+        content.innerHTML = html;
+        if (activeStockDetailEndpoint === 'ordered-details' && response.status === 503) return;
+        if (!response.ok) throw new Error('Failed to load in-shop barcode details');
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            if (inShopDetailsRequestController === requestController) {
+                content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">The detail request timed out. Please retry.</div>';
+            }
+            return;
+        }
+        console.error('In-shop detail error:', error);
+        if (inShopDetailsRequestController === requestController) {
+            content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">Unable to load stock details.</div>';
+        }
+    } finally {
+        window.clearTimeout(requestTimeout);
+        if (inShopDetailsTimeout === requestTimeout) inShopDetailsTimeout = null;
+        if (inShopDetailsRequestController === requestController) {
+            loader.classList.add('hidden');
+            inShopDetailsRequestController = null;
+        }
+    }
+}
+
+function onlineToggleModalFullscreen(containerId, buttonEl) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const iconSpan = buttonEl ? buttonEl.querySelector('.material-symbols-outlined') : null;
+    const isFullscreen = container.classList.contains('inset-0');
+
+    if (isFullscreen) {
+        container.classList.remove('inset-0', 'rounded-none');
+        container.classList.add('inset-4', 'md:inset-8', 'lg:inset-12', 'rounded-lg');
+        if (iconSpan) iconSpan.textContent = 'fullscreen';
+        if (buttonEl) buttonEl.title = 'Fullscreen';
+    } else {
+        container.classList.remove('inset-4', 'md:inset-8', 'lg:inset-12', 'rounded-lg');
+        container.classList.add('inset-0', 'rounded-none');
+        if (iconSpan) iconSpan.textContent = 'fullscreen_exit';
+        if (buttonEl) buttonEl.title = 'Exit Fullscreen';
+    }
+}
+window.onlineToggleModalFullscreen = onlineToggleModalFullscreen;
+
+function onlineResetModalFullscreen(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.classList.remove('inset-0', 'rounded-none');
+    container.classList.add('inset-4', 'md:inset-8', 'lg:inset-12', 'rounded-lg');
+    const headerBtn = container.querySelector('button[title="Exit Fullscreen"], button[title="Fullscreen"], button[title="Toggle Fullscreen"]');
+    if (headerBtn) {
+        headerBtn.title = 'Toggle Fullscreen';
+        const iconSpan = headerBtn.querySelector('.material-symbols-outlined');
+        if (iconSpan) iconSpan.textContent = 'fullscreen';
+    }
+}
+
+function onlineCloseInShopDetailsModal() {
+    const modal = document.getElementById('online-inShopDetailsModal');
+    window.clearTimeout(inShopDetailsTimeout);
+    inShopDetailsTimeout = null;
+    if (inShopDetailsRequestController) inShopDetailsRequestController.abort();
+    if (modal) modal.classList.add('hidden');
+    onlineResetModalFullscreen('online-inShopDetailsContainer');
+    inShopDetailsRequestController = null;
+    activeInShopDetailParams = null;
+}
+
+let activeProvisionDetailParams = null;
+let provisionDetailsRequestController = null;
+let provisionDetailsTimeout = null;
+
+async function onlineOpenProvisionDetailsModal(link) {
+    const modal = document.getElementById('online-provisionDetailsModal');
+    const path = document.getElementById('online-provisionDetailsPath');
+    if (!modal) return;
+
+    activeProvisionDetailParams = onlineBuildHierarchyDetailParams(link);
+    onlineSetHierarchyDetailsPath(path, link);
+    modal.classList.remove('hidden');
+    await onlineLoadProvisionDetails();
+}
+
+window.onlineOpenProvisionDetailsModal = onlineOpenProvisionDetailsModal;
+
+async function onlineLoadProvisionDetails(page) {
+    if (!activeProvisionDetailParams) return;
+    if (page) activeProvisionDetailParams.set('page', String(page));
+
+    const loader = document.getElementById('online-provisionDetailsLoader');
+    const content = document.getElementById('online-provisionDetailsContent');
+    if (provisionDetailsRequestController) provisionDetailsRequestController.abort();
+    const requestController = new AbortController();
+    provisionDetailsRequestController = requestController;
+    loader.classList.remove('hidden');
+    const requestTimeout = window.setTimeout(() => requestController.abort(), 30000);
+    provisionDetailsTimeout = requestTimeout;
+
+    try {
+        const response = await fetch(`/api/online-provision-stock-status/provision-details?${activeProvisionDetailParams}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+            signal: requestController.signal
+        });
+        const html = await response.text();
+        content.innerHTML = html;
+        if (!response.ok) throw new Error('Failed to load provision details');
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            if (provisionDetailsRequestController === requestController) {
+                content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">The provision details request timed out. Please retry.</div>';
+            }
+            return;
+        }
+        console.error('Provision detail error:', error);
+        content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">Unable to load provision details.</div>';
+    } finally {
+        window.clearTimeout(requestTimeout);
+        if (provisionDetailsTimeout === requestTimeout) provisionDetailsTimeout = null;
+        if (provisionDetailsRequestController === requestController) {
+            loader.classList.add('hidden');
+            provisionDetailsRequestController = null;
+        }
+    }
+}
+
+function onlineCloseProvisionDetailsModal() {
+    const modal = document.getElementById('online-provisionDetailsModal');
+    window.clearTimeout(provisionDetailsTimeout);
+    provisionDetailsTimeout = null;
+    if (provisionDetailsRequestController) provisionDetailsRequestController.abort();
+    if (modal) modal.classList.add('hidden');
+    onlineResetModalFullscreen('online-provisionDetailsContainer');
+    provisionDetailsRequestController = null;
+    activeProvisionDetailParams = null;
+}
+
+let activeStockComparisonParams = null;
+let stockComparisonRequestController = null;
+let stockComparisonTimeout = null;
+const comparisonBarcodeControllers = new Set();
+
+function onlineBuildComparisonBarcodeParams(toggle, page = 1) {
+    const fieldMap = {
+        branchId: 'branch_id',
+        divisionId: 'division_id',
+        groupId: 'group_id',
+        purityId: 'purity_id',
+        classificationId: 'classification_id',
+        subClassificationId: 'sub_classification_id',
+        sectionId: 'section_id',
+        typeId: 'type_id',
+        makeId: 'make_id',
+        collectionId: 'collection_id',
+        masterCollectionId: 'master_collection_id',
+        subSectionId: 'sub_section_id',
+        wideRangeId: 'wide_range_id',
+        genderId: 'gender_id',
+        sizeId: 'size_id',
+        screwTypeId: 'screw_type_id',
+        rangeWeight: 'range_weight'
+    };
+    const params = new URLSearchParams({ page: String(page) });
+    Object.entries(fieldMap).forEach(([datasetKey, parameterName]) => {
+        params.set(parameterName, toggle.dataset[datasetKey] || '');
+    });
+    return params;
+}
+
+async function onlineLoadComparisonBarcodeDetails(toggle, page = 1) {
+    const pairBody = toggle.closest('tbody');
+    const content = pairBody?.querySelector('[data-comparison-barcode-content]');
+    if (!content) return;
+
+    const requestController = new AbortController();
+    comparisonBarcodeControllers.add(requestController);
+    content.innerHTML = `
+        <div class="px-4 py-4 flex items-center gap-2 text-[10px] font-semibold text-gray-500">
+            <span class="size-4 border-2 border-blue-100 border-t-primary rounded-full animate-spin"></span>
+            Loading barcode details...
+        </div>
+    `;
+
+    const requestTimeout = window.setTimeout(() => requestController.abort(), 30000);
+    try {
+        const params = onlineBuildComparisonBarcodeParams(toggle, page);
+        const response = await fetch(
+            `/api/online-provision-stock-status/stock-comparison-barcodes?${params}`,
+            {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+                signal: requestController.signal
+            }
+        );
+        content.innerHTML = await response.text();
+        if (response.ok) {
+            toggle.dataset.barcodeDetailsLoaded = 'true';
+        }
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            content.innerHTML = '<div class="px-4 py-4 text-[10px] font-semibold text-red-500">The barcode request timed out. Please retry.</div>';
+        } else {
+            console.error('Comparison barcode detail error:', error);
+            content.innerHTML = '<div class="px-4 py-4 text-[10px] font-semibold text-red-500">Unable to load barcode details.</div>';
+        }
+    } finally {
+        window.clearTimeout(requestTimeout);
+        comparisonBarcodeControllers.delete(requestController);
+    }
+}
+
+async function onlineOpenStockComparisonModal(link) {
+    const modal = document.getElementById('online-stockComparisonModal');
+    const path = document.getElementById('online-stockComparisonPath');
+    if (!modal) return;
+
+    activeStockComparisonParams = onlineBuildHierarchyDetailParams(link);
+    onlineSetHierarchyDetailsPath(path, link);
+    modal.classList.remove('hidden');
+    await onlineLoadStockComparison();
+}
+
+window.onlineOpenStockComparisonModal = onlineOpenStockComparisonModal;
+
+async function onlineLoadStockComparison(page) {
+    if (!activeStockComparisonParams) return;
+    if (page) activeStockComparisonParams.set('page', String(page));
+
+    const loader = document.getElementById('online-stockComparisonLoader');
+    const content = document.getElementById('online-stockComparisonContent');
+    if (stockComparisonRequestController) stockComparisonRequestController.abort();
+    const requestController = new AbortController();
+    stockComparisonRequestController = requestController;
+    loader.classList.remove('hidden');
+    const requestTimeout = window.setTimeout(() => requestController.abort(), 30000);
+    stockComparisonTimeout = requestTimeout;
+
+    try {
+        const response = await fetch(`/api/online-provision-stock-status/stock-comparison?${activeStockComparisonParams}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+            signal: requestController.signal
+        });
+        const html = await response.text();
+        content.innerHTML = html;
+        if (!response.ok) throw new Error('Failed to compare provision and NIP rows');
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            if (stockComparisonRequestController === requestController) {
+                content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">The comparison request timed out. Please retry.</div>';
+            }
+            return;
+        }
+        console.error('Stock comparison error:', error);
+        content.innerHTML = '<div class="h-full flex items-center justify-center text-xs font-semibold text-red-500">Unable to compare provision and NIP rows.</div>';
+    } finally {
+        window.clearTimeout(requestTimeout);
+        if (stockComparisonTimeout === requestTimeout) stockComparisonTimeout = null;
+        if (stockComparisonRequestController === requestController) {
+            loader.classList.add('hidden');
+            stockComparisonRequestController = null;
+        }
+    }
+}
+
+function onlineCloseStockComparisonModal() {
+    const modal = document.getElementById('online-stockComparisonModal');
+    window.clearTimeout(stockComparisonTimeout);
+    stockComparisonTimeout = null;
+    if (stockComparisonRequestController) stockComparisonRequestController.abort();
+    comparisonBarcodeControllers.forEach(controller => controller.abort());
+    comparisonBarcodeControllers.clear();
+    if (modal) modal.classList.add('hidden');
+    onlineResetModalFullscreen('online-stockComparisonContainer');
+    stockComparisonRequestController = null;
+    activeStockComparisonParams = null;
+}
+
+window.onlineCloseStockComparisonModal = onlineCloseStockComparisonModal;
+
+document.addEventListener('click', (event) => {
+    const sourceHighlightButton = event.target.closest('[data-comparison-highlight-source]');
+    if (sourceHighlightButton) {
+        const comparisonContent = document.getElementById('online-stockComparisonContent');
+        const source = sourceHighlightButton.dataset.comparisonHighlightSource;
+        const shouldHighlight = sourceHighlightButton.getAttribute('aria-pressed') !== 'true';
+
+        comparisonContent?.querySelectorAll('[data-comparison-highlight-source]').forEach(button => {
+            button.setAttribute('aria-pressed', 'false');
+            button.classList.remove('text-primary', 'underline');
+        });
+        comparisonContent?.querySelectorAll('[data-comparison-source]').forEach(row => {
+            row.classList.remove('comparison-row-highlight');
+        });
+
+        if (shouldHighlight) {
+            sourceHighlightButton.setAttribute('aria-pressed', 'true');
+            sourceHighlightButton.classList.add('text-primary', 'underline');
+            comparisonContent?.querySelectorAll(
+                `[data-comparison-source="${source}"][data-comparison-has-pieces="true"]`
+            ).forEach(row => {
+                row.classList.add('comparison-row-highlight');
+            });
+        }
+        return;
+    }
+
+    const barcodePageButton = event.target.closest('[data-comparison-barcode-page]');
+    if (barcodePageButton && !barcodePageButton.disabled) {
+        const pairBody = barcodePageButton.closest('tbody');
+        const toggle = pairBody?.querySelector('[data-comparison-nip-toggle]');
+        if (toggle) {
+            onlineLoadComparisonBarcodeDetails(toggle, Number(barcodePageButton.dataset.comparisonBarcodePage));
+        }
+        return;
+    }
+
+    const nipToggle = event.target.closest('[data-comparison-nip-toggle]');
+    if (nipToggle && !nipToggle.disabled) {
+        const pairBody = nipToggle.closest('tbody');
+        const detailRow = pairBody?.querySelector('[data-comparison-nip-detail]');
+        const icon = nipToggle.querySelector('[data-comparison-nip-icon]');
+        if (detailRow) {
+            const willExpand = detailRow.classList.contains('hidden');
+            detailRow.classList.toggle('hidden', !willExpand);
+            nipToggle.setAttribute('aria-expanded', String(willExpand));
+            nipToggle.title = willExpand ? 'Hide NIP row details' : 'Show NIP row details';
+            if (icon) icon.textContent = willExpand ? 'expand_more' : 'chevron_right';
+            if (willExpand && nipToggle.dataset.barcodeDetailsLoaded !== 'true') {
+                onlineLoadComparisonBarcodeDetails(nipToggle);
+            }
+        }
+        return;
+    }
+
+    const comparisonLink = event.target.closest('[data-comparison-detail]');
+    if (comparisonLink) {
+        event.preventDefault();
+        onlineOpenStockComparisonModal(comparisonLink);
+        return;
+    }
+
+    const provisionLink = event.target.closest('[data-provision-detail]');
+    if (provisionLink) {
+        event.preventDefault();
+        onlineOpenProvisionDetailsModal(provisionLink);
+        return;
+    }
+
+    const detailLink = event.target.closest('[data-in-shop-detail], [data-ordered-detail]');
+    if (detailLink) {
+        event.preventDefault();
+        onlineOpenInShopDetailsModal(detailLink);
+        return;
+    }
+
+    const pageButton = event.target.closest('[data-in-shop-page]');
+    if (pageButton && !pageButton.disabled) {
+        onlineLoadInShopDetails(Number(pageButton.dataset.inShopPage));
+        return;
+    }
+
+    const provisionPageButton = event.target.closest('[data-provision-page]');
+    if (provisionPageButton && !provisionPageButton.disabled) {
+        onlineLoadProvisionDetails(Number(provisionPageButton.dataset.provisionPage));
+        return;
+    }
+
+    const comparisonPageButton = event.target.closest('[data-comparison-page]');
+    if (comparisonPageButton && !comparisonPageButton.disabled) {
+        onlineLoadStockComparison(Number(comparisonPageButton.dataset.comparisonPage));
+    }
+});
+
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    const comparisonModal = document.getElementById('online-stockComparisonModal');
+    if (comparisonModal && !comparisonModal.classList.contains('hidden')) {
+        onlineCloseStockComparisonModal();
+        return;
+    }
+    const detailsModal = document.getElementById('online-inShopDetailsModal');
+    if (detailsModal && !detailsModal.classList.contains('hidden')) {
+        onlineCloseInShopDetailsModal();
+        return;
+    }
+    const provisionModal = document.getElementById('online-provisionDetailsModal');
+    if (provisionModal && !provisionModal.classList.contains('hidden')) {
+        onlineCloseProvisionDetailsModal();
+    }
+});
+
+async function onlineExportToExcel() {
+    const btn = document.getElementById('btn-export-excel');
+    if (!btn) return;
+
+    const COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
+    const lastExportTime = localStorage.getItem('last_stock_export_time');
+    const now = Date.now();
+
+    if (lastExportTime) {
+        const timePassed = now - parseInt(lastExportTime, 10);
+        if (timePassed < COOLDOWN_MS) {
+            showToast('Warning', 'Already export is in progress...', 'warning');
+            return;
+        }
+    }
+
+    const icon = document.getElementById('export-btn-icon');
+    const label = document.getElementById('export-btn-label');
+    const originalIcon = icon ? icon.innerText : 'download';
+    const originalLabel = label ? label.innerText : 'Export';
+
+    try {
+        // Disable button and show loading state
+        btn.disabled = true;
+        if (icon) {
+            icon.innerText = 'sync';
+            icon.classList.add('animate-spin');
+        }
+        if (label) label.innerText = 'Queuing...';
+
+        // Extract current active filters
+        const activeFilters = {
+            search: currentSearch,
+            location: filterValues.location,
+            division: filterValues.division,
+            purity: filterValues.purity,
+            classification: filterValues.classification,
+            make: filterValues.make,
+            collection: filterValues.collection,
+            section: filterValues.section,
+            prov_type: filterValues.prov_type,
+            provision_mode: filterValues.provision_mode,
+            branch_type: filterValues.branch_type,
+            branch_status: filterValues.branch_status,
+            business_head: filterValues.business_head,
+            state: filterValues.state,
+            sort_by: filterValues.sort_by,
+            sort_order: filterValues.sort_order
+        };
+
+        const response = await fetch('/api/online-provision-stock-status/export', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            },
+            body: JSON.stringify({
+                filters: activeFilters,
+                socket_id: window.socket?.id
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.message || 'Failed to queue export');
+        }
+
+        localStorage.setItem('last_stock_export_time', Date.now().toString());
+        showToast('Success', 'Export job enqueued. You will be notified when the file is ready.', 'success');
+
+    } catch (error) {
+        console.error('Export error:', error);
+        showToast('Error', error.message || 'Failed to trigger export', 'error');
+    } finally {
+        // Restore button state
+        btn.disabled = false;
+        if (icon) {
+            icon.innerText = originalIcon;
+            icon.classList.remove('animate-spin');
+        }
+        if (label) label.innerText = originalLabel;
+    }
+}

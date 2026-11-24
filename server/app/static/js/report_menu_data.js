@@ -361,6 +361,14 @@ window.REPORT_MENU_DATA = [
                 tags: ["stock", "location", "physical"]
             },
             {
+                id: "online-provision-stock",
+                title: "Online Provision Stock status",
+                href: "/online-provision-stock-status",
+                icon: "inventory_2",
+                description: "View online provision stock status by location and collection.",
+                tags: ["stock", "location", "online"]
+            },
+            {
                 id: "nip-stock-trend-analysis",
                 title: "NIP Stock Trend Analysis",
                 href: "/nip-stock-trend-analysis",

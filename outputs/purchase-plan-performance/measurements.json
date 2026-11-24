@@ -1,0 +1,114 @@
+{
+  "environment": "local Docker PostgreSQL 15.15; 288 rows; warmed buffers; service calls excluding HTTP/auth/render",
+  "filters": {
+    "division": [
+      "Gold"
+    ],
+    "branch_type": [
+      "Retail"
+    ],
+    "branch_status": [
+      "Active"
+    ]
+  },
+  "date": "2026-11-24",
+  "path": [
+    "BANGLE"
+  ],
+  "deep_path": [
+    "BANGLE",
+    "ANTIQUE"
+  ],
+  "measurements": [
+    {
+      "operation": "options_uncached",
+      "samples": 20,
+      "median_ms": 2.379,
+      "p95_ms": 2.674,
+      "sql_queries": [
+        9
+      ]
+    },
+    {
+      "operation": "options_cached",
+      "samples": 20,
+      "median_ms": 0.3,
+      "p95_ms": 0.877,
+      "sql_queries": [
+        1
+      ]
+    },
+    {
+      "operation": "main_uncached",
+      "samples": 20,
+      "median_ms": 3.536,
+      "p95_ms": 3.825,
+      "sql_queries": [
+        5
+      ]
+    },
+    {
+      "operation": "main_cached",
+      "samples": 20,
+      "median_ms": 0.312,
+      "p95_ms": 0.353,
+      "sql_queries": [
+        1
+      ]
+    },
+    {
+      "operation": "branch_uncached",
+      "samples": 20,
+      "median_ms": 3.544,
+      "p95_ms": 3.81,
+      "sql_queries": [
+        5
+      ]
+    },
+    {
+      "operation": "branch_shared",
+      "samples": 20,
+      "median_ms": 2.37,
+      "p95_ms": 2.486,
+      "sql_queries": [
+        3
+      ]
+    },
+    {
+      "operation": "branch_cached",
+      "samples": 20,
+      "median_ms": 0.323,
+      "p95_ms": 0.376,
+      "sql_queries": [
+        1
+      ]
+    },
+    {
+      "operation": "deep_branch_shared",
+      "samples": 20,
+      "median_ms": 2.389,
+      "p95_ms": 2.63,
+      "sql_queries": [
+        3
+      ]
+    },
+    {
+      "operation": "contributors_uncached",
+      "samples": 20,
+      "median_ms": 2.536,
+      "p95_ms": 3.105,
+      "sql_queries": [
+        4
+      ]
+    },
+    {
+      "operation": "contributors_cached",
+      "samples": 20,
+      "median_ms": 0.311,
+      "p95_ms": 0.359,
+      "sql_queries": [
+        1
+      ]
+    }
+  ]
+}

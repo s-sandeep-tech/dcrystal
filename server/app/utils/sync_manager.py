@@ -36,6 +36,7 @@ SCHEDULED_ALL_SYNC_TASKS = (
 )
 
 ALLOWED_SYNC_TASKS = {
+    'online_provision_stock_status',
     'stock_drilldown_details',
     'stock_processed_order_details',
     'sales_prediction_data',
@@ -275,3 +276,7 @@ def sync_customer_order_approval_pending_data(user_id=None):
     return enqueue_sync_task('customer_order_approval_pending', user_id)
 
 
+
+
+def sync_online_provision_stock_status_data(user_id=None):
+    return enqueue_sync_task('online_provision_stock_status', user_id)
