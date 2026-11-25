@@ -947,6 +947,26 @@ def setup_scheduler():
         replace_existing=True
     )
 
+    # Daily 5:30 AM IST report syncs. pending_customer_order_approvals is an
+    # alias of customer_order_approval_pending, so schedule that handler once.
+    for task_type in (
+        'party_design_average_delivery_days',
+        'party_order_accept_cancel_delivery',
+        'sales_stock_composition_analysis',
+        'customer_order_analysis',
+        'customer_order_approval_pending',
+    ):
+        scheduler.add_job(
+            func=enqueue_sync_task,
+            trigger='cron',
+            hour=5,
+            minute=30,
+            args=[task_type],
+            kwargs={'user_id': 'SCHEDULER'},
+            id=f'{task_type}_sync',
+            replace_existing=True
+        )
+
     # Schedule "Order Fulfillment Value Aging Matrix Sync" every day at 8:45 AM IST
     # Task type 'order_fulfillment_aging_matrix' matches sync_manager.py
     scheduler.add_job(
@@ -967,6 +987,7 @@ def setup_scheduler():
     logger.info("Owner, Showroom, Pending Order Details & Active Orders Sync scheduled for 03:00 IST daily.")
     logger.info("Supplier Capacity & Backlog Analysis Sync scheduled for 04:00 IST daily.")
     logger.info("Party Performance Matrix Sync scheduled for 04:30 IST daily.")
+    logger.info("Party design delivery days, party order accept/cancel/delivery, sales stock composition, customer order analysis, and customer order approval pending syncs scheduled for 05:30 IST daily.")
     logger.info("QC Delay Summary Sync scheduled for 9:00 IST daily.")
     logger.info("HM Delay Management Sync scheduled for 9:05 IST daily.")
     logger.info("Vendor Delay Management Sync scheduled for 9:10 IST daily.")
