@@ -67,7 +67,7 @@
                                     <button type="button" aria-pressed="{{ 'true' if active else 'false' }}"
                                         onclick="setPurchasePlanHierarchy('{{ dimension }}')"
                                         class="rounded px-1 py-0.5 hover:bg-blue-50 dark:hover:bg-gray-700 {{ 'bg-blue-50 font-bold text-primary dark:bg-blue-900/30' if active else 'text-gray-600 dark:text-gray-300' }}">
-                                        {{ dimension|replace('_', ' ')|title }}
+                                        {{ 'Weight Range' if dimension == 'weight' else dimension|replace('_', ' ')|title }}
                                     </button>
                                     {% if loop.last and hierarchy_root in hierarchy %}</span>{% endif %}
                                     {% endfor %}

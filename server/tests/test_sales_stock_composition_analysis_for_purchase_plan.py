@@ -66,12 +66,12 @@ class PurchasePlanServiceTests(unittest.TestCase):
 
     def test_collection_and_weight_grouping_and_drilldowns(self):
         self.assertEqual(HIERARCHY, [
-            'section', 'classification', 'make', 'wide_range',
-            'weight', 'collection', 'purity',
+            'section', 'classification', 'make', 'collection',
+            'wide_range', 'weight', 'purity',
         ])
-        self.assertEqual(purchase_plan_hierarchy('collection'), ['collection', 'purity'])
+        self.assertEqual(purchase_plan_hierarchy('collection'), ['collection', 'wide_range', 'weight', 'purity'])
         self.assertEqual(purchase_plan_hierarchy('weight'),
-                         ['weight', 'collection', 'purity'])
+                         ['weight', 'purity'])
         app = Flask(__name__)
         app.config.update(TESTING=True, SQLALCHEMY_DATABASE_URI='sqlite:///:memory:',
                           SQLALCHEMY_TRACK_MODIFICATIONS=False)
@@ -91,13 +91,14 @@ class PurchasePlanServiceTests(unittest.TestCase):
                 ('wide_range', ['(Unspecified)'], 'weight', {'10': 300, '20': 300}, True),
                 ('collection', [], 'collection',
                  {'COLLECTION X': 400, 'COLLECTION Y': 200}, True),
-                ('collection', ['COLLECTION X'], 'purity', {'22': 100, '18': 300}, False),
+                ('collection', ['COLLECTION X'], 'wide_range', {'(Unspecified)': 400}, True),
+                ('collection', ['COLLECTION X', '(Unspecified)'], 'weight', {'10': 100, '20': 300}, True),
+                ('collection', ['COLLECTION X', '(Unspecified)', '10'], 'purity', {'22': 100}, False),
                 ('weight', [], 'weight',
                  {'10': 300, '20': 300}, True),
-                ('weight', ['10'], 'collection',
-                 {'COLLECTION X': 100, 'COLLECTION Y': 200}, True),
-                ('weight', ['10', 'COLLECTION X'],
-                 'purity', {'22': 100}, False),
+                ('weight', ['10'], 'purity', {'22': 100, '18': 200}, False),
+                ('section', ['(Unspecified)'] * 3, 'collection',
+                 {'COLLECTION X': 400, 'COLLECTION Y': 200}, True),
             ]
             for root, path, level, expected, can_expand in cases:
                 with self.subTest(root=root, path=path):
@@ -372,7 +373,7 @@ class PurchasePlanSecurityAndRouteTests(unittest.TestCase):
             self.assertEqual(self.client.get(endpoint + '?division=Gold', headers=self.headers()).text, '100.0')
             self.assertEqual(self.client.get(endpoint + '?division=Gold', headers=self.headers()).text, '100.0')
             self.assertEqual(redis.setex.call_count, 3)
-            self.assertTrue(redis.setex.call_args.args[0].startswith('purchase-plan:main:v5:'))
+            self.assertTrue(redis.setex.call_args.args[0].startswith('purchase-plan:main:v6:'))
             self.assertEqual(redis.setex.call_args.args[1], 10800)
             self.assertEqual(self.client.get(endpoint + '?division=Silver', headers=self.headers()).text, '0.0')
 
@@ -506,8 +507,9 @@ class TemplateRenderingTests(unittest.TestCase):
         self.assertIn('aria-pressed="true" onclick="setPurchasePlanHierarchy(\'make\')"', html)
         self.assertIn('aria-pressed="false" onclick="setPurchasePlanHierarchy(\'section\')"', html)
         self.assertLess(html.index("setPurchasePlanHierarchy('section')"), html.index("setPurchasePlanHierarchy('make')"))
-        self.assertLess(html.index("setPurchasePlanHierarchy('weight')"),
-                        html.index("setPurchasePlanHierarchy('collection')"))
+        for parent, child in zip(HIERARCHY, HIERARCHY[1:]):
+            self.assertLess(html.index(f"setPurchasePlanHierarchy('{parent}')"),
+                            html.index(f"setPurchasePlanHierarchy('{child}')"))
         self.assertIn('Sales Comp. %', html)
         self.assertIn('Stock Comp. %', html)
         self.assertIn('Stock Turn in Weight (times)', html)

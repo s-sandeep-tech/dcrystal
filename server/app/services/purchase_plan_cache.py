@@ -80,7 +80,7 @@ def cached_purchase_plan_value(namespace, params, build):
     if version is None:
         return build()
     digest = hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()
-    key = f'purchase-plan:{namespace}:v5:{version}:{digest}'
+    key = f'purchase-plan:{namespace}:v6:{version}:{digest}'
     lock_key = key + ':lock'
     token = uuid.uuid4().hex
     owns_lock = False

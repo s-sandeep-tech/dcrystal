@@ -9,6 +9,7 @@ import tempfile
 import unittest
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -175,8 +176,8 @@ class OnlineStockPostgresTests(unittest.TestCase):
         metadata.fetchone.return_value = (1, 25)
         stream = MagicMock()
         row = {c: None for c in sync.source_columns()}
-        row.update(location='Online source only', prov_gr_wt=25,
-                   last_updated_at=datetime(2026,11,24))
+        row.update(location='Online source only', provision_weight=25, ordered_wt=12, req_only=3,
+                   branch_id=1, size=Decimal('5.25'))
         stream.fetchmany.side_effect = [[row], []]
         metadata.__enter__.return_value = metadata
         stream.__enter__.return_value = stream
@@ -185,7 +186,13 @@ class OnlineStockPostgresTests(unittest.TestCase):
             'app.utils.sync_tasks.emit_sync_update') as emit:
             result = sync.sync_online_provision_stock_status_data_task()
         self.assertEqual(result, {'status':'success','count':1,'validation':{'match':True}})
-        self.assertEqual(Online.query.one().location, 'Online source only')
+        published = Online.query.one()
+        self.assertEqual(published.location, 'Online source only')
+        self.assertEqual(published.prov_gr_wt, 25)
+        self.assertEqual(published.order_only_wt + published.req_only, 15)
+        self.assertEqual(published.size, '5.25')
+        self.assertIsNone(published.stock_qty)
+        self.assertIsNotNone(published.snapshot_date)
         self.assertEqual(Staging.query.count(), 0)
         self.assertEqual(original, [(r.id, r.prov_gr_wt) for r in Physical.query.order_by(Physical.id)])
         source.close.assert_called_once()
@@ -193,3 +200,6 @@ class OnlineStockPostgresTests(unittest.TestCase):
         self.assertEqual(emit.call_args.args[3], sync.TASK)
         self.assertTrue(emit.call_args.kwargs['metadata']['validation_passed'])
         self.assertIn(sync.SOURCE, stream.execute.call_args.args[0])
+        self.assertIn('SUM(provision_weight)', metadata.execute.call_args.args[0])
+        self.assertIn('\"provision_weight\"', stream.execute.call_args.args[0])
+        self.assertNotIn('\"prov_gr_wt\"', stream.execute.call_args.args[0])

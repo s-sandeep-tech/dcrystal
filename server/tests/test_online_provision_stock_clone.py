@@ -55,13 +55,12 @@ class OnlineStockCloneTests(unittest.TestCase):
     def test_source_validation_and_mapping_preserve_nulls_and_decimals(self):
         columns = sync.source_columns()
         sync.validate_source_columns([SimpleNamespace(name=c) for c in columns])
-        with self.assertRaisesRegex(ValueError, 'missing required columns:.*prov_gr_wt') as failure:
-            sync.validate_source_columns([(c,) for c in columns if c != 'prov_gr_wt'])
+        with self.assertRaisesRegex(ValueError, 'missing required report columns:.*provision_weight') as failure:
+            sync.validate_source_columns([(c,) for c in columns if c != 'provision_weight'])
         self.assertIn('Available source columns:', str(failure.exception))
         self.assertIn('location', str(failure.exception))
-        self.assertIn('explicit field mapping', str(failure.exception))
         row = {c: None for c in columns}
-        row.update({'group': 'GOLD', 'prov_gr_wt': Decimal('123.456'), 'stock_qty': Decimal('0')})
+        row.update({'group': 'GOLD', 'provision_weight': Decimal('123.456'), 'ordered_wt': Decimal('12.125'), 'req_only': 3, 'branch_id': Decimal('123'), 'size': Decimal('5.25')})
         started = datetime(2026, 11, 24)
         mapped = sync.map_source_row(row, started)
         self.assertEqual(mapped['group_name'], 'GOLD')
@@ -69,7 +68,30 @@ class OnlineStockCloneTests(unittest.TestCase):
         self.assertIsNone(mapped['in_shop_wt'])
         self.assertEqual(mapped['snapshot_date'], started)
         row['last_updated_at'] = datetime(2026, 11, 23)
-        self.assertEqual(sync.map_source_row(row, started)['snapshot_date'], row['last_updated_at'])
+        self.assertEqual(sync.map_source_row(row, started)['snapshot_date'], started)
+        self.assertEqual(mapped['order_only_wt'], Decimal('12.125'))
+        self.assertEqual(mapped['req_only'], 3)
+        self.assertEqual(mapped['branch_id'], 123)
+        self.assertIsInstance(mapped['branch_id'], int)
+        self.assertEqual(mapped['size'], '5.25')
+        self.assertIsNone(mapped['stock_qty'])
+        self.assertNotIn('last_updated_at', sync.source_columns())
+
+    def test_fractional_branch_id_is_rejected(self):
+        row = {name: None for name in sync.source_columns()}
+        row['branch_id'] = Decimal('123.5')
+        with self.assertRaisesRegex(ValueError, 'non-integer branch_id'):
+            sync.map_source_row(row, datetime(2026, 11, 25))
+
+    def test_source_projection_requires_only_confirmed_report_fields(self):
+        self.assertEqual(len(sync.source_columns()), 48)
+        for unused in ('prov_gr_wt', 'order_only_wt', 'last_updated_at', 'stock_qty',
+                       'stock_gr_wt', 'prov_amount', 'short_percent', 'provision_mode', 'prov_type_filter'):
+            self.assertNotIn(unused, sync.source_columns())
+        row = {name: None for name in sync.source_columns()}
+        del row['prov_pieces']
+        with self.assertRaises(KeyError):
+            sync.map_source_row(row, datetime(2026, 11, 25))
 
     def test_independent_routes_and_every_popup_template(self):
         source = Path(online.__file__).read_text()
@@ -111,6 +133,38 @@ class OnlineStockCloneTests(unittest.TestCase):
         database.session.query.assert_not_called()
         database.session.execute.assert_not_called()
         self.assertEqual(emit.call_args.args[-1], sync.TASK)
+
+    def test_minimum_source_schema_completes_full_sync_flow(self):
+        database = MagicMock()
+        database.engine.dialect.name = 'sqlite'
+        database.session.query.return_value.scalar.return_value = datetime(2026, 11, 25)
+        connection = MagicMock()
+        metadata = MagicMock()
+        metadata.description = [SimpleNamespace(name=name) for name in sync.source_columns()]
+        metadata.fetchone.return_value = (1, Decimal('123.456'))
+        stream = MagicMock()
+        row = {name: None for name in sync.source_columns()}
+        row.update(location='Online Shop', provision_weight=Decimal('123.456'),
+                   ordered_wt=Decimal('10.25'), req_only=2, branch_id=Decimal('101'), size=Decimal('5.25'))
+        stream.fetchmany.side_effect = [[row], []]
+        metadata.__enter__.return_value = metadata
+        stream.__enter__.return_value = stream
+        connection.cursor.side_effect = [metadata, stream]
+        with patch.object(sync, 'db', database), patch.object(sync, 'publish_staging') as publish, patch(
+            'app.utils.sync_tasks.get_external_db_connection', return_value=connection
+        ), patch('app.utils.sync_tasks.emit_sync_update'):
+            result = sync.sync_online_provision_stock_status_data_task()
+        self.assertEqual(result['status'], 'success')
+        self.assertIn('SUM(provision_weight)', metadata.execute.call_args.args[0])
+        self.assertNotIn('last_updated_at', stream.execute.call_args.args[0])
+        self.assertNotIn('stock_qty', stream.execute.call_args.args[0])
+        mapped = database.session.bulk_insert_mappings.call_args.args[1][0]
+        self.assertEqual(mapped['prov_gr_wt'], Decimal('123.456'))
+        self.assertEqual(mapped['order_only_wt'] + mapped['req_only'], Decimal('12.25'))
+        self.assertEqual(mapped['branch_id'], 101)
+        self.assertIsNone(mapped['stock_qty'])
+        publish.assert_called_once_with(1, Decimal('123.456'))
+        connection.close.assert_called_once()
 
     def test_export_handler_defined_before_worker_startup(self):
         worker = ROOT.parent / 'sync-consumer/main.py'

@@ -1,7 +1,7 @@
 """Independent, staged sync for ext_view.vw_online_sku_stock_details.
 
-Field mapping is identical to the physical-stock snapshot. Missing fields fail
-validation rather than silently substituting physical-stock data or zeroes.
+Only fields consumed by the report are required from the online source. Source
+weight aliases map to the existing snapshot fields without changing report SQL.
 """
 import logging
 from datetime import datetime
@@ -20,27 +20,63 @@ TASK = 'online_provision_stock_status'
 BATCH_SIZE = 20000
 
 
+# Keep this projection explicit: the snapshot also contains unused legacy
+# columns copied from physical stock, which the online view need not supply.
+REPORT_SOURCE_COLUMNS = (
+    'location', 'division', 'group', 'purity', 'classification',
+    'sub_classification', 'make', 'master_collection', 'collection',
+    'section', 'sub_section', 'type', 'gender', 'wide_range', 'screw_type', 'size',
+    'provision_weight', 'in_shop_wt', 'in_transit_wt', 'ordered_wt',
+    'prov_pieces', 'in_shop_pcs', 'in_transit', 'req_only', 'range_weight',
+    'branch_id', 'branch_type', 'branch_status', 'business_head_name',
+    'business_head_emp_code', 'state', 'prov_type', 'provision_mode_filter',
+    'division_id', 'group_id', 'purity_id', 'classification_id',
+    'sub_classification_id', 'section_id', 'type_id', 'make_id',
+    'collection_id', 'master_collection_id', 'sub_section_id',
+    'wide_range_id', 'gender_id', 'size_id', 'screw_type_id',
+)
+SOURCE_TO_SNAPSHOT = {
+    'group': 'group_name',
+    'provision_weight': 'prov_gr_wt',
+    # The source's ordered_wt EXCLUDES req_only; the unchanged report adds it.
+    'ordered_wt': 'order_only_wt',
+}
+
+
 def source_columns():
-    return ['last_updated_at' if c.name == 'snapshot_date' else c.name
-            for c in Snapshot.__table__.columns if c.name != 'id']
+    return list(REPORT_SOURCE_COLUMNS)
 
 
 def validate_source_columns(description):
     available = {(c.name if hasattr(c, 'name') else c[0]) for c in description}
-    missing = sorted(set(source_columns()) - available)
+    missing = sorted(set(REPORT_SOURCE_COLUMNS) - available)
     if missing:
         raise ValueError(
-            f'{SOURCE} is missing required columns: {", ".join(missing)}. '
-            'The online source needs an explicit field mapping. '
+            f'{SOURCE} is missing required report columns: {", ".join(missing)}. '
             f'Available source columns: {", ".join(sorted(available))}'
         )
 
 
 def map_source_row(row, started_at):
-    # Attribute `group_name` deliberately maps the external SQL column `group`.
-    return {('group_name' if c.name == 'group' else c.name):
-            ((row.get('last_updated_at') or started_at) if c.name == 'snapshot_date' else row[c.name])
-            for c in Snapshot.__table__.columns if c.name != 'id'}
+    # Explicit NULLs for unused legacy fields, never fabricated stock metrics.
+    mapped = {('group_name' if c.name == 'group' else c.name): None
+              for c in Snapshot.__table__.columns if c.name != 'id'}
+    for name in REPORT_SOURCE_COLUMNS:
+        value = row[name]
+        if name.endswith('_id') and value is not None:
+            # branch_id is NUMERIC in the source, INTEGER in the snapshot.
+            # Reject fractional identifiers rather than rounding to another branch.
+            numeric = Decimal(str(value))
+            if not numeric.is_finite() or numeric != numeric.to_integral_value():
+                raise ValueError(f'Invalid non-integer {name}: {value}')
+            value = int(numeric)
+        elif name == 'size' and value is not None:
+            value = str(value)
+        mapped[SOURCE_TO_SNAPSHOT.get(name, name)] = value
+    # Each successful sync gets its own timestamp/cache generation; no source
+    # last_updated_at column is required or used to disguise stale snapshots.
+    mapped['snapshot_date'] = started_at
+    return mapped
 
 
 def publish_staging(expected_count, expected_weight):
@@ -82,7 +118,7 @@ def sync_online_provision_stock_status_data_task():
             cur.execute("SET LOCAL statement_timeout = '300s'")
             cur.execute(f'SELECT * FROM {SOURCE} LIMIT 0')
             validate_source_columns(cur.description)
-            cur.execute(f'SELECT COUNT(*), SUM(prov_gr_wt) FROM {SOURCE}')
+            cur.execute(f'SELECT COUNT(*), SUM(provision_weight) FROM {SOURCE}')
             expected_count, expected_weight = cur.fetchone()
         # Complete the metadata/count checks before clearing the staging table.
         db.session.query(Staging).delete(synchronize_session=False)

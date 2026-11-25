@@ -16,9 +16,9 @@ HIERARCHY: List[str] = [
     'section',
     'classification',
     'make',
+    'collection',
     'wide_range',
     'weight',
-    'collection',
     'purity',
 ]
 
