@@ -20,6 +20,37 @@
         error.status = response.status;
         throw error;
     }
+    function waitForRetry(delay, signal) {
+        return new Promise((resolve, reject) => {
+            if (signal?.aborted) return reject(new DOMException('Request cancelled', 'AbortError'));
+            const abort = () => {
+                clearTimeout(timer);
+                reject(new DOMException('Request cancelled', 'AbortError'));
+            };
+            const timer = setTimeout(() => {
+                signal?.removeEventListener('abort', abort);
+                resolve();
+            }, delay);
+            signal?.addEventListener('abort', abort, {once: true});
+        });
+    }
+    async function fetchWithRetry(url, options = {}, onRetry = null) {
+        const maxAttempts = 5;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            if (options.signal?.aborted) throw new DOMException('Request cancelled', 'AbortError');
+            let response;
+            try {
+                response = await fetch(url, options);
+                // Retry temporary server/rate-limit failures, never auth or validation errors.
+                if (response.status !== 429 && response.status < 500) return response;
+            } catch (error) {
+                if (error.name === 'AbortError' || options.signal?.aborted || attempt === maxAttempts) throw error;
+            }
+            if (attempt === maxAttempts) return response;
+            onRetry?.(`Stock data is temporarily unavailable. Retrying (${attempt + 1}/${maxAttempts})...`);
+            await waitForRetry(1000 * 2 ** (attempt - 1), options.signal);
+        }
+    }
     function setStatus(message, retry = null) {
         el('nip-status').textContent = message;
         const button = el('nip-retry');
@@ -320,7 +351,7 @@
         try {
             const params = requestParams();
             if (refresh) params.set('refresh', '1');
-            const result=await responseJSON(await fetch('/api/nip-stock-trend-analysis/data?'+params, {headers:headers(),signal:controller.signal}));
+            const result=await responseJSON(await fetchWithRetry('/api/nip-stock-trend-analysis/data?'+params, {headers:headers(),signal:controller.signal}, setStatus));
             if(controller.signal.aborted)return;
             data=result;render();
         } catch(error){if(!controller.signal.aborted && error.name!=='AbortError'){showRequestError(error,()=>load(refresh));data=null;chart?.destroy();chart=null;el('nip-table').replaceChildren();
@@ -340,7 +371,7 @@
         button.disabled = true;
         setStatus(preparing);
         try {
-            await download(await fetch('/api/nip-stock-trend-analysis/export?'+params,{headers:headers()}),'nip_stock_trend.xlsx');
+            await download(await fetchWithRetry('/api/nip-stock-trend-analysis/export?'+params,{headers:headers()}),'nip_stock_trend.xlsx');
             if (el('nip-status').textContent === preparing) setStatus('Excel export downloaded.');
         } catch(error) {
             if (el('nip-status').textContent === preparing) showRequestError(error, () => exportReport(params));
@@ -357,7 +388,7 @@
         setStatus('Loading stock filters...');
         try {
             const url = '/api/nip-stock-trend-analysis/options' + (refresh ? '?refresh=1' : '');
-            const result=await responseJSON(await fetch(url,{headers:headers()}));
+            const result=await responseJSON(await fetchWithRetry(url,{headers:headers()}, setStatus));
             for(const [key,values] of Object.entries(result.options)) {
                 const choices = key === 'division' && !values.some(value => value.toLowerCase() === defaultDivision.toLowerCase())
                     ? [...values, defaultDivision] : values;

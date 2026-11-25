@@ -55,8 +55,11 @@ class OnlineStockCloneTests(unittest.TestCase):
     def test_source_validation_and_mapping_preserve_nulls_and_decimals(self):
         columns = sync.source_columns()
         sync.validate_source_columns([SimpleNamespace(name=c) for c in columns])
-        with self.assertRaisesRegex(ValueError, 'missing required columns:.*prov_gr_wt'):
+        with self.assertRaisesRegex(ValueError, 'missing required columns:.*prov_gr_wt') as failure:
             sync.validate_source_columns([(c,) for c in columns if c != 'prov_gr_wt'])
+        self.assertIn('Available source columns:', str(failure.exception))
+        self.assertIn('location', str(failure.exception))
+        self.assertIn('explicit field mapping', str(failure.exception))
         row = {c: None for c in columns}
         row.update({'group': 'GOLD', 'prov_gr_wt': Decimal('123.456'), 'stock_qty': Decimal('0')})
         started = datetime(2026, 11, 24)

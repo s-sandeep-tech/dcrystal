@@ -3,7 +3,7 @@ from datetime import date
 from flask import current_app, jsonify, render_template, request, send_file
 from app.dashboard import dashboard_bp
 from app.utils.decorators import require_report_access, require_perm
-from app.services.nip_stock_trend import DIMENSIONS, FILTER_FIELDS, GROUP_LIMIT, cached_trend_data, filter_options, trend_data
+from app.services.nip_stock_trend import DIMENSIONS, FILTER_FIELDS, GROUP_LIMIT, cached_trend_data, filter_options
 
 ROUTE = '/nip-stock-trend-analysis'
 
@@ -53,7 +53,7 @@ def export_nip_stock_trend():
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Border, Side
     try:
-        data = trend_data(request.args)
+        data = cached_trend_data(request.args)
     except ValueError as error:
         return jsonify(error=str(error)), 400
     except Exception:

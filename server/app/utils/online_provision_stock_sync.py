@@ -29,7 +29,11 @@ def validate_source_columns(description):
     available = {(c.name if hasattr(c, 'name') else c[0]) for c in description}
     missing = sorted(set(source_columns()) - available)
     if missing:
-        raise ValueError(f'{SOURCE} is missing required columns: {", ".join(missing)}')
+        raise ValueError(
+            f'{SOURCE} is missing required columns: {", ".join(missing)}. '
+            'The online source needs an explicit field mapping. '
+            f'Available source columns: {", ".join(sorted(available))}'
+        )
 
 
 def map_source_row(row, started_at):

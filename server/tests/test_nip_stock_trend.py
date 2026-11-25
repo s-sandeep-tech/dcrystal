@@ -70,10 +70,12 @@ class StockTrendDataTests(unittest.TestCase):
         redis = redis_patch.start()
         self.addCleanup(redis_patch.stop)
         cached = {}
+        self.cached = cached
+        self.redis = redis
         redis.get.side_effect = cached.get
 
         def cache_set(key, value, *, ex, nx):
-            self.assertEqual(ex, 300)
+            self.assertEqual(ex, 28800)
             if not nx or key not in cached:
                 cached[key] = value
 
@@ -105,6 +107,49 @@ class StockTrendDataTests(unittest.TestCase):
         self.assertEqual(refreshed.get_json()['last_date'], '2026-10-03')
         self.assertEqual(refreshed.get_json()['stats']['total_stock'], 1)
         self.assertEqual(client.get('/api/data').get_json(), refreshed.get_json())
+
+    def test_loaded_data_and_options_survive_source_failure(self):
+        client = self.app.test_client()
+        expected = client.get('/api/data').get_json()
+        with patch('app.services.nip_stock_trend._filter_options', return_value={'options': {'division': ['Gold']}}):
+            options = client.get('/api/options').get_json()
+        with patch('app.services.nip_stock_trend.source_session', side_effect=RuntimeError('Source down')), patch(
+            'app.services.nip_stock_trend._filter_options', side_effect=RuntimeError('Source down')):
+            self.assertEqual(client.get('/api/data').get_json(), expected)
+            self.assertEqual(client.get('/api/options').get_json(), options)
+            with self.assertLogs(self.app.logger, level='ERROR'):
+                self.assertEqual(client.get('/api/data?refresh=1').status_code, 503)
+            self.assertEqual(client.get('/api/data').get_json(), expected)
+        self.assertGreaterEqual(self.redis.expire.call_count, 3)
+        for call in self.redis.expire.call_args_list:
+            self.assertEqual(call.args[1], 28800)
+            self.assertTrue(call.kwargs['nx'])
+        for call in self.redis.set.call_args_list:
+            self.assertEqual(call.kwargs['ex'], 28800)
+
+    def test_expiry_update_failure_still_returns_loaded_result(self):
+        from redis.exceptions import ConnectionError
+        client = self.app.test_client()
+        expected = client.get('/api/data').get_json()
+        self.redis.expire.side_effect = ConnectionError('Connection dropped')
+        with patch('app.services.nip_stock_trend.source_session', side_effect=RuntimeError('Source down')):
+            self.assertEqual(client.get('/api/data').get_json(), expected)
+
+    def test_excel_reuses_the_loaded_report_when_source_is_unavailable(self):
+        client = self.app.test_client()
+        client.get('/api/data?location=ERNAKULAM&interval=monthly')
+        token = create_access_token(identity='1')
+        with self.app.test_request_context('/api/export?location=ERNAKULAM&interval=monthly',
+                headers={'Authorization': 'Bearer ' + token}), patch(
+                'app.services.nip_stock_trend.source_session', side_effect=RuntimeError('Source down')), patch(
+                'app.utils.decorators.get_user_permissions', return_value={'report.export'}):
+            session['roles'] = ['ADMIN']
+            response = export_nip_stock_trend.__wrapped__()
+            response.direct_passthrough = False
+            workbook = load_workbook(BytesIO(response.get_data()))
+            self.assertEqual(workbook.active['D2'].value, 11.999)
+            self.assertEqual(workbook.active['E2'].value, 2)
+            workbook.close()
 
     def test_filter_options_are_cached_and_replaced_on_refresh(self):
         client = self.app.test_client()
