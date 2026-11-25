@@ -22,6 +22,10 @@
 {% set label = (row.range_weight|string ~ ' ') if row.range_weight is not none else 'Unknown Weight' %}
 {% set node_key = 'sec_' ~ (row.section or '') ~ '_pur_' ~ (row.purity or '') ~ '_type_' ~ (row.type or '') ~ '_range_' ~ (row.wide_range or '') ~ '_wt_' ~ (row.range_weight or '') %}
 {% set parent_key = 'sec_' ~ (row.section or '') ~ '_pur_' ~ (row.purity or '') ~ '_type_' ~ (row.type or '') ~ '_range_' ~ (row.wide_range or '') %}
+{% elif include_design_hierarchy|default(false) and level == 6 %}
+{% set label = row.design_no or '(Unspecified)' %}
+{% set parent_key = 'sec_' ~ (row.section or '') ~ '_pur_' ~ (row.purity or '') ~ '_type_' ~ (row.type or '') ~ '_range_' ~ (row.wide_range or '') ~ '_wt_' ~ (row.range_weight or '') %}
+{% set node_key = parent_key ~ '_design_' ~ (row.design_no|tojson) %}
 {% elif level == 1 %}
 {% set label = row.section or 'Unknown Section' %}
 {% set node_key = 'sec_' ~ (row.section or '') %}
@@ -39,7 +43,7 @@
 {% set node_key = 'sec_' ~ (row.section or '') ~ '_type_' ~ (row.type or '') ~ '_range_' ~ (row.wide_range or '') ~ '_wt_' ~ (row.range_weight or '') %}
 {% set parent_key = 'sec_' ~ (row.section or '') ~ '_type_' ~ (row.type or '') ~ '_range_' ~ (row.wide_range or '') %}
 {% endif %}
-{% set max_level = 5 if include_purity_hierarchy|default(false) else 4 %}
+{% set max_level = 6 if include_design_hierarchy|default(false) else (5 if include_purity_hierarchy|default(false) else 4) %}
 {% set has_detail_ids = row.section_ids is defined and row.section_ids
     and (level < 2 or (row.purity_ids is defined and row.purity_ids))
     and (level < 3 or (row.type_ids is defined and row.type_ids))
@@ -47,7 +51,7 @@
 
 <tr data-tree-row
     data-level="{{ level }}"
-    data-node-id="{{ node_key }}"
+    data-node-id="{{ node_key|forceescape }}"
     data-parent-id="{{ parent_key }}"
     class="{% if level == 1 %}bg-gray-100 dark:bg-gray-800 font-bold{% elif level == 2 %}bg-gray-50 dark:bg-gray-800/50 font-semibold{% else %}bg-white dark:bg-gray-900{% endif %} hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-gray-100 dark:border-gray-800/50">
     <td class="px-2.5 py-1 text-[11px]">
@@ -76,6 +80,8 @@
             data-type="{{ row.type or '' }}"
             data-wide-range="{{ row.wide_range or '' }}"
             data-range-weight="{{ row.range_weight if row.range_weight is not none else '' }}"
+            data-design-no="{{ row.design_no if row.design_no is defined and row.design_no is not none else '' }}"
+            data-design-is-null="{{ 'true' if row.design_no is not defined or row.design_no is none else 'false' }}"
             data-section-ids="{{ row.section_ids if row.section_ids is defined and row.section_ids else '' }}"
             data-purity-ids="{{ row.purity_ids if row.purity_ids is defined and row.purity_ids else '' }}"
             data-type-ids="{{ row.type_ids if row.type_ids is defined and row.type_ids else '' }}"
@@ -98,6 +104,8 @@
                 data-type="{{ row.type or '' }}"
                 data-wide-range="{{ row.wide_range or '' }}"
                 data-range-weight="{{ row.range_weight if row.range_weight is not none else '' }}"
+            data-design-no="{{ row.design_no if row.design_no is defined and row.design_no is not none else '' }}"
+            data-design-is-null="{{ 'true' if row.design_no is not defined or row.design_no is none else 'false' }}"
                 data-section-ids="{{ row.section_ids if row.section_ids is defined and row.section_ids else '' }}"
                 data-purity-ids="{{ row.purity_ids if row.purity_ids is defined and row.purity_ids else '' }}"
                 data-type-ids="{{ row.type_ids if row.type_ids is defined and row.type_ids else '' }}"
@@ -113,6 +121,8 @@
                 data-type="{{ row.type or '' }}"
                 data-wide-range="{{ row.wide_range or '' }}"
                 data-range-weight="{{ row.range_weight if row.range_weight is not none else '' }}"
+            data-design-no="{{ row.design_no if row.design_no is defined and row.design_no is not none else '' }}"
+            data-design-is-null="{{ 'true' if row.design_no is not defined or row.design_no is none else 'false' }}"
                 data-section-ids="{{ row.section_ids if row.section_ids is defined and row.section_ids else '' }}"
                 data-purity-ids="{{ row.purity_ids if row.purity_ids is defined and row.purity_ids else '' }}"
                 data-type-ids="{{ row.type_ids if row.type_ids is defined and row.type_ids else '' }}"
@@ -135,6 +145,8 @@
             data-purity="{{ row.purity if row.purity is defined and row.purity is not none else '' }}"
             data-type="{{ row.type or '' }}" data-wide-range="{{ row.wide_range or '' }}"
             data-range-weight="{{ row.range_weight if row.range_weight is not none else '' }}"
+            data-design-no="{{ row.design_no if row.design_no is defined and row.design_no is not none else '' }}"
+            data-design-is-null="{{ 'true' if row.design_no is not defined or row.design_no is none else 'false' }}"
             data-section-ids="{{ row.section_ids or '' }}" data-purity-ids="{{ row.purity_ids or '' }}"
             data-type-ids="{{ row.type_ids or '' }}" data-wide-range-ids="{{ row.wide_range_ids or '' }}"
             class="font-semibold text-primary underline underline-offset-2"
@@ -187,7 +199,7 @@
                 <tr class="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
                     <th class="px-3 py-1.5 min-w-[250px]">
                         {% if include_purity_hierarchy|default(false) %}
-                        Section > Purity > Type > Wide Range > Range&nbsp;Weight
+                        Section > Purity > Type > Wide Range > Range&nbsp;Weight{% if include_design_hierarchy|default(false) %} > Design No{% endif %}
                         {% else %}
                         Section > Type > Wide Range > Range&nbsp;Weight
                         {% endif %}

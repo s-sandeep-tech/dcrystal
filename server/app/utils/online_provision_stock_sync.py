@@ -8,7 +8,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from psycopg2.extras import RealDictCursor
-from sqlalchemy import func, text
+from sqlalchemy import func, inspect, text
 
 from app.extensions import db
 from app.models.online_provision_stock import OnlineProvisionStockRawSnapshot as Snapshot
@@ -33,7 +33,7 @@ REPORT_SOURCE_COLUMNS = (
     'division_id', 'group_id', 'purity_id', 'classification_id',
     'sub_classification_id', 'section_id', 'type_id', 'make_id',
     'collection_id', 'master_collection_id', 'sub_section_id',
-    'wide_range_id', 'gender_id', 'size_id', 'screw_type_id',
+    'wide_range_id', 'gender_id', 'size_id', 'screw_type_id', 'design_no',
 )
 SOURCE_TO_SNAPSHOT = {
     'group': 'group_name',
@@ -79,6 +79,16 @@ def map_source_row(row, started_at):
     return mapped
 
 
+def ensure_online_tables():
+    """Create/upgrade only online tables without replacing existing stock rows."""
+    with db.engine.begin() as connection:
+        for model in (Snapshot, Staging):
+            model.__table__.create(connection, checkfirst=True)
+            if 'design_no' not in {c['name'] for c in inspect(connection).get_columns(model.__tablename__)}:
+                guard = 'IF NOT EXISTS ' if connection.dialect.name == 'postgresql' else ''
+                connection.execute(text(f'ALTER TABLE {model.__tablename__} ADD COLUMN {guard}design_no VARCHAR(100)'))
+
+
 def publish_staging(expected_count, expected_weight):
     """Validate before replacement; snapshot replacement is one transaction."""
     local_count, local_weight = db.session.query(
@@ -120,7 +130,8 @@ def sync_online_provision_stock_status_data_task():
             validate_source_columns(cur.description)
             cur.execute(f'SELECT COUNT(*), SUM(provision_weight) FROM {SOURCE}')
             expected_count, expected_weight = cur.fetchone()
-        # Complete the metadata/count checks before clearing the staging table.
+        # Source checks complete; prepare/upgrade only the online tables.
+        ensure_online_tables()
         db.session.query(Staging).delete(synchronize_session=False)
         db.session.commit()
         total = 0

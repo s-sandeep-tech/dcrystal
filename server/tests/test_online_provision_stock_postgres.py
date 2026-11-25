@@ -122,8 +122,18 @@ class OnlineStockPostgresTests(unittest.TestCase):
             with self.subTest(args=args):
                 self.render_pair(physical.get_location_physical_stock_status_partial,
                                  online.get_online_provision_stock_status_partial, args)
-                self.render_pair(physical.get_location_physical_stock_status_drilldown,
-                                 online.get_online_provision_stock_status_drilldown, args+'&section=BANGLE')
+                contexts = []
+                for module, fn in [(physical, physical.get_location_physical_stock_status_drilldown),
+                                   (online, online.get_online_provision_stock_status_drilldown)]:
+                    with self.app.test_request_context('/?' + args + '&section=BANGLE'), patch.object(
+                            module, 'render_template', side_effect=lambda template, **context: context):
+                        session.update(roles=['ADMIN'], user_id='123')
+                        contexts.append(inspect.unwrap(fn)())
+                # Additional Design No rows must not change the five existing levels or totals.
+                parents = [{k: v for k, v in row.items() if k != 'design_no'}
+                           for row in contexts[1]['rows'] if row['level_id'] <= 5]
+                self.assertEqual(contexts[0]['rows'], parents)
+                self.assertEqual(contexts[0]['modal_totals'], contexts[1]['modal_totals'])
 
     def test_all_popup_queries_match(self):
         args = 'division=Gold&drill_level=1&drill_section_ids=4'

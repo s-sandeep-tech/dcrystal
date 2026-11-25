@@ -947,7 +947,7 @@ WITH base AS (
 levels AS (
     -- Level 1: Section
     SELECT 1 as level_id, section, NULL::numeric as purity, NULL::text as type,
-           NULL::text as wide_range, NULL::numeric as range_weight,
+           NULL::text as wide_range, NULL::numeric as range_weight, NULL::text AS design_no,
            array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
            NULL::text as purity_ids, NULL::text as type_ids, NULL::text as wide_range_ids,
            SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
@@ -959,7 +959,7 @@ levels AS (
     UNION ALL
     -- Level 2: Section + Purity
     SELECT 2 as level_id, section, purity, NULL::text as type,
-           NULL::text as wide_range, NULL::numeric as range_weight,
+           NULL::text as wide_range, NULL::numeric as range_weight, NULL::text AS design_no,
            array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
            array_to_string(array_agg(DISTINCT purity_id) FILTER (WHERE purity_id IS NOT NULL), ',') as purity_ids,
            NULL::text as type_ids, NULL::text as wide_range_ids,
@@ -972,7 +972,7 @@ levels AS (
     UNION ALL
     -- Level 3: Section + Purity + Type
     SELECT 3 as level_id, section, purity, type,
-           NULL::text as wide_range, NULL::numeric as range_weight,
+           NULL::text as wide_range, NULL::numeric as range_weight, NULL::text AS design_no,
            array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
            array_to_string(array_agg(DISTINCT purity_id) FILTER (WHERE purity_id IS NOT NULL), ',') as purity_ids,
            array_to_string(array_agg(DISTINCT type_id) FILTER (WHERE type_id IS NOT NULL), ',') as type_ids,
@@ -985,7 +985,7 @@ levels AS (
 
     UNION ALL
     -- Level 4: Section + Purity + Type + Wide Range
-    SELECT 4 as level_id, section, purity, type, wide_range, NULL::numeric as range_weight,
+    SELECT 4 as level_id, section, purity, type, wide_range, NULL::numeric as range_weight, NULL::text AS design_no,
            array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
            array_to_string(array_agg(DISTINCT purity_id) FILTER (WHERE purity_id IS NOT NULL), ',') as purity_ids,
            array_to_string(array_agg(DISTINCT type_id) FILTER (WHERE type_id IS NOT NULL), ',') as type_ids,
@@ -998,7 +998,7 @@ levels AS (
 
     UNION ALL
     -- Level 5: Section + Purity + Type + Wide Range + Range Weight
-    SELECT 5 as level_id, section, purity, type, wide_range, range_weight,
+    SELECT 5 as level_id, section, purity, type, wide_range, range_weight, NULL::text AS design_no,
            array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
            array_to_string(array_agg(DISTINCT purity_id) FILTER (WHERE purity_id IS NOT NULL), ',') as purity_ids,
            array_to_string(array_agg(DISTINCT type_id) FILTER (WHERE type_id IS NOT NULL), ',') as type_ids,
@@ -1008,15 +1008,28 @@ levels AS (
            SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
            SUM(in_transit_wt) as in_transit_wt
     FROM base GROUP BY section, purity, type, wide_range, range_weight
+
+    UNION ALL
+    -- Level 6: Section + Purity + Type + Wide Range + Range Weight + Design No
+    SELECT 6 as level_id, section, purity, type, wide_range, range_weight, design_no,
+           array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
+           array_to_string(array_agg(DISTINCT purity_id) FILTER (WHERE purity_id IS NOT NULL), ',') as purity_ids,
+           array_to_string(array_agg(DISTINCT type_id) FILTER (WHERE type_id IS NOT NULL), ',') as type_ids,
+           array_to_string(array_agg(DISTINCT wide_range_id) FILTER (WHERE wide_range_id IS NOT NULL), ',') as wide_range_ids,
+           SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
+           SUM(COALESCE(in_shop_pcs, 0) + COALESCE(in_transit, 0) - COALESCE(prov_pieces, 0)) as short_excess_pcs,
+           SUM(COALESCE(order_only_wt, 0) + COALESCE(req_only, 0)) as ordered_wt,
+           SUM(in_transit_wt) as in_transit_wt
+    FROM base GROUP BY section, purity, type, wide_range, range_weight, design_no
 )
 SELECT 
-    level_id, section, purity, type, wide_range, range_weight,
+    level_id, section, purity, type, wide_range, range_weight, design_no,
     section_ids, purity_ids, type_ids, wide_range_ids,
     prov_pcs, prov_gr_wt, in_shop_wt, short_excess_pcs, ordered_wt, in_transit_wt,
     (in_shop_wt + in_transit_wt - prov_gr_wt) as short_excess_wt,
     CASE WHEN prov_gr_wt = 0 THEN 0 ELSE (in_shop_wt + in_transit_wt - prov_gr_wt) * 100.0 / prov_gr_wt END as percent
 FROM levels
-ORDER BY section, purity NULLS FIRST, type NULLS FIRST, wide_range NULLS FIRST, range_weight NULLS FIRST, level_id
+ORDER BY section, purity NULLS FIRST, type NULLS FIRST, wide_range NULLS FIRST, range_weight NULLS FIRST, level_id, design_no NULLS FIRST
         '''
         
         result = db.session.execute(text(query), params)
@@ -1050,6 +1063,7 @@ ORDER BY section, purity NULLS FIRST, type NULLS FIRST, wide_range NULLS FIRST, 
                                modal_totals=modal_totals,
                                drill_section=drill_section,
                                include_purity_hierarchy=True,
+                               include_design_hierarchy=True,
                                include_piece_variance=True,
                                enable_in_shop_details=True,
                                enable_ordered_details=True)
@@ -1084,7 +1098,7 @@ def _get_online_provision_stock_details(ordered=False, roles=None, user_id=None)
     try:
         page = max(request.args.get('page', 1, type=int), 1)
         per_page = 100
-        drill_level = min(max(request.args.get('drill_level', 1, type=int), 1), 5)
+        drill_level = min(max(request.args.get('drill_level', 1, type=int), 1), 6)
 
         params = {
             'location': request.args.get('location') or None,
@@ -1103,6 +1117,7 @@ def _get_online_provision_stock_details(ordered=False, roles=None, user_id=None)
             'bh_emp_code': None,
             'authorized_branch_ids': None,
             'drill_level': drill_level,
+            'drill_design_no': None if request.args.get('drill_design_is_null') == 'true' else request.args.get('drill_design_no'),
             'drill_range_weight': request.args.get('drill_range_weight') or None,
             'drill_section_ids': request.args.get('drill_section_ids') or None,
             'drill_purity_ids': request.args.get('drill_purity_ids') or None,
@@ -1190,6 +1205,7 @@ WITH matching_stock AS MATERIALIZED (
           AND (:drill_level < 3 OR p.type_id = ANY(string_to_array(CAST(:drill_type_ids AS text), ',')::bigint[]))
           AND (:drill_level < 4 OR p.wide_range_id = ANY(string_to_array(CAST(:drill_wide_range_ids AS text), ',')::bigint[]))
           AND (:drill_level < 5 OR p.range_weight = CAST(:drill_range_weight AS numeric))
+      AND (:drill_level < 6 OR p.design_no IS NOT DISTINCT FROM :drill_design_no)
 )
 '''
         if ordered:
@@ -1203,6 +1219,7 @@ matched_barcodes AS (
       ON TRUE
       {identity_join}
     WHERE (:drill_level < 5 OR b.weight = CAST(:drill_range_weight AS numeric))
+      AND (:drill_level < 6 OR b.design_no IS NOT DISTINCT FROM :drill_design_no)
       AND (:purity IS NULL OR b.purity = ANY(string_to_array(CAST(:purity AS text), ',')::numeric[]))
       {barcode_filters}
 )
@@ -1249,6 +1266,7 @@ LIMIT :limit OFFSET :offset
 
 
 def _render_processed_order_details(matching_stock_sql, params, page, per_page):
+    params = {'drill_level': 1, 'drill_design_no': None, **params}
     identity = ' AND '.join(f'p.{name} IS NOT DISTINCT FROM o.{name}'
                             for name in IDENTITY_FIELDS if name != 'section_id')
     query = text(matching_stock_sql + f'''
@@ -1266,6 +1284,7 @@ WHERE EXISTS (
     SELECT 1 FROM matching_stock p
     WHERE p.branch_id = o.branch_id AND p.section_id = o.section_id
       AND p.range_weight IS NOT DISTINCT FROM o.range_weight
+      AND (:drill_level < 6 OR o.design_no IS NOT DISTINCT FROM :drill_design_no)
       AND {identity}
 )
 WINDOW supplier_group AS (PARTITION BY NULLIF(TRIM(o.supplier), ''))
@@ -1286,7 +1305,7 @@ def get_online_provision_stock_provision_details():
     try:
         page = max(request.args.get('page', 1, type=int), 1)
         per_page = 100
-        drill_level = min(max(request.args.get('drill_level', 1, type=int), 1), 5)
+        drill_level = min(max(request.args.get('drill_level', 1, type=int), 1), 6)
 
         params = {
             'location': request.args.get('location') or None,
@@ -1305,6 +1324,7 @@ def get_online_provision_stock_provision_details():
             'bh_emp_code': None,
             'authorized_branch_ids': None,
             'drill_level': drill_level,
+            'drill_design_no': None if request.args.get('drill_design_is_null') == 'true' else request.args.get('drill_design_no'),
             'drill_range_weight': request.args.get('drill_range_weight') or None,
             'drill_section_ids': request.args.get('drill_section_ids') or None,
             'drill_purity_ids': request.args.get('drill_purity_ids') or None,
@@ -1391,6 +1411,7 @@ WHERE (:location IS NULL OR p.location = ANY(string_to_array(CAST(:location AS t
   AND (:drill_level < 3 OR p.type_id = ANY(string_to_array(CAST(:drill_type_ids AS text), ',')::bigint[]))
   AND (:drill_level < 4 OR p.wide_range_id = ANY(string_to_array(CAST(:drill_wide_range_ids AS text), ',')::bigint[]))
   AND (:drill_level < 5 OR p.range_weight = CAST(:drill_range_weight AS numeric))
+      AND (:drill_level < 6 OR p.design_no IS NOT DISTINCT FROM :drill_design_no)
 ORDER BY p.location NULLS LAST, p.division NULLS LAST, p."group" NULLS LAST,
          p.classification NULLS LAST, p.make NULLS LAST, p.collection NULLS LAST, p.id
 LIMIT :limit OFFSET :offset
@@ -1430,7 +1451,7 @@ def get_online_provision_stock_comparison():
     try:
         page = max(request.args.get('page', 1, type=int), 1)
         per_page = 50
-        drill_level = min(max(request.args.get('drill_level', 1, type=int), 1), 5)
+        drill_level = min(max(request.args.get('drill_level', 1, type=int), 1), 6)
 
         params = {
             'location': request.args.get('location') or None,
@@ -1449,6 +1470,7 @@ def get_online_provision_stock_comparison():
             'bh_emp_code': None,
             'authorized_branch_ids': None,
             'drill_level': drill_level,
+            'drill_design_no': None if request.args.get('drill_design_is_null') == 'true' else request.args.get('drill_design_no'),
             'drill_range_weight': request.args.get('drill_range_weight') or None,
             'drill_section_ids': request.args.get('drill_section_ids') or None,
             'drill_purity_ids': request.args.get('drill_purity_ids') or None,
@@ -1552,6 +1574,7 @@ WITH provision_rows AS MATERIALIZED (
       AND (:drill_level < 3 OR p.type_id = ANY(string_to_array(CAST(:drill_type_ids AS text), ',')::bigint[]))
       AND (:drill_level < 4 OR p.wide_range_id = ANY(string_to_array(CAST(:drill_wide_range_ids AS text), ',')::bigint[]))
       AND (:drill_level < 5 OR p.range_weight = CAST(:drill_range_weight AS numeric))
+      AND (:drill_level < 6 OR p.design_no IS NOT DISTINCT FROM :drill_design_no)
     GROUP BY {provision_group_by}, p.range_weight
 ),
 nip_rows AS MATERIALIZED (
@@ -1575,6 +1598,7 @@ nip_rows AS MATERIALIZED (
     JOIN provision_rows AS p
       ON p.range_weight = b.weight
       {provision_nip_join}
+    WHERE (:drill_level < 6 OR b.design_no IS NOT DISTINCT FROM :drill_design_no)
     GROUP BY {nip_group_by}, b.weight
 ),
 comparison AS (
@@ -1671,6 +1695,8 @@ def get_online_provision_stock_comparison_barcodes():
         }
         params.update({
             'range_weight': request.args.get('range_weight') or None,
+            'drill_level': min(max(request.args.get('drill_level', 1, type=int), 1), 6),
+            'drill_design_no': None if request.args.get('drill_design_is_null') == 'true' else request.args.get('drill_design_no'),
             'bh_emp_code': None,
             'authorized_branch_ids': None,
             'required_branch_type': None,
@@ -1727,6 +1753,7 @@ WITH authorized_identity AS MATERIALIZED (
     WHERE TRUE
       {provision_identity_filters}
       AND p.range_weight = CAST(:range_weight AS numeric)
+      AND (:drill_level < 6 OR p.design_no IS NOT DISTINCT FROM :drill_design_no)
       AND (:required_branch_type IS NULL OR p.branch_type = :required_branch_type)
       AND (:bh_emp_code IS NULL OR p.business_head_emp_code = :bh_emp_code)
       AND (:authorized_branch_ids IS NULL OR p.branch_id = ANY(
@@ -1739,6 +1766,7 @@ matched_barcodes AS (
     JOIN size_level_nip_barcode_snapshot AS b
       ON p.range_weight = b.weight
       {barcode_identity_join}
+    WHERE (:drill_level < 6 OR b.design_no IS NOT DISTINCT FROM :drill_design_no)
 )
 SELECT
     b.*,

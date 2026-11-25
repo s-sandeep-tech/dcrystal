@@ -699,7 +699,7 @@ function onlineToggleDrilldownTreeNode(buttonEl, event) {
 window.onlineToggleDrilldownTreeNode = onlineToggleDrilldownTreeNode;
 
 function onlineCollapseDrilldownChildren(tbody, parentNodeId) {
-    const childRows = tbody.querySelectorAll(`tr[data-parent-id="${parentNodeId}"]`);
+    const childRows = Array.from(tbody.querySelectorAll('tr[data-parent-id]')).filter(row => row.dataset.parentId === parentNodeId);
     childRows.forEach(row => {
         row.classList.add('hidden');
         const toggleBtn = row.querySelector('[data-tree-toggle] .material-symbols-outlined');
@@ -707,14 +707,14 @@ function onlineCollapseDrilldownChildren(tbody, parentNodeId) {
             toggleBtn.textContent = 'arrow_right';
         }
         const childNodeId = row.dataset.nodeId;
-        if (childNodeId) {
+        if (childNodeId && row.querySelector('[data-tree-toggle]')) {
             onlineCollapseDrilldownChildren(tbody, childNodeId);
         }
     });
 }
 
 function onlineExpandDrilldownChildren(tbody, parentNodeId) {
-    const childRows = tbody.querySelectorAll(`tr[data-parent-id="${parentNodeId}"]`);
+    const childRows = Array.from(tbody.querySelectorAll('tr[data-parent-id]')).filter(row => row.dataset.parentId === parentNodeId);
     childRows.forEach(row => {
         row.classList.remove('hidden');
         const toggleBtn = row.querySelector('[data-tree-toggle] .material-symbols-outlined');
@@ -723,7 +723,7 @@ function onlineExpandDrilldownChildren(tbody, parentNodeId) {
 
         if (isChildExpanded && childNodeId) {
             onlineExpandDrilldownChildren(tbody, childNodeId);
-        } else if (childNodeId) {
+        } else if (childNodeId && row.querySelector('[data-tree-toggle]')) {
             // Keep grandchildren collapsed
             onlineCollapseDrilldownChildren(tbody, childNodeId);
         }
@@ -754,6 +754,8 @@ function onlineBuildHierarchyDetailParams(link) {
         drill_type: link.dataset.type,
         drill_wide_range: link.dataset.wideRange,
         drill_range_weight: link.dataset.rangeWeight,
+        drill_design_no: link.dataset.designNo || '',
+        drill_design_is_null: link.dataset.designIsNull || 'false',
         drill_section_ids: link.dataset.sectionIds,
         drill_purity_ids: link.dataset.purityIds,
         drill_type_ids: link.dataset.typeIds,
@@ -768,6 +770,7 @@ function onlineSetHierarchyDetailsPath(path, link) {
     if (Number(link.dataset.level) >= 3) pathParts.push(link.dataset.type || 'Unknown Type');
     if (Number(link.dataset.level) >= 4) pathParts.push(link.dataset.wideRange || 'Unknown Range');
     if (Number(link.dataset.level) >= 5) pathParts.push(link.dataset.rangeWeight || 'Unknown Weight');
+    if (Number(link.dataset.level) >= 6) pathParts.push(link.dataset.designNo || '(Unspecified)');
     path.textContent = pathParts.join(' / ');
 }
 
@@ -977,6 +980,9 @@ function onlineBuildComparisonBarcodeParams(toggle, page = 1) {
         rangeWeight: 'range_weight'
     };
     const params = new URLSearchParams({ page: String(page) });
+    for (const field of ['drill_level', 'drill_design_no', 'drill_design_is_null']) {
+        if (activeStockComparisonParams?.has(field)) params.set(field, activeStockComparisonParams.get(field));
+    }
     Object.entries(fieldMap).forEach(([datasetKey, parameterName]) => {
         params.set(parameterName, toggle.dataset[datasetKey] || '');
     });

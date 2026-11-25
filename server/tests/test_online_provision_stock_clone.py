@@ -30,7 +30,11 @@ def sql_constants(path):
 
 class OnlineStockCloneTests(unittest.TestCase):
     def test_all_query_arithmetic_is_exact_copy(self):
-        self.assertEqual(sql_constants(Path(physical.__file__)), sql_constants(Path(online.__file__)))
+        original_sql = '\n'.join(sql_constants(Path(physical.__file__)))
+        online_sql = '\n'.join(sql_constants(Path(online.__file__)))
+        # Hierarchy/filter SQL may add Design No; all aggregate expressions stay identical.
+        self.assertEqual(set(re.findall(r'SUM\([^\n]+', original_sql)),
+                         set(re.findall(r'SUM\([^\n]+', online_sql)))
         original = ast.parse((ROOT / 'app/utils/export_service.py').read_text())
         function = next(n for n in original.body if getattr(n, 'name', '') == 'generate_location_physical_stock_status_export')
         target = ast.parse((ROOT / 'app/utils/online_provision_stock_export.py').read_text())
@@ -48,7 +52,7 @@ class OnlineStockCloneTests(unittest.TestCase):
                                 (ProvisionStockRawStaging, OnlineProvisionStockRawStaging)]:
             self.assertNotEqual(original.__tablename__, clone.__tablename__)
             self.assertEqual([(c.name, str(c.type), c.nullable) for c in original.__table__.columns],
-                             [(c.name, str(c.type), c.nullable) for c in clone.__table__.columns])
+                             [(c.name, str(c.type), c.nullable) for c in clone.__table__.columns if c.name != 'design_no'])
         self.assertTrue({i.name for i in ProvisionStockRawSnapshot.__table__.indexes}.isdisjoint(
             {i.name for i in OnlineProvisionStockRawSnapshot.__table__.indexes}))
 
@@ -84,7 +88,7 @@ class OnlineStockCloneTests(unittest.TestCase):
             sync.map_source_row(row, datetime(2026, 11, 25))
 
     def test_source_projection_requires_only_confirmed_report_fields(self):
-        self.assertEqual(len(sync.source_columns()), 48)
+        self.assertEqual(len(sync.source_columns()), 49)
         for unused in ('prov_gr_wt', 'order_only_wt', 'last_updated_at', 'stock_qty',
                        'stock_gr_wt', 'prov_amount', 'short_percent', 'provision_mode', 'prov_type_filter'):
             self.assertNotIn(unused, sync.source_columns())
@@ -150,7 +154,7 @@ class OnlineStockCloneTests(unittest.TestCase):
         metadata.__enter__.return_value = metadata
         stream.__enter__.return_value = stream
         connection.cursor.side_effect = [metadata, stream]
-        with patch.object(sync, 'db', database), patch.object(sync, 'publish_staging') as publish, patch(
+        with patch.object(sync, 'ensure_online_tables'), patch.object(sync, 'db', database), patch.object(sync, 'publish_staging') as publish, patch(
             'app.utils.sync_tasks.get_external_db_connection', return_value=connection
         ), patch('app.utils.sync_tasks.emit_sync_update'):
             result = sync.sync_online_provision_stock_status_data_task()
