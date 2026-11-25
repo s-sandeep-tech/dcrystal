@@ -82,7 +82,7 @@
                 <option value="asc">Ascending</option>
             </select></label>
         <label class="nip-average-control"
-            title="Linear trend over reporting dates; requires at least two dated balances"><input id="nip-average"
+            title="Cumulative average of available balances from the selected range start through each date"><input id="nip-average"
                 type="checkbox">Trendline</label>
     </div>
     <p class="flex items-center gap-2 px-4 py-2 text-xs text-gray-500 border-b border-gray-200 dark:border-gray-800">
@@ -140,5 +140,5 @@
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261125-cache-retry') }}"></script>
+<script src="{{ url_for('static', filename='js/nip_stock_trend.js', v='20261125-selected-range-average') }}"></script>
 {% endblock %}
