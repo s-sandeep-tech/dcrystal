@@ -1367,6 +1367,12 @@
                             </h3>
                             <div class="flex items-center gap-2">
                                 <span id="audit-logs-pagination-info" class="text-[10px] text-gray-400"></span>
+                                <label for="audit-logs-date-filter" class="sr-only">Audit log date filter</label>
+                                <select id="audit-logs-date-filter" aria-label="Audit log date filter"
+                                    class="text-[11px] rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1 text-gray-600 dark:text-gray-300">
+                                    <option value="all">All dates</option>
+                                    <option value="today">Today (IST)</option>
+                                </select>
                                 <button id="refresh-audit-logs-btn"
                                     class="text-gray-400 hover:text-primary transition-colors focus:outline-none">
                                     <span class="material-symbols-outlined text-sm">refresh</span>
@@ -1836,5 +1842,5 @@
                                                                                                                                                                         notificationsUrl: "{{ url_for('dashboard.get_settings_notifications') }}"
         };
     </script>
-    <script src="{{ url_for('static', filename='js/settings.js', v='20261117-nip-live') }}"></script>
+    <script src="{{ url_for('static', filename='js/settings.js', v='20261126-audit-today') }}"></script>
     {% endblock %}

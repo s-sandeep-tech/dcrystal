@@ -3280,7 +3280,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!tbody) return;
 
         try {
-            const res = await fetch(`${window.SETTINGS_CONFIG.auditLogsUrl}?page=${page}&per_page=15`, {
+            const dateFilter = document.getElementById('audit-logs-date-filter')?.value || 'all';
+            const params = new URLSearchParams({ page, per_page: 15, date_filter: dateFilter });
+            const res = await fetch(`${window.SETTINGS_CONFIG.auditLogsUrl}?${params}`, {
                 headers: { 'Authorization': `Bearer ${window.jwtToken}` }
             });
             if (res.ok) {
@@ -3376,6 +3378,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const refreshAuditLogsBtn = document.getElementById('refresh-audit-logs-btn');
+    const auditLogsDateFilter = document.getElementById('audit-logs-date-filter');
+    if (auditLogsDateFilter) {
+        auditLogsDateFilter.onchange = () => fetchAuditLogs(1);
+    }
     if (refreshAuditLogsBtn) {
         refreshAuditLogsBtn.onclick = () => fetchAuditLogs(auditLogsCurrentPage);
     }

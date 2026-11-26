@@ -7,7 +7,8 @@ from app.models.core import ExportDownloadLog
 from app.models.rbac import Role, Menu, UserRole, RoleMenu, Permission, RolePermission, AuditLog, UserPasswordHistory
 from app.utils.decorators import require_role, require_perm
 from app.utils.rbac_cache import increment_rbac_version, invalidate_user_cache, get_user_permissions
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from app.api.auth import validate_company_email, validate_password_strength
 from app.services.email_verification_service import issue_verification_token, send_verification_email
 from app.utils.access_policy import is_super_admin
@@ -742,6 +743,13 @@ def get_audit_logs():
     per_page = request.args.get('per_page', 15, type=int)
     
     query = db.session.query(AuditLog, User).outerjoin(User, AuditLog.user_id == User.id).order_by(AuditLog.created_at.desc())
+    if request.args.get('date_filter') == 'today':
+        start = datetime.now(ZoneInfo('Asia/Kolkata')).replace(hour=0, minute=0, second=0, microsecond=0)
+        end = start + timedelta(days=1)
+        query = query.filter(
+            AuditLog.created_at >= start.astimezone(timezone.utc).replace(tzinfo=None),
+            AuditLog.created_at < end.astimezone(timezone.utc).replace(tzinfo=None),
+        )
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     
     return jsonify({
