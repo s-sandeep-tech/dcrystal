@@ -73,6 +73,35 @@ class MonitoringRouteTests(unittest.TestCase):
         self.assertNotIn('Code 2', data['html'])
         self.assertIn('XXX', data['html'])
 
+    def test_support_head_matches_manager_2_for_rows_options_and_export(self):
+        results = []
+        for role in ('MANAGER_2', 'SUPPORT_HEAD'):
+            self.login([role], 'unmapped')
+            data = self.client.get('/api/monitor', headers=self.headers).get_json()
+            self.assertEqual(data['total'], 3)
+            self.assertEqual(data['stats']['pieces'], 6)
+            self.assertIn('Supplier 1', data['html'])
+            self.assertIn('Supplier 3', data['html'])
+            with patch('app.utils.decorators.get_user_permissions', return_value={'report.export'}):
+                exported = self.client.get('/api/monitor/export', headers=self.headers)
+            self.assertEqual(exported.status_code, 200)
+            results.append((data, exported.text))
+        self.assertEqual(results[0], results[1])
+
+    def test_support_head_still_requires_export_permission(self):
+        self.login(['SUPPORT_HEAD'])
+        with patch('app.utils.decorators.get_user_permissions', return_value=set()):
+            self.assertEqual(self.client.get('/api/monitor/export', headers=self.headers).status_code, 403)
+
+    def test_support_head_does_not_bypass_shared_customer_order_visibility(self):
+        from app.dashboard.routes.customer_order_analysis import apply_visibility_filter
+        with self.app.test_request_context('/'), patch(
+            'app.dashboard.routes.customer_order_analysis.get_owner_names_by_emp_code', return_value=((), ())
+        ):
+            session['user_id'] = 'unmapped'
+            session['roles'] = ['SUPPORT_HEAD']
+            self.assertEqual(apply_visibility_filter(Snapshot.query).count(), 0)
+
     def test_showroom_scope_and_no_mapping(self):
         self.login(['SHOWROOM_MANAGER'], '1235')
         data = self.client.get('/api/monitor', headers=self.headers).get_json()

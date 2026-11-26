@@ -34,7 +34,12 @@ def context(args):
     excluded = {'customer_name', 'customer_phone_number', 'advance_no', 'advance_date',
                 'bh_emp_code', 'classification_owner_emp_code', 'make_owner_emp_code', 'collection_owner_emp_code'}
     columns = [c.name for c in Snapshot.__table__.columns if c.name not in excluded]
-    query = apply_visibility_filter(Snapshot.query).options(load_only(*(getattr(Snapshot, c) for c in columns)))
+    roles = {str(role).strip().upper() for role in session.get('roles', [])}
+    # SUPPORT_HEAD has MANAGER_2 visibility in this monitoring report only.
+    query = Snapshot.query
+    if 'SUPPORT_HEAD' not in roles:
+        query = apply_visibility_filter(query)
+    query = query.options(load_only(*(getattr(Snapshot, c) for c in columns)))
     rows = [{c: getattr(r, c) for c in columns} for r in query.all()]
     today = datetime.now(ZoneInfo('Asia/Kolkata')).date()
     high = int(current_app.config.get('CUSTOMER_MONITOR_HIGH_DAYS', 2))
