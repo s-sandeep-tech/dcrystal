@@ -49,6 +49,7 @@ class OnlineProvisionStockRawSnapshot(db.Model):
     screw_type = db.Column(db.String(200))
     prov_type = db.Column(db.Text)
     design_no = db.Column(db.String(100))
+    design_uid = db.Column(db.Text)
 
     # External hierarchy identifiers
     division_id = db.Column(db.BigInteger)
@@ -141,6 +142,7 @@ class OnlineProvisionStockRawStaging(db.Model):
     screw_type = db.Column(db.String(200))
     prov_type = db.Column(db.Text)
     design_no = db.Column(db.String(100))
+    design_uid = db.Column(db.Text)
 
     # External hierarchy identifiers
     division_id = db.Column(db.BigInteger)

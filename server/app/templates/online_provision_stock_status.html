@@ -424,7 +424,7 @@
             <p class="mt-2 text-xs text-gray-500">Use the mouse wheel to zoom. Drag to move the enlarged image.</p>
         </div>
         <button id="online-designImageRetry" type="button" hidden
-            onclick="onlineOpenDesignImageModal(document.getElementById('online-designImageModal').dataset.designNo)"
+            onclick="onlineOpenDesignImageModal(document.getElementById('online-designImageModal').dataset.designNo, document.getElementById('online-designImageModal').dataset.designUid)"
             class="mt-4 px-4 py-2 rounded bg-primary text-white text-sm font-semibold">Try again</button>
     </div>
 </dialog>
@@ -551,5 +551,5 @@
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script src="{{ url_for('static', filename='js/header_filter.js') }}"></script>
-<script src="{{ url_for('static', filename='js/online_provision_stock_status.js', v='20261126-design-image-pan') }}"></script>
+<script src="{{ url_for('static', filename='js/online_provision_stock_status.js', v='20261126-design-image-uid') }}"></script>
 {% endblock %}

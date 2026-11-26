@@ -860,9 +860,9 @@ ORDER BY
 @dashboard_bp.route('/api/online-provision-stock-status/design-image')
 @require_report_access('/online-provision-stock-status')
 def get_online_provision_stock_design_image():
-    design_no = request.args.get('design_no', '').strip()
-    if not design_no:
-        return jsonify(message='A design number is required.'), 400
+    design_uid = request.args.get('design_uid', '').strip()
+    if not design_uid:
+        return jsonify(message='A design UID is required.'), 400
 
     connection = None
     try:
@@ -872,8 +872,8 @@ def get_online_provision_stock_design_image():
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute(
                 'SELECT design_uid, design_no, thumb_file_url '
-                'FROM ext_view.vw_design_attachment WHERE design_no = %s LIMIT 1',
-                (design_no,),
+                'FROM ext_view.vw_design_attachment WHERE design_uid = %s LIMIT 1',
+                (design_uid,),
             )
             row = cursor.fetchone()
         image_url = (row[2] or '').strip() if row else ''
@@ -882,7 +882,7 @@ def get_online_provision_stock_design_image():
             image_url = 'https://crystal.kalyanjewellers.company/' + image_url.lstrip('/')
         elif not image_url or parsed.scheme not in ('http', 'https') or not parsed.netloc:
             image_url = None
-        response = jsonify(design_no=design_no, image_url=image_url)
+        response = jsonify(design_uid=design_uid, image_url=image_url)
         response.headers['Cache-Control'] = 'no-store'
         return response
     except Exception:
@@ -985,7 +985,7 @@ WITH base AS (
 levels AS (
     -- Level 1: Section
     SELECT 1 as level_id, section, NULL::numeric as purity, NULL::text as type,
-           NULL::text as wide_range, NULL::numeric as range_weight, NULL::text AS design_no,
+           NULL::text as wide_range, NULL::numeric as range_weight, NULL::text AS design_no, NULL::text AS design_uid,
            array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
            NULL::text as purity_ids, NULL::text as type_ids, NULL::text as wide_range_ids,
            SUM(prov_pieces) as prov_pcs, SUM(prov_gr_wt) as prov_gr_wt, SUM(in_shop_wt) as in_shop_wt,
@@ -997,7 +997,7 @@ levels AS (
     UNION ALL
     -- Level 2: Section + Purity
     SELECT 2 as level_id, section, purity, NULL::text as type,
-           NULL::text as wide_range, NULL::numeric as range_weight, NULL::text AS design_no,
+           NULL::text as wide_range, NULL::numeric as range_weight, NULL::text AS design_no, NULL::text AS design_uid,
            array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
            array_to_string(array_agg(DISTINCT purity_id) FILTER (WHERE purity_id IS NOT NULL), ',') as purity_ids,
            NULL::text as type_ids, NULL::text as wide_range_ids,
@@ -1010,7 +1010,7 @@ levels AS (
     UNION ALL
     -- Level 3: Section + Purity + Type
     SELECT 3 as level_id, section, purity, type,
-           NULL::text as wide_range, NULL::numeric as range_weight, NULL::text AS design_no,
+           NULL::text as wide_range, NULL::numeric as range_weight, NULL::text AS design_no, NULL::text AS design_uid,
            array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
            array_to_string(array_agg(DISTINCT purity_id) FILTER (WHERE purity_id IS NOT NULL), ',') as purity_ids,
            array_to_string(array_agg(DISTINCT type_id) FILTER (WHERE type_id IS NOT NULL), ',') as type_ids,
@@ -1023,7 +1023,7 @@ levels AS (
 
     UNION ALL
     -- Level 4: Section + Purity + Type + Wide Range
-    SELECT 4 as level_id, section, purity, type, wide_range, NULL::numeric as range_weight, NULL::text AS design_no,
+    SELECT 4 as level_id, section, purity, type, wide_range, NULL::numeric as range_weight, NULL::text AS design_no, NULL::text AS design_uid,
            array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
            array_to_string(array_agg(DISTINCT purity_id) FILTER (WHERE purity_id IS NOT NULL), ',') as purity_ids,
            array_to_string(array_agg(DISTINCT type_id) FILTER (WHERE type_id IS NOT NULL), ',') as type_ids,
@@ -1036,7 +1036,7 @@ levels AS (
 
     UNION ALL
     -- Level 5: Section + Purity + Type + Wide Range + Range Weight
-    SELECT 5 as level_id, section, purity, type, wide_range, range_weight, NULL::text AS design_no,
+    SELECT 5 as level_id, section, purity, type, wide_range, range_weight, NULL::text AS design_no, NULL::text AS design_uid,
            array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
            array_to_string(array_agg(DISTINCT purity_id) FILTER (WHERE purity_id IS NOT NULL), ',') as purity_ids,
            array_to_string(array_agg(DISTINCT type_id) FILTER (WHERE type_id IS NOT NULL), ',') as type_ids,
@@ -1050,6 +1050,8 @@ levels AS (
     UNION ALL
     -- Level 6: Section + Purity + Type + Wide Range + Range Weight + Design No
     SELECT 6 as level_id, section, purity, type, wide_range, range_weight, design_no,
+           CASE WHEN COUNT(DISTINCT NULLIF(TRIM(design_uid), '')) = 1
+                THEN MIN(NULLIF(TRIM(design_uid), '')) END AS design_uid,
            array_to_string(array_agg(DISTINCT section_id) FILTER (WHERE section_id IS NOT NULL), ',') as section_ids,
            array_to_string(array_agg(DISTINCT purity_id) FILTER (WHERE purity_id IS NOT NULL), ',') as purity_ids,
            array_to_string(array_agg(DISTINCT type_id) FILTER (WHERE type_id IS NOT NULL), ',') as type_ids,
@@ -1061,7 +1063,7 @@ levels AS (
     FROM base GROUP BY section, purity, type, wide_range, range_weight, design_no
 )
 SELECT 
-    level_id, section, purity, type, wide_range, range_weight, design_no,
+    level_id, section, purity, type, wide_range, range_weight, design_no, design_uid,
     section_ids, purity_ids, type_ids, wide_range_ids,
     prov_pcs, prov_gr_wt, in_shop_wt, short_excess_pcs, ordered_wt, in_transit_wt,
     (in_shop_wt + in_transit_wt - prov_gr_wt) as short_excess_wt,

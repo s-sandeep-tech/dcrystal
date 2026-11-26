@@ -33,7 +33,7 @@ REPORT_SOURCE_COLUMNS = (
     'division_id', 'group_id', 'purity_id', 'classification_id',
     'sub_classification_id', 'section_id', 'type_id', 'make_id',
     'collection_id', 'master_collection_id', 'sub_section_id',
-    'wide_range_id', 'gender_id', 'size_id', 'screw_type_id', 'design_no',
+    'wide_range_id', 'gender_id', 'size_id', 'screw_type_id', 'design_no', 'design_uid',
 )
 SOURCE_TO_SNAPSHOT = {
     'group': 'group_name',
@@ -70,7 +70,7 @@ def map_source_row(row, started_at):
             if not numeric.is_finite() or numeric != numeric.to_integral_value():
                 raise ValueError(f'Invalid non-integer {name}: {value}')
             value = int(numeric)
-        elif name == 'size' and value is not None:
+        elif name in ('size', 'design_uid') and value is not None:
             value = str(value)
         mapped[SOURCE_TO_SNAPSHOT.get(name, name)] = value
     # Each successful sync gets its own timestamp/cache generation; no source
@@ -84,9 +84,11 @@ def ensure_online_tables():
     with db.engine.begin() as connection:
         for model in (Snapshot, Staging):
             model.__table__.create(connection, checkfirst=True)
-            if 'design_no' not in {c['name'] for c in inspect(connection).get_columns(model.__tablename__)}:
-                guard = 'IF NOT EXISTS ' if connection.dialect.name == 'postgresql' else ''
-                connection.execute(text(f'ALTER TABLE {model.__tablename__} ADD COLUMN {guard}design_no VARCHAR(100)'))
+            existing = {c['name'] for c in inspect(connection).get_columns(model.__tablename__)}
+            for column, sql_type in (('design_no', 'VARCHAR(100)'), ('design_uid', 'TEXT')):
+                if column not in existing:
+                    guard = 'IF NOT EXISTS ' if connection.dialect.name == 'postgresql' else ''
+                    connection.execute(text(f'ALTER TABLE {model.__tablename__} ADD COLUMN {guard}{column} {sql_type}'))
 
 
 def publish_staging(expected_count, expected_weight):

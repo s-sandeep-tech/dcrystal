@@ -123,7 +123,7 @@ function onlineResetDesignImageModal() {
     document.getElementById('online-designImageLoader').hidden = true;
 }
 
-async function onlineOpenDesignImageModal(designNo) {
+async function onlineOpenDesignImageModal(designNo, designUid) {
     const modal = document.getElementById('online-designImageModal');
     const image = document.getElementById('online-designImage');
     const status = document.getElementById('online-designImageStatus');
@@ -134,6 +134,7 @@ async function onlineOpenDesignImageModal(designNo) {
     const requestId = onlineDesignImageRequest;
     onlineDesignImageController = new AbortController();
     modal.dataset.designNo = designNo;
+    modal.dataset.designUid = designUid;
     document.getElementById('online-designImageTitle').textContent = `Design ${designNo}`;
     status.textContent = 'Loading image…';
     loader.hidden = false;
@@ -152,7 +153,7 @@ async function onlineOpenDesignImageModal(designNo) {
     }
 
     try {
-        const params = new URLSearchParams({ design_no: designNo });
+        const params = new URLSearchParams({ design_uid: designUid });
         const response = await fetch(`/api/online-provision-stock-status/design-image?${params}`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
             signal: onlineDesignImageController.signal
@@ -1262,7 +1263,7 @@ document.addEventListener('click', (event) => {
     if (designLink) {
         event.preventDefault();
         event.stopPropagation();
-        onlineOpenDesignImageModal(designLink.dataset.designImage);
+        onlineOpenDesignImageModal(designLink.dataset.designImage, designLink.dataset.designUid);
         return;
     }
     const sourceHighlightButton = event.target.closest('[data-comparison-highlight-source]');

@@ -12,23 +12,23 @@ class OnlineStockDesignImageTests(unittest.TestCase):
     def setUp(self):
         self.app = Flask(__name__)
 
-    def lookup(self, row, design='FONOR0296'):
+    def lookup(self, row, design='uid-123'):
         connection = MagicMock()
         cursor = connection.cursor.return_value.__enter__.return_value
         cursor.fetchone.return_value = row
-        with self.app.test_request_context('/?design_no=' + design), patch.object(
+        with self.app.test_request_context('/?design_uid=' + design), patch.object(
             report, 'get_external_db_connection', return_value=connection
         ):
             response = report.get_online_provision_stock_design_image.__wrapped__()
         return response, connection, cursor
 
-    def test_direct_readonly_external_lookup_uses_bound_design_number(self):
+    def test_direct_readonly_external_lookup_uses_bound_design_uid(self):
         response, connection, cursor = self.lookup((123, 'FONOR0296', 'https://images.example/design.jpg'))
-        self.assertEqual(response.json, dict(design_no='FONOR0296', image_url='https://images.example/design.jpg'))
+        self.assertEqual(response.json, dict(design_uid='uid-123', image_url='https://images.example/design.jpg'))
         sql, params = cursor.execute.call_args.args
-        self.assertIn('FROM ext_view.vw_design_attachment WHERE design_no = %s', sql)
-        self.assertEqual(params, ('FONOR0296',))
-        self.assertNotIn('FONOR0296', sql)
+        self.assertIn('FROM ext_view.vw_design_attachment WHERE design_uid = %s', sql)
+        self.assertEqual(params, ('uid-123',))
+        self.assertNotIn('uid-123', sql)
         connection.set_session.assert_called_once_with(readonly=True)
         connection.close.assert_called_once()
         self.assertEqual(response.headers['Cache-Control'], 'no-store')
@@ -49,7 +49,7 @@ class OnlineStockDesignImageTests(unittest.TestCase):
                                  'https://crystal.kalyanjewellers.company/attachments/design.jpg')
 
     def test_blank_design_rejected_without_external_connection(self):
-        with self.app.test_request_context('/?design_no=%20'), patch.object(report, 'get_external_db_connection') as connect:
+        with self.app.test_request_context('/?design_uid=%20'), patch.object(report, 'get_external_db_connection') as connect:
             response, status = report.get_online_provision_stock_design_image.__wrapped__()
         self.assertEqual(status, 400)
         connect.assert_not_called()
@@ -57,7 +57,7 @@ class OnlineStockDesignImageTests(unittest.TestCase):
     def test_source_error_closes_connection_and_hides_database_details(self):
         connection = MagicMock()
         connection.cursor.return_value.__enter__.return_value.execute.side_effect = RuntimeError('private database details')
-        with self.app.test_request_context('/?design_no=A'), patch.object(
+        with self.app.test_request_context('/?design_uid=A'), patch.object(
             report, 'get_external_db_connection', return_value=connection
         ), self.assertLogs(report.logger, level='ERROR'):
             response, status = report.get_online_provision_stock_design_image.__wrapped__()
@@ -66,7 +66,7 @@ class OnlineStockDesignImageTests(unittest.TestCase):
         connection.close.assert_called_once()
 
     def test_api_requires_report_authentication(self):
-        with self.app.test_request_context('/api/online-provision-stock-status/design-image?design_no=A'), patch.object(
+        with self.app.test_request_context('/api/online-provision-stock-status/design-image?design_uid=A'), patch.object(
             report, 'get_external_db_connection'
         ) as connect:
             _, status = report.get_online_provision_stock_design_image()
@@ -79,13 +79,24 @@ class OnlineStockDesignImageTests(unittest.TestCase):
         template = env.get_template('partials/_view_online_provision_stock_drilldown.html')
         module = template.make_module(dict(include_design_hierarchy=True, include_purity_hierarchy=True))
         row = dict(level_id=6, section='BANGLE', purity=750, type='4 SET', wide_range='LIGHT',
-                   range_weight=8, design_no='A"<B', prov_pcs=1, prov_gr_wt=8, in_shop_wt=0,
+                   range_weight=8, design_uid='uid-123', design_no='A"<B', prov_pcs=1, prov_gr_wt=8, in_shop_wt=0,
                    ordered_wt=8, in_transit_wt=0, short_excess_pcs=-1, short_excess_wt=-8, percent=-100)
         html = str(module.render_drilldown_row(row, {}))
         self.assertIn('data-design-image="A&#34;&lt;B"', html)
+        self.assertIn('data-design-uid="uid-123"', html)
+        for uid in (None, ''):
+            row['design_uid'] = uid
+            self.assertNotIn('data-design-image=', str(module.render_drilldown_row(row, {})))
+        row['design_uid'] = 'uid-123'
         for design in (None, '', ' '):
             row['design_no'] = design
             self.assertNotIn('data-design-image=', str(module.render_drilldown_row(row, {})))
+
+    def test_design_number_alone_cannot_trigger_image_lookup(self):
+        with self.app.test_request_context('/?design_no=FONOR0296'), patch.object(report, 'get_external_db_connection') as connect:
+            _, status = report.get_online_provision_stock_design_image.__wrapped__()
+        self.assertEqual(status, 400)
+        connect.assert_not_called()
 
 
 if __name__ == '__main__':

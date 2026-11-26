@@ -41,8 +41,8 @@ test('single image uses encoded design number and waits for image load', async (
         request = { url, options };
         return { ok: true, json: async () => ({ image_url: 'https://images.example/design.jpg' }) };
     });
-    await h.open('A&B/1');
-    assert.match(request.url, /design_no=A%26B%2F1/);
+    await h.open('A&B/1', 'uid-123');
+    assert.match(request.url, /design_uid=uid-123/);
     assert.equal(request.options.headers.Authorization, 'Bearer test-token');
     const img = h.elements['online-designImage'];
     assert.equal(img.src, 'https://images.example/design.jpg');
@@ -75,7 +75,7 @@ test('single image uses encoded design number and waits for image load', async (
 
 test('wheel zoom anchors the image under the pointer and drag pans until released', async () => {
     const h = harness(async () => ({ ok: true, json: async () => ({ image_url: 'https://images.example/A.jpg' }) }));
-    await h.open('A');
+    await h.open('A', 'uid-A');
     h.elements['online-designImage'].onload();
     const viewport = h.elements['online-designImageViewport'];
     h.zoom(1);
@@ -107,7 +107,7 @@ test('wheel zoom anchors the image under the pointer and drag pans until release
 
 test('closing while dragging releases capture and hides gesture viewport', async () => {
     const h = harness(async () => ({ ok: true, json: async () => ({ image_url: 'https://images.example/A.jpg' }) }));
-    await h.open('A');
+    await h.open('A', 'uid-A');
     h.elements['online-designImage'].onload();
     h.zoom(2);
     const viewport = h.elements['online-designImageViewport'];
@@ -120,7 +120,7 @@ test('closing while dragging releases capture and hides gesture viewport', async
 
 test('missing image has a clear empty state', async () => {
     const h = harness(async () => ({ ok: true, json: async () => ({ image_url: null }) }));
-    await h.open('A');
+    await h.open('A', 'uid-A');
     assert.equal(h.elements['online-designImageStatus'].textContent, 'No image available for this design.');
     assert.equal(h.elements['online-designImage'].hidden, true);
     assert.equal(h.elements['online-designImageRetry'].hidden, true);
@@ -131,12 +131,12 @@ test('missing image has a clear empty state', async () => {
 
 test('database and broken-image failures expose retry', async () => {
     const h = harness(async () => ({ ok: false }));
-    await h.open('A');
+    await h.open('A', 'uid-A');
     assert.equal(h.elements['online-designImageRetry'].hidden, false);
     assert.equal(h.elements['online-designImageLoader'].hidden, true);
     assert.equal(h.elements['online-designImagePlaceholder'].hidden, false);
     const imageHarness = harness(async () => ({ ok: true, json: async () => ({ image_url: 'https://images.example/broken.jpg' }) }));
-    await imageHarness.open('A');
+    await imageHarness.open('A', 'uid-A');
     imageHarness.elements['online-designImage'].onerror();
     assert.equal(imageHarness.elements['online-designImageRetry'].hidden, false);
     assert.equal(imageHarness.elements['online-designImage'].hidden, true);
@@ -147,10 +147,10 @@ test('database and broken-image failures expose retry', async () => {
 test('closing aborts lookup and prevents stale response from populating reopened modal', async () => {
     const requests = [];
     const h = harness((url, options) => new Promise(resolve => requests.push({ resolve, options })));
-    const first = h.open('A');
+    const first = h.open('A', 'uid-A');
     h.reset();
     assert.equal(requests[0].options.signal.aborted, true);
-    const second = h.open('B');
+    const second = h.open('B', 'uid-B');
     requests[1].resolve({ ok: true, json: async () => ({ image_url: 'https://images.example/B.jpg' }) });
     await second;
     requests[0].resolve({ ok: true, json: async () => ({ image_url: 'https://images.example/A.jpg' }) });

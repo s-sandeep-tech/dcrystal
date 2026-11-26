@@ -52,7 +52,7 @@ class OnlineStockCloneTests(unittest.TestCase):
                                 (ProvisionStockRawStaging, OnlineProvisionStockRawStaging)]:
             self.assertNotEqual(original.__tablename__, clone.__tablename__)
             self.assertEqual([(c.name, str(c.type), c.nullable) for c in original.__table__.columns],
-                             [(c.name, str(c.type), c.nullable) for c in clone.__table__.columns if c.name != 'design_no'])
+                             [(c.name, str(c.type), c.nullable) for c in clone.__table__.columns if c.name not in ('design_no', 'design_uid')])
         self.assertTrue({i.name for i in ProvisionStockRawSnapshot.__table__.indexes}.isdisjoint(
             {i.name for i in OnlineProvisionStockRawSnapshot.__table__.indexes}))
 
@@ -87,8 +87,34 @@ class OnlineStockCloneTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'non-integer branch_id'):
             sync.map_source_row(row, datetime(2026, 11, 25))
 
+    def test_design_uid_is_required_and_preserved_as_text(self):
+        from uuid import UUID
+        row = {name: None for name in sync.source_columns()}
+        uid = UUID('8b97ef62-b96e-41b0-b65a-bf0a76d38e25')
+        row['design_uid'] = uid
+        mapped = sync.map_source_row(row, datetime(2026, 11, 26))
+        self.assertEqual(mapped['design_uid'], str(uid))
+        with self.assertRaisesRegex(ValueError, 'design_uid'):
+            sync.validate_source_columns([(name,) for name in sync.source_columns() if name != 'design_uid'])
+
+    def test_existing_online_tables_gain_design_uid_without_losing_rows(self):
+        from sqlalchemy import create_engine, inspect, text
+        engine = create_engine('sqlite:///:memory:')
+        with engine.begin() as connection:
+            for table in ('online_provision_stock_raw_snapshot', 'online_provision_stock_raw_staging'):
+                connection.execute(text(f'CREATE TABLE {table} (id INTEGER PRIMARY KEY, design_no VARCHAR(100))'))
+                connection.execute(text(f"INSERT INTO {table} (id, design_no) VALUES (1, 'DESIGN-A')"))
+        with patch.object(sync, 'db', SimpleNamespace(engine=engine)):
+            sync.ensure_online_tables()
+            sync.ensure_online_tables()
+        with engine.connect() as connection:
+            for table in ('online_provision_stock_raw_snapshot', 'online_provision_stock_raw_staging'):
+                self.assertIn('design_uid', {c['name'] for c in inspect(connection).get_columns(table)})
+                self.assertEqual(connection.execute(text(f'SELECT design_no, design_uid FROM {table}')).one(), ('DESIGN-A', None))
+        engine.dispose()
+
     def test_source_projection_requires_only_confirmed_report_fields(self):
-        self.assertEqual(len(sync.source_columns()), 49)
+        self.assertEqual(len(sync.source_columns()), 50)
         for unused in ('prov_gr_wt', 'order_only_wt', 'last_updated_at', 'stock_qty',
                        'stock_gr_wt', 'prov_amount', 'short_percent', 'provision_mode', 'prov_type_filter'):
             self.assertNotIn(unused, sync.source_columns())
