@@ -177,7 +177,7 @@ async function onlineOpenDesignImageModal(designNo) {
             image.hidden = false;
             document.getElementById('online-designImageViewport').hidden = false;
             onlineDesignImageSize = image.getBoundingClientRect();
-            onlineSetDesignImageZoom(1);
+            onlineSetDesignImageZoom(1.5);
             document.getElementById('online-designImageZoomControls').hidden = false;
         };
         image.onerror = showError;

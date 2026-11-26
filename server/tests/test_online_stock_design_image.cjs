@@ -55,6 +55,7 @@ test('single image uses encoded design number and waits for image load', async (
     assert.equal(h.elements['online-designImageStatus'].hidden, true);
     assert.equal(h.elements['online-designImageTitle'].textContent, 'Design A&B/1');
     assert.equal(h.elements['online-designImageZoomControls'].hidden, false);
+    assert.equal(h.elements['online-designImageZoomLabel'].textContent, '150%');
     h.zoom(2);
     assert.equal(img.style.width, '320px');
     assert.equal(img.style.height, '400px');
@@ -77,6 +78,7 @@ test('wheel zoom anchors the image under the pointer and drag pans until release
     await h.open('A');
     h.elements['online-designImage'].onload();
     const viewport = h.elements['online-designImageViewport'];
+    h.zoom(1);
     let prevented = 0;
     const wheel = { deltaY: -120, clientX: 80, clientY: 100, preventDefault() { prevented++; } };
     viewport.listeners.wheel(wheel);
