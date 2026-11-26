@@ -8,9 +8,10 @@ const source = fs.readFileSync(path.join(__dirname, '../app/static/js/online_pro
 
 function harness(fetch) {
     const elements = {};
-    for (const name of ['Modal', 'Title', 'Status', 'Retry', 'Placeholder', 'Loader', '']) {
+    for (const name of ['Modal', 'Title', 'Status', 'Retry', 'Placeholder', 'Loader', 'Viewport', 'ZoomControls', 'ZoomLabel', 'ZoomIn', 'ZoomOut', '']) {
         elements[`online-designImage${name}`] = {
-            hidden: false, dataset: {}, open: false,
+            hidden: false, dataset: {}, style: {}, open: false,
+            getBoundingClientRect() { return { width: 160, height: 200 }; },
             showModal() { this.open = true; },
             removeAttribute(name) { delete this[name]; }
         };
@@ -21,7 +22,7 @@ function harness(fetch) {
         localStorage: { getItem: () => 'test-token' }
     });
     vm.runInContext(source.slice(0, source.indexOf('function onlineToggleStockFilters')), context);
-    return { elements, open: context.onlineOpenDesignImageModal, reset: context.onlineResetDesignImageModal };
+    return { elements, open: context.onlineOpenDesignImageModal, reset: context.onlineResetDesignImageModal, zoom: context.onlineSetDesignImageZoom };
 }
 
 test('single image uses encoded design number and waits for image load', async () => {
@@ -43,6 +44,22 @@ test('single image uses encoded design number and waits for image load', async (
     assert.equal(h.elements['online-designImagePlaceholder'].hidden, true);
     assert.equal(h.elements['online-designImageStatus'].hidden, true);
     assert.equal(h.elements['online-designImageTitle'].textContent, 'Design A&B/1');
+    assert.equal(h.elements['online-designImageZoomControls'].hidden, false);
+    h.zoom(2);
+    assert.equal(img.style.width, '320px');
+    assert.equal(img.style.height, '400px');
+    assert.equal(h.elements['online-designImageZoomLabel'].textContent, '200%');
+    h.zoom(5);
+    assert.equal(img.style.width, '640px');
+    assert.equal(h.elements['online-designImageZoomIn'].disabled, true);
+    h.elements['online-designImageViewport'].scrollLeft = 90;
+    h.zoom(0);
+    assert.equal(img.style.width, '160px');
+    assert.equal(h.elements['online-designImageZoomOut'].disabled, true);
+    assert.equal(h.elements['online-designImageViewport'].scrollLeft, 0);
+    h.reset();
+    assert.equal(img.style.width, '');
+    assert.equal(h.elements['online-designImageZoomControls'].hidden, true);
 });
 
 test('missing image has a clear empty state', async () => {
@@ -53,6 +70,7 @@ test('missing image has a clear empty state', async () => {
     assert.equal(h.elements['online-designImageRetry'].hidden, true);
     assert.equal(h.elements['online-designImagePlaceholder'].hidden, false);
     assert.equal(h.elements['online-designImageLoader'].hidden, true);
+    assert.equal(h.elements['online-designImageZoomControls'].hidden, true);
 });
 
 test('database and broken-image failures expose retry', async () => {

@@ -32,6 +32,29 @@ let appliedStockFilters = { ...filterValues };
 let activeDrilldownFilters = { ...filterValues };
 let onlineDesignImageRequest = 0;
 let onlineDesignImageController = null;
+let onlineDesignImageZoom = 1;
+let onlineDesignImageSize = null;
+
+function onlineSetDesignImageZoom(zoom) {
+    if (!onlineDesignImageSize) return;
+    onlineDesignImageZoom = Math.max(1, Math.min(4, zoom));
+    const image = document.getElementById('online-designImage');
+    image.style.width = `${onlineDesignImageSize.width * onlineDesignImageZoom}px`;
+    image.style.height = `${onlineDesignImageSize.height * onlineDesignImageZoom}px`;
+    image.style.maxWidth = 'none';
+    image.style.maxHeight = 'none';
+    document.getElementById('online-designImageZoomLabel').textContent = `${Math.round(onlineDesignImageZoom * 100)}%`;
+    document.getElementById('online-designImageZoomOut').disabled = onlineDesignImageZoom === 1;
+    document.getElementById('online-designImageZoomIn').disabled = onlineDesignImageZoom === 4;
+    if (onlineDesignImageZoom === 1) {
+        const viewport = document.getElementById('online-designImageViewport');
+        viewport.scrollTop = viewport.scrollLeft = 0;
+    }
+}
+
+function onlineZoomDesignImage(change) {
+    onlineSetDesignImageZoom(onlineDesignImageZoom + change);
+}
 
 function onlineResetDesignImageModal() {
     onlineDesignImageRequest++;
@@ -40,6 +63,11 @@ function onlineResetDesignImageModal() {
     image.onload = image.onerror = null;
     image.removeAttribute('src');
     image.hidden = true;
+    image.style.width = image.style.height = image.style.maxWidth = image.style.maxHeight = '';
+    onlineDesignImageSize = null;
+    onlineDesignImageZoom = 1;
+    document.getElementById('online-designImageViewport').hidden = true;
+    document.getElementById('online-designImageZoomControls').hidden = true;
     document.getElementById('online-designImagePlaceholder').hidden = true;
     document.getElementById('online-designImageLoader').hidden = true;
 }
@@ -96,6 +124,10 @@ async function onlineOpenDesignImageModal(designNo) {
             loader.hidden = true;
             placeholder.hidden = true;
             image.hidden = false;
+            document.getElementById('online-designImageViewport').hidden = false;
+            onlineDesignImageSize = image.getBoundingClientRect();
+            onlineSetDesignImageZoom(1);
+            document.getElementById('online-designImageZoomControls').hidden = false;
         };
         image.onerror = showError;
         image.src = url.href;
