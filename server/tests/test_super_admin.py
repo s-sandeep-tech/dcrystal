@@ -69,6 +69,22 @@ class SuperAdminTests(unittest.TestCase):
         response = self.call('ADMIN', 'PUT', f'/api/admin/users/{reader.id}/roles', {'role_ids': [self.roles['READER'].id]})
         self.assertEqual(response.status_code, 200)
 
+    def test_resend_verification_requires_actual_super_admin_role(self):
+        target = self.users['READER']
+        path = f'/api/admin/users/{target.id}/resend-verification'
+        with patch('app.api.admin_rbac.issue_verification_token', return_value='test-token') as issue, patch(
+            'app.api.admin_rbac.send_verification_email'
+        ) as send:
+            for actor in ('ADMIN', 'READER'):
+                self.assertEqual(self.call(actor, 'POST', path).status_code, 403)
+                self.assertTrue(target.is_active)
+            issue.assert_not_called()
+            send.assert_not_called()
+            self.assertEqual(self.call('SUPER_ADMIN', 'POST', path).status_code, 200)
+            issue.assert_called_once_with(target)
+            send.assert_called_once_with(target, 'test-token')
+            self.assertEqual(AuditLog.query.filter_by(action='RESEND_EMAIL_VERIFICATION').count(), 1)
+
     def test_admin_cannot_assign_or_rename_super_role(self):
         response = self.call('ADMIN', 'PUT', f"/api/admin/users/{self.users['ADMIN'].id}/roles",
                              {'role_ids': [self.roles['ADMIN'].id, self.roles['SUPER_ADMIN'].id]})

@@ -501,7 +501,7 @@ def toggle_user_status(user_id):
 
 @admin_rbac_bp.route('/users/<int:user_id>/resend-verification', methods=['POST'])
 @jwt_required()
-@require_role('ADMIN')
+@require_role('SUPER_ADMIN')
 def resend_user_verification(user_id):
     user = User.query.get_or_404(user_id)
     if user.email_verified_at:
