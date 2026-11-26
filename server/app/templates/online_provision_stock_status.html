@@ -34,6 +34,14 @@
         padding: 12px;
         box-sizing: border-box;
     }
+    #online-designImageViewport[data-zoomed="true"] {
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+    }
+    #online-designImageViewport[data-dragging="true"] {
+        cursor: grabbing;
+    }
     .dark #online-designImage {
         border-color: #475569;
         background: #1e293b;
@@ -401,7 +409,7 @@
                 <p id="online-designImageStatus" role="status" aria-live="polite" class="text-sm text-gray-500 py-3"></p>
             </div>
             <div id="online-designImageViewport" hidden tabindex="0" role="region" aria-label="Design image; scroll to inspect when zoomed">
-                <img id="online-designImage" hidden class="max-w-full mx-auto object-contain" referrerpolicy="no-referrer" alt="">
+                <img id="online-designImage" hidden draggable="false" class="max-w-full mx-auto object-contain" referrerpolicy="no-referrer" alt="">
             </div>
         </div>
         <div id="online-designImageZoomControls" hidden class="mt-3">
@@ -413,7 +421,7 @@
                     class="p-2 rounded border border-gray-200 dark:border-gray-700 disabled:opacity-30"><span class="material-symbols-outlined text-base">zoom_in</span></button>
                 <button type="button" onclick="onlineSetDesignImageZoom(1)" class="px-3 py-2 rounded border border-gray-200 dark:border-gray-700 text-xs">Reset</button>
             </div>
-            <p class="mt-2 text-xs text-gray-500">Scroll to inspect the enlarged image.</p>
+            <p class="mt-2 text-xs text-gray-500">Use the mouse wheel to zoom. Drag to move the enlarged image.</p>
         </div>
         <button id="online-designImageRetry" type="button" hidden
             onclick="onlineOpenDesignImageModal(document.getElementById('online-designImageModal').dataset.designNo)"
@@ -543,5 +551,5 @@
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script src="{{ url_for('static', filename='js/header_filter.js') }}"></script>
-<script src="{{ url_for('static', filename='js/online_provision_stock_status.js', v='20261126-design-image-zoom') }}"></script>
+<script src="{{ url_for('static', filename='js/online_provision_stock_status.js', v='20261126-design-image-pan') }}"></script>
 {% endblock %}

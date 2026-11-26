@@ -34,6 +34,54 @@ let onlineDesignImageRequest = 0;
 let onlineDesignImageController = null;
 let onlineDesignImageZoom = 1;
 let onlineDesignImageSize = null;
+let onlineDesignImagePan = null;
+
+function onlineEndDesignImagePan() {
+    const viewport = document.getElementById('online-designImageViewport');
+    const pan = onlineDesignImagePan;
+    onlineDesignImagePan = null;
+    delete viewport.dataset.dragging;
+    if (pan && viewport.hasPointerCapture(pan.pointerId)) viewport.releasePointerCapture(pan.pointerId);
+}
+
+function onlineSetupDesignImageGestures() {
+    const viewport = document.getElementById('online-designImageViewport');
+    if (!viewport || viewport.dataset.gesturesReady) return;
+    viewport.dataset.gesturesReady = 'true';
+    viewport.addEventListener('wheel', event => {
+        if (!onlineDesignImageSize || viewport.hidden || event.deltaY === 0) return;
+        event.preventDefault();
+        const image = document.getElementById('online-designImage');
+        const before = image.getBoundingClientRect();
+        const x = Math.max(0, Math.min(1, (event.clientX - before.left) / before.width));
+        const y = Math.max(0, Math.min(1, (event.clientY - before.top) / before.height));
+        onlineSetDesignImageZoom(onlineDesignImageZoom + (event.deltaY < 0 ? 0.25 : -0.25));
+        if (onlineDesignImageZoom > 1) {
+            const after = image.getBoundingClientRect();
+            viewport.scrollLeft += after.left + x * after.width - event.clientX;
+            viewport.scrollTop += after.top + y * after.height - event.clientY;
+        }
+    }, { passive: false });
+    viewport.addEventListener('pointerdown', event => {
+        if (onlineDesignImageZoom <= 1 || event.button !== 0 || !event.isPrimary) return;
+        event.preventDefault();
+        onlineDesignImagePan = { pointerId: event.pointerId, x: event.clientX, y: event.clientY,
+            left: viewport.scrollLeft, top: viewport.scrollTop };
+        viewport.dataset.dragging = 'true';
+        viewport.setPointerCapture(event.pointerId);
+    });
+    viewport.addEventListener('pointermove', event => {
+        if (!onlineDesignImagePan || event.pointerId !== onlineDesignImagePan.pointerId) return;
+        event.preventDefault();
+        viewport.scrollLeft = onlineDesignImagePan.left - (event.clientX - onlineDesignImagePan.x);
+        viewport.scrollTop = onlineDesignImagePan.top - (event.clientY - onlineDesignImagePan.y);
+    });
+    for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+        viewport.addEventListener(name, event => {
+            if (onlineDesignImagePan?.pointerId === event.pointerId) onlineEndDesignImagePan();
+        });
+    }
+}
 
 function onlineSetDesignImageZoom(zoom) {
     if (!onlineDesignImageSize) return;
@@ -46,7 +94,9 @@ function onlineSetDesignImageZoom(zoom) {
     document.getElementById('online-designImageZoomLabel').textContent = `${Math.round(onlineDesignImageZoom * 100)}%`;
     document.getElementById('online-designImageZoomOut').disabled = onlineDesignImageZoom === 1;
     document.getElementById('online-designImageZoomIn').disabled = onlineDesignImageZoom === 4;
+    document.getElementById('online-designImageViewport').dataset.zoomed = String(onlineDesignImageZoom > 1);
     if (onlineDesignImageZoom === 1) {
+        onlineEndDesignImagePan();
         const viewport = document.getElementById('online-designImageViewport');
         viewport.scrollTop = viewport.scrollLeft = 0;
     }
@@ -57,6 +107,7 @@ function onlineZoomDesignImage(change) {
 }
 
 function onlineResetDesignImageModal() {
+    onlineEndDesignImagePan();
     onlineDesignImageRequest++;
     onlineDesignImageController?.abort();
     const image = document.getElementById('online-designImage');
@@ -214,6 +265,7 @@ function onlineSetupStockRefreshPrompt() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    onlineSetupDesignImageGestures();
     locationMultiSelect = new CustomMultiSelect({
         containerId: 'filter-location-container',
         label: 'Location',
