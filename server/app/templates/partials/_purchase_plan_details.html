@@ -1,8 +1,8 @@
 {% macro details(pieces, weight) -%}
 <div class="whitespace-nowrap tabular-nums leading-tight">
     <div class="text-[11px] text-gray-700 dark:text-gray-200">
-        {{ "{:,.3f}".format(weight / 1000) if weight is defined and weight is not none else 'N/A' }}</div>
+        {% if weight is not defined or weight is none %}N/A{% elif (weight / 1000)|round(3) != 0 %}{{ "{:,.3f}".format(weight / 1000) }}{% endif %}</div>
     <div class="mt-0.5 text-[10px] font-normal text-gray-500 dark:text-gray-400">
-        {{ "{:,.4f}".format(pieces).rstrip('0').rstrip('.') if pieces is defined and pieces is not none else 'N/A' }}</div>
+        {% if pieces is not defined or pieces is none %}N/A{% elif pieces|round(4) != 0 %}{{ "{:,.4f}".format(pieces).rstrip('0').rstrip('.') }}{% endif %}</div>
 </div>
 {%- endmacro %}

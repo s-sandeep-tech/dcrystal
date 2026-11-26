@@ -1,7 +1,7 @@
 {% from 'partials/_purchase_plan_details.html' import details %}
 {% from 'partials/_purchase_plan_stock_turn.html' import stock_turn %}
 {% macro format_pct(value) -%}
-{{ "{:,.2f}%".format(value) if value is not none else 'N/A' }}
+{% if value is none %}N/A{% elif value|round(2) != 0 %}{{ "{:,.2f}%".format(value) }}{% endif %}
 {%- endmacro %}
 
 {% for row in rows %}
