@@ -4,6 +4,23 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
+<style>
+    #online-designImageModal {
+        width: 560px;
+        max-width: calc(100vw - 32px);
+        box-sizing: border-box;
+    }
+    #online-designImageStage {
+        min-height: min(280px, 45vh);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    #online-designImage {
+        max-height: min(420px, 55vh);
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -337,6 +354,37 @@
         </div>
     </div>
 </div>
+<dialog id="online-designImageModal" aria-labelledby="online-designImageTitle"
+    class="m-auto p-0 max-h-[90vh] rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-2xl backdrop:bg-gray-900/70"
+    onclose="onlineResetDesignImageModal()"
+    onclick="if (event.target === this) this.close()">
+    <header class="flex items-center justify-between gap-4 px-5 py-3 border-b border-gray-200 dark:border-gray-800">
+        <h3 id="online-designImageTitle" class="font-bold text-base"></h3>
+        <button type="button" onclick="document.getElementById('online-designImageModal').close()"
+            aria-label="Close design image" autofocus class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+    </header>
+    <div class="p-5 text-center overflow-auto">
+        <div id="online-designImageStage">
+            <div>
+                <div id="online-designImagePlaceholder" hidden>
+                    <svg role="img" aria-label="Design image unavailable" viewBox="0 0 96 80" width="96" height="80"
+                        class="mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="12" y="10" width="72" height="60" rx="8" fill="currentColor" fill-opacity="0.06" />
+                        <circle cx="34" cy="29" r="6" />
+                        <path d="m16 61 22-22 15 15 11-11 16 16M8 4l80 72" />
+                    </svg>
+                </div>
+                <p id="online-designImageStatus" role="status" aria-live="polite" class="text-sm text-gray-500 py-3"></p>
+            </div>
+            <img id="online-designImage" hidden class="max-w-full mx-auto object-contain" referrerpolicy="no-referrer" alt="">
+        </div>
+        <button id="online-designImageRetry" type="button" hidden
+            onclick="onlineOpenDesignImageModal(document.getElementById('online-designImageModal').dataset.designNo)"
+            class="mt-4 px-4 py-2 rounded bg-primary text-white text-sm font-semibold">Try again</button>
+    </div>
+</dialog>
 {% endblock %}
 
 {% block sidebar %}
@@ -460,5 +508,5 @@
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script src="{{ url_for('static', filename='js/header_filter.js') }}"></script>
-<script src="{{ url_for('static', filename='js/online_provision_stock_status.js', v='20261125-design-hierarchy') }}"></script>
+<script src="{{ url_for('static', filename='js/online_provision_stock_status.js', v='20261126-design-image-placeholder') }}"></script>
 {% endblock %}

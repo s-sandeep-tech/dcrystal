@@ -63,7 +63,12 @@
             {% else %}
                 <span class="material-symbols-outlined text-[10px] mr-2 ml-1 text-gray-300">fiber_manual_record</span>
             {% endif %}
+            {% if include_design_hierarchy|default(false) and level == 6 and row.design_no and row.design_no|trim %}
+            <a href="#" data-design-image="{{ row.design_no }}" class="text-primary underline underline-offset-2 hover:opacity-80 focus:outline-primary"
+                aria-label="View image for design {{ row.design_no }}">{{ label }}</a>
+            {% else %}
             <span class="{% if level == 1 %}text-primary{% elif level == max_level %}text-gray-500 italic{% endif %}">{{ label }}</span>
+            {% endif %}
         </div>
     </td>
     {% if include_piece_variance|default(false) %}

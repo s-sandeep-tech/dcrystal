@@ -30,6 +30,73 @@ let collectionHeaderFilter;
 let reportRequestId = 0;
 let appliedStockFilters = { ...filterValues };
 let activeDrilldownFilters = { ...filterValues };
+let onlineDesignImageRequest = 0;
+let onlineDesignImageController = null;
+
+function onlineResetDesignImageModal() {
+    onlineDesignImageRequest++;
+    onlineDesignImageController?.abort();
+    const image = document.getElementById('online-designImage');
+    image.onload = image.onerror = null;
+    image.removeAttribute('src');
+    image.hidden = true;
+    document.getElementById('online-designImagePlaceholder').hidden = true;
+}
+
+async function onlineOpenDesignImageModal(designNo) {
+    const modal = document.getElementById('online-designImageModal');
+    const image = document.getElementById('online-designImage');
+    const status = document.getElementById('online-designImageStatus');
+    const retry = document.getElementById('online-designImageRetry');
+    const placeholder = document.getElementById('online-designImagePlaceholder');
+    onlineResetDesignImageModal();
+    const requestId = onlineDesignImageRequest;
+    onlineDesignImageController = new AbortController();
+    modal.dataset.designNo = designNo;
+    document.getElementById('online-designImageTitle').textContent = `Design ${designNo}`;
+    status.textContent = 'Loading image…';
+    status.hidden = false;
+    retry.hidden = true;
+    if (!modal.open) modal.showModal();
+
+    function showError() {
+        if (requestId !== onlineDesignImageRequest || !modal.open) return;
+        image.hidden = true;
+        placeholder.hidden = false;
+        status.hidden = false;
+        status.textContent = 'Unable to load the design image. Please try again.';
+        retry.hidden = false;
+    }
+
+    try {
+        const params = new URLSearchParams({ design_no: designNo });
+        const response = await fetch(`/api/online-provision-stock-status/design-image?${params}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+            signal: onlineDesignImageController.signal
+        });
+        if (!response.ok) throw new Error('Unable to load design image');
+        const data = await response.json();
+        if (requestId !== onlineDesignImageRequest || !modal.open) return;
+        if (!data.image_url) {
+            placeholder.hidden = false;
+            status.textContent = 'No image available for this design.';
+            return;
+        }
+        const url = new URL(data.image_url);
+        if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Invalid image URL');
+        image.alt = `Design ${designNo}`;
+        image.onload = () => {
+            if (requestId !== onlineDesignImageRequest || !modal.open) return;
+            status.hidden = true;
+            placeholder.hidden = true;
+            image.hidden = false;
+        };
+        image.onerror = showError;
+        image.src = url.href;
+    } catch (error) {
+        if (error.name !== 'AbortError') showError();
+    }
+}
 
 function onlineToggleStockFilters() {
     const sidebar = document.getElementById('stock-filter-sidebar');
@@ -82,6 +149,7 @@ function onlineSetupStockRefreshPrompt() {
             ['online-drillDownModal', 'online-inShopDetailsModal', 'online-provisionDetailsModal', 'online-stockComparisonModal'].forEach(id => {
                 document.getElementById(id)?.classList.add('hidden');
             });
+            document.getElementById('online-designImageModal')?.close();
             document.getElementById('sync-time-info').textContent = update.sync_time;
             document.getElementById('online-modal-last-refresh').textContent = `LATEST SYNC: ${update.sync_time}`;
             if (pending === update) pending = null;
@@ -731,6 +799,7 @@ function onlineExpandDrilldownChildren(tbody, parentNodeId) {
 }
 
 function onlineCloseDrillDownModal() {
+    document.getElementById('online-designImageModal')?.close();
     const modal = document.getElementById('online-drillDownModal');
     const container = document.getElementById('online-drillDownContainer');
 
@@ -1099,6 +1168,13 @@ function onlineCloseStockComparisonModal() {
 window.onlineCloseStockComparisonModal = onlineCloseStockComparisonModal;
 
 document.addEventListener('click', (event) => {
+    const designLink = event.target.closest('[data-design-image]');
+    if (designLink) {
+        event.preventDefault();
+        event.stopPropagation();
+        onlineOpenDesignImageModal(designLink.dataset.designImage);
+        return;
+    }
     const sourceHighlightButton = event.target.closest('[data-comparison-highlight-source]');
     if (sourceHighlightButton) {
         const comparisonContent = document.getElementById('online-stockComparisonContent');
@@ -1194,6 +1270,7 @@ document.addEventListener('click', (event) => {
 
 document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
+    if (document.getElementById('online-designImageModal')?.open) return;
     const comparisonModal = document.getElementById('online-stockComparisonModal');
     if (comparisonModal && !comparisonModal.classList.contains('hidden')) {
         onlineCloseStockComparisonModal();

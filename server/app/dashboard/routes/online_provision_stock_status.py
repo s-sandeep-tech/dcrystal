@@ -13,6 +13,8 @@ from app.utils.decorators import require_perm, require_report_access, require_ro
 from app.utils.stock_processed_order_sync import COMBINED_TASK, IDENTITY_FIELDS, TASK as PROCESSED_ORDER_TASK
 import logging
 import json
+from urllib.parse import urlsplit
+from app.utils.sync_tasks import get_external_db_connection
 
 logger = logging.getLogger(__name__)
 
@@ -854,6 +856,40 @@ ORDER BY
     except Exception as e:
         logger.error(f"Error in get_online_provision_stock_status_partial: {str(e)}")
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
+
+@dashboard_bp.route('/api/online-provision-stock-status/design-image')
+@require_report_access('/online-provision-stock-status')
+def get_online_provision_stock_design_image():
+    design_no = request.args.get('design_no', '').strip()
+    if not design_no:
+        return jsonify(message='A design number is required.'), 400
+
+    connection = None
+    try:
+        connection = get_external_db_connection()
+        connection.set_session(readonly=True)
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '15s'")
+            cursor.execute(
+                'SELECT design_uid, design_no, thumb_file_url '
+                'FROM ext_view.vw_design_attachment WHERE design_no = %s LIMIT 1',
+                (design_no,),
+            )
+            row = cursor.fetchone()
+        image_url = (row[2] or '').strip() if row else ''
+        parsed = urlsplit(image_url)
+        if not image_url or parsed.scheme not in ('http', 'https') or not parsed.netloc:
+            image_url = None
+        response = jsonify(design_no=design_no, image_url=image_url)
+        response.headers['Cache-Control'] = 'no-store'
+        return response
+    except Exception:
+        logger.exception('Unable to load design image')
+        return jsonify(message='Unable to load the design image. Please try again.'), 503
+    finally:
+        if connection is not None:
+            connection.close()
+
 
 @dashboard_bp.route('/api/online-provision-stock-status/drilldown')
 @require_report_access('/online-provision-stock-status')
