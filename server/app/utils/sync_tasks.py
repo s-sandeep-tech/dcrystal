@@ -1,5 +1,6 @@
 import psycopg2
 from .composition_source import composition_source_rows, CompositionSourceError
+from .cache_utils import clear_report_cache
 from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 from typing import Dict, Any
@@ -1897,7 +1898,7 @@ def sync_owner_and_showroom_wise_task() -> Dict[str, Any]:
         # ── Step 5: Clear Cache ───────────────────────────────────────────
         emit_sync_update('processing', 'Clearing application cache...', 95, TASK_TYPE)
         try:
-            redis_client.flushdb()
+            clear_report_cache(redis_client)
             cache_msg = "Application cache cleared."
         except Exception as ce:
             logger.error(f"Failed to clear cache during combined sync: {ce}")
@@ -4376,7 +4377,7 @@ def sync_order_fulfillment_aging_matrix_task(task_type_override=None, progress_r
         db.session.commit()
         
         try:
-            redis_client.flushdb()
+            clear_report_cache(redis_client)
             cache_msg = " Cache cleared."
         except Exception as ce:
             logger.error(f"Failed to clear cache during Order Fulfillment sync: {ce}")
@@ -4846,7 +4847,7 @@ def _sync_party_performance_specs_once(
                     len(counts), sum(counts.values()))
 
         try:
-            redis_client.flushdb()
+            clear_report_cache(redis_client)
             cache_message = ' Cache cleared.'
         except Exception as cache_error:
             logger.error('Failed to clear cache during Party Performance Matrix sync: %s', cache_error)

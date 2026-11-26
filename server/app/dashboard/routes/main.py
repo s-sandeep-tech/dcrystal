@@ -429,7 +429,8 @@ def clear_cache():
         
     try:
         from app.extensions import redis_client
-        redis_client.flushdb()
+        from app.utils.cache_utils import clear_report_cache
+        clear_report_cache(redis_client)
         
         # Publish notification for UI feedback across sessions
         import json

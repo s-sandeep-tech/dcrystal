@@ -64,7 +64,15 @@ class StockSyncChainTests(unittest.TestCase):
         self.assertNotIn('size_level_nip_barcode', sync_manager.SCHEDULED_ALL_SYNC_TASKS)
         self.assertNotIn('stock_drilldown_details', sync_manager.SCHEDULED_ALL_SYNC_TASKS)
         tree = ast.parse(WORKER.read_text())
-        scheduled_args = [ast.literal_eval(kw.value) for call in ast.walk(tree) if isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute) and call.func.attr == 'add_job' for kw in call.keywords if kw.arg == 'args' and isinstance(kw.value, ast.List)]
+        setup = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'setup_scheduler')
+        scheduler = MagicMock()
+        scope = dict(BackgroundScheduler=MagicMock(return_value=scheduler),
+                     enqueue_sync_task=MagicMock(), enqueue_scheduled_all_sync=MagicMock(),
+                     logger=MagicMock())
+        exec(compile(ast.Module(body=[setup], type_ignores=[]), str(WORKER), 'exec'), scope)
+        scope['setup_scheduler']()
+        scheduled_args = [call.kwargs['args'] for call in scheduler.add_job.call_args_list
+                          if 'args' in call.kwargs]
         self.assertNotIn(['stock_drilldown_details'], scheduled_args)
         self.assertIn(['provision_stock_status'], scheduled_args)
 
