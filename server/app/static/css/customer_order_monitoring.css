@@ -4,6 +4,11 @@
 #customer-monitor .party-matrix-header { flex-wrap: wrap; }
 #customer-monitor .party-matrix-title-row { min-width: 0; }
 #customer-monitor .party-matrix-title-row h1 { font-size: 16px; overflow-wrap: anywhere; }
+#customer-monitor .monitor-info-button { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 2px; color: #137fec; background: transparent; border: 0; cursor: pointer; }
+#customer-monitor .monitor-info-button:hover { color: #0756a5; }
+#customer-monitor .monitor-info-button:focus-visible { outline: 2px solid #137fec; outline-offset: 3px; border-radius: 50%; }
+#customer-monitor .monitor-info-button .material-symbols-outlined { font-size: 19px; }
+#monitor-info-dialog { max-width: min(448px, calc(100vw - 32px)); }
 #customer-monitor .party-matrix-charts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 #customer-monitor .party-matrix-chart-panel { min-width: 0; }
 #customer-monitor .party-matrix-chart-wide { grid-column: auto; }

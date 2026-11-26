@@ -2,7 +2,7 @@
 {% block title %}Customer Order Performance & Delivery Monitoring{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/party_performance_matrix.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/customer_order_monitoring.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/customer_order_monitoring.css', v='20261126-info-modal') }}">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
 {% block content %}
@@ -11,9 +11,9 @@
     <header class="party-matrix-header shrink-0">
         <div class="party-matrix-title-row"><span class="material-symbols-outlined">assignment</span>
             <h1>Customer Order Performance &amp; Delivery Monitoring</h1>
-            <button type="button" class="party-matrix-filter-open shrink-0"
-                title="The Customer Delivery Pending count starts from the RO Received stage."
-                aria-label="The Customer Delivery Pending count starts from the RO Received stage.">
+            <button type="button" class="monitor-info-button" aria-label="Report information"
+                aria-haspopup="dialog" aria-controls="monitor-info-dialog"
+                onclick="document.getElementById('monitor-info-dialog').showModal()">
                 <span class="material-symbols-outlined" aria-hidden="true">info</span>
             </button>
         </div>
@@ -126,6 +126,17 @@
         <div id="monitor-owners-content"></div>
     </dialog>
 </main>
+<dialog id="monitor-info-dialog" aria-labelledby="monitor-info-title" aria-describedby="monitor-info-description"
+    class="m-auto p-6 w-full max-w-md rounded-xl bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 shadow-xl backdrop:bg-black/50"
+    onclick="if (event.target === this) { const r = this.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) this.close(); }">
+    <h2 id="monitor-info-title" class="text-base font-bold flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary" aria-hidden="true">info</span>Report information
+    </h2>
+    <p id="monitor-info-description" class="mt-3 text-sm leading-relaxed">The Customer Delivery Pending count starts from the <strong>RO Received</strong> stage.</p>
+    <form method="dialog" class="mt-5 text-right">
+        <button autofocus class="px-4 py-2 rounded bg-primary text-white text-sm font-semibold">Close</button>
+    </form>
+</dialog>
 {% endblock %}
 {% block sidebar %}
 <aside id="monitor-sidebar" class="party-matrix-sidebar">
