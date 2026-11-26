@@ -878,7 +878,9 @@ def get_online_provision_stock_design_image():
             row = cursor.fetchone()
         image_url = (row[2] or '').strip() if row else ''
         parsed = urlsplit(image_url)
-        if not image_url or parsed.scheme not in ('http', 'https') or not parsed.netloc:
+        if image_url and not parsed.scheme:
+            image_url = 'https://crystal.kalyanjewellers.company/' + image_url.lstrip('/')
+        elif not image_url or parsed.scheme not in ('http', 'https') or not parsed.netloc:
             image_url = None
         response = jsonify(design_no=design_no, image_url=image_url)
         response.headers['Cache-Control'] = 'no-store'

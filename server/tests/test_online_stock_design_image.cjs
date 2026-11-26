@@ -8,7 +8,7 @@ const source = fs.readFileSync(path.join(__dirname, '../app/static/js/online_pro
 
 function harness(fetch) {
     const elements = {};
-    for (const name of ['Modal', 'Title', 'Status', 'Retry', 'Placeholder', '']) {
+    for (const name of ['Modal', 'Title', 'Status', 'Retry', 'Placeholder', 'Loader', '']) {
         elements[`online-designImage${name}`] = {
             hidden: false, dataset: {}, open: false,
             showModal() { this.open = true; },
@@ -36,8 +36,10 @@ test('single image uses encoded design number and waits for image load', async (
     const img = h.elements['online-designImage'];
     assert.equal(img.src, 'https://images.example/design.jpg');
     assert.equal(img.hidden, true);
+    assert.equal(h.elements['online-designImageLoader'].hidden, false);
     img.onload();
     assert.equal(img.hidden, false);
+    assert.equal(h.elements['online-designImageLoader'].hidden, true);
     assert.equal(h.elements['online-designImagePlaceholder'].hidden, true);
     assert.equal(h.elements['online-designImageStatus'].hidden, true);
     assert.equal(h.elements['online-designImageTitle'].textContent, 'Design A&B/1');
@@ -50,18 +52,21 @@ test('missing image has a clear empty state', async () => {
     assert.equal(h.elements['online-designImage'].hidden, true);
     assert.equal(h.elements['online-designImageRetry'].hidden, true);
     assert.equal(h.elements['online-designImagePlaceholder'].hidden, false);
+    assert.equal(h.elements['online-designImageLoader'].hidden, true);
 });
 
 test('database and broken-image failures expose retry', async () => {
     const h = harness(async () => ({ ok: false }));
     await h.open('A');
     assert.equal(h.elements['online-designImageRetry'].hidden, false);
+    assert.equal(h.elements['online-designImageLoader'].hidden, true);
     assert.equal(h.elements['online-designImagePlaceholder'].hidden, false);
     const imageHarness = harness(async () => ({ ok: true, json: async () => ({ image_url: 'https://images.example/broken.jpg' }) }));
     await imageHarness.open('A');
     imageHarness.elements['online-designImage'].onerror();
     assert.equal(imageHarness.elements['online-designImageRetry'].hidden, false);
     assert.equal(imageHarness.elements['online-designImage'].hidden, true);
+    assert.equal(imageHarness.elements['online-designImageLoader'].hidden, true);
     assert.equal(imageHarness.elements['online-designImagePlaceholder'].hidden, false);
 });
 

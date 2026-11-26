@@ -41,6 +41,7 @@ function onlineResetDesignImageModal() {
     image.removeAttribute('src');
     image.hidden = true;
     document.getElementById('online-designImagePlaceholder').hidden = true;
+    document.getElementById('online-designImageLoader').hidden = true;
 }
 
 async function onlineOpenDesignImageModal(designNo) {
@@ -49,12 +50,14 @@ async function onlineOpenDesignImageModal(designNo) {
     const status = document.getElementById('online-designImageStatus');
     const retry = document.getElementById('online-designImageRetry');
     const placeholder = document.getElementById('online-designImagePlaceholder');
+    const loader = document.getElementById('online-designImageLoader');
     onlineResetDesignImageModal();
     const requestId = onlineDesignImageRequest;
     onlineDesignImageController = new AbortController();
     modal.dataset.designNo = designNo;
     document.getElementById('online-designImageTitle').textContent = `Design ${designNo}`;
     status.textContent = 'Loading image…';
+    loader.hidden = false;
     status.hidden = false;
     retry.hidden = true;
     if (!modal.open) modal.showModal();
@@ -62,6 +65,7 @@ async function onlineOpenDesignImageModal(designNo) {
     function showError() {
         if (requestId !== onlineDesignImageRequest || !modal.open) return;
         image.hidden = true;
+        loader.hidden = true;
         placeholder.hidden = false;
         status.hidden = false;
         status.textContent = 'Unable to load the design image. Please try again.';
@@ -78,6 +82,7 @@ async function onlineOpenDesignImageModal(designNo) {
         const data = await response.json();
         if (requestId !== onlineDesignImageRequest || !modal.open) return;
         if (!data.image_url) {
+            loader.hidden = true;
             placeholder.hidden = false;
             status.textContent = 'No image available for this design.';
             return;
@@ -88,6 +93,7 @@ async function onlineOpenDesignImageModal(designNo) {
         image.onload = () => {
             if (requestId !== onlineDesignImageRequest || !modal.open) return;
             status.hidden = true;
+            loader.hidden = true;
             placeholder.hidden = true;
             image.hidden = false;
         };

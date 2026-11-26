@@ -41,6 +41,13 @@ class OnlineStockDesignImageTests(unittest.TestCase):
                 self.assertIsNone(response.json['image_url'])
                 connection.close.assert_called_once()
 
+    def test_relative_attachment_paths_use_crystal_domain(self):
+        for path in ('attachments/design.jpg', '/attachments/design.jpg'):
+            with self.subTest(path=path):
+                response, _, _ = self.lookup((1, 'A', path))
+                self.assertEqual(response.json['image_url'],
+                                 'https://crystal.kalyanjewellers.company/attachments/design.jpg')
+
     def test_blank_design_rejected_without_external_connection(self):
         with self.app.test_request_context('/?design_no=%20'), patch.object(report, 'get_external_db_connection') as connect:
             response, status = report.get_online_provision_stock_design_image.__wrapped__()

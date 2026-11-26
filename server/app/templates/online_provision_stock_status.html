@@ -368,6 +368,9 @@
     <div class="p-5 text-center overflow-auto">
         <div id="online-designImageStage">
             <div>
+                <div id="online-designImageLoader" hidden aria-hidden="true">
+                    <span class="inline-block size-5 rounded-full border-2 border-gray-200 border-t-primary animate-spin"></span>
+                </div>
                 <div id="online-designImagePlaceholder" hidden>
                     <svg role="img" aria-label="Design image unavailable" viewBox="0 0 96 80" width="96" height="80"
                         class="mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -508,5 +511,5 @@
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script src="{{ url_for('static', filename='js/header_filter.js') }}"></script>
-<script src="{{ url_for('static', filename='js/online_provision_stock_status.js', v='20261126-design-image-placeholder') }}"></script>
+<script src="{{ url_for('static', filename='js/online_provision_stock_status.js', v='20261126-design-image-loader') }}"></script>
 {% endblock %}
