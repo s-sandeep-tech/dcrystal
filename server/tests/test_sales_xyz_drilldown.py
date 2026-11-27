@@ -105,9 +105,10 @@ class SalesXYZTests(unittest.TestCase):
         client = app.test_client()
         self.assertEqual(client.get('/api/sales-xyz-drilldown/hierarchy').status_code, 401)
         role = SimpleNamespace(name='READER', permissions=[], menus=[])
-        user = SimpleNamespace(is_active=True, roles=[role], username='reader', is_admin=False)
+        user = SimpleNamespace(is_active=True, roles=[role], username='reader', is_admin=False, user_id='100')
         with patch('app.utils.decorators.verify_jwt_in_request'), \
              patch('app.utils.decorators.get_jwt_identity', return_value='1'), \
+             patch.object(routes, 'get_jwt_identity', return_value='1'), \
              patch('app.extensions.db.session.get', return_value=user), \
              patch.object(routes, 'redis_client') as redis, \
              patch.object(report, 'source_cursor') as source:
@@ -134,7 +135,8 @@ class SalesXYZTests(unittest.TestCase):
             if not nx or key not in entries:
                 entries[key] = value
 
-        with patch.object(routes, 'redis_client') as redis, \
+        with patch.object(routes, 'current_owner_visibility', return_value={}), \
+             patch.object(routes, 'redis_client') as redis, \
              patch.object(report, 'source_cursor') as source, \
              patch.object(report, 'drilldown', side_effect=[{'pieces': Decimal('1.25')}, {'pieces': 2}, {'pieces': 3}]), \
              patch.object(report, 'options', return_value=[{'value': 'SHOP', 'label': 'SHOP'}]):

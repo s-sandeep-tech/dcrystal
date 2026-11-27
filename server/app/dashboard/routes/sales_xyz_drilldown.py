@@ -3,9 +3,11 @@ from hashlib import sha256
 from flask import current_app, jsonify, render_template, request
 from redis import Redis
 from redis.exceptions import RedisError
+from flask_jwt_extended import get_jwt_identity
 
 from app.dashboard import dashboard_bp
-from app.extensions import REDIS_HOST, REDIS_PORT
+from app.extensions import REDIS_HOST, REDIS_PORT, db
+from app.models.auth import User
 from app.services import sales_xyz_drilldown as report
 from app.utils.decorators import require_report_access
 
@@ -13,6 +15,13 @@ REPORT = '/sales-xyz-drilldown'
 CACHE_TTL_SECONDS = 8 * 60 * 60
 redis_client = Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True,
                      socket_connect_timeout=0.5, socket_timeout=0.5)
+
+
+def current_owner_visibility():
+    actor = db.session.get(User, int(get_jwt_identity()))
+    if actor is None or not actor.is_active:
+        raise PermissionError('Session expired. Please sign in again.')
+    return report.owner_visibility([role.name for role in actor.roles], actor.user_id)
 
 
 @dashboard_bp.route(REPORT)
@@ -32,6 +41,7 @@ def sales_xyz_drilldown_segment(segment):
         return jsonify(message='Unknown report segment.'), 404
     try:
         filters = report.parse_filters(request.args)
+        filters['owner_visibility'] = current_owner_visibility()
         if segment == 'hierarchy':
             parent = report.parse_parent(request.args.get('parent', '[]'), filters['hierarchy'])
             cache_params = (filters, parent)
@@ -39,9 +49,9 @@ def sales_xyz_drilldown_segment(segment):
             field = request.args.get('field')
             if field not in report.FILTERS:
                 raise ValueError('Choose a valid filter.')
-            cache_params = (field, filters['start'], filters['end'], filters['exclusions'])
+            cache_params = (field, filters['start'], filters['end'], filters['exclusions'], filters['owner_visibility'])
         digest = sha256(current_app.json.dumps(cache_params, sort_keys=True).encode()).hexdigest()
-        key = f'sales-xyz-drilldown:v1:{segment}:{digest}'
+        key = f'sales-xyz-drilldown:v2:{segment}:{digest}'
         refresh = request.args.get('refresh') == '1'
         cached = None
         if not refresh:
@@ -65,6 +75,8 @@ def sales_xyz_drilldown_segment(segment):
                     current_app.logger.debug('ABC Analysis Redis write failed', exc_info=True)
         response.headers['Cache-Control'] = 'no-store'
         return response
+    except PermissionError as error:
+        return jsonify(message=str(error)), 401
     except ValueError as error:
         return jsonify(message=str(error)), 400
     except report.SourceDataError as error:

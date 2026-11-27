@@ -47,6 +47,17 @@ METRICS = ('pieces', 'weight', 'turnover', 'profit')
 ABC_METRICS = ('pieces', 'weight', 'turnover', 'tsk')
 MAX_SIBLINGS = 20000
 
+OWNER_ROLE_COLUMNS = {
+    'MAKE_OWNER_USER': 'make_owner_emp_code',
+    'COLLECTION_OWNER_USER': 'collection_owner_emp_code',
+}
+
+
+def owner_visibility(roles, employee_code):
+    roles = {str(role).strip().upper() for role in roles}
+    columns = [column for role, column in OWNER_ROLE_COLUMNS.items() if role in roles]
+    return {'columns': columns, 'employee_code': str(employee_code or '').strip()} if columns else {}
+
 
 class SourceDataError(Exception):
     pass
@@ -136,6 +147,15 @@ def where_clause(filters, parent=(), *, options=False):
     sales_date = 'COALESCE(trans_date::date, date)'
     conditions = ["trans_type IN ('INVOICE', 'SR')", f'{sales_date} >= %s', f'{sales_date} < %s']
     params = [filters['start'], filters['end'] + timedelta(days=1)]
+    visibility = filters.get('owner_visibility', {})
+    if visibility.get('columns'):
+        code = visibility['employee_code']
+        if not code:
+            conditions.append('FALSE')
+        else:
+            predicates = [f'BTRIM("{column}"::text) = %s' for column in visibility['columns']]
+            conditions.append('(' + ' OR '.join(predicates) + ')')
+            params.extend([code] * len(predicates))
     for field, values in filters['exclusions'].items():
         conditions.append(f"NOT (UPPER(TRIM(COALESCE(\"{field}\"::text, ''))) = ANY(%s))")
         params.append(values)
@@ -158,7 +178,8 @@ def options(cur, filters, field):
     if field not in FILTERS:
         raise ValueError('Choose a valid filter.')
     label, _ = FILTERS[field]
-    validate_columns(cur, {field, label, 'trans_type', 'trans_date', 'date', 'make', 'section'})
+    validate_columns(cur, {field, label, 'trans_type', 'trans_date', 'date', 'make', 'section'}
+                     | set(filters.get('owner_visibility', {}).get('columns', [])))
     where, params = where_clause(filters, options=True)
     cur.execute(f"""SELECT "{field}"::text AS value,
         COALESCE(MIN(NULLIF(BTRIM("{label}"::text), '')), "{field}"::text) AS label
@@ -199,6 +220,7 @@ def drilldown(cur, filters, parent):
     required = {'pieces', 'gross_weight', 'turn_over', 'tsk', 'trans_type', 'trans_date', 'date', 'make', 'section'}
     required.update(filters['selections'])
     required.update(filters['all_selections'])
+    required.update(filters.get('owner_visibility', {}).get('columns', []))
     required.update(key for key, _, _ in levels[:depth])
     required.update(column for key, label, _ in dimensions for column in (key, label))
     validate_columns(cur, required)
