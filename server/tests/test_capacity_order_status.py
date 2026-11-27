@@ -168,6 +168,10 @@ class CapacityOrderStatusTests(unittest.TestCase):
         self.assertEqual(supplier['diff'], -1)
         self.assertEqual(kpis['net_diff_kg'], -1)
         self.assertEqual(kpis['total_current_capacity_kg'], 7)
+        self.assertEqual(makes['A']['utilization_pct'], 250)
+        self.assertEqual(makes['B']['utilization_pct'], 50)
+        self.assertEqual(supplier['utilization_pct'], 116.7)
+        self.assertEqual(kpis['overall_utilization_pct'], 116.7)
 
     def test_export_places_current_capacity_before_pending_and_exports_new_balance(self):
         from app.dashboard.routes import party_make_capacity as report
@@ -185,6 +189,20 @@ class CapacityOrderStatusTests(unittest.TestCase):
         self.assertEqual(headers[4:7], ['Cur. Capacity (kg)', 'Balance (kg)', 'Total Pending (kg)'])
         self.assertEqual([sheet.cell(2, c).value for c in (5, 6, 7)], [6, -4, 123.456])
         self.assertEqual([sheet.cell(3, c).value for c in (5, 6, 7)], [6, -4, 123.456])
+        self.assertEqual(sheet.cell(2, 8).value, '300.0%')
+        self.assertEqual(sheet.cell(3, 8).value, '300.0%')
+
+    def test_utilization_handles_missing_or_zero_actual_capacity(self):
+        db.session.add_all([
+            Snapshot(supplier='No actual', make='Missing', current_capacity=5, actual_capacity_kg=None),
+            Snapshot(supplier='No actual', make='Zero', current_capacity=5, actual_capacity_kg=0),
+        ])
+        db.session.commit()
+        with self.app.test_request_context('/?supplier=No+actual'):
+            rows, kpis = get_aggregated_capacity_data()
+        self.assertEqual(rows[0]['utilization_pct'], 0)
+        self.assertTrue(all(m['utilization_pct'] == 0 for m in rows[0]['makes']))
+        self.assertEqual(kpis['overall_utilization_pct'], 0)
 
 
 if __name__ == '__main__':

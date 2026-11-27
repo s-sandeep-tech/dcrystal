@@ -316,7 +316,7 @@ def get_aggregated_capacity_data():
         tot_wt_kg = round(tot_wt / 1000.0, 4)
 
         diff = round(float(r.actual_capacity_kg or 0.0) - current_cap, 4)
-        util_pct = round((tot_wt_kg / make_cap * 100), 1) if make_cap > 0 else 0.0
+        util_pct = round((current_cap / float(r.actual_capacity_kg) * 100), 1) if r.actual_capacity_kg is not None and r.actual_capacity_kg > 0 else 0.0
         bottleneck = determine_primary_bottleneck(proc_wt, barc_wt, hm_wt, qc_iss_wt, qc_comp_wt, inv_wt)
         qc_rework_pct = round((correction_wt / tot_wt * 100), 1) if tot_wt > 0 else 0.0
         avg_piece_wt = round((tot_wt / tot_pcs), 2) if tot_pcs > 0 else 0.0
@@ -448,7 +448,7 @@ def get_aggregated_capacity_data():
         sup['total_wt_in_kg'] = round(sup['total_wt'] / 1000.0, 4)
         sup['current_capacity'] = round(sup['current_capacity'], 4)
         sup['diff'] = round((sup['actual_capacity'] or 0.0) - sup['current_capacity'], 4)
-        sup['utilization_pct'] = round((sup['total_wt_in_kg'] / sup['capacity_wt_kg_per_month'] * 100), 1) if sup['capacity_wt_kg_per_month'] > 0 else 0.0
+        sup['utilization_pct'] = round((sup['current_capacity'] / sup['actual_capacity'] * 100), 1) if (sup['actual_capacity'] or 0) > 0 else 0.0
         sup['receipt_pending_wt_kg'] = round(sup['receipt_pending_wt'] / 1000.0, 4)
         sup['primary_bottleneck'] = determine_primary_bottleneck(
             sup['process_pending_wt'], sup['barcode_pending_wt'], sup['hallmark_pending_wt'],
@@ -481,7 +481,7 @@ def get_aggregated_capacity_data():
     global_kpis['total_current_capacity_kg'] = round(global_kpis['total_current_capacity_kg'], 3)
     global_kpis['total_actual_capacity_kg'] = round(global_kpis['total_actual_capacity_kg'], 3)
     global_kpis['net_diff_kg'] = round(global_kpis['total_actual_capacity_kg'] - global_kpis['total_current_capacity_kg'], 3)
-    global_kpis['overall_utilization_pct'] = round((global_kpis['total_wip_kg'] / global_kpis['total_capacity_kg'] * 100), 1) if global_kpis['total_capacity_kg'] > 0 else 0.0
+    global_kpis['overall_utilization_pct'] = round((global_kpis['total_current_capacity_kg'] / global_kpis['total_actual_capacity_kg'] * 100), 1) if global_kpis['total_actual_capacity_kg'] > 0 else 0.0
     global_kpis['total_transit_kg'] = round(global_kpis['total_transit_kg'], 3)
     global_kpis['total_qc_rework_kg'] = round(global_kpis['total_qc_rework_kg'], 3)
 

@@ -191,7 +191,7 @@ function updateKpiCards(kpis) {
     setElem('kpi-total-capacity', formatNumber(kpis.total_capacity_kg, 3));
     setElem('kpi-total-wip', formatNumber(kpis.total_wip_kg, 3));
     setElem('kpi-net-diff', (kpis.net_diff_kg >= 0 ? '+' : '') + formatNumber(kpis.net_diff_kg, 3));
-    const hasCapacity = Number(kpis.total_capacity_kg) > 0;
+    const hasCapacity = Number(kpis.total_actual_capacity_kg) > 0;
     setElem('kpi-utilization', hasCapacity ? formatNumber(kpis.overall_utilization_pct, 1) + '%' : 'N/A');
     setElem('kpi-overloaded-count', kpis.over_capacity_count || 0);
     setElem('kpi-transit-lag', formatNumber(kpis.total_transit_kg, 3));
@@ -206,7 +206,7 @@ function updateKpiCards(kpis) {
     setTone('kpi-overloaded-count', kpis.over_capacity_count > 0 ? 'danger' : 'neutral');
     setElem('kpi-net-diff-status', balance < 0 ? 'Capacity deficit' : balance > 0 ? 'Capacity headroom' : 'Balanced');
     setElem('kpi-overloaded-count-status', 'of ' + (kpis.total_suppliers_count || 0) + ' parties');
-    setElem('kpi-utilization-status', hasCapacity ? 'Backlog / monthly capacity' : 'No allocated capacity');
+    setElem('kpi-utilization-status', hasCapacity ? 'Current / actual capacity' : 'No actual capacity');
 }
 
 function renderTableRows(suppliers) {

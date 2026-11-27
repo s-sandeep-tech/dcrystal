@@ -152,7 +152,7 @@
 ('Monthly Capacity','kpi-total-capacity','scale','text-primary','kg / month','Allocated'),
 ('WIP Backlog','kpi-total-wip','inventory_2','text-amber-600','kg','Pending production stages'),
 ('Net Capacity Balance','kpi-net-diff','balance','text-gray-600','kg',''),
-('Capacity Load','kpi-utilization','speed','text-gray-600','','Backlog / monthly capacity'),
+('Capacity Load','kpi-utilization','speed','text-gray-600','','Current / actual capacity'),
 ('Over-Capacity Parties','kpi-overloaded-count','storefront','text-rose-600','',''),
 ('In Transit','kpi-transit-lag','local_shipping','text-cyan-600','kg','Awaiting receipt')
 ] %}
@@ -245,7 +245,7 @@
                     </th>
 
                     <!-- Analytical Finding Column 13: Utilization % -->
-                    <th class="px-2 py-2 text-center bg-slate-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 w-28 cursor-pointer" onclick="sortByColumn('utilization_pct')">
+                    <th class="px-2 py-2 text-center bg-slate-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 w-28 cursor-pointer" title="Current Capacity / Actual Capacity × 100" onclick="sortByColumn('utilization_pct')">
                         Utilization %
                     </th>
 
@@ -559,5 +559,5 @@
 </aside>
 {% endblock %}
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/party_make_capacity.js', v='20261127-current-capacity') }}"></script>
+<script src="{{ url_for('static', filename='js/party_make_capacity.js', v='20261127-utilization-current-actual') }}"></script>
 {% endblock %}
