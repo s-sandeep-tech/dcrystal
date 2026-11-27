@@ -2,13 +2,14 @@
 {% block title %}Customer Order Performance & Delivery Monitoring{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/party_performance_matrix.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/customer_order_monitoring.css', v='20261126-info-modal') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/customer_order_monitoring.css', v='20261127-data-error') }}">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
 {% block content %}
 <main id="customer-monitor"
     class="party-matrix-page flex-1 flex flex-col min-h-0 overflow-hidden bg-[#f5f7fa] dark:bg-background-dark">
     <header class="party-matrix-header shrink-0">
+        <div class="monitor-title-block">
         <div class="party-matrix-title-row"><span class="material-symbols-outlined">assignment</span>
             <h1>Customer Order Performance &amp; Delivery Monitoring</h1>
             <button type="button" class="monitor-info-button" aria-label="Report information"
@@ -16,6 +17,12 @@
                 onclick="document.getElementById('monitor-info-dialog').showModal()">
                 <span class="material-symbols-outlined" aria-hidden="true">info</span>
             </button>
+        </div>
+        <div id="monitor-data-error" hidden class="monitor-data-error">
+            <span class="material-symbols-outlined" aria-hidden="true">error_outline</span>
+            <span id="monitor-error" role="alert"></span>
+            <button id="monitor-retry" type="button" hidden>Retry</button>
+        </div>
         </div>
         <div class="party-matrix-header-actions">
             <button id="monitor-toggle" class="party-matrix-filter-open" title="Toggle filters"
@@ -49,8 +56,6 @@
                 </div>
                 {% endfor %}
             </section>
-            <div class="monitor-status"><span id="monitor-error" role="alert"></span><button id="monitor-retry"
-                    hidden>Retry</button></div>
             <div id="monitor-warnings" role="status"></div>
             <section class="party-matrix-charts">
                 <article class="party-matrix-chart-panel party-matrix-chart-wide">
@@ -185,5 +190,5 @@
 {% endblock %}
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/customer_order_monitoring.js') }}"></script>
+<script src="{{ url_for('static', filename='js/customer_order_monitoring.js', v='20261127-data-error') }}"></script>
 {% endblock %}

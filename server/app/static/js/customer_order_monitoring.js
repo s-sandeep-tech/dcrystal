@@ -102,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         controller = new AbortController();
         el('loading-overlay').hidden = false;
         el('error').textContent = '';
+        el('data-error').hidden = true;
         const spinner = document.createElement('span');
         spinner.className = 'monitor-spinner';
         spinner.setAttribute('aria-hidden', 'true');
@@ -112,7 +113,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/api/customer-order-performance-monitoring/data?${params}`, {signal: controller.signal});
             if (response.status === 401) throw new Error('Session expired. Please sign in again.');
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Unable to load report.');
+            if (!response.ok) throw new Error(response.status === 409
+                ? `Report data could not be loaded due to a data issue. ${data.error || 'Please contact your administrator.'}`
+                : data.error || 'Unable to load report.');
             payload = data;
             params.set('page', data.page);
             history.replaceState(null, '', `${location.pathname}?${params}`);
@@ -136,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (error.name === 'AbortError') return;
             el('loading-overlay').hidden = true;
             el('error').textContent = error.message;
+            el('data-error').hidden = false;
             el('retry').hidden = false;
             el('table').setAttribute('aria-busy', 'false');
         }

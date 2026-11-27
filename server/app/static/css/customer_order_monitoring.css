@@ -3,6 +3,12 @@
 .monitor-content-scroll { flex: 1 1 0%; min-height: 0; overflow-y: auto; }
 #customer-monitor .party-matrix-header { flex-wrap: wrap; }
 #customer-monitor .party-matrix-title-row { min-width: 0; }
+#customer-monitor .monitor-title-block { min-width: 0; flex: 1; }
+.monitor-data-error:not([hidden]) { display: flex; align-items: flex-start; gap: 7px; margin-top: 8px; padding: 8px 10px; border-left: 3px solid #d97706; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.monitor-data-error > .material-symbols-outlined { font-size: 18px; flex-shrink: 0; }
+.monitor-data-error #monitor-error { flex: 1; min-width: 0; }
+.monitor-data-error button { color: #137fec; font-weight: 600; flex-shrink: 0; }
+.dark .monitor-data-error { background: #292014; color: #fcd34d; }
 #customer-monitor .party-matrix-title-row h1 { font-size: 16px; overflow-wrap: anywhere; }
 #customer-monitor .monitor-info-button { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 2px; color: #137fec; background: transparent; border: 0; cursor: pointer; }
 #customer-monitor .monitor-info-button:hover { color: #0756a5; }
