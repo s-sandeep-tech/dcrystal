@@ -15,7 +15,7 @@ from app.models.customer_order_analysis import CustomerOrderAnalysisSnapshot as 
 from app.dashboard.routes.customer_order_analysis import apply_visibility_filter, mask_supplier_data
 from app.utils.decorators import require_perm
 from app.utils.customer_order_monitoring import (
-    FILTERS, RISK_LABELS, STAGES, filter_rows, prepare, sort_rows, summarize,
+    FILTERS, RISK_LABELS, STAGES, filter_rows, normalize, prepare, sort_rows, summarize,
 )
 
 
@@ -41,6 +41,11 @@ def context(args):
         query = apply_visibility_filter(query)
     query = query.options(load_only(*(getattr(Snapshot, c) for c in columns)))
     rows = [{c: getattr(r, c) for c in columns} for r in query.all()]
+    # Party-cancelled records are outside this report's scope. Remove them
+    # before SOOC validation so they cannot conflict with a retained order.
+    excluded_cancelled = sum(normalize(r.get('combine_order_status')) == 'cancelled/rejected by party'
+                             for r in rows)
+    rows = [r for r in rows if normalize(r.get('combine_order_status')) != 'cancelled/rejected by party']
     today = datetime.now(ZoneInfo('Asia/Kolkata')).date()
     high = int(current_app.config.get('CUSTOMER_MONITOR_HIGH_DAYS', 2))
     medium = int(current_app.config.get('CUSTOMER_MONITOR_MEDIUM_DAYS', 7))
@@ -65,6 +70,9 @@ def context(args):
     charts['risks'][2]['label'] = f'Due Within {high + 1}-{medium} Days'
     charts['risks'][3]['label'] = f'Due After {medium} Days'
     warnings = []
+    if excluded_cancelled:
+        noun = 'row' if excluded_cancelled == 1 else 'rows'
+        warnings.append(f'{excluded_cancelled} cancelled/rejected by party {noun} excluded before SOOC validation.')
     if duplicates:
         warnings.append(f'{duplicates} exact duplicate SOOC rows excluded.')
     missing = sum(not str(r.get('sooc') or '').strip() for r in rows)

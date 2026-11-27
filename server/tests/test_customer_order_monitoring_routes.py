@@ -126,6 +126,58 @@ class MonitoringRouteTests(unittest.TestCase):
         db.session.commit()
         self.assertEqual(self.client.get('/api/monitor', headers=self.headers).status_code, 409)
 
+    def test_cancelled_duplicate_does_not_conflict_with_active_sooc(self):
+        self.login(['ADMIN'])
+        db.session.add(Snapshot(request_no='Cancelled-only request', sooc='S1',
+            combine_order_status=' Cancelled/rejected BY party ', location='Cancelled-only location',
+            total_pending_pcs=999, total_pending_wt=999, process_pending_pcs=999))
+        db.session.commit()
+        response = self.client.get('/api/monitor', headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data['total'], 3)
+        self.assertEqual(data['stats']['pieces'], 6)
+        self.assertEqual(data['stats']['orders'], 3)
+        self.assertNotIn('Cancelled-only location', data['options']['location'])
+        self.assertNotIn('Cancelled-only request', data['html'])
+        self.assertNotIn(' Cancelled/rejected BY party ', data['options']['combine_order_status'])
+        self.assertTrue(any('1 cancelled/rejected by party row excluded' in note for note in data['warnings']))
+        with patch('app.utils.decorators.get_user_permissions', return_value={'report.export'}):
+            export = self.client.get('/api/monitor/export', headers=self.headers)
+        self.assertEqual(export.status_code, 200)
+        self.assertNotIn('Cancelled-only request', export.text)
+        self.assertIn('R1', export.text)
+        self.assertEqual(Snapshot.query.count(), 4)
+
+    def test_conflicting_cancelled_rows_are_both_excluded(self):
+        self.login(['ADMIN'])
+        for request_no in ('Cancelled A', 'Cancelled B'):
+            db.session.add(Snapshot(request_no=request_no, sooc='CANCELLED-SOOC',
+                combine_order_status='Cancelled/rejected by party', total_pending_pcs=999))
+        db.session.commit()
+        response = self.client.get('/api/monitor', headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data['total'], 3)
+        self.assertEqual(data['stats']['items'], 3)
+        self.assertEqual(data['stats']['pieces'], 6)
+        self.assertTrue(any('2 cancelled/rejected by party rows excluded' in note for note in data['warnings']))
+        self.assertEqual(Snapshot.query.count(), 5)
+
+    def test_cancelled_exclusion_count_obeys_user_visibility(self):
+        self.login(['BUSINESS_HEAD'], '2')
+        db.session.add_all([
+            Snapshot(sooc='S1', bh_emp_code='1', combine_order_status='Cancelled/rejected by party'),
+            Snapshot(sooc='S2', bh_emp_code='2', combine_order_status='Cancelled/rejected by party'),
+        ])
+        db.session.commit()
+        response = self.client.get('/api/monitor', headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data['total'], 1)
+        self.assertEqual(data['stats']['pieces'], 2)
+        self.assertTrue(any('1 cancelled/rejected by party row excluded' in note for note in data['warnings']))
+
     def test_combined_status_options_display_and_export(self):
         self.login(['ADMIN'])
         data = self.client.get('/api/monitor?combine_order_status=Delivered+to+shop', headers=self.headers).get_json()
