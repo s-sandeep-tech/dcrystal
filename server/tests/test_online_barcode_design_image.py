@@ -55,9 +55,11 @@ class OnlineBarcodeDesignImageTests(unittest.TestCase):
         html = render()
         self.assertIn('data-design-image="A&#34;&lt;B"', html)
         self.assertIn('data-design-uid="uid&#34;123"', html)
+        self.assertIn('data-design-preview="A&#34;&lt;B"', html)
         for missing in (None, ''):
             row['design_uid'] = missing
             self.assertNotIn('data-design-image=', render())
+            self.assertNotIn('data-design-preview=', render())
 
     def test_migration_preserves_existing_rows_and_is_idempotent(self):
         path = ROOT / 'migrations/versions/add_nip_barcode_design_uid.py'

@@ -35,6 +35,114 @@ let onlineDesignImageController = null;
 let onlineDesignImageZoom = 1;
 let onlineDesignImageSize = null;
 let onlineDesignImagePan = null;
+let onlineDesignPreviewAnchor = null;
+let onlineDesignPreviewController = null;
+let onlineDesignPreviewRequest = 0;
+
+function onlineHideDesignPreview() {
+    onlineDesignPreviewRequest++;
+    onlineDesignPreviewController?.abort();
+    onlineDesignPreviewAnchor = null;
+    const preview = document.getElementById('online-designPreview');
+    if (preview) preview.hidden = true;
+    const image = document.getElementById('online-designPreviewImage');
+    if (image) {
+        image.onload = image.onerror = null;
+        image.removeAttribute('src');
+        image.hidden = true;
+    }
+}
+
+function onlinePositionDesignPreview() {
+    if (!onlineDesignPreviewAnchor?.isConnected) {
+        onlineHideDesignPreview();
+        return;
+    }
+    const preview = document.getElementById('online-designPreview');
+    const rect = onlineDesignPreviewAnchor.getBoundingClientRect();
+    const width = preview.offsetWidth;
+    const height = preview.offsetHeight;
+    let left = rect.right + 8;
+    if (left + width > window.innerWidth - 8) left = rect.left - width - 8;
+    preview.style.left = `${Math.max(8, Math.min(left, window.innerWidth - width - 8))}px`;
+    preview.style.top = `${Math.max(8, Math.min(rect.top, window.innerHeight - height - 8))}px`;
+}
+
+async function onlineShowDesignPreview(anchor) {
+    if (onlineDesignPreviewAnchor === anchor) return;
+    onlineHideDesignPreview();
+    onlineDesignPreviewAnchor = anchor;
+    const requestId = onlineDesignPreviewRequest;
+    onlineDesignPreviewController = new AbortController();
+    const preview = document.getElementById('online-designPreview');
+    const image = document.getElementById('online-designPreviewImage');
+    const status = document.getElementById('online-designPreviewStatus');
+    const loader = document.getElementById('online-designPreviewLoader');
+    const designNo = anchor.dataset.designPreview;
+    document.getElementById('online-designPreviewTitle').textContent = `Design ${designNo}`;
+    status.textContent = 'Loading image…';
+    status.hidden = false;
+    loader.hidden = false;
+    preview.hidden = false;
+    onlinePositionDesignPreview();
+
+    function showMessage(message) {
+        if (requestId !== onlineDesignPreviewRequest) return;
+        loader.hidden = true;
+        image.hidden = true;
+        status.hidden = false;
+        status.textContent = message;
+        onlinePositionDesignPreview();
+    }
+
+    try {
+        const params = new URLSearchParams({ design_uid: anchor.dataset.designUid });
+        const response = await fetch(`/api/online-provision-stock-status/design-image?${params}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+            signal: onlineDesignPreviewController.signal
+        });
+        if (!response.ok) throw new Error('Preview unavailable');
+        const data = await response.json();
+        if (requestId !== onlineDesignPreviewRequest) return;
+        if (!data.image_url) {
+            showMessage('No image available.');
+            return;
+        }
+        const url = new URL(data.image_url);
+        if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Invalid image URL');
+        image.alt = `Design ${designNo}`;
+        image.onload = () => {
+            if (requestId !== onlineDesignPreviewRequest) return;
+            image.hidden = false;
+            status.hidden = loader.hidden = true;
+            onlinePositionDesignPreview();
+        };
+        image.onerror = () => showMessage('Unable to load image.');
+        image.src = url.href;
+    } catch (error) {
+        if (error.name !== 'AbortError') showMessage('Unable to load image.');
+    }
+}
+
+function onlineSetupDesignPreviews() {
+    document.addEventListener('pointerover', event => {
+        const icon = event.target.closest('[data-design-preview]');
+        if (icon && !icon.contains(event.relatedTarget)) onlineShowDesignPreview(icon);
+    });
+    document.addEventListener('pointerout', event => {
+        const icon = event.target.closest('[data-design-preview]');
+        if (icon && !icon.contains(event.relatedTarget)) onlineHideDesignPreview();
+    });
+    document.addEventListener('focusin', event => {
+        const icon = event.target.closest('[data-design-preview]');
+        if (icon) onlineShowDesignPreview(icon);
+    });
+    document.addEventListener('focusout', event => {
+        if (event.target.closest('[data-design-preview]')) onlineHideDesignPreview();
+    });
+    document.addEventListener('scroll', onlineHideDesignPreview, true);
+    window.addEventListener('resize', onlineHideDesignPreview);
+}
 
 function onlineEndDesignImagePan() {
     const viewport = document.getElementById('online-designImageViewport');
@@ -124,6 +232,7 @@ function onlineResetDesignImageModal() {
 }
 
 async function onlineOpenDesignImageModal(designNo, designUid) {
+    onlineHideDesignPreview();
     const modal = document.getElementById('online-designImageModal');
     const image = document.getElementById('online-designImage');
     const status = document.getElementById('online-designImageStatus');
@@ -266,6 +375,7 @@ function onlineSetupStockRefreshPrompt() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    onlineSetupDesignPreviews();
     onlineSetupDesignImageGestures();
     locationMultiSelect = new CustomMultiSelect({
         containerId: 'filter-location-container',
@@ -958,6 +1068,7 @@ async function onlineOpenInShopDetailsModal(link) {
 window.onlineOpenInShopDetailsModal = onlineOpenInShopDetailsModal;
 
 async function onlineLoadInShopDetails(page) {
+    onlineHideDesignPreview();
     if (!activeInShopDetailParams) return;
     if (page) activeInShopDetailParams.set('page', String(page));
 
@@ -1036,6 +1147,7 @@ function onlineResetModalFullscreen(containerId) {
 }
 
 function onlineCloseInShopDetailsModal() {
+    onlineHideDesignPreview();
     const modal = document.getElementById('online-inShopDetailsModal');
     window.clearTimeout(inShopDetailsTimeout);
     inShopDetailsTimeout = null;
@@ -1361,6 +1473,10 @@ document.addEventListener('click', (event) => {
 
 document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
+    if (onlineDesignPreviewAnchor) {
+        onlineHideDesignPreview();
+        return;
+    }
     if (document.getElementById('online-designImageModal')?.open) return;
     const comparisonModal = document.getElementById('online-stockComparisonModal');
     if (comparisonModal && !comparisonModal.classList.contains('hidden')) {

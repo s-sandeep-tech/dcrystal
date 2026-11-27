@@ -47,6 +47,22 @@
         background: #1e293b;
         box-shadow: 0 6px 20px rgb(0 0 0 / 25%);
     }
+    #online-designPreview {
+        position: fixed;
+        z-index: 150;
+        width: 220px;
+        max-width: calc(100vw - 16px);
+        padding: 12px;
+        border-radius: 12px;
+        pointer-events: none;
+        box-sizing: border-box;
+    }
+    #online-designPreviewImage {
+        width: 100%;
+        height: min(220px, 45vh);
+        object-fit: contain;
+        border-radius: 8px;
+    }
 </style>
 {% endblock %}
 
@@ -381,6 +397,14 @@
         </div>
     </div>
 </div>
+<div id="online-designPreview" role="tooltip" hidden class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-xl">
+    <p id="online-designPreviewTitle" class="text-xs font-bold mb-2 break-words"></p>
+    <div id="online-designPreviewLoader" hidden aria-hidden="true" class="text-center py-3">
+        <span class="inline-block size-4 rounded-full border-2 border-gray-200 border-t-primary animate-spin"></span>
+    </div>
+    <p id="online-designPreviewStatus" role="status" class="text-xs text-gray-500 text-center py-2"></p>
+    <img id="online-designPreviewImage" hidden referrerpolicy="no-referrer" alt="">
+</div>
 <dialog id="online-designImageModal" aria-labelledby="online-designImageTitle"
     class="m-auto p-0 max-h-[90vh] rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-2xl backdrop:bg-gray-900/70"
     onclose="onlineResetDesignImageModal()"
@@ -551,5 +575,5 @@
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script src="{{ url_for('static', filename='js/header_filter.js') }}"></script>
-<script src="{{ url_for('static', filename='js/online_provision_stock_status.js', v='20261126-design-image-uid') }}"></script>
+<script src="{{ url_for('static', filename='js/online_provision_stock_status.js', v='20261127-design-image-preview') }}"></script>
 {% endblock %}

@@ -53,6 +53,11 @@
                         {% if row.design_no and row.design_uid is defined and row.design_uid %}
                         <a href="#" data-design-image="{{ row.design_no }}" data-design-uid="{{ row.design_uid }}"
                             class="underline underline-offset-2 hover:text-primary" aria-label="View image for design {{ row.design_no }}">{{ row.design_no }}</a>
+                        <button type="button" data-design-preview="{{ row.design_no }}" data-design-uid="{{ row.design_uid }}"
+                            aria-label="Preview image for design {{ row.design_no }}" aria-describedby="online-designPreview"
+                            class="inline-flex align-middle ml-1 p-0.5 text-blue-500 hover:text-blue-700 focus-visible:outline focus-visible:outline-primary">
+                            <span class="material-symbols-outlined text-[15px]" aria-hidden="true">image</span>
+                        </button>
                         {% else %}{{ row.design_no or '-' }}{% endif %}
                     </td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ row.location or '-' }}</td>
