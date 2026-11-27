@@ -75,6 +75,7 @@ try:
     from app.utils.sync_manager import (
         enqueue_next_scheduled_all_task,
         enqueue_scheduled_all_sync,
+        enqueue_scheduled_early_sync,
         enqueue_sync_task,
         sync_pending_order_details_data,
         sync_active_order_details_data,
@@ -910,49 +911,19 @@ def setup_scheduler():
         replace_existing=True
     )
 
-    # Schedule "Owner, Showroom, Pending Order Details & Active Orders Sync" daily at 3:00 AM IST
-    # Task type 'owner_showroom_combined' matches sync_manager.py
+    # Run heavy reports sequentially at 3 AM; completion queues the next task.
     scheduler.add_job(
-        func=enqueue_sync_task,
+        func=enqueue_scheduled_early_sync,
         trigger='cron',
         hour=3,
         minute=0,
-        args=['owner_showroom_combined'],
-        kwargs={'user_id': 'SCHEDULER'},
-        id='owner_showroom_sync',
-        replace_existing=True
-    )
-
-    # Schedule "Supplier Capacity & Backlog Analysis Sync" daily at 4:00 AM IST
-    scheduler.add_job(
-        func=enqueue_sync_task,
-        trigger='cron',
-        hour=4,
-        minute=0,
-        args=['party_make_capacity_details'],
-        kwargs={'user_id': 'SCHEDULER'},
-        id='supplier_capacity_backlog_sync',
-        replace_existing=True
-    )
-
-    # Schedule "Party Performance Matrix Sync" daily at 4:30 AM IST
-    scheduler.add_job(
-        func=enqueue_sync_task,
-        trigger='cron',
-        hour=4,
-        minute=30,
-        args=['party_performance_matrix'],
-        kwargs={'user_id': 'SCHEDULER'},
-        id='party_performance_matrix_sync',
+        id='daily_early_tasks_sync',
         replace_existing=True
     )
 
     # Daily 5:30 AM IST report syncs. pending_customer_order_approvals is an
     # alias of customer_order_approval_pending, so schedule that handler once.
     for task_type in (
-        'party_design_average_delivery_days',
-        'party_order_accept_cancel_delivery',
-        'sales_stock_composition_analysis',
         'customer_order_analysis',
         'customer_order_approval_pending',
     ):
@@ -982,12 +953,11 @@ def setup_scheduler():
     scheduler.start()
     logger.info("All report sync tasks scheduled sequentially for 7:30 IST daily.")
     logger.info("Background Scheduler started. 'Provision & Stock Status Sync' scheduled for 11:00 IST daily.")
-    logger.info("Size Level NIP Barcode Sync scheduled for 11:30 IST daily.")
+    logger.info("Stock drill-down details run after every provision stock sync.")
     logger.info("Branch Authority Sync scheduled for 10:00 IST and 16:00 IST daily.")
-    logger.info("Owner, Showroom, Pending Order Details & Active Orders Sync scheduled for 03:00 IST daily.")
-    logger.info("Supplier Capacity & Backlog Analysis Sync scheduled for 04:00 IST daily.")
-    logger.info("Party Performance Matrix Sync scheduled for 04:30 IST daily.")
-    logger.info("Party design delivery days, party order accept/cancel/delivery, sales stock composition, customer order analysis, and customer order approval pending syncs scheduled for 05:30 IST daily.")
+    logger.info("Owner/Showroom, Supplier Capacity, Party Performance Matrix, and Sales Stock Composition scheduled sequentially for 03:00 IST daily.")
+    logger.info("Party design and party order delivery are covered by Party Performance Matrix; separate schedules removed.")
+    logger.info("Customer order analysis and customer order approval pending syncs scheduled for 05:30 IST daily.")
     logger.info("QC Delay Summary Sync scheduled for 9:00 IST daily.")
     logger.info("HM Delay Management Sync scheduled for 9:05 IST daily.")
     logger.info("Vendor Delay Management Sync scheduled for 9:10 IST daily.")

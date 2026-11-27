@@ -4,7 +4,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-SCHEDULED_ALL_SYNC_TASKS = (
+# Retained for batches queued before batch payloads carried their task list.
+LEGACY_SCHEDULED_ALL_SYNC_TASKS = (
     'owner_showroom_combined',
     'process_delay',
     'outstanding_po',
@@ -33,6 +34,18 @@ SCHEDULED_ALL_SYNC_TASKS = (
     'weekly_delivery_order_summary',
     'party_make_capacity_details',
     'customer_order_fulfilment_summary',
+)
+
+SCHEDULED_EARLY_SYNC_TASKS = (
+    'owner_showroom_combined',
+    'party_make_capacity_details',
+    'party_performance_matrix',
+    'sales_stock_composition_analysis',
+)
+
+SCHEDULED_ALL_SYNC_TASKS = tuple(
+    task for task in LEGACY_SCHEDULED_ALL_SYNC_TASKS
+    if task not in SCHEDULED_EARLY_SYNC_TASKS
 )
 
 ALLOWED_SYNC_TASKS = {
@@ -98,40 +111,55 @@ def enqueue_sync_task(task_type, user_id=None):
         return {"status": "error", "message": f"Failed to queue task: {str(e)}"}
 
 
-def _enqueue_scheduled_all_task(batch_id, task_index):
-    if task_index >= len(SCHEDULED_ALL_SYNC_TASKS):
-        logger.info(f"Scheduled all-sync batch {batch_id} completed")
+def _enqueue_scheduled_all_task(batch_id, task_index, tasks=None, batch_schedule='07:30'):
+    tasks = SCHEDULED_ALL_SYNC_TASKS if tasks is None else tuple(tasks)
+    if task_index >= len(tasks):
+        logger.info("Scheduled all-sync batch %s (%s IST) completed", batch_id, batch_schedule)
         return {"status": "success", "message": "Scheduled all-sync batch completed."}
 
-    task_type = SCHEDULED_ALL_SYNC_TASKS[task_index]
+    task_type = tasks[task_index]
     task_data = json.dumps({
         "type": task_type,
         "user_id": "SCHEDULER",
         "scheduled_all_batch": True,
         "batch_id": batch_id,
         "batch_index": task_index,
-        "batch_total": len(SCHEDULED_ALL_SYNC_TASKS),
+        "batch_total": len(tasks),
+        "batch_tasks": tasks,
+        "batch_schedule": batch_schedule,
     })
     redis_client.rpush('sync_queue', task_data)
     logger.info(
-        "Enqueued scheduled all-sync task %s/%s: %s",
+        "Enqueued scheduled all-sync task %s/%s: %s (batch %s, %s IST)",
         task_index + 1,
-        len(SCHEDULED_ALL_SYNC_TASKS),
+        len(tasks),
         task_type,
+        batch_id,
+        batch_schedule,
     )
     return {"status": "success", "message": f"Queued {task_type}."}
 
 
-def enqueue_scheduled_all_sync():
+def _start_scheduled_sync(tasks, batch_schedule):
     """Starts the daily batch; each completed task queues the next task."""
     from datetime import datetime, timezone
 
     batch_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     try:
-        return _enqueue_scheduled_all_task(batch_id, 0)
+        return _enqueue_scheduled_all_task(batch_id, 0, tasks, batch_schedule)
     except Exception as e:
         logger.error(f"Failed to start scheduled all-sync batch: {str(e)}")
         return {"status": "error", "message": f"Failed to start scheduled batch: {str(e)}"}
+
+
+def enqueue_scheduled_all_sync():
+    """Start the remaining daily reports at 7:30 AM IST."""
+    return _start_scheduled_sync(SCHEDULED_ALL_SYNC_TASKS, '07:30')
+
+
+def enqueue_scheduled_early_sync():
+    """Start the four heavy report syncs sequentially at 3 AM IST."""
+    return _start_scheduled_sync(SCHEDULED_EARLY_SYNC_TASKS, '03:00')
 
 
 def enqueue_next_scheduled_all_task(task_data):
@@ -139,6 +167,8 @@ def enqueue_next_scheduled_all_task(task_data):
     return _enqueue_scheduled_all_task(
         task_data['batch_id'],
         int(task_data['batch_index']) + 1,
+        task_data.get('batch_tasks', LEGACY_SCHEDULED_ALL_SYNC_TASKS),
+        task_data.get('batch_schedule', '07:30'),
     )
 
 def sync_owner_wise_data(user_id=None):

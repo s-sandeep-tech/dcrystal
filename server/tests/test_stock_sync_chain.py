@@ -68,6 +68,7 @@ class StockSyncChainTests(unittest.TestCase):
         scheduler = MagicMock()
         scope = dict(BackgroundScheduler=MagicMock(return_value=scheduler),
                      enqueue_sync_task=MagicMock(), enqueue_scheduled_all_sync=MagicMock(),
+                     enqueue_scheduled_early_sync=MagicMock(),
                      logger=MagicMock())
         exec(compile(ast.Module(body=[setup], type_ignores=[]), str(WORKER), 'exec'), scope)
         scope['setup_scheduler']()
