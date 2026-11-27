@@ -634,7 +634,7 @@ def api_party_make_capacity_export():
         red_font = Font(name="Calibri", size=9, bold=True, color="DC2626")
 
         headers = [
-            "supplier", "make", "Act. Capacity (kg)", "Capacity (kg)", "Current Capacity (kg)", "Total Pending (kg)", "Balance (kg)",
+            "supplier", "make", "Act. Capacity (kg)", "Capacity (kg)", "Curr. Capacity (kg)", "Total Pending (kg)", "Balance (kg)",
             "utilization_pct", "primary_bottleneck", "qc_rework_pct",
             "process_pending_wt", "barcode_pending_wt", "hallmark_pending_wt",
             "qc_issue_pending_wt", "qc_complete_pending_wt", "invoice_pending_wt",
