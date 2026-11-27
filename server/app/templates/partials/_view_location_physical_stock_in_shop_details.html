@@ -49,7 +49,16 @@
                 {% for row in rows %}
                 <tr class="text-[10px] text-gray-700 dark:text-gray-300 hover:bg-blue-50/60 dark:hover:bg-blue-900/10">
                     <td class="px-3 py-2 font-bold text-blue-800 dark:text-blue-200 bg-blue-50/70 dark:bg-blue-950/20 border-x border-blue-100/80 dark:border-blue-900/40 whitespace-nowrap">{{ row.barcode_no or '-' }}</td>
-                    <td class="px-3 py-2 font-bold text-blue-800 dark:text-blue-200 bg-blue-50/70 dark:bg-blue-950/20 border-r border-blue-100/80 dark:border-blue-900/40 whitespace-nowrap">{{ row.design_no or '-' }}</td>
+                    <td class="px-3 py-2 font-bold text-blue-800 dark:text-blue-200 bg-blue-50/70 dark:bg-blue-950/20 border-r border-blue-100/80 dark:border-blue-900/40 whitespace-nowrap">
+                        {{ row.design_no or '-' }}
+                        {% if row.design_no and row.design_uid is defined and row.design_uid %}
+                        <button type="button" data-design-preview="{{ row.design_no }}" data-design-uid="{{ row.design_uid }}"
+                            aria-label="Preview image for design {{ row.design_no }}" aria-describedby="physical-designPreview"
+                            class="inline-flex align-middle ml-1 p-0.5 text-blue-500 hover:text-blue-700 focus-visible:outline focus-visible:outline-primary">
+                            <span class="material-symbols-outlined text-[15px]" aria-hidden="true">image</span>
+                        </button>
+                        {% endif %}
+                    </td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ row.location or '-' }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ row.division or '-' }}</td>
                     <td class="px-3 py-2 whitespace-nowrap">{{ row.group_name or '-' }}</td>

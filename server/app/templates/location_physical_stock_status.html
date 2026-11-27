@@ -4,6 +4,24 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/order_status.css') }}">
+<style>
+    #physical-designPreview {
+        position: fixed;
+        z-index: 150;
+        width: 220px;
+        max-width: calc(100vw - 16px);
+        padding: 12px;
+        border-radius: 12px;
+        pointer-events: none;
+        box-sizing: border-box;
+    }
+    #physical-designPreviewImage {
+        width: 100%;
+        height: min(220px, 45vh);
+        object-fit: contain;
+        border-radius: 8px;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -337,6 +355,14 @@
         </div>
     </div>
 </div>
+<div id="physical-designPreview" role="tooltip" hidden class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-xl">
+    <p id="physical-designPreviewTitle" class="text-xs font-bold mb-2 break-words"></p>
+    <div id="physical-designPreviewLoader" hidden aria-hidden="true" class="text-center py-3">
+        <span class="inline-block size-4 rounded-full border-2 border-gray-200 border-t-primary animate-spin"></span>
+    </div>
+    <p id="physical-designPreviewStatus" role="status" class="text-xs text-gray-500 text-center py-2"></p>
+    <img id="physical-designPreviewImage" hidden referrerpolicy="no-referrer" alt="">
+</div>
 {% endblock %}
 
 {% block sidebar %}
@@ -460,5 +486,6 @@
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
 <script src="{{ url_for('static', filename='js/header_filter.js') }}"></script>
-<script src="{{ url_for('static', filename='js/location_physical_stock_status.js', v='20261112-filter-toggle') }}"></script>
+<script src="{{ url_for('static', filename='js/physical_stock_design_preview.js', v='20261127') }}"></script>
+<script src="{{ url_for('static', filename='js/location_physical_stock_status.js', v='20261127-design-preview') }}"></script>
 {% endblock %}

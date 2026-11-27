@@ -108,6 +108,7 @@ function setupStockRefreshPrompt() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    physicalSetupDesignPreviews();
     locationMultiSelect = new CustomMultiSelect({
         containerId: 'filter-location-container',
         label: 'Location',
@@ -795,6 +796,7 @@ async function openInShopDetailsModal(link) {
 window.openInShopDetailsModal = openInShopDetailsModal;
 
 async function loadInShopDetails(page) {
+    physicalHideDesignPreview();
     if (!activeInShopDetailParams) return;
     if (page) activeInShopDetailParams.set('page', String(page));
 
@@ -873,6 +875,7 @@ function resetModalFullscreen(containerId) {
 }
 
 function closeInShopDetailsModal() {
+    physicalHideDesignPreview();
     const modal = document.getElementById('inShopDetailsModal');
     window.clearTimeout(inShopDetailsTimeout);
     inShopDetailsTimeout = null;
@@ -1188,6 +1191,10 @@ document.addEventListener('click', (event) => {
 
 document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
+    if (physicalDesignPreviewAnchor) {
+        physicalHideDesignPreview();
+        return;
+    }
     const comparisonModal = document.getElementById('stockComparisonModal');
     if (comparisonModal && !comparisonModal.classList.contains('hidden')) {
         closeStockComparisonModal();

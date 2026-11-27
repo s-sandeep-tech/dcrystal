@@ -15,6 +15,8 @@ from app.utils.decorators import require_perm, require_report_access, require_ro
 from app.utils.stock_processed_order_sync import COMBINED_TASK, IDENTITY_FIELDS, TASK as PROCESSED_ORDER_TASK
 import logging
 import json
+from app.utils.design_images import design_image_response
+from app.utils.sync_tasks import get_external_db_connection
 
 logger = logging.getLogger(__name__)
 
@@ -1059,6 +1061,12 @@ ORDER BY section, purity NULLS FIRST, type NULLS FIRST, wide_range NULLS FIRST, 
     except Exception as e:
         logger.error(f"Error in get_location_physical_stock_status_drilldown: {str(e)}")
         return f'<div class="p-8 text-center text-red-500 font-bold">Backend Error: {str(e)}</div>', 200
+
+
+@dashboard_bp.route('/api/location-physical-stock-status/design-image')
+@require_report_access('/location-physical-stock-status')
+def get_location_physical_stock_design_image():
+    return design_image_response(get_external_db_connection, logger)
 
 
 @dashboard_bp.route('/api/location-physical-stock-status/in-shop-details')
