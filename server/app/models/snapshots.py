@@ -3022,6 +3022,7 @@ class SizeLevelNIPBarcodeColumns:
     prov_type = db.Column(db.Text)
     prov_type_filter = db.Column(db.Integer)
     design_no = db.Column(db.Text)
+    design_uid = db.Column(db.Text)
     branch_id = db.Column(db.BigInteger)
     division_id = db.Column(db.BigInteger)
     group_id = db.Column(db.BigInteger)

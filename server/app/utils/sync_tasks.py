@@ -2290,7 +2290,7 @@ SIZE_LEVEL_NIP_BARCODE_COLUMNS = (
     'sub_classification', 'make', 'master_collection', 'collection',
     'sub_section', 'section', 'type', 'gender', 'wide_range', 'size',
     'screw_type', 'weight', 'pieces', 'barcode_no', 'gross_wt', 'prov_type',
-    'prov_type_filter', 'design_no', 'branch_id', 'division_id', 'group_id',
+    'prov_type_filter', 'design_no', 'design_uid', 'branch_id', 'division_id', 'group_id',
     'purity_id', 'classification_id', 'sub_classification_id', 'make_id',
     'master_collection_id', 'collection_id', 'sub_section_id', 'section_id',
     'type_id', 'gender_id', 'wide_range_id', 'size_id', 'screw_type_id',
@@ -2359,6 +2359,7 @@ def sync_size_level_nip_barcode_task() -> Dict[str, Any]:
                 mappings = [
                     {
                         **{column: row.get(column) for column in SIZE_LEVEL_NIP_BARCODE_COLUMNS},
+                        'design_uid': str(row['design_uid']).strip() if row.get('design_uid') is not None else None,
                         'snapshot_date': snapshot_date,
                     }
                     for row in rows
@@ -3452,315 +3453,334 @@ def sync_qc_delay_management_data_task():
     DATA_TYPE = 'qc_delay_management'
     max_retries = 5
     retry_count = 0
-    
+    completed_stage = 0
+    current_stage = 'Summary'
+    snapshot_date = datetime.now()
+    start_time = time.monotonic()
+
     while retry_count < max_retries:
-        start_time = time.monotonic()
         conn = None
         current_view = "initialization"
         try:
-            emit_sync_update('processing', f'Connecting to external database (Attempt {retry_count + 1}/{max_retries})...', 5, DATA_TYPE)
+            emit_sync_update('processing', f'Connecting for {current_stage} (Attempt {retry_count + 1}/{max_retries})...', min(95, 5 + completed_stage * 25), DATA_TYPE)
             conn = get_external_db_connection()
             conn.set_session(readonly=True, autocommit=False)
             with conn.cursor() as settings_cursor:
                 settings_cursor.execute("SET LOCAL statement_timeout = 0")
             batch_size = 30_000
-            snapshot_date = datetime.now()
-            tables = sorted(model.__tablename__ for model in (
-                QCDelayManagementSnapshot, SupplierQCIssueReceiptPendingSnapshot,
-                QCReceiptCompletedQCPendingSnapshot, QCCompletedInvoiceRequestPendingSnapshot,
-            ))
-            db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
-            db.session.execute(text(
-                'LOCK TABLE ' + ', '.join('"' + table + '"' for table in tables)
-                + ' IN SHARE ROW EXCLUSIVE MODE'
-            ))
-            
-            # 1. Sync Summary Data
-            emit_sync_update('processing', 'Fetching QC Summary data...', 10, DATA_TYPE)
-            summary_query = """
-            SELECT 
-                qc_ro_id, qc_ro, qc_ro_code, 
-                qc_issue_completed_receipt_pending_piece, qc_issue_completed_receipt_pending_weight, 
-                delayed_qc_issue_completed_receipt_pending_piece, delayed_qc_issue_completed_receipt_pending_weight,
-                qc_receipt_completed_qc_pending_piece, qc_receipt_completed_qc_pending_weight, 
-                delayed_qc_receipt_completed_qc_pending_piece, delayed_qc_receipt_completed_qc_pending_weight,
-                qc_completed_invoice_request_pending_piece, qc_completed_invoice_request_pending_weight,
-                delayed_qc_completed_invoice_request_pending_piece, delayed_qc_completed_invoice_request_pending_weight,
-                qc_ro_incharge, qc_ro_incharge_email, qc_ro_incharge_phone_number, qc_ro_address,
-                make, make_owner, make_owner_emp_code, order_id, party_code, party,
-                qc_issue_completed_date, qc_receipt_completed_date, qc_completed_date
-            FROM ext_view.vw_qc_summary_data
-            """
-            current_view = "ext_view.vw_qc_summary_data"
-            loaded = 0
-            logger.info('QC Delay Management: reading %s in %s-row batches.', current_view, batch_size)
-            with conn.cursor(name='qc_delay_management_summary_sync') as cur:
-                cur.execute(summary_query)
-                rows = cur.fetchmany(batch_size)
-                db.session.query(QCDelayManagementSnapshot).delete(synchronize_session=False)
-                while rows:
-                    records = [
-                        dict(
-                            snapshot_date=snapshot_date,
-                            qc_ro_id=row[0],
-                            qc_ro=row[1],
-                            qc_ro_code=row[2],
-                            qc_issue_completed_receipt_pending_piece=row[3],
-                            qc_issue_completed_receipt_pending_weight=row[4],
-                            delayed_qc_issue_completed_receipt_pending_piece=row[5],
-                            delayed_qc_issue_completed_receipt_pending_weight=row[6],
-                            qc_receipt_completed_qc_pending_piece=row[7],
-                            qc_receipt_completed_qc_pending_weight=row[8],
-                            delayed_qc_receipt_completed_qc_pending_piece=row[9],
-                            delayed_qc_receipt_completed_qc_pending_weight=row[10],
-                            qc_completed_invoice_request_pending_piece=row[11],
-                            qc_completed_invoice_request_pending_weight=row[12],
-                            delayed_qc_completed_invoice_request_pending_piece=row[13],
-                            delayed_qc_completed_invoice_request_pending_weight=row[14],
-                            qc_ro_incharge=row[15],
-                            qc_ro_incharge_email=row[16],
-                            qc_ro_incharge_phone_number=row[17],
-                            qc_ro_address=row[18],
-                            make=row[19],
-                            make_owner=row[20],
-                            make_owner_emp_code=row[21],
-                            order_id=row[22],
-                            party_code=row[23],
-                            party=row[24],
-                            qc_issue_completed_date=row[25],
-                            qc_receipt_completed_date=row[26],
-                            qc_completed_date=row[27]
-                        )
-                        for row in rows
-                    ]
-                    db.session.bulk_insert_mappings(QCDelayManagementSnapshot, records)
-                    loaded += len(rows)
-                    logger.info('QC Delay Management: %s loaded %s rows, awaiting commit.', current_view, loaded)
-                    emit_sync_update('processing', f'Loaded {loaded:,} rows from {current_view}...',
-                                     25, DATA_TYPE)
-                    del records, rows
+            if completed_stage < 1:
+                current_stage = 'Summary'
+                db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+                db.session.execute(text(f'LOCK TABLE "{QCDelayManagementSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'))
+                # 1. Sync Summary Data
+                emit_sync_update('processing', 'Fetching QC Summary data...', 10, DATA_TYPE)
+                summary_query = """
+                SELECT
+                    qc_ro_id, qc_ro, qc_ro_code,
+                    qc_issue_completed_receipt_pending_piece, qc_issue_completed_receipt_pending_weight,
+                    delayed_qc_issue_completed_receipt_pending_piece, delayed_qc_issue_completed_receipt_pending_weight,
+                    qc_receipt_completed_qc_pending_piece, qc_receipt_completed_qc_pending_weight,
+                    delayed_qc_receipt_completed_qc_pending_piece, delayed_qc_receipt_completed_qc_pending_weight,
+                    qc_completed_invoice_request_pending_piece, qc_completed_invoice_request_pending_weight,
+                    delayed_qc_completed_invoice_request_pending_piece, delayed_qc_completed_invoice_request_pending_weight,
+                    qc_ro_incharge, qc_ro_incharge_email, qc_ro_incharge_phone_number, qc_ro_address,
+                    make, make_owner, make_owner_emp_code, order_id, party_code, party,
+                    qc_issue_completed_date, qc_receipt_completed_date, qc_completed_date
+                FROM ext_view.vw_qc_summary_data
+                """
+                current_view = "ext_view.vw_qc_summary_data"
+                loaded = 0
+                logger.info('QC Delay Management: reading %s in %s-row batches.', current_view, batch_size)
+                with conn.cursor(name='qc_delay_management_summary_sync') as cur:
+                    cur.execute(summary_query)
                     rows = cur.fetchmany(batch_size)
-            emit_sync_update('processing', 'Summary loaded. Syncing Segment 1 details...', 30, DATA_TYPE)
+                    db.session.query(QCDelayManagementSnapshot).delete(synchronize_session=False)
+                    while rows:
+                        records = [
+                            dict(
+                                snapshot_date=snapshot_date,
+                                qc_ro_id=row[0],
+                                qc_ro=row[1],
+                                qc_ro_code=row[2],
+                                qc_issue_completed_receipt_pending_piece=row[3],
+                                qc_issue_completed_receipt_pending_weight=row[4],
+                                delayed_qc_issue_completed_receipt_pending_piece=row[5],
+                                delayed_qc_issue_completed_receipt_pending_weight=row[6],
+                                qc_receipt_completed_qc_pending_piece=row[7],
+                                qc_receipt_completed_qc_pending_weight=row[8],
+                                delayed_qc_receipt_completed_qc_pending_piece=row[9],
+                                delayed_qc_receipt_completed_qc_pending_weight=row[10],
+                                qc_completed_invoice_request_pending_piece=row[11],
+                                qc_completed_invoice_request_pending_weight=row[12],
+                                delayed_qc_completed_invoice_request_pending_piece=row[13],
+                                delayed_qc_completed_invoice_request_pending_weight=row[14],
+                                qc_ro_incharge=row[15],
+                                qc_ro_incharge_email=row[16],
+                                qc_ro_incharge_phone_number=row[17],
+                                qc_ro_address=row[18],
+                                make=row[19],
+                                make_owner=row[20],
+                                make_owner_emp_code=row[21],
+                                order_id=row[22],
+                                party_code=row[23],
+                                party=row[24],
+                                qc_issue_completed_date=row[25],
+                                qc_receipt_completed_date=row[26],
+                                qc_completed_date=row[27]
+                            )
+                            for row in rows
+                        ]
+                        db.session.bulk_insert_mappings(QCDelayManagementSnapshot, records)
+                        loaded += len(rows)
+                        logger.info('QC Delay Management: %s loaded %s rows, awaiting commit.', current_view, loaded)
+                        emit_sync_update('processing', f'Loaded {loaded:,} rows from {current_view}...',
+                                         25, DATA_TYPE)
+                        del records, rows
+                        rows = cur.fetchmany(batch_size)
+                emit_sync_update('processing', 'Summary loaded. Syncing Segment 1 details...', 30, DATA_TYPE)
+                db.session.commit()
+                completed_stage = 1
+                retry_count = 0
 
-            # 2. Segment 1 Details (QC issue completed - KJ receipt pending)
-            s1_query = """
-            SELECT 
-                make_owner, make_owner_emp_code, collection_owner, collection, order_branch, '' as business_head_name, 
-                party, po_date, po_number, order_type, order_request_type, 
-                party_mobile_no, barcode_completion_date, barcoded_weight, 
-                set_identifier, set_design_no, target_date, hm_request_no, 
-                hm_ro, hallmark_agent, hm_agent_email, hm_agent_pnone_no, 
-                hm_completed_at, qc_issue_receipt_no, qc_issue_receipt_date, 
-                qc_ro, qc_ro_incharge, net_weight, gross_weight, stone_weight, 
-                qc_pending_to_receipt_pcs, qc_pending_to_receipt_wt, po_number as order_no, set_design_no as design_no
-            FROM ext_view.vw_supplier_qc_issue_completed_receipt_pending
-            WHERE CURRENT_DATE - DATE(qc_issue_receipt_date) > 1
-            """
-            current_view = "ext_view.vw_supplier_qc_issue_completed_receipt_pending"
-            loaded = 0
-            logger.info('QC Delay Management: reading %s in %s-row batches.', current_view, batch_size)
-            with conn.cursor(name='qc_delay_management_s1_sync') as cur:
-                cur.execute(s1_query)
-                rows = cur.fetchmany(batch_size)
-                db.session.query(SupplierQCIssueReceiptPendingSnapshot).delete(synchronize_session=False)
-                while rows:
-                    records = [
-                        dict(
-                            snapshot_date=snapshot_date,
-                            make_owner=row[0],
-                            make_owner_emp_code=row[1],
-                            collection_owner=row[2],
-                            collection=row[3],
-                            order_branch=row[4],
-                            business_head_name=row[5],
-                            party=row[6],
-                            po_date=row[7],
-                            po_number=row[8],
-                            order_type=row[9],
-                            order_request_type=row[10],
-                            party_mobile_no=row[11],
-                            barcode_completion_date=row[12],
-                            barcoded_weight=row[13],
-                            set_identifier=row[14],
-                            set_design_no=row[15],
-                            target_date=row[16],
-                            hm_request_no=row[17],
-                            hm_ro=row[18],
-                            hallmark_agent=row[19],
-                            hm_agent_email=row[20],
-                            hm_agent_pnone_no=row[21],
-                            hm_completed_at=row[22],
-                            qc_issue_receipt_no=row[23],
-                            qc_issue_receipt_date=row[24],
-                            qc_ro=row[25],
-                            qc_ro_incharge=row[26],
-                            net_weight=row[27],
-                            gross_weight=row[28],
-                            stone_weight=row[29],
-                            pieces=row[30],
-                            weight=row[31],
-                            order_no=row[32],
-                            design_no=row[33]
-                        )
-                        for row in rows
-                    ]
-                    db.session.bulk_insert_mappings(SupplierQCIssueReceiptPendingSnapshot, records)
-                    loaded += len(rows)
-                    logger.info('QC Delay Management: %s loaded %s rows, awaiting commit.', current_view, loaded)
-                    emit_sync_update('processing', f'Loaded {loaded:,} rows from {current_view}...',
-                                     50, DATA_TYPE)
-                    del records, rows
+            if completed_stage < 2:
+                current_stage = 'Segment 1'
+                db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+                db.session.execute(text(f'LOCK TABLE "{SupplierQCIssueReceiptPendingSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'))
+                # 2. Segment 1 Details (QC issue completed - KJ receipt pending)
+                s1_query = """
+                SELECT
+                    make_owner, make_owner_emp_code, collection_owner, collection, order_branch, '' as business_head_name,
+                    party, po_date, po_number, order_type, order_request_type,
+                    party_mobile_no, barcode_completion_date, barcoded_weight,
+                    set_identifier, set_design_no, target_date, hm_request_no,
+                    hm_ro, hallmark_agent, hm_agent_email, hm_agent_pnone_no,
+                    hm_completed_at, qc_issue_receipt_no, qc_issue_receipt_date,
+                    qc_ro, qc_ro_incharge, net_weight, gross_weight, stone_weight,
+                    qc_pending_to_receipt_pcs, qc_pending_to_receipt_wt, po_number as order_no, set_design_no as design_no
+                FROM ext_view.vw_supplier_qc_issue_completed_receipt_pending
+                WHERE CURRENT_DATE - DATE(qc_issue_receipt_date) > 1
+                """
+                current_view = "ext_view.vw_supplier_qc_issue_completed_receipt_pending"
+                loaded = 0
+                logger.info('QC Delay Management: reading %s in %s-row batches.', current_view, batch_size)
+                with conn.cursor(name='qc_delay_management_s1_sync') as cur:
+                    cur.execute(s1_query)
                     rows = cur.fetchmany(batch_size)
-            emit_sync_update('processing', 'Segment 1 details loaded. Syncing Segment 2...', 60, DATA_TYPE)
+                    db.session.query(SupplierQCIssueReceiptPendingSnapshot).delete(synchronize_session=False)
+                    while rows:
+                        records = [
+                            dict(
+                                snapshot_date=snapshot_date,
+                                make_owner=row[0],
+                                make_owner_emp_code=row[1],
+                                collection_owner=row[2],
+                                collection=row[3],
+                                order_branch=row[4],
+                                business_head_name=row[5],
+                                party=row[6],
+                                po_date=row[7],
+                                po_number=row[8],
+                                order_type=row[9],
+                                order_request_type=row[10],
+                                party_mobile_no=row[11],
+                                barcode_completion_date=row[12],
+                                barcoded_weight=row[13],
+                                set_identifier=row[14],
+                                set_design_no=row[15],
+                                target_date=row[16],
+                                hm_request_no=row[17],
+                                hm_ro=row[18],
+                                hallmark_agent=row[19],
+                                hm_agent_email=row[20],
+                                hm_agent_pnone_no=row[21],
+                                hm_completed_at=row[22],
+                                qc_issue_receipt_no=row[23],
+                                qc_issue_receipt_date=row[24],
+                                qc_ro=row[25],
+                                qc_ro_incharge=row[26],
+                                net_weight=row[27],
+                                gross_weight=row[28],
+                                stone_weight=row[29],
+                                pieces=row[30],
+                                weight=row[31],
+                                order_no=row[32],
+                                design_no=row[33]
+                            )
+                            for row in rows
+                        ]
+                        db.session.bulk_insert_mappings(SupplierQCIssueReceiptPendingSnapshot, records)
+                        loaded += len(rows)
+                        logger.info('QC Delay Management: %s loaded %s rows, awaiting commit.', current_view, loaded)
+                        emit_sync_update('processing', f'Loaded {loaded:,} rows from {current_view}...',
+                                         50, DATA_TYPE)
+                        del records, rows
+                        rows = cur.fetchmany(batch_size)
+                emit_sync_update('processing', 'Segment 1 details loaded. Syncing Segment 2...', 60, DATA_TYPE)
+                db.session.commit()
+                completed_stage = 2
+                retry_count = 0
 
-            # 3. Segment 2 Details (QC Receipt Completed - QC Pending)
-            s2_query = """
-            SELECT 
-                order_id, order_no, qc_ro_id, qc_ro, qc_ro_incharge, qc_ro_incharge_email, qc_ro_incharge_phone_no,
-                make_owner, make_owner_emp_code, make, collection_owner, collection, party, party_mobile_no, po_date,
-                delivery_target_date, po_number, order_type, order_request_type, design_no,
-                set_identifier, set_design_no, order_ro, order_branch, business_head_name,
-                order_incharge_email, order_incharge_phone_no, barcoded_weight, barcode_completion_date,
-                hm_completed_date, qc_issue_challan_no, qc_issue_challan_date, receipt_no, receipt_date,
-                net_weight, gross_weight, stone_weight
-            FROM ext_view.vw_qc_receipt_completed_qc_pending
-            """
-            current_view = "ext_view.vw_qc_receipt_completed_qc_pending"
-            loaded = 0
-            logger.info('QC Delay Management: reading %s in %s-row batches.', current_view, batch_size)
-            with conn.cursor(name='qc_delay_management_s2_sync') as cur:
-                cur.execute(s2_query)
-                rows = cur.fetchmany(batch_size)
-                db.session.query(QCReceiptCompletedQCPendingSnapshot).delete(synchronize_session=False)
-                while rows:
-                    records = [
-                        dict(
-                            snapshot_date=snapshot_date,
-                            order_id=row[0],
-                            order_no=row[1],
-                            qc_ro_id=row[2],
-                            qc_ro=row[3],
-                            qc_ro_incharge=row[4],
-                            qc_ro_incharge_email=row[5],
-                            qc_ro_incharge_phone_no=row[6],
-                            make_owner=row[7],
-                            make_owner_emp_code=row[8],
-                            make=row[9],
-                            collection_owner=row[10],
-                            collection=row[11],
-                            party=row[12],
-                            party_mobile_no=row[13],
-                            po_date=row[14],
-                            delivery_target_date=row[15],
-                            po_number=row[16],
-                            order_type=row[17],
-                            order_request_type=row[18],
-                            design_no=row[19],
-                            set_identifier=row[20],
-                            set_design_no=row[21],
-                            order_ro=row[22],
-                            order_branch=row[23],
-                            business_head_name=row[24],
-                            order_incharge_email=row[25],
-                            order_incharge_phone_no=row[26],
-                            barcoded_weight=row[27],
-                            barcode_completion_date=row[28],
-                            hm_completed_date=row[29],
-                            qc_issue_challan_no=row[30],
-                            qc_issue_challan_date=row[31],
-                            receipt_no=row[32],
-                            receipt_date=row[33],
-                            net_weight=row[34],
-                            gross_weight=row[35],
-                            stone_weight=row[36],
-                            weight=row[35],
-                            piece=1
-                        )
-                        for row in rows
-                    ]
-                    db.session.bulk_insert_mappings(QCReceiptCompletedQCPendingSnapshot, records)
-                    loaded += len(rows)
-                    logger.info('QC Delay Management: %s loaded %s rows, awaiting commit.', current_view, loaded)
-                    emit_sync_update('processing', f'Loaded {loaded:,} rows from {current_view}...',
-                                     75, DATA_TYPE)
-                    del records, rows
+            if completed_stage < 3:
+                current_stage = 'Segment 2'
+                db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+                db.session.execute(text(f'LOCK TABLE "{QCReceiptCompletedQCPendingSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'))
+                # 3. Segment 2 Details (QC Receipt Completed - QC Pending)
+                s2_query = """
+                SELECT
+                    order_id, order_no, qc_ro_id, qc_ro, qc_ro_incharge, qc_ro_incharge_email, qc_ro_incharge_phone_no,
+                    make_owner, make_owner_emp_code, make, collection_owner, collection, party, party_mobile_no, po_date,
+                    delivery_target_date, po_number, order_type, order_request_type, design_no,
+                    set_identifier, set_design_no, order_ro, order_branch, business_head_name,
+                    order_incharge_email, order_incharge_phone_no, barcoded_weight, barcode_completion_date,
+                    hm_completed_date, qc_issue_challan_no, qc_issue_challan_date, receipt_no, receipt_date,
+                    net_weight, gross_weight, stone_weight
+                FROM ext_view.vw_qc_receipt_completed_qc_pending
+                """
+                current_view = "ext_view.vw_qc_receipt_completed_qc_pending"
+                loaded = 0
+                logger.info('QC Delay Management: reading %s in %s-row batches.', current_view, batch_size)
+                with conn.cursor(name='qc_delay_management_s2_sync') as cur:
+                    cur.execute(s2_query)
                     rows = cur.fetchmany(batch_size)
-            emit_sync_update('processing', 'Segment 2 details loaded. Syncing Segment 3...', 80, DATA_TYPE)
+                    db.session.query(QCReceiptCompletedQCPendingSnapshot).delete(synchronize_session=False)
+                    while rows:
+                        records = [
+                            dict(
+                                snapshot_date=snapshot_date,
+                                order_id=row[0],
+                                order_no=row[1],
+                                qc_ro_id=row[2],
+                                qc_ro=row[3],
+                                qc_ro_incharge=row[4],
+                                qc_ro_incharge_email=row[5],
+                                qc_ro_incharge_phone_no=row[6],
+                                make_owner=row[7],
+                                make_owner_emp_code=row[8],
+                                make=row[9],
+                                collection_owner=row[10],
+                                collection=row[11],
+                                party=row[12],
+                                party_mobile_no=row[13],
+                                po_date=row[14],
+                                delivery_target_date=row[15],
+                                po_number=row[16],
+                                order_type=row[17],
+                                order_request_type=row[18],
+                                design_no=row[19],
+                                set_identifier=row[20],
+                                set_design_no=row[21],
+                                order_ro=row[22],
+                                order_branch=row[23],
+                                business_head_name=row[24],
+                                order_incharge_email=row[25],
+                                order_incharge_phone_no=row[26],
+                                barcoded_weight=row[27],
+                                barcode_completion_date=row[28],
+                                hm_completed_date=row[29],
+                                qc_issue_challan_no=row[30],
+                                qc_issue_challan_date=row[31],
+                                receipt_no=row[32],
+                                receipt_date=row[33],
+                                net_weight=row[34],
+                                gross_weight=row[35],
+                                stone_weight=row[36],
+                                weight=row[35],
+                                piece=1
+                            )
+                            for row in rows
+                        ]
+                        db.session.bulk_insert_mappings(QCReceiptCompletedQCPendingSnapshot, records)
+                        loaded += len(rows)
+                        logger.info('QC Delay Management: %s loaded %s rows, awaiting commit.', current_view, loaded)
+                        emit_sync_update('processing', f'Loaded {loaded:,} rows from {current_view}...',
+                                         75, DATA_TYPE)
+                        del records, rows
+                        rows = cur.fetchmany(batch_size)
+                emit_sync_update('processing', 'Segment 2 details loaded. Syncing Segment 3...', 80, DATA_TYPE)
+                db.session.commit()
+                completed_stage = 3
+                retry_count = 0
 
-            # 4. Segment 3 Details (QC Completed - Invoice Request Pending)
-            s3_query = """
-            SELECT 
-                order_id, order_no, qc_ro_id, qc_ro, qc_ro_incharge, qc_ro_incharge_email, 
-                qc_ro_incharge_phone_no, make_owner, make_owner_emp_code, make, collection_owner, collection, 
-                party, party_mobile_no, po_date, delivery_target_date, po_number, 
-                order_type, order_request_type, design_no, set_identifier, set_design_no, 
-                order_ro, order_branch, business_head_name, order_incharge_email, 
-                order_incharge_phone_no, barcoded_weight, barcode_completion_date, 
-                hm_completed_date, final_qc_receipt_no, final_qc_receipt_date, 
-                qc_number, qc_completed_date, net_weight, gross_weight, stone_weight
-            FROM ext_view.vw_qc_completed_invoice_request_pending
-            """
-            current_view = "ext_view.vw_qc_completed_invoice_request_pending"
-            loaded = 0
-            logger.info('QC Delay Management: reading %s in %s-row batches.', current_view, batch_size)
-            with conn.cursor(name='qc_delay_management_s3_sync') as cur:
-                cur.execute(s3_query)
-                rows = cur.fetchmany(batch_size)
-                db.session.query(QCCompletedInvoiceRequestPendingSnapshot).delete(synchronize_session=False)
-                while rows:
-                    records = [
-                        dict(
-                            snapshot_date=snapshot_date,
-                            order_id=row[0],
-                            order_no=row[1],
-                            qc_ro_id=row[2],
-                            qc_ro=row[3],
-                            qc_ro_incharge=row[4],
-                            qc_ro_incharge_email=row[5],
-                            qc_ro_incharge_phone_no=row[6],
-                            make_owner=row[7],
-                            make_owner_emp_code=row[8],
-                            make=row[9],
-                            collection_owner=row[10],
-                            collection=row[11],
-                            party=row[12],
-                            party_mobile_no=row[13],
-                            po_date=row[14],
-                            delivery_target_date=row[15],
-                            po_number=row[16],
-                            order_type=row[17],
-                            order_request_type=row[18],
-                            design_no=row[19],
-                            set_identifier=row[20],
-                            set_design_no=row[21],
-                            order_ro=row[22],
-                            order_branch=row[23],
-                            business_head_name=row[24],
-                            order_incharge_email=row[25],
-                            order_incharge_phone_no=row[26],
-                            barcoded_weight=row[27],
-                            barcode_completion_date=row[28],
-                            hm_completed_date=row[29],
-                            final_qc_receipt_no=row[30],
-                            final_qc_receipt_date=row[31],
-                            qc_number=row[32],
-                            qc_completed_date=row[33],
-                            net_weight=row[34],
-                            gross_weight=row[35],
-                            stone_weight=row[36]
-                        )
-                        for row in rows
-                    ]
-                    db.session.bulk_insert_mappings(QCCompletedInvoiceRequestPendingSnapshot, records)
-                    loaded += len(rows)
-                    logger.info('QC Delay Management: %s loaded %s rows, awaiting commit.', current_view, loaded)
-                    emit_sync_update('processing', f'Loaded {loaded:,} rows from {current_view}...',
-                                     95, DATA_TYPE)
-                    del records, rows
+            if completed_stage < 4:
+                current_stage = 'Segment 3'
+                db.session.execute(text("SET LOCAL lock_timeout = '15s'"))
+                db.session.execute(text(f'LOCK TABLE "{QCCompletedInvoiceRequestPendingSnapshot.__tablename__}" IN SHARE ROW EXCLUSIVE MODE'))
+                # 4. Segment 3 Details (QC Completed - Invoice Request Pending)
+                s3_query = """
+                SELECT
+                    order_id, order_no, qc_ro_id, qc_ro, qc_ro_incharge, qc_ro_incharge_email,
+                    qc_ro_incharge_phone_no, make_owner, make_owner_emp_code, make, collection_owner, collection,
+                    party, party_mobile_no, po_date, delivery_target_date, po_number,
+                    order_type, order_request_type, design_no, set_identifier, set_design_no,
+                    order_ro, order_branch, business_head_name, order_incharge_email,
+                    order_incharge_phone_no, barcoded_weight, barcode_completion_date,
+                    hm_completed_date, final_qc_receipt_no, final_qc_receipt_date,
+                    qc_number, qc_completed_date, net_weight, gross_weight, stone_weight
+                FROM ext_view.vw_qc_completed_invoice_request_pending
+                """
+                current_view = "ext_view.vw_qc_completed_invoice_request_pending"
+                loaded = 0
+                logger.info('QC Delay Management: reading %s in %s-row batches.', current_view, batch_size)
+                with conn.cursor(name='qc_delay_management_s3_sync') as cur:
+                    cur.execute(s3_query)
                     rows = cur.fetchmany(batch_size)
+                    db.session.query(QCCompletedInvoiceRequestPendingSnapshot).delete(synchronize_session=False)
+                    while rows:
+                        records = [
+                            dict(
+                                snapshot_date=snapshot_date,
+                                order_id=row[0],
+                                order_no=row[1],
+                                qc_ro_id=row[2],
+                                qc_ro=row[3],
+                                qc_ro_incharge=row[4],
+                                qc_ro_incharge_email=row[5],
+                                qc_ro_incharge_phone_no=row[6],
+                                make_owner=row[7],
+                                make_owner_emp_code=row[8],
+                                make=row[9],
+                                collection_owner=row[10],
+                                collection=row[11],
+                                party=row[12],
+                                party_mobile_no=row[13],
+                                po_date=row[14],
+                                delivery_target_date=row[15],
+                                po_number=row[16],
+                                order_type=row[17],
+                                order_request_type=row[18],
+                                design_no=row[19],
+                                set_identifier=row[20],
+                                set_design_no=row[21],
+                                order_ro=row[22],
+                                order_branch=row[23],
+                                business_head_name=row[24],
+                                order_incharge_email=row[25],
+                                order_incharge_phone_no=row[26],
+                                barcoded_weight=row[27],
+                                barcode_completion_date=row[28],
+                                hm_completed_date=row[29],
+                                final_qc_receipt_no=row[30],
+                                final_qc_receipt_date=row[31],
+                                qc_number=row[32],
+                                qc_completed_date=row[33],
+                                net_weight=row[34],
+                                gross_weight=row[35],
+                                stone_weight=row[36]
+                            )
+                            for row in rows
+                        ]
+                        db.session.bulk_insert_mappings(QCCompletedInvoiceRequestPendingSnapshot, records)
+                        loaded += len(rows)
+                        logger.info('QC Delay Management: %s loaded %s rows, awaiting commit.', current_view, loaded)
+                        emit_sync_update('processing', f'Loaded {loaded:,} rows from {current_view}...',
+                                         95, DATA_TYPE)
+                        del records, rows
+                        rows = cur.fetchmany(batch_size)
+                db.session.commit()
+                completed_stage = 4
+                retry_count = 0
 
-            logger.info('QC Delay Management: committing summary and all three detail segments.')
-            db.session.commit()
+            logger.info('QC Delay Management: all four stages committed.')
             duration = time.monotonic() - start_time
             emit_sync_update('success', f"Successfully synced QC Delay Management data in {duration:.2f}s", 100, DATA_TYPE)
             return {"status": "success", "duration": duration}
@@ -3768,14 +3788,14 @@ def sync_qc_delay_management_data_task():
         except Exception as e:
             db.session.rollback()
             retry_count += 1
-            error_msg = f"QCDelayManagement sync failed on {current_view} (Attempt {retry_count}/{max_retries}): {str(e)}"
+            error_msg = f"QC Delay Management {current_stage} failed (Attempt {retry_count}/{max_retries}): {str(e)}"
             logger.error(error_msg)
-            
+
             if retry_count >= max_retries:
-                emit_sync_update('error', str(e), 0, DATA_TYPE)
-                return {"status": "error", "message": str(e)}
-            
-            emit_sync_update('processing', f"Sync failed, retrying in 5s... ({retry_count}/{max_retries})", 0, DATA_TYPE)
+                emit_sync_update('error', error_msg, 0, DATA_TYPE)
+                return {"status": "error", "message": error_msg}
+
+            emit_sync_update('processing', f"{current_stage} failed; retrying this stage in 5s... ({retry_count}/{max_retries}). Completed stages will not restart.", min(95, 10 + completed_stage * 25), DATA_TYPE)
             time.sleep(5)
         finally:
             if conn: conn.close()
@@ -3886,160 +3906,178 @@ def sync_hm_delay_management_data_task():
     DATA_TYPE = 'hm_delay_management'
     max_retries = 5
     retry_count = 0
-    
+    completed_stage = 0
+    current_stage = 'Summary'
+    snapshot_date = datetime.now()
+    start_time = time.time()
+
     while retry_count < max_retries:
-        start_time = time.time()
         conn = None
         try:
-            emit_sync_update('processing', f'Connecting to external database (Attempt {retry_count + 1}/{max_retries})...', 5, DATA_TYPE)
+            emit_sync_update('processing', f'Connecting for {current_stage} (Attempt {retry_count + 1}/{max_retries})...', min(95, 5 + completed_stage * 25), DATA_TYPE)
             conn = get_external_db_connection()
             cur = conn.cursor()
-            
-            # 1. Sync Summary Data
-            emit_sync_update('processing', 'Fetching HM Summary data...', 10, DATA_TYPE)
-            summary_query = """
-            SELECT 
-                hallmarking_center_id, hallmarking_center, hallmarking_center_code, 
-                hm_issue_completed_receipt_pending_piece, hm_issue_completed_receipt_pending_weight, 
-                hm_receipt_completed_hm_pending_piece, hm_receipt_completed_hm_pending_weight, 
-                hm_completed_return_pending_piece, hm_completed_return_pending_weight
-            FROM ext_view.vw_hm_summary_data
-            """
-            cur.execute(summary_query)
-            summary_rows = cur.fetchall()
-            
-            db.session.execute(text("TRUNCATE TABLE hm_delay_management_snapshots"))
-            snapshot_date = datetime.now()
-            summary_objects = [
-                HallmarkingDelayManagementSnapshot(
-                    snapshot_date=snapshot_date,
-                    hallmarking_center_id=row[0],
-                    hallmarking_center=row[1],
-                    hallmarking_center_code=row[2],
-                    hm_issue_completed_receipt_pending_piece=row[3],
-                    hm_issue_completed_receipt_pending_weight=row[4],
-                    hm_receipt_completed_hm_pending_piece=row[5],
-                    hm_receipt_completed_hm_pending_weight=row[6],
-                    hm_completed_return_pending_piece=row[7],
-                    hm_completed_return_pending_weight=row[8]
-                ) for row in summary_rows
-            ]
-            db.session.bulk_save_objects(summary_objects)
-            db.session.commit()
-            emit_sync_update('processing', 'Summary synced. Syncing Segment 1 details...', 30, DATA_TYPE)
 
-            # 2. Segment 1 Details
-            s1_query = """
-            SELECT 
-                orderid, make_owner, collection_owner, collection, order_ro, 
-                order_branch, party, party_mobile_no, po_date, target_date, 
-                po_number, order_type, order_request_type, order_no, required_weight, 
-                design_no, set_identifier, set_design_no, barcode, is_barcoded, 
-                is_supplier_hm_issue_challan_created, is_supplier_hm_issue_completed, 
-                is_hm_agent_received, barcoded_weight, barcode_completion_date, 
-                order_status, current_stage, hm_req_id, hm_issue_receipt_no, 
-                hm_issue_receipt_date, hallmark_agent, hm_ro, hm_agent_email, 
-                hm_agent_pnone_no, net_weight, gross_weight, stone_weight, 
-                business_head_name, hm_receipt_pending_pcs, hm_receipt_pending_wt
-            FROM ext_view.vw_supplier_hm_issue_completed_hm_receipt_pending
-            """
-            cur.execute(s1_query)
-            s1_rows = cur.fetchall()
-            db.session.execute(text("TRUNCATE TABLE supplier_hm_issue_receipt_pending_snapshots"))
-            s1_objects = [
-                SupplierHMIssueReceiptPendingSnapshot(
-                    snapshot_date=snapshot_date,
-                    orderid=row[0], make_owner=row[1], collection_owner=row[2], collection=row[3], order_ro=row[4],
-                    order_branch=row[5], party=row[6], party_mobile_no=row[7], po_date=row[8], target_date=row[9],
-                    po_number=row[10], order_type=row[11], order_request_type=row[12], order_no=row[13], required_weight=row[14],
-                    design_no=row[15], set_identifier=row[16], set_design_no=row[17], barcode=row[18], is_barcoded=row[19],
-                    is_supplier_hm_issue_challan_created=row[20], is_supplier_hm_issue_completed=row[21],
-                    is_hm_agent_received=row[22], barcoded_weight=row[23], barcode_completion_date=row[24],
-                    order_status=row[25], current_stage=row[26], hm_req_id=row[27], hm_issue_receipt_no=row[28],
-                    hm_issue_receipt_date=row[29], hallmarking_center=row[30], hm_ro=row[31], hm_agent_email=row[32],
-                    hm_agent_pnone_no=row[33], net_weight=row[34], gross_weight=row[35], stone_weight=row[36],
-                    business_head_name=row[37], hm_receipt_pending_pcs=row[38], hm_receipt_pending_wt=row[39]
-                ) for row in s1_rows
-            ]
-            db.session.bulk_save_objects(s1_objects)
-            db.session.commit()
-            emit_sync_update('processing', 'Segment 1 details synced. Syncing Segment 2...', 60, DATA_TYPE)
+            if completed_stage < 1:
+                current_stage = 'Summary'
+                # 1. Sync Summary Data
+                emit_sync_update('processing', 'Fetching HM Summary data...', 10, DATA_TYPE)
+                summary_query = """
+                SELECT
+                    hallmarking_center_id, hallmarking_center, hallmarking_center_code,
+                    hm_issue_completed_receipt_pending_piece, hm_issue_completed_receipt_pending_weight,
+                    hm_receipt_completed_hm_pending_piece, hm_receipt_completed_hm_pending_weight,
+                    hm_completed_return_pending_piece, hm_completed_return_pending_weight
+                FROM ext_view.vw_hm_summary_data
+                """
+                cur.execute(summary_query)
+                summary_rows = cur.fetchall()
 
-            # 3. Segment 2 Details
-            s2_query = """
-            SELECT 
-                order_id, order_no, hm_request_number, hm_request_date, hm_ro_id, 
-                hm_ro, hm_ro_incharge, hm_ro_incharge_email, hm_ro_incharge_phone_no, 
-                agent_name, hm_agent_phone_no, hm_agent_email, make_owner, make, 
-                collection_owner, collection, party, party_mobile_no, po_date, 
-                delivery_target_date, po_number, order_type, order_request_type, 
-                design_no, set_identifier, set_design_no, order_ro, order_branch, 
-                business_head_name, order_incharge_email, order_incharge_phone_no, 
-                barcoded_weight, barcode_completion_date, supplier_issue_challan_no, 
-                supplier_issue_challan_date, agent_received_receipt_no, 
-                agent_received_receipt_date, net_weight, gross_weight, stone_weight
-            FROM ext_view.vw_hm_receipt_completed_hm_pending
-            """
-            cur.execute(s2_query)
-            s2_rows = cur.fetchall()
-            db.session.execute(text("TRUNCATE TABLE hm_receipt_completed_hm_pending_snapshots"))
-            s2_objects = [
-                HMReceiptCompletedHMPendingSnapshot(
-                    snapshot_date=snapshot_date,
-                    order_id=row[0], order_no=row[1], hm_request_number=row[2], hm_request_date=row[3], hm_ro_id=row[4],
-                    hm_ro=row[5], hm_ro_incharge=row[6], hm_ro_incharge_email=row[7], hm_ro_incharge_phone_no=row[8],
-                    hallmarking_center=row[9], hm_agent_phone_no=row[10], hm_agent_email=row[11], make_owner=row[12], make=row[13],
-                    collection_owner=row[14], collection=row[15], party=row[16], party_mobile_no=row[17], po_date=row[18],
-                    delivery_target_date=row[19], po_number=row[20], order_type=row[21], order_request_type=row[22],
-                    design_no=row[23], set_identifier=row[24], set_design_no=row[25], order_ro=row[26], order_branch=row[27],
-                    business_head_name=row[28], order_incharge_email=row[29], order_incharge_phone_no=row[30],
-                    barcoded_weight=row[31], barcode_completion_date=row[32], supplier_issue_challan_no=row[33],
-                    supplier_issue_challan_date=row[34], agent_received_receipt_no=row[35],
-                    agent_received_receipt_date=row[36], net_weight=row[37], gross_weight=row[38], stone_weight=row[39]
-                ) for row in s2_rows
-            ]
-            db.session.bulk_save_objects(s2_objects)
-            db.session.commit()
-            emit_sync_update('processing', 'Segment 2 details synced. Syncing Segment 3...', 80, DATA_TYPE)
+                db.session.execute(text("TRUNCATE TABLE hm_delay_management_snapshots"))
+                summary_objects = [
+                    HallmarkingDelayManagementSnapshot(
+                        snapshot_date=snapshot_date,
+                        hallmarking_center_id=row[0],
+                        hallmarking_center=row[1],
+                        hallmarking_center_code=row[2],
+                        hm_issue_completed_receipt_pending_piece=row[3],
+                        hm_issue_completed_receipt_pending_weight=row[4],
+                        hm_receipt_completed_hm_pending_piece=row[5],
+                        hm_receipt_completed_hm_pending_weight=row[6],
+                        hm_completed_return_pending_piece=row[7],
+                        hm_completed_return_pending_weight=row[8]
+                    ) for row in summary_rows
+                ]
+                db.session.bulk_save_objects(summary_objects)
+                db.session.commit()
+                emit_sync_update('processing', 'Summary synced. Syncing Segment 1 details...', 30, DATA_TYPE)
+                completed_stage = 1
+                retry_count = 0
 
-            # 4. Segment 3 Details
-            s3_query = """
-            SELECT 
-                order_id, make_owner, collection_owner, collection, order_ro, 
-                order_branch, party, party_mobile_no, po_date, target_date, 
-                po_number, order_type, order_request_type, order_no, required_weight, 
-                design_no, set_identifier, set_design_no, barcode, is_hm_agent_received, 
-                is_hallmark_completed, barcoded_weight, barcode_completion_date, 
-                order_status, current_stage, hallmar_req_id, hm_request_no, 
-                hallmark_agent, hallmark_status, hm_agent_invoice_receipt_no, 
-                hm_agent_invoice_receipt_date, hm_ro, hm_agent_email, hm_agent_pnone_no, 
-                hm_completed_at, hallmark_info_id, net_weight, gross_weight, 
-                stone_weight, vehicle_no, logistic_mobile_no, logistic_date, 
-                by_hand_name, pending_to_hm_recipt_return_piece, pending_to_hm_recipt_return_wt
-            FROM ext_view.vw_hm_completed_return_pending
-            """
-            cur.execute(s3_query)
-            s3_rows = cur.fetchall()
-            db.session.execute(text("TRUNCATE TABLE hm_completed_return_pending_snapshots"))
-            s3_objects = [
-                HMCompletedReturnPendingSnapshot(
-                    snapshot_date=snapshot_date,
-                    order_id=row[0], make_owner=row[1], collection_owner=row[2], collection=row[3], order_ro=row[4],
-                    order_branch=row[5], party=row[6], party_mobile_no=row[7], po_date=row[8], target_date=row[9],
-                    po_number=row[10], order_type=row[11], order_request_type=row[12], order_no=row[13], required_weight=row[14],
-                    design_no=row[15], set_identifier=row[16], set_design_no=row[17], barcode=row[18], 
-                    is_hm_agent_received=row[19], is_hallmark_completed=row[20], 
-                    barcoded_weight=row[21], barcode_completion_date=row[22],
-                    order_status=row[23], current_stage=row[24], hallmar_req_id=row[25], hm_request_no=row[26],
-                    hallmarking_center=row[27], hallmark_status=row[28], hm_agent_invoice_receipt_no=row[29],
-                    hm_agent_invoice_receipt_date=row[30], hm_ro=row[31], hm_agent_email=row[32], hm_agent_pnone_no=row[33],
-                    hm_completed_at=row[34], hallmark_info_id=row[35], net_weight=row[36], gross_weight=row[37],
-                    stone_weight=row[38], vehicle_no=row[39], logistic_mobile_no=row[40], logistic_date=row[41],
-                    by_hand_name=row[42], pending_to_hm_recipt_return_piece=row[43], pending_to_hm_recipt_return_wt=row[44]
-                ) for row in s3_rows
-            ]
-            db.session.bulk_save_objects(s3_objects)
-            db.session.commit()
+            if completed_stage < 2:
+                current_stage = 'Segment 1'
+                # 2. Segment 1 Details
+                s1_query = """
+                SELECT
+                    orderid, make_owner, collection_owner, collection, order_ro,
+                    order_branch, party, party_mobile_no, po_date, target_date,
+                    po_number, order_type, order_request_type, order_no, required_weight,
+                    design_no, set_identifier, set_design_no, barcode, is_barcoded,
+                    is_supplier_hm_issue_challan_created, is_supplier_hm_issue_completed,
+                    is_hm_agent_received, barcoded_weight, barcode_completion_date,
+                    order_status, current_stage, hm_req_id, hm_issue_receipt_no,
+                    hm_issue_receipt_date, hallmark_agent, hm_ro, hm_agent_email,
+                    hm_agent_pnone_no, net_weight, gross_weight, stone_weight,
+                    business_head_name, hm_receipt_pending_pcs, hm_receipt_pending_wt
+                FROM ext_view.vw_supplier_hm_issue_completed_hm_receipt_pending
+                """
+                cur.execute(s1_query)
+                s1_rows = cur.fetchall()
+                db.session.execute(text("TRUNCATE TABLE supplier_hm_issue_receipt_pending_snapshots"))
+                s1_objects = [
+                    SupplierHMIssueReceiptPendingSnapshot(
+                        snapshot_date=snapshot_date,
+                        orderid=row[0], make_owner=row[1], collection_owner=row[2], collection=row[3], order_ro=row[4],
+                        order_branch=row[5], party=row[6], party_mobile_no=row[7], po_date=row[8], target_date=row[9],
+                        po_number=row[10], order_type=row[11], order_request_type=row[12], order_no=row[13], required_weight=row[14],
+                        design_no=row[15], set_identifier=row[16], set_design_no=row[17], barcode=row[18], is_barcoded=row[19],
+                        is_supplier_hm_issue_challan_created=row[20], is_supplier_hm_issue_completed=row[21],
+                        is_hm_agent_received=row[22], barcoded_weight=row[23], barcode_completion_date=row[24],
+                        order_status=row[25], current_stage=row[26], hm_req_id=row[27], hm_issue_receipt_no=row[28],
+                        hm_issue_receipt_date=row[29], hallmarking_center=row[30], hm_ro=row[31], hm_agent_email=row[32],
+                        hm_agent_pnone_no=row[33], net_weight=row[34], gross_weight=row[35], stone_weight=row[36],
+                        business_head_name=row[37], hm_receipt_pending_pcs=row[38], hm_receipt_pending_wt=row[39]
+                    ) for row in s1_rows
+                ]
+                db.session.bulk_save_objects(s1_objects)
+                db.session.commit()
+                emit_sync_update('processing', 'Segment 1 details synced. Syncing Segment 2...', 60, DATA_TYPE)
+                completed_stage = 2
+                retry_count = 0
+
+            if completed_stage < 3:
+                current_stage = 'Segment 2'
+                # 3. Segment 2 Details
+                s2_query = """
+                SELECT
+                    order_id, order_no, hm_request_number, hm_request_date, hm_ro_id,
+                    hm_ro, hm_ro_incharge, hm_ro_incharge_email, hm_ro_incharge_phone_no,
+                    agent_name, hm_agent_phone_no, hm_agent_email, make_owner, make,
+                    collection_owner, collection, party, party_mobile_no, po_date,
+                    delivery_target_date, po_number, order_type, order_request_type,
+                    design_no, set_identifier, set_design_no, order_ro, order_branch,
+                    business_head_name, order_incharge_email, order_incharge_phone_no,
+                    barcoded_weight, barcode_completion_date, supplier_issue_challan_no,
+                    supplier_issue_challan_date, agent_received_receipt_no,
+                    agent_received_receipt_date, net_weight, gross_weight, stone_weight
+                FROM ext_view.vw_hm_receipt_completed_hm_pending
+                """
+                cur.execute(s2_query)
+                s2_rows = cur.fetchall()
+                db.session.execute(text("TRUNCATE TABLE hm_receipt_completed_hm_pending_snapshots"))
+                s2_objects = [
+                    HMReceiptCompletedHMPendingSnapshot(
+                        snapshot_date=snapshot_date,
+                        order_id=row[0], order_no=row[1], hm_request_number=row[2], hm_request_date=row[3], hm_ro_id=row[4],
+                        hm_ro=row[5], hm_ro_incharge=row[6], hm_ro_incharge_email=row[7], hm_ro_incharge_phone_no=row[8],
+                        hallmarking_center=row[9], hm_agent_phone_no=row[10], hm_agent_email=row[11], make_owner=row[12], make=row[13],
+                        collection_owner=row[14], collection=row[15], party=row[16], party_mobile_no=row[17], po_date=row[18],
+                        delivery_target_date=row[19], po_number=row[20], order_type=row[21], order_request_type=row[22],
+                        design_no=row[23], set_identifier=row[24], set_design_no=row[25], order_ro=row[26], order_branch=row[27],
+                        business_head_name=row[28], order_incharge_email=row[29], order_incharge_phone_no=row[30],
+                        barcoded_weight=row[31], barcode_completion_date=row[32], supplier_issue_challan_no=row[33],
+                        supplier_issue_challan_date=row[34], agent_received_receipt_no=row[35],
+                        agent_received_receipt_date=row[36], net_weight=row[37], gross_weight=row[38], stone_weight=row[39]
+                    ) for row in s2_rows
+                ]
+                db.session.bulk_save_objects(s2_objects)
+                db.session.commit()
+                emit_sync_update('processing', 'Segment 2 details synced. Syncing Segment 3...', 80, DATA_TYPE)
+                completed_stage = 3
+                retry_count = 0
+
+            if completed_stage < 4:
+                current_stage = 'Segment 3'
+                # 4. Segment 3 Details
+                s3_query = """
+                SELECT
+                    order_id, make_owner, collection_owner, collection, order_ro,
+                    order_branch, party, party_mobile_no, po_date, target_date,
+                    po_number, order_type, order_request_type, order_no, required_weight,
+                    design_no, set_identifier, set_design_no, barcode, is_hm_agent_received,
+                    is_hallmark_completed, barcoded_weight, barcode_completion_date,
+                    order_status, current_stage, hallmar_req_id, hm_request_no,
+                    hallmark_agent, hallmark_status, hm_agent_invoice_receipt_no,
+                    hm_agent_invoice_receipt_date, hm_ro, hm_agent_email, hm_agent_pnone_no,
+                    hm_completed_at, hallmark_info_id, net_weight, gross_weight,
+                    stone_weight, vehicle_no, logistic_mobile_no, logistic_date,
+                    by_hand_name, pending_to_hm_recipt_return_piece, pending_to_hm_recipt_return_wt
+                FROM ext_view.vw_hm_completed_return_pending
+                """
+                cur.execute(s3_query)
+                s3_rows = cur.fetchall()
+                db.session.execute(text("TRUNCATE TABLE hm_completed_return_pending_snapshots"))
+                s3_objects = [
+                    HMCompletedReturnPendingSnapshot(
+                        snapshot_date=snapshot_date,
+                        order_id=row[0], make_owner=row[1], collection_owner=row[2], collection=row[3], order_ro=row[4],
+                        order_branch=row[5], party=row[6], party_mobile_no=row[7], po_date=row[8], target_date=row[9],
+                        po_number=row[10], order_type=row[11], order_request_type=row[12], order_no=row[13], required_weight=row[14],
+                        design_no=row[15], set_identifier=row[16], set_design_no=row[17], barcode=row[18],
+                        is_hm_agent_received=row[19], is_hallmark_completed=row[20],
+                        barcoded_weight=row[21], barcode_completion_date=row[22],
+                        order_status=row[23], current_stage=row[24], hallmar_req_id=row[25], hm_request_no=row[26],
+                        hallmarking_center=row[27], hallmark_status=row[28], hm_agent_invoice_receipt_no=row[29],
+                        hm_agent_invoice_receipt_date=row[30], hm_ro=row[31], hm_agent_email=row[32], hm_agent_pnone_no=row[33],
+                        hm_completed_at=row[34], hallmark_info_id=row[35], net_weight=row[36], gross_weight=row[37],
+                        stone_weight=row[38], vehicle_no=row[39], logistic_mobile_no=row[40], logistic_date=row[41],
+                        by_hand_name=row[42], pending_to_hm_recipt_return_piece=row[43], pending_to_hm_recipt_return_wt=row[44]
+                    ) for row in s3_rows
+                ]
+                db.session.bulk_save_objects(s3_objects)
+                db.session.commit()
+                completed_stage = 4
+                retry_count = 0
 
             duration = time.time() - start_time
             emit_sync_update('success', f"Successfully synced HM Delay Management data in {duration:.2f}s", 100, DATA_TYPE)
@@ -4048,14 +4086,14 @@ def sync_hm_delay_management_data_task():
         except Exception as e:
             db.session.rollback()
             retry_count += 1
-            error_msg = f"HMDelayManagement sync failed (Attempt {retry_count}/{max_retries}): {str(e)}"
+            error_msg = f"HM Delay Management {current_stage} failed (Attempt {retry_count}/{max_retries}): {str(e)}"
             logger.error(error_msg)
-            
+
             if retry_count >= max_retries:
-                emit_sync_update('error', str(e), 0, DATA_TYPE)
-                return {"status": "error", "message": str(e)}
-            
-            emit_sync_update('processing', f"Sync failed, retrying in 5s... ({retry_count}/{max_retries})", 0, DATA_TYPE)
+                emit_sync_update('error', error_msg, 0, DATA_TYPE)
+                return {"status": "error", "message": error_msg}
+
+            emit_sync_update('processing', f"{current_stage} failed; retrying this stage in 5s... ({retry_count}/{max_retries}). Completed stages will not restart.", min(95, 10 + completed_stage * 25), DATA_TYPE)
             time.sleep(5)
         finally:
             if conn: conn.close()
@@ -4063,204 +4101,217 @@ def sync_party_delay_management_data_task():
     DATA_TYPE = 'party_delay_management'
     max_retries = 5
     retry_count = 0
-    
+    completed_stage = 0
+    current_stage = 'Summary'
+    snapshot_date = datetime.now()
+    start_time = time.time()
+
     while retry_count < max_retries:
-        start_time = time.time()
         conn = None
         try:
-            emit_sync_update('processing', f'Connecting to external database (Attempt {retry_count + 1}/{max_retries})...', 5, DATA_TYPE)
+            emit_sync_update('processing', f'Connecting for {current_stage} (Attempt {retry_count + 1}/{max_retries})...', min(95, 5 + completed_stage * 10), DATA_TYPE)
             conn = get_external_db_connection()
             cur = conn.cursor()
-            
-            # 1. Sync Summary Data
-            emit_sync_update('processing', 'Fetching Party Summary data...', 10, DATA_TYPE)
-            summary_query = """
-            SELECT party, party_code, make, make_owner, make_owner_emp_code, party_address,
-                   invited_pending_orders, invited_pending_weight, 
-                   process_pending_orders, process_pending_weight, 
-                   process_completed_barcode_pending_orders, process_completed_barcode_pending_weight, 
-                   barcode_completed_bis_request_pending_orders, barcode_completed_bis_request_pending_weight, 
-                   bis_request_completed_hm_issue_pending_orders, bis_request_completed_hm_issue_pending_weight, 
-                   hm_receipt_return_completed_qc_issue_pending, hm_receipt_return_completed_qc_issue_pending_weight, 
-                   invoice_generated_invoice_approve_pending, invoice_generated_invoice_approve_pending_weight, 
-                   invoice_approved_not_synched_to_muziris, invoice_approved_not_synched_to_muziris_weight,
-                   total_pieces, total_weight,
-                   order_date, accepted_date, barcoded_completed_date, bis_request_complete_date,
-                   hm_receipt_return_completed_date, invoice_generated_date, invoice_approved_date
-            FROM ext_view.vw_party_summary
-            """
-            cur.execute(summary_query)
-            summary_rows = cur.fetchall()
-            
-            # Ensure required columns exist in party_delay_management_snapshots table
-            # from sqlalchemy import inspect
-            # try:
-            #     inspector = inspect(db.engine)
-            #     columns = [c['name'] for c in inspector.get_columns('party_delay_management_snapshots')]
-            #     if 'bis_request_completed_hm_issue_pending_weig' in columns and 'bis_request_completed_hm_issue_pending_weight' not in columns:
-            #         db.session.execute(text("ALTER TABLE party_delay_management_snapshots RENAME COLUMN bis_request_completed_hm_issue_pending_weig TO bis_request_completed_hm_issue_pending_weight"))
-            #     elif 'bis_request_completed_hm_issue_pending_weight' not in columns:
-            #         db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN bis_request_completed_hm_issue_pending_weight NUMERIC(12, 3) DEFAULT 0"))
-                
-            #     if 'party_address' not in columns:
-            #         db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN party_address TEXT"))
-            #     if 'total_pieces' not in columns:
-            #         db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN total_pieces INTEGER DEFAULT 0"))
-            #     if 'total_weight' not in columns:
-            #         db.session.execute(text("ALTER TABLE party_delay_management_snapshots ADD COLUMN total_weight NUMERIC(12, 3) DEFAULT 0"))
-                
-            #     for col_name in ['order_date', 'accepted_date', 'barcoded_completed_date', 'bis_request_complete_date', 'hm_receipt_return_completed_date', 'invoice_generated_date', 'invoice_approved_date']:
-            #         if col_name not in columns:
-            #             db.session.execute(text(f"ALTER TABLE party_delay_management_snapshots ADD COLUMN {col_name} TIMESTAMP"))
-            #     db.session.commit()
-            # except Exception as migrate_err:
-            #     db.session.rollback()
-            #     logger.warning(f"Auto-migration failed: {migrate_err}")
 
-            db.session.execute(text("TRUNCATE TABLE party_delay_management_snapshots"))
-            snapshot_date = datetime.now()
-            summary_objects = [
-                PartyDelayManagementSnapshot(
-                    snapshot_date=snapshot_date,
-                    party=row[0],
-                    party_code=row[1],
-                    make=row[2],
-                    make_owner=row[3],
-                    make_owner_emp_code=row[4],
-                    party_address=row[5],
-                    invited_pending_orders=row[6],
-                    invited_pending_weight=row[7],
-                    process_pending_orders=row[8],
-                    process_pending_weight=row[9],
-                    process_completed_barcode_pending_orders=row[10],
-                    process_completed_barcode_pending_weight=row[11],
-                    barcode_completed_bis_request_pending_orders=row[12],
-                    barcode_completed_bis_request_pending_weight=row[13],
-                    bis_request_completed_hm_issue_pending_orders=row[14],
-                    bis_request_completed_hm_issue_pending_weight=row[15],
-                    hm_receipt_return_completed_qc_issue_pending=row[16],
-                    hm_receipt_return_completed_qc_issue_pending_weight=row[17],
-                    invoice_generated_invoice_approve_pending=row[18],
-                    invoice_generated_invoice_approve_pending_weight=row[19],
-                    invoice_approved_not_synched_to_muziris=row[20],
-                    invoice_approved_not_synched_to_muziris_weight=row[21],
-                    total_pieces=row[22],
-                    total_weight=row[23],
-                    order_date=row[24],
-                    accepted_date=row[25],
-                    barcoded_completed_date=row[26],
-                    bis_request_complete_date=row[27],
-                    hm_receipt_return_completed_date=row[28],
-                    invoice_generated_date=row[29],
-                    invoice_approved_date=row[30]
-                ) for row in summary_rows
-            ]
-            db.session.bulk_save_objects(summary_objects)
-            db.session.commit()
-            emit_sync_update('processing', 'Summary synced. Syncing Segment 1 details...', 15, DATA_TYPE)
+            if completed_stage < 1:
+                current_stage = 'Summary'
+                # 1. Sync Summary Data
+                emit_sync_update('processing', 'Fetching Party Summary data...', 10, DATA_TYPE)
+                summary_query = """
+                SELECT party, party_code, make, make_owner, make_owner_emp_code, party_address,
+                       invited_pending_orders, invited_pending_weight,
+                       process_pending_orders, process_pending_weight,
+                       process_completed_barcode_pending_orders, process_completed_barcode_pending_weight,
+                       barcode_completed_bis_request_pending_orders, barcode_completed_bis_request_pending_weight,
+                       bis_request_completed_hm_issue_pending_orders, bis_request_completed_hm_issue_pending_weight,
+                       hm_receipt_return_completed_qc_issue_pending, hm_receipt_return_completed_qc_issue_pending_weight,
+                       invoice_generated_invoice_approve_pending, invoice_generated_invoice_approve_pending_weight,
+                       invoice_approved_not_synched_to_muziris, invoice_approved_not_synched_to_muziris_weight,
+                       total_pieces, total_weight,
+                       order_date, accepted_date, barcoded_completed_date, bis_request_complete_date,
+                       hm_receipt_return_completed_date, invoice_generated_date, invoice_approved_date
+                FROM ext_view.vw_party_summary
+                """
+                cur.execute(summary_query)
+                summary_rows = cur.fetchall()
 
-            # 2. Segment 1 Details (Accept Pending)
-            s1_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_invited_order_details"
-            try:
-                cur.execute(s1_query)
-                s1_rows = cur.fetchall()
-                db.session.execute(text("TRUNCATE TABLE party_accept_pending_snapshots"))
-                s1_objects = [PartyAcceptPendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyAcceptPendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s1_rows]
-                db.session.bulk_save_objects(s1_objects)
+                db.session.execute(text("TRUNCATE TABLE party_delay_management_snapshots"))
+                summary_objects = [
+                    PartyDelayManagementSnapshot(
+                        snapshot_date=snapshot_date,
+                        party=row[0],
+                        party_code=row[1],
+                        make=row[2],
+                        make_owner=row[3],
+                        make_owner_emp_code=row[4],
+                        party_address=row[5],
+                        invited_pending_orders=row[6],
+                        invited_pending_weight=row[7],
+                        process_pending_orders=row[8],
+                        process_pending_weight=row[9],
+                        process_completed_barcode_pending_orders=row[10],
+                        process_completed_barcode_pending_weight=row[11],
+                        barcode_completed_bis_request_pending_orders=row[12],
+                        barcode_completed_bis_request_pending_weight=row[13],
+                        bis_request_completed_hm_issue_pending_orders=row[14],
+                        bis_request_completed_hm_issue_pending_weight=row[15],
+                        hm_receipt_return_completed_qc_issue_pending=row[16],
+                        hm_receipt_return_completed_qc_issue_pending_weight=row[17],
+                        invoice_generated_invoice_approve_pending=row[18],
+                        invoice_generated_invoice_approve_pending_weight=row[19],
+                        invoice_approved_not_synched_to_muziris=row[20],
+                        invoice_approved_not_synched_to_muziris_weight=row[21],
+                        total_pieces=row[22],
+                        total_weight=row[23],
+                        order_date=row[24],
+                        accepted_date=row[25],
+                        barcoded_completed_date=row[26],
+                        bis_request_complete_date=row[27],
+                        hm_receipt_return_completed_date=row[28],
+                        invoice_generated_date=row[29],
+                        invoice_approved_date=row[30]
+                    ) for row in summary_rows
+                ]
+                db.session.bulk_save_objects(summary_objects)
                 db.session.commit()
-            except Exception as e:
-                raise Exception(f"Segment 1 (vw_invited_order_details) failed: {str(e)}")
-            emit_sync_update('processing', 'Segment 1 synced. Syncing Segment 2...', 25, DATA_TYPE)
+                emit_sync_update('processing', 'Summary synced. Syncing Segment 1 details...', 15, DATA_TYPE)
+                completed_stage = 1
+                retry_count = 0
 
-            # 3. Segment 2 Details (Process Pending)
-            s2_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no, accepted_date FROM ext_view.vw_process_pending_order_details"
-            try:
-                cur.execute(s2_query)
-                s2_rows = cur.fetchall()
-                db.session.execute(text("TRUNCATE TABLE party_process_pending_snapshots"))
-                s2_objects = [PartyProcessPendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyProcessPendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s2_rows]
-                db.session.bulk_save_objects(s2_objects)
-                db.session.commit()
-            except Exception as e:
-                raise Exception(f"Segment 2 (vw_process_pending_order_details) failed: {str(e)}")
-            emit_sync_update('processing', 'Segment 2 synced. Syncing Segment 3...', 35, DATA_TYPE)
+            if completed_stage < 2:
+                current_stage = 'Segment 1'
+                # 2. Segment 1 Details (Accept Pending)
+                s1_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no FROM ext_view.vw_invited_order_details"
+                try:
+                    cur.execute(s1_query)
+                    s1_rows = cur.fetchall()
+                    db.session.execute(text("TRUNCATE TABLE party_accept_pending_snapshots"))
+                    s1_objects = [PartyAcceptPendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyAcceptPendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s1_rows]
+                    db.session.bulk_save_objects(s1_objects)
+                    db.session.commit()
+                except Exception as e:
+                    raise Exception(f"Segment 1 (vw_invited_order_details) failed: {str(e)}")
+                emit_sync_update('processing', 'Segment 1 synced. Syncing Segment 2...', 25, DATA_TYPE)
+                completed_stage = 2
+                retry_count = 0
 
-            # 4. Segment 3 Details (Barcode Pending)
-            s3_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no, accepted_date FROM ext_view.vw_barcode_pending_order_details"
-            try:
-                cur.execute(s3_query)
-                s3_rows = cur.fetchall()
-                db.session.execute(text("TRUNCATE TABLE party_barcode_pending_snapshots"))
-                s3_objects = [PartyBarcodePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyBarcodePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s3_rows]
-                db.session.bulk_save_objects(s3_objects)
-                db.session.commit()
-            except Exception as e:
-                raise Exception(f"Segment 3 (vw_barcode_pending_order_details) failed: {str(e)}")
-            emit_sync_update('processing', 'Segment 3 synced. Syncing Segment 4...', 45, DATA_TYPE)
+            if completed_stage < 3:
+                current_stage = 'Segment 2'
+                # 3. Segment 2 Details (Process Pending)
+                s2_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no, accepted_date FROM ext_view.vw_process_pending_order_details"
+                try:
+                    cur.execute(s2_query)
+                    s2_rows = cur.fetchall()
+                    db.session.execute(text("TRUNCATE TABLE party_process_pending_snapshots"))
+                    s2_objects = [PartyProcessPendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyProcessPendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s2_rows]
+                    db.session.bulk_save_objects(s2_objects)
+                    db.session.commit()
+                except Exception as e:
+                    raise Exception(f"Segment 2 (vw_process_pending_order_details) failed: {str(e)}")
+                emit_sync_update('processing', 'Segment 2 synced. Syncing Segment 3...', 35, DATA_TYPE)
+                completed_stage = 3
+                retry_count = 0
 
-            # 5. Segment 4 Details (Barcode Completed - BIS Request Pending)
-            s4_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, barcode_completion_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_barcode_completed_bis_request_delay"
-            try:
-                cur.execute(s4_query)
-                s4_rows = cur.fetchall()
-                db.session.execute(text("TRUNCATE TABLE party_barcode_completed_bis_request_pending_snapshots"))
-                s4_objects = [PartyBarcodeCompletedBISRequestPendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyBarcodeCompletedBISRequestPendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s4_rows]
-                db.session.bulk_save_objects(s4_objects)
-                db.session.commit()
-            except Exception as e:
-                raise Exception(f"Segment 4 (vw_barcode_completed_bis_request_delay) failed: {str(e)}")
-            emit_sync_update('processing', 'Segment 4 synced. Syncing Segment 5...', 55, DATA_TYPE)
+            if completed_stage < 4:
+                current_stage = 'Segment 3'
+                # 4. Segment 3 Details (Barcode Pending)
+                s3_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, branch_id, po_date, po_number, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, business_head_phone_number, barcoded_weight, required_weight, order_status, stone_weight, net_weight, order_no, accepted_date FROM ext_view.vw_barcode_pending_order_details"
+                try:
+                    cur.execute(s3_query)
+                    s3_rows = cur.fetchall()
+                    db.session.execute(text("TRUNCATE TABLE party_barcode_pending_snapshots"))
+                    s3_objects = [PartyBarcodePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyBarcodePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s3_rows]
+                    db.session.bulk_save_objects(s3_objects)
+                    db.session.commit()
+                except Exception as e:
+                    raise Exception(f"Segment 3 (vw_barcode_pending_order_details) failed: {str(e)}")
+                emit_sync_update('processing', 'Segment 3 synced. Syncing Segment 4...', 45, DATA_TYPE)
+                completed_stage = 4
+                retry_count = 0
 
-            # 6. Segment 5 Details (BIS Request Completed - HM Issue Pending)
-            s5_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, barcode_completion_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_bis_request_completed_hm_issue_delay"
-            try:
-                cur.execute(s5_query)
-                s5_rows = cur.fetchall()
-                db.session.execute(text("TRUNCATE TABLE party_bis_request_completed_hm_issue_pending_snapshots"))
-                s5_objects = [PartyBISRequestCompletedHMIssuePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyBISRequestCompletedHMIssuePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s5_rows]
-                db.session.bulk_save_objects(s5_objects)
-                db.session.commit()
-            except Exception as e:
-                raise Exception(f"Segment 5 (vw_bis_request_completed_hm_issue_delay) failed: {str(e)}")
-            emit_sync_update('processing', 'Segment 5 synced. Syncing Segment 6...', 65, DATA_TYPE)
+            if completed_stage < 5:
+                current_stage = 'Segment 4'
+                # 5. Segment 4 Details (Barcode Completed - BIS Request Pending)
+                s4_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, barcode_completion_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_barcode_completed_bis_request_delay"
+                try:
+                    cur.execute(s4_query)
+                    s4_rows = cur.fetchall()
+                    db.session.execute(text("TRUNCATE TABLE party_barcode_completed_bis_request_pending_snapshots"))
+                    s4_objects = [PartyBarcodeCompletedBISRequestPendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyBarcodeCompletedBISRequestPendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s4_rows]
+                    db.session.bulk_save_objects(s4_objects)
+                    db.session.commit()
+                except Exception as e:
+                    raise Exception(f"Segment 4 (vw_barcode_completed_bis_request_delay) failed: {str(e)}")
+                emit_sync_update('processing', 'Segment 4 synced. Syncing Segment 5...', 55, DATA_TYPE)
+                completed_stage = 5
+                retry_count = 0
 
-            # 7. Segment 6 Details (HM Receipt Return Completed - QC Issue Pending)
-            s6_query = "SELECT order_id, make_owner, collection_owner, make_owner_emp_code, collection, order_ro, order_branch, party, party_mobile_no, po_date, target_date, po_number, order_type, order_request_type, order_no, required_weight, design_no, set_identifier, set_design_no, barcode, is_hm_agent_received, barcoded_weight, barcode_completion_date, order_status, current_stage, hallmar_req_id, hm_request_no, hallmark_agent, hallmark_status, hm_ro, hm_agent_email, hm_agent_pnone_no, hm_completed_at, hallmark_info_id, net_weight, gross_weight, stone_weight, business_head_name, '+91' as business_head_phone_number, hm_agent_invoice_receipt_no, hm_agent_invoice_receipt_date, pending_to_final_qc_issue_pcs, pending_to_final_qc_issue_weight FROM ext_view.vw_hm_return_received_qc_issue_pending"
-            try:
-                cur.execute(s6_query)
-                s6_rows = cur.fetchall()
-                db.session.execute(text("TRUNCATE TABLE party_qc_issue_pending_snapshots"))
-                s6_objects = [PartyHMReceiptCompletedQCIssuePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyHMReceiptCompletedQCIssuePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s6_rows]
-                db.session.bulk_save_objects(s6_objects)
-                db.session.commit()
-            except Exception as e:
-                raise Exception(f"Segment 6 (vw_hm_return_received_qc_issue_pending) failed: {str(e)}")
-            emit_sync_update('processing', 'Segment 6 synced. Syncing Segment 7...', 75, DATA_TYPE)
+            if completed_stage < 6:
+                current_stage = 'Segment 5'
+                # 6. Segment 5 Details (BIS Request Completed - HM Issue Pending)
+                s5_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, barcode_completion_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_bis_request_completed_hm_issue_delay"
+                try:
+                    cur.execute(s5_query)
+                    s5_rows = cur.fetchall()
+                    db.session.execute(text("TRUNCATE TABLE party_bis_request_completed_hm_issue_pending_snapshots"))
+                    s5_objects = [PartyBISRequestCompletedHMIssuePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyBISRequestCompletedHMIssuePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s5_rows]
+                    db.session.bulk_save_objects(s5_objects)
+                    db.session.commit()
+                except Exception as e:
+                    raise Exception(f"Segment 5 (vw_bis_request_completed_hm_issue_delay) failed: {str(e)}")
+                emit_sync_update('processing', 'Segment 5 synced. Syncing Segment 6...', 65, DATA_TYPE)
+                completed_stage = 6
+                retry_count = 0
 
-            # 8. Segment 7 Details (Invoice Generated - Invoice Approve Pending)
-            s7_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, invoice_no, invoice_generated_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_invoice_generated_invoice_approve_delay"
-            try:
-                cur.execute(s7_query)
-                s7_rows = cur.fetchall()
-                db.session.execute(text("TRUNCATE TABLE party_invoice_generated_invoice_approve_pending_snapshots"))
-                s7_objects = [PartyInvoiceGeneratedInvoiceApprovePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyInvoiceGeneratedInvoiceApprovePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s7_rows]
-                db.session.bulk_save_objects(s7_objects)
-                db.session.commit()
-            except Exception as e:
-                raise Exception(f"Segment 7 (vw_invoice_generated_invoice_approve_delay) failed: {str(e)}")
-            emit_sync_update('processing', 'Segment 7 synced. Syncing Segment 8...', 85, DATA_TYPE)
+            if completed_stage < 7:
+                current_stage = 'Segment 6'
+                # 7. Segment 6 Details (HM Receipt Return Completed - QC Issue Pending)
+                s6_query = "SELECT order_id, make_owner, collection_owner, make_owner_emp_code, collection, order_ro, order_branch, party, party_mobile_no, po_date, target_date, po_number, order_type, order_request_type, order_no, required_weight, design_no, set_identifier, set_design_no, barcode, is_hm_agent_received, barcoded_weight, barcode_completion_date, order_status, current_stage, hallmar_req_id, hm_request_no, hallmark_agent, hallmark_status, hm_ro, hm_agent_email, hm_agent_pnone_no, hm_completed_at, hallmark_info_id, net_weight, gross_weight, stone_weight, business_head_name, '+91' as business_head_phone_number, hm_agent_invoice_receipt_no, hm_agent_invoice_receipt_date, pending_to_final_qc_issue_pcs, pending_to_final_qc_issue_weight FROM ext_view.vw_hm_return_received_qc_issue_pending"
+                try:
+                    cur.execute(s6_query)
+                    s6_rows = cur.fetchall()
+                    db.session.execute(text("TRUNCATE TABLE party_qc_issue_pending_snapshots"))
+                    s6_objects = [PartyHMReceiptCompletedQCIssuePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyHMReceiptCompletedQCIssuePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s6_rows]
+                    db.session.bulk_save_objects(s6_objects)
+                    db.session.commit()
+                except Exception as e:
+                    raise Exception(f"Segment 6 (vw_hm_return_received_qc_issue_pending) failed: {str(e)}")
+                emit_sync_update('processing', 'Segment 6 synced. Syncing Segment 7...', 75, DATA_TYPE)
+                completed_stage = 7
+                retry_count = 0
 
-            # 9. Segment 8 Details (Invoice Approved - Not Synched to Muziris)
-            s8_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, invoice_no, invoice_approved_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_invoice_approved_not_synched_delay"
-            try:
-                cur.execute(s8_query)
-                s8_rows = cur.fetchall()
-                db.session.execute(text("TRUNCATE TABLE party_invoice_approved_not_synched_to_muziris_snapshots"))
-                s8_objects = [PartyInvoiceApprovedNotSynchedToMuzirisSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyInvoiceApprovedNotSynchedToMuzirisSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s8_rows]
-                db.session.bulk_save_objects(s8_objects)
-                db.session.commit()
-            except Exception as e:
-                raise Exception(f"Segment 8 (vw_invoice_approved_not_synched_delay) failed: {str(e)}")
+            if completed_stage < 8:
+                current_stage = 'Segment 7'
+                # 8. Segment 7 Details (Invoice Generated - Invoice Approve Pending)
+                s7_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, invoice_no, invoice_generated_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_invoice_generated_invoice_approve_delay"
+                try:
+                    cur.execute(s7_query)
+                    s7_rows = cur.fetchall()
+                    db.session.execute(text("TRUNCATE TABLE party_invoice_generated_invoice_approve_pending_snapshots"))
+                    s7_objects = [PartyInvoiceGeneratedInvoiceApprovePendingSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyInvoiceGeneratedInvoiceApprovePendingSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s7_rows]
+                    db.session.bulk_save_objects(s7_objects)
+                    db.session.commit()
+                except Exception as e:
+                    raise Exception(f"Segment 7 (vw_invoice_generated_invoice_approve_delay) failed: {str(e)}")
+                emit_sync_update('processing', 'Segment 7 synced. Syncing Segment 8...', 85, DATA_TYPE)
+                completed_stage = 8
+                retry_count = 0
+
+            if completed_stage < 9:
+                current_stage = 'Segment 8'
+                # 9. Segment 8 Details (Invoice Approved - Not Synched to Muziris)
+                s8_query = "SELECT make_owner, collection_owner, make_owner_emp_code, collection, order_branch, order_branch_id, po_date, po_number, order_pieces, order_wt, order_status, party, party_mobile_no, set_identifier, set_design_no, order_type, order_request_type, target_date, business_head_name, invoice_no, invoice_approved_date, pending_piece, pending_weight, delay_days FROM ext_view.vw_invoice_approved_not_synched_delay"
+                try:
+                    cur.execute(s8_query)
+                    s8_rows = cur.fetchall()
+                    db.session.execute(text("TRUNCATE TABLE party_invoice_approved_not_synched_to_muziris_snapshots"))
+                    s8_objects = [PartyInvoiceApprovedNotSynchedToMuzirisSnapshot(snapshot_date=snapshot_date, **dict(zip([c.name for c in PartyInvoiceApprovedNotSynchedToMuzirisSnapshot.__table__.columns if c.name not in ['id', 'snapshot_date', 'updated_at']], row))) for row in s8_rows]
+                    db.session.bulk_save_objects(s8_objects)
+                    db.session.commit()
+                except Exception as e:
+                    raise Exception(f"Segment 8 (vw_invoice_approved_not_synched_delay) failed: {str(e)}")
+                completed_stage = 9
+                retry_count = 0
 
             duration = time.time() - start_time
             emit_sync_update('success', f"Successfully synced Vendor Delay Management data in {duration:.2f}s", 100, DATA_TYPE)
@@ -4269,14 +4320,14 @@ def sync_party_delay_management_data_task():
         except Exception as e:
             db.session.rollback()
             retry_count += 1
-            error_msg = f"PartyDelayManagement sync failed (Attempt {retry_count}/{max_retries}): {str(e)}"
+            error_msg = f"Vendor Delay Management {current_stage} failed (Attempt {retry_count}/{max_retries}): {str(e)}"
             logger.error(error_msg)
-            
+
             if retry_count >= max_retries:
-                emit_sync_update('error', str(e), 0, DATA_TYPE)
-                return {"status": "error", "message": str(e)}
-            
-            emit_sync_update('processing', f"Sync failed, retrying in 5s... ({retry_count}/{max_retries})", 0, DATA_TYPE)
+                emit_sync_update('error', error_msg, 0, DATA_TYPE)
+                return {"status": "error", "message": error_msg}
+
+            emit_sync_update('processing', f"{current_stage} failed; retrying this stage in 5s... ({retry_count}/{max_retries}). Completed stages will not restart.", min(95, 10 + completed_stage * 10), DATA_TYPE)
             time.sleep(5)
         finally:
             if conn: conn.close()

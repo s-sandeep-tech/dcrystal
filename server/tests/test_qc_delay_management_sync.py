@@ -32,7 +32,7 @@ class QCDelayManagementSyncTests(unittest.TestCase):
             connection.set_session.assert_called_once_with(readonly=True, autocommit=False)
         return result, session, sleep
 
-    def test_all_four_views_use_bounded_batches_and_commit_together(self):
+    def test_all_four_views_use_bounded_batches_and_commit_each_stage(self):
         rows = [tuple(range(size)) for size in (28, 34, 37, 37)]
         connection, cursors = self.connection([[[row] * 30_000, [row], []] for row in rows])
         result, session, _ = self.run_sync([connection])
@@ -53,20 +53,22 @@ class QCDelayManagementSyncTests(unittest.TestCase):
         for cursor in cursors:
             cursor.fetchall.assert_not_called()
             self.assertTrue(all(call.args == (30_000,) for call in cursor.fetchmany.call_args_list))
-        session.commit.assert_called_once()
+        self.assertEqual(session.commit.call_count, 4)
         session.rollback.assert_not_called()
         session.bulk_save_objects.assert_not_called()
 
-    def test_last_segment_failure_rolls_back_before_full_retry(self):
+    def test_last_segment_failure_rolls_back_and_retries_only_that_segment(self):
         first, _ = self.connection([[[tuple(range(size))], []] for size in (28, 34, 37)]
                                    + [[RuntimeError('source disconnected')]])
-        second, _ = self.connection([[[]] for _ in range(4)])
+        second, cursors = self.connection([[[]]])
         result, session, sleep = self.run_sync([first, second])
         self.assertEqual(result['status'], 'success')
         session.rollback.assert_called_once()
-        session.commit.assert_called_once()
+        self.assertEqual(session.commit.call_count, 4)
         sleep.assert_called_once_with(5)
-        self.assertEqual(session.query.return_value.delete.call_count, 7)
+        self.assertEqual(session.query.return_value.delete.call_count, 4)
+        self.assertEqual(len(cursors), 1)
+        self.assertIn('FROM ext_view.vw_qc_completed_invoice_request_pending', cursors[0].execute.call_args.args[0])
 
     def test_exhausted_retries_never_commit(self):
         connections = [self.connection([[RuntimeError('source unavailable')]])[0] for _ in range(5)]
