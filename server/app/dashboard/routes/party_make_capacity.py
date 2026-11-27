@@ -255,6 +255,7 @@ def get_aggregated_capacity_data():
         PartyMakeCapacityDetailsSnapshot.make.label('make'),
         func.max(PartyMakeCapacityDetailsSnapshot.party_capacity_kg).label('party_capacity_kg'),
         func.max(PartyMakeCapacityDetailsSnapshot.actual_capacity_kg).label('actual_capacity_kg'),
+        func.max(PartyMakeCapacityDetailsSnapshot.current_capacity).label('current_capacity'),
         func.sum(PartyMakeCapacityDetailsSnapshot.process_pending_pcs).label('process_pending_pcs'),
         func.sum(PartyMakeCapacityDetailsSnapshot.process_pending_wt).label('process_pending_wt'),
         func.sum(PartyMakeCapacityDetailsSnapshot.barcode_pending_pcs).label('barcode_pending_pcs'),
@@ -299,6 +300,7 @@ def get_aggregated_capacity_data():
         make_name = r.make or 'Unknown Make'
 
         make_cap = float(r.party_capacity_kg or 0.0)
+        current_cap = float(r.current_capacity or 0.0)
         proc_wt = float(r.process_pending_wt or 0.0)
         barc_wt = float(r.barcode_pending_wt or 0.0)
         hm_wt = float(r.hallmark_pending_wt or 0.0)
@@ -313,7 +315,7 @@ def get_aggregated_capacity_data():
         tot_wt = float(r.total_wt) if (r.total_wt is not None and float(r.total_wt) > 0) else stage_sum
         tot_wt_kg = round(tot_wt / 1000.0, 4)
 
-        diff = round(make_cap - tot_wt_kg, 4)
+        diff = round(float(r.actual_capacity_kg or 0.0) - current_cap, 4)
         util_pct = round((tot_wt_kg / make_cap * 100), 1) if make_cap > 0 else 0.0
         bottleneck = determine_primary_bottleneck(proc_wt, barc_wt, hm_wt, qc_iss_wt, qc_comp_wt, inv_wt)
         qc_rework_pct = round((correction_wt / tot_wt * 100), 1) if tot_wt > 0 else 0.0
@@ -326,6 +328,7 @@ def get_aggregated_capacity_data():
             'supplier': sup_name,
             'actual_capacity': float(r.actual_capacity_kg) if r.actual_capacity_kg is not None else None,
             'capacity_wt_kg_per_month': make_cap,
+            'current_capacity': current_cap,
             'process_pending_pcs': int(r.process_pending_pcs or 0),
             'process_pending_wt': round(proc_wt, 3),
             'barcode_pending_pcs': int(r.barcode_pending_pcs or 0),
@@ -361,6 +364,7 @@ def get_aggregated_capacity_data():
                 'supplier': sup_name,
                 'actual_capacity': None,
                 'capacity_wt_kg_per_month': 0.0,
+                'current_capacity': 0.0,
                 'process_pending_pcs': 0,
                 'process_pending_wt': 0.0,
                 'barcode_pending_pcs': 0,
@@ -397,6 +401,7 @@ def get_aggregated_capacity_data():
             sup['actual_capacity'] = (sup['actual_capacity'] or 0.0) + make_data['actual_capacity']
         sup['is_orders'] = sup['is_orders'] or make_data['is_orders']
         sup['capacity_wt_kg_per_month'] += make_cap
+        sup['current_capacity'] += current_cap
         sup['process_pending_pcs'] += make_data['process_pending_pcs']
         sup['process_pending_wt'] += make_data['process_pending_wt']
         sup['barcode_pending_pcs'] += make_data['barcode_pending_pcs']
@@ -423,6 +428,8 @@ def get_aggregated_capacity_data():
     suppliers_list = []
     global_kpis = {
         'total_capacity_kg': 0.0,
+        'total_current_capacity_kg': 0.0,
+        'total_actual_capacity_kg': 0.0,
         'total_wip_wt': 0.0,
         'total_wip_kg': 0.0,
         'net_diff_kg': 0.0,
@@ -439,7 +446,8 @@ def get_aggregated_capacity_data():
         sup['capacity_wt_kg_per_month'] = round(sup['capacity_wt_kg_per_month'], 4)
         sup['total_wt'] = round(sup['total_wt'], 3)
         sup['total_wt_in_kg'] = round(sup['total_wt'] / 1000.0, 4)
-        sup['diff'] = round(sup['capacity_wt_kg_per_month'] - sup['total_wt_in_kg'], 4)
+        sup['current_capacity'] = round(sup['current_capacity'], 4)
+        sup['diff'] = round((sup['actual_capacity'] or 0.0) - sup['current_capacity'], 4)
         sup['utilization_pct'] = round((sup['total_wt_in_kg'] / sup['capacity_wt_kg_per_month'] * 100), 1) if sup['capacity_wt_kg_per_month'] > 0 else 0.0
         sup['receipt_pending_wt_kg'] = round(sup['receipt_pending_wt'] / 1000.0, 4)
         sup['primary_bottleneck'] = determine_primary_bottleneck(
@@ -451,6 +459,8 @@ def get_aggregated_capacity_data():
 
         # Global stats accumulation
         global_kpis['total_capacity_kg'] += sup['capacity_wt_kg_per_month']
+        global_kpis['total_current_capacity_kg'] += sup['current_capacity']
+        global_kpis['total_actual_capacity_kg'] += sup['actual_capacity'] or 0.0
         global_kpis['total_wip_wt'] += sup['total_wt']
         global_kpis['total_wip_kg'] += sup['total_wt_in_kg']
         global_kpis['total_transit_kg'] += sup['receipt_pending_wt_kg']
@@ -468,7 +478,9 @@ def get_aggregated_capacity_data():
 
     global_kpis['total_capacity_kg'] = round(global_kpis['total_capacity_kg'], 3)
     global_kpis['total_wip_kg'] = round(global_kpis['total_wip_kg'], 3)
-    global_kpis['net_diff_kg'] = round(global_kpis['total_capacity_kg'] - global_kpis['total_wip_kg'], 3)
+    global_kpis['total_current_capacity_kg'] = round(global_kpis['total_current_capacity_kg'], 3)
+    global_kpis['total_actual_capacity_kg'] = round(global_kpis['total_actual_capacity_kg'], 3)
+    global_kpis['net_diff_kg'] = round(global_kpis['total_actual_capacity_kg'] - global_kpis['total_current_capacity_kg'], 3)
     global_kpis['overall_utilization_pct'] = round((global_kpis['total_wip_kg'] / global_kpis['total_capacity_kg'] * 100), 1) if global_kpis['total_capacity_kg'] > 0 else 0.0
     global_kpis['total_transit_kg'] = round(global_kpis['total_transit_kg'], 3)
     global_kpis['total_qc_rework_kg'] = round(global_kpis['total_qc_rework_kg'], 3)
@@ -487,7 +499,7 @@ def get_aggregated_capacity_data():
     sort_order = request.args.get('sort_order', 'asc').strip().lower()
     reverse = (sort_order == 'desc')
 
-    if sort_by in ['actual_capacity', 'capacity_wt_kg_per_month', 'total_wt', 'total_wt_in_kg', 'diff', 'utilization_pct', 'qc_rework_pct', 'receipt_pending_wt_kg']:
+    if sort_by in ['current_capacity', 'actual_capacity', 'capacity_wt_kg_per_month', 'total_wt', 'total_wt_in_kg', 'diff', 'utilization_pct', 'qc_rework_pct', 'receipt_pending_wt_kg']:
         suppliers_list.sort(key=lambda s: s.get(sort_by, 0.0) or 0.0, reverse=reverse)
     else:
         suppliers_list.sort(key=lambda s: str(s.get('supplier', '')).upper(), reverse=reverse)
@@ -622,7 +634,7 @@ def api_party_make_capacity_export():
         red_font = Font(name="Calibri", size=9, bold=True, color="DC2626")
 
         headers = [
-            "supplier", "make", "Act. Capacity (kg)", "Capacity (kg)", "Total Pending (kg)", "Balance (kg)",
+            "supplier", "make", "Act. Capacity (kg)", "Capacity (kg)", "Current Capacity (kg)", "Total Pending (kg)", "Balance (kg)",
             "utilization_pct", "primary_bottleneck", "qc_rework_pct",
             "process_pending_wt", "barcode_pending_wt", "hallmark_pending_wt",
             "qc_issue_pending_wt", "qc_complete_pending_wt", "invoice_pending_wt",
@@ -648,6 +660,7 @@ def api_party_make_capacity_export():
                 f"ALL MAKES ({len(sup['makes'])})",
                 sup['actual_capacity'],
                 sup['capacity_wt_kg_per_month'],
+                sup['current_capacity'],
                 sup['total_wt_in_kg'],
                 sup['diff'],
                 f"{sup['utilization_pct']}%",
@@ -679,6 +692,7 @@ def api_party_make_capacity_export():
                     m['make'],
                     m['actual_capacity'],
                     m['capacity_wt_kg_per_month'],
+                    m['current_capacity'],
                     m['total_wt_in_kg'],
                     m['diff'],
                     f"{m['utilization_pct']}%",
@@ -698,7 +712,7 @@ def api_party_make_capacity_export():
                 for col_idx, cell in enumerate(ws[row_num], 1):
                     cell.font = child_font
                     cell.border = cell_border
-                    if col_idx == 6: # Balance column
+                    if col_idx == 7: # Balance column
                         cell.font = red_font if m['diff'] < 0 else green_font
                     if isinstance(cell.value, (int, float)):
                         cell.number_format = "#,##0.000" if isinstance(cell.value, float) else "#,##0"

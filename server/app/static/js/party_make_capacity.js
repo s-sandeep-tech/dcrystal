@@ -274,6 +274,9 @@ function renderTableRows(suppliers) {
                 ${formatNumber(sup.capacity_wt_kg_per_month, 3)}
             </td>
 
+            <td class="px-2 py-2 text-right border-r border-gray-200 dark:border-gray-800 font-extrabold">
+                ${formatNumber(sup.current_capacity, 3)}
+            </td>
             <!-- Col 11: Total Wt in KG -->
             <td class="px-2 py-2 text-right border-r border-gray-200 dark:border-gray-800 font-extrabold text-gray-900 dark:text-gray-100">
                 ${formatNumber(sup.total_wt_in_kg, 4)}
@@ -377,6 +380,9 @@ function renderTableRows(suppliers) {
                     ${formatNumber(m.capacity_wt_kg_per_month, 3)}
                 </td>
 
+                <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800 font-medium">
+                    ${formatNumber(m.current_capacity, 3)}
+                </td>
                 <!-- Col 11: Total Wt in KG -->
                 <td class="px-2 py-1.5 text-right border-r border-gray-200 dark:border-gray-800 font-bold">
                     ${formatNumber(m.total_wt_in_kg, 4)}

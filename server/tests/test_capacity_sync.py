@@ -35,6 +35,7 @@ class CapacitySyncTests(unittest.TestCase):
             'party_capacity_kg': '2.5', 'receipt_pending_wt': '12.345',
             'process_pending_pcs': '4', 'is_msme': False,
             'actual_capacity_kg': Decimal('123456789012.345'),
+            'current_capacity': Decimal('7.125'),
             'correction_pcs': 9223372036854775807,
             'make_owner': ' Owner A ', 'collection_owner': 'Owner B',
             'make_owner_emp_code': ' 00123 ', 'collection_owner_emp_code': '00456',
@@ -56,6 +57,7 @@ class CapacitySyncTests(unittest.TestCase):
         self.assertEqual(record['party_capacity_kg'], 2.5)
         self.assertEqual(record['receipt_pending_wt'], Decimal('12.345'))
         self.assertEqual(record['actual_capacity_kg'], Decimal('123456789012.345'))
+        self.assertEqual(record['current_capacity'], Decimal('7.125'))
         self.assertEqual(record['correction_pcs'], 9223372036854775807)
         self.assertIsInstance(record['correction_pcs'], int)
         self.assertEqual(record['make_owner'], 'Owner A')

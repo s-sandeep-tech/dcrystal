@@ -145,6 +145,47 @@ class CapacityOrderStatusTests(unittest.TestCase):
             self.assertIsNone(makes['Missing']['actual_capacity'])
             self.assertIsNone(rows[1]['actual_capacity'])
 
+    def test_current_capacity_balance_deduplicates_and_uses_actual_capacity(self):
+        db.session.add_all([
+            Snapshot(supplier='Current', make='A', party_capacity_kg=99, current_capacity=5,
+                     actual_capacity_kg=2, total_wt=1000, is_orders=True),
+            Snapshot(supplier='Current', make='A', party_capacity_kg=99, current_capacity=5,
+                     actual_capacity_kg=2, total_wt=500, is_orders=True),
+            Snapshot(supplier='Current', make='B', party_capacity_kg=99, current_capacity=2,
+                     actual_capacity_kg=4, total_wt=4000, is_orders=True),
+        ])
+        db.session.commit()
+        with self.app.test_request_context('/?supplier=Current&sort_by=current_capacity&sort_order=desc'):
+            rows, kpis = get_aggregated_capacity_data()
+        supplier = rows[0]
+        makes = {m['make']: m for m in supplier['makes']}
+        self.assertEqual(makes['A']['current_capacity'], 5)
+        self.assertEqual(makes['A']['diff'], -3)
+        self.assertEqual(makes['B']['diff'], 2)
+        self.assertEqual(supplier['current_capacity'], 7)
+        self.assertEqual(supplier['actual_capacity'], 6)
+        self.assertEqual(supplier['total_wt_in_kg'], 5.5)
+        self.assertEqual(supplier['diff'], -1)
+        self.assertEqual(kpis['net_diff_kg'], -1)
+        self.assertEqual(kpis['total_current_capacity_kg'], 7)
+
+    def test_export_places_current_capacity_before_pending_and_exports_new_balance(self):
+        from app.dashboard.routes import party_make_capacity as report
+        db.session.add(Snapshot(supplier='Export', make='A', current_capacity=6,
+                                actual_capacity_kg=2, total_wt=123456, is_orders=True))
+        db.session.commit()
+        with self.app.test_request_context('/?supplier=Export'), patch.object(
+            report, 'ensure_exports_dir'
+        ), patch('openpyxl.workbook.workbook.Workbook.save', autospec=True) as save, patch.object(
+            report, 'send_file', return_value='exported'
+        ), patch.object(db.session, 'add'):
+            self.assertEqual(report.api_party_make_capacity_export.__wrapped__(), 'exported')
+        sheet = save.call_args.args[0].active
+        headers = [c.value for c in sheet[1]]
+        self.assertEqual(headers[4:7], ['Current Capacity (kg)', 'Total Pending (kg)', 'Balance (kg)'])
+        self.assertEqual([sheet.cell(2, c).value for c in (5, 6, 7)], [6, 123.456, -4])
+        self.assertEqual([sheet.cell(3, c).value for c in (5, 6, 7)], [6, 123.456, -4])
+
 
 if __name__ == '__main__':
     unittest.main()

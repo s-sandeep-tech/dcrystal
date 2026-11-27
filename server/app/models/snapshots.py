@@ -3562,6 +3562,7 @@ class PartyMakeCapacityDetailsSnapshot(db.Model):
     make = db.Column(db.String(150), index=True)
     party_capacity_kg = db.Column(db.Numeric(15, 3), default=0.0)
     actual_capacity_kg = db.Column(db.Numeric(15, 3))
+    current_capacity = db.Column(db.Numeric(15, 3))
     order_ro = db.Column(db.String(100), index=True)
     location = db.Column(db.String(150), index=True)
     provision_type = db.Column(db.Text, index=True)

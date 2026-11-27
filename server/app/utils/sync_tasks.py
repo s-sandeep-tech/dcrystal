@@ -5281,6 +5281,7 @@ def sync_party_make_capacity_details_task(task_type_override=None, progress_rang
                             'make': str(row.get('make') or '').strip(),
                             'party_capacity_kg': to_decimal(row.get('party_capacity_kg')),
                             'actual_capacity_kg': to_decimal(row['actual_capacity_kg']) if row.get('actual_capacity_kg') is not None else None,
+                            'current_capacity': to_decimal(row.get('current_capacity')),
                             'correction_pcs': to_int(row['correction_pcs']) if row.get('correction_pcs') is not None else None,
                             'make_owner': str(row['make_owner']).strip() if row.get('make_owner') is not None else None,
                             'collection_owner': str(row['collection_owner']).strip() if row.get('collection_owner') is not None else None,

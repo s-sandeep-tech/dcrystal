@@ -222,6 +222,12 @@
                         </div>
                     </th>
 
+                    <th class="capacity-column px-2 py-2 text-right bg-header-blue border-r border-blue-200 dark:border-blue-900 cursor-pointer hover:bg-blue-200" title="Current Capacity (kg)" onclick="sortByColumn('current_capacity')">
+                        <div class="flex items-center justify-end gap-1">
+                            <span>Current Capacity (kg)</span>
+                            <span class="material-symbols-outlined text-[11px]">unfold_more</span>
+                        </div>
+                    </th>
                     <!-- Column 11: Total Wt in KG -->
                     <th class="px-2 py-2 text-right bg-header-blue border-r border-blue-200 dark:border-blue-900 w-28 font-extrabold cursor-pointer" onclick="sortByColumn('total_wt_in_kg')">
                         <div class="flex items-center justify-end gap-1">
@@ -231,7 +237,7 @@
                     </th>
 
                     <!-- Column 12: Diff (KG) -->
-                    <th class="px-2 py-2 text-right bg-header-blue border-r border-blue-200 dark:border-blue-900 w-24 font-extrabold cursor-pointer" onclick="sortByColumn('diff')">
+                    <th class="px-2 py-2 text-right bg-header-blue border-r border-blue-200 dark:border-blue-900 w-24 font-extrabold cursor-pointer" title="Actual Capacity minus Current Capacity (kg)" onclick="sortByColumn('diff')">
                         <div class="flex items-center justify-end gap-1">
                             <span>Balance (kg)</span>
                             <span class="material-symbols-outlined text-[11px]">unfold_more</span>
@@ -553,5 +559,5 @@
 </aside>
 {% endblock %}
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/party_make_capacity.js') }}"></script>
+<script src="{{ url_for('static', filename='js/party_make_capacity.js', v='20261127-current-capacity') }}"></script>
 {% endblock %}
