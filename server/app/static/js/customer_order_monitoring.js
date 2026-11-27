@@ -139,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (error.name === 'AbortError') return;
             el('loading-overlay').hidden = true;
             el('error').textContent = error.message;
+            el('error').title = error.message;
             el('data-error').hidden = false;
             el('retry').hidden = false;
             el('table').setAttribute('aria-busy', 'false');

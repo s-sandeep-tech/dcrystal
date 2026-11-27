@@ -2,7 +2,7 @@
 {% block title %}Customer Order Performance & Delivery Monitoring{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/party_performance_matrix.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/customer_order_monitoring.css', v='20261127-data-error') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/customer_order_monitoring.css', v='20261127-compact-data-error') }}">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
 {% block content %}
@@ -190,5 +190,5 @@
 {% endblock %}
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/custom.multiselect.js') }}"></script>
-<script src="{{ url_for('static', filename='js/customer_order_monitoring.js', v='20261127-data-error') }}"></script>
+<script src="{{ url_for('static', filename='js/customer_order_monitoring.js', v='20261127-compact-data-error') }}"></script>
 {% endblock %}

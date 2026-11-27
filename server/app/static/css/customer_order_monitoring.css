@@ -4,9 +4,9 @@
 #customer-monitor .party-matrix-header { flex-wrap: wrap; }
 #customer-monitor .party-matrix-title-row { min-width: 0; }
 #customer-monitor .monitor-title-block { min-width: 0; flex: 1; }
-.monitor-data-error:not([hidden]) { display: flex; align-items: flex-start; gap: 7px; margin-top: 8px; padding: 8px 10px; border-left: 3px solid #d97706; border-radius: 4px; background: #fffbeb; color: #92400e; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
-.monitor-data-error > .material-symbols-outlined { font-size: 18px; flex-shrink: 0; }
-.monitor-data-error #monitor-error { flex: 1; min-width: 0; }
+.monitor-data-error:not([hidden]) { display: flex; align-items: center; gap: 5px; width: fit-content; max-width: min(600px, 100%); box-sizing: border-box; margin-top: 4px; padding: 3px 6px; border-left: 2px solid #d97706; border-radius: 3px; background: #fffbeb; color: #92400e; font-size: 10px; line-height: 1.3; }
+.monitor-data-error > .material-symbols-outlined { font-size: 14px; flex-shrink: 0; }
+.monitor-data-error #monitor-error { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .monitor-data-error button { color: #137fec; font-weight: 600; flex-shrink: 0; }
 .dark .monitor-data-error { background: #292014; color: #fcd34d; }
 #customer-monitor .party-matrix-title-row h1 { font-size: 16px; overflow-wrap: anywhere; }
