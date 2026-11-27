@@ -182,9 +182,9 @@ class CapacityOrderStatusTests(unittest.TestCase):
             self.assertEqual(report.api_party_make_capacity_export.__wrapped__(), 'exported')
         sheet = save.call_args.args[0].active
         headers = [c.value for c in sheet[1]]
-        self.assertEqual(headers[4:7], ['Cur. Capacity (kg)', 'Total Pending (kg)', 'Balance (kg)'])
-        self.assertEqual([sheet.cell(2, c).value for c in (5, 6, 7)], [6, 123.456, -4])
-        self.assertEqual([sheet.cell(3, c).value for c in (5, 6, 7)], [6, 123.456, -4])
+        self.assertEqual(headers[4:7], ['Cur. Capacity (kg)', 'Balance (kg)', 'Total Pending (kg)'])
+        self.assertEqual([sheet.cell(2, c).value for c in (5, 6, 7)], [6, -4, 123.456])
+        self.assertEqual([sheet.cell(3, c).value for c in (5, 6, 7)], [6, -4, 123.456])
 
 
 if __name__ == '__main__':

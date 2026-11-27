@@ -634,7 +634,7 @@ def api_party_make_capacity_export():
         red_font = Font(name="Calibri", size=9, bold=True, color="DC2626")
 
         headers = [
-            "supplier", "make", "Act. Capacity (kg)", "Capacity (kg)", "Cur. Capacity (kg)", "Total Pending (kg)", "Balance (kg)",
+            "supplier", "make", "Act. Capacity (kg)", "Capacity (kg)", "Cur. Capacity (kg)", "Balance (kg)", "Total Pending (kg)",
             "utilization_pct", "primary_bottleneck", "qc_rework_pct",
             "process_pending_wt", "barcode_pending_wt", "hallmark_pending_wt",
             "qc_issue_pending_wt", "qc_complete_pending_wt", "invoice_pending_wt",
@@ -661,8 +661,8 @@ def api_party_make_capacity_export():
                 sup['actual_capacity'],
                 sup['capacity_wt_kg_per_month'],
                 sup['current_capacity'],
-                sup['total_wt_in_kg'],
                 sup['diff'],
+                sup['total_wt_in_kg'],
                 f"{sup['utilization_pct']}%",
                 sup['primary_bottleneck'],
                 f"{sup['qc_rework_pct']}%",
@@ -693,8 +693,8 @@ def api_party_make_capacity_export():
                     m['actual_capacity'],
                     m['capacity_wt_kg_per_month'],
                     m['current_capacity'],
-                    m['total_wt_in_kg'],
                     m['diff'],
+                    m['total_wt_in_kg'],
                     f"{m['utilization_pct']}%",
                     m['primary_bottleneck'],
                     f"{m['qc_rework_pct']}%",
@@ -712,7 +712,7 @@ def api_party_make_capacity_export():
                 for col_idx, cell in enumerate(ws[row_num], 1):
                     cell.font = child_font
                     cell.border = cell_border
-                    if col_idx == 7: # Balance column
+                    if col_idx == 6: # Balance column
                         cell.font = red_font if m['diff'] < 0 else green_font
                     if isinstance(cell.value, (int, float)):
                         cell.number_format = "#,##0.000" if isinstance(cell.value, float) else "#,##0"
